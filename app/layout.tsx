@@ -1,0 +1,153 @@
+import type { Metadata } from "next";
+import {
+  Libre_Baskerville,
+  Crimson_Pro,
+  Josefin_Sans,
+  Poppins,
+  Open_Sans,
+  Playfair_Display,
+  Lora,
+  Merriweather,
+  Dancing_Script,
+  Caveat,
+  Source_Code_Pro,
+  Inter,
+  Spectral,
+  EB_Garamond,
+  Cormorant_Garamond,
+} from "next/font/google";
+import "./globals.css";
+import { ModalProvider } from "@/components/providers/ModalProvider";
+import { AuthProvider } from "@/components/providers/AuthProvider";
+import { LightboxProvider } from "@/components/ui/Lightbox";
+
+const libreBaskerville = Libre_Baskerville({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-libre-baskerville",
+});
+
+const crimsonPro = Crimson_Pro({
+  weight: ["300", "400", "500", "600"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-crimson-pro",
+});
+
+const josefinSans = Josefin_Sans({
+  weight: ["300", "400", "500", "600"],
+  subsets: ["latin"],
+  variable: "--font-josefin-sans",
+});
+
+const poppins = Poppins({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-poppins",
+});
+
+const openSans = Open_Sans({
+  weight: ["400", "500", "600"],
+  subsets: ["latin"],
+  variable: "--font-open-sans",
+});
+
+const playfairDisplay = Playfair_Display({
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-playfair-display",
+});
+
+const lora = Lora({
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-lora",
+});
+
+const merriweather = Merriweather({
+  weight: ["300", "400", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-merriweather",
+});
+
+const dancingScript = Dancing_Script({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-dancing-script",
+});
+
+const caveat = Caveat({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-caveat",
+});
+
+const sourceCodePro = Source_Code_Pro({
+  weight: ["400", "500", "600"],
+  subsets: ["latin"],
+  variable: "--font-source-code-pro",
+});
+
+const inter = Inter({
+  weight: ["300", "400", "500", "600"],
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const spectral = Spectral({
+  weight: ["300", "400", "500", "600"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-spectral",
+});
+
+const ebGaramond = EB_Garamond({
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-eb-garamond",
+});
+
+const cormorantGaramond = Cormorant_Garamond({
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-cormorant-garamond",
+});
+
+export const metadata: Metadata = {
+  title: "PinkQuill",
+  description: "A social platform for artists, poets, and creators",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body
+        className={`${libreBaskerville.variable} ${crimsonPro.variable} ${josefinSans.variable} ${poppins.variable} ${openSans.variable} ${playfairDisplay.variable} ${lora.variable} ${merriweather.variable} ${dancingScript.variable} ${caveat.variable} ${sourceCodePro.variable} ${inter.variable} ${spectral.variable} ${ebGaramond.variable} ${cormorantGaramond.variable} antialiased`}
+      >
+        {/* Aura Gradient Background */}
+        <div className="aura-blob blob-1" />
+        <div className="aura-blob blob-2" />
+        <div className="aura-blob blob-3" />
+
+        <AuthProvider>
+          <LightboxProvider>
+            <ModalProvider>{children}</ModalProvider>
+          </LightboxProvider>
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}

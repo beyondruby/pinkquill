@@ -1,0 +1,1046 @@
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useToggleSave, useToggleRelay, useComments, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, ReactionType } from "@/lib/hooks";
+import ShareModal from "@/components/ui/ShareModal";
+import ReportModal from "@/components/ui/ReportModal";
+import CommentItem from "@/components/feed/CommentItem";
+import ReactionPicker from "@/components/feed/ReactionPicker";
+import LeftSidebar from "@/components/layout/LeftSidebar";
+import PostTags from "@/components/feed/PostTags";
+import { icons } from "@/components/ui/Icons";
+
+// Helper to clean HTML for display (keeps tags but fixes &nbsp;)
+function cleanHtmlForDisplay(html: string): string {
+  return html.replace(/&nbsp;/g, ' ');
+}
+
+interface TaggedUser {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
+interface CollaboratorUser {
+  role?: string | null;
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+interface Author {
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
+interface MediaItem {
+  id: string;
+  media_url: string;
+  media_type: "image" | "video";
+  caption: string | null;
+  position: number;
+}
+
+interface Post {
+  id: string;
+  author_id: string;
+  type: string;
+  title: string | null;
+  content: string;
+  content_warning: string | null;
+  created_at: string;
+  author: Author;
+  media: MediaItem[];
+  mentions?: TaggedUser[];
+  hashtags?: string[];
+  collaborators?: CollaboratorUser[];
+}
+
+function getTimeAgo(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return "Just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return date.toLocaleDateString();
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+function getTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    poem: "wrote a poem",
+    journal: "wrote in their journal",
+    thought: "shared a thought",
+    visual: "shared a visual story",
+    audio: "recorded a voice note",
+    video: "shared a video",
+    essay: "wrote an essay",
+    screenplay: "wrote a screenplay",
+    story: "shared a story",
+    letter: "wrote a letter",
+    quote: "shared a quote",
+  };
+  return labels[type] || "shared something";
+}
+
+export default function PostPage() {
+  const params = useParams();
+  const router = useRouter();
+  const postId = params.id as string;
+  const { user, profile } = useAuth();
+
+  const [post, setPost] = useState<Post | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [relayCount, setRelayCount] = useState(0);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isRelayed, setIsRelayed] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
+  const [showContent, setShowContent] = useState(true);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { blockUser } = useBlock();
+
+  const { toggle: toggleSave } = useToggleSave();
+  const { toggle: toggleRelay } = useToggleRelay();
+  const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment } = useComments(postId, user?.id);
+
+  // Reaction system hooks
+  const { react: toggleReaction, removeReaction } = useToggleReaction();
+  const { counts: reactionCounts } = useReactionCounts(postId);
+  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(postId, user?.id);
+
+  // Single fetch function for all data
+  const fetchData = useCallback(async () => {
+    if (!postId) {
+      setError("No post ID");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Fetch post
+      const { data: postData, error: postError } = await supabase
+        .from("posts")
+        .select(`
+          *,
+          author:profiles!posts_author_id_fkey (
+            username,
+            display_name,
+            avatar_url
+          ),
+          media:post_media (
+            id,
+            media_url,
+            media_type,
+            caption,
+            position
+          )
+        `)
+        .eq("id", postId)
+        .single();
+
+      if (postError) {
+        setError("Post not found");
+        setLoading(false);
+        return;
+      }
+
+      if (!postData) {
+        setError("Post not found");
+        setLoading(false);
+        return;
+      }
+
+      // SECURITY CHECK: Enforce visibility rules
+      const visibility = postData.visibility;
+      const isOwner = user?.id === postData.author_id;
+
+      if (visibility === "private") {
+        // Private posts: only the author can see
+        if (!isOwner) {
+          setError("This post is private");
+          setLoading(false);
+          return;
+        }
+      } else if (visibility === "followers") {
+        // Followers-only posts: only the author or their followers can see
+        if (!isOwner) {
+          if (!user) {
+            // Not logged in - can't see followers-only content
+            setError("You must be logged in to view this post");
+            setLoading(false);
+            return;
+          }
+
+          // Check if the current user follows the post author (must be accepted)
+          const { data: followData } = await supabase
+            .from("follows")
+            .select("id")
+            .eq("follower_id", user.id)
+            .eq("following_id", postData.author_id)
+            .eq("status", "accepted")
+            .maybeSingle();
+
+          if (!followData) {
+            setError("This post is only visible to followers");
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      // SECURITY CHECK: Private account check
+      // If the author has a private account, only approved followers can see their posts
+      if (!isOwner) {
+        const { data: authorProfile } = await supabase
+          .from("profiles")
+          .select("is_private")
+          .eq("id", postData.author_id)
+          .single();
+
+        if (authorProfile?.is_private) {
+          if (!user) {
+            setError("This post is from a private account");
+            setLoading(false);
+            return;
+          }
+
+          // Check if user is an accepted follower
+          const { data: followData } = await supabase
+            .from("follows")
+            .select("status")
+            .eq("follower_id", user.id)
+            .eq("following_id", postData.author_id)
+            .eq("status", "accepted")
+            .maybeSingle();
+
+          if (!followData) {
+            setError("This post is from a private account");
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      // Fetch mentions (tagged people)
+      let mentions: TaggedUser[] = [];
+      try {
+        const { data: mentionsData } = await supabase
+          .from("post_mentions")
+          .select(`
+            user:profiles!post_mentions_user_id_fkey (
+              id,
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .eq("post_id", postId);
+
+        if (mentionsData) {
+          mentions = mentionsData
+            .map((m: any) => m.user)
+            .filter((u: any): u is TaggedUser => u !== null && u !== undefined);
+        }
+      } catch {
+        // Table might not exist yet
+      }
+
+      // Fetch hashtags
+      let hashtags: string[] = [];
+      try {
+        const { data: tagsData } = await supabase
+          .from("post_tags")
+          .select("tag:tags(name)")
+          .eq("post_id", postId);
+
+        if (tagsData) {
+          hashtags = tagsData
+            .map((t: any) => t.tag?.name)
+            .filter((name: any): name is string => !!name);
+        }
+      } catch {
+        // Table might not exist yet
+      }
+
+      // Fetch collaborators
+      let collaborators: CollaboratorUser[] = [];
+      try {
+        const { data: collabData } = await supabase
+          .from("post_collaborators")
+          .select(`
+            role,
+            user:profiles!post_collaborators_user_id_fkey (
+              id,
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .eq("post_id", postId)
+          .eq("status", "accepted");
+
+        if (collabData) {
+          collaborators = collabData
+            .map((c: any) => ({ role: c.role, user: c.user }))
+            .filter((c: any) => c.user !== null);
+        }
+      } catch {
+        // Table might not exist yet
+      }
+
+      setPost({ ...postData, mentions, hashtags, collaborators });
+      setShowContent(!postData.content_warning);
+
+      // Fetch relay count and user interactions
+      const relaysResult = await supabase.from("relays").select("user_id").eq("post_id", postId);
+      setRelayCount(relaysResult.data?.length || 0);
+
+      // Check if current user has interacted (relays and saves - reactions handled by hooks)
+      if (user) {
+        const userRelayed = relaysResult.data?.some(r => r.user_id === user.id) || false;
+        setIsRelayed(userRelayed);
+
+        const { data: saveData } = await supabase
+          .from("saves")
+          .select("user_id")
+          .eq("post_id", postId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        setIsSaved(!!saveData);
+      }
+
+      setLoading(false);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError("Failed to load post");
+      setLoading(false);
+    }
+  }, [postId, user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Reaction handlers
+  const handleReaction = async (reactionType: ReactionType) => {
+    if (!user || !post) return;
+
+    const isSameReaction = userReaction === reactionType;
+
+    // Optimistic update
+    if (isSameReaction) {
+      setUserReaction(null);
+    } else {
+      setUserReaction(reactionType);
+    }
+
+    // Database update (real-time subscription will update counts)
+    await toggleReaction(post.id, user.id, reactionType, userReaction);
+
+    // Create notification for reaction
+    if (!isSameReaction && post.author_id !== user.id) {
+      await createNotification(post.author_id, user.id, "admire", post.id);
+    }
+  };
+
+  const handleRemoveReaction = async () => {
+    if (!user || !post || !userReaction) return;
+
+    // Optimistic update
+    setUserReaction(null);
+
+    // Database update
+    await removeReaction(post.id, user.id);
+  };
+
+  const handleSave = async () => {
+    if (!user || !post) return;
+
+    const newIsSaved = !isSaved;
+    setIsSaved(newIsSaved);
+
+    await toggleSave(post.id, user.id, !newIsSaved);
+  };
+
+  const handleRelay = async () => {
+    if (!user || !post) return;
+    // Can't relay your own posts
+    if (user.id === post.author_id) return;
+
+    const newIsRelayed = !isRelayed;
+    setIsRelayed(newIsRelayed);
+    setRelayCount(prev => newIsRelayed ? prev + 1 : Math.max(0, prev - 1));
+
+    await toggleRelay(post.id, user.id, !newIsRelayed);
+
+    if (newIsRelayed && post.author_id !== user.id) {
+      await createNotification(post.author_id, user.id, "relay", post.id);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!commentText.trim() || !user || !post) return;
+
+    setSubmitting(true);
+    const result = await addComment(user.id, commentText.trim());
+    if (result.success) {
+      setCommentText("");
+      if (post.author_id !== user.id) {
+        await createNotification(post.author_id, user.id, "comment", post.id, commentText.trim());
+      }
+    }
+    setSubmitting(false);
+  };
+
+  const handleCommentLike = (commentId: string, isLiked: boolean) => {
+    if (!user) return;
+    toggleLike(commentId, user.id, isLiked);
+  };
+
+  const handleCommentReply = async (parentId: string, content: string) => {
+    if (!user) return;
+    await addComment(user.id, content, parentId);
+  };
+
+  const handleCommentDelete = (commentId: string) => {
+    deleteComment(commentId);
+  };
+
+  // Click outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showMenu]);
+
+  const isOwner = user && post && user.id === post.author_id;
+
+  const handleDelete = async () => {
+    if (!post || !user) return;
+
+    setDeleting(true);
+    try {
+      // Delete related data first (media, admires, saves, relays, comments, notifications)
+      await Promise.all([
+        supabase.from("post_media").delete().eq("post_id", post.id),
+        supabase.from("admires").delete().eq("post_id", post.id),
+        supabase.from("saves").delete().eq("post_id", post.id),
+        supabase.from("relays").delete().eq("post_id", post.id),
+        supabase.from("comments").delete().eq("post_id", post.id),
+        supabase.from("notifications").delete().eq("post_id", post.id),
+      ]);
+
+      // Delete the post
+      const { error } = await supabase.from("posts").delete().eq("id", post.id);
+
+      if (error) {
+        console.error("Error deleting post:", error);
+        setDeleting(false);
+        return;
+      }
+
+      // Navigate back to home
+      router.push("/");
+    } catch (err) {
+      console.error("Failed to delete post:", err);
+      setDeleting(false);
+    }
+  };
+
+  const handleEdit = () => {
+    if (!post) return;
+    // Navigate to create page with post ID for editing
+    router.push(`/create?edit=${post.id}`);
+  };
+
+  const handleReport = async (reason: string, details?: string) => {
+    if (!user || !post) return;
+
+    setReportSubmitting(true);
+    try {
+      const { error } = await supabase.from("reports").insert({
+        post_id: post.id,
+        reporter_id: user.id,
+        reason: reason,
+        details: details || null,
+      });
+
+      if (error) {
+        console.error("Error submitting report:", error);
+        setReportSubmitting(false);
+        return;
+      }
+
+      setReportSubmitted(true);
+      setTimeout(() => {
+        setShowReportModal(false);
+        setReportSubmitted(false);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to submit report:", err);
+    }
+    setReportSubmitting(false);
+  };
+
+  const handleBlock = async () => {
+    if (!user || !post) return;
+
+    setIsBlocking(true);
+    try {
+      await blockUser(user.id, post.author_id);
+      setShowBlockConfirm(false);
+      router.push("/");
+    } catch (err) {
+      console.error("Failed to block user:", err);
+    } finally {
+      setIsBlocking(false);
+    }
+  };
+
+  const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${postId}` : `/post/${postId}`;
+
+  // Loading state
+  if (loading) {
+    return (
+      <>
+        <LeftSidebar />
+        <main className="ml-[220px] min-h-screen bg-[#fdfdfd]">
+          <div className="max-w-[680px] mx-auto py-12 px-6">
+            <div className="text-center py-20">
+              <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="font-body text-muted italic">Loading post...</p>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  // Error state
+  if (error || !post) {
+    return (
+      <>
+        <LeftSidebar />
+        <main className="ml-[220px] min-h-screen bg-[#fdfdfd]">
+          <div className="max-w-[680px] mx-auto py-12 px-6">
+            <div className="text-center py-20">
+              <h1 className="font-display text-2xl text-ink mb-4">Post not found</h1>
+              <p className="font-body text-muted mb-6">This post may have been removed or doesn't exist.</p>
+              <Link href="/" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white">
+                Back to Feed
+              </Link>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  const hasMedia = post.media && post.media.length > 0;
+
+  return (
+    <>
+      <LeftSidebar />
+      <main className="ml-[220px] min-h-screen bg-[#fdfdfd]">
+        <div className="max-w-[1100px] mx-auto py-8 px-6 flex gap-6">
+          {/* Left Column - Post */}
+          <div className="flex-1 min-w-0">
+            {/* Post Card */}
+            <article className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden">
+            {/* Author Header */}
+            <div className="flex items-center gap-4 p-6 border-b border-black/[0.06]">
+              <Link href={`/studio/${post.author.username}`}>
+                <img
+                  src={post.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+                  alt={post.author.display_name || post.author.username}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md hover:scale-110 transition-transform"
+                />
+              </Link>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Link href={`/studio/${post.author.username}`} className="font-ui text-[1rem] font-medium text-ink hover:text-purple-primary transition-colors">
+                    {post.author.display_name || post.author.username}
+                  </Link>
+                  <span className="font-ui text-[0.85rem] text-muted">
+                    {getTypeLabel(post.type)}
+                  </span>
+                </div>
+                <span className="font-ui text-[0.8rem] text-muted">
+                  {getTimeAgo(post.created_at)}
+                </span>
+              </div>
+
+              {/* Post Options Menu */}
+              {isOwner ? (
+                <div className="relative" ref={menuRef}>
+                  <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+                  >
+                    {icons.moreHorizontal}
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          handleEdit();
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
+                      >
+                        {icons.edit}
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowDeleteConfirm(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        {icons.trash}
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : user && (
+                <div className="relative" ref={menuRef}>
+                  <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+                  >
+                    {icons.moreHorizontal}
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowBlockConfirm(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
+                      >
+                        {icons.block}
+                        Block
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowReportModal(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        {icons.flag}
+                        Report
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Post Content */}
+            <div className="p-6">
+              {/* Actual Content */}
+              <div className="relative">
+                {/* Journal Date */}
+                {post.type === "journal" && (
+                  <div className="text-center mb-4">
+                    <span className="font-ui text-[0.75rem] text-muted tracking-wider uppercase">
+                      {formatDate(post.created_at)}
+                    </span>
+                  </div>
+                )}
+
+                {post.title && (
+                  <h1 className={`font-display text-[1.6rem] text-ink mb-4 leading-tight ${post.type === "poem" ? "text-center" : ""}`}>
+                    {post.title}
+                  </h1>
+                )}
+
+                {post.type === "poem" ? (
+                  <div
+                    className="font-body text-[1.15rem] text-ink leading-loose italic text-center py-4 post-content"
+                    dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
+                  />
+                ) : (
+                  <div
+                    className="font-body text-[1.05rem] text-ink leading-relaxed post-content"
+                    dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
+                  />
+                )}
+
+              {/* Media Gallery */}
+              {hasMedia && (
+                <div className="mt-6">
+                  <div className="relative rounded-xl overflow-hidden bg-black/[0.02]">
+                    {post.media[currentMediaIndex].media_type === "video" ? (
+                      <video
+                        src={post.media[currentMediaIndex].media_url}
+                        className="w-full max-h-[500px] object-contain bg-black"
+                        controls
+                        playsInline
+                      />
+                    ) : (
+                      <img
+                        src={post.media[currentMediaIndex].media_url}
+                        alt=""
+                        className="w-full max-h-[500px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent("openLightbox", {
+                            detail: { images: post.media, index: currentMediaIndex }
+                          }));
+                        }}
+                      />
+                    )}
+
+                    {post.media.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? post.media.length - 1 : prev - 1))}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-white transition-all"
+                        >
+                          {icons.chevronLeft}
+                        </button>
+                        <button
+                          onClick={() => setCurrentMediaIndex((prev) => (prev === post.media.length - 1 ? 0 : prev + 1))}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-white transition-all"
+                        >
+                          {icons.chevronRight}
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {post.media[currentMediaIndex].caption && (
+                    <p className="text-center font-body text-[0.9rem] text-muted italic mt-3">
+                      {post.media[currentMediaIndex].caption}
+                    </p>
+                  )}
+
+                  {post.media.length > 1 && (
+                    <div className="flex gap-2 justify-center mt-4">
+                      {post.media.map((item, idx) => (
+                        <button
+                          key={item.id}
+                          onClick={() => setCurrentMediaIndex(idx)}
+                          className={`w-14 h-14 rounded-lg overflow-hidden transition-all ${
+                            idx === currentMediaIndex
+                              ? "ring-2 ring-purple-primary ring-offset-2"
+                              : "opacity-60 hover:opacity-100"
+                          }`}
+                        >
+                          <img src={item.media_url} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+                {/* Content Warning Overlay */}
+                {post.content_warning && !showContent && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center backdrop-blur-2xl bg-white/40 rounded-xl">
+                    <div className="relative text-center px-8 py-10">
+                      <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-5">
+                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span className="font-ui text-sm font-semibold text-amber-700">Content Warning</span>
+                      </div>
+
+                      <p className="font-body text-base text-ink/80 mb-6 max-w-md mx-auto">{post.content_warning}</p>
+
+                      <button
+                        onClick={() => setShowContent(true)}
+                        className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-ink/80 hover:bg-ink transition-colors"
+                      >
+                        Show Content
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tags Section (Collaborators + Tagged People + Hashtags) */}
+            <div className="px-6">
+              <PostTags
+                collaborators={post.collaborators}
+                mentions={post.mentions}
+                hashtags={post.hashtags}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 px-6 py-4 border-t border-black/[0.06]">
+              {/* Reaction Picker */}
+              <ReactionPicker
+                currentReaction={userReaction}
+                reactionCounts={reactionCounts}
+                onReact={handleReaction}
+                onRemoveReaction={handleRemoveReaction}
+                disabled={!user}
+              />
+
+              <button
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+              >
+                {icons.comment}
+                {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
+              </button>
+
+              {!isOwner && (
+                <button
+                  onClick={handleRelay}
+                  disabled={!user}
+                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
+                    isRelayed
+                      ? "bg-green-500/10 text-green-600"
+                      : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                  } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  {icons.relay}
+                  {relayCount > 0 && <span className="text-sm font-medium">{relayCount}</span>}
+                </button>
+              )}
+
+              <div className="flex-1" />
+
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="w-10 h-10 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+              >
+                {icons.share}
+              </button>
+
+              <button
+                onClick={handleSave}
+                disabled={!user}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                  isSaved
+                    ? "bg-amber-500/10 text-amber-600"
+                    : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                {isSaved ? icons.bookmarkFilled : icons.bookmark}
+              </button>
+            </div>
+          </article>
+          </div>
+
+          {/* Right Column - Discussion */}
+          <div className="w-[360px] flex-shrink-0">
+            <section className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden sticky top-[86px]">
+              <div className="p-5 border-b border-black/[0.06]">
+                <h2 className="font-ui text-[1rem] font-medium text-ink flex items-center gap-2">
+                  {icons.comment}
+                  Discussion ({comments.length})
+                </h2>
+              </div>
+
+            {/* Comment Input */}
+            {user ? (
+              <div className="p-4 border-b border-black/[0.06] flex gap-3 items-center">
+                <img
+                  src={profile?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+                  alt="You"
+                  className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                />
+                <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-full px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-primary transition-all">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+                    placeholder="Add to the conversation..."
+                    disabled={submitting}
+                    className="flex-1 py-2.5 border-none bg-transparent outline-none font-body text-[0.9rem] text-ink placeholder:text-muted/60"
+                  />
+                </div>
+                <button
+                  onClick={handleAddComment}
+                  disabled={submitting || !commentText.trim()}
+                  className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {icons.send}
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 border-b border-black/[0.06] text-center">
+                <p className="font-ui text-[0.9rem] text-muted">
+                  <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
+                </p>
+              </div>
+            )}
+
+            {/* Comments List */}
+            <div className="p-4 max-h-[calc(100vh-280px)] overflow-y-auto">
+              {commentsLoading ? (
+                <div className="text-center py-8">
+                  <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                </div>
+              ) : comments.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="font-body text-muted italic">No comments yet. Start the conversation!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <CommentItem
+                      key={comment.id}
+                      comment={comment}
+                      currentUserId={user?.id}
+                      onLike={handleCommentLike}
+                      onReply={handleCommentReply}
+                      onDelete={handleCommentDelete}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+          </div>
+        </div>
+      </main>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={postUrl}
+        title={post.title || post.content.substring(0, 100)}
+        description={post.content.substring(0, 200)}
+        type={post.type}
+        authorName={post.author.display_name || post.author.username}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] animate-fadeIn"
+            onClick={() => !deleting && setShowDeleteConfirm(false)}
+          />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white rounded-2xl shadow-2xl z-[1001] animate-scaleIn p-6">
+            <h3 className="font-display text-[1.3rem] text-ink mb-3">Delete Post?</h3>
+            <p className="font-body text-[0.95rem] text-muted mb-6">
+              This action cannot be undone. This will permanently delete your post and remove all associated data including comments, admires, and saves.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="px-5 py-2.5 rounded-full font-ui text-[0.9rem] text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-5 py-2.5 rounded-full font-ui text-[0.9rem] text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Block Confirmation Modal */}
+      {showBlockConfirm && post && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
+            <h3 className="font-display text-lg font-semibold text-ink mb-2">
+              Block @{post.author.username}?
+            </h3>
+            <p className="font-body text-sm text-muted mb-6">
+              They won&apos;t be able to see your posts, follow you, or message you. They won&apos;t be notified.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowBlockConfirm(false)}
+                className="flex-1 py-2.5 rounded-full border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/[0.03] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBlock}
+                disabled={isBlocking}
+                className="flex-1 py-2.5 rounded-full bg-red-500 text-white font-ui text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {isBlocking ? "Blocking..." : "Block"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          onSubmit={handleReport}
+          submitting={reportSubmitting}
+          submitted={reportSubmitted}
+        />
+      )}
+    </>
+  );
+}
