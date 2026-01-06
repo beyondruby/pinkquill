@@ -13,14 +13,12 @@ import SearchBar from "@/components/search/SearchBar";
 const publicNavItems = [
   { icon: "home", label: "Home", href: "/" },
   { icon: "compass", label: "Explore", href: "/explore" },
-  { icon: "fire", label: "Trending", href: "/trending" },
 ];
 
 const authNavItems = [
   { icon: "home", label: "Home", href: "/" },
   { icon: "takes", label: "Takes", href: "/takes" },
   { icon: "compass", label: "Explore", href: "/explore" },
-  { icon: "fire", label: "Trending", href: "/trending" },
   { icon: "bookmark", label: "Saved", href: "/saved" },
   { icon: "users", label: "Communities", href: "/community" },
 ];

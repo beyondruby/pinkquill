@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useTrendingTags } from "@/lib/hooks";
 
 interface SuggestedUser {
   id: string;
@@ -31,6 +32,101 @@ const icons = {
     </svg>
   ),
 };
+
+function TrendingTagsSection() {
+  const { tags, loading } = useTrendingTags(8);
+
+  if (loading) {
+    return (
+      <div className="mb-8">
+        <h3 className="font-ui text-[0.7rem] font-semibold tracking-[0.12em] uppercase text-muted mb-4 pl-1">
+          Trending Topics
+        </h3>
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-2 animate-pulse">
+              <div className="w-8 h-8 rounded-lg bg-gray-100" />
+              <div className="flex-1">
+                <div className="h-3.5 bg-gray-100 rounded w-20 mb-1" />
+                <div className="h-2.5 bg-gray-100 rounded w-12" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (tags.length === 0) {
+    return (
+      <div className="mb-8">
+        <h3 className="font-ui text-[0.7rem] font-semibold tracking-[0.12em] uppercase text-muted mb-4 pl-1">
+          Trending Topics
+        </h3>
+        <p className="font-body text-[0.85rem] text-muted italic pl-1">
+          No trending topics yet
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-8">
+      <h3 className="font-ui text-[0.7rem] font-semibold tracking-[0.12em] uppercase text-muted mb-4 pl-1">
+        Trending Topics
+      </h3>
+      <div className="space-y-1">
+        {tags.map((tag, index) => (
+          <Link
+            key={tag.name}
+            href={`/tag/${encodeURIComponent(tag.name)}`}
+            className="flex items-center gap-3 p-2 rounded-xl hover:bg-purple-primary/5 transition-all group"
+          >
+            {/* Rank Badge */}
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-ui text-sm font-semibold ${
+              index === 0
+                ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white"
+                : index === 1
+                ? "bg-purple-primary/20 text-purple-primary"
+                : index === 2
+                ? "bg-purple-primary/10 text-purple-primary/80"
+                : "bg-black/[0.04] text-muted"
+            }`}>
+              {index + 1}
+            </div>
+
+            {/* Tag Info */}
+            <div className="flex-1 min-w-0">
+              <div className="font-ui text-[0.9rem] font-medium text-ink truncate group-hover:text-purple-primary transition-colors">
+                #{tag.name}
+              </div>
+              <div className="font-body text-[0.7rem] text-muted">
+                {tag.post_count} {tag.post_count === 1 ? "post" : "posts"}
+                {tag.recent_posts > 0 && (
+                  <span className="text-purple-primary ml-1">
+                    +{tag.recent_posts} this week
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <svg className="w-4 h-4 text-muted/40 group-hover:text-purple-primary group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        ))}
+      </div>
+
+      <Link
+        href="/explore"
+        className="block mt-4 text-center font-ui text-[0.85rem] text-purple-primary hover:text-pink-vivid transition-colors"
+      >
+        Explore all topics
+      </Link>
+    </div>
+  );
+}
 
 function FollowButton({ userId, onFollow }: { userId: string; onFollow: () => void }) {
   const { user } = useAuth();
@@ -220,21 +316,7 @@ export default function RightSidebar() {
       </div>
 
       {/* Trending Tags */}
-      <div className="mb-8">
-        <h3 className="font-ui text-[0.7rem] font-semibold tracking-[0.12em] uppercase text-muted mb-4 pl-1">
-          Trending Topics
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {["poetry", "art", "thoughts", "creativity", "writing"].map((tag) => (
-            <span
-              key={tag}
-              className="px-3 py-1.5 rounded-full bg-purple-primary/10 text-purple-primary font-ui text-[0.8rem] cursor-pointer hover:bg-purple-primary hover:text-white transition-all"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      </div>
+      <TrendingTagsSection />
 
       {/* Footer */}
       <div className="mt-auto pt-6 border-t border-black/[0.06]">

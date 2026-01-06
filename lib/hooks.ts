@@ -25,6 +25,14 @@
 // Feed & Posts
 export { useFeed, usePosts, useSavedPosts, useRelays } from "./hooks/useFeed";
 
+// Explore
+export { useExplore } from "./hooks/useExplore";
+export type { ExploreTab } from "./hooks/useExplore";
+
+// Tags
+export { useTrendingTags, useTagPosts, usePopularTags } from "./hooks/useTags";
+export type { TrendingTag } from "./hooks/useTags";
+
 // Interactions
 export {
   useToggleAdmire,

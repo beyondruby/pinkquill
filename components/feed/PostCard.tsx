@@ -553,10 +553,38 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     );
   };
 
-  // Actions component reused across post types (now includes mentions display)
+  // Hashtags display
+  const hasHashtags = post.hashtags && post.hashtags.length > 0;
+  const HashtagsDisplay = () => {
+    if (!hasHashtags) return null;
+    const tags = post.hashtags!;
+    const displayCount = 4;
+    const visibleTags = tags.slice(0, displayCount);
+    const remainingCount = tags.length - displayCount;
+
+    return (
+      <div className="hashtags-display" onClick={(e) => e.stopPropagation()}>
+        {visibleTags.map((tag) => (
+          <Link
+            key={tag}
+            href={`/tag/${encodeURIComponent(tag)}`}
+            className="hashtag-link"
+          >
+            #{tag}
+          </Link>
+        ))}
+        {remainingCount > 0 && (
+          <span className="hashtags-more">+{remainingCount}</span>
+        )}
+      </div>
+    );
+  };
+
+  // Actions component reused across post types (now includes mentions and hashtags display)
   const Actions = () => (
     <div className="actions-wrapper">
       <MentionsDisplay />
+      <HashtagsDisplay />
       <div className="actions">
         <div className="actions-left">
         {/* Reaction Picker with real-time counts */}

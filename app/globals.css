@@ -788,6 +788,36 @@ body {
   margin-left: 2px;
 }
 
+/* Hashtags Display */
+.hashtags-display {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+}
+.hashtag-link {
+  color: var(--primary-purple);
+  font-weight: 500;
+  text-decoration: none;
+  padding: 3px 10px;
+  background: rgba(142, 68, 173, 0.06);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+.hashtag-link:hover {
+  color: var(--vivid-pink);
+  background: rgba(255, 0, 127, 0.08);
+}
+.hashtags-more {
+  color: var(--muted-text);
+  font-weight: 400;
+  font-size: 0.75rem;
+  margin-left: 2px;
+}
+
 /* ============================================================================
    POST META SECTION - Tags, Collaborators, Mentions
    ============================================================================ */
