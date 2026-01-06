@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 
 interface MediaItem {
   id: string;
@@ -141,12 +142,16 @@ export default function Lightbox({ images, initialIndex, isOpen, onClose }: Ligh
               controls
               autoPlay
               playsInline
+              preload="auto"
             />
           ) : (
-            <img
+            <Image
               src={currentImage.media_url}
               alt=""
+              width={1920}
+              height={1080}
               className="max-w-[85vw] max-h-[80vh] object-contain rounded-xl shadow-2xl"
+              priority
             />
           )}
         </div>

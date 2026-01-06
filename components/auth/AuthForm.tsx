@@ -65,19 +65,28 @@ export default function AuthForm() {
     try {
       if (isLogin) {
         // LOGIN FLOW: Use signInWithPassword (unchanged for verified users)
-        let loginEmail = emailOrUsername;
+        let loginEmail = emailOrUsername.trim();
 
-        // Check if input is a username (no @ symbol)
-        if (!emailOrUsername.includes("@")) {
+        // Check if input is a username (no @ in the middle = not an email)
+        if (!emailOrUsername.includes("@") || emailOrUsername.startsWith("@")) {
+          // Remove leading @ if present and normalize
+          const normalizedUsername = emailOrUsername.toLowerCase().replace(/^@/, "").trim();
+
           const { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("email")
-            .eq("username", emailOrUsername.toLowerCase().replace("@", ""))
+            .eq("username", normalizedUsername)
             .single();
 
-          if (profileError || !profile?.email) {
-            throw new Error("Username not found");
+          if (profileError) {
+            console.error("Profile lookup error:", profileError.message);
+            throw new Error("Username not found. Please check your username or use your email.");
           }
+
+          if (!profile?.email) {
+            throw new Error("No email associated with this username. Please sign in with your email.");
+          }
+
           loginEmail = profile.email;
         }
 

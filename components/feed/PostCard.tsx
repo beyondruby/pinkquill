@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { useToggleAdmire, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, createNotification, useBlock, ReactionType, ReactionCounts } from "@/lib/hooks";
 import { usePostViewTracker, useTrackPostImpression } from "@/lib/hooks/useTracking";
 import ShareModal from "@/components/ui/ShareModal";
@@ -206,6 +207,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
   const router = useRouter();
   const { openPostModal, subscribeToUpdates, notifyUpdate } = useModal();
   const { user } = useAuth();
+  const { openModal: openAuthModal } = useAuthModal();
   const { toggle: toggleAdmire } = useToggleAdmire();
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleRelay } = useToggleRelay();
@@ -291,7 +293,10 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
 
   const handleAdmire = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
 
     const newIsAdmired = !isAdmired;
     const countChange = newIsAdmired ? 1 : -1;
@@ -315,7 +320,10 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
 
   // Handle reaction (new reaction system with real-time)
   const handleReaction = async (reactionType: ReactionType) => {
-    if (!user) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
 
     const wasReacted = userReaction !== null;
     const isSameReaction = userReaction === reactionType;
@@ -346,7 +354,11 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
   };
 
   const handleRemoveReaction = async () => {
-    if (!user || !userReaction) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    if (!userReaction) return;
 
     // Optimistic update
     setUserReaction(null);
@@ -366,7 +378,10 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
 
   const handleSave = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
 
     const newIsSaved = !isSaved;
     setIsSaved(newIsSaved);
@@ -383,7 +398,10 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
 
   const handleRelay = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
     // Can't relay your own posts
     if (user.id === post.authorId) return;
 
@@ -547,13 +565,12 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
           reactionCounts={reactionCounts}
           onReact={handleReaction}
           onRemoveReaction={handleRemoveReaction}
-          disabled={!user}
         />
         <button className="action-btn">
           <CommentIcon />
           <span className="action-count">{post.stats?.comments ?? 0}</span>
         </button>
-        {user?.id !== post.authorId && (
+        {(!user || user.id !== post.authorId) && (
           <button className={`action-btn ${isRelayed ? 'active' : ''}`} onClick={handleRelay} style={isRelayed ? { color: '#22c55e' } : undefined}>
             <RelayIcon />
             <span className="action-count">{relayCount}</span>
@@ -824,7 +841,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
           <AuthorHeader />
           <ContentSection>
             <div className="video-container" onClick={(e) => e.stopPropagation()}>
-              <img src={post.image} alt={post.title || "Video thumbnail"} className="video-thumbnail" />
+              <Image src={post.image || "/video-placeholder.svg"} alt={post.title || "Video thumbnail"} width={640} height={360} className="video-thumbnail" style={{ width: '100%', height: 'auto' }} />
               <div className="video-play-btn">
                 <span style={{ color: 'var(--primary-purple)', marginLeft: '4px' }}><PlayIcon /></span>
               </div>
@@ -984,9 +1001,11 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
                         controls
                         controlsList="nodownload"
                         playsInline
+                        preload="none"
+                        poster="/video-placeholder.svg"
                       />
                     ) : (
-                      <img src={item.media_url} alt="" />
+                      <Image src={item.media_url} alt="" width={640} height={480} className="carousel-image" style={{ width: '100%', height: 'auto', objectFit: 'cover' }} />
                     )}
                     {item.caption && (
                       <div className="carousel-caption">
@@ -1064,7 +1083,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
             )}
             {/* Image third */}
             <div style={{ borderRadius: '14px', overflow: 'hidden', marginTop: '1rem' }}>
-              <img src={post.image} alt={post.title || "Visual post"} style={{ width: '100%', height: 'auto', objectFit: 'cover' }} />
+              <Image src={post.image} alt={post.title || "Visual post"} width={640} height={480} style={{ width: '100%', height: 'auto', objectFit: 'cover' }} />
             </div>
           </ContentSection>
           <Actions />

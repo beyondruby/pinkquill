@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { useComments, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, ReactionType } from "@/lib/hooks";
 import type { PostUpdate } from "@/components/providers/ModalProvider";
 import ShareModal from "@/components/ui/ShareModal";
@@ -116,6 +118,7 @@ export default function PostDetailModal({
 }: PostDetailModalProps) {
   const router = useRouter();
   const { user, profile } = useAuth();
+  const { openModal: openAuthModal } = useAuthModal();
   const [showComments, setShowComments] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isRelayed, setIsRelayed] = useState(false);
@@ -268,7 +271,10 @@ export default function PostDetailModal({
 
   // Reaction handlers
   const handleReaction = async (reactionType: ReactionType) => {
-    if (!user) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
 
     const isSameReaction = userReaction === reactionType;
 
@@ -298,7 +304,11 @@ export default function PostDetailModal({
   };
 
   const handleRemoveReaction = async () => {
-    if (!user || !userReaction) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    if (!userReaction) return;
 
     // Optimistic update
     setUserReaction(null);
@@ -317,7 +327,10 @@ export default function PostDetailModal({
   };
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
 
     const newIsSaved = !isSaved;
 
@@ -337,7 +350,10 @@ export default function PostDetailModal({
   };
 
   const handleRelay = async () => {
-    if (!user) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
     // Can't relay your own posts
     if (user.id === post.authorId) return;
 
@@ -366,7 +382,11 @@ export default function PostDetailModal({
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim() || !user) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    if (!commentText.trim()) return;
 
     setSubmitting(true);
     const result = await addComment(user.id, commentText.trim());
@@ -381,12 +401,18 @@ export default function PostDetailModal({
   };
 
   const handleCommentLike = (commentId: string, isLiked: boolean) => {
-    if (!user) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
     toggleLike(commentId, user.id, isLiked);
   };
 
   const handleCommentReply = async (parentId: string, content: string) => {
-    if (!user) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
     await addComment(user.id, content, parentId);
   };
 
@@ -407,9 +433,11 @@ export default function PostDetailModal({
           {/* Author Header */}
           <div className="flex items-center gap-4 mb-8 pb-6 border-b border-black/[0.06]">
             <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={onClose}>
-              <img
+              <Image
                 src={post.author.avatar}
                 alt={post.author.name}
+                width={56}
+                height={56}
                 className="w-14 h-14 rounded-full object-cover border-[3px] border-white shadow-lg hover:scale-110 transition-transform"
               />
             </Link>
@@ -551,13 +579,17 @@ export default function PostDetailModal({
                         controls
                         controlsList="nodownload"
                         playsInline
+                        preload="none"
+                        poster="/video-placeholder.svg"
                       />
                     </div>
                   ) : (
                     <div className="relative overflow-hidden">
-                      <img
+                      <Image
                         src={post.media![currentMediaIndex].media_url}
                         alt=""
+                        width={800}
+                        height={420}
                         className="w-full h-[420px] object-cover cursor-pointer transition-transform duration-500 group-hover:scale-[1.02]"
                         onClick={() => {
                           window.dispatchEvent(new CustomEvent('openLightbox', {
@@ -621,7 +653,7 @@ export default function PostDetailModal({
                       >
                         {item.media_type === "video" ? (
                           <div className="relative w-full h-full bg-black">
-                            <video src={item.media_url} className="w-full h-full object-cover" />
+                            <video src={item.media_url} className="w-full h-full object-cover" preload="metadata" />
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                               <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z" />
@@ -629,7 +661,7 @@ export default function PostDetailModal({
                             </div>
                           </div>
                         ) : (
-                          <img src={item.media_url} alt="" className="w-full h-full object-cover" />
+                          <Image src={item.media_url} alt="" width={64} height={64} className="w-full h-full object-cover" />
                         )}
                         {idx === currentMediaIndex && (
                           <div className="absolute inset-0 border-2 border-purple-primary rounded-xl" />
@@ -643,9 +675,11 @@ export default function PostDetailModal({
 
             {/* Legacy single image support */}
             {post.image && !hasMedia && (
-              <img
+              <Image
                 src={post.image}
                 alt={post.title || "Post image"}
+                width={800}
+                height={600}
                 className="w-full rounded-xl mt-6 shadow-lg cursor-pointer hover:scale-[1.02] transition-transform"
               />
             )}
@@ -690,7 +724,6 @@ export default function PostDetailModal({
               reactionCounts={reactionCounts}
               onReact={handleReaction}
               onRemoveReaction={handleRemoveReaction}
-              disabled={!user}
             />
 
             {/* Comment Button */}
@@ -792,9 +825,11 @@ export default function PostDetailModal({
             {/* Comment Input */}
             {user ? (
               <div className="p-4 bg-white border-t border-black/[0.06] flex gap-2.5 items-center">
-                <img
+                <Image
                   src={profile?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"}
                   alt="You"
+                  width={36}
+                  height={36}
                   className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                 />
                 <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-3xl px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">

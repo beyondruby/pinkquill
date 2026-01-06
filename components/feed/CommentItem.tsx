@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import type { Comment } from "@/lib/hooks";
 import { useBlock } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
@@ -194,9 +195,11 @@ export default function CommentItem({
     <div className={`${isReply ? "ml-11 mt-3" : ""}`}>
       <div className="flex gap-3 group">
         <Link href={`/studio/${comment.author.username}`} className="flex-shrink-0">
-          <img
+          <Image
             src={comment.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
             alt={comment.author.display_name || comment.author.username}
+            width={36}
+            height={36}
             className={`rounded-full object-cover hover:scale-110 transition-transform ${isReply ? "w-7 h-7" : "w-9 h-9"}`}
           />
         </Link>

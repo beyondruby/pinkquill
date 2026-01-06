@@ -19,7 +19,9 @@ import {
 import "./globals.css";
 import { ModalProvider } from "@/components/providers/ModalProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { AuthModalProvider } from "@/components/providers/AuthModalProvider";
 import { LightboxProvider } from "@/components/ui/Lightbox";
+import AuthModal from "@/components/auth/AuthModal";
 
 const libreBaskerville = Libre_Baskerville({
   weight: ["400", "700"],
@@ -143,9 +145,12 @@ export default function RootLayout({
         <div className="aura-blob blob-3" />
 
         <AuthProvider>
-          <LightboxProvider>
-            <ModalProvider>{children}</ModalProvider>
-          </LightboxProvider>
+          <AuthModalProvider>
+            <LightboxProvider>
+              <ModalProvider>{children}</ModalProvider>
+            </LightboxProvider>
+            <AuthModal />
+          </AuthModalProvider>
         </AuthProvider>
       </body>
     </html>

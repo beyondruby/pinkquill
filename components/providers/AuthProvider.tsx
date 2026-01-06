@@ -8,6 +8,7 @@ interface Profile {
   id: string;
   username: string;
   display_name: string | null;
+  email: string | null;
   avatar_url: string | null;
   cover_url: string | null;
   bio: string | null;
@@ -103,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: user.id,
             username: username,
             display_name: displayName,
+            email: user.email?.toLowerCase() || null,
             avatar_url: '/defaultprofile.png',
           })
           .select()
@@ -123,6 +125,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return existingProfile;
           }
           // If still can't fetch, return null
+          return null;
+        } else if (error.code === "23503") {
+          // Foreign key violation - user doesn't exist in auth.users
+          // This happens with stale/corrupted sessions - sign out to clear
+          console.warn("Auth user not found in database. Clearing session.");
+          await supabase.auth.signOut();
           return null;
         } else {
           // Different error - log and return null
