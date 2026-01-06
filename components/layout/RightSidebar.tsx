@@ -40,13 +40,12 @@ function FollowButton({ userId, onFollow }: { userId: string; onFollow: () => vo
   useEffect(() => {
     const checkFollowing = async () => {
       if (!user) return;
-      const { data } = await supabase
+      const { count } = await supabase
         .from("follows")
-        .select("id")
+        .select("*", { count: "exact", head: true })
         .eq("follower_id", user.id)
-        .eq("following_id", userId)
-        .single();
-      setIsFollowing(!!data);
+        .eq("following_id", userId);
+      setIsFollowing((count ?? 0) > 0);
     };
     checkFollowing();
   }, [user, userId]);

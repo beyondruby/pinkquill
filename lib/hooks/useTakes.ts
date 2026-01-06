@@ -126,19 +126,36 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       const authorIds = [...new Set(takesData.map(t => t.author_id))];
       const takeIds = takesData.map(t => t.id);
 
-      // Fetch private accounts and user's follows for filtering
-      const [
-        { data: privateAccounts },
-        { data: userFollows },
-      ] = await Promise.all([
-        supabase.from("profiles").select("id").eq("is_private", true).in("id", authorIds),
-        userId
-          ? supabase.from("follows").select("following_id").eq("follower_id", userId).eq("status", "accepted")
-          : Promise.resolve({ data: [] as { following_id: string }[] }),
-      ]);
+      // Fetch private accounts for filtering
+      const { data: privateAccounts } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("is_private", true)
+        .in("id", authorIds);
+
+      // Fetch user's follows with fallback if status column doesn't exist
+      let userFollows: { following_id: string }[] = [];
+      if (userId) {
+        const { data, error } = await supabase
+          .from("follows")
+          .select("following_id")
+          .eq("follower_id", userId)
+          .eq("status", "accepted");
+
+        if (error && (error.code === "42703" || error.message?.includes("status"))) {
+          // Status column doesn't exist - fall back to simple query
+          const { data: fallbackData } = await supabase
+            .from("follows")
+            .select("following_id")
+            .eq("follower_id", userId);
+          userFollows = fallbackData || [];
+        } else {
+          userFollows = data || [];
+        }
+      }
 
       const privateAccountIds = new Set((privateAccounts || []).map(p => p.id));
-      const followingIds = new Set((userFollows || []).map(f => f.following_id));
+      const followingIds = new Set(userFollows.map(f => f.following_id));
 
       // Filter out takes from private accounts that the user doesn't follow
       const accessibleTakes = takesData.filter(take => {

@@ -239,16 +239,14 @@ export default function PostPage() {
             return;
           }
 
-          // Check if the current user follows the post author (must be accepted)
-          const { data: followData } = await supabase
+          // Check if the current user follows the post author
+          const { count: followCount } = await supabase
             .from("follows")
-            .select("id")
+            .select("*", { count: "exact", head: true })
             .eq("follower_id", user.id)
-            .eq("following_id", postData.author_id)
-            .eq("status", "accepted")
-            .maybeSingle();
+            .eq("following_id", postData.author_id);
 
-          if (!followData) {
+          if (!followCount || followCount === 0) {
             setError("This post is only visible to followers");
             setLoading(false);
             return;
@@ -273,15 +271,13 @@ export default function PostPage() {
           }
 
           // Check if user is an accepted follower
-          const { data: followData } = await supabase
+          const { count: followCount } = await supabase
             .from("follows")
-            .select("status")
+            .select("*", { count: "exact", head: true })
             .eq("follower_id", user.id)
-            .eq("following_id", postData.author_id)
-            .eq("status", "accepted")
-            .maybeSingle();
+            .eq("following_id", postData.author_id);
 
-          if (!followData) {
+          if (!followCount || followCount === 0) {
             setError("This post is from a private account");
             setLoading(false);
             return;

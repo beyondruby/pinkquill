@@ -143,15 +143,13 @@ export default function SingleTakePage({ params }: PageProps) {
           }
 
           // Check if the current user follows the take author (must be accepted)
-          const { data: followData } = await supabase
+          const { count: followCount } = await supabase
             .from("follows")
-            .select("id")
+            .select("*", { count: "exact", head: true })
             .eq("follower_id", user.id)
-            .eq("following_id", takeData.author_id)
-            .eq("status", "accepted")
-            .maybeSingle();
+            .eq("following_id", takeData.author_id);
 
-          if (!followData) {
+          if (!followCount || followCount === 0) {
             setError("This take is only visible to followers");
             setLoading(false);
             return;
@@ -176,15 +174,13 @@ export default function SingleTakePage({ params }: PageProps) {
           }
 
           // Check if user is an accepted follower
-          const { data: followData } = await supabase
+          const { count: followCount } = await supabase
             .from("follows")
-            .select("status")
+            .select("*", { count: "exact", head: true })
             .eq("follower_id", user.id)
-            .eq("following_id", takeData.author_id)
-            .eq("status", "accepted")
-            .maybeSingle();
+            .eq("following_id", takeData.author_id);
 
-          if (!followData) {
+          if (!followCount || followCount === 0) {
             setError("This take is from a private account");
             setLoading(false);
             return;
@@ -258,15 +254,15 @@ export default function SingleTakePage({ params }: PageProps) {
       if (user) {
         const [userReactionRes, userSaveRes, userRelayRes, followRes] = await Promise.all([
           supabase.from("take_reactions").select("reaction_type").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
-          supabase.from("take_saves").select("id").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
-          supabase.from("take_relays").select("id").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
-          supabase.from("follows").select("id").eq("follower_id", user.id).eq("following_id", takeData.author_id).maybeSingle(),
+          supabase.from("take_saves").select("take_id").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
+          supabase.from("take_relays").select("take_id").eq("take_id", id).eq("user_id", user.id).maybeSingle(),
+          supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id).eq("following_id", takeData.author_id),
         ]);
 
         setUserReaction(userReactionRes.data?.reaction_type as TakeReactionType || null);
         setIsSaved(!!userSaveRes.data);
         setIsRelayed(!!userRelayRes.data);
-        setIsFollowing(!!followRes.data);
+        setIsFollowing((followRes.count ?? 0) > 0);
       }
 
       setLoading(false);
