@@ -2250,10 +2250,17 @@ export function useNotifications(userId?: string) {
   }, [userId]);
 
   // Real-time subscription - separate effect
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   useEffect(() => {
     if (!userId) return;
 
-    const channelName = `notifications-realtime-${userId}`;
+    // Prevent duplicate subscriptions
+    if (channelRef.current) {
+      return;
+    }
+
+    const channelName = `notifications-realtime-${userId}-${Date.now()}`;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -2264,17 +2271,19 @@ export function useNotifications(userId?: string) {
           table: 'notifications',
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
-          console.log('Notification change:', payload);
+        () => {
           fetchNotifications();
         }
       )
-      .subscribe((status) => {
-        console.log('Notification subscription status:', status);
-      });
+      .subscribe();
+
+    channelRef.current = channel;
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [userId]);
 
