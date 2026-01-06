@@ -998,7 +998,7 @@ export default function CreatePost() {
 
           const { error: uploadError } = await supabase.storage
             .from("post-media")
-            .upload(fileName, item.file);
+            .upload(fileName, item.file, { cacheControl: '31536000' });
 
           if (uploadError) {
             console.error("Storage upload error:", uploadError);

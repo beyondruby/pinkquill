@@ -4710,7 +4710,7 @@ export function useSendVoiceNote() {
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('voice-notes')
         .upload(fileName, audioBlob, {
-          cacheControl: '3600',
+          cacheControl: '31536000',
           contentType: audioBlob.type,
         });
 
@@ -4843,7 +4843,7 @@ export function useSendMedia(limits: MediaLimits = DEFAULT_MEDIA_LIMITS) {
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('message-media')
         .upload(fileName, file, {
-          cacheControl: '3600',
+          cacheControl: '31536000',
           contentType: file.type,
         });
 

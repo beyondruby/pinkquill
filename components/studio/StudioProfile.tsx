@@ -8,6 +8,7 @@ import { useTrackProfileView } from "@/lib/hooks/useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import FollowersModal from "./FollowersModal";
 import ShareModal from "@/components/ui/ShareModal";
 import ReactionPicker from "@/components/feed/ReactionPicker";
@@ -1409,9 +1410,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           {/* Footer */}
                           <div className="studio-relay-footer">
                             <div className="studio-relay-author">
-                              <img
+                              <Image
                                 src={relay.original_author?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
                                 alt=""
+                                width={70}
+                                height={70}
                                 className="studio-relay-author-avatar"
                               />
                               <span className="studio-relay-author-name">

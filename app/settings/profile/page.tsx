@@ -143,7 +143,7 @@ export default function EditProfilePage() {
 
       const { error: uploadError } = await supabase.storage
         .from(bucketName)
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file, { upsert: true, cacheControl: '31536000' });
 
       if (uploadError) throw uploadError;
 

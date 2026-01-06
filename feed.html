@@ -1,0 +1,3045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUILL | The Creative Ether</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Josefin+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    :root {
+        --primary-purple: #8e44ad;
+        --vivid-pink: #ff007f;
+        --warm-orange: #ff9f43;
+        --paper: #ffffff;
+        --ink: #1e1e1e;
+        --muted-text: #777;
+        --glass-border: rgba(255, 255, 255, 0.6);
+        --glass-bg: rgba(255, 255, 255, 0.85);
+        
+        --font-display: 'Libre Baskerville', Georgia, serif;
+        --font-body: 'Crimson Pro', Georgia, serif;
+        --font-ui: 'Josefin Sans', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        background-color: #fdfdfd;
+        color: var(--ink);
+        font-family: var(--font-body);
+        overflow-x: hidden;
+        min-height: 100vh;
+        font-size: 17px;
+        line-height: 1.7;
+    }
+
+    /* --- ATMOSPHERE --- */
+    .texture-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none; z-index: 50; opacity: 0.03;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    .aura-blob {
+        position: fixed; border-radius: 50%; filter: blur(100px); z-index: -1; opacity: 0.25;
+        animation: breathe 12s infinite alternate;
+    }
+    .blob-1 { top: -15%; left: -15%; width: 700px; height: 700px; background: var(--primary-purple); }
+    .blob-2 { bottom: 5%; right: -15%; width: 550px; height: 550px; background: var(--vivid-pink); animation-delay: 3s; }
+    .blob-3 { top: 50%; left: 40%; width: 350px; height: 350px; background: var(--warm-orange); animation-delay: 6s; opacity: 0.15; }
+
+    @keyframes breathe {
+        0% { transform: scale(1) translate(0,0); }
+        100% { transform: scale(1.08) translate(15px, -15px); }
+    }
+
+    /* --- LAYOUT --- */
+    .container {
+        max-width: 580px; 
+        margin: 0 auto;
+        padding: 6rem 1.5rem 4rem 1.5rem;
+        position: relative;
+    }
+
+    /* ========== HEADER ========== */
+    .app-header {
+        position: fixed; top: 0; left: 0; right: 0;
+        height: 70px;
+        display: flex; 
+        align-items: center;
+        padding: 0 2.5rem;
+        background: linear-gradient(180deg, rgba(253, 253, 253, 0.98) 0%, rgba(253, 253, 253, 0.92) 100%);
+        backdrop-filter: blur(20px);
+        z-index: 900;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+
+    .header-left {
+        flex-shrink: 0;
+    }
+
+    .brand-name {
+        font-family: var(--font-display); 
+        font-size: 1.7rem; 
+        font-weight: 400;
+        background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
+        -webkit-background-clip: text; 
+        -webkit-text-fill-color: transparent;
+        letter-spacing: 0.02em;
+    }
+
+    /* Search Bar */
+    .header-center {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        padding: 0 3rem;
+    }
+    
+    .search-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 560px;
+    }
+    
+    .search-bar {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(250,248,255,0.9));
+        border: none;
+        border-radius: 50px;
+        padding: 0;
+        overflow: hidden;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 
+            0 2px 20px rgba(142, 68, 173, 0.08),
+            inset 0 0 0 1px rgba(142, 68, 173, 0.1);
+        position: relative;
+    }
+    .search-bar::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50px;
+        padding: 1.5px;
+        background: linear-gradient(135deg, rgba(142, 68, 173, 0.3), rgba(255, 0, 127, 0.2), rgba(255, 159, 67, 0.2));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+    }
+    .search-bar:hover::before,
+    .search-bar:focus-within::before {
+        opacity: 1;
+    }
+    .search-bar:hover {
+        box-shadow: 
+            0 8px 30px rgba(142, 68, 173, 0.12),
+            inset 0 0 0 1px rgba(142, 68, 173, 0.15);
+        transform: translateY(-1px);
+    }
+    .search-bar:focus-within {
+        box-shadow: 
+            0 12px 40px rgba(142, 68, 173, 0.18),
+            inset 0 0 0 1px rgba(142, 68, 173, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .search-icon-area {
+        width: 54px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-purple);
+        font-size: 1rem;
+        flex-shrink: 0;
+        position: relative;
+    }
+    .search-icon-area i {
+        transition: all 0.3s ease;
+    }
+    .search-bar:focus-within .search-icon-area i {
+        transform: rotate(-15deg) scale(1.1);
+        color: var(--vivid-pink);
+    }
+    
+    .search-bar input {
+        flex: 1;
+        height: 48px;
+        border: none;
+        background: transparent;
+        outline: none;
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        font-style: italic;
+        color: var(--ink);
+        padding: 0 20px 0 0;
+        letter-spacing: 0.02em;
+    }
+    .search-bar input::placeholder {
+        color: #b8a9c9;
+        font-style: italic;
+        transition: all 0.3s ease;
+    }
+    .search-bar:focus-within input::placeholder {
+        opacity: 0.5;
+        transform: translateX(5px);
+    }
+    
+    .search-decoration {
+        position: absolute;
+        right: 16px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        pointer-events: none;
+        opacity: 0.4;
+        transition: all 0.3s ease;
+    }
+    .search-bar:focus-within .search-decoration {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    .search-decoration i {
+        font-size: 0.7rem;
+        color: var(--primary-purple);
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-shrink: 0;
+    }
+
+    /* View Toggle */
+    .view-toggle {
+        display: flex;
+        align-items: center;
+        background: #f5f5f5;
+        border-radius: 12px;
+        padding: 4px;
+    }
+    .view-btn {
+        position: relative;
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: transparent;
+        border-radius: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted-text);
+        font-size: 0.95rem;
+        transition: all 0.25s ease;
+    }
+    .view-btn.active {
+        background: white;
+        color: var(--primary-purple);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .view-btn:hover:not(.active) {
+        color: var(--ink);
+    }
+    .view-btn .view-tooltip {
+        position: absolute;
+        top: calc(100% + 10px);
+        left: 50%;
+        transform: translateX(-50%) translateY(-5px);
+        background: var(--ink);
+        color: white;
+        font-family: var(--font-ui);
+        font-size: 0.7rem;
+        padding: 6px 10px;
+        border-radius: 6px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        pointer-events: none;
+        z-index: 100;
+    }
+    .view-btn .view-tooltip::before {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-bottom-color: var(--ink);
+    }
+    .view-btn:hover .view-tooltip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    .header-divider {
+        width: 1px;
+        height: 28px;
+        background: rgba(0,0,0,0.08);
+    }
+
+    .header-icons { display: flex; gap: 6px; align-items: center; }
+    .header-icon-btn {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        border: none;
+        background: transparent;
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted-text);
+        font-size: 1.15rem;
+        transition: all 0.25s ease;
+    }
+    .header-icon-btn:hover {
+        background: rgba(142, 68, 173, 0.08);
+        color: var(--primary-purple);
+    }
+    .header-icon-btn .notif-dot {
+        position: absolute;
+        top: 9px;
+        right: 9px;
+        width: 8px;
+        height: 8px;
+        background: var(--vivid-pink);
+        border-radius: 50%;
+        border: 2px solid white;
+    }
+    
+    .header-avatar {
+        width: 40px; 
+        height: 40px; 
+        border-radius: 12px; 
+        object-fit: cover;
+        border: 2px solid white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .header-avatar:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(142, 68, 173, 0.2);
+    }
+
+    /* ========== POST CARDS ========== */
+    .post {
+        position: relative; 
+        margin-bottom: 1.75rem;
+        opacity: 0; 
+        transform: translateY(25px);
+        transition: all 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+        cursor: pointer;
+        background: white;
+        border-radius: 20px;
+        padding: 1.75rem;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+    .post:hover {
+        box-shadow: 0 8px 40px rgba(142, 68, 173, 0.1);
+        border-color: rgba(142, 68, 173, 0.1);
+        transform: translateY(-2px);
+    }
+    .post.visible { opacity: 1; transform: translateY(0); }
+    .post.visible:hover { transform: translateY(-2px); }
+
+    /* Author Header */
+    .author-header {
+        display: flex; 
+        align-items: center; 
+        gap: 14px;
+        margin-bottom: 1.25rem;
+    }
+    .author-avatar {
+        width: 44px; 
+        height: 44px; 
+        border-radius: 50%; 
+        object-fit: cover;
+        border: 2px solid white;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    .post:hover .author-avatar { transform: scale(1.05); }
+    .author-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+    }
+    .author-name-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .author-name {
+        font-family: var(--font-ui);
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--ink);
+    }
+    .post-type-label {
+        font-family: var(--font-ui);
+        font-size: 0.85rem;
+        font-weight: 300;
+        color: var(--muted-text);
+    }
+    .post-time {
+        font-family: var(--font-ui);
+        font-size: 0.8rem;
+        font-weight: 300;
+        color: var(--muted-text);
+    }
+
+    /* 3-Dot Menu */
+    .post-menu-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted-text);
+        font-size: 1rem;
+        transition: all 0.25s ease;
+        position: relative;
+    }
+    .post-menu-btn:hover {
+        background: rgba(0,0,0,0.05);
+        color: var(--ink);
+    }
+    .post-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        padding: 8px 0;
+        min-width: 180px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.25s ease;
+        z-index: 100;
+    }
+    .post-menu-btn.active .post-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(5px);
+    }
+    .post-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        font-family: var(--font-ui);
+        font-size: 0.85rem;
+        color: var(--ink);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .post-menu-item:hover {
+        background: rgba(142, 68, 173, 0.08);
+        color: var(--primary-purple);
+    }
+    .post-menu-item i { width: 16px; text-align: center; font-size: 0.9rem; }
+    .post-menu-item.danger { color: #e74c3c; }
+    .post-menu-item.danger:hover { background: rgba(231, 76, 60, 0.08); }
+    .post-menu-divider {
+        height: 1px;
+        background: rgba(0,0,0,0.06);
+        margin: 6px 0;
+    }
+
+    /* --- POST TYPES --- */
+    
+    .type-manifesto .content {
+        font-family: var(--font-display); 
+        font-size: 1.85rem; 
+        line-height: 1.4;
+        color: var(--ink); 
+        font-weight: 400;
+        padding: 1rem 0;
+    }
+    .highlight {
+        background: linear-gradient(120deg, rgba(255, 0, 127, 0.1) 0%, rgba(255, 159, 67, 0.1) 100%);
+        padding: 2px 12px; 
+        border-radius: 4px;
+    }
+
+    .type-collage { 
+        display: grid; 
+        grid-template-columns: 1fr 0.85fr; 
+        align-items: center; 
+    }
+    .collage-img-wrapper { 
+        position: relative; 
+        z-index: 1; 
+        transform: rotate(-2deg); 
+        transition: all 0.5s ease; 
+    }
+    .collage-img { 
+        width: 100%; 
+        border-radius: 8px; 
+        box-shadow: 15px 15px 50px rgba(0, 0, 0, 0.1); 
+    }
+    .collage-card {
+        background: var(--glass-bg); 
+        backdrop-filter: blur(15px); 
+        padding: 2rem;
+        border-radius: 8px; 
+        border: 1px solid var(--glass-border);
+        margin-left: -40px; 
+        z-index: 2; 
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+        transform: rotate(1deg); 
+        transition: all 0.5s ease;
+    }
+    .collage-card h3 {
+        font-family: var(--font-display);
+        font-size: 1.4rem;
+        margin-bottom: 0.6rem;
+        color: var(--ink);
+        font-weight: 400;
+    }
+    .collage-card p {
+        font-family: var(--font-body);
+        color: var(--muted-text);
+        line-height: 1.7;
+    }
+    .type-collage:hover .collage-img-wrapper { transform: rotate(0deg) scale(1.02); }
+    .type-collage:hover .collage-card { transform: rotate(0deg) translateX(8px); }
+
+    .type-audio {
+        background: white; 
+        border-radius: 20px; 
+        overflow: hidden;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        display: flex;
+        padding: 0;
+    }
+    .type-audio:hover {
+        box-shadow: 0 8px 40px rgba(142, 68, 173, 0.1);
+        border-color: rgba(142, 68, 173, 0.1);
+    }
+    .audio-visual {
+        background: linear-gradient(145deg, var(--primary-purple), var(--vivid-pink));
+        width: 110px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: white;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .sound-bars {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 40px;
+    }
+    .sound-bar {
+        width: 4px;
+        background: white;
+        border-radius: 2px;
+        animation: soundWave 1s ease-in-out infinite;
+    }
+    .sound-bar:nth-child(1) { height: 15px; animation-delay: 0s; }
+    .sound-bar:nth-child(2) { height: 25px; animation-delay: 0.1s; }
+    .sound-bar:nth-child(3) { height: 35px; animation-delay: 0.2s; }
+    .sound-bar:nth-child(4) { height: 20px; animation-delay: 0.3s; }
+    .sound-bar:nth-child(5) { height: 30px; animation-delay: 0.4s; }
+    .sound-bar:nth-child(6) { height: 18px; animation-delay: 0.5s; }
+    
+    @keyframes soundWave {
+        0%, 100% { transform: scaleY(0.5); opacity: 0.6; }
+        50% { transform: scaleY(1); opacity: 1; }
+    }
+    
+    .audio-content { padding: 1.5rem 1.75rem; flex: 1; }
+    
+    /* Video Post */
+    .type-video {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        padding: 1.75rem;
+    }
+    .type-video:hover {
+        box-shadow: 0 8px 40px rgba(142, 68, 173, 0.1);
+        border-color: rgba(142, 68, 173, 0.1);
+    }
+    .video-container {
+        position: relative;
+        border-radius: 14px;
+        overflow: hidden;
+        margin-top: 1rem;
+        background: #000;
+        aspect-ratio: 16/9;
+    }
+    .video-thumbnail {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.9;
+    }
+    .video-play-btn {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 70px;
+        height: 70px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
+    .video-play-btn i {
+        font-size: 1.5rem;
+        color: var(--primary-purple);
+        margin-left: 4px;
+    }
+    .video-play-btn:hover {
+        transform: translate(-50%, -50%) scale(1.1);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+    .video-duration {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        background: rgba(0, 0, 0, 0.75);
+        color: white;
+        font-family: var(--font-ui);
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 6px;
+    }
+    .video-title {
+        font-family: var(--font-display);
+        font-size: 1.2rem;
+        color: var(--ink);
+        margin-top: 1rem;
+        font-weight: 400;
+    }
+    .video-description {
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        color: var(--muted-text);
+        margin-top: 0.5rem;
+        line-height: 1.6;
+    }
+    
+    /* Long Form Post */
+    .type-longform {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        padding: 1.75rem;
+    }
+    .type-longform:hover {
+        box-shadow: 0 8px 40px rgba(142, 68, 173, 0.1);
+        border-color: rgba(142, 68, 173, 0.1);
+    }
+    .longform-title {
+        font-family: var(--font-display);
+        font-size: 1.4rem;
+        color: var(--ink);
+        margin-bottom: 0.75rem;
+        font-weight: 400;
+    }
+    .longform-content {
+        max-height: 280px;
+        overflow-y: auto;
+        padding-right: 12px;
+        margin: 1rem 0;
+    }
+    .longform-content::-webkit-scrollbar {
+        width: 5px;
+    }
+    .longform-content::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.02);
+        border-radius: 10px;
+    }
+    .longform-content::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(142, 68, 173, 0.4), rgba(255, 0, 127, 0.3));
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    .longform-content::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, rgba(142, 68, 173, 0.6), rgba(255, 0, 127, 0.5));
+    }
+    .longform-text {
+        font-family: var(--font-body);
+        font-size: 1rem;
+        color: var(--ink);
+        line-height: 1.85;
+    }
+    .longform-text p {
+        margin-bottom: 1rem;
+    }
+    .longform-fade {
+        position: relative;
+    }
+    .longform-fade::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 12px;
+        height: 40px;
+        background: linear-gradient(to top, white, transparent);
+        pointer-events: none;
+    }
+    .longform-read-more {
+        font-family: var(--font-ui);
+        font-size: 0.85rem;
+        color: var(--primary-purple);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    .longform-read-more:hover {
+        color: var(--vivid-pink);
+        gap: 10px;
+    }
+    .audio-title {
+        font-family: var(--font-ui);
+        font-size: 0.85rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted-text);
+        margin-bottom: 4px;
+    }
+    .audio-author {
+        font-family: var(--font-display);
+        font-style: italic;
+        color: var(--ink);
+        font-size: 1.1rem;
+    }
+
+    .type-poem {
+        background: white; 
+        padding: 1.75rem; 
+        border-radius: 20px; 
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        text-align: center; 
+        position: relative;
+    }
+    .type-poem:hover {
+        box-shadow: 0 8px 40px rgba(142, 68, 173, 0.1);
+        border-color: rgba(142, 68, 173, 0.1);
+    }
+    .type-poem::before,
+    .type-poem::after {
+        content: '"';
+        font-family: var(--font-display);
+        font-size: 4rem;
+        color: var(--primary-purple);
+        opacity: 0.1;
+        position: absolute;
+        line-height: 1;
+    }
+    .type-poem::before { top: 20px; left: 25px; }
+    .type-poem::after { bottom: 0px; right: 25px; transform: rotate(180deg); }
+    
+    .poem-title {
+        font-family: var(--font-ui); 
+        font-size: 0.7rem; 
+        letter-spacing: 0.15em;
+        color: var(--primary-purple); 
+        margin-bottom: 1.5rem; 
+        text-transform: uppercase;
+        font-weight: 500;
+    }
+    .poem-body {
+        font-family: var(--font-body); 
+        font-size: 1.15rem; 
+        color: var(--ink);
+        line-height: 2; 
+        font-style: italic; 
+        white-space: pre-line;
+        font-weight: 300;
+        padding: 0.5rem 1rem;
+    }
+
+    .type-journal {
+        background: white;
+        border-radius: 20px;
+        padding: 1.75rem;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+    .type-journal:hover {
+        box-shadow: 0 8px 40px rgba(142, 68, 173, 0.1);
+        border-color: rgba(142, 68, 173, 0.1);
+    }
+    .journal-date {
+        font-family: var(--font-ui);
+        font-size: 0.7rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--primary-purple);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .journal-date::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, var(--primary-purple), transparent);
+        opacity: 0.3;
+    }
+    .journal-title {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        color: var(--ink);
+        margin-bottom: 1rem;
+        font-weight: 400;
+    }
+    .journal-excerpt {
+        font-family: var(--font-body);
+        font-size: 1.05rem;
+        color: var(--muted-text);
+        line-height: 1.8;
+        margin-bottom: 1rem;
+    }
+    .journal-read-more {
+        font-family: var(--font-ui);
+        font-size: 0.85rem;
+        color: var(--primary-purple);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+    }
+    .journal-read-more:hover {
+        color: var(--vivid-pink);
+        gap: 10px;
+    }
+
+    .type-carousel {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        padding: 1.75rem;
+    }
+    .type-carousel:hover {
+        box-shadow: 0 8px 40px rgba(142, 68, 173, 0.1);
+        border-color: rgba(142, 68, 173, 0.1);
+    }
+    .carousel-text-content {
+        margin-bottom: 1.25rem;
+    }
+    .carousel-container {
+        position: relative;
+        overflow: hidden;
+        border-radius: 14px;
+        margin-bottom: 0;
+    }
+    .carousel-track {
+        display: flex;
+        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .carousel-slide {
+        min-width: 100%;
+        position: relative;
+    }
+    .carousel-slide img {
+        width: 100%;
+        height: 380px;
+        object-fit: cover;
+    }
+    .carousel-caption {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 2.5rem 2rem 1.5rem;
+        background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+        color: white;
+    }
+    .carousel-caption h4 {
+        font-family: var(--font-display);
+        font-size: 1.2rem;
+        font-weight: 400;
+        margin-bottom: 0.25rem;
+    }
+    .carousel-caption p {
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        opacity: 0.85;
+    }
+    .carousel-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        background: rgba(255,255,255,0.9);
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        z-index: 10;
+    }
+    .carousel-nav:hover { background: white; transform: translateY(-50%) scale(1.1); }
+    .carousel-nav.prev { left: 15px; }
+    .carousel-nav.next { right: 15px; }
+    .carousel-dots {
+        position: absolute;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 8px;
+        z-index: 10;
+    }
+    .carousel-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.5);
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .carousel-dot.active { background: white; transform: scale(1.3); }
+    .carousel-content {
+        padding: 1.5rem 2rem 1rem;
+    }
+    .carousel-title {
+        font-family: var(--font-display);
+        font-size: 1.3rem;
+        color: var(--ink);
+        margin-bottom: 0.5rem;
+    }
+    .carousel-description {
+        font-family: var(--font-body);
+        color: var(--muted-text);
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    /* ========== ACTION BUTTONS - ICONS WITH COUNTS ========== */
+    .actions {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(0,0,0,0.06);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .actions-left {
+        display: flex;
+        align-items: center;
+        gap: 0.15rem;
+    }
+    .actions-right {
+        display: flex;
+        align-items: center;
+        gap: 0.15rem;
+    }
+    .action-btn {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border-radius: 20px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: #888;
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        transition: all 0.25s ease;
+    }
+    .action-btn i {
+        font-size: 1.05rem;
+    }
+    .action-btn .action-count {
+        font-weight: 500;
+        color: inherit;
+    }
+    .action-btn:hover {
+        background: rgba(142, 68, 173, 0.08);
+        color: var(--primary-purple);
+    }
+    .action-btn:hover .action-tooltip {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+        visibility: visible;
+    }
+    .action-btn.active {
+        color: var(--vivid-pink);
+    }
+    .action-btn.active i { animation: pop 0.4s ease; }
+    @keyframes pop { 50% { transform: scale(1.3); } }
+    
+    .action-btn.saved { color: var(--primary-purple); }
+    
+    .action-tooltip {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%) translateY(5px);
+        background: var(--ink);
+        color: white;
+        font-family: var(--font-ui);
+        font-size: 0.7rem;
+        padding: 6px 10px;
+        border-radius: 6px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        pointer-events: none;
+    }
+    .action-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: var(--ink);
+    }
+
+    /* ========== LEFT SIDEBAR NAVIGATION ========== */
+    .left-sidebar-nav {
+        position: fixed;
+        left: 0;
+        top: 70px;
+        bottom: 0;
+        width: 220px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(0,0,0,0.04);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1.5rem 1rem;
+        z-index: 100;
+    }
+    
+    .nav-items {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+    }
+    
+    .nav-item {
+        position: relative;
+        width: 100%;
+        height: 48px;
+        border: none;
+        background: transparent;
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 16px;
+        color: var(--muted-text);
+        font-family: var(--font-ui);
+        font-size: 0.95rem;
+        font-weight: 400;
+        transition: all 0.3s ease;
+        text-align: left;
+    }
+    .nav-item i {
+        font-size: 1.15rem;
+        width: 24px;
+        text-align: center;
+    }
+    .nav-item:hover {
+        color: var(--primary-purple);
+        background: rgba(142, 68, 173, 0.08);
+    }
+    .nav-item.active { 
+        color: var(--vivid-pink);
+        background: rgba(255, 0, 127, 0.08);
+        font-weight: 500;
+    }
+    
+    .nav-tooltip {
+        display: none;
+    }
+    
+    .nav-create {
+        width: 100%;
+        height: 48px;
+        background: linear-gradient(145deg, var(--primary-purple), var(--vivid-pink));
+        border-radius: 12px;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: white;
+        font-family: var(--font-ui);
+        font-size: 0.95rem;
+        font-weight: 500;
+        box-shadow: 0 6px 20px rgba(255, 0, 127, 0.3);
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        margin-top: auto;
+    }
+    .nav-create i {
+        font-size: 1.1rem;
+    }
+    .nav-create:hover {
+        transform: scale(1.02);
+        box-shadow: 0 10px 30px rgba(255, 0, 127, 0.4);
+    }
+    
+    .nav-divider {
+        width: 100%;
+        height: 1px;
+        background: rgba(0,0,0,0.06);
+        margin: 12px 0;
+    }
+    
+    .nav-item.has-badge {
+        position: relative;
+    }
+    .nav-badge {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        right: 16px;
+        min-width: 22px;
+        height: 22px;
+        background: var(--vivid-pink);
+        color: white;
+        font-family: var(--font-ui);
+        font-size: 0.7rem;
+        font-weight: 600;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 6px;
+    }
+    
+    .nav-profile {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        margin-top: 12px;
+        cursor: pointer;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    .nav-profile:hover {
+        background: rgba(142, 68, 173, 0.06);
+    }
+    .nav-profile img {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+    .nav-profile:hover img {
+        border-color: var(--primary-purple);
+    }
+    .nav-profile-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .nav-profile-name {
+        font-family: var(--font-ui);
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--ink);
+    }
+    .nav-profile-handle {
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        color: var(--muted-text);
+    }
+
+    /* ========== RIGHT SIDEBAR ========== */
+    .right-sidebar {
+        position: fixed;
+        right: 0;
+        top: 70px;
+        bottom: 0;
+        width: 280px;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(15px);
+        border-left: 1px solid rgba(0,0,0,0.04);
+        display: flex;
+        flex-direction: column;
+        padding: 1.5rem;
+        overflow-y: auto;
+        z-index: 100;
+    }
+    
+    .sidebar-section {
+        margin-bottom: 2rem;
+    }
+    .sidebar-section-title {
+        font-family: var(--font-ui);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted-text);
+        margin-bottom: 1rem;
+        padding-left: 4px;
+    }
+    
+    .suggested-artist {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        margin-bottom: 4px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .suggested-artist:hover {
+        background: rgba(142, 68, 173, 0.06);
+    }
+    .suggested-artist img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    .artist-info {
+        flex: 1;
+    }
+    .artist-name {
+        font-family: var(--font-ui);
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--ink);
+        margin-bottom: 2px;
+    }
+    .artist-handle {
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        color: var(--muted-text);
+    }
+    .follow-btn {
+        padding: 6px 14px;
+        border-radius: 20px;
+        border: 1.5px solid var(--primary-purple);
+        background: transparent;
+        color: var(--primary-purple);
+        font-family: var(--font-ui);
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .follow-btn:hover {
+        background: var(--primary-purple);
+        color: white;
+    }
+    
+    .suggested-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        margin-bottom: 4px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .suggested-group:hover {
+        background: rgba(142, 68, 173, 0.06);
+    }
+    .group-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: white;
+    }
+    .group-icon.poetry { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+    .group-icon.visual { background: linear-gradient(135deg, #3498db, #2980b9); }
+    .group-icon.music { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+    .group-info {
+        flex: 1;
+    }
+    .group-name {
+        font-family: var(--font-ui);
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--ink);
+        margin-bottom: 2px;
+    }
+    .group-members {
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        color: var(--muted-text);
+    }
+    
+    .sidebar-footer {
+        margin-top: auto;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        margin-bottom: 1rem;
+    }
+    .footer-link {
+        font-family: var(--font-ui);
+        font-size: 0.75rem;
+        color: var(--muted-text);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+    .footer-link:hover {
+        color: var(--primary-purple);
+    }
+    .footer-copyright {
+        font-family: var(--font-ui);
+        font-size: 0.7rem;
+        color: #ccc;
+    }
+
+    /* ========== MODAL ========== */
+    .modal-overlay {
+        position: fixed; 
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.92); 
+        backdrop-filter: blur(20px);
+        z-index: 2000; 
+        opacity: 0; visibility: hidden;
+        transition: all 0.4s ease; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center;
+    }
+    .modal-overlay.open { opacity: 1; visibility: visible; }
+
+    .modal-card {
+        width: 95%; 
+        max-width: 1000px; 
+        height: 90vh;
+        background: #fff; 
+        border-radius: 24px;
+        box-shadow: 0 30px 100px rgba(0, 0, 0, 0.4);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; 
+        transform: scale(0.94) translateY(20px); 
+        transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .modal-card.with-discussion {
+        max-width: 1200px;
+        flex-direction: row;
+    }
+    .modal-overlay.open .modal-card { transform: scale(1) translateY(0); }
+
+    .modal-content-area {
+        padding: 2.5rem; 
+        overflow-y: auto; 
+        display: flex; 
+        flex-direction: column;
+        flex: 1;
+    }
+    .modal-content-area::-webkit-scrollbar {
+        width: 6px;
+    }
+    .modal-content-area::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .modal-content-area::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(142, 68, 173, 0.3), rgba(255, 0, 127, 0.3));
+        border-radius: 3px;
+    }
+    .modal-content-area::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, rgba(142, 68, 173, 0.5), rgba(255, 0, 127, 0.5));
+    }
+    .modal-card.with-discussion .modal-content-area {
+        border-right: 1px solid rgba(0, 0, 0, 0.05);
+        flex: 1.4;
+    }
+    
+    /* Full screen modal header */
+    .modal-top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .modal-close-top {
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: rgba(0,0,0,0.04);
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted-text);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    .modal-close-top:hover {
+        background: rgba(0,0,0,0.08);
+        color: var(--ink);
+        transform: rotate(90deg);
+    }
+    .view-discussion-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, rgba(142, 68, 173, 0.08), rgba(255, 0, 127, 0.05));
+        border: 1px solid rgba(142, 68, 173, 0.15);
+        border-radius: 25px;
+        font-family: var(--font-ui);
+        font-size: 0.85rem;
+        color: var(--primary-purple);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .view-discussion-btn:hover {
+        background: linear-gradient(135deg, rgba(142, 68, 173, 0.15), rgba(255, 0, 127, 0.1));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(142, 68, 173, 0.15);
+    }
+    .view-discussion-btn i {
+        font-size: 0.9rem;
+    }
+    .view-discussion-btn .discussion-count {
+        background: var(--primary-purple);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .modal-card.with-discussion .view-discussion-btn {
+        display: none;
+    }
+    
+    .modal-author-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .modal-author-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    .modal-author-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .modal-author-name-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .modal-author-name {
+        font-family: var(--font-ui);
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: var(--ink);
+    }
+    .modal-post-type {
+        font-family: var(--font-ui);
+        font-size: 0.9rem;
+        font-weight: 300;
+        color: var(--muted-text);
+    }
+    .modal-post-time {
+        font-family: var(--font-ui);
+        font-size: 0.85rem;
+        font-weight: 300;
+        color: var(--muted-text);
+    }
+    
+    .modal-post-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .modal-title {
+        font-family: var(--font-display);
+        font-size: 1.8rem;
+        color: var(--ink);
+        margin-bottom: 1rem;
+        font-weight: 400;
+        line-height: 1.3;
+    }
+    
+    .modal-body {
+        font-family: var(--font-body);
+        font-size: 1.1rem;
+        color: var(--ink);
+        line-height: 1.8;
+        margin-bottom: 1.5rem;
+    }
+    .modal-body.poem {
+        font-style: italic;
+        text-align: center;
+        white-space: pre-line;
+        font-size: 1.3rem;
+        line-height: 2;
+        padding: 2rem 0;
+    }
+    
+    .modal-image {
+        width: 100%;
+        border-radius: 12px;
+        margin-top: 1rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .modal-image:hover { transform: scale(1.02); }
+    
+    .modal-gallery { margin-top: 1.5rem; }
+    .modal-gallery-main {
+        position: relative;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .modal-gallery-main img {
+        width: 100%;
+        height: 280px;
+        object-fit: cover;
+        cursor: pointer;
+    }
+    .modal-gallery-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 36px;
+        height: 36px;
+        background: rgba(255,255,255,0.9);
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    .modal-gallery-nav:hover { background: white; transform: translateY(-50%) scale(1.1); }
+    .modal-gallery-nav.prev { left: 10px; }
+    .modal-gallery-nav.next { right: 10px; }
+    .modal-gallery-caption {
+        text-align: center;
+        font-family: var(--font-ui);
+        font-size: 0.85rem;
+        color: var(--muted-text);
+        margin-bottom: 1rem;
+    }
+    .modal-gallery-thumbs {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+    .modal-gallery-thumb {
+        width: 56px;
+        height: 56px;
+        border-radius: 10px;
+        object-fit: cover;
+        cursor: pointer;
+        opacity: 0.5;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    .modal-gallery-thumb:hover { opacity: 0.8; }
+    .modal-gallery-thumb.active { opacity: 1; border-color: var(--primary-purple); }
+    
+    /* Modal Actions - Clean icons */
+    .modal-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: auto;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .modal-action-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0,0,0,0.04);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        font-size: 1.15rem;
+        transition: all 0.25s ease;
+    }
+    .modal-action-btn:hover {
+        background: rgba(142, 68, 173, 0.1);
+        color: var(--primary-purple);
+    }
+    .modal-action-btn.active {
+        background: rgba(255, 0, 127, 0.1);
+        color: var(--vivid-pink);
+    }
+    
+    /* Lightbox */
+    .lightbox {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.95);
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+    .lightbox.open { opacity: 1; visibility: visible; }
+    .lightbox img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+        border-radius: 8px;
+    }
+    .lightbox-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        background: rgba(255,255,255,0.1);
+        border: none;
+        border-radius: 50%;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .lightbox-close:hover { background: rgba(255,255,255,0.2); transform: rotate(90deg); }
+    .lightbox-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 50px;
+        height: 50px;
+        background: rgba(255,255,255,0.1);
+        border: none;
+        border-radius: 50%;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .lightbox-nav:hover { background: rgba(255,255,255,0.2); }
+    .lightbox-nav.prev { left: 20px; }
+    .lightbox-nav.next { right: 20px; }
+    .lightbox-counter {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: white;
+        font-family: var(--font-ui);
+    }
+    
+    /* Comments Area */
+    .modal-comments-area {
+        background: #fafafa; 
+        display: none; 
+        flex-direction: column;
+        width: 380px;
+        flex-shrink: 0;
+    }
+    .modal-card.with-discussion .modal-comments-area {
+        display: flex;
+    }
+    .modal-header {
+        padding: 1.25rem 1.5rem; 
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06); 
+        display: flex; 
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(255,255,255,0.6);
+    }
+    .modal-header-title {
+        font-family: var(--font-ui); 
+        font-size: 0.8rem; 
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted-text);
+    }
+    .modal-close-btn { 
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: transparent;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted-text);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    .modal-close-btn:hover { 
+        background: rgba(0,0,0,0.05);
+        color: var(--vivid-pink); 
+        transform: rotate(90deg); 
+    }
+
+    .comments-list { 
+        flex: 1; 
+        padding: 1.5rem; 
+        overflow-y: auto; 
+    }
+    .comments-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    .comments-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .comments-list::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(142, 68, 173, 0.3), rgba(255, 0, 127, 0.3));
+        border-radius: 3px;
+    }
+    .comments-list::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, rgba(142, 68, 173, 0.5), rgba(255, 0, 127, 0.5));
+    }
+    
+    .comment-item { 
+        display: flex; 
+        gap: 12px; 
+        margin-bottom: 1.25rem; 
+        animation: fadeUp 0.4s ease;
+    }
+    @keyframes fadeUp { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+    
+    .c-avatar { 
+        width: 38px; 
+        height: 38px; 
+        border-radius: 50%; 
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    .c-content { flex: 1; }
+    .c-meta { 
+        display: flex; 
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 4px; 
+    }
+    .c-user { 
+        font-family: var(--font-body);
+        font-weight: 600; 
+        font-size: 0.9rem;
+        color: var(--ink); 
+    }
+    .c-time { 
+        font-family: var(--font-body);
+        color: var(--muted-text); 
+        font-size: 0.8rem;
+    }
+    .c-body { 
+        font-family: var(--font-body);
+        font-size: 0.95rem; 
+        color: var(--ink); 
+        line-height: 1.6;
+        margin-bottom: 8px;
+    }
+    .c-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .c-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        color: var(--muted-text);
+        transition: all 0.2s ease;
+        padding: 4px 0;
+    }
+    .c-action-btn:hover {
+        color: var(--primary-purple);
+    }
+    .c-action-btn.admired {
+        color: var(--vivid-pink);
+    }
+    .c-action-btn i {
+        font-size: 0.85rem;
+    }
+    .c-view-replies {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        color: var(--primary-purple);
+        margin-top: 8px;
+        padding: 0;
+        transition: all 0.2s ease;
+    }
+    .c-view-replies:hover {
+        color: var(--vivid-pink);
+    }
+    .c-replies {
+        margin-top: 12px;
+        padding-left: 20px;
+        border-left: 2px solid rgba(142, 68, 173, 0.15);
+    }
+    .c-replies .comment-item {
+        margin-bottom: 1rem;
+    }
+    .c-replies .c-avatar {
+        width: 30px;
+        height: 30px;
+    }
+
+    .comment-input-box {
+        padding: 1rem 1.5rem; 
+        background: white; 
+        border-top: 1px solid rgba(0, 0, 0, 0.06); 
+        display: flex; 
+        gap: 10px; 
+        align-items: center;
+    }
+    .comment-input-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        background: #f5f5f5;
+        border-radius: 24px;
+        padding: 6px 16px;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    .comment-input-wrapper:focus-within {
+        background: white;
+        border-color: var(--primary-purple);
+        box-shadow: 0 0 0 4px rgba(142, 68, 173, 0.1);
+    }
+    .comment-input-wrapper input {
+        flex: 1; 
+        padding: 10px 0; 
+        border: none; 
+        background: transparent; 
+        outline: none; 
+        font-family: var(--font-body); 
+        font-size: 0.95rem; 
+        color: var(--ink);
+    }
+    .comment-input-wrapper input::placeholder { color: #aaa; font-style: italic; }
+    .comment-send-btn { 
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
+        color: white;
+        cursor: pointer; 
+        font-size: 1rem; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+    .comment-send-btn:hover { transform: scale(1.08); box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3); }
+
+    @media (max-width: 1200px) {
+        .right-sidebar { width: 240px; }
+    }
+    
+    @media (max-width: 1100px) {
+        .left-sidebar-nav { width: 70px; padding: 1.5rem 0.75rem; }
+        .nav-item { justify-content: center; padding: 0; }
+        .nav-item span:not(.nav-badge) { display: none; }
+        .nav-badge { top: 6px; right: 6px; }
+        .nav-create span { display: none; }
+        .nav-create { justify-content: center; }
+        .nav-profile { padding: 8px; justify-content: center; }
+        .nav-profile-info { display: none; }
+    }
+    
+    @media (max-width: 1000px) {
+        .right-sidebar { display: none; }
+        .container { max-width: 600px; }
+    }
+
+    @media (max-width: 900px) {
+        .modal-card { grid-template-columns: 1fr; height: 100vh; width: 100%; border-radius: 0; }
+        .modal-card.with-discussion { flex-direction: column; }
+        .modal-card.with-discussion .modal-comments-area { width: 100%; height: 50vh; }
+        .modal-content-area { padding: 1.5rem; }
+        .type-collage { grid-template-columns: 1fr; }
+        .collage-card { margin: -25px 0 0 0; width: 100%; transform: none; }
+        .header-center { display: none; }
+        .view-toggle { display: none; }
+        .header-divider { display: none; }
+        .container { padding-left: 90px; }
+    }
+    
+    @media (max-width: 600px) {
+        .left-sidebar-nav { 
+            top: auto; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            width: 100%; 
+            height: 70px;
+            flex-direction: row;
+            padding: 0 1rem;
+            border-right: none;
+            border-top: 1px solid rgba(0,0,0,0.04);
+        }
+        .nav-items {
+            flex-direction: row;
+            flex: 1;
+            justify-content: space-around;
+        }
+        .nav-divider { display: none; }
+        .nav-create { margin-top: 0; width: 48px; height: 48px; }
+        .nav-profile { display: none; }
+        .container { padding-left: 1rem; padding-right: 1rem; padding-bottom: 90px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="texture-overlay"></div>
+<div class="aura-blob blob-1"></div>
+<div class="aura-blob blob-2"></div>
+<div class="aura-blob blob-3"></div>
+
+<!-- HEADER -->
+<header class="app-header">
+    <div class="header-left">
+        <div class="brand-name">Quill</div>
+    </div>
+    
+    <div class="header-center">
+        <div class="search-wrapper">
+            <div class="search-bar">
+                <div class="search-icon-area">
+                    <i class="fas fa-search"></i>
+                </div>
+                <input type="text" placeholder="Seek whispers of inspiration...">
+                <div class="search-decoration">
+                    <i class="fas fa-sparkles"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="header-right">
+        <div class="view-toggle">
+            <button class="view-btn active" onclick="setView('stream', this)">
+                <i class="fas fa-stream"></i>
+                <span class="view-tooltip">Stream View</span>
+            </button>
+            <button class="view-btn" onclick="setView('card', this)">
+                <i class="fas fa-th-large"></i>
+                <span class="view-tooltip">Card View</span>
+            </button>
+            <button class="view-btn" onclick="setView('minimal', this)">
+                <i class="fas fa-align-left"></i>
+                <span class="view-tooltip">Minimal View</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- CONTENT FEED -->
+<div class="container">
+
+    <!-- POST 1: Manifesto -->
+    <div class="post type-manifesto" 
+         data-author-img="https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
+         data-author-name="Julian Whitmore"
+         data-post-time="Just now"
+         data-post-type="shared a thought"
+         onclick="openModal(this)">
+        <div class="author-header">
+            <img src="https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="" class="author-avatar">
+            <div class="author-info">
+                <div class="author-name-line">
+                    <span class="author-name">Julian Whitmore</span>
+                    <span class="post-type-label">shared a thought</span>
+                </div>
+                <span class="post-time">Just now</span>
+            </div>
+            <button class="post-menu-btn" onclick="togglePostMenu(event, this)">
+                <i class="fas fa-ellipsis-h"></i>
+                <div class="post-menu">
+                    <div class="post-menu-item"><i class="far fa-bookmark"></i> Save post</div>
+                    <div class="post-menu-item"><i class="fas fa-link"></i> Copy link</div>
+                    <div class="post-menu-item"><i class="fas fa-code"></i> Embed</div>
+                    <div class="post-menu-divider"></div>
+                    <div class="post-menu-item"><i class="fas fa-user-plus"></i> Follow author</div>
+                    <div class="post-menu-item"><i class="fas fa-bell-slash"></i> Mute author</div>
+                    <div class="post-menu-divider"></div>
+                    <div class="post-menu-item danger"><i class="fas fa-flag"></i> Report</div>
+                </div>
+            </button>
+        </div>
+        <div class="content">
+            To define is to limit. <br>
+            I am coloring <span class="highlight">outside the lines</span><br>
+            of my own silhouette.
+        </div>
+        <div class="actions">
+            <div class="actions-left">
+                <button class="action-btn" onclick="toggleAction(event, this, 'like')">
+                    <i class="far fa-heart"></i>
+                    <span class="action-count">247</span>
+                    <span class="action-tooltip">Admire</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'comment')">
+                    <i class="far fa-comment"></i>
+                    <span class="action-count">42</span>
+                    <span class="action-tooltip">Comment</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'relay')">
+                    <i class="fas fa-retweet"></i>
+                    <span class="action-count">18</span>
+                    <span class="action-tooltip">Relay</span>
+                </button>
+            </div>
+            <div class="actions-right">
+                <button class="action-btn" onclick="toggleAction(event, this, 'share')">
+                    <i class="fas fa-share-alt"></i>
+                    <span class="action-tooltip">Share</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'save')">
+                    <i class="far fa-bookmark"></i>
+                    <span class="action-tooltip">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JOURNAL POST -->
+    <div class="post type-journal" 
+         data-author-img="https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
+         data-author-name="Mira Solstice"
+         data-post-time="1 hour ago"
+         data-post-type="wrote in her journal"
+         onclick="openModal(this)">
+        <div class="author-header">
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="" class="author-avatar">
+            <div class="author-info">
+                <div class="author-name-line">
+                    <span class="author-name">Mira Solstice</span>
+                    <span class="post-type-label">wrote in her journal</span>
+                </div>
+                <span class="post-time">1 hour ago</span>
+            </div>
+            <button class="post-menu-btn" onclick="togglePostMenu(event, this)">
+                <i class="fas fa-ellipsis-h"></i>
+                <div class="post-menu">
+                    <div class="post-menu-item"><i class="far fa-bookmark"></i> Save post</div>
+                    <div class="post-menu-item"><i class="fas fa-link"></i> Copy link</div>
+                    <div class="post-menu-divider"></div>
+                    <div class="post-menu-item"><i class="fas fa-user-plus"></i> Follow author</div>
+                    <div class="post-menu-item"><i class="fas fa-bell-slash"></i> Mute author</div>
+                    <div class="post-menu-divider"></div>
+                    <div class="post-menu-item danger"><i class="fas fa-flag"></i> Report</div>
+                </div>
+            </button>
+        </div>
+        <div class="journal-date">December 28, 2024</div>
+        <h3 class="journal-title">On the Art of Letting Go</h3>
+        <p class="journal-excerpt">
+            I've been thinking about the weight we carry — not the physical kind, but the invisible burdens we accumulate like snow on branches. There comes a moment when the branch must bend, must release, or it will break...
+        </p>
+        <a href="#" class="journal-read-more" onclick="event.stopPropagation(); openModal(this.closest('.post'))">
+            Continue reading <i class="fas fa-arrow-right"></i>
+        </a>
+        <div class="actions">
+            <div class="actions-left">
+                <button class="action-btn" onclick="toggleAction(event, this, 'like')">
+                    <i class="far fa-heart"></i>
+                    <span class="action-count">183</span>
+                    <span class="action-tooltip">Admire</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'comment')">
+                    <i class="far fa-comment"></i>
+                    <span class="action-count">28</span>
+                    <span class="action-tooltip">Comment</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'relay')">
+                    <i class="fas fa-retweet"></i>
+                    <span class="action-count">12</span>
+                    <span class="action-tooltip">Relay</span>
+                </button>
+            </div>
+            <div class="actions-right">
+                <button class="action-btn" onclick="toggleAction(event, this, 'share')">
+                    <i class="fas fa-share-alt"></i>
+                    <span class="action-tooltip">Share</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'save')">
+                    <i class="far fa-bookmark"></i>
+                    <span class="action-tooltip">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CAROUSEL POST -->
+    <div class="post type-carousel" 
+         data-author-img="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
+         data-author-name="Aria Lumière"
+         data-post-time="2 hours ago"
+         data-post-type="shared a visual story"
+         data-images="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80,https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80,https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80,https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80"
+         data-captions="I. Dawn - Where the mountains meet the sky,II. Mist - The valley breathes in silver,III. Reflection - Still waters hold the world twice,IV. Summit - Above the clouds we find ourselves"
+         onclick="openModal(this)">
+        <div class="author-header">
+            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="" class="author-avatar">
+            <div class="author-info">
+                <div class="author-name-line">
+                    <span class="author-name">Aria Lumière</span>
+                    <span class="post-type-label">shared a visual story</span>
+                </div>
+                <span class="post-time">2 hours ago</span>
+            </div>
+            <button class="post-menu-btn" onclick="togglePostMenu(event, this)">
+                <i class="fas fa-ellipsis-h"></i>
+                <div class="post-menu">
+                    <div class="post-menu-item"><i class="far fa-bookmark"></i> Save post</div>
+                    <div class="post-menu-item"><i class="fas fa-link"></i> Copy link</div>
+                    <div class="post-menu-divider"></div>
+                    <div class="post-menu-item"><i class="fas fa-user-plus"></i> Follow author</div>
+                    <div class="post-menu-item danger"><i class="fas fa-flag"></i> Report</div>
+                </div>
+            </button>
+        </div>
+        <div class="carousel-text-content">
+            <h3 class="carousel-title">A Visual Poem: Elevation</h3>
+            <p class="carousel-description">Four frames from my journey through the Alps. Each image is a stanza, each color a word unspoken.</p>
+        </div>
+        <div class="carousel-container" onclick="event.stopPropagation()">
+            <div class="carousel-track" id="carousel1">
+                <div class="carousel-slide">
+                    <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80" alt="">
+                    <div class="carousel-caption"><h4>I. Dawn</h4><p>Where the mountains meet the sky</p></div>
+                </div>
+                <div class="carousel-slide">
+                    <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80" alt="">
+                    <div class="carousel-caption"><h4>II. Mist</h4><p>The valley breathes in silver</p></div>
+                </div>
+                <div class="carousel-slide">
+                    <img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80" alt="">
+                    <div class="carousel-caption"><h4>III. Reflection</h4><p>Still waters hold the world twice</p></div>
+                </div>
+                <div class="carousel-slide">
+                    <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80" alt="">
+                    <div class="carousel-caption"><h4>IV. Summit</h4><p>Above the clouds, we find ourselves</p></div>
+                </div>
+            </div>
+            <button class="carousel-nav prev" onclick="moveCarousel('carousel1', -1)"><i class="fas fa-chevron-left"></i></button>
+            <button class="carousel-nav next" onclick="moveCarousel('carousel1', 1)"><i class="fas fa-chevron-right"></i></button>
+            <div class="carousel-dots" id="dots-carousel1">
+                <button class="carousel-dot active" onclick="goToSlide('carousel1', 0)"></button>
+                <button class="carousel-dot" onclick="goToSlide('carousel1', 1)"></button>
+                <button class="carousel-dot" onclick="goToSlide('carousel1', 2)"></button>
+                <button class="carousel-dot" onclick="goToSlide('carousel1', 3)"></button>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="actions-left">
+                <button class="action-btn" onclick="toggleAction(event, this, 'like')">
+                    <i class="far fa-heart"></i>
+                    <span class="action-count">412</span>
+                    <span class="action-tooltip">Admire</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'comment')">
+                    <i class="far fa-comment"></i>
+                    <span class="action-count">67</span>
+                    <span class="action-tooltip">Comment</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'relay')">
+                    <i class="fas fa-retweet"></i>
+                    <span class="action-count">89</span>
+                    <span class="action-tooltip">Relay</span>
+                </button>
+            </div>
+            <div class="actions-right">
+                <button class="action-btn" onclick="toggleAction(event, this, 'save')">
+                    <i class="far fa-bookmark"></i>
+                    <span class="action-tooltip">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POEM POST -->
+    <div class="post type-poem" 
+         data-author-img="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
+         data-author-name="Elena Verse"
+         data-post-time="3 hours ago"
+         data-post-type="wrote a poem"
+         onclick="openModal(this)">
+        <div class="author-header" style="justify-content: center;">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="" class="author-avatar">
+            <div class="author-info" style="text-align: left;">
+                <div class="author-name-line">
+                    <span class="author-name">Elena Verse</span>
+                    <span class="post-type-label">wrote a poem</span>
+                </div>
+                <span class="post-time">3 hours ago</span>
+            </div>
+            <button class="post-menu-btn" onclick="togglePostMenu(event, this)">
+                <i class="fas fa-ellipsis-h"></i>
+                <div class="post-menu">
+                    <div class="post-menu-item"><i class="far fa-bookmark"></i> Save post</div>
+                    <div class="post-menu-item"><i class="fas fa-link"></i> Copy link</div>
+                    <div class="post-menu-divider"></div>
+                    <div class="post-menu-item"><i class="fas fa-user-plus"></i> Follow author</div>
+                    <div class="post-menu-item danger"><i class="fas fa-flag"></i> Report</div>
+                </div>
+            </button>
+        </div>
+        
+        <div class="poem-title">The Quiet Hours</div>
+        <div class="poem-body">The morning broke
+like a ceramic plate,
+sharp edges of light
+cutting through the blinds.
+
+I swept the pieces
+into a pile of gold.</div>
+
+        <div class="actions" style="justify-content: center;">
+            <div class="actions-left">
+                <button class="action-btn" onclick="toggleAction(event, this, 'like')">
+                    <i class="far fa-heart"></i>
+                    <span class="action-count">156</span>
+                    <span class="action-tooltip">Admire</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'comment')">
+                    <i class="far fa-comment"></i>
+                    <span class="action-count">23</span>
+                    <span class="action-tooltip">Comment</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'relay')">
+                    <i class="fas fa-retweet"></i>
+                    <span class="action-count">31</span>
+                    <span class="action-tooltip">Relay</span>
+                </button>
+            </div>
+            <div class="actions-right">
+                <button class="action-btn" onclick="toggleAction(event, this, 'share')">
+                    <i class="fas fa-share-alt"></i>
+                    <span class="action-tooltip">Share</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'save')">
+                    <i class="far fa-bookmark"></i>
+                    <span class="action-tooltip">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO POST -->
+    <div class="post type-audio" 
+         data-author-img="https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
+         data-author-name="Rainy Days"
+         data-post-time="2 days ago"
+         data-post-type="recorded a voice note"
+         onclick="openModal(this)">
+        <div class="audio-visual" onclick="event.stopPropagation()">
+            <div class="sound-bars">
+                <div class="sound-bar"></div>
+                <div class="sound-bar"></div>
+                <div class="sound-bar"></div>
+                <div class="sound-bar"></div>
+                <div class="sound-bar"></div>
+                <div class="sound-bar"></div>
+            </div>
+        </div>
+        <div class="audio-content">
+            <div class="author-header" style="margin-bottom: 8px;">
+                <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="" class="author-avatar" style="width: 36px; height: 36px;">
+                <div class="author-info">
+                    <div class="author-name-line">
+                        <span class="author-name">Rainy Days</span>
+                        <span class="post-type-label">recorded a voice note</span>
+                    </div>
+                    <span class="post-time">2 days ago</span>
+                </div>
+                <button class="post-menu-btn" onclick="togglePostMenu(event, this)">
+                    <i class="fas fa-ellipsis-h"></i>
+                    <div class="post-menu">
+                        <div class="post-menu-item"><i class="far fa-bookmark"></i> Save post</div>
+                        <div class="post-menu-item"><i class="fas fa-link"></i> Copy link</div>
+                        <div class="post-menu-divider"></div>
+                        <div class="post-menu-item"><i class="fas fa-user-plus"></i> Follow author</div>
+                        <div class="post-menu-item danger"><i class="fas fa-flag"></i> Report</div>
+                    </div>
+                </button>
+            </div>
+            <div class="audio-title">Voice Note</div>
+            <div class="audio-author">"3AM Rain"</div>
+            <div class="actions">
+                <div class="actions-left">
+                    <button class="action-btn" onclick="toggleAction(event, this, 'like')">
+                        <i class="far fa-heart"></i>
+                        <span class="action-count">89</span>
+                        <span class="action-tooltip">Admire</span>
+                    </button>
+                    <button class="action-btn" onclick="toggleAction(event, this, 'comment')">
+                        <i class="far fa-comment"></i>
+                        <span class="action-count">14</span>
+                        <span class="action-tooltip">Comment</span>
+                    </button>
+                    <button class="action-btn" onclick="toggleAction(event, this, 'relay')">
+                        <i class="fas fa-retweet"></i>
+                        <span class="action-count">7</span>
+                        <span class="action-tooltip">Relay</span>
+                    </button>
+                </div>
+                <div class="actions-right">
+                    <button class="action-btn" onclick="toggleAction(event, this, 'save')">
+                        <i class="far fa-bookmark"></i>
+                        <span class="action-tooltip">Save</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIDEO POST -->
+    <div class="post type-video" 
+         data-author-img="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
+         data-author-name="Oliver Crane"
+         data-post-time="5 hours ago"
+         data-post-type="shared a video"
+         onclick="openModal(this)">
+        <div class="author-header">
+            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="" class="author-avatar">
+            <div class="author-info">
+                <div class="author-name-line">
+                    <span class="author-name">Oliver Crane</span>
+                    <span class="post-type-label">shared a video</span>
+                </div>
+                <span class="post-time">5 hours ago</span>
+            </div>
+            <button class="post-menu-btn" onclick="togglePostMenu(event, this)">
+                <i class="fas fa-ellipsis-h"></i>
+                <div class="post-menu">
+                    <div class="post-menu-item"><i class="far fa-bookmark"></i> Save post</div>
+                    <div class="post-menu-item"><i class="fas fa-link"></i> Copy link</div>
+                    <div class="post-menu-divider"></div>
+                    <div class="post-menu-item"><i class="fas fa-user-plus"></i> Follow author</div>
+                    <div class="post-menu-item danger"><i class="fas fa-flag"></i> Report</div>
+                </div>
+            </button>
+        </div>
+        <div class="video-container" onclick="event.stopPropagation()">
+            <img src="https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80" alt="" class="video-thumbnail">
+            <div class="video-play-btn">
+                <i class="fas fa-play"></i>
+            </div>
+            <span class="video-duration">4:32</span>
+        </div>
+        <h3 class="video-title">The Sound of Silence: A Visual Meditation</h3>
+        <p class="video-description">A quiet journey through dawn's first light, captured on the shores of solitude.</p>
+        <div class="actions">
+            <div class="actions-left">
+                <button class="action-btn" onclick="toggleAction(event, this, 'like')">
+                    <i class="far fa-heart"></i>
+                    <span class="action-count">328</span>
+                    <span class="action-tooltip">Admire</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'comment')">
+                    <i class="far fa-comment"></i>
+                    <span class="action-count">54</span>
+                    <span class="action-tooltip">Comment</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'relay')">
+                    <i class="fas fa-retweet"></i>
+                    <span class="action-count">42</span>
+                    <span class="action-tooltip">Relay</span>
+                </button>
+            </div>
+            <div class="actions-right">
+                <button class="action-btn" onclick="toggleAction(event, this, 'share')">
+                    <i class="fas fa-share-alt"></i>
+                    <span class="action-tooltip">Share</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'save')">
+                    <i class="far fa-bookmark"></i>
+                    <span class="action-tooltip">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LONG FORM POST -->
+    <div class="post type-longform" 
+         data-author-img="https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
+         data-author-name="Celeste Wordsmith"
+         data-post-time="8 hours ago"
+         data-post-type="wrote an essay"
+         onclick="openModal(this)">
+        <div class="author-header">
+            <img src="https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="" class="author-avatar">
+            <div class="author-info">
+                <div class="author-name-line">
+                    <span class="author-name">Celeste Wordsmith</span>
+                    <span class="post-type-label">wrote an essay</span>
+                </div>
+                <span class="post-time">8 hours ago</span>
+            </div>
+            <button class="post-menu-btn" onclick="togglePostMenu(event, this)">
+                <i class="fas fa-ellipsis-h"></i>
+                <div class="post-menu">
+                    <div class="post-menu-item"><i class="far fa-bookmark"></i> Save post</div>
+                    <div class="post-menu-item"><i class="fas fa-link"></i> Copy link</div>
+                    <div class="post-menu-divider"></div>
+                    <div class="post-menu-item"><i class="fas fa-user-plus"></i> Follow author</div>
+                    <div class="post-menu-item danger"><i class="fas fa-flag"></i> Report</div>
+                </div>
+            </button>
+        </div>
+        <h2 class="longform-title">On the Architecture of Memory</h2>
+        <div class="longform-content longform-fade">
+            <div class="longform-text">
+                <p>We build our memories the way ancient civilizations built their temples — stone by stone, moment by moment, until something sacred emerges from the ordinary. Each recollection is a room we can return to, furnished with the textures of emotion and illuminated by the particular quality of light that belonged only to that instant.</p>
+                <p>I have been thinking lately about the corridors we construct between these rooms. The pathways that connect a grandmother's kitchen to a rainy Tuesday in November, or link the smell of jasmine to a conversation that changed everything. These are not random associations but deliberate architecture, built by a mind desperate to make meaning from the chaos of experience.</p>
+                <p>The philosophers tell us that memory is unreliable, that each time we recall something we change it slightly, like a story passed from mouth to mouth around a fire. But perhaps this malleability is not a flaw but a feature. Perhaps our memories are meant to evolve with us, to remain relevant to who we are becoming rather than who we were.</p>
+                <p>Consider the house you grew up in. When you picture it now, do you see it as it actually was, or as your child-self perceived it? The ceilings were higher then, the hallways longer, the backyard an infinite wilderness of possibility. This is not deception; this is truth of a different kind — emotional truth, experiential truth, the truth of what it meant to be small in a world that seemed so impossibly large.</p>
+                <p>I return often to a particular afternoon in late September. The details have softened over the years, like stones smoothed by water, but the essence remains: golden light through amber leaves, the weight of a book in my hands, the profound sense that time had paused to let me catch my breath. Did it happen exactly as I remember? Does it matter?</p>
+            </div>
+        </div>
+        <a href="#" class="longform-read-more" onclick="event.stopPropagation(); openModal(this.closest('.post'))">
+            Continue reading <i class="fas fa-arrow-right"></i>
+        </a>
+        <div class="actions">
+            <div class="actions-left">
+                <button class="action-btn" onclick="toggleAction(event, this, 'like')">
+                    <i class="far fa-heart"></i>
+                    <span class="action-count">512</span>
+                    <span class="action-tooltip">Admire</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'comment')">
+                    <i class="far fa-comment"></i>
+                    <span class="action-count">87</span>
+                    <span class="action-tooltip">Comment</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'relay')">
+                    <i class="fas fa-retweet"></i>
+                    <span class="action-count">156</span>
+                    <span class="action-tooltip">Relay</span>
+                </button>
+            </div>
+            <div class="actions-right">
+                <button class="action-btn" onclick="toggleAction(event, this, 'share')">
+                    <i class="fas fa-share-alt"></i>
+                    <span class="action-tooltip">Share</span>
+                </button>
+                <button class="action-btn" onclick="toggleAction(event, this, 'save')">
+                    <i class="far fa-bookmark"></i>
+                    <span class="action-tooltip">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- LEFT SIDEBAR NAVIGATION -->
+<nav class="left-sidebar-nav">
+    <div class="nav-items">
+        <button class="nav-item active">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </button>
+        <button class="nav-item">
+            <i class="fas fa-compass"></i>
+            <span>Explore</span>
+        </button>
+        <button class="nav-item">
+            <i class="fas fa-fire"></i>
+            <span>Trending</span>
+        </button>
+        <button class="nav-item">
+            <i class="fas fa-bookmark"></i>
+            <span>Saved</span>
+        </button>
+        <button class="nav-item">
+            <i class="fas fa-users"></i>
+            <span>Groups</span>
+        </button>
+        
+        <div class="nav-divider"></div>
+        
+        <button class="nav-item has-badge">
+            <i class="fas fa-bell"></i>
+            <span>Notifications</span>
+            <span class="nav-badge">3</span>
+        </button>
+        <button class="nav-item">
+            <i class="fas fa-paper-plane"></i>
+            <span>Messages</span>
+        </button>
+    </div>
+    
+    <button class="nav-create" onclick="openCreateModal()">
+        <i class="fas fa-feather-alt"></i>
+        <span>Create</span>
+    </button>
+    
+    <div class="nav-profile">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="Profile">
+        <div class="nav-profile-info">
+            <span class="nav-profile-name">Sofia Ray</span>
+            <span class="nav-profile-handle">@sofiaray</span>
+        </div>
+    </div>
+</nav>
+
+<!-- RIGHT SIDEBAR -->
+<aside class="right-sidebar">
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Trending Artists</div>
+        <div class="suggested-artist">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="">
+            <div class="artist-info">
+                <div class="artist-name">Marcus Aurelius</div>
+                <div class="artist-handle">Poet • 12.4k followers</div>
+            </div>
+            <button class="follow-btn">Follow</button>
+        </div>
+        <div class="suggested-artist">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="">
+            <div class="artist-info">
+                <div class="artist-name">Luna Vesper</div>
+                <div class="artist-handle">Visual Artist • 8.2k</div>
+            </div>
+            <button class="follow-btn">Follow</button>
+        </div>
+        <div class="suggested-artist">
+            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" alt="">
+            <div class="artist-info">
+                <div class="artist-name">Echo Rivers</div>
+                <div class="artist-handle">Musician • 5.9k</div>
+            </div>
+            <button class="follow-btn">Follow</button>
+        </div>
+    </div>
+    
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Suggested Groups</div>
+        <div class="suggested-group">
+            <div class="group-icon poetry"><i class="fas fa-feather"></i></div>
+            <div class="group-info">
+                <div class="group-name">Midnight Verses</div>
+                <div class="group-members">2.3k members</div>
+            </div>
+        </div>
+        <div class="suggested-group">
+            <div class="group-icon visual"><i class="fas fa-palette"></i></div>
+            <div class="group-info">
+                <div class="group-name">Abstract Visions</div>
+                <div class="group-members">1.8k members</div>
+            </div>
+        </div>
+        <div class="suggested-group">
+            <div class="group-icon music"><i class="fas fa-music"></i></div>
+            <div class="group-info">
+                <div class="group-name">Ambient Souls</div>
+                <div class="group-members">956 members</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar-footer">
+        <div class="footer-links">
+            <a href="#" class="footer-link">About</a>
+            <a href="#" class="footer-link">Privacy Policy</a>
+            <a href="#" class="footer-link">Terms of Service</a>
+            <a href="#" class="footer-link">Cookie Policy</a>
+            <a href="#" class="footer-link">Accessibility</a>
+            <a href="#" class="footer-link">Community Guidelines</a>
+            <a href="#" class="footer-link">Help Center</a>
+            <a href="#" class="footer-link">Careers</a>
+        </div>
+        <div class="footer-copyright">© 2024 Quill. All rights reserved.</div>
+    </div>
+</aside>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="postModal">
+    <div class="modal-card">
+        <div class="modal-content-area" id="modalContent"></div>
+        <div class="modal-comments-area">
+            <div class="modal-header">
+                <span class="modal-header-title">Discussion</span>
+                <button class="modal-close-btn" onclick="closeDiscussion()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="comments-list" id="commentsList">
+                <div class="comment-item">
+                    <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" class="c-avatar">
+                    <div class="c-content">
+                        <div class="c-meta">
+                            <span class="c-user">Sarah Whitman</span>
+                            <span class="c-time">10m ago</span>
+                        </div>
+                        <div class="c-body">This typography choice is brilliant. It feels like a whisper that turns into a shout.</div>
+                        <div class="c-actions">
+                            <button class="c-action-btn" onclick="toggleCommentAdmire(this)"><i class="far fa-heart"></i> <span>24</span></button>
+                            <button class="c-action-btn" onclick="toggleReplyInput(this)"><i class="far fa-comment"></i> Reply</button>
+                        </div>
+                        <button class="c-view-replies" onclick="toggleReplies(this)">
+                            <i class="fas fa-chevron-down"></i> View 3 replies
+                        </button>
+                        <div class="c-replies" style="display:none;">
+                            <div class="comment-item">
+                                <img src="https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" class="c-avatar">
+                                <div class="c-content">
+                                    <div class="c-meta">
+                                        <span class="c-user">Julian Whitmore</span>
+                                        <span class="c-time">8m ago</span>
+                                    </div>
+                                    <div class="c-body">Completely agree with this perspective.</div>
+                                    <div class="c-actions">
+                                        <button class="c-action-btn" onclick="toggleCommentAdmire(this)"><i class="far fa-heart"></i> <span>5</span></button>
+                                        <button class="c-action-btn"><i class="far fa-comment"></i> Reply</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="comment-item">
+                    <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" class="c-avatar">
+                    <div class="c-content">
+                        <div class="c-meta">
+                            <span class="c-user">David Arturo</span>
+                            <span class="c-time">45m ago</span>
+                        </div>
+                        <div class="c-body">The composition here... just wow. Every element speaks to the soul.</div>
+                        <div class="c-actions">
+                            <button class="c-action-btn" onclick="toggleCommentAdmire(this)"><i class="far fa-heart"></i> <span>18</span></button>
+                            <button class="c-action-btn"><i class="far fa-comment"></i> Reply</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="comment-input-box">
+                <div class="comment-input-wrapper">
+                    <input type="text" id="commentInput" placeholder="Add to the conversation...">
+                </div>
+                <button class="comment-send-btn" onclick="postComment()">
+                    <i class="fas fa-feather-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+    <button class="lightbox-close" onclick="closeLightbox()"><i class="fas fa-times"></i></button>
+    <button class="lightbox-nav prev" onclick="lightboxNav(-1)"><i class="fas fa-chevron-left"></i></button>
+    <img src="" alt="" id="lightboxImg">
+    <button class="lightbox-nav next" onclick="lightboxNav(1)"><i class="fas fa-chevron-right"></i></button>
+    <div class="lightbox-counter" id="lightboxCounter">1 / 4</div>
+</div>
+
+<script>
+    // View Toggle
+    function setView(view, btn) {
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    // Post Menu
+    function togglePostMenu(e, btn) {
+        e.stopPropagation();
+        document.querySelectorAll('.post-menu-btn.active').forEach(b => { if (b !== btn) b.classList.remove('active'); });
+        btn.classList.toggle('active');
+    }
+    
+    // Create Menu
+    function openCreateModal() {
+        alert('Opening create modal... Choose: Poem, Journal, Thought, Image, Audio, or Video');
+    }
+    
+    // Close menus
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.post-menu-btn')) {
+            document.querySelectorAll('.post-menu-btn.active').forEach(b => b.classList.remove('active'));
+        }
+    });
+
+    // Carousel
+    const carouselStates = {};
+    function initCarousel(id) { if (!carouselStates[id]) carouselStates[id] = { currentSlide: 0 }; }
+    function moveCarousel(id, dir) {
+        event.stopPropagation();
+        initCarousel(id);
+        const track = document.getElementById(id);
+        const slides = track.querySelectorAll('.carousel-slide');
+        carouselStates[id].currentSlide += dir;
+        if (carouselStates[id].currentSlide < 0) carouselStates[id].currentSlide = slides.length - 1;
+        if (carouselStates[id].currentSlide >= slides.length) carouselStates[id].currentSlide = 0;
+        updateCarousel(id);
+    }
+    function goToSlide(id, index) { event.stopPropagation(); initCarousel(id); carouselStates[id].currentSlide = index; updateCarousel(id); }
+    function updateCarousel(id) {
+        const track = document.getElementById(id);
+        const dots = document.querySelectorAll(`#dots-${id} .carousel-dot`);
+        track.style.transform = `translateX(-${carouselStates[id].currentSlide * 100}%)`;
+        dots.forEach((d, i) => d.classList.toggle('active', i === carouselStates[id].currentSlide));
+    }
+    document.querySelectorAll('.carousel-track').forEach(t => initCarousel(t.id));
+
+    // Lightbox
+    let lightboxImages = [], lightboxIndex = 0;
+    function openLightbox(images, index) {
+        lightboxImages = images; lightboxIndex = index;
+        updateLightbox();
+        document.getElementById('lightbox').classList.add('open');
+    }
+    function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+    function lightboxNav(dir) {
+        lightboxIndex += dir;
+        if (lightboxIndex < 0) lightboxIndex = lightboxImages.length - 1;
+        if (lightboxIndex >= lightboxImages.length) lightboxIndex = 0;
+        updateLightbox();
+    }
+    function updateLightbox() {
+        document.getElementById('lightboxImg').src = lightboxImages[lightboxIndex];
+        document.getElementById('lightboxCounter').textContent = `${lightboxIndex + 1} / ${lightboxImages.length}`;
+    }
+
+    // Scroll Reveal
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.post').forEach(post => observer.observe(post));
+
+    // Action Buttons
+    function toggleAction(e, btn, type) {
+        e.stopPropagation();
+        const icon = btn.querySelector('i');
+        if (type === 'like') {
+            if (icon.classList.contains('far')) { icon.classList.replace('far', 'fas'); btn.classList.add('active'); }
+            else { icon.classList.replace('fas', 'far'); btn.classList.remove('active'); }
+        } else if (type === 'save') {
+            if (icon.classList.contains('far')) { icon.classList.replace('far', 'fas'); btn.classList.add('saved'); }
+            else { icon.classList.replace('fas', 'far'); btn.classList.remove('saved'); }
+        }
+    }
+
+    // Modal
+    const modal = document.getElementById('postModal');
+    const modalContent = document.getElementById('modalContent');
+    let currentModalImages = [], modalGalleryIndex = 0;
+
+    function openModal(postEl) {
+        modalContent.innerHTML = '';
+        currentModalImages = []; modalGalleryIndex = 0;
+        
+        // Reset to full screen mode (no discussion)
+        document.querySelector('.modal-card').classList.remove('with-discussion');
+        
+        const { authorImg, authorName, postTime, postType, images, captions } = postEl.dataset;
+        
+        // Top bar with close and view discussion
+        modalContent.innerHTML = `
+            <div class="modal-top-bar">
+                <button class="modal-close-top" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <button class="view-discussion-btn" onclick="toggleDiscussion()">
+                    <i class="far fa-comments"></i>
+                    <span>View Discussion</span>
+                    <span class="discussion-count">12</span>
+                </button>
+            </div>
+            <div class="modal-author-header">
+                <img src="${authorImg}" class="modal-author-avatar">
+                <div class="modal-author-info">
+                    <div class="modal-author-name-line">
+                        <span class="modal-author-name">${authorName}</span>
+                        <span class="modal-post-type">${postType}</span>
+                    </div>
+                    <span class="modal-post-time">${postTime}</span>
+                </div>
+            </div>
+        `;
+        
+        // Content
+        let content = '<div class="modal-post-content">';
+        
+        if (postEl.classList.contains('type-poem')) {
+            content += `<h2 class="modal-title" style="text-align:center">${postEl.querySelector('.poem-title').textContent}</h2>
+                        <p class="modal-body poem">${postEl.querySelector('.poem-body').textContent}</p>`;
+        } else if (postEl.classList.contains('type-journal')) {
+            content += `<p style="font-family:var(--font-ui);font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--primary-purple);margin-bottom:0.75rem">${postEl.querySelector('.journal-date').textContent}</p>
+                        <h2 class="modal-title">${postEl.querySelector('.journal-title').textContent}</h2>
+                        <p class="modal-body">${postEl.querySelector('.journal-excerpt').textContent}</p>
+                        <p class="modal-body">This is where the full journal entry would continue...</p>`;
+        } else if (postEl.classList.contains('type-manifesto')) {
+            content += `<div class="modal-body" style="font-family:var(--font-display);font-size:2rem;line-height:1.4">${postEl.querySelector('.content').innerHTML}</div>`;
+        } else if (postEl.classList.contains('type-audio')) {
+            content += `<h2 class="modal-title" style="text-align:center">"3AM Rain"</h2>
+                        <p class="modal-body" style="text-align:center;max-width:400px;margin:0 auto 2rem">A late-night recording capturing the gentle symphony of rainfall.</p>
+                        <div style="text-align:center">
+                            <div style="width:150px;height:150px;background:linear-gradient(145deg,var(--primary-purple),var(--vivid-pink));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;box-shadow:0 20px 50px rgba(142,68,173,0.3)">
+                                <div class="sound-bars" style="transform:scale(1.5)">
+                                    <div class="sound-bar"></div><div class="sound-bar"></div><div class="sound-bar"></div><div class="sound-bar"></div><div class="sound-bar"></div><div class="sound-bar"></div>
+                                </div>
+                            </div>
+                        </div>`;
+        } else if (postEl.classList.contains('type-carousel')) {
+            currentModalImages = images?.split(',') || [];
+            const caps = captions?.split(',') || [];
+            content += `<h2 class="modal-title">${postEl.querySelector('.carousel-title').textContent}</h2>
+                        <p class="modal-body">${postEl.querySelector('.carousel-description').textContent}</p>
+                        <div class="modal-gallery">
+                            <div class="modal-gallery-main">
+                                <img src="${currentModalImages[0]}" id="modalGalleryMain" onclick="openLightbox(currentModalImages, modalGalleryIndex)">
+                                <button class="modal-gallery-nav prev" onclick="modalGalleryNav(-1)"><i class="fas fa-chevron-left"></i></button>
+                                <button class="modal-gallery-nav next" onclick="modalGalleryNav(1)"><i class="fas fa-chevron-right"></i></button>
+                            </div>
+                            <p class="modal-gallery-caption" id="modalGalleryCaption">${caps[0] || ''}</p>
+                            <div class="modal-gallery-thumbs">
+                                ${currentModalImages.map((img, i) => `<img src="${img}" class="modal-gallery-thumb ${i === 0 ? 'active' : ''}" onclick="setModalGallery(${i})">`).join('')}
+                            </div>
+                        </div>`;
+        } else if (postEl.classList.contains('type-video')) {
+            content += `<h2 class="modal-title">${postEl.querySelector('.video-title').textContent}</h2>
+                        <p class="modal-body">${postEl.querySelector('.video-description').textContent}</p>
+                        <div class="video-container" style="margin:1.5rem 0;border-radius:14px;overflow:hidden;">
+                            <img src="https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80" style="width:100%;height:auto;display:block;">
+                            <div class="video-play-btn">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <span class="video-duration">4:32</span>
+                        </div>`;
+        } else if (postEl.classList.contains('type-longform')) {
+            const fullText = postEl.querySelector('.longform-text').innerHTML;
+            content += `<h2 class="modal-title">${postEl.querySelector('.longform-title').textContent}</h2>
+                        <div class="modal-body" style="line-height:1.9">${fullText}</div>`;
+        }
+        
+        content += '</div>';
+        content += `<div class="modal-actions">
+            <button class="modal-action-btn" onclick="toggleModalAction(event, this, 'like')"><i class="far fa-heart"></i></button>
+            <button class="modal-action-btn"><i class="far fa-comment"></i></button>
+            <button class="modal-action-btn"><i class="fas fa-retweet"></i></button>
+            <button class="modal-action-btn"><i class="fas fa-share-alt"></i></button>
+            <button class="modal-action-btn" onclick="toggleModalAction(event, this, 'save')"><i class="far fa-bookmark"></i></button>
+        </div>`;
+        
+        modalContent.innerHTML += content;
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function toggleDiscussion() {
+        document.querySelector('.modal-card').classList.add('with-discussion');
+    }
+    
+    function closeDiscussion() {
+        document.querySelector('.modal-card').classList.remove('with-discussion');
+    }
+    
+    function setModalGallery(index) { modalGalleryIndex = index; updateModalGallery(); }
+    function modalGalleryNav(dir) {
+        modalGalleryIndex += dir;
+        if (modalGalleryIndex < 0) modalGalleryIndex = currentModalImages.length - 1;
+        if (modalGalleryIndex >= currentModalImages.length) modalGalleryIndex = 0;
+        updateModalGallery();
+    }
+    function updateModalGallery() {
+        document.getElementById('modalGalleryMain').src = currentModalImages[modalGalleryIndex];
+        const post = document.querySelector('.type-carousel');
+        const caps = post?.dataset.captions?.split(',') || [];
+        document.getElementById('modalGalleryCaption').textContent = caps[modalGalleryIndex] || '';
+        document.querySelectorAll('.modal-gallery-thumb').forEach((t, i) => t.classList.toggle('active', i === modalGalleryIndex));
+    }
+    
+    function toggleModalAction(e, btn, type) {
+        e.stopPropagation();
+        const icon = btn.querySelector('i');
+        if (type === 'like') {
+            if (icon.classList.contains('far')) { icon.classList.replace('far', 'fas'); btn.classList.add('active'); }
+            else { icon.classList.replace('fas', 'far'); btn.classList.remove('active'); }
+        } else if (type === 'save') {
+            if (icon.classList.contains('far')) { icon.classList.replace('far', 'fas'); btn.classList.add('active'); }
+            else { icon.classList.replace('fas', 'far'); btn.classList.remove('active'); }
+        }
+    }
+
+    function closeModal() { modal.classList.remove('open'); document.body.style.overflow = 'auto'; }
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    // Comment
+    function postComment() {
+        const input = document.getElementById('commentInput');
+        const text = input.value.trim();
+        if (!text) return;
+        document.getElementById('commentsList').innerHTML += `
+            <div class="comment-item">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" class="c-avatar">
+                <div class="c-content">
+                    <div class="c-meta"><span class="c-user">You</span><span class="c-time">Just now</span></div>
+                    <div class="c-body">${text}</div>
+                    <div class="c-actions">
+                        <button class="c-action-btn" onclick="toggleCommentAdmire(this)"><i class="far fa-heart"></i> <span>0</span></button>
+                        <button class="c-action-btn"><i class="far fa-comment"></i> Reply</button>
+                    </div>
+                </div>
+            </div>`;
+        input.value = '';
+    }
+    document.getElementById('commentInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') postComment(); });
+    
+    function toggleCommentAdmire(btn) {
+        const icon = btn.querySelector('i');
+        const count = btn.querySelector('span');
+        let num = parseInt(count.textContent);
+        if (icon.classList.contains('far')) {
+            icon.classList.replace('far', 'fas');
+            btn.classList.add('admired');
+            count.textContent = num + 1;
+        } else {
+            icon.classList.replace('fas', 'far');
+            btn.classList.remove('admired');
+            count.textContent = num - 1;
+        }
+    }
+    
+    function toggleReplies(btn) {
+        const replies = btn.nextElementSibling;
+        const icon = btn.querySelector('i');
+        if (replies.style.display === 'none') {
+            replies.style.display = 'block';
+            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            btn.innerHTML = '<i class="fas fa-chevron-up"></i> Hide replies';
+        } else {
+            replies.style.display = 'none';
+            icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            btn.innerHTML = '<i class="fas fa-chevron-down"></i> View 3 replies';
+        }
+    }
+    
+    function toggleReplyInput(btn) {
+        // For now just focus the main input
+        document.getElementById('commentInput').focus();
+    }
+    
+    // Keyboard
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (document.getElementById('lightbox').classList.contains('open')) closeLightbox();
+            else closeModal();
+        }
+        if (document.getElementById('lightbox').classList.contains('open')) {
+            if (e.key === 'ArrowLeft') lightboxNav(-1);
+            if (e.key === 'ArrowRight') lightboxNav(1);
+        }
+    });
+</script>
+</body>
+</html>
+
+
+
+
+
+

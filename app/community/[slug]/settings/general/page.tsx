@@ -75,7 +75,7 @@ export default function CommunityGeneralSettingsPage() {
 
     const { error: uploadError } = await supabase.storage
       .from(bucketName)
-      .upload(fileName, file);
+      .upload(fileName, file, { cacheControl: '31536000' });
 
     if (uploadError) throw uploadError;
 

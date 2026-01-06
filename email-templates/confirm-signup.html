@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Verify Your Email - PinkQuill</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    /* Reset styles */
+    body, table, td, p, a, li, blockquote {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table, td {
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+    img {
+      -ms-interpolation-mode: bicubic;
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+    }
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      background-color: #f8f7fc;
+    }
+
+    /* Responsive styles */
+    @media screen and (max-width: 600px) {
+      .container {
+        width: 100% !important;
+        padding: 20px !important;
+      }
+      .content-card {
+        padding: 32px 24px !important;
+      }
+      .otp-code {
+        font-size: 32px !important;
+        letter-spacing: 8px !important;
+      }
+      .header-text {
+        font-size: 24px !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8f7fc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+
+  <!-- Preheader Text (hidden, shows in email preview) -->
+  <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
+    Your PinkQuill verification code is {{ .Token }} - Enter this code to complete your registration.
+  </div>
+
+  <!-- Email Container -->
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8f7fc;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+
+        <!-- Main Content Card -->
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px;" class="container">
+
+          <!-- Logo Header -->
+          <tr>
+            <td align="center" style="padding-bottom: 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align: middle; padding-right: 12px;">
+                    <!-- Feather Icon (gradient background) -->
+                    <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #8e44ad 0%, #ff007f 50%, #ff9f43 100%); border-radius: 12px; display: inline-block; text-align: center; line-height: 44px;">
+                      <img src="https://cdn-icons-png.flaticon.com/512/2534/2534204.png" alt="Quill" width="22" height="22" style="vertical-align: middle; filter: brightness(0) invert(1);">
+                    </div>
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 22px; color: #1e1e1e; font-weight: 500;">PinkQuill</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- White Card -->
+          <tr>
+            <td>
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ffffff; border-radius: 24px; box-shadow: 0 4px 24px rgba(142, 68, 173, 0.08);">
+                <tr>
+                  <td class="content-card" style="padding: 48px 40px;">
+
+                    <!-- Decorative Top Gradient Line -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td style="height: 4px; background: linear-gradient(90deg, #8e44ad 0%, #ff007f 50%, #ff9f43 100%); border-radius: 2px;"></td>
+                      </tr>
+                    </table>
+
+                    <!-- Shield Icon -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td align="center" style="padding: 32px 0 24px 0;">
+                          <div style="width: 72px; height: 72px; background: linear-gradient(135deg, rgba(142, 68, 173, 0.1) 0%, rgba(255, 0, 127, 0.1) 100%); border-radius: 20px; display: inline-block; text-align: center; line-height: 72px;">
+                            <span style="font-size: 32px;">🛡️</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Header -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td align="center">
+                          <h1 class="header-text" style="margin: 0 0 12px 0; font-family: 'Georgia', 'Times New Roman', serif; font-size: 28px; font-weight: 500; color: #1e1e1e;">
+                            Verify your email
+                          </h1>
+                          <p style="margin: 0 0 32px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; color: #777; line-height: 1.6;">
+                            Enter this code to complete your PinkQuill registration
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- OTP Code Box -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td align="center" style="padding: 0 0 32px 0;">
+                          <div style="background: linear-gradient(135deg, #faf8fc 0%, #f8f5fb 100%); border: 2px dashed #e8e0f0; border-radius: 16px; padding: 24px 32px; display: inline-block;">
+                            <span class="otp-code" style="font-family: 'Courier New', monospace; font-size: 36px; font-weight: 700; letter-spacing: 12px; color: #8e44ad;">{{ .Token }}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Expiry Notice -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td align="center" style="padding-bottom: 32px;">
+                          <table role="presentation" cellpadding="0" cellspacing="0" style="background-color: #fff9e6; border-radius: 8px; padding: 12px 20px;">
+                            <tr>
+                              <td style="vertical-align: middle; padding-right: 8px;">
+                                <span style="font-size: 16px;">⏱️</span>
+                              </td>
+                              <td style="vertical-align: middle;">
+                                <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; color: #b8860b;">
+                                  This code expires in 24 hours
+                                </span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Divider -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td style="border-top: 1px solid #f0f0f0; padding-top: 24px;">
+                          <p style="margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; color: #999; line-height: 1.6; text-align: center;">
+                            If you didn't create a PinkQuill account, you can safely ignore this email.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Welcome Message -->
+          <tr>
+            <td align="center" style="padding: 32px 20px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <p style="margin: 0 0 8px 0; font-family: 'Georgia', 'Times New Roman', serif; font-size: 18px; font-style: italic; color: #8e44ad;">
+                      "Where words become art"
+                    </p>
+                    <p style="margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; color: #777;">
+                      Welcome to the creative ether ✨
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer Links -->
+          <tr>
+            <td align="center" style="padding: 0 20px 20px 20px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding: 0 12px;">
+                    <a href="https://pinkquill.app" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #8e44ad; text-decoration: none;">Website</a>
+                  </td>
+                  <td style="color: #ddd;">|</td>
+                  <td style="padding: 0 12px;">
+                    <a href="https://pinkquill.app/terms" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #8e44ad; text-decoration: none;">Terms</a>
+                  </td>
+                  <td style="color: #ddd;">|</td>
+                  <td style="padding: 0 12px;">
+                    <a href="https://pinkquill.app/privacy" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #8e44ad; text-decoration: none;">Privacy</a>
+                  </td>
+                  <td style="color: #ddd;">|</td>
+                  <td style="padding: 0 12px;">
+                    <a href="https://pinkquill.app/help" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #8e44ad; text-decoration: none;">Help</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Copyright -->
+          <tr>
+            <td align="center" style="padding: 0 20px 40px 20px;">
+              <p style="margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11px; color: #bbb;">
+                © 2025 PinkQuill. All rights reserved.<br>
+                Made with 💜 for creators everywhere.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

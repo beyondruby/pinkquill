@@ -1,0 +1,152 @@
+<!--
+  COPY THIS ENTIRE CODE INTO SUPABASE:
+  Dashboard → Authentication → Email Templates → Confirm signup → Message (body)
+
+  IMPORTANT: Keep the Subject line as: "Confirm your PinkQuill account"
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8f7fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f7fc; padding: 40px 20px;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px;">
+
+        <!-- Logo -->
+        <tr>
+          <td align="center" style="padding-bottom: 24px;">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background: linear-gradient(135deg, #8e44ad, #ff007f, #ff9f43); width: 40px; height: 40px; border-radius: 10px; text-align: center; vertical-align: middle;">
+                  <span style="color: white; font-size: 20px;">✒</span>
+                </td>
+                <td style="padding-left: 10px; font-family: Georgia, serif; font-size: 20px; color: #1e1e1e;">
+                  PinkQuill
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Card -->
+        <tr>
+          <td style="background-color: #ffffff; border-radius: 20px; box-shadow: 0 2px 16px rgba(142, 68, 173, 0.08);">
+            <table width="100%" cellpadding="0" cellspacing="0">
+
+              <!-- Gradient Top Border -->
+              <tr>
+                <td style="height: 4px; background: linear-gradient(90deg, #8e44ad, #ff007f, #ff9f43); border-radius: 20px 20px 0 0;"></td>
+              </tr>
+
+              <tr>
+                <td style="padding: 40px 32px;">
+
+                  <!-- Icon -->
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding-bottom: 20px;">
+                        <div style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(142, 68, 173, 0.1), rgba(255, 0, 127, 0.1)); border-radius: 16px; line-height: 64px; text-align: center;">
+                          <span style="font-size: 28px;">🛡️</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Header -->
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center">
+                        <h1 style="margin: 0 0 8px 0; font-family: Georgia, serif; font-size: 24px; font-weight: normal; color: #1e1e1e;">
+                          Verify your email
+                        </h1>
+                        <p style="margin: 0 0 28px 0; font-size: 14px; color: #777; line-height: 1.5;">
+                          Enter this code to complete your registration
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- OTP Code -->
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding-bottom: 28px;">
+                        <div style="background-color: #faf8fc; border: 2px dashed #e0d4eb; border-radius: 12px; padding: 20px 28px; display: inline-block;">
+                          <span style="font-family: 'Courier New', monospace; font-size: 32px; font-weight: bold; letter-spacing: 10px; color: #8e44ad;">{{ .Token }}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Timer Notice -->
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding-bottom: 24px;">
+                        <div style="background-color: #fffbeb; border-radius: 8px; padding: 10px 16px; display: inline-block;">
+                          <span style="font-size: 12px; color: #b8860b;">⏱️ Code expires in 24 hours</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Divider -->
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="border-top: 1px solid #f0f0f0; padding-top: 20px;">
+                        <p style="margin: 0; font-size: 12px; color: #999; text-align: center; line-height: 1.5;">
+                          If you didn't create a PinkQuill account,<br>you can safely ignore this email.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Tagline -->
+        <tr>
+          <td align="center" style="padding: 28px 0 20px 0;">
+            <p style="margin: 0 0 4px 0; font-family: Georgia, serif; font-size: 16px; font-style: italic; color: #8e44ad;">
+              "Where words become art"
+            </p>
+            <p style="margin: 0; font-size: 13px; color: #777;">
+              Welcome to the creative ether ✨
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer Links -->
+        <tr>
+          <td align="center" style="padding-bottom: 12px;">
+            <a href="https://pinkquill.app" style="font-size: 11px; color: #8e44ad; text-decoration: none; margin: 0 8px;">Website</a>
+            <span style="color: #ddd;">•</span>
+            <a href="https://pinkquill.app/terms" style="font-size: 11px; color: #8e44ad; text-decoration: none; margin: 0 8px;">Terms</a>
+            <span style="color: #ddd;">•</span>
+            <a href="https://pinkquill.app/privacy" style="font-size: 11px; color: #8e44ad; text-decoration: none; margin: 0 8px;">Privacy</a>
+          </td>
+        </tr>
+
+        <!-- Copyright -->
+        <tr>
+          <td align="center" style="padding-bottom: 20px;">
+            <p style="margin: 0; font-size: 10px; color: #bbb;">
+              © 2025 PinkQuill. Made with 💜 for creators.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

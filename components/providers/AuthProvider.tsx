@@ -149,6 +149,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // SECURITY: Check if email is confirmed
+    // If email_confirmed_at is null, the user hasn't verified their email
+    if (!session.user.email_confirmed_at) {
+      console.warn("User email not confirmed. Signing out.");
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+      fetchingProfileRef.current = null;
+      lastSessionIdRef.current = null;
+      return;
+    }
+
     const userId = session.user.id;
 
     // Skip if we already processed this session

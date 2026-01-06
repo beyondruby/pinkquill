@@ -1012,7 +1012,7 @@ export function useCreateTake() {
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("takes")
         .upload(fileName, videoFile, {
-          cacheControl: "3600",
+          cacheControl: "31536000",
           upsert: false,
         });
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Take, RelayedTake, TakeReactionType } from "@/lib/hooks/useTakes";
@@ -423,9 +424,11 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
             onClick={(e) => e.stopPropagation()}
             className="author-avatar-link"
           >
-            <img
+            <Image
               src={take.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
               alt=""
+              width={70}
+              height={70}
               className="author-avatar"
             />
           </Link>

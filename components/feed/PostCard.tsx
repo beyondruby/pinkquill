@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -583,9 +584,11 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
         <div className="collab-avatars group" onClick={(e) => e.stopPropagation()}>
           {/* Author Avatar */}
           <Link href={`/studio/${post.author.handle.replace('@', '')}`}>
-            <img
+            <Image
               src={post.author.avatar}
               alt={post.author.name}
+              width={70}
+              height={70}
               className="collab-avatar first"
               style={small ? { width: '36px', height: '36px' } : undefined}
             />
@@ -599,9 +602,11 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
               style={{ zIndex: 10 - index }}
             >
               {collab.user.avatar_url ? (
-                <img
+                <Image
                   src={collab.user.avatar_url}
                   alt={collab.user.display_name || collab.user.username}
+                  width={70}
+                  height={70}
                   className="collab-avatar"
                   style={small ? { width: '36px', height: '36px' } : undefined}
                 />
@@ -623,9 +628,11 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
         </div>
       ) : (
         <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()}>
-          <img
+          <Image
             src={post.author.avatar}
             alt={post.author.name}
+            width={70}
+            height={70}
             className="author-avatar"
             style={small ? { width: '36px', height: '36px' } : undefined}
           />

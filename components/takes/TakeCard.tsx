@@ -156,7 +156,7 @@ export default function TakeCard({
       <div className="tiktok-take-video">
         <TakePlayer
           src={take.video_url}
-          isActive={isActive}
+          isActive={isActive && showContent}
           isMuted={isMuted}
           volume={volume}
           onDoubleTap={() => handleDoubleTap()}

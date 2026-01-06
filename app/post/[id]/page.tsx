@@ -183,9 +183,44 @@ export default function PostPage() {
         return;
       }
 
-      // SECURITY CHECK: Enforce visibility rules
-      const visibility = postData.visibility;
+      // SECURITY CHECK: Blocking (Highest Priority - Rule Set 1)
+      // If User A blocks User B, User B CANNOT see User A's posts (even via direct link)
       const isOwner = user?.id === postData.author_id;
+
+      if (!isOwner && user) {
+        // Check if the post author has blocked the current user
+        const { data: blockedByAuthor } = await supabase
+          .from("blocks")
+          .select("id")
+          .eq("blocker_id", postData.author_id)
+          .eq("blocked_id", user.id)
+          .maybeSingle();
+
+        if (blockedByAuthor) {
+          // Author blocked this user - show as if post doesn't exist
+          setError("Post not found");
+          setLoading(false);
+          return;
+        }
+
+        // Check if the current user has blocked the post author
+        const { data: userBlockedAuthor } = await supabase
+          .from("blocks")
+          .select("id")
+          .eq("blocker_id", user.id)
+          .eq("blocked_id", postData.author_id)
+          .maybeSingle();
+
+        if (userBlockedAuthor) {
+          // User blocked the author - show as if post doesn't exist
+          setError("Post not found");
+          setLoading(false);
+          return;
+        }
+      }
+
+      // SECURITY CHECK: Enforce visibility rules (Rule Set 2, 3, 4)
+      const visibility = postData.visibility;
 
       if (visibility === "private") {
         // Private posts: only the author can see

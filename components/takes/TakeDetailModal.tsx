@@ -158,13 +158,13 @@ export default function TakeDetailModal({
     fetchMetadata();
   }, [take?.id]);
 
-  // Auto-play when modal opens
+  // Auto-play when modal opens (only if no content warning or user accepted it)
   useEffect(() => {
-    if (isOpen && videoRef.current) {
+    if (isOpen && videoRef.current && showContent) {
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     }
-  }, [isOpen, take?.id]);
+  }, [isOpen, take?.id, showContent]);
 
   // Click outside to close menu
   useEffect(() => {
