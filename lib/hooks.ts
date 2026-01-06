@@ -73,18 +73,24 @@ export function usePosts(userId?: string) {
       // Get list of users this user follows (only accepted follows - for visibility filtering)
       let followingIds: Set<string> = new Set();
       if (currentUserId) {
-        const { data: followingData, error: followingError } = await supabase
+        // Try with status column first, fall back to without if column doesn't exist
+        let followingData: { following_id: string }[] | null = null;
+        const { data, error: followingError } = await supabase
           .from("follows")
           .select("following_id")
           .eq("follower_id", currentUserId)
-          .eq("status", "accepted"); // Only count accepted follows
+          .eq("status", "accepted");
 
-        console.log("[usePosts] Following query result:", {
-          currentUserId,
-          followingData,
-          followingError,
-          count: followingData?.length
-        });
+        if (followingError && (followingError.code === "42703" || followingError.message?.includes("status"))) {
+          // Status column doesn't exist - fall back to simple query
+          const { data: fallbackData } = await supabase
+            .from("follows")
+            .select("following_id")
+            .eq("follower_id", currentUserId);
+          followingData = fallbackData;
+        } else {
+          followingData = data;
+        }
 
         (followingData || []).forEach(f => followingIds.add(f.following_id));
       }

@@ -49,24 +49,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Track the last processed session to prevent duplicate processing
   const lastSessionIdRef = useRef<string | null>(null);
 
-  // Fetch profile from database
-  const fetchProfile = useCallback(async (userId: string, retries = 2): Promise<Profile | null> => {
+  // Fetch profile from database with timeout
+  const fetchProfile = useCallback(async (userId: string, retries = 1): Promise<Profile | null> => {
+    const timeoutMs = 5000; // 5 second timeout per attempt
+
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        const { data, error } = await supabase
+        // Create a timeout promise
+        const timeoutPromise = new Promise<null>((_, reject) => {
+          setTimeout(() => reject(new Error("Profile fetch timeout")), timeoutMs);
+        });
+
+        // Race the fetch against the timeout
+        const fetchPromise = supabase
           .from("profiles")
           .select("*")
           .eq("id", userId)
           .single();
+
+        const { data, error } = await Promise.race([
+          fetchPromise,
+          timeoutPromise.then(() => ({ data: null, error: { code: "TIMEOUT", message: "Timeout" } })),
+        ]) as any;
 
         if (error) {
           // PGRST116 = no rows found - profile doesn't exist yet
           if (error.code === "PGRST116") {
             return null;
           }
-          // Network error - retry
-          if (error.message?.includes("Failed to fetch") && attempt < retries) {
-            await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+          // Timeout or network error - retry
+          if ((error.code === "TIMEOUT" || error.message?.includes("Failed to fetch")) && attempt < retries) {
+            await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
             continue;
           }
           console.error("Error fetching profile:", error.message);
@@ -75,9 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return data as Profile;
       } catch (err: any) {
-        // Network error - retry
-        if (err?.message?.includes("Failed to fetch") && attempt < retries) {
-          await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+        // Network error or timeout - retry
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
           continue;
         }
         console.error("Failed to fetch profile:", err);
@@ -209,27 +222,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    // Timeout to prevent infinite loading (10 seconds max)
+    // Timeout to prevent infinite loading (5 seconds max for session check)
     const loadingTimeout = setTimeout(() => {
       if (isMounted) {
         console.warn("Auth initialization timed out - forcing loading to false");
         setLoading(false);
       }
-    }, 10000);
+    }, 5000);
 
     // Get initial session immediately
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
 
         if (!isMounted) return;
 
+        if (error) {
+          console.error("Auth session error:", error);
+          clearTimeout(loadingTimeout);
+          setLoading(false);
+          return;
+        }
+
         if (session) {
-          await handleSession(session);
+          // Set user immediately so components can start rendering
+          setUser(session.user);
+          // Clear loading early - don't wait for profile fetch
+          clearTimeout(loadingTimeout);
+          setLoading(false);
+          // Fetch profile in background (non-blocking)
+          handleSession(session).catch(err => {
+            console.error("Profile fetch error:", err);
+          });
+        } else {
+          clearTimeout(loadingTimeout);
+          setLoading(false);
         }
       } catch (err) {
         console.error("Auth init error:", err);
-      } finally {
         if (isMounted) {
           clearTimeout(loadingTimeout);
           setLoading(false);

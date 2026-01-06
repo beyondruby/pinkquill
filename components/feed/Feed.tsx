@@ -154,15 +154,31 @@ export default function Feed() {
     let followingIds = new Set<string>();
 
     if (currentUserId) {
-      const [blockedByResult, iBlockedResult, followingResult] = await Promise.all([
+      const [blockedByResult, iBlockedResult] = await Promise.all([
         supabase.from("blocks").select("blocker_id").eq("blocked_id", currentUserId),
         supabase.from("blocks").select("blocked_id").eq("blocker_id", currentUserId),
-        supabase.from("follows").select("following_id").eq("follower_id", currentUserId).eq("status", "accepted"),
       ]);
 
       (blockedByResult.data || []).forEach(b => blockedBy.add(b.blocker_id));
       (iBlockedResult.data || []).forEach(b => iBlocked.add(b.blocked_id));
-      (followingResult.data || []).forEach(f => followingIds.add(f.following_id));
+
+      // Try with status column first, fall back to without if it doesn't exist
+      const { data: followingData, error: followingError } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", currentUserId)
+        .eq("status", "accepted");
+
+      if (followingError && (followingError.code === "42703" || followingError.message?.includes("status"))) {
+        // Status column doesn't exist - fall back to simple query
+        const { data: fallbackData } = await supabase
+          .from("follows")
+          .select("following_id")
+          .eq("follower_id", currentUserId);
+        (fallbackData || []).forEach(f => followingIds.add(f.following_id));
+      } else {
+        (followingData || []).forEach(f => followingIds.add(f.following_id));
+      }
     }
 
     // Get private accounts
