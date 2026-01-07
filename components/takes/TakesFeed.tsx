@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import TakeCard from "./TakeCard";
 import TakeCommentsPanel from "./TakeCommentsPanel";
-import { useTakes, useMuted, useFollow, useVolume, TakeReactionCounts } from "@/lib/hooks/useTakes";
+import { useTakes, useMuted, useFollow, useVolume } from "@/lib/hooks/useTakes";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTrackTakeView, useTrackTakeImpression, getSessionId } from "@/lib/hooks/useTracking";
 import { supabase } from "@/lib/supabase";
@@ -43,25 +43,6 @@ export default function TakesFeed({
     reportTake,
   } = useTakes(user?.id, { communityId, soundId, authorId });
 
-  // Build reaction counts from individual take data
-  // In a production app, you might use useTakeReactionCounts hook per take
-  const getReactionCounts = useCallback((take: typeof takes[0]): TakeReactionCounts => {
-    // For now, put all reactions under the user's reaction type or admire
-    const counts: TakeReactionCounts = {
-      admire: 0,
-      snap: 0,
-      ovation: 0,
-      support: 0,
-      inspired: 0,
-      applaud: 0,
-      total: take.reactions_count || take.admires_count || 0,
-    };
-    // Distribute the count - in production this would come from the backend
-    if (take.reactions_count > 0) {
-      counts.admire = take.reactions_count;
-    }
-    return counts;
-  }, []);
 
   const { isMuted, toggle: toggleMute } = useMuted();
   const { volume, setVolume } = useVolume();
@@ -356,7 +337,7 @@ export default function TakesFeed({
               volume={volume}
               isFollowing={following.has(take.author_id) || take.author_id === user?.id}
               isOwnTake={take.author_id === user?.id}
-              reactionCounts={getReactionCounts(take)}
+              reactionCounts={take.reaction_counts}
               onToggleMute={toggleMute}
               onVolumeChange={setVolume}
               onToggleAdmire={() => toggleAdmire(take.id)}

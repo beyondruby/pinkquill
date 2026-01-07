@@ -12,6 +12,8 @@ export type ExploreTab =
   | "for-you"
   | "trending"
   | "video"
+  | "communities"
+  | "topics"
   | "poem"
   | "journal"
   | "thought"

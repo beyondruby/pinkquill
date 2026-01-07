@@ -46,6 +46,7 @@ export interface Take {
   is_saved: boolean;
   is_relayed: boolean;
   user_reaction_type: TakeReactionType | null;
+  reaction_counts: TakeReactionCounts;
 }
 
 export interface TakeComment {
@@ -232,11 +233,32 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       const authorMap = new Map((authors || []).map(a => [a.id, a]));
 
       const reactionsCount: Record<string, number> = {};
+      const reactionsByType: Record<string, TakeReactionCounts> = {};
       const commentsCount: Record<string, number> = {};
       const savesCount: Record<string, number> = {};
       const relaysCount: Record<string, number> = {};
 
-      (reactionsData || []).forEach(r => { reactionsCount[r.take_id] = (reactionsCount[r.take_id] || 0) + 1; });
+      // Initialize reaction counts by type for each take
+      accessibleTakeIds.forEach(takeId => {
+        reactionsByType[takeId] = {
+          admire: 0,
+          snap: 0,
+          ovation: 0,
+          support: 0,
+          inspired: 0,
+          applaud: 0,
+          total: 0,
+        };
+      });
+
+      (reactionsData || []).forEach(r => {
+        reactionsCount[r.take_id] = (reactionsCount[r.take_id] || 0) + 1;
+        const type = r.reaction_type as TakeReactionType;
+        if (reactionsByType[r.take_id] && type in reactionsByType[r.take_id]) {
+          reactionsByType[r.take_id][type]++;
+          reactionsByType[r.take_id].total++;
+        }
+      });
       (comments || []).forEach(c => { commentsCount[c.take_id] = (commentsCount[c.take_id] || 0) + 1; });
       (saves || []).forEach(s => { savesCount[s.take_id] = (savesCount[s.take_id] || 0) + 1; });
       (relays || []).forEach(r => { relaysCount[r.take_id] = (relaysCount[r.take_id] || 0) + 1; });
@@ -262,6 +284,9 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         is_saved: userSaveSet.has(take.id),
         is_relayed: userRelaySet.has(take.id),
         user_reaction_type: userReactionMap.get(take.id) || null,
+        reaction_counts: reactionsByType[take.id] || {
+          admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0,
+        },
       }));
 
       if (reset) {
@@ -310,27 +335,39 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
 
       if (isSameReaction) {
         // Removing reaction
+        const newReactionCounts = { ...t.reaction_counts };
+        newReactionCounts[reactionType] = Math.max(0, newReactionCounts[reactionType] - 1);
+        newReactionCounts.total = Math.max(0, newReactionCounts.total - 1);
         return {
           ...t,
           is_admired: false,
           user_reaction_type: null,
           admires_count: Math.max(0, t.admires_count - 1),
           reactions_count: Math.max(0, t.reactions_count - 1),
+          reaction_counts: newReactionCounts,
         };
       } else if (currentReaction) {
-        // Changing reaction (count stays same)
+        // Changing reaction (total count stays same, but individual counts change)
+        const newReactionCounts = { ...t.reaction_counts };
+        newReactionCounts[currentReaction] = Math.max(0, newReactionCounts[currentReaction] - 1);
+        newReactionCounts[reactionType] = newReactionCounts[reactionType] + 1;
         return {
           ...t,
           user_reaction_type: reactionType,
+          reaction_counts: newReactionCounts,
         };
       } else {
         // Adding new reaction
+        const newReactionCounts = { ...t.reaction_counts };
+        newReactionCounts[reactionType] = newReactionCounts[reactionType] + 1;
+        newReactionCounts.total = newReactionCounts.total + 1;
         return {
           ...t,
           is_admired: true,
           user_reaction_type: reactionType,
           admires_count: t.admires_count + 1,
           reactions_count: t.reactions_count + 1,
+          reaction_counts: newReactionCounts,
         };
       }
     }));

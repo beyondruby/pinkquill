@@ -63,7 +63,15 @@ export default function SingleTakePage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Interaction states
-  const [reactionsCount, setReactionsCount] = useState(0);
+  const [reactionCounts, setReactionCounts] = useState<TakeReactionCounts>({
+    admire: 0,
+    snap: 0,
+    ovation: 0,
+    support: 0,
+    inspired: 0,
+    applaud: 0,
+    total: 0,
+  });
   const [savesCount, setSavesCount] = useState(0);
   const [relaysCount, setRelaysCount] = useState(0);
   const [userReaction, setUserReaction] = useState<TakeReactionType | null>(null);
@@ -122,9 +130,44 @@ export default function SingleTakePage({ params }: PageProps) {
         return;
       }
 
+      const isOwnerCheck = user?.id === takeData.author_id;
+
+      // SECURITY CHECK: Blocking (Highest Priority)
+      // If User A blocks User B, User B CANNOT see User A's takes (even via direct link)
+      if (!isOwnerCheck && user) {
+        // Check if the take author has blocked the current user
+        const { data: blockedByAuthor } = await supabase
+          .from("blocks")
+          .select("id")
+          .eq("blocker_id", takeData.author_id)
+          .eq("blocked_id", user.id)
+          .maybeSingle();
+
+        if (blockedByAuthor) {
+          // Author blocked this user - show as if take doesn't exist
+          setError("Take not found");
+          setLoading(false);
+          return;
+        }
+
+        // Check if the current user has blocked the take author
+        const { data: userBlockedAuthor } = await supabase
+          .from("blocks")
+          .select("id")
+          .eq("blocker_id", user.id)
+          .eq("blocked_id", takeData.author_id)
+          .maybeSingle();
+
+        if (userBlockedAuthor) {
+          // User blocked the author - show as if take doesn't exist
+          setError("Take not found");
+          setLoading(false);
+          return;
+        }
+      }
+
       // SECURITY CHECK: Enforce visibility rules
       const visibility = takeData.visibility;
-      const isOwnerCheck = user?.id === takeData.author_id;
 
       if (visibility === "private") {
         // Private takes: only the author can see
@@ -205,7 +248,7 @@ export default function SingleTakePage({ params }: PageProps) {
 
       // Fetch counts, tags, collaborators, and mentions
       const [reactionsRes, savesRes, relaysRes, tagsRes, collabRes, mentionsRes] = await Promise.all([
-        supabase.from("take_reactions").select("id", { count: "exact" }).eq("take_id", id),
+        supabase.from("take_reactions").select("reaction_type").eq("take_id", id),
         supabase.from("take_saves").select("id", { count: "exact" }).eq("take_id", id),
         supabase.from("take_relays").select("id", { count: "exact" }).eq("take_id", id),
         supabase.from("take_tags").select("tag").eq("take_id", id),
@@ -213,7 +256,23 @@ export default function SingleTakePage({ params }: PageProps) {
         supabase.from("take_mentions").select("user_id").eq("take_id", id),
       ]);
 
-      setReactionsCount(reactionsRes.count || 0);
+      // Calculate reaction counts by type
+      const counts: TakeReactionCounts = {
+        admire: 0,
+        snap: 0,
+        ovation: 0,
+        support: 0,
+        inspired: 0,
+        applaud: 0,
+        total: 0,
+      };
+      (reactionsRes.data || []).forEach((r: { reaction_type: TakeReactionType }) => {
+        if (r.reaction_type in counts) {
+          counts[r.reaction_type]++;
+          counts.total++;
+        }
+      });
+      setReactionCounts(counts);
       setSavesCount(savesRes.count || 0);
       setRelaysCount(relaysRes.count || 0);
       setHashtags(tagsRes.data?.map(t => t.tag) || []);
@@ -304,16 +363,31 @@ export default function SingleTakePage({ params }: PageProps) {
     if (!user || !take) return;
 
     const isSameReaction = userReaction === type;
+    const previousReaction = userReaction;
 
     // Optimistic update
     if (isSameReaction) {
+      // Removing reaction
       setUserReaction(null);
-      setReactionsCount((prev) => Math.max(0, prev - 1));
+      setReactionCounts((prev) => ({
+        ...prev,
+        [type]: Math.max(0, prev[type] - 1),
+        total: Math.max(0, prev.total - 1),
+      }));
     } else {
-      if (!userReaction) {
-        setReactionsCount((prev) => prev + 1);
-      }
+      // Adding new reaction or changing reaction
       setUserReaction(type);
+      setReactionCounts((prev) => {
+        const newCounts = { ...prev, [type]: prev[type] + 1 };
+        if (previousReaction) {
+          // Changing from one reaction to another
+          newCounts[previousReaction] = Math.max(0, newCounts[previousReaction] - 1);
+        } else {
+          // New reaction (total increases)
+          newCounts.total = prev.total + 1;
+        }
+        return newCounts;
+      });
     }
 
     // Database update
@@ -330,8 +404,13 @@ export default function SingleTakePage({ params }: PageProps) {
 
   const handleRemoveReaction = async () => {
     if (!user || !take || !userReaction) return;
+    const previousReaction = userReaction;
     setUserReaction(null);
-    setReactionsCount((prev) => Math.max(0, prev - 1));
+    setReactionCounts((prev) => ({
+      ...prev,
+      [previousReaction]: Math.max(0, prev[previousReaction] - 1),
+      total: Math.max(0, prev.total - 1),
+    }));
     await supabase.from("take_reactions").delete().eq("take_id", take.id).eq("user_id", user.id);
   };
 
@@ -694,15 +773,7 @@ export default function SingleTakePage({ params }: PageProps) {
                 {/* Reaction Picker */}
                 <TakeReactionPicker
                   currentReaction={userReaction}
-                  reactionCounts={{
-                    admire: reactionsCount,
-                    snap: 0,
-                    ovation: 0,
-                    support: 0,
-                    inspired: 0,
-                    applaud: 0,
-                    total: reactionsCount,
-                  }}
+                  reactionCounts={reactionCounts}
                   onReact={handleReaction}
                   onRemoveReaction={handleRemoveReaction}
                   disabled={!user}

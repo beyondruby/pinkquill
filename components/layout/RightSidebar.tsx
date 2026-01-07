@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useTrendingTags } from "@/lib/hooks";
+import { useTrendingTags, useDiscoverCommunities } from "@/lib/hooks";
 
 interface SuggestedUser {
   id: string;
@@ -29,6 +29,11 @@ const icons = {
   sparkles: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+    </svg>
+  ),
+  community: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
   ),
 };
@@ -123,6 +128,114 @@ function TrendingTagsSection() {
         className="block mt-4 text-center font-ui text-[0.85rem] text-purple-primary hover:text-pink-vivid transition-colors"
       >
         Explore all topics
+      </Link>
+    </div>
+  );
+}
+
+function DiscoverCommunitiesSection() {
+  const { trending, loading } = useDiscoverCommunities({ limit: 5 });
+
+  if (loading) {
+    return (
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4 pl-1">
+          <span className="text-purple-primary">{icons.community}</span>
+          <h3 className="font-ui text-[0.7rem] font-semibold tracking-[0.12em] uppercase text-muted">
+            Discover Communities
+          </h3>
+        </div>
+        <div className="space-y-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-2 animate-pulse">
+              <div className="w-10 h-10 rounded-xl bg-gray-100" />
+              <div className="flex-1">
+                <div className="h-3.5 bg-gray-100 rounded w-24 mb-1" />
+                <div className="h-2.5 bg-gray-100 rounded w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (trending.length === 0) {
+    return (
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4 pl-1">
+          <span className="text-purple-primary">{icons.community}</span>
+          <h3 className="font-ui text-[0.7rem] font-semibold tracking-[0.12em] uppercase text-muted">
+            Discover Communities
+          </h3>
+        </div>
+        <div className="text-center py-6">
+          <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-black/[0.03] flex items-center justify-center">
+            {icons.community}
+          </div>
+          <p className="font-body text-[0.85rem] text-muted">
+            No communities yet
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center gap-2 mb-4 pl-1">
+        <span className="text-purple-primary">{icons.community}</span>
+        <h3 className="font-ui text-[0.7rem] font-semibold tracking-[0.12em] uppercase text-muted">
+          Discover Communities
+        </h3>
+      </div>
+      <div className="space-y-1">
+        {trending.slice(0, 4).map((community) => (
+          <Link
+            key={community.id}
+            href={`/community/${community.slug}`}
+            className="flex items-center gap-3 p-2 rounded-xl hover:bg-purple-primary/5 transition-all group"
+          >
+            {/* Community Avatar */}
+            <div className="relative flex-shrink-0">
+              {community.avatar_url ? (
+                <img
+                  src={community.avatar_url}
+                  alt={community.name}
+                  className="w-10 h-10 rounded-xl object-cover border border-black/[0.04]"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center">
+                  <span className="font-ui text-sm font-semibold text-purple-primary">
+                    {community.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Community Info */}
+            <div className="flex-1 min-w-0">
+              <div className="font-ui text-[0.9rem] font-medium text-ink truncate group-hover:text-purple-primary transition-colors">
+                {community.name}
+              </div>
+              <div className="font-body text-[0.7rem] text-muted">
+                {community.member_count || 0} {(community.member_count || 0) === 1 ? "member" : "members"}
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <svg className="w-4 h-4 text-muted/40 group-hover:text-purple-primary group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        ))}
+      </div>
+
+      <Link
+        href="/community"
+        className="block mt-4 text-center font-ui text-[0.85rem] text-purple-primary hover:text-pink-vivid transition-colors"
+      >
+        Explore all communities
       </Link>
     </div>
   );
@@ -270,9 +383,14 @@ export default function RightSidebar() {
             <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : suggestedUsers.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="font-body text-[0.85rem] text-muted italic">
-              {user ? "You're following everyone!" : "Sign in to see suggestions"}
+          <div className="text-center py-6">
+            <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-black/[0.03] flex items-center justify-center">
+              <svg className="w-5 h-5 text-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <p className="font-body text-[0.85rem] text-muted">
+              {user ? "No suggested creators" : "Sign in to see suggestions"}
             </p>
           </div>
         ) : (
@@ -317,6 +435,9 @@ export default function RightSidebar() {
 
       {/* Trending Tags */}
       <TrendingTagsSection />
+
+      {/* Discover Communities */}
+      <DiscoverCommunitiesSection />
 
       {/* Footer */}
       <div className="mt-auto pt-6 border-t border-black/[0.06]">

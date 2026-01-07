@@ -348,8 +348,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     });
 
     // Send notification for new reactions (not removals or changes)
+    // Always use "admire" as notification type for all reaction types
     if (!wasReacted && !isSameReaction) {
-      await createNotification(post.authorId, user.id, reactionType, post.id);
+      await createNotification(post.authorId, user.id, "admire", post.id);
     }
   };
 
@@ -449,6 +450,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
       await Promise.all([
         supabase.from("post_media").delete().eq("post_id", post.id),
         supabase.from("admires").delete().eq("post_id", post.id),
+        supabase.from("reactions").delete().eq("post_id", post.id),
         supabase.from("saves").delete().eq("post_id", post.id),
         supabase.from("relays").delete().eq("post_id", post.id),
         supabase.from("comments").delete().eq("post_id", post.id),

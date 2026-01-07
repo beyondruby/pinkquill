@@ -724,14 +724,14 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - starts after sidebar to keep sidebar visible */}
       <div
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[1000] animate-fadeIn"
+        className="fixed top-0 left-[220px] right-0 bottom-0 bg-black/30 backdrop-blur-sm z-[9998] animate-fadeIn"
         onClick={onClose}
       />
 
       {/* Panel */}
-      <div className="fixed top-0 left-[220px] bottom-0 w-[400px] bg-white/95 backdrop-blur-xl shadow-2xl z-[1001] animate-slideInLeft flex flex-col border-r border-purple-primary/[0.08]">
+      <div className="fixed top-0 left-[220px] bottom-0 w-[400px] bg-white shadow-2xl z-[9999] animate-slideInLeft flex flex-col border-r border-purple-primary/[0.08]">
         {/* Header */}
         <div className="relative px-6 py-5 border-b border-black/[0.04]">
           {/* Decorative gradient line */}

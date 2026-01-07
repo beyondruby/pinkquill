@@ -494,10 +494,11 @@ export default function PostPage() {
 
     setDeleting(true);
     try {
-      // Delete related data first (media, admires, saves, relays, comments, notifications)
+      // Delete related data first (media, admires, reactions, saves, relays, comments, notifications)
       await Promise.all([
         supabase.from("post_media").delete().eq("post_id", post.id),
         supabase.from("admires").delete().eq("post_id", post.id),
+        supabase.from("reactions").delete().eq("post_id", post.id),
         supabase.from("saves").delete().eq("post_id", post.id),
         supabase.from("relays").delete().eq("post_id", post.id),
         supabase.from("comments").delete().eq("post_id", post.id),

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { Take, RelayedTake, TakeReactionType } from "@/lib/hooks/useTakes";
+import { Take, RelayedTake, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
 import { useBlock } from "@/lib/hooks";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
@@ -61,7 +61,17 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
 
   const [isHovering, setIsHovering] = useState(false);
   const [userReaction, setUserReaction] = useState<TakeReactionType | null>(take.user_reaction_type || null);
-  const [reactionsCount, setReactionsCount] = useState(take.reactions_count || 0);
+  const [reactionCounts, setReactionCounts] = useState<TakeReactionCounts>(
+    take.reaction_counts || {
+      admire: 0,
+      snap: 0,
+      ovation: 0,
+      support: 0,
+      inspired: 0,
+      applaud: 0,
+      total: take.reactions_count || 0,
+    }
+  );
   const [isSaved, setIsSaved] = useState(take.is_saved || false);
   const [isRelayedState, setIsRelayedState] = useState(take.is_relayed || false);
   const [relayCount, setRelayCount] = useState(take.relays_count || 0);
@@ -85,8 +95,23 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
       if (update.takeId !== take.id) return;
 
       if (update.field === "reactions") {
-        setUserReaction(update.reactionType as TakeReactionType | null);
-        setReactionsCount((prev) => Math.max(0, prev + update.countChange));
+        const newReactionType = update.reactionType as TakeReactionType | null;
+        const previousReaction = userReaction;
+        setUserReaction(newReactionType);
+        setReactionCounts((prev) => {
+          const newCounts = { ...prev };
+          // Decrement previous reaction type
+          if (previousReaction && newReactionType !== previousReaction) {
+            newCounts[previousReaction] = Math.max(0, newCounts[previousReaction] - 1);
+          }
+          // Increment new reaction type
+          if (newReactionType && newReactionType !== previousReaction) {
+            newCounts[newReactionType] = newCounts[newReactionType] + 1;
+          }
+          // Update total
+          newCounts.total = Math.max(0, prev.total + update.countChange);
+          return newCounts;
+        });
       } else if (update.field === "relays") {
         setIsRelayedState(update.isActive);
         setRelayCount((prev) => Math.max(0, prev + update.countChange));
@@ -136,7 +161,8 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
       is_saved: isSaved,
       is_relayed: isRelayedState,
       relays_count: relayCount,
-      reactions_count: reactionsCount,
+      reactions_count: reactionCounts.total,
+      reaction_counts: reactionCounts,
       user_reaction_type: userReaction,
     });
   };
@@ -146,17 +172,34 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     if (!user) return;
 
     const isSameReaction = userReaction === reactionType;
-    const wasReacted = userReaction !== null;
+    const previousReaction = userReaction;
 
     // Optimistic update
     if (isSameReaction) {
+      // Removing reaction
       setUserReaction(null);
-      setReactionsCount(prev => Math.max(0, prev - 1));
+      setReactionCounts(prev => {
+        const newCounts = { ...prev };
+        newCounts[reactionType] = Math.max(0, newCounts[reactionType] - 1);
+        newCounts.total = Math.max(0, prev.total - 1);
+        return newCounts;
+      });
     } else {
+      // Adding or changing reaction
       setUserReaction(reactionType);
-      if (!wasReacted) {
-        setReactionsCount(prev => prev + 1);
-      }
+      setReactionCounts(prev => {
+        const newCounts = { ...prev };
+        // Increment new reaction type
+        newCounts[reactionType] = newCounts[reactionType] + 1;
+        // Decrement previous reaction type if changing
+        if (previousReaction) {
+          newCounts[previousReaction] = Math.max(0, newCounts[previousReaction] - 1);
+        } else {
+          // New reaction, increment total
+          newCounts.total = prev.total + 1;
+        }
+        return newCounts;
+      });
     }
 
     // Notify modal
@@ -164,7 +207,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
       takeId: take.id,
       field: "reactions",
       isActive: !isSameReaction,
-      countChange: isSameReaction ? -1 : (wasReacted ? 0 : 1),
+      countChange: isSameReaction ? -1 : (previousReaction ? 0 : 1),
       reactionType: isSameReaction ? null : reactionType,
     });
 
@@ -173,7 +216,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
         await supabase.from("take_reactions").delete()
           .eq("take_id", take.id)
           .eq("user_id", user.id);
-      } else if (wasReacted) {
+      } else if (previousReaction) {
         await supabase.from("take_reactions")
           .update({ reaction_type: reactionType })
           .eq("take_id", take.id)
@@ -188,15 +231,24 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     } catch (err) {
       // Revert on error
       setUserReaction(take.user_reaction_type);
-      setReactionsCount(take.reactions_count);
+      setReactionCounts(take.reaction_counts || {
+        admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0,
+        total: take.reactions_count || 0,
+      });
     }
   };
 
   const handleRemoveReaction = async () => {
     if (!user || !userReaction) return;
 
+    const previousReaction = userReaction;
     setUserReaction(null);
-    setReactionsCount(prev => Math.max(0, prev - 1));
+    setReactionCounts(prev => {
+      const newCounts = { ...prev };
+      newCounts[previousReaction] = Math.max(0, newCounts[previousReaction] - 1);
+      newCounts.total = Math.max(0, prev.total - 1);
+      return newCounts;
+    });
 
     notifyTakeUpdate({
       takeId: take.id,
@@ -212,7 +264,10 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
         .eq("user_id", user.id);
     } catch (err) {
       setUserReaction(take.user_reaction_type);
-      setReactionsCount(take.reactions_count);
+      setReactionCounts(take.reaction_counts || {
+        admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0,
+        total: take.reactions_count || 0,
+      });
     }
   };
 
@@ -391,7 +446,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
-            {formatCount(reactionsCount)}
+            {formatCount(reactionCounts.total)}
           </span>
         </div>
       </article>
@@ -575,15 +630,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
           <div className="actions-left">
             <TakeReactionPicker
               currentReaction={userReaction}
-              reactionCounts={{
-                admire: reactionsCount,
-                snap: 0,
-                ovation: 0,
-                support: 0,
-                inspired: 0,
-                applaud: 0,
-                total: reactionsCount,
-              }}
+              reactionCounts={reactionCounts}
               onReact={handleReaction}
               onRemoveReaction={handleRemoveReaction}
               disabled={!user}

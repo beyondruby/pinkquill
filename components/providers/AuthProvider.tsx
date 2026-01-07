@@ -50,50 +50,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const lastSessionIdRef = useRef<string | null>(null);
 
   // Fetch profile from database with timeout
-  const fetchProfile = useCallback(async (userId: string, retries = 1): Promise<Profile | null> => {
-    const timeoutMs = 5000; // 5 second timeout per attempt
+  const fetchProfile = useCallback(async (userId: string, retries = 2): Promise<Profile | null> => {
+    const timeoutMs = 8000; // 8 second timeout per attempt
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        // Create a timeout promise
-        const timeoutPromise = new Promise<null>((_, reject) => {
-          setTimeout(() => reject(new Error("Profile fetch timeout")), timeoutMs);
-        });
+        // Create an AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-        // Race the fetch against the timeout
         const fetchPromise = supabase
           .from("profiles")
           .select("*")
           .eq("id", userId)
+          .abortSignal(controller.signal)
           .single();
 
-        const { data, error } = await Promise.race([
-          fetchPromise,
-          timeoutPromise.then(() => ({ data: null, error: { code: "TIMEOUT", message: "Timeout" } })),
-        ]) as any;
+        const { data, error } = await fetchPromise;
+        clearTimeout(timeoutId);
 
         if (error) {
           // PGRST116 = no rows found - profile doesn't exist yet
           if (error.code === "PGRST116") {
             return null;
           }
-          // Timeout or network error - retry
-          if ((error.code === "TIMEOUT" || error.message?.includes("Failed to fetch")) && attempt < retries) {
-            await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+          // Abort/timeout or network error - retry
+          if ((error.message?.includes("aborted") || error.message?.includes("Failed to fetch")) && attempt < retries) {
+            await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
             continue;
           }
-          console.error("Error fetching profile:", error.message);
+          // Only log non-abort errors
+          if (!error.message?.includes("aborted")) {
+            console.error("Error fetching profile:", error.message);
+          }
           return null;
         }
 
         return data as Profile;
       } catch (err: any) {
-        // Network error or timeout - retry
+        // Network error or timeout - retry silently
         if (attempt < retries) {
-          await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+          await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
           continue;
         }
-        console.error("Failed to fetch profile:", err);
+        // Only log if it's not an abort error
+        if (!err?.message?.includes("aborted")) {
+          console.error("Failed to fetch profile:", err);
+        }
         return null;
       }
     }
@@ -305,11 +308,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
-      window.location.href = "/login";
+      window.location.href = "/";
     } catch (err) {
       console.error("Sign out error:", err);
       // Force redirect even on error
-      window.location.href = "/login";
+      window.location.href = "/";
     }
   }, []);
 

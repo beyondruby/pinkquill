@@ -319,6 +319,7 @@ export default function TakeCommentItem({
                 onKeyDown={(e) => e.key === "Enter" && !submitting && handleSubmitReply()}
                 placeholder="Write a reply..."
                 disabled={submitting}
+                autoFocus
                 className="flex-1 px-3 py-2 rounded-full bg-black/[0.03] border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-white focus:ring-2 focus:ring-purple-primary/20 transition-all"
               />
               <button
