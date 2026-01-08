@@ -630,24 +630,24 @@ export default function PostPage() {
             {/* Post Card */}
             <article className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden">
             {/* Author Header */}
-            <div className="flex items-center gap-4 p-6 border-b border-black/[0.06]">
+            <div className="flex items-center gap-3 md:gap-4 p-4 md:p-6 border-b border-black/[0.06]">
               <Link href={`/studio/${post.author.username}`}>
                 <img
                   src={post.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
                   alt={post.author.display_name || post.author.username}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md hover:scale-110 transition-transform"
+                  className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-white shadow-md hover:scale-110 transition-transform"
                 />
               </Link>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <Link href={`/studio/${post.author.username}`} className="font-ui text-[1rem] font-medium text-ink hover:text-purple-primary transition-colors">
+                  <Link href={`/studio/${post.author.username}`} className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink hover:text-purple-primary transition-colors truncate">
                     {post.author.display_name || post.author.username}
                   </Link>
-                  <span className="font-ui text-[0.85rem] text-muted">
+                  <span className="font-ui text-[0.75rem] md:text-[0.85rem] text-muted hidden sm:inline">
                     {getTypeLabel(post.type)}
                   </span>
                 </div>
-                <span className="font-ui text-[0.8rem] text-muted">
+                <span className="font-ui text-[0.7rem] md:text-[0.8rem] text-muted">
                   {getTimeAgo(post.created_at)}
                 </span>
               </div>
@@ -727,32 +727,32 @@ export default function PostPage() {
             </div>
 
             {/* Post Content */}
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               {/* Actual Content */}
               <div className="relative">
                 {/* Journal Date */}
                 {post.type === "journal" && (
-                  <div className="text-center mb-4">
-                    <span className="font-ui text-[0.75rem] text-muted tracking-wider uppercase">
+                  <div className="text-center mb-3 md:mb-4">
+                    <span className="font-ui text-[0.7rem] md:text-[0.75rem] text-muted tracking-wider uppercase">
                       {formatDate(post.created_at)}
                     </span>
                   </div>
                 )}
 
                 {post.title && (
-                  <h1 className={`font-display text-[1.6rem] text-ink mb-4 leading-tight ${post.type === "poem" ? "text-center" : ""}`}>
+                  <h1 className={`font-display text-[1.3rem] md:text-[1.6rem] text-ink mb-3 md:mb-4 leading-tight ${post.type === "poem" ? "text-center" : ""}`}>
                     {post.title}
                   </h1>
                 )}
 
                 {post.type === "poem" ? (
                   <div
-                    className="font-body text-[1.15rem] text-ink leading-loose italic text-center py-4 post-content"
+                    className="font-body text-[1rem] md:text-[1.15rem] text-ink leading-loose italic text-center py-3 md:py-4 post-content"
                     dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
                   />
                 ) : (
                   <div
-                    className="font-body text-[1.05rem] text-ink leading-relaxed post-content"
+                    className="font-body text-[0.95rem] md:text-[1.05rem] text-ink leading-relaxed post-content"
                     dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
                   />
                 )}
@@ -860,7 +860,7 @@ export default function PostPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 px-6 py-4 border-t border-black/[0.06]">
+            <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 md:py-4 border-t border-black/[0.06] flex-wrap">
               {/* Reaction Picker */}
               <ReactionPicker
                 currentReaction={userReaction}
@@ -871,24 +871,24 @@ export default function PostPage() {
               />
 
               <button
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+                className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
               >
                 {icons.comment}
-                {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
+                {comments.length > 0 && <span className="text-xs md:text-sm font-medium">{comments.length}</span>}
               </button>
 
               {!isOwner && (
                 <button
                   onClick={handleRelay}
                   disabled={!user}
-                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
+                  className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                     isRelayed
                       ? "bg-green-500/10 text-green-600"
                       : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
                   } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {icons.relay}
-                  {relayCount > 0 && <span className="text-sm font-medium">{relayCount}</span>}
+                  {relayCount > 0 && <span className="text-xs md:text-sm font-medium">{relayCount}</span>}
                 </button>
               )}
 
@@ -896,7 +896,7 @@ export default function PostPage() {
 
               <button
                 onClick={() => setShowShareModal(true)}
-                className="w-10 h-10 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
               >
                 {icons.share}
               </button>
@@ -904,7 +904,7 @@ export default function PostPage() {
               <button
                 onClick={handleSave}
                 disabled={!user}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${
                   isSaved
                     ? "bg-amber-500/10 text-amber-600"
                     : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
@@ -918,9 +918,9 @@ export default function PostPage() {
 
           {/* Right Column - Discussion */}
           <div className="w-full lg:w-[360px] flex-shrink-0">
-            <section className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden sticky top-[86px]">
-              <div className="p-5 border-b border-black/[0.06]">
-                <h2 className="font-ui text-[1rem] font-medium text-ink flex items-center gap-2">
+            <section className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden lg:sticky lg:top-[86px]">
+              <div className="p-4 md:p-5 border-b border-black/[0.06]">
+                <h2 className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink flex items-center gap-2">
                   {icons.comment}
                   Discussion ({comments.length})
                 </h2>
@@ -1009,23 +1009,23 @@ export default function PostPage() {
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] animate-fadeIn"
             onClick={() => !deleting && setShowDeleteConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white rounded-2xl shadow-2xl z-[1001] animate-scaleIn p-6">
-            <h3 className="font-display text-[1.3rem] text-ink mb-3">Delete Post?</h3>
-            <p className="font-body text-[0.95rem] text-muted mb-6">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[400px] bg-white rounded-2xl shadow-2xl z-[1001] animate-scaleIn p-5 md:p-6">
+            <h3 className="font-display text-[1.1rem] md:text-[1.3rem] text-ink mb-2 md:mb-3">Delete Post?</h3>
+            <p className="font-body text-[0.85rem] md:text-[0.95rem] text-muted mb-5 md:mb-6">
               This action cannot be undone. This will permanently delete your post and remove all associated data including comments, admires, and saves.
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-2 md:gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                className="px-5 py-2.5 rounded-full font-ui text-[0.9rem] text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
+                className="px-4 md:px-5 py-2 md:py-2.5 rounded-full font-ui text-[0.85rem] md:text-[0.9rem] text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-5 py-2.5 rounded-full font-ui text-[0.9rem] text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 md:px-5 py-2 md:py-2.5 rounded-full font-ui text-[0.85rem] md:text-[0.9rem] text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {deleting ? (
                   <>

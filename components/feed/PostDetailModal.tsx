@@ -424,46 +424,62 @@ export default function PostDetailModal({
   return (
     <>
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className={`flex h-full ${showComments ? "" : ""}`}>
+      <div className={`flex flex-col md:flex-row h-full ${showComments ? "" : ""}`}>
+        {/* Mobile Close Button */}
+        <button
+          onClick={onClose}
+          className="md:hidden absolute top-3 right-3 z-50 w-10 h-10 rounded-full bg-black/10 backdrop-blur-sm flex items-center justify-center text-ink"
+        >
+          {icons.close}
+        </button>
+
         {/* Main Content Area */}
         <div
-          className={`flex flex-col overflow-y-auto p-10 ${
-            showComments ? "flex-1 border-r border-black/5" : "flex-1"
+          className={`flex flex-col overflow-y-auto p-4 md:p-10 ${
+            showComments ? "hidden md:flex md:flex-1 md:border-r border-black/5" : "flex-1"
           }`}
         >
           {/* Author Header */}
-          <div className="flex items-center gap-4 mb-8 pb-6 border-b border-black/[0.06]">
+          <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-8 pb-4 md:pb-6 border-b border-black/[0.06]">
             <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={onClose}>
               <Image
                 src={post.author.avatar}
                 alt={post.author.name}
                 width={56}
                 height={56}
-                className="w-14 h-14 rounded-full object-cover border-[3px] border-white shadow-lg hover:scale-110 transition-transform"
+                className="w-10 h-10 md:w-14 md:h-14 rounded-full object-cover border-2 md:border-[3px] border-white shadow-lg hover:scale-110 transition-transform"
               />
             </Link>
-            <div className="flex flex-col gap-1 flex-1">
+            <div className="flex flex-col gap-0.5 md:gap-1 flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={onClose} className="font-ui text-[1.1rem] font-medium text-ink hover:text-purple-primary transition-colors">
+                <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={onClose} className="font-ui text-[0.95rem] md:text-[1.1rem] font-medium text-ink hover:text-purple-primary transition-colors truncate">
                   {post.author.name}
                 </Link>
-                <span className="font-ui text-[0.9rem] font-light text-muted">
+                <span className="font-ui text-[0.8rem] md:text-[0.9rem] font-light text-muted hidden sm:inline">
                   {post.typeLabel}
                 </span>
               </div>
-              <span className="font-ui text-[0.85rem] text-muted">
+              <span className="font-ui text-[0.75rem] md:text-[0.85rem] text-muted">
                 {post.timeAgo}
               </span>
             </div>
             <button
               onClick={() => setShowComments(!showComments)}
-              className="view-discussion-btn"
+              className="view-discussion-btn hidden md:flex"
             >
               {icons.comment}
               <span>Discussion</span>
               <span className="badge">
                 {comments.length}
               </span>
+            </button>
+            {/* Mobile Discussion Button */}
+            <button
+              onClick={() => setShowComments(!showComments)}
+              className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-primary/10 text-purple-primary text-sm font-medium"
+            >
+              {icons.comment}
+              <span>{comments.length}</span>
             </button>
 
             {/* Post Options Menu */}
@@ -547,7 +563,7 @@ export default function PostDetailModal({
           <div className="flex-1 relative">
             {post.title && (
               <h2
-                className={`font-display text-[1.8rem] text-ink mb-4 leading-tight ${
+                className={`font-display text-[1.3rem] md:text-[1.8rem] text-ink mb-3 md:mb-4 leading-tight ${
                   post.type === "poem" ? "text-center" : ""
                 }`}
               >
@@ -557,26 +573,26 @@ export default function PostDetailModal({
 
             {post.type === "poem" ? (
               <div
-                className="font-body text-[1.3rem] text-ink leading-loose italic text-center py-8 post-content"
+                className="font-body text-[1.05rem] md:text-[1.3rem] text-ink leading-loose italic text-center py-4 md:py-8 post-content"
                 dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
               />
             ) : (
               <div
-                className="font-body text-[1.1rem] text-ink leading-relaxed post-content"
+                className="font-body text-[0.95rem] md:text-[1.1rem] text-ink leading-relaxed post-content"
                 dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
               />
             )}
 
             {/* Media Gallery */}
             {hasMedia && (
-              <div className="mt-8">
+              <div className="mt-4 md:mt-8">
                 {/* Main Image Container */}
-                <div className="relative group rounded-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.15)] mb-5">
+                <div className="relative group rounded-xl md:rounded-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.15)] mb-3 md:mb-5">
                   {post.media![currentMediaIndex].media_type === "video" ? (
                     <div className="relative bg-black">
                       <video
                         src={post.media![currentMediaIndex].media_url}
-                        className="w-full h-[420px] object-contain"
+                        className="w-full h-[250px] md:h-[420px] object-contain"
                         controls
                         controlsList="nodownload"
                         playsInline
@@ -591,7 +607,7 @@ export default function PostDetailModal({
                         alt=""
                         width={800}
                         height={420}
-                        className="w-full h-[420px] object-cover cursor-pointer transition-transform duration-500 group-hover:scale-[1.02]"
+                        className="w-full h-[250px] md:h-[420px] object-cover cursor-pointer transition-transform duration-500 group-hover:scale-[1.02]"
                         onClick={() => {
                           window.dispatchEvent(new CustomEvent('openLightbox', {
                             detail: { images: post.media!, index: currentMediaIndex }
@@ -718,7 +734,7 @@ export default function PostDetailModal({
           />
 
           {/* Actions */}
-          <div className="flex items-center gap-2 mt-auto pt-6 border-t border-black/[0.06]">
+          <div className="flex items-center gap-1.5 md:gap-2 mt-auto pt-4 md:pt-6 border-t border-black/[0.06] flex-wrap">
             {/* Reaction Picker */}
             <ReactionPicker
               currentReaction={userReaction}
@@ -730,10 +746,10 @@ export default function PostDetailModal({
             {/* Comment Button */}
             <button
               onClick={() => setShowComments(true)}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+              className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
             >
               {icons.comment}
-              {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
+              {comments.length > 0 && <span className="text-xs md:text-sm font-medium">{comments.length}</span>}
             </button>
 
             {/* Relay Button - hidden for own posts */}
@@ -741,21 +757,21 @@ export default function PostDetailModal({
               <button
                 onClick={handleRelay}
                 disabled={!user}
-                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
+                className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                   isRelayed
                     ? "bg-green-500/10 text-green-600"
                     : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
-                {relayCount > 0 && <span className="text-sm font-medium">{relayCount}</span>}
+                {relayCount > 0 && <span className="text-xs md:text-sm font-medium">{relayCount}</span>}
               </button>
             )}
 
             {/* Share Button */}
             <button
               onClick={() => setShowShareModal(true)}
-              className="w-11 h-11 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+              className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
             >
               {icons.share}
             </button>
@@ -764,7 +780,7 @@ export default function PostDetailModal({
             <button
               onClick={handleSave}
               disabled={!user}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
                 isSaved
                   ? "bg-amber-500/10 text-amber-600"
                   : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
@@ -781,17 +797,28 @@ export default function PostDetailModal({
           </div>
         </div>
 
-        {/* Comments Panel */}
+        {/* Comments Panel - Full screen on mobile */}
         {showComments && (
-          <div className="discussion-panel">
+          <div className="discussion-panel absolute md:relative inset-0 md:inset-auto w-full md:w-auto bg-white z-40">
             {/* Comments Header */}
-            <div className="p-5 border-b border-black/[0.06] bg-white/60 flex justify-between items-center">
-              <span className="font-ui text-[0.8rem] font-medium tracking-[0.12em] uppercase text-muted">
-                Discussion
-              </span>
+            <div className="p-4 md:p-5 border-b border-black/[0.06] bg-white/60 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                {/* Back button on mobile */}
+                <button
+                  onClick={() => setShowComments(false)}
+                  className="md:hidden w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="font-ui text-[0.8rem] font-medium tracking-[0.12em] uppercase text-muted">
+                  Discussion
+                </span>
+              </div>
               <button
                 onClick={() => setShowComments(false)}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-pink-vivid hover:rotate-90 transition-all"
+                className="hidden md:flex w-9 h-9 rounded-full items-center justify-center text-muted hover:text-pink-vivid hover:rotate-90 transition-all"
               >
                 {icons.close}
               </button>

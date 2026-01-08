@@ -30,11 +30,11 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[2000] flex justify-center items-center opacity-0 animate-fadeIn"
+      className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[2000] flex justify-center items-center md:items-center opacity-0 animate-fadeIn"
       onClick={onClose}
     >
       <div
-        className="w-[95%] max-w-[1000px] h-[90vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden scale-95 animate-scaleIn"
+        className="w-full h-full md:w-[95%] md:max-w-[1000px] md:h-[90vh] bg-white md:rounded-3xl shadow-2xl flex flex-col overflow-hidden scale-100 md:scale-95 animate-scaleIn"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
