@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import TakeCard from "./TakeCard";
 import TakeCommentsPanel from "./TakeCommentsPanel";
 import { useTakes, useMuted, useFollow, useVolume } from "@/lib/hooks/useTakes";
@@ -317,9 +318,20 @@ export default function TakesFeed({
   return (
     <div className={`tiktok-feed-container ${commentsPanelOpen ? "comments-open" : ""}`}>
       {/* Background */}
-      <div className="aura-blob blob-1" />
-      <div className="aura-blob blob-2" />
-      <div className="aura-blob blob-3" />
+      <div className="aura-blob blob-1 hidden md:block" />
+      <div className="aura-blob blob-2 hidden md:block" />
+      <div className="aura-blob blob-3 hidden md:block" />
+
+      {/* Mobile Navigation - Back to Home */}
+      <Link
+        href="/"
+        className="md:hidden fixed top-3 left-3 z-50 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center text-white"
+        style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </Link>
 
       {/* Feed */}
       <div ref={feedRef} className="tiktok-feed">
