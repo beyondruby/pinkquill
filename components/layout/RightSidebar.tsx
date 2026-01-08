@@ -368,7 +368,7 @@ export default function RightSidebar() {
   }, [user]);
 
   return (
-    <aside className="fixed right-0 top-0 bottom-0 w-[280px] bg-white/60 backdrop-blur-md border-l border-black/[0.04] flex flex-col p-6 overflow-y-auto z-[100]">
+    <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[280px] bg-white/60 backdrop-blur-md border-l border-black/[0.04] flex-col p-6 overflow-y-auto z-[100]">
       {/* Suggested Users */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4 pl-1">

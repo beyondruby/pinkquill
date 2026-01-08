@@ -122,7 +122,7 @@ export default function LeftSidebar() {
 
   return (
     <>
-      <nav className="fixed left-0 top-0 bottom-0 w-[220px] bg-white/95 backdrop-blur-xl border-r border-border-light flex flex-col p-6 z-[100] overflow-visible">
+      <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white/95 backdrop-blur-xl border-r border-border-light flex-col p-6 z-[100] overflow-visible">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm flex items-center justify-center shadow-lg shadow-purple-primary/20">

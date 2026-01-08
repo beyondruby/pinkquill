@@ -1,4 +1,6 @@
 import LeftSidebar from "@/components/layout/LeftSidebar";
+import MobileHeader from "@/components/layout/MobileHeader";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 
 export default function StudioLayout({
   children,
@@ -7,8 +9,10 @@ export default function StudioLayout({
 }) {
   return (
     <>
+      <MobileHeader />
       <LeftSidebar />
-      <main className="ml-[220px] min-h-screen">{children}</main>
+      <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen">{children}</main>
+      <MobileBottomNav />
     </>
   );
 }

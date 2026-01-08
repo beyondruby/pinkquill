@@ -11,6 +11,8 @@ import ReportModal from "@/components/ui/ReportModal";
 import CommentItem from "@/components/feed/CommentItem";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import LeftSidebar from "@/components/layout/LeftSidebar";
+import MobileHeader from "@/components/layout/MobileHeader";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import PostTags from "@/components/feed/PostTags";
 import { icons } from "@/components/ui/Icons";
 
@@ -578,15 +580,17 @@ export default function PostPage() {
   if (loading) {
     return (
       <>
+        <MobileHeader />
         <LeftSidebar />
-        <main className="ml-[220px] min-h-screen bg-[#fdfdfd]">
-          <div className="max-w-[680px] mx-auto py-12 px-6">
+        <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen bg-[#fdfdfd]">
+          <div className="max-w-[680px] mx-auto py-12 px-4 md:px-6">
             <div className="text-center py-20">
               <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="font-body text-muted italic">Loading post...</p>
             </div>
           </div>
         </main>
+        <MobileBottomNav />
       </>
     );
   }
@@ -595,9 +599,10 @@ export default function PostPage() {
   if (error || !post) {
     return (
       <>
+        <MobileHeader />
         <LeftSidebar />
-        <main className="ml-[220px] min-h-screen bg-[#fdfdfd]">
-          <div className="max-w-[680px] mx-auto py-12 px-6">
+        <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen bg-[#fdfdfd]">
+          <div className="max-w-[680px] mx-auto py-12 px-4 md:px-6">
             <div className="text-center py-20">
               <h1 className="font-display text-2xl text-ink mb-4">Post not found</h1>
               <p className="font-body text-muted mb-6">This post may have been removed or doesn't exist.</p>
@@ -607,6 +612,7 @@ export default function PostPage() {
             </div>
           </div>
         </main>
+        <MobileBottomNav />
       </>
     );
   }
@@ -615,9 +621,10 @@ export default function PostPage() {
 
   return (
     <>
+      <MobileHeader />
       <LeftSidebar />
-      <main className="ml-[220px] min-h-screen bg-[#fdfdfd]">
-        <div className="max-w-[1100px] mx-auto py-8 px-6 flex gap-6">
+      <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen bg-[#fdfdfd]">
+        <div className="max-w-[1100px] mx-auto py-6 px-4 md:py-8 md:px-6 flex flex-col lg:flex-row gap-6">
           {/* Left Column - Post */}
           <div className="flex-1 min-w-0">
             {/* Post Card */}
@@ -910,7 +917,7 @@ export default function PostPage() {
           </div>
 
           {/* Right Column - Discussion */}
-          <div className="w-[360px] flex-shrink-0">
+          <div className="w-full lg:w-[360px] flex-shrink-0">
             <section className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden sticky top-[86px]">
               <div className="p-5 border-b border-black/[0.06]">
                 <h2 className="font-ui text-[1rem] font-medium text-ink flex items-center gap-2">
@@ -1073,6 +1080,8 @@ export default function PostPage() {
           submitted={reportSubmitted}
         />
       )}
+
+      <MobileBottomNav />
     </>
   );
 }

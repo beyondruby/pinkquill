@@ -8,8 +8,8 @@ export default function MainContent({ children }: { children: React.ReactNode })
 
   return (
     <main
-      className={`ml-[220px] min-h-screen ${
-        isHomepage ? "mr-[280px]" : "mr-0"
+      className={`min-h-screen pt-16 pb-20 md:pt-0 md:pb-0 md:ml-[220px] ${
+        isHomepage ? "lg:mr-[280px]" : "mr-0"
       }`}
     >
       {children}

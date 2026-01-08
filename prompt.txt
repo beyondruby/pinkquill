@@ -1,0 +1,74 @@
+I need to make my existing social media application fully responsive for mobile devices. 
+
+CRITICAL BRANDING CONSTRAINTS:
+1. Do NOT change my existing color palette, fonts, or overall aesthetic. The "PinkQuill" branding must remain buttons or inputs.
+- ONLY modify the container widths, display properties (hidden/block), and layout positioning to fit exactly as it is.
+2. Do NOT change the Desktop view. The Desktop experience must look exactly identical to how it is mobile screens.
+
+Please perform these steps strictly:
+
+1. LAYOUT REFACTOR (The 3-Column System now.
+3. Use Tailwind CSS breakpoints (md:, lg:) to only apply these changes to small screens.
+
+THE):
+   - Open my main layout file (likely `app/(feed)/layout.tsx` or similar).
+ GOAL: 
+On mobile, the app should function structurally like Instagram/TikTok (Bottom Navigation, Full Width Feed), while keeping   - Currently, it displays [LeftSidebar] [Feed] [RightSidebar].
+   - Modify the Tailwind classes to implement this Logic:
+     - MOBILE (Default): Hide LeftSidebar (`hidden`). Hide RightSidebar (`hidden`). Make my specific design style.
+
+Please perform these 4 specific refactors:
+
+1. LAYOUT REFACTOR (The the Feed container `w-full` and `p-0`.
+     - TABLET (md:): Show Container):
+   - Open `app/(feed)/layout.tsx` (or your main layout file).
+   - Currently LeftSidebar (`md:block`). Show Feed. Keep RightSidebar hidden.
+     - DESKTOP (lg: or xl:): Show all three columns.
+
+2. NEW COMPONENT: Mobile Bottom Navigation
+   - Create `components/layout/MobileBottomNav., it likely displays [LeftSidebar] [Feed] [RightSidebar].
+   - Change the class names to hidetsx`.
+   - It should be `fixed bottom-0 left-0 w-full z-50`. sidebars on mobile:
+     - LeftSidebar: Add `hidden md:block`.
+     - RightSidebar: Add `hidden lg:block`.
+     - Feed Container: Change fixed widths to `w-full` on mobile, but keep existing widths on desktop (e.g., `w-full md:w-[600px]`).
+
+2. CREATE
+   - It must use my existing color scheme (white background, border-t, pink accents for active state).
+   - It should contain  MOBILE BOTTOM NAVIGATION:
+   - Create a new component `components/layout/MobileBottomNav.tsx`.
+   - It must5 icons (Home, Explore/Search, Create (+), Communities, Profile).
+   - Only render this component on mobile be `fixed bottom-0 left-0 w-full z-50`.
+   - Style it using my existing white screens (`block md:hidden`).
+
+3. NEW COMPONENT: Mobile Top Header
+   - Create `components/layout/MobileHeader.tsx`.
+   - It should be `fixed top-0 left-0 w-full z-5/glass background colors so it matches the theme.
+   - Include 5 Icons (Home, Search, Create/Post, Communities, Profile).
+0`.
+   - It should display the "PinkQuill" logo (centered or left) and the Notification Bell.   - Only show this component on mobile (`block md:hidden`).
+
+3. CREATE MOBILE TOP HEADER:
+   - Create a
+   - Only render this on mobile (`block md:hidden`).
+   - Add padding-top to the main feed new component `components/layout/MobileHeader.tsx`.
+   - It must be `fixed top-0 left- so content isn't hidden behind this header.
+
+4. FEED & POST ADJUSTMENTS:
+   - Open 0 w-full z-50`.
+   - It should contain the "PinkQuill" text logo (left) and the Notification Bell (right).
+   - Style it to match my brand.
+   - Only show this on`Feed.tsx` and `PostCard.tsx` (or whatever my post component is named).
+   - Search for any hardcoded widths like `w-[600px]`. Change them to `w-full max- mobile (`block md:hidden`).
+   - Add padding-top and padding-bottom to the main feed container so the contentw-[600px]`.
+   - Ensure the main feed container has `pb-20` (padding bottom isn't hidden behind these new fixed bars.
+
+4. FEED & CARD WIDTHS:
+   - Scan ) on mobile so the last post isn't hidden behind the Bottom Nav.
+   - Add `overflow-x-`Feed.tsx` and `PostCard.tsx`.
+   - If there are hardcoded pixel widths (e.g., `whidden` to the main wrapper to prevent side-to-side wobbling.
+
+5. FINAL CHECK:
+   - Ensure-[600px]`), change them to `w-full max-w-[600px]`.
+   - Ensure images use `w-full h-auto` to prevent horizontal scrolling.
+   - Ensure `overflow-x-hidden` is applied the desktop view looks EXACTLY the same as it did before. The sidebars should only disappear when the screen gets smaller.

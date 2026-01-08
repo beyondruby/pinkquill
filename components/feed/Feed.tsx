@@ -503,7 +503,7 @@ export default function Feed() {
   // Initial loading state - show 5 skeletons
   if (initialLoading || takesLoading) {
     return (
-      <div className="max-w-[580px] mx-auto py-12 px-6">
+      <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
         {[...Array(5)].map((_, i) => (
           <PostSkeleton key={i} />
         ))}
@@ -513,7 +513,7 @@ export default function Feed() {
 
   if (error) {
     return (
-      <div className="max-w-[580px] mx-auto py-12 px-6">
+      <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
         <div className="text-center text-red-500">
           <p className="font-body">{error}</p>
         </div>
@@ -523,7 +523,7 @@ export default function Feed() {
 
   if (feedItems.length === 0) {
     return (
-      <div className="max-w-[580px] mx-auto py-12 px-6">
+      <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
         <div className="text-center">
           <h2 className="font-display text-2xl text-ink mb-4">
             The canvas awaits
@@ -543,7 +543,7 @@ export default function Feed() {
   }
 
   return (
-    <div className="max-w-[580px] mx-auto py-12 px-6">
+    <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
       {feedItems.map((item) => {
         if (item.type === 'take') {
           return (
