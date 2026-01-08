@@ -4,14 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 
-const navItems = [
-  { icon: "home", label: "Home", href: "/" },
-  { icon: "compass", label: "Explore", href: "/explore" },
-  { icon: "create", label: "Create", href: "/create" },
-  { icon: "users", label: "Communities", href: "/community" },
-  { icon: "profile", label: "Profile", href: "/profile" },
-];
-
 const icons: Record<string, React.ReactElement> = {
   home: (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,6 +18,12 @@ const icons: Record<string, React.ReactElement> = {
   create: (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+    </svg>
+  ),
+  takes: (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
   users: (
@@ -44,6 +42,16 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const { user, profile } = useAuth();
 
+  // Build nav items dynamically based on auth state
+  const navItems = [
+    { icon: "home", label: "Home", href: "/" },
+    { icon: "compass", label: "Explore", href: "/explore" },
+    // Only show Create if user is signed in
+    ...(user ? [{ icon: "create", label: "Create", href: "/create" }] : []),
+    { icon: "takes", label: "Takes", href: "/takes" },
+    { icon: "profile", label: "Profile", href: "/profile" },
+  ];
+
   // Get the profile href - use user's studio if logged in
   const getProfileHref = () => {
     if (user && profile?.username) {
@@ -53,18 +61,18 @@ export default function MobileBottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-black/[0.06] md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-black/[0.06] md:hidden safe-area-bottom">
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const href = item.icon === "profile" ? getProfileHref() : item.href;
           const isActive = item.icon === "profile"
             ? pathname.startsWith("/studio/") || pathname === "/login"
-            : pathname === item.href;
+            : pathname === item.href || (item.icon === "takes" && pathname.startsWith("/takes"));
           const isCreate = item.icon === "create";
 
           return (
             <Link
-              key={item.href}
+              key={item.icon}
               href={href}
               className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
                 isCreate

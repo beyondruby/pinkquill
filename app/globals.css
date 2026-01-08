@@ -3731,9 +3731,17 @@ body {
 
 .studio-stats-enhanced {
   display: flex;
-  gap: 3rem;
-  padding: 1.75rem 0;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1.25rem 0;
   position: relative;
+}
+
+@media (min-width: 768px) {
+  .studio-stats-enhanced {
+    gap: 3rem;
+    padding: 1.75rem 0;
+  }
 }
 
 /* Gradient divider - Brand Colors */
@@ -3789,10 +3797,16 @@ body {
 
 .studio-stat-value {
   font-family: var(--font-display);
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   font-weight: 500;
   color: var(--primary-purple);
   transition: all 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .studio-stat-value {
+    font-size: 1.75rem;
+  }
 }
 
 .studio-stat-item:hover .studio-stat-value {
@@ -3949,18 +3963,32 @@ body {
   position: relative;
   background: transparent;
   display: flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid rgba(142, 68, 173, 0.1);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.studio-tabs-container::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .studio-tabs-container {
+    gap: 0.5rem;
+  }
 }
 
 .studio-tab-btn {
   position: relative;
   flex: 1;
-  padding: 0.75rem 1.25rem;
+  min-width: max-content;
+  padding: 0.6rem 0.75rem;
   border-radius: 8px 8px 0 0;
   font-family: var(--font-ui);
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 500;
   background: transparent;
   border: none;
@@ -3969,9 +3997,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   transition: all 0.3s ease;
   z-index: 1;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .studio-tab-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+  }
 }
 
 .studio-tab-btn:hover:not(.active) {

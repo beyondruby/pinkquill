@@ -672,7 +672,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   return (
     <div className="min-h-screen bg-[#f8f7fc]">
       {/* Cover Section - Soft Watercolor Aesthetic */}
-      <div className="relative h-[320px] overflow-hidden">
+      <div className="relative h-[200px] md:h-[320px] overflow-hidden">
         {/* Base watercolor background */}
         <div className="studio-cover-watercolor" />
 
@@ -703,52 +703,52 @@ export default function StudioProfile({ username }: StudioProfileProps) {
       </div>
 
       {/* Profile Section */}
-      <div className="relative max-w-[1100px] mx-auto px-8 -mt-[100px] pb-12">
+      <div className="relative max-w-[1100px] mx-auto px-4 md:px-8 -mt-[60px] md:-mt-[100px] pb-12">
         {/* Profile Header */}
-        <div className={`flex items-end gap-8 mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-1' : ''}`}>
+        <div className={`flex flex-col md:flex-row md:items-end gap-4 md:gap-8 mb-6 md:mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-1' : ''}`}>
           {/* Avatar with Glow */}
-          <div className="studio-avatar-wrapper flex-shrink-0">
+          <div className="studio-avatar-wrapper flex-shrink-0 mx-auto md:mx-0">
             <div className="studio-avatar-glow" />
             <img
               src={profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"}
               alt={profile.display_name || profile.username}
-              className="studio-avatar w-40 h-40 rounded-full object-cover border-[5px] border-[#f8f7fc] shadow-xl"
+              className="studio-avatar w-24 h-24 md:w-40 md:h-40 rounded-full object-cover border-[4px] md:border-[5px] border-[#f8f7fc] shadow-xl"
             />
           </div>
 
           {/* Info */}
-          <div className="flex-1 pb-4">
+          <div className="flex-1 pb-2 md:pb-4 text-center md:text-left">
             {/* Name */}
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="font-display text-[2.6rem] tracking-tight leading-none text-ink font-medium">
+            <div className="flex items-center justify-center md:justify-start gap-2 md:gap-3 mb-1 md:mb-2">
+              <h1 className="font-display text-[1.6rem] md:text-[2.6rem] tracking-tight leading-none text-ink font-medium">
                 {profile.display_name || profile.username}
               </h1>
               {profile.is_verified && (
-                <span className="w-7 h-7 bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm rounded-full flex items-center justify-center text-white shadow-lg shadow-pink-vivid/25">
+                <span className="w-5 h-5 md:w-7 md:h-7 bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm rounded-full flex items-center justify-center text-white shadow-lg shadow-pink-vivid/25">
                   {icons.verified}
                 </span>
               )}
             </div>
 
             {/* Username */}
-            <p className="font-ui text-[0.85rem] text-muted/70 tracking-wider mb-3">@{profile.username}</p>
+            <p className="font-ui text-[0.8rem] md:text-[0.85rem] text-muted/70 tracking-wider mb-2 md:mb-3">@{profile.username}</p>
 
             {/* Tagline */}
             {profile.tagline && (
-              <p className="font-body text-[1.05rem] italic text-ink/40">
+              <p className="font-body text-[0.9rem] md:text-[1.05rem] italic text-ink/40">
                 {profile.tagline}
               </p>
             )}
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pb-4">
+          <div className="flex flex-wrap justify-center md:justify-end gap-2 md:gap-3 pb-2 md:pb-4">
             {!isOwnProfile && user && (
               <>
                 <button
                   onClick={handleFollow}
                   disabled={followLoading}
-                  className={`px-8 py-3 rounded-full font-ui text-[0.95rem] font-medium transition-all ${
+                  className={`px-5 py-2 md:px-8 md:py-3 rounded-full font-ui text-[0.85rem] md:text-[0.95rem] font-medium transition-all ${
                     isFollowing
                       ? "bg-white border-2 border-purple-primary text-purple-primary hover:bg-purple-primary/5"
                       : isPendingRequest
@@ -815,15 +815,16 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     }
                   }}
                   disabled={messageLoading}
-                  className="px-6 py-3 rounded-full border-2 border-black/10 bg-white font-ui text-[0.95rem] font-medium text-ink flex items-center gap-2 hover:border-purple-primary hover:text-purple-primary transition-all disabled:opacity-50"
+                  className="px-4 py-2 md:px-6 md:py-3 rounded-full border-2 border-black/10 bg-white font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink flex items-center gap-2 hover:border-purple-primary hover:text-purple-primary transition-all disabled:opacity-50"
                 >
                   {icons.message}
-                  {messageLoading ? "..." : "Message"}
-                </button>              </>
+                  <span className="hidden md:inline">{messageLoading ? "..." : "Message"}</span>
+                </button>
+              </>
             )}
-            
+
             {isOwnProfile && (
-              <a href="/settings" className="px-8 py-3 rounded-full border-2 border-black/10 bg-white font-ui text-[0.95rem] font-medium text-ink hover:border-purple-primary hover:text-purple-primary transition-all">
+              <a href="/settings" className="px-5 py-2 md:px-8 md:py-3 rounded-full border-2 border-black/10 bg-white font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink hover:border-purple-primary hover:text-purple-primary transition-all">
                 Edit Profile
               </a>
             )}
@@ -832,7 +833,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="w-12 h-12 rounded-full border-2 border-black/10 bg-white flex items-center justify-center text-ink hover:border-purple-primary hover:text-purple-primary transition-all"
+                className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-black/10 bg-white flex items-center justify-center text-ink hover:border-purple-primary hover:text-purple-primary transition-all"
               >
                 {icons.ellipsis}
               </button>
@@ -959,28 +960,28 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
         {/* About the Artist — Refined Design (only show for public accounts or if following) */}
         {(!isPrivateAccount || isOwnProfile || isFollowing) && (profile.bio || profile.role || profile.location || profile.education || profile.languages) && (
-          <div className={`relative mb-12 studio-section-animated ${pageLoaded ? 'loaded delay-3' : ''}`}>
+          <div className={`relative mb-8 md:mb-12 studio-section-animated ${pageLoaded ? 'loaded delay-3' : ''}`}>
 
             {/* The Box */}
-            <div className="relative rounded-3xl bg-gradient-to-br from-rose-50/90 via-white to-pink-50/80 p-8 lg:p-10 border border-pink-200/50 shadow-[0_8px_40px_-12px_rgba(255,0,127,0.15)]">
+            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-rose-50/90 via-white to-pink-50/80 p-5 md:p-8 lg:p-10 border border-pink-200/50 shadow-[0_8px_40px_-12px_rgba(255,0,127,0.15)]">
 
               {/* Subtle top accent line */}
               <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-pink-vivid/30 to-transparent" />
 
               {/* Header */}
-              <div className="mb-8">
-                <h3 className="font-display text-lg text-ink/80 tracking-wide font-medium">About the Artist</h3>
+              <div className="mb-4 md:mb-8">
+                <h3 className="font-display text-base md:text-lg text-ink/80 tracking-wide font-medium">About the Artist</h3>
               </div>
 
               {/* Bio */}
               {profile.bio && (
-                <p className="font-body text-[1.12rem] leading-[1.95] text-ink/75 mb-8 max-w-2xl">
+                <p className="font-body text-[0.95rem] md:text-[1.12rem] leading-[1.8] md:leading-[1.95] text-ink/75 mb-6 md:mb-8 max-w-2xl">
                   {profile.bio}
                 </p>
               )}
 
               {/* Details with subtle separators */}
-              <div className="flex flex-wrap items-center gap-y-3 text-[0.88rem] text-ink/60 mb-8">
+              <div className="flex flex-wrap items-center gap-y-2 md:gap-y-3 text-[0.82rem] md:text-[0.88rem] text-ink/60 mb-6 md:mb-8">
                 {profile.role && (
                   <>
                     <div className="flex items-center gap-2 pr-5">
