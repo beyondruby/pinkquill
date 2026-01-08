@@ -240,17 +240,20 @@ export default function MessagesView() {
   }
 
   return (
-    <div className="flex h-screen bg-[#f8f7fc]">
+    <div className="messages-container flex h-screen md:h-screen bg-[#f8f7fc]">
       {/* Conversations Sidebar - full width on mobile, hidden when conversation selected */}
-      <div className={`w-full md:w-[340px] bg-white border-r border-black/[0.06] flex flex-col ${
+      <div className={`messages-sidebar w-full md:w-[340px] bg-white border-r border-black/[0.06] flex flex-col ${
         selectedConversation ? 'hidden md:flex' : 'flex'
       }`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 md:p-5 border-b border-black/[0.06]">
+        <div
+          className="flex items-center justify-between px-4 py-3 md:p-5 border-b border-black/[0.06]"
+          style={{ paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}
+        >
           <h1 className="font-display text-[1.2rem] md:text-[1.4rem] text-ink">Messages</h1>
           <button
             onClick={() => setShowNewMessage(true)}
-            className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center shadow-lg shadow-purple-primary/30 hover:scale-105 hover:shadow-xl transition-all"
+            className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center shadow-lg shadow-purple-primary/30 hover:scale-105 hover:shadow-xl transition-all active:scale-95"
           >
             {icons.edit}
           </button>
@@ -267,7 +270,7 @@ export default function MessagesView() {
       </div>
 
       {/* Chat Area - full width on mobile when conversation selected */}
-      <div className={`flex-1 flex flex-col ${
+      <div className={`messages-chat flex-1 flex flex-col ${
         selectedConversation ? 'flex' : 'hidden md:flex'
       }`}>
         {selectedConversation ? (

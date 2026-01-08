@@ -42,6 +42,10 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const { user, profile } = useAuth();
 
+  // Hide bottom nav on messages page (it has its own full-screen layout)
+  const isMessagesPage = pathname.startsWith("/messages");
+  if (isMessagesPage) return null;
+
   // Build nav items dynamically based on auth state
   const navItems = [
     { icon: "home", label: "Home", href: "/" },

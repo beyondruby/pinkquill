@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFeatherPointed } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -9,11 +10,16 @@ import { useUnreadCount, useMarkAsRead, useUnreadMessagesCount } from "@/lib/hoo
 import NotificationPanel from "@/components/notifications/NotificationPanel";
 
 export default function MobileHeader() {
+  const pathname = usePathname();
   const { user } = useAuth();
   const { count: unreadCount } = useUnreadCount(user?.id);
   const { count: unreadMessagesCount } = useUnreadMessagesCount(user?.id);
   const { markAllAsRead } = useMarkAsRead();
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Hide header on messages page (it has its own header)
+  const isMessagesPage = pathname.startsWith("/messages");
+  if (isMessagesPage) return null;
 
   const handleOpenNotifications = async () => {
     setShowNotifications(true);

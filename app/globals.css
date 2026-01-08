@@ -9729,3 +9729,52 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(142, 68, 173, 0.35);
 }
+
+/* ============================================================================
+   MESSAGES - Mobile Responsive Styles
+   ============================================================================ */
+
+/* Mobile messages container - full height accounting for safe areas */
+@media (max-width: 767px) {
+  .messages-container {
+    height: 100vh;
+    height: 100dvh;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .messages-sidebar {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .messages-chat {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .chat-view {
+    height: 100%;
+    max-height: 100vh;
+    max-height: 100dvh;
+  }
+
+  /* Messages area scroll */
+  .chat-view > div:nth-child(2) {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Conversation list items - better tap targets */
+  .messages-sidebar > div:last-child > div {
+    padding: 14px 16px;
+    min-height: 72px;
+  }
+
+  /* Active conversation item indicator on mobile */
+  .messages-sidebar > div:last-child > div[class*="bg-purple-primary/10"] {
+    border-left-width: 3px;
+  }
+}
+

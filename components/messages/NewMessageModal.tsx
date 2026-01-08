@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Modal from "@/components/ui/Modal";
 import { supabase } from "@/lib/supabase";
 import Loading from "@/components/ui/Loading";
 
@@ -20,6 +19,11 @@ interface NewMessageModalProps {
 }
 
 const icons = {
+  back: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    </svg>
+  ),
   close: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -140,7 +144,7 @@ export default function NewMessageModal({
       setCreating(false);
     }
   };
-  
+
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
@@ -149,15 +153,63 @@ export default function NewMessageModal({
     }
   }, [isOpen]);
 
+  // Lock body scroll when open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isOpen]);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="flex flex-col h-full max-h-[70vh]">
+    <>
+      {/* Backdrop - only visible on desktop */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] hidden md:block animate-fadeIn"
+        onClick={onClose}
+      />
+
+      {/* Modal Container */}
+      <div
+        className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2
+                   w-full h-full md:w-[480px] md:h-auto md:max-h-[600px]
+                   bg-white md:rounded-2xl shadow-2xl z-[1001]
+                   flex flex-col overflow-hidden animate-slideUp md:animate-scaleIn"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-black/[0.06]">
-          <h2 className="font-display text-[1.3rem] text-ink">New Message</h2>
+        <div
+          className="flex items-center gap-3 px-4 py-3 md:p-5 border-b border-black/[0.06] bg-white"
+          style={{ paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}
+        >
+          {/* Mobile back button */}
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.08] transition-all hover:rotate-90"
+            className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+          >
+            {icons.back}
+          </button>
+
+          <h2 className="flex-1 font-display text-[1.1rem] md:text-[1.3rem] text-ink">
+            New Message
+          </h2>
+
+          {/* Desktop close button */}
+          <button
+            onClick={onClose}
+            className="hidden md:flex w-10 h-10 rounded-full bg-black/[0.04] items-center justify-center text-muted hover:text-ink hover:bg-black/[0.08] transition-all hover:rotate-90"
           >
             {icons.close}
           </button>
@@ -181,7 +233,10 @@ export default function NewMessageModal({
         </div>
 
         {/* Results */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div
+          className="flex-1 overflow-y-auto p-4"
+          style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}
+        >
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loading text="" size="small" />
@@ -211,7 +266,7 @@ export default function NewMessageModal({
                 <button
                   key={user.id}
                   onClick={() => handleSelectUser(user)}
-                  className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-purple-primary/5 transition-all text-left group"
+                  className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-purple-primary/5 active:bg-purple-primary/10 transition-all text-left group"
                 >
                   <img
                     src={
@@ -238,6 +293,6 @@ export default function NewMessageModal({
           )}
         </div>
       </div>
-    </Modal>
+    </>
   );
 }

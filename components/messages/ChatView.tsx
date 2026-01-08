@@ -549,12 +549,15 @@ export default function ChatView({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="chat-view flex-1 flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-4 p-4 bg-white border-b border-black/[0.06]">
+      <div
+        className="flex items-center gap-3 md:gap-4 px-3 md:px-4 py-3 md:py-4 bg-white border-b border-black/[0.06]"
+        style={{ paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}
+      >
         <button
           onClick={onBack}
-          className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all lg:hidden"
+          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all md:hidden"
         >
           {icons.back}
         </button>
@@ -590,7 +593,7 @@ export default function ChatView({
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50 animate-fadeIn">
+            <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50 animate-fadeIn md:right-0 right-0">
               <button
                 onClick={() => {
                   setShowMenu(false);
@@ -794,7 +797,10 @@ export default function ChatView({
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-white border-t border-black/[0.06]">
+      <div
+        className="p-3 md:p-4 bg-white border-t border-black/[0.06]"
+        style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+      >
         {/* Media Error Toast */}
         {mediaError && (
           <div className="mb-3 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-ui text-sm flex items-center gap-2">
@@ -915,7 +921,7 @@ export default function ChatView({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !blockLoading && setShowBlockConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] p-6">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] p-5 md:p-6">
             <h3 className="font-display text-xl text-ink mb-3">
               Block @{participant?.username}?
             </h3>
@@ -956,7 +962,7 @@ export default function ChatView({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !reportLoading && setShowReportModal(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[480px] bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden max-h-[90vh] overflow-y-auto">
             {reportSuccess ? (
               <div className="p-8 text-center">
                 <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
@@ -1051,7 +1057,7 @@ export default function ChatView({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !deleteLoading && setShowDeleteConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] p-6">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] p-5 md:p-6">
             <h3 className="font-display text-xl text-ink mb-3">
               Delete Conversation?
             </h3>
