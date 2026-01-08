@@ -5260,6 +5260,11 @@ body {
   margin-left: 4px;
 }
 
+/* Mobile mute button - hidden on desktop, visible on mobile when paused */
+.tiktok-mobile-mute-btn {
+  display: none;
+}
+
 @keyframes playPulse {
   0%, 100% {
     transform: scale(1);
@@ -5770,13 +5775,17 @@ body {
     max-width: 100%;
   }
 
-  /* Top controls */
+  /* Top controls - hide volume controls on mobile (Instagram style) */
   .tiktok-top-controls {
     padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 12px 12px;
     opacity: 1;
   }
 
-  .tiktok-mute-btn,
+  /* Hide desktop volume controls on mobile - use Instagram-style mute button instead */
+  .tiktok-volume-control {
+    display: none;
+  }
+
   .tiktok-menu-btn {
     width: 36px;
     height: 36px;
@@ -5784,22 +5793,45 @@ body {
     backdrop-filter: blur(10px);
   }
 
-  .tiktok-mute-btn svg,
   .tiktok-menu-btn svg {
     width: 18px;
     height: 18px;
     color: white;
   }
 
-  .tiktok-volume-slider {
-    height: 36px;
+  /* Mobile mute button - Instagram style (shows when paused) */
+  .tiktok-mobile-mute-btn {
+    display: flex;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
-    padding: 0 12px;
+    border: none;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 15;
   }
 
-  .tiktok-volume-range {
-    width: 60px;
+  .tiktok-mobile-mute-btn:active {
+    transform: scale(0.95);
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .tiktok-mobile-mute-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Paused overlay layout adjustment for mobile */
+  .tiktok-paused-overlay {
+    flex-direction: column;
   }
 
   /* Gradient overlays for readability */

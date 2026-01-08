@@ -160,6 +160,7 @@ export default function TakeCard({
           isMuted={isMuted}
           volume={volume}
           onDoubleTap={() => handleDoubleTap()}
+          onToggleMute={onToggleMute}
         />
 
         {/* Double-tap heart */}
