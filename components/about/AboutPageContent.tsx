@@ -1,228 +1,264 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faFeatherPointed,
-  faHeart,
-  faUsers,
-  faLightbulb,
-  faShieldHeart,
-  faInfinity,
-  faArrowRight,
-  faStar,
-  faQuoteLeft,
-} from "@fortawesome/free-solid-svg-icons";
-
-const creativeTypes = [
-  { name: "Musicians", color: "from-violet-500 to-purple-600" },
-  { name: "Writers", color: "from-purple-500 to-pink-500" },
-  { name: "Visual Artists", color: "from-pink-500 to-rose-500" },
-  { name: "Photographers", color: "from-rose-500 to-orange-500" },
-  { name: "Filmmakers", color: "from-orange-500 to-amber-500" },
-  { name: "Poets", color: "from-amber-500 to-yellow-500" },
-  { name: "Dancers", color: "from-emerald-500 to-teal-500" },
-  { name: "Actors", color: "from-teal-500 to-cyan-500" },
-  { name: "Models", color: "from-cyan-500 to-blue-500" },
-  { name: "Designers", color: "from-blue-500 to-indigo-500" },
-  { name: "Creators", color: "from-indigo-500 to-violet-500" },
-];
-
-const values = [
-  {
-    icon: faHeart,
-    title: "Authenticity First",
-    description: "Your art is yours. We celebrate raw, real creativity without filters or algorithms deciding what's worthy.",
-  },
-  {
-    icon: faUsers,
-    title: "Community Over Competition",
-    description: "We're building a space where creatives lift each other up. Collaboration beats comparison, always.",
-  },
-  {
-    icon: faShieldHeart,
-    title: "Safe Expression",
-    description: "Create freely knowing your work and your identity are protected. Your voice matters here.",
-  },
-  {
-    icon: faLightbulb,
-    title: "Every Medium Welcome",
-    description: "Words, visuals, audio, video - if you create it, there's a home for it here. No creative left behind.",
-  },
-];
-
-const stats = [
-  { number: "100%", label: "Creator-focused" },
-  { number: "0", label: "Ads in your feed" },
-  { number: "All", label: "Creative types welcome" },
-  { number: "24/7", label: "Your content, your way" },
-];
+import { faFeatherPointed, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
 export default function AboutPageContent() {
   return (
-    <div className="min-h-screen bg-[#FDFCFD] overflow-hidden">
-      {/* Background Elements */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-purple-primary/8 via-pink-vivid/5 to-transparent blur-[100px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-tl from-orange-warm/8 via-pink-vivid/5 to-transparent blur-[100px]" />
-        <div className="absolute top-[40%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-gradient-to-bl from-purple-primary/5 to-transparent blur-[80px]" />
-      </div>
+    <div className="min-h-screen bg-[#FDFCFB]">
+      {/* Minimal Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#FDFCFB]/90 backdrop-blur-md border-b border-black/[0.04]">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-muted hover:text-ink transition-colors group"
+          >
+            <FontAwesomeIcon icon={faArrowLeft} className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="font-ui text-sm">Back</span>
+          </Link>
+          <Link href="/" className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+            <FontAwesomeIcon icon={faFeatherPointed} className="w-4 h-4 text-purple-primary" />
+          </Link>
+        </div>
+      </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-20 pb-24 md:pt-32 md:pb-36 px-6">
-        <div className="max-w-5xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-purple-primary/10 shadow-sm mb-8">
-            <FontAwesomeIcon icon={faFeatherPointed} className="w-4 h-4 text-purple-primary" />
-            <span className="font-ui text-sm font-medium text-ink">The Creative Platform</span>
-          </div>
-
-          {/* Main Headline */}
-          <h1 className="font-display text-5xl md:text-7xl lg:text-8xl text-ink mb-8 leading-[1.1]">
-            Built by creatives,
-            <br />
-            <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm">
-              for creatives
-            </span>
-          </h1>
-
-          <p className="font-body text-lg md:text-xl text-muted max-w-2xl mx-auto mb-12 leading-relaxed">
-            PinkQuill is the social platform where your creativity takes center stage.
-            No algorithms deciding your worth. No ads interrupting your flow.
-            Just pure creative expression and a community that actually cares.
+      <section className="pt-32 pb-20 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="font-ui text-[0.7rem] tracking-[0.2em] uppercase text-muted mb-6">
+            About
           </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/login"
-              className="group px-8 py-4 rounded-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm font-ui text-base font-semibold text-white shadow-xl shadow-purple-primary/25 hover:shadow-2xl hover:shadow-purple-primary/30 hover:-translate-y-0.5 transition-all flex items-center gap-3"
-            >
-              <span>Start Creating</span>
-              <FontAwesomeIcon icon={faArrowRight} className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="/explore"
-              className="px-8 py-4 rounded-full bg-white/80 backdrop-blur-sm border border-black/10 font-ui text-base font-medium text-ink hover:bg-white hover:border-purple-primary/20 transition-all"
-            >
-              Explore the Platform
-            </Link>
-          </div>
+          <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-normal mb-8 leading-[1.1]">
+            <span className="bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
+              A home for
+            </span>
+            <br />
+            <span className="text-ink">those who create</span>
+          </h1>
+          <p className="font-body text-xl text-ink/60 leading-relaxed max-w-2xl mx-auto">
+            PinkQuill is the social platform built by creatives, for creatives.
+            A space where your work takes center stage and your voice truly matters.
+          </p>
         </div>
       </section>
 
-      {/* Creative Types Marquee */}
-      <section className="relative z-10 py-12 overflow-hidden">
-        <div className="animate-marquee flex whitespace-nowrap">
-          {[...creativeTypes, ...creativeTypes].map((type, index) => (
-            <span
-              key={index}
-              className={`mx-6 px-6 py-3 rounded-full bg-gradient-to-r ${type.color} font-ui text-sm font-semibold text-white shadow-lg`}
-            >
-              {type.name}
-            </span>
-          ))}
-        </div>
+      {/* Decorative Divider */}
+      <div className="flex items-center justify-center gap-3 pb-20">
+        <span className="w-12 h-px bg-gradient-to-r from-transparent to-purple-primary/30" />
+        <FontAwesomeIcon icon={faFeatherPointed} className="w-4 h-4 text-purple-primary/40" />
+        <span className="w-12 h-px bg-gradient-to-l from-transparent to-purple-primary/30" />
+      </div>
+
+      {/* Full-width Image */}
+      <section className="relative w-full h-[50vh] md:h-[60vh] mb-24">
+        <Image
+          src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=2671&auto=format&fit=crop"
+          alt="Artist at work"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCFB] via-transparent to-transparent" />
       </section>
 
       {/* Mission Section */}
-      <section className="relative z-10 py-24 md:py-32 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-16 border border-white/50 shadow-xl">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
-                <FontAwesomeIcon icon={faQuoteLeft} className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-ui text-sm font-semibold uppercase tracking-wider text-purple-primary">Our Mission</span>
-            </div>
-
-            <h2 className="font-display text-3xl md:text-4xl text-ink mb-8 leading-[1.3]">
-              We believe every creative deserves a platform that respects their work,
-              protects their voice, and connects them with people who truly appreciate what they do.
-            </h2>
-
-            <p className="font-body text-lg text-muted leading-relaxed">
+      <section className="px-6 pb-32">
+        <div className="max-w-3xl mx-auto">
+          <p className="font-ui text-[0.65rem] tracking-[0.2em] uppercase text-purple-primary/60 mb-4">
+            Our Mission
+          </p>
+          <h2 className="font-display text-3xl md:text-4xl text-ink mb-8 leading-[1.3]">
+            We believe every creative deserves a platform that respects their work,
+            protects their voice, and connects them with people who truly appreciate
+            what they do.
+          </h2>
+          <div className="space-y-6">
+            <p className="font-body text-lg text-ink/70 leading-relaxed">
               The internet wasn't built for creatives. It was built for advertisers.
-              We're changing that. PinkQuill is a space where your art isn't content to be monetized -
-              it's expression to be celebrated. Whether you're sharing your first sketch or your hundredth song,
-              this is where you belong.
+              Algorithms decide what gets seen. Engagement metrics define worth.
+              Your art becomes content to be monetized, not expression to be celebrated.
             </p>
+            <p className="font-body text-lg text-ink/70 leading-relaxed">
+              We're building something different. PinkQuill is a sanctuary where
+              musicians, visual artists, photographers, filmmakers, dancers, actors,
+              models, designers—anyone who creates—can share their work without
+              compromise. Where community means support, not competition.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Two Column Image + Text */}
+      <section className="px-6 pb-32">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+          <div className="relative aspect-[4/5] rounded-2xl overflow-hidden">
+            <Image
+              src="https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?q=80&w=2680&auto=format&fit=crop"
+              alt="Creative expression"
+              fill
+              className="object-cover"
+            />
+          </div>
+          <div>
+            <p className="font-ui text-[0.65rem] tracking-[0.2em] uppercase text-purple-primary/60 mb-4">
+              Your Work, Your Rules
+            </p>
+            <h3 className="font-display text-2xl md:text-3xl text-ink mb-6 leading-[1.3]">
+              You own everything you create. We're just here to help you share it.
+            </h3>
+            <div className="space-y-4">
+              <p className="font-body text-ink/70 leading-relaxed">
+                Your art stays yours. No hidden clauses, no rights grabs.
+                When you post on PinkQuill, you retain full ownership
+                of your work—always.
+              </p>
+              <p className="font-body text-ink/70 leading-relaxed">
+                Share poems, music, photography, films, choreography, portfolios,
+                or whatever form your creativity takes. Eleven post types designed
+                for different expressions. Every medium has a home here.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quote Section */}
+      <section className="px-6 pb-32">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="relative py-16 px-8 md:px-16">
+            <span className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-12 bg-gradient-to-b from-transparent to-purple-primary/30" />
+            <blockquote className="font-display text-2xl md:text-3xl lg:text-4xl text-ink italic leading-[1.4] mb-8">
+              "Create freely knowing your work and your identity are protected.
+              Your voice matters here."
+            </blockquote>
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-12 bg-gradient-to-t from-transparent to-purple-primary/30" />
+          </div>
+        </div>
+      </section>
+
+      {/* Reverse Two Column */}
+      <section className="px-6 pb-32">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+          <div className="order-2 md:order-1">
+            <p className="font-ui text-[0.65rem] tracking-[0.2em] uppercase text-purple-primary/60 mb-4">
+              Community Over Competition
+            </p>
+            <h3 className="font-display text-2xl md:text-3xl text-ink mb-6 leading-[1.3]">
+              A place where creatives lift each other up. Where collaboration beats comparison.
+            </h3>
+            <div className="space-y-4">
+              <p className="font-body text-ink/70 leading-relaxed">
+                Connect with fellow creatives who understand the journey.
+                Build an audience that genuinely appreciates your work.
+                Collaborate with others who inspire you.
+              </p>
+              <p className="font-body text-ink/70 leading-relaxed">
+                No vanity metrics dictating your worth. No algorithm burying
+                your work. Just authentic connection between creators and
+                the people who love what they make.
+              </p>
+            </div>
+          </div>
+          <div className="relative aspect-[4/5] rounded-2xl overflow-hidden order-1 md:order-2">
+            <Image
+              src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2670&auto=format&fit=crop"
+              alt="Creative collaboration"
+              fill
+              className="object-cover"
+            />
           </div>
         </div>
       </section>
 
       {/* Values Grid */}
-      <section className="relative z-10 py-24 md:py-32 px-6 bg-gradient-to-b from-transparent via-purple-primary/[0.02] to-transparent">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="font-display text-4xl md:text-5xl text-ink mb-6">
-              What we stand for
-            </h2>
-            <p className="font-body text-lg text-muted max-w-2xl mx-auto">
-              These aren't just values on a page. They're the principles that guide every feature we build.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {values.map((value, index) => (
-              <div
-                key={index}
-                className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-black/[0.04] hover:border-purple-primary/20 hover:shadow-xl hover:shadow-purple-primary/5 transition-all duration-300"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <FontAwesomeIcon icon={value.icon} className="w-6 h-6 text-purple-primary" />
-                </div>
-                <h3 className="font-display text-xl text-ink mb-3">{value.title}</h3>
-                <p className="font-body text-muted leading-relaxed">{value.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="relative z-10 py-24 md:py-32 px-6">
+      <section className="px-6 pb-32">
         <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="font-display text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-purple-primary to-pink-vivid mb-2">
-                  {stat.number}
-                </div>
-                <div className="font-ui text-sm text-muted uppercase tracking-wider">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
+          <div className="text-center mb-16">
+            <p className="font-ui text-[0.65rem] tracking-[0.2em] uppercase text-purple-primary/60 mb-4">
+              What We Stand For
+            </p>
+            <h2 className="font-display text-3xl md:text-4xl text-ink">
+              Principles that guide everything we build
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+            <div className="border-t border-black/[0.06] pt-8">
+              <span className="font-ui text-[0.65rem] tracking-[0.2em] text-purple-primary/60 block mb-3">01</span>
+              <h4 className="font-display text-xl text-ink mb-3">Authenticity First</h4>
+              <p className="font-body text-ink/70 leading-relaxed">
+                Your art is yours. We celebrate raw, real creativity without filters
+                or algorithms deciding what's worthy of being seen.
+              </p>
+            </div>
+
+            <div className="border-t border-black/[0.06] pt-8">
+              <span className="font-ui text-[0.65rem] tracking-[0.2em] text-purple-primary/60 block mb-3">02</span>
+              <h4 className="font-display text-xl text-ink mb-3">Safe Expression</h4>
+              <p className="font-body text-ink/70 leading-relaxed">
+                Create without fear. Your work and identity are protected here.
+                We built this platform to be a sanctuary, not a battlefield.
+              </p>
+            </div>
+
+            <div className="border-t border-black/[0.06] pt-8">
+              <span className="font-ui text-[0.65rem] tracking-[0.2em] text-purple-primary/60 block mb-3">03</span>
+              <h4 className="font-display text-xl text-ink mb-3">Every Medium Welcome</h4>
+              <p className="font-body text-ink/70 leading-relaxed">
+                Words, visuals, audio, video—if you create it, there's a home for it.
+                No creative left behind, no medium overlooked.
+              </p>
+            </div>
+
+            <div className="border-t border-black/[0.06] pt-8">
+              <span className="font-ui text-[0.65rem] tracking-[0.2em] text-purple-primary/60 block mb-3">04</span>
+              <h4 className="font-display text-xl text-ink mb-3">No Ads, No Noise</h4>
+              <p className="font-body text-ink/70 leading-relaxed">
+                Your feed is for creativity, not commercials. We'll never interrupt
+                your experience with ads or sell your attention to the highest bidder.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* For Every Creative Section */}
-      <section className="relative z-10 py-24 md:py-32 px-6">
-        <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 mb-8">
-            <FontAwesomeIcon icon={faInfinity} className="w-4 h-4 text-purple-primary" />
-            <span className="font-ui text-sm font-medium text-ink">Every Creative Welcome</span>
-          </div>
+      {/* Full-width Image 2 */}
+      <section className="relative w-full h-[40vh] md:h-[50vh] mb-24">
+        <Image
+          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2574&auto=format&fit=crop"
+          alt="Creative community"
+          fill
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCFB] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FDFCFB] via-transparent to-transparent" />
+      </section>
 
-          <h2 className="font-display text-4xl md:text-5xl text-ink mb-8">
+      {/* For Everyone Section */}
+      <section className="px-6 pb-32">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="font-ui text-[0.65rem] tracking-[0.2em] uppercase text-purple-primary/60 mb-4">
+            Built For You
+          </p>
+          <h2 className="font-display text-3xl md:text-4xl text-ink mb-8 leading-[1.3]">
             Your art. Your rules. Your community.
           </h2>
-
-          <p className="font-body text-lg text-muted max-w-3xl mx-auto mb-12 leading-relaxed">
-            Whether you're a musician dropping tracks, a poet sharing verses, a photographer capturing moments,
-            an actor building your portfolio, a model showcasing your work, or any kind of creative doing your thing -
-            PinkQuill is built for you. Share what you create. Find your people. Grow together.
+          <p className="font-body text-lg text-ink/70 leading-relaxed mb-12">
+            Whether you're a musician dropping tracks, a photographer capturing moments,
+            an actor building your portfolio, a model showcasing your work, a dancer
+            sharing choreography, or any kind of creative doing your thing—PinkQuill
+            is built for you. Share what you create. Find your people. Grow together.
           </p>
 
           <div className="flex flex-wrap justify-center gap-3">
-            {["Share your work", "Build your audience", "Collaborate with others", "Get discovered", "Stay inspired"].map((item, index) => (
+            {["Musicians", "Visual Artists", "Photographers", "Filmmakers", "Dancers", "Actors", "Models", "Designers", "Writers", "Poets", "Creators"].map((type) => (
               <span
-                key={index}
-                className="px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-sm border border-black/[0.06] font-ui text-sm text-ink"
+                key={type}
+                className="px-4 py-2 rounded-full border border-black/[0.06] font-ui text-sm text-ink/70"
               >
-                {item}
+                {type}
               </span>
             ))}
           </div>
@@ -230,58 +266,74 @@ export default function AboutPageContent() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative z-10 py-24 md:py-32 px-6">
+      <section className="px-6 pb-32">
         <div className="max-w-4xl mx-auto">
-          <div className="relative bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm rounded-[2.5rem] p-12 md:p-20 overflow-hidden">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
-
-            <div className="relative z-10 text-center">
-              <FontAwesomeIcon icon={faStar} className="w-8 h-8 text-white/80 mb-6" />
-              <h2 className="font-display text-3xl md:text-5xl text-white mb-6">
-                Ready to join the creative revolution?
+          <div className="relative rounded-3xl overflow-hidden">
+            <Image
+              src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2670&auto=format&fit=crop"
+              alt="Join the creative community"
+              fill
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-primary/90 via-pink-vivid/80 to-orange-warm/70" />
+            <div className="relative z-10 p-12 md:p-20 text-center">
+              <h2 className="font-display text-3xl md:text-4xl lg:text-5xl text-white mb-6 leading-[1.2]">
+                Ready to share your work with the world?
               </h2>
               <p className="font-body text-lg text-white/80 max-w-xl mx-auto mb-10">
-                Thousands of creatives are already here. Your audience is waiting.
-                Your community is ready. All that's missing is you.
+                Join a community of creatives who are already here.
+                Your audience is waiting. All that's missing is you.
               </p>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-white font-ui text-base font-semibold text-purple-primary shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all group"
+                className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-white font-ui text-base font-semibold text-purple-primary shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all"
               >
-                <span>Create Your Account</span>
-                <FontAwesomeIcon icon={faArrowRight} className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                Start Creating
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer Note */}
-      <section className="relative z-10 py-16 px-6 border-t border-black/[0.04]">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="font-body text-muted text-sm">
-            PinkQuill is made with love for creatives everywhere.
-            <br className="hidden md:block" />
+      {/* Closing */}
+      <section className="px-6 pb-24">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <span className="w-8 h-px bg-gradient-to-r from-transparent to-purple-primary/30" />
+            <FontAwesomeIcon icon={faFeatherPointed} className="w-5 h-5 text-purple-primary/50" />
+            <span className="w-8 h-px bg-gradient-to-l from-transparent to-purple-primary/30" />
+          </div>
+          <p className="font-body text-muted italic mb-4">
+            Made with love for creatives everywhere.
+          </p>
+          <p className="font-body text-sm text-muted/60">
             Questions? Reach out at{" "}
-            <a href="mailto:hello@pinkquill.co" className="text-purple-primary hover:underline">
-              hello@pinkquill.co
+            <a href="mailto:hello@pinkquill.app" className="text-purple-primary hover:underline">
+              hello@pinkquill.app
             </a>
           </p>
         </div>
       </section>
 
-      {/* Marquee Animation Styles */}
-      <style jsx>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          animation: marquee 30s linear infinite;
-        }
-      `}</style>
+      {/* Footer */}
+      <footer className="border-t border-black/[0.06] py-8 px-6">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <p className="font-ui text-xs text-muted/60">
+            © {new Date().getFullYear()} PinkQuill
+          </p>
+          <div className="flex items-center gap-6">
+            <Link href="/privacy" className="font-ui text-xs text-muted/60 hover:text-purple-primary transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="font-ui text-xs text-muted/60 hover:text-purple-primary transition-colors">
+              Terms
+            </Link>
+            <Link href="/about" className="font-ui text-xs text-purple-primary">
+              About
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
