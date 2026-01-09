@@ -9765,6 +9765,34 @@ body {
 }
 
 /* ============================================================================
+   TAKES COMMENTS - Mobile Bottom Sheet (Instagram Style)
+   ============================================================================ */
+
+/* Mobile bottom sheet animation */
+@media (max-width: 767px) {
+  .take-comments-panel {
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+    max-height: 85vh;
+    max-height: 85dvh;
+  }
+
+  .take-comments-backdrop {
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  /* Smooth iOS-style scrolling */
+  .take-comments-panel > div:nth-child(3) {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Comment bubbles - slightly smaller on mobile */
+  .take-comments-panel .bg-black\/\[0\.03\] {
+    padding: 10px 14px;
+  }
+}
+
+/* ============================================================================
    MESSAGES - Mobile Responsive Styles
    ============================================================================ */
 
