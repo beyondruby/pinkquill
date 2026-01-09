@@ -5799,14 +5799,20 @@ body {
     color: white;
   }
 
-  /* Mobile mute button - Instagram style (shows when paused) */
+  /* Paused overlay layout adjustment for mobile - stack mute above play */
+  .tiktok-paused-overlay {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Mobile mute button - Instagram style (shows above play button when paused) */
   .tiktok-mobile-mute-btn {
     display: flex;
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 44px;
-    height: 44px;
+    position: relative;
+    bottom: auto;
+    right: auto;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
@@ -5817,6 +5823,7 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     z-index: 15;
+    order: -1; /* Place above play button */
   }
 
   .tiktok-mobile-mute-btn:active {
@@ -5825,13 +5832,8 @@ body {
   }
 
   .tiktok-mobile-mute-btn svg {
-    width: 22px;
-    height: 22px;
-  }
-
-  /* Paused overlay layout adjustment for mobile */
-  .tiktok-paused-overlay {
-    flex-direction: column;
+    width: 24px;
+    height: 24px;
   }
 
   /* Gradient overlays for readability */
