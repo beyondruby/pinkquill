@@ -130,8 +130,8 @@ export default function TermsPage() {
             <div className="mb-16 text-center lg:text-left">
               <p className="font-body text-lg text-ink/70 leading-relaxed italic">
                 PinkQuill is a sanctuary for creative expression. These terms exist to protect
-                our community and ensure every artist, writer, and creator can share their
-                work in a safe, inspiring space.
+                our community and ensure every creative can share their work in a safe,
+                inspiring space.
               </p>
             </div>
 
@@ -200,7 +200,8 @@ export default function TermsPage() {
             <Section id="your-content" number="04" title="Your Content">
               <p>
                 <strong>You own your work.</strong> PinkQuill doesn't claim ownership of
-                anything you create—your poems, stories, art, and thoughts remain yours.
+                anything you create—your art, music, writing, photos, videos, and creative
+                work remain yours.
               </p>
               <p>
                 By posting, you grant us a license to host, display, and distribute

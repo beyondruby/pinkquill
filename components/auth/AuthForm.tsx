@@ -341,14 +341,14 @@ export default function AuthForm() {
 
           <div className="relative z-10 my-auto flex flex-col items-center">
             <h2 className="font-display text-4xl leading-[1.2] text-ink mb-6 text-center">
-              Where words <br />
+              Where creativity <br />
               <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm">
-                become art
+                has no limits
               </span> <br />
-              and art finds voice.
+              and every voice matters.
             </h2>
             <p className="font-body text-muted text-sm leading-relaxed max-w-xs text-center">
-              A home for poets, writers, and creators to share their craft with a community that truly listens.
+              The platform built for creatives. Share your art, grow your audience, and connect with a community that gets it.
             </p>
           </div>
         </div>
@@ -376,7 +376,7 @@ export default function AuthForm() {
                     {isLogin ? "Welcome back" : "Create account"}
                   </h1>
                   <p className="font-body text-muted">
-                    {isLogin ? "Resume your creative journey." : "Join the creative ether today."}
+                    {isLogin ? "Your creative world awaits." : "Start creating with us today."}
                   </p>
                 </div>
 
@@ -389,7 +389,7 @@ export default function AuthForm() {
                           type="text"
                           value={username}
                           onChange={(e) => setUsername(e.target.value)}
-                          placeholder="@poet"
+                          placeholder="@yourname"
                           required={!isLogin}
                           className="w-full px-4 py-3 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                         />

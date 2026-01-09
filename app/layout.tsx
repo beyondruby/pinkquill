@@ -121,8 +121,8 @@ const cormorantGaramond = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "PinkQuill",
-  description: "A social platform for artists, poets, and creators",
+  title: "PinkQuill - The Creative Platform",
+  description: "The social platform built for creatives. Share your art, grow your audience, and connect with a community that gets it.",
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",

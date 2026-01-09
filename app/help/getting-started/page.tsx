@@ -101,12 +101,13 @@ export default function GettingStartedPage() {
           <section id="welcome" className="scroll-mt-24 mb-16">
             <h2>Welcome to PinkQuill</h2>
             <p>
-              PinkQuill is a creative social platform designed for artists, poets, writers, and creators of all kinds.
+              PinkQuill is the social platform built for creatives of all kinds - musicians, visual artists,
+              photographers, filmmakers, dancers, actors, models, designers, and everyone who creates.
               It's a space where you can share your work, connect with like-minded creators, and build a community
               around your art.
             </p>
             <p>
-              Whether you're a seasoned writer or just starting out, PinkQuill provides the tools and community
+              Whether you're an established creative or just starting your journey, PinkQuill provides the tools and community
               you need to express yourself and grow as a creator.
             </p>
             <div className="bg-purple-primary/5 rounded-xl p-6 border border-purple-primary/10 my-6">

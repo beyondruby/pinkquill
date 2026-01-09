@@ -178,7 +178,7 @@ export default function CommunitiesPage() {
               </h1>
 
               <p className="font-body text-muted text-lg leading-relaxed">
-                Connect with poets, writers, artists, and fellow creators in spaces designed for inspiration and collaboration.
+                Connect with creatives of all kinds in spaces designed for inspiration and collaboration.
               </p>
             </div>
 
