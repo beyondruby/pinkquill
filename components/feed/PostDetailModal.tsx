@@ -48,10 +48,20 @@ function getBackgroundStyle(background?: PostBackground): React.CSSProperties {
     case 'gradient':
       return { background: background.value };
     case 'pattern':
+      // Pattern values are stored as full CSS, use them directly
+      const patternValue = background.value;
+      // Determine appropriate background size based on pattern type
+      let backgroundSize = 'auto';
+      if (patternValue.includes('dots') || patternValue.includes('radial-gradient(circle at 1px')) {
+        backgroundSize = '20px 20px';
+      } else if (patternValue.includes('grid') || patternValue.includes('linear-gradient(rgba')) {
+        backgroundSize = '20px 20px';
+      } else if (patternValue.includes('notebook')) {
+        backgroundSize = '100% 24px';
+      }
       return {
-        backgroundColor: '#f8f8f8',
-        backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(getPatternSvg(background.value))}")`,
-        backgroundRepeat: 'repeat',
+        background: patternValue,
+        backgroundSize: backgroundSize,
       };
     case 'image':
       return {
@@ -62,17 +72,6 @@ function getBackgroundStyle(background?: PostBackground): React.CSSProperties {
     default:
       return {};
   }
-}
-
-// Get SVG pattern for pattern backgrounds
-function getPatternSvg(patternName: string): string {
-  const patterns: Record<string, string> = {
-    'paper': '<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><filter id="paper"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5"/><feDiffuseLighting lighting-color="#fff" surfaceScale="2"><feDistantLight azimuth="45" elevation="60"/></feDiffuseLighting></filter><rect width="100" height="100" filter="url(%23paper)"/></svg>',
-    'linen': '<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="20" fill="%23f5f5f5"/><path d="M0 0h20v1H0zM0 5h20v1H0zM0 10h20v1H0zM0 15h20v1H0z" fill="%23e8e8e8" opacity="0.5"/></svg>',
-    'dots': '<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><circle cx="2" cy="2" r="1" fill="%23ddd"/></svg>',
-    'grid': '<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h40v40H0z" fill="none" stroke="%23e0e0e0" stroke-width="0.5"/></svg>',
-  };
-  return patterns[patternName] || patterns['paper'];
 }
 
 // Weather icons for journal display
@@ -614,23 +613,25 @@ export default function PostDetailModal({
     <>
     <Modal isOpen={isOpen} onClose={onClose}>
       {/* Outer wrapper with background - covers entire modal */}
-      <div
-        className="flex flex-col md:flex-row h-full w-full relative"
-        style={hasBackground ? getBackgroundStyle(post.styling?.background) : {}}
-      >
-        {/* Background overlay for image backgrounds */}
-        {post.styling?.background?.type === 'image' && (
+      <div className="flex flex-col md:flex-row h-full w-full relative">
+        {/* Background layer - separate div for image backgrounds with opacity/blur */}
+        {hasBackground && (
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-3xl md:rounded-3xl"
+            className="absolute inset-0 rounded-3xl"
             style={{
-              opacity: post.styling.background.opacity !== undefined
-                ? 1 - post.styling.background.opacity
-                : 0.4,
-              backdropFilter: post.styling.background.blur
+              ...getBackgroundStyle(post.styling?.background),
+              opacity: post.styling?.background?.type === 'image'
+                ? (post.styling.background.opacity ?? 1)
+                : 1,
+              filter: post.styling?.background?.type === 'image' && post.styling.background.blur
                 ? `blur(${post.styling.background.blur}px)`
-                : 'blur(2px)'
+                : undefined,
             }}
           />
+        )}
+        {/* Dark overlay for image backgrounds to ensure text readability */}
+        {post.styling?.background?.type === 'image' && (
+          <div className="absolute inset-0 bg-black/30 rounded-3xl" />
         )}
 
         {/* Main Content Area - Immersive Design */}
