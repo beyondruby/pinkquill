@@ -15,10 +15,9 @@ export type BackgroundType = 'solid' | 'gradient' | 'pattern' | 'image';
 export type TextAlignment = 'left' | 'center' | 'right' | 'justify';
 export type LineSpacing = 'normal' | 'relaxed' | 'loose';
 export type DividerStyle = 'none' | 'simple' | 'ornate' | 'dots' | 'stars' | 'wave';
-export type ShadowStyle = 'none' | 'soft' | 'medium' | 'strong';
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 export type WeatherType = 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'snowy' | 'foggy' | 'windy';
-export type MoodType = 'reflective' | 'joyful' | 'melancholic' | 'peaceful' | 'anxious' | 'grateful' | 'creative' | 'nostalgic' | 'hopeful' | 'contemplative';
+export type MoodType = 'reflective' | 'joyful' | 'melancholic' | 'peaceful' | 'anxious' | 'grateful' | 'creative' | 'nostalgic' | 'hopeful' | 'contemplative' | 'excited' | 'curious' | 'serene' | 'restless' | 'inspired' | 'determined' | 'vulnerable' | 'content' | 'overwhelmed' | 'lonely';
 
 export interface PostBackground {
   type: BackgroundType;
@@ -43,58 +42,6 @@ export interface JournalMetadata {
   timeOfDay?: TimeOfDay;
 }
 
-export interface CanvasData {
-  x: number; // 0-1 percentage from left
-  y: number; // 0-1 percentage from top
-  width: number; // 0-1 percentage width
-  height: number; // 0-1 percentage height
-  rotation: number; // degrees
-  zIndex: number;
-  borderRadius: number; // pixels
-  borderWidth: number; // pixels
-  borderColor: string;
-  shadow: ShadowStyle;
-}
-
-// Canvas element types for free-form canvas mode
-export type CanvasElementType = 'text' | 'image';
-
-export interface CanvasTextStyle {
-  fontFamily?: string;
-  fontSize?: number; // pixels
-  fontWeight?: 'normal' | 'bold';
-  fontStyle?: 'normal' | 'italic';
-  textAlign?: TextAlignment;
-  color?: string;
-  backgroundColor?: string;
-  lineHeight?: number;
-}
-
-export interface CanvasElement {
-  id: string;
-  type: CanvasElementType;
-  x: number; // 0-1 percentage from left
-  y: number; // 0-1 percentage from top
-  width: number; // 0-1 percentage width
-  height: number; // 0-1 percentage height
-  rotation: number; // degrees
-  zIndex: number;
-  // For text elements
-  content?: string; // HTML content for text
-  textStyle?: CanvasTextStyle;
-  // For image elements
-  imageUrl?: string;
-  borderRadius?: number;
-  borderWidth?: number;
-  borderColor?: string;
-  shadow?: ShadowStyle;
-}
-
-export interface CanvasPostData {
-  elements: CanvasElement[];
-  aspectRatio?: number; // e.g., 4/3, 16/9
-}
-
 export interface BackgroundPreset {
   id: string;
   name: string;
@@ -112,7 +59,6 @@ export interface PostMedia {
   media_type: "image" | "video";
   caption: string | null;
   position: number;
-  canvas_data?: CanvasData | null;
 }
 
 export type PostType =
@@ -185,7 +131,6 @@ export interface Post {
   styling?: PostStyling | null;
   post_location?: string | null;
   metadata?: JournalMetadata | null;
-  canvas_data?: CanvasPostData | null;
 
   // Joined data
   author: PostAuthor;

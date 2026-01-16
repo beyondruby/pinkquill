@@ -151,7 +151,6 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           styling,
           post_location,
           metadata,
-          canvas_data,
           author:profiles!posts_author_id_fkey (
             username,
             display_name,
@@ -162,8 +161,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             media_url,
             media_type,
             caption,
-            position,
-            canvas_data
+            position
           ),
           admires:admires(count),
           comments:comments(count)
@@ -229,7 +227,6 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         styling: post.styling || null,
         post_location: post.post_location || null,
         metadata: post.metadata || null,
-        canvas_data: post.canvas_data || null,
       }));
 
       setPosts(postsWithStats as Post[]);

@@ -50,7 +50,6 @@ interface PostMedia {
   media_type: "image" | "video";
   caption: string | null;
   position: number;
-  canvas_data?: any | null;
 }
 
 interface Post {
@@ -228,8 +227,7 @@ export default function Feed() {
             media_url,
             media_type,
             caption,
-            position,
-            canvas_data
+            position
           ),
           community:communities (
             slug,

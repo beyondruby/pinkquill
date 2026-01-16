@@ -121,7 +121,6 @@ interface MediaItem {
   media_type: "image" | "video";
   caption: string | null;
   position: number;
-  canvas_data?: any | null;
 }
 
 interface CommunityInfo {
@@ -183,7 +182,6 @@ interface PostProps {
   styling?: PostStyling | null;
   post_location?: string | null;
   metadata?: JournalMetadata | null;
-  canvas_data?: { textBlocks?: any[]; imageBlocks?: any[] } | null;
 }
 
 // Format date as "January 2, 2026"

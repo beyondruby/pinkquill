@@ -16,7 +16,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
-import { PostStyling, JournalMetadata, CanvasData, PostBackground, TimeOfDay, WeatherType, MoodType, ShadowStyle } from "@/lib/types";
+import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType } from "@/lib/types";
 
 // Helper to clean HTML for display (keeps tags but fixes &nbsp;)
 function cleanHtmlForDisplay(html: string): string {
@@ -92,17 +92,17 @@ const moodIcons: Record<string, React.ReactNode> = {
   'nostalgic': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
   'hopeful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
   'contemplative': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>,
+  'excited': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>,
+  'curious': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+  'serene': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>,
+  'restless': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>,
+  'inspired': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>,
+  'determined': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>,
+  'vulnerable': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>,
+  'content': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+  'overwhelmed': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+  'lonely': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>,
 };
-
-// Get shadow CSS for canvas images
-function getShadowStyle(shadow: string): string {
-  switch (shadow) {
-    case 'soft': return '0 4px 12px rgba(0,0,0,0.1)';
-    case 'medium': return '0 8px 24px rgba(0,0,0,0.15)';
-    case 'strong': return '0 12px 40px rgba(0,0,0,0.25)';
-    default: return 'none';
-  }
-}
 
 // Determine if background is dark to adjust text color
 function isDarkBackground(background?: PostBackground): boolean {
@@ -149,7 +149,6 @@ interface MediaItem {
   media_type: "image" | "video";
   caption: string | null;
   position: number;
-  canvas_data?: CanvasData | null;
 }
 
 interface Post {
@@ -180,7 +179,6 @@ interface Post {
   styling?: PostStyling | null;
   post_location?: string | null;
   metadata?: JournalMetadata | null;
-  canvas_data?: { textBlocks?: any[]; imageBlocks?: any[] } | null;
 }
 
 // Format date as "January 2, 2026"
@@ -593,16 +591,9 @@ export default function PostDetailModal({
     loose: 'leading-[2.5]'
   }[lineSpacing];
 
-  // Check for canvas images (position >= 1000) - legacy approach
-  const canvasImages = post.media?.filter(m => m.position >= 1000 && m.canvas_data) || [];
-  const regularMedia = post.media?.filter(m => m.position < 1000 || !m.canvas_data) || [];
-  const hasCanvasImages = canvasImages.length > 0;
-  const hasRegularMedia = regularMedia.length > 0;
+  // Media handling
+  const media = post.media || [];
 
-  // Check for new canvas_data approach (free-form canvas with text and images)
-  const canvasTextBlocks = (post.canvas_data as any)?.textBlocks || [];
-  const canvasImageBlocks = (post.canvas_data as any)?.imageBlocks || [];
-  const isCanvasPost = canvasTextBlocks.length > 0 || canvasImageBlocks.length > 0;
 
   return (
     <>
@@ -777,47 +768,60 @@ export default function PostDetailModal({
             {/* Journal Header - Beautiful date, time, and metadata */}
             {post.type === "journal" && post.createdAt && (
               <div className={`journal-header mb-6 ${hasDarkBg ? 'text-white' : ''}`}>
-                {/* Large Date */}
-                <div className={`font-display text-2xl md:text-3xl font-light mb-1 ${hasDarkBg ? 'text-white' : 'text-purple-primary'}`}>
-                  {formatDate(post.createdAt)}
+                {/* Date with Time on same line */}
+                <div className="flex items-baseline gap-3 mb-2">
+                  <span className={`font-display text-2xl md:text-3xl font-light ${hasDarkBg ? 'text-white' : 'text-purple-primary'}`}>
+                    {formatDate(post.createdAt)}
+                  </span>
+                  <span className={`font-ui text-sm ${hasDarkBg ? 'text-white/50' : 'text-muted'}`}>
+                    {formatTime(post.createdAt)}
+                  </span>
                 </div>
 
-                {/* Time */}
-                <div className={`font-ui text-sm tracking-wide mb-4 ${hasDarkBg ? 'text-white/60' : 'text-muted'}`}>
-                  {formatTime(post.createdAt)}
-                  {post.metadata?.timeOfDay && (
-                    <span className="ml-2">
+                {/* Time of Day with beautiful icon */}
+                {post.metadata?.timeOfDay && (
+                  <div className={`flex items-center gap-2 mb-3 ${hasDarkBg ? 'text-white/70' : 'text-ink/60'}`}>
+                    <span className={`${hasDarkBg ? 'text-white/80' : 'text-purple-primary'}`}>
                       {timeOfDayIcons[post.metadata.timeOfDay]}
-                      <span className="ml-1">{formatTimeOfDay(post.metadata.timeOfDay)}</span>
                     </span>
-                  )}
-                </div>
+                    <span className="font-ui text-sm italic">{formatTimeOfDay(post.metadata.timeOfDay)}</span>
+                  </div>
+                )}
 
-                {/* Metadata Row - Location, Weather, Mood */}
-                {(post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
-                  <div className={`flex flex-wrap items-center gap-4 pt-3 border-t ${hasDarkBg ? 'border-white/10' : 'border-purple-primary/10'}`}>
-                    {post.post_location && (
-                      <div className={`flex items-center gap-2 ${hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
-                        <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                        </svg>
-                        <span className="font-ui text-sm">{post.post_location}</span>
-                      </div>
-                    )}
+                {/* Location - elegantly positioned */}
+                {post.post_location && (
+                  <div className={`flex items-center gap-2 mb-4 ${hasDarkBg ? 'text-white/70' : 'text-ink/60'}`}>
+                    <svg className={`w-4 h-4 ${hasDarkBg ? 'text-white/60' : 'text-purple-primary/70'}`} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                    <span className="font-ui text-sm">{post.post_location}</span>
+                  </div>
+                )}
+
+                {/* Divider line */}
+                <div className={`h-px w-full mb-4 ${hasDarkBg ? 'bg-white/10' : 'bg-gradient-to-r from-purple-primary/20 via-pink-vivid/20 to-transparent'}`} />
+
+                {/* Weather and Mood row below divider */}
+                {(post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
+                  <div className="flex flex-wrap items-center gap-4">
                     {(post.metadata?.weather || post.metadata?.temperature) && (
                       <div className={`flex items-center gap-2 ${hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
-                        <span className="text-purple-primary">{post.metadata?.weather && weatherIcons[post.metadata.weather]}</span>
+                        <span className={`${hasDarkBg ? 'text-white/70' : 'text-purple-primary'}`}>
+                          {post.metadata?.weather && weatherIcons[post.metadata.weather]}
+                        </span>
                         <span className="font-ui text-sm">
                           {post.metadata?.temperature && <span className="font-medium">{post.metadata.temperature}</span>}
-                          {post.metadata?.temperature && post.metadata?.weather && <span className="mx-1">·</span>}
+                          {post.metadata?.temperature && post.metadata?.weather && <span className="mx-1.5 opacity-40">·</span>}
                           {post.metadata?.weather && formatWeather(post.metadata.weather)}
                         </span>
                       </div>
                     )}
                     {post.metadata?.mood && (
                       <div className={`flex items-center gap-2 ${hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
-                        <span className="text-purple-primary">{moodIcons[post.metadata.mood] || moodIcons['reflective']}</span>
+                        <span className={`${hasDarkBg ? 'text-white/70' : 'text-purple-primary'}`}>
+                          {moodIcons[post.metadata.mood] || moodIcons['reflective']}
+                        </span>
                         <span className="font-ui text-sm">{formatMood(post.metadata.mood)}</span>
                       </div>
                     )}
@@ -839,7 +843,7 @@ export default function PostDetailModal({
 
             {/* Post Content */}
             <div className="flex-1 relative">
-              {post.title && !isCanvasPost && (
+              {post.title && (
                 <h2
                   className={`font-display text-[1.3rem] md:text-[1.8rem] mb-3 md:mb-4 leading-tight ${textColorClass} ${
                     post.type === "poem" || textAlignment === 'center' ? "text-center" : alignmentClass
@@ -849,67 +853,7 @@ export default function PostDetailModal({
                 </h2>
               )}
 
-              {/* Free-form Canvas Post View */}
-              {isCanvasPost ? (
-                <div
-                  className="relative w-full rounded-xl overflow-hidden"
-                  style={{
-                    minHeight: '400px',
-                    backgroundColor: hasBackground ? undefined : '#fafafa',
-                  }}
-                >
-                  {/* Render text blocks */}
-                  {canvasTextBlocks.map((block: any) => (
-                    <div
-                      key={block.id}
-                      className="absolute"
-                      style={{
-                        left: `${block.x}%`,
-                        top: `${block.y}%`,
-                        width: `${block.width}%`,
-                      }}
-                    >
-                      <div
-                        className={`font-body whitespace-pre-wrap ${hasDarkBg ? 'text-white' : 'text-ink'}`}
-                        style={{ fontSize: `${block.fontSize || 18}px` }}
-                      >
-                        {block.content}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Render image blocks */}
-                  {canvasImageBlocks.map((block: any, idx: number) => (
-                    <div
-                      key={block.id}
-                      className="absolute cursor-pointer"
-                      style={{
-                        left: `${block.x}%`,
-                        top: `${block.y}%`,
-                        width: `${block.width}%`,
-                      }}
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('openLightbox', {
-                          detail: {
-                            images: canvasImageBlocks.map((b: any) => ({ media_url: b.preview })),
-                            index: idx
-                          }
-                        }));
-                      }}
-                    >
-                      <img
-                        src={block.preview}
-                        alt=""
-                        className="w-full h-auto object-cover transition-transform hover:scale-[1.01]"
-                        style={{
-                          borderRadius: `${block.borderRadius || 8}px`,
-                          boxShadow: getShadowStyle(block.shadow || 'soft'),
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : post.type === "poem" ? (
+              {post.type === "poem" ? (
                 <div
                   className={`font-body text-[1.05rem] md:text-[1.3rem] leading-loose italic text-center py-4 md:py-8 post-content ${textColorClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
                   dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
@@ -921,55 +865,15 @@ export default function PostDetailModal({
                 />
               )}
 
-              {/* Canvas Images Display - Free-positioned images */}
-              {hasCanvasImages && (
-                <div className="relative w-full aspect-[4/3] md:aspect-[16/10] mt-4 md:mt-8 rounded-xl overflow-hidden bg-black/5">
-                  {canvasImages.map((item, idx) => {
-                    const canvas = item.canvas_data!;
-                    return (
-                      <div
-                        key={item.id || idx}
-                        className="absolute cursor-pointer transition-transform hover:scale-[1.02]"
-                        style={{
-                          left: `${canvas.x * 100}%`,
-                          top: `${canvas.y * 100}%`,
-                          width: `${canvas.width * 100}%`,
-                          height: `${canvas.height * 100}%`,
-                          zIndex: canvas.zIndex || 1,
-                          transform: `rotate(${canvas.rotation || 0}deg)`,
-                        }}
-                        onClick={() => {
-                          window.dispatchEvent(new CustomEvent('openLightbox', {
-                            detail: { images: canvasImages, index: idx }
-                          }));
-                        }}
-                      >
-                        <Image
-                          src={item.media_url}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          style={{
-                            borderRadius: `${canvas.borderRadius || 0}px`,
-                            border: canvas.borderWidth ? `${canvas.borderWidth}px solid ${canvas.borderColor || '#000'}` : 'none',
-                            boxShadow: getShadowStyle(canvas.shadow || 'none'),
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Regular Media Gallery */}
-              {hasRegularMedia && (
+              {/* Media Gallery */}
+              {hasMedia && (
                 <div className="mt-4 md:mt-8">
                   {/* Main Image Container */}
                   <div className="relative group rounded-xl md:rounded-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.15)] mb-3 md:mb-5">
-                    {regularMedia[currentMediaIndex]?.media_type === "video" ? (
+                    {media[currentMediaIndex]?.media_type === "video" ? (
                       <div className="relative bg-black">
                         <video
-                          src={regularMedia[currentMediaIndex].media_url}
+                          src={media[currentMediaIndex].media_url}
                           className="w-full h-[250px] md:h-[420px] object-contain"
                           controls
                           controlsList="nodownload"
@@ -978,17 +882,17 @@ export default function PostDetailModal({
                           poster="/video-placeholder.svg"
                         />
                       </div>
-                    ) : regularMedia[currentMediaIndex] && (
+                    ) : media[currentMediaIndex] && (
                       <div className="relative overflow-hidden">
                         <Image
-                          src={regularMedia[currentMediaIndex].media_url}
+                          src={media[currentMediaIndex].media_url}
                           alt=""
                           width={800}
                           height={420}
                           className="w-full h-[250px] md:h-[420px] object-cover cursor-pointer transition-transform duration-500 group-hover:scale-[1.02]"
                           onClick={() => {
                             window.dispatchEvent(new CustomEvent('openLightbox', {
-                              detail: { images: regularMedia, index: currentMediaIndex }
+                              detail: { images: media, index: currentMediaIndex }
                             }));
                           }}
                         />
@@ -998,10 +902,10 @@ export default function PostDetailModal({
                     )}
 
                     {/* Navigation Arrows */}
-                    {regularMedia.length > 1 && (
+                    {media.length > 1 && (
                       <>
                         <button
-                          onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? regularMedia.length - 1 : prev - 1))}
+                          onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1))}
                           className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-ink opacity-0 group-hover:opacity-100 hover:bg-white hover:scale-110 transition-all duration-300 z-10"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1009,7 +913,7 @@ export default function PostDetailModal({
                           </svg>
                         </button>
                         <button
-                          onClick={() => setCurrentMediaIndex((prev) => (prev === regularMedia.length - 1 ? 0 : prev + 1))}
+                          onClick={() => setCurrentMediaIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1))}
                           className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-ink opacity-0 group-hover:opacity-100 hover:bg-white hover:scale-110 transition-all duration-300 z-10"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1021,12 +925,12 @@ export default function PostDetailModal({
                   </div>
 
                   {/* Caption - Elegant Design */}
-                  {regularMedia[currentMediaIndex]?.caption && (
+                  {media[currentMediaIndex]?.caption && (
                     <div className="text-center mb-5 px-4">
                       <div className="inline-block relative">
                         <span className={`absolute -left-4 top-0 text-2xl font-display ${hasDarkBg ? 'text-white/20' : 'text-purple-primary/20'}`}>"</span>
                         <p className={`font-body text-[1rem] italic leading-relaxed ${hasDarkBg ? 'text-white/80' : 'text-ink/80'}`}>
-                          {regularMedia[currentMediaIndex].caption}
+                          {media[currentMediaIndex].caption}
                         </p>
                         <span className={`absolute -right-4 bottom-0 text-2xl font-display rotate-180 ${hasDarkBg ? 'text-white/20' : 'text-purple-primary/20'}`}>"</span>
                       </div>
@@ -1034,9 +938,9 @@ export default function PostDetailModal({
                   )}
 
                   {/* Thumbnail Strip - Beautiful Design */}
-                  {regularMedia.length > 1 && (
+                  {media.length > 1 && (
                     <div className="flex gap-3 justify-center flex-wrap">
-                      {regularMedia.map((item, idx) => (
+                      {media.map((item, idx) => (
                         <button
                           key={item.id || idx}
                           onClick={() => setCurrentMediaIndex(idx)}

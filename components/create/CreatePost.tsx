@@ -10,7 +10,6 @@ import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeopleP
 import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle } from "@/lib/types";
 import BackgroundPicker from "@/components/create/BackgroundPicker";
 import JournalMetadataPanel from "@/components/create/JournalMetadata";
-import CanvasEditor, { CanvasTextBlock, CanvasImageBlock } from "@/components/create/CanvasEditor";
 
 const postTypes = [
   { id: "thought", label: "Thought", icon: "lightbulb", placeholder: "What's on your mind?" },
@@ -277,12 +276,6 @@ const icons: Record<string, React.ReactElement> = {
       <path d="M14 8h8M14 12h8M14 16h8" stroke="currentColor" strokeWidth="1.5" fill="none" />
     </svg>
   ),
-  canvas: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9h6v6H9z" />
-    </svg>
-  ),
   location: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -427,10 +420,6 @@ export default function CreatePost() {
   const [journalMetadata, setJournalMetadata] = useState<JournalMetadata>({});
   const [postLocation, setPostLocation] = useState("");
 
-  // Canvas Mode (for free-form canvas with text and images)
-  const [useCanvasMode, setUseCanvasMode] = useState(false);
-  const [canvasTextBlocks, setCanvasTextBlocks] = useState<CanvasTextBlock[]>([]);
-  const [canvasImageBlocks, setCanvasImageBlocks] = useState<CanvasImageBlock[]>([]);
 
   // Initial content for edit mode (set after editor mounts)
   const [initialContent, setInitialContent] = useState<string | null>(null);
@@ -1039,12 +1028,6 @@ export default function CreatePost() {
           dropCap: dropCapEnabled,
         };
 
-        // Build canvas data if canvas mode is used
-        const hasCanvasContent = canvasTextBlocks.length > 0 || canvasImageBlocks.length > 0;
-        const canvasData = useCanvasMode && hasCanvasContent
-          ? { textBlocks: canvasTextBlocks, imageBlocks: canvasImageBlocks }
-          : null;
-
         // Build metadata for journals
         const postMetadata = selectedType === 'journal' && Object.keys(journalMetadata).length > 0
           ? journalMetadata
@@ -1056,14 +1039,13 @@ export default function CreatePost() {
             author_id: user.id,
             type: selectedType,
             title: titleText ? titleHtml : null,
-            content: useCanvasMode ? '' : content.trim(), // Canvas mode stores content in canvas_data
+            content: content.trim(),
             visibility: postVisibility,
             content_warning: hasContentWarning ? contentWarning.trim() || null : null,
             community_id: selectedCommunity?.id || null,
             styling: Object.keys(postStyling).some(k => postStyling[k as keyof PostStyling] !== undefined && postStyling[k as keyof PostStyling] !== 'left' && postStyling[k as keyof PostStyling] !== 'normal' && postStyling[k as keyof PostStyling] !== false) ? postStyling : null,
             post_location: postLocation.trim() || null,
             metadata: postMetadata,
-            canvas_data: canvasData,
           })
           .select()
           .single();
@@ -1107,52 +1089,6 @@ export default function CreatePost() {
             caption: item.caption.trim() || null,
             position: startPosition + i,
           });
-        }
-      }
-
-      // Upload canvas images and update canvas_data with permanent URLs
-      if (useCanvasMode && canvasImageBlocks.length > 0) {
-        const imagesToUpload = canvasImageBlocks.filter(img => img.preview.startsWith('data:'));
-
-        if (imagesToUpload.length > 0) {
-          const updatedImageBlocks = [...canvasImageBlocks];
-
-          for (const imageBlock of imagesToUpload) {
-            if (!imageBlock.file) continue;
-
-            const fileExt = imageBlock.file.name.split('.').pop() || 'png';
-            const fileName = `${user.id}/${postId}/canvas-${imageBlock.id}-${Date.now()}.${fileExt}`;
-
-            const { error: uploadError } = await supabase.storage
-              .from("post-media")
-              .upload(fileName, imageBlock.file, { cacheControl: '31536000' });
-
-            if (uploadError) {
-              console.error("Canvas image upload error:", uploadError);
-              continue;
-            }
-
-            const { data: urlData } = supabase.storage
-              .from("post-media")
-              .getPublicUrl(fileName);
-
-            // Update the image block with the permanent URL
-            const blockIndex = updatedImageBlocks.findIndex(b => b.id === imageBlock.id);
-            if (blockIndex !== -1) {
-              updatedImageBlocks[blockIndex] = {
-                ...updatedImageBlocks[blockIndex],
-                preview: urlData.publicUrl
-              };
-            }
-          }
-
-          // Update the post with the new canvas_data containing permanent URLs
-          await supabase
-            .from("posts")
-            .update({
-              canvas_data: { textBlocks: canvasTextBlocks, imageBlocks: updatedImageBlocks }
-            })
-            .eq("id", postId);
         }
       }
 
@@ -1373,25 +1309,6 @@ export default function CreatePost() {
         ))}
       </div>
 
-      {/* Canvas Mode Toggle - At the top, changes entire post mode */}
-      {!isTakeMode && (
-        <div className="flex items-center justify-center mb-6">
-          <button
-            onClick={() => setUseCanvasMode(!useCanvasMode)}
-            className={`flex items-center gap-3 px-5 py-3 rounded-2xl font-ui text-sm font-medium transition-all ${
-              useCanvasMode
-                ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/30'
-                : 'bg-white border-2 border-dashed border-purple-primary/30 text-purple-primary hover:border-purple-primary/50'
-            }`}
-          >
-            {icons.canvas}
-            <span>{useCanvasMode ? 'Canvas Mode ON' : 'Enable Canvas Mode'}</span>
-            {useCanvasMode && (
-              <span className="text-xs opacity-80 ml-1">• Write anywhere</span>
-            )}
-          </button>
-        </div>
-      )}
 
       {/* Editor Card */}
       <div className="bg-white rounded-[24px] shadow-sm border border-black/[0.04] overflow-hidden">
@@ -1830,7 +1747,7 @@ export default function CreatePost() {
         )}
 
         {/* Content Editor - Hidden in Take mode */}
-        {!isTakeMode && !useCanvasMode && (
+        {!isTakeMode && (
         <div className="p-6">
           <div
             ref={editorRef}
@@ -1853,21 +1770,8 @@ export default function CreatePost() {
         </div>
         )}
 
-        {/* Canvas Editor - Shown when canvas mode is ON */}
-        {!isTakeMode && useCanvasMode && (
-        <div className="p-6">
-          <CanvasEditor
-            textBlocks={canvasTextBlocks}
-            onTextBlocksChange={setCanvasTextBlocks}
-            imageBlocks={canvasImageBlocks}
-            onImageBlocksChange={setCanvasImageBlocks}
-            background={styling.background}
-          />
-        </div>
-        )}
-
-        {/* Media Upload Section - Hidden in Take mode and Canvas mode */}
-        {!isTakeMode && !useCanvasMode && (
+        {/* Media Upload Section - Hidden in Take mode */}
+        {!isTakeMode && (
         <div className="px-6 pb-6">
           <div className="flex items-center gap-2 mb-3">
             <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
