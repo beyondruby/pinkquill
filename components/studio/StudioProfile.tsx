@@ -1121,20 +1121,149 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   .map(p => ({ ...p, isCollaboration: true }))
               ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-              if (allPosts.length === 0) {
+              // Filter posts based on activeFilter
+              const filterTypeMap: Record<string, string> = {
+                "Poetry": "poem",
+                "Journals": "journal",
+                "Visual": "visual",
+              };
+
+              const filteredPosts = activeFilter === "All"
+                ? allPosts
+                : allPosts.filter(p => p.type === filterTypeMap[activeFilter]);
+
+              if (filteredPosts.length === 0) {
                 return (
                   <div className="studio-works-empty">
                     <div className="studio-works-empty-icon">
-                      {icons.feather}
+                      {activeFilter === "Journals" ? icons.book : icons.feather}
                     </div>
-                    <p className="studio-works-empty-text">No posts yet...</p>
+                    <p className="studio-works-empty-text">
+                      {activeFilter === "All" ? "No posts yet..." : `No ${activeFilter.toLowerCase()} yet...`}
+                    </p>
+                  </div>
+                );
+              }
+
+              // Special view for Journals - grouped by day
+              if (activeFilter === "Journals") {
+                // Group journals by date
+                const journalsByDate: Record<string, typeof filteredPosts> = {};
+                filteredPosts.forEach(post => {
+                  const date = new Date(post.created_at);
+                  const dateKey = date.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  });
+                  if (!journalsByDate[dateKey]) {
+                    journalsByDate[dateKey] = [];
+                  }
+                  journalsByDate[dateKey].push(post);
+                });
+
+                return (
+                  <div className="studio-journals-timeline">
+                    {Object.entries(journalsByDate).map(([dateKey, dayPosts]) => (
+                      <div key={dateKey} className="journal-day-group">
+                        <div className="journal-day-header">
+                          <div className="journal-day-line" />
+                          <div className="journal-day-badge">
+                            <span className="journal-day-icon">📖</span>
+                            <span className="journal-day-date">{dateKey}</span>
+                          </div>
+                          <div className="journal-day-line" />
+                        </div>
+                        <div className="journal-day-entries">
+                          {dayPosts.map((work) => {
+                            const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
+                            const workAuthor = isCollab && work.author ? work.author : profile;
+                            const postForModal = {
+                              id: work.id,
+                              authorId: workAuthor.id || profile.id,
+                              author: {
+                                name: workAuthor.display_name || workAuthor.username || profile.display_name || profile.username,
+                                handle: `@${workAuthor.username || profile.username}`,
+                                avatar: workAuthor.avatar_url || profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80",
+                              },
+                              type: work.type as "poem" | "journal" | "thought" | "visual" | "audio" | "video",
+                              typeLabel: "Journal",
+                              timeAgo: getTimeAgo(work.created_at),
+                              createdAt: work.created_at,
+                              title: work.title || undefined,
+                              content: work.content,
+                              media: work.media,
+                              styling: work.styling,
+                              metadata: work.metadata,
+                              stats: {
+                                admires: work.admires_count,
+                                comments: work.comments_count,
+                                relays: work.relays_count || 0,
+                              },
+                              isAdmired: work.user_has_admired,
+                              isSaved: work.user_has_saved,
+                              isRelayed: work.user_has_relayed,
+                            };
+
+                            const hasMedia = work.media && work.media.length > 0;
+                            const plainContent = work.content
+                              ? work.content.replace(/<[^>]*>/g, '').substring(0, 150)
+                              : '';
+
+                            // Get time from created_at
+                            const entryTime = new Date(work.created_at).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            });
+
+                            // Get mood and weather from metadata if available
+                            const mood = work.metadata?.mood;
+                            const weather = work.metadata?.weather;
+
+                            return (
+                              <article
+                                key={work.id}
+                                onClick={() => openPostModal(postForModal)}
+                                className="journal-entry-card"
+                              >
+                                <div className="journal-entry-time">
+                                  <span>{entryTime}</span>
+                                </div>
+                                <div className="journal-entry-content">
+                                  {work.title && (
+                                    <h3 className="journal-entry-title">{work.title}</h3>
+                                  )}
+                                  <p className="journal-entry-excerpt">{plainContent}</p>
+                                  {(mood || weather) && (
+                                    <div className="journal-entry-meta">
+                                      {mood && <span className="journal-entry-mood">{mood}</span>}
+                                      {weather && <span className="journal-entry-weather">{weather}</span>}
+                                    </div>
+                                  )}
+                                  {hasMedia && (
+                                    <div className="journal-entry-media">
+                                      <img src={work.media[0].media_url} alt="" />
+                                      {work.media.length > 1 && (
+                                        <span className="journal-entry-media-count">+{work.media.length - 1}</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 );
               }
 
               return (
                 <div className="studio-works-grid">
-                  {allPosts.map((work) => {
+                  {filteredPosts.map((work) => {
                     const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
                     const workAuthor = isCollab && work.author ? work.author : profile;
                     const postForModal = {
