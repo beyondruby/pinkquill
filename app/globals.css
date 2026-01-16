@@ -1330,6 +1330,148 @@ body {
   line-height: 1.6;
 }
 
+/* ========================================
+   UNIFIED POST LAYOUT
+   All posts in feeds (except audio/video)
+   Format: Title → 20 words → Square Images
+   ======================================== */
+.type-unified {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  padding: 1.75rem;
+}
+
+.type-unified:hover {
+  box-shadow: 0 8px 40px rgba(142, 68, 173, 0.1);
+  border-color: rgba(142, 68, 173, 0.1);
+}
+
+.unified-post-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+/* Square Image Grid */
+.unified-media-grid {
+  display: grid;
+  gap: 4px;
+  margin-top: 1rem;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* Grid layouts based on image count */
+.unified-media-grid:has(.single) {
+  grid-template-columns: 1fr;
+}
+
+.unified-media-grid:has(.double) {
+  grid-template-columns: 1fr 1fr;
+}
+
+.unified-media-grid:not(:has(.single)):not(:has(.double)) {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* Featured image for 3-image layout */
+.unified-media-grid:has(.featured) {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.unified-media-item.featured {
+  grid-row: span 2;
+}
+
+.unified-media-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.unified-media-item.single {
+  aspect-ratio: 4 / 3;
+  max-height: 400px;
+}
+
+.unified-media-item.double {
+  aspect-ratio: 1 / 1;
+}
+
+.unified-media-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.type-unified:hover .unified-media-image {
+  transform: scale(1.02);
+}
+
+/* Video thumbnail in grid */
+.unified-video-thumb {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.unified-video-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.unified-video-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-purple);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.unified-video-play svg {
+  width: 20px;
+  height: 20px;
+  margin-left: 2px;
+}
+
+/* More images overlay */
+.unified-media-more {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+}
+
+/* Single legacy image */
+.unified-media-grid.single-legacy {
+  grid-template-columns: 1fr;
+}
+
 /* Carousel Post */
 .type-carousel {
   background: white;
@@ -2795,6 +2937,33 @@ body {
 .type-poem .continue-reading-btn {
   justify-content: center;
   width: 100%;
+}
+
+/* Simple underlined continue reading link for feed posts */
+.continue-reading-link {
+  display: inline;
+  padding: 0;
+  margin-top: 0.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--primary-purple);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+
+.continue-reading-link:hover {
+  color: var(--vivid-pink);
+}
+
+/* Block display for the link */
+.truncated-content-wrapper .continue-reading-link {
+  display: block;
+  margin-top: 0.75rem;
 }
 
 /* ========== DROP CAP STYLING ========== */

@@ -64,7 +64,7 @@ function getExcerpt(content: string, maxLength: number): string {
   return text.substring(0, maxLength) + "...";
 }
 
-// Truncated content component with "Continue reading" button (50 word limit)
+// Truncated content component with "Continue reading" link (20 word limit for feeds)
 interface TruncatedContentProps {
   content: string;
   maxWords?: number;
@@ -73,7 +73,7 @@ interface TruncatedContentProps {
   isPoem?: boolean;
 }
 
-function TruncatedContent({ content, maxWords = 50, onReadMore, className = "", isPoem = false }: TruncatedContentProps) {
+function TruncatedContent({ content, maxWords = 20, onReadMore, className = "", isPoem = false }: TruncatedContentProps) {
   const plainText = stripHtml(content);
   const wordCount = countWords(plainText);
   const isTruncated = wordCount > maxWords;
@@ -81,29 +81,19 @@ function TruncatedContent({ content, maxWords = 50, onReadMore, className = "", 
 
   return (
     <div className="truncated-content-wrapper">
-      {isTruncated ? (
-        <>
-          <p className={`post-content-text ${isPoem ? 'text-center italic' : ''} ${className}`}>
-            {truncatedText}
-          </p>
-          <button
-            className="continue-reading-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onReadMore();
-            }}
-          >
-            Continue reading
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </button>
-        </>
-      ) : (
-        <div
-          className={`post-content ${isPoem ? 'text-center italic' : ''} ${className}`}
-          dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(content) }}
-        />
+      <p className={`post-content-text ${isPoem ? 'text-center italic' : ''} ${className}`}>
+        {isTruncated ? truncatedText : plainText}
+      </p>
+      {isTruncated && (
+        <button
+          className="continue-reading-link"
+          onClick={(e) => {
+            e.stopPropagation();
+            onReadMore();
+          }}
+        >
+          Continue reading
+        </button>
       )}
     </div>
   );
@@ -917,9 +907,10 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     );
   };
 
-  // Render function for different post types
+  // Unified render function for all post types
+  // Format: Title → First 20 words → Images (square) → Continue reading
   const renderPost = () => {
-    // Audio post
+    // Audio post - special layout
     if (post.type === "audio") {
       return (
         <article className="post type-audio" onClick={handleOpenModal}>
@@ -938,7 +929,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
       );
     }
 
-    // Video post
+    // Video post - special layout
     if (post.type === "video") {
       return (
         <article className="post type-video" onClick={handleOpenModal}>
@@ -952,306 +943,90 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
               {post.videoDuration && <span className="video-duration">{post.videoDuration}</span>}
             </div>
             {post.title && <h3 className="video-title">{post.title}</h3>}
-            {post.content && <p className="video-description">{post.content}</p>}
-          </ContentSection>
-          <Actions />
-        </article>
-      );
-    }
-
-    // Poem post
-    if (post.type === "poem") {
-      return (
-        <article className="post type-poem" onClick={handleOpenModal}>
-          <AuthorHeader centered />
-          <ContentSection>
-            {post.title && <div className="poem-title">{post.title}</div>}
-            <TruncatedContent
-              content={post.content}
-              maxWords={50}
-              onReadMore={handleOpenModal}
-              className="poem-body"
-              isPoem
-            />
-          </ContentSection>
-          <Actions />
-        </article>
-      );
-    }
-
-    // Journal post
-    if (post.type === "journal" && !hasMedia) {
-      const { text: journalExcerpt, isTruncated: journalTruncated } = getExcerptByWords(post.content, 50);
-      const hasBackground = post.styling?.background;
-      const hasMetadata = post.metadata && (post.metadata.weather || post.metadata.temperature || post.metadata.mood);
-
-      return (
-        <article
-          className={`post type-journal ${hasBackground ? 'has-background' : ''}`}
-          onClick={handleOpenModal}
-          style={hasBackground ? { position: 'relative', overflow: 'hidden' } : undefined}
-        >
-          {/* Background preview for styled journals */}
-          {hasBackground && (
-            <div
-              className="absolute inset-0 opacity-20 pointer-events-none"
-              style={getBackgroundPreviewStyle(post.styling?.background)}
-            />
-          )}
-          <div className="relative z-10">
-            <AuthorHeader />
-            <ContentSection>
-              {/* Journal metadata row */}
-              <div className="journal-header-row">
-                <div className="journal-date">{post.createdAt ? formatDate(post.createdAt) : post.timeAgo}</div>
-                {/* Metadata indicators */}
-                {(hasMetadata || post.post_location) && (
-                  <div className="journal-metadata-indicators">
-                    {post.post_location && (
-                      <span className="journal-location-indicator" title={post.post_location}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                        </svg>
-                      </span>
-                    )}
-                    {post.metadata?.weather && (
-                      <span className="journal-weather-indicator" title={post.metadata.weather}>
-                        {weatherIconsSmall[post.metadata.weather] || '🌤️'}
-                      </span>
-                    )}
-                    {post.metadata?.temperature && (
-                      <span className="journal-temp-indicator">{post.metadata.temperature}</span>
-                    )}
-                    {post.metadata?.mood && (
-                      <span className="journal-mood-indicator" title={post.metadata.mood}>
-                        {moodIndicators[post.metadata.mood] || '💭'}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-              {post.title && <h3 className="journal-title">{post.title}</h3>}
-              <p className="journal-excerpt">{journalExcerpt}</p>
-              {journalTruncated && (
-                <button className="continue-reading-btn" onClick={(e) => { e.stopPropagation(); handleOpenModal(); }}>
-                  Continue reading
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </button>
-              )}
-            </ContentSection>
-            <Actions />
-          </div>
-        </article>
-      );
-    }
-
-    // Thought/Manifesto post
-    if (post.type === "thought") {
-      return (
-        <article className="post type-manifesto" onClick={handleOpenModal}>
-          <AuthorHeader />
-          <ContentSection>
-            {post.title && <h3 className="carousel-title">{post.title}</h3>}
-            <TruncatedContent
-              content={post.content}
-              maxWords={50}
-              onReadMore={handleOpenModal}
-              className="thought-content"
-            />
-          </ContentSection>
-          <Actions />
-        </article>
-      );
-    }
-
-    // Essay/Story/Letter/Screenplay (longform)
-    if ((post.type === "essay" || post.type === "story" || post.type === "letter" || post.type === "screenplay") && !hasMedia) {
-      const { text: longformExcerpt, isTruncated: longformTruncated } = getExcerptByWords(post.content, 50);
-      return (
-        <article className="post type-longform" onClick={handleOpenModal}>
-          <AuthorHeader />
-          <ContentSection>
-            {post.title && <h2 className="longform-title">{post.title}</h2>}
-            <div className="longform-content">
-              <div className="longform-text">
-                <p>{longformExcerpt}</p>
-              </div>
-            </div>
-            {longformTruncated && (
-              <button className="continue-reading-btn" onClick={(e) => { e.stopPropagation(); handleOpenModal(); }}>
-                Continue reading
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-              </button>
-            )}
-          </ContentSection>
-          <Actions />
-        </article>
-      );
-    }
-
-    // Quote post
-    if (post.type === "quote") {
-      return (
-        <article className="post type-poem" onClick={handleOpenModal}>
-          <AuthorHeader centered />
-          <ContentSection>
-            <div className="poem-body post-content" style={{ fontSize: '1.5rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: `"${stripHtml(post.content)}"` }} />
-            {post.title && <p style={{ fontFamily: 'var(--font-ui)', fontSize: '0.9rem', color: 'var(--primary-purple)', marginTop: '1rem' }}>— {post.title}</p>}
-          </ContentSection>
-          <Actions />
-        </article>
-      );
-    }
-
-    // Visual post with carousel (has media)
-    if (hasMedia) {
-      const { text: excerptText, isTruncated: contentTruncated } = getExcerptByWords(post.content, 50);
-
-      return (
-        <article className="post type-carousel" onClick={handleOpenModal}>
-          <AuthorHeader />
-
-          <ContentSection>
-            {/* Title first */}
-            {post.title && <h3 className="carousel-title">{post.title}</h3>}
-
-            {/* Content/paragraph second */}
-            {post.content && (
-              <div className="carousel-text-content">
-                <p className="carousel-description">{excerptText}</p>
-                {contentTruncated && (
-                  <button className="continue-reading-btn" onClick={(e) => { e.stopPropagation(); handleOpenModal(); }}>
-                    Continue reading
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Images/carousel third */}
-            <div className="carousel-container" onClick={(e) => e.stopPropagation()}>
-              <div
-                className="carousel-track"
-                style={{ transform: `translateX(-${currentMediaIndex * 100}%)` }}
-              >
-                {post.media!.map((item, idx) => (
-                  <div key={item.id || idx} className="carousel-slide">
-                    {item.media_type === "video" ? (
-                      <video
-                        src={item.media_url}
-                        style={{ width: '100%', height: '380px', objectFit: 'cover' }}
-                        controls
-                        controlsList="nodownload"
-                        playsInline
-                        preload="none"
-                        poster="/video-placeholder.svg"
-                      />
-                    ) : (
-                      <Image src={item.media_url} alt="" width={640} height={480} className="carousel-image" style={{ width: '100%', height: 'auto', objectFit: 'cover' }} />
-                    )}
-                    {item.caption && (
-                      <div className="carousel-caption">
-                        <h4>{item.caption.includes(' - ') ? item.caption.split(' - ')[0] : item.caption}</h4>
-                        {item.caption.includes(' - ') && <p>{item.caption.split(' - ')[1]}</p>}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Navigation arrows */}
-              {post.media!.length > 1 && (
-                <>
-                  <button
-                    className="carousel-nav prev"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentMediaIndex((prev) => (prev === 0 ? post.media!.length - 1 : prev - 1));
-                    }}
-                  >
-                    <ChevronLeftIcon />
-                  </button>
-                  <button
-                    className="carousel-nav next"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentMediaIndex((prev) => (prev === post.media!.length - 1 ? 0 : prev + 1));
-                    }}
-                  >
-                    <ChevronRightIcon />
-                  </button>
-                </>
-              )}
-
-              {/* Dots */}
-              {post.media!.length > 1 && (
-                <div className="carousel-dots">
-                  {post.media!.map((_, idx) => (
-                    <button
-                      key={idx}
-                      className={`carousel-dot ${idx === currentMediaIndex ? 'active' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCurrentMediaIndex(idx);
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </ContentSection>
-
-          <Actions />
-        </article>
-      );
-    }
-
-    // Visual post without carousel (single image)
-    if (post.type === "visual" && post.image) {
-      return (
-        <article className="post" onClick={handleOpenModal}>
-          <AuthorHeader />
-          <ContentSection>
-            {/* Title first */}
-            {post.title && <h3 className="carousel-title">{post.title}</h3>}
-            {/* Content/paragraph second */}
             {post.content && (
               <TruncatedContent
                 content={post.content}
-                maxWords={50}
+                maxWords={20}
                 onReadMore={handleOpenModal}
-                className="carousel-description"
               />
             )}
-            {/* Image third */}
-            <div style={{ borderRadius: '14px', overflow: 'hidden', marginTop: '1rem' }}>
-              <Image src={post.image} alt={post.title || "Visual post"} width={640} height={480} style={{ width: '100%', height: 'auto', objectFit: 'cover' }} />
-            </div>
           </ContentSection>
           <Actions />
         </article>
       );
     }
 
-    // Default fallback
+    // UNIFIED LAYOUT for all other post types
+    // Format: Title → First 20 words → Images (square) → Continue reading
     return (
-      <article className="post" onClick={handleOpenModal}>
+      <article className="post type-unified" onClick={handleOpenModal}>
         <AuthorHeader />
         <ContentSection>
-          {post.title && <h3 className="carousel-title">{post.title}</h3>}
-          <TruncatedContent
-            content={post.content}
-            maxWords={50}
-            onReadMore={handleOpenModal}
-            className="carousel-description"
-          />
+          {/* 1. Title */}
+          {post.title && <h3 className="unified-post-title">{post.title}</h3>}
+
+          {/* 2. First 20 words with Continue reading */}
+          {post.content && (
+            <TruncatedContent
+              content={post.content}
+              maxWords={20}
+              onReadMore={handleOpenModal}
+            />
+          )}
+
+          {/* 3. Images as squares */}
+          {hasMedia && (
+            <div className="unified-media-grid" onClick={(e) => e.stopPropagation()}>
+              {post.media!.slice(0, 4).map((item, idx) => (
+                <div
+                  key={item.id || idx}
+                  className={`unified-media-item ${post.media!.length === 1 ? 'single' : ''} ${post.media!.length === 2 ? 'double' : ''} ${post.media!.length === 3 && idx === 0 ? 'featured' : ''}`}
+                >
+                  {item.media_type === "video" ? (
+                    <div className="unified-video-thumb">
+                      <video
+                        src={item.media_url}
+                        className="unified-media-image"
+                        preload="metadata"
+                      />
+                      <div className="unified-video-play">
+                        <PlayIcon />
+                      </div>
+                    </div>
+                  ) : (
+                    <Image
+                      src={item.media_url}
+                      alt=""
+                      width={400}
+                      height={400}
+                      className="unified-media-image"
+                    />
+                  )}
+                  {/* Show +N overlay on the last visible image if more than 4 */}
+                  {idx === 3 && post.media!.length > 4 && (
+                    <div className="unified-media-more">
+                      +{post.media!.length - 4}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Legacy single image support */}
+          {!hasMedia && post.image && (
+            <div className="unified-media-grid single-legacy" onClick={(e) => e.stopPropagation()}>
+              <div className="unified-media-item single">
+                <Image
+                  src={post.image}
+                  alt={post.title || ""}
+                  width={400}
+                  height={400}
+                  className="unified-media-image"
+                />
+              </div>
+            </div>
+          )}
         </ContentSection>
         <Actions />
       </article>

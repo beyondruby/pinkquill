@@ -884,7 +884,7 @@ export default function PostDetailModal({
 
               {/* Media Gallery */}
               {hasMedia && (
-                <div className="mt-4 md:mt-6">
+                <div className="mt-4 md:mt-6 pb-6">
                   {/* Main Image Container - Clean single border */}
                   <div className={`relative group rounded-lg overflow-hidden border ${hasDarkBg ? 'border-white/20' : 'border-ink/10'}`}>
                     {media[currentMediaIndex]?.media_type === "video" ? (
@@ -1022,7 +1022,7 @@ export default function PostDetailModal({
           />
 
           {/* Actions - Floating action bar */}
-          <div className={`flex items-center gap-1.5 md:gap-2 mt-auto pt-4 md:pt-6 border-t flex-wrap ${borderColorClass}`}>
+          <div className={`flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap sticky bottom-0 bg-inherit z-20 ${borderColorClass}`}>
             {/* Reaction Picker */}
             <ReactionPicker
               currentReaction={userReaction}
