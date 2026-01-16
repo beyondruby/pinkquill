@@ -633,26 +633,27 @@ export default function PostDetailModal({
           />
         )}
 
-        {/* Mobile Close Button - Floating */}
-        <button
-          onClick={onClose}
-          className={`md:hidden absolute top-3 right-3 z-50 w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all ${
-            hasDarkBg ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-black/10 text-ink hover:bg-black/20'
-          }`}
-        >
-          {icons.close}
-        </button>
-
         {/* Main Content Area - Immersive Design */}
         <div
-          className={`flex flex-col overflow-y-auto relative z-10 ${
+          className={`post-detail-content flex flex-col overflow-y-auto relative z-10 ${
             showComments ? "hidden md:flex md:flex-1 md:border-r" : "flex-1"
           } ${borderColorClass}`}
         >
           {/* Content wrapper with padding */}
-          <div className="relative p-4 md:p-6 flex flex-col flex-1">
-            {/* Floating Author Header */}
-            <div className={`flex items-center gap-3 md:gap-4 mb-4 md:mb-6 pb-4 md:pb-6 border-b ${borderColorClass}`}>
+          <div className="post-detail-wrapper relative p-4 md:p-6 flex flex-col flex-1">
+            {/* Mobile Header Bar - Sticky on mobile */}
+            <div className={`post-detail-header flex items-center gap-3 md:gap-4 mb-4 md:mb-6 pb-4 md:pb-6 border-b ${borderColorClass}`}>
+              {/* Mobile Back Button */}
+              <button
+                onClick={onClose}
+                className={`md:hidden w-10 h-10 -ml-1 rounded-full flex items-center justify-center transition-all ${
+                  hasDarkBg ? 'text-white hover:bg-white/10' : 'text-ink hover:bg-black/5'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
               <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={onClose}>
                 <Image
                   src={post.author.avatar}

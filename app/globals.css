@@ -2064,6 +2064,329 @@ body {
   border-color: var(--primary-purple);
 }
 
+/* ================================================
+   MOBILE POST DETAIL MODAL - COMPLETE REDESIGN
+   Only affects screens below 768px (md breakpoint)
+   ================================================ */
+@media (max-width: 767px) {
+  /* Mobile Modal Slide-up Animation */
+  @keyframes mobileSlideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Override base modal for mobile - full screen */
+  .fixed.inset-0.bg-black\/90 {
+    background: rgba(0, 0, 0, 0.98) !important;
+  }
+
+  /* Mobile modal card - full screen, slide from bottom */
+  .fixed.inset-0.bg-black\/90 > div {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    animation: mobileSlideUp 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards !important;
+  }
+
+  /* Mobile content scrollable area */
+  .post-detail-content {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Mobile content wrapper */
+  .post-detail-wrapper {
+    padding: 0 !important;
+    padding-bottom: 90px !important; /* Space for bottom action bar */
+  }
+
+  /* Mobile header - Sticky app-like top bar */
+  .post-detail-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 30 !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 10px 12px !important;
+    gap: 8px !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* Mobile header with dark background */
+  .post-detail-header[class*="border-white"] {
+    background: rgba(30, 30, 30, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  /* Mobile author avatar - smaller on mobile */
+  .post-detail-header img.rounded-full {
+    width: 36px !important;
+    height: 36px !important;
+    border-width: 2px !important;
+  }
+
+  /* Mobile author info */
+  .post-detail-header .flex.flex-col {
+    gap: 1px !important;
+  }
+
+  .post-detail-header .font-ui.font-medium {
+    font-size: 0.9rem !important;
+  }
+
+  .post-detail-header .font-ui.text-\[0\.75rem\] {
+    font-size: 0.75rem !important;
+  }
+
+  /* Mobile discussion button in header */
+  .post-detail-header .flex.items-center.gap-1\.5.px-3.py-1\.5.rounded-full {
+    padding: 6px 12px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* Mobile journal header */
+  .journal-header {
+    padding: 16px !important;
+    margin-bottom: 0 !important;
+  }
+
+  .journal-header .font-display.text-2xl {
+    font-size: 1.5rem !important;
+  }
+
+  .journal-header .flex.items-baseline.gap-3 {
+    gap: 8px !important;
+    flex-wrap: wrap;
+  }
+
+  /* Mobile post content area */
+  .post-detail-wrapper .flex-1.relative {
+    padding: 16px !important;
+  }
+
+  /* Mobile post title */
+  .post-detail-wrapper .font-display.text-\[1\.5rem\] {
+    font-size: 1.25rem !important;
+    margin-bottom: 12px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Mobile post content text */
+  .post-detail-wrapper .font-body.post-content {
+    font-size: 0.95rem !important;
+    line-height: 1.7 !important;
+  }
+
+  /* Mobile media gallery */
+  .post-detail-wrapper .mt-4.pb-6 {
+    margin-top: 16px !important;
+    padding: 0 16px 20px !important;
+  }
+
+  .post-detail-wrapper .mt-4.pb-6 .relative.group.rounded-lg {
+    border-radius: 12px !important;
+  }
+
+  .post-detail-wrapper .mt-4.pb-6 img,
+  .post-detail-wrapper .mt-4.pb-6 video {
+    max-height: 280px !important;
+  }
+
+  /* Mobile thumbnail strip */
+  .post-detail-wrapper .flex.gap-2.justify-center.mt-4 {
+    margin-top: 10px !important;
+    gap: 6px !important;
+    padding: 0 16px;
+  }
+
+  .post-detail-wrapper .flex.gap-2.justify-center.mt-4 button {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Mobile tags section */
+  .post-tags-section {
+    padding: 12px 16px !important;
+    margin: 0 !important;
+  }
+
+  /* Mobile divider */
+  .post-detail-wrapper .h-px.w-full {
+    margin: 12px 16px !important;
+    width: calc(100% - 32px) !important;
+  }
+
+  /* Mobile metadata row */
+  .post-detail-wrapper .flex.items-center.gap-4.flex-wrap {
+    padding: 0 16px 12px !important;
+    gap: 10px !important;
+  }
+
+  /* Mobile action bar - Fixed at bottom like native app */
+  .post-detail-wrapper .flex.items-center.gap-1\.5.mt-6.pt-4.border-t.flex-wrap.sticky {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 !important;
+    padding: 8px 12px !important;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+    background: white !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05) !important;
+    z-index: 50 !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+  }
+
+  /* Mobile action bar with dark bg */
+  .post-detail-wrapper .flex.items-center.gap-1\.5.mt-6.pt-4.border-t.flex-wrap.sticky[class*="border-white"] {
+    background: rgba(30, 30, 30, 0.98) !important;
+    border-top-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  /* Mobile action buttons - Compact but tappable */
+  .post-detail-wrapper .flex.items-center.gap-1\.5.mt-6.pt-4.border-t.flex-wrap.sticky button {
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+
+  .post-detail-wrapper .flex.items-center.gap-1\.5.mt-6.pt-4.border-t.flex-wrap.sticky .flex.items-center.gap-1\.5.px-3 {
+    padding: 8px 12px !important;
+    font-size: 0.85rem !important;
+  }
+
+  .post-detail-wrapper .flex.items-center.gap-1\.5.mt-6.pt-4.border-t.flex-wrap.sticky .w-9 {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  /* Mobile Discussion Panel - Full screen slide-over */
+  .discussion-panel.absolute {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 60 !important;
+    animation: mobileSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Mobile discussion header - app-like */
+  .discussion-panel .p-4.border-b {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white !important;
+    padding: 10px 12px !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .discussion-panel .p-4.border-b .font-ui {
+    font-size: 0.95rem !important;
+    letter-spacing: 0.03em !important;
+  }
+
+  /* Mobile back button in discussion */
+  .discussion-panel button.w-9.h-9.rounded-full {
+    width: 36px !important;
+    height: 36px !important;
+    background: transparent !important;
+  }
+
+  /* Mobile comments list */
+  .discussion-panel .flex-1.overflow-y-auto {
+    padding: 12px 16px !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 80px !important;
+  }
+
+  /* Mobile comment input - Fixed bottom */
+  .discussion-panel .p-4.bg-white.border-t {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    padding: 10px 12px !important;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+    background: white !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05) !important;
+    z-index: 70 !important;
+  }
+
+  .discussion-panel .p-4.bg-white.border-t img {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .discussion-panel .p-4.bg-white.border-t .flex-1.flex.items-center {
+    padding: 8px 14px !important;
+    border-radius: 20px !important;
+  }
+
+  .discussion-panel .p-4.bg-white.border-t input {
+    font-size: 0.95rem !important;
+  }
+
+  .discussion-panel .p-4.bg-white.border-t button.w-\[42px\] {
+    width: 38px !important;
+    height: 38px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Mobile reaction picker */
+  .reaction-picker-trigger {
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 8px 12px !important;
+  }
+
+  /* Mobile menu - Bottom sheet style */
+  .post-detail-header .absolute.right-0.top-full.mt-2 {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2) !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    animation: mobileSlideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  }
+
+  .post-detail-header .absolute.right-0.top-full.mt-2 button {
+    padding: 18px 24px !important;
+    font-size: 1rem !important;
+    justify-content: flex-start !important;
+  }
+
+  /* Content warning overlay on mobile */
+  .post-detail-wrapper .absolute.inset-0.z-10 {
+    padding: 20px 16px !important;
+  }
+
+  .post-detail-wrapper .absolute.inset-0.z-10 button {
+    padding: 12px 20px !important;
+    font-size: 0.95rem !important;
+  }
+}
+
 /* ========== SHARE MODAL ========== */
 .share-modal-overlay {
   position: fixed;
