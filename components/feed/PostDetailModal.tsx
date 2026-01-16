@@ -23,6 +23,21 @@ function cleanHtmlForDisplay(html: string): string {
   return html.replace(/&nbsp;/g, ' ');
 }
 
+// Convert number to Roman numeral
+function toRomanNumeral(num: number): string {
+  const romanNumerals: [number, string][] = [
+    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']
+  ];
+  let result = '';
+  for (const [value, numeral] of romanNumerals) {
+    while (num >= value) {
+      result += numeral;
+      num -= value;
+    }
+  }
+  return result;
+}
+
 // Generate background CSS from PostBackground
 function getBackgroundStyle(background?: PostBackground): React.CSSProperties {
   if (!background) return {};
@@ -635,7 +650,7 @@ export default function PostDetailModal({
           } ${borderColorClass}`}
         >
           {/* Content wrapper with padding */}
-          <div className="relative p-4 md:p-10 flex flex-col flex-1">
+          <div className="relative p-4 md:p-6 flex flex-col flex-1">
             {/* Floating Author Header */}
             <div className={`flex items-center gap-3 md:gap-4 mb-4 md:mb-6 pb-4 md:pb-6 border-b ${borderColorClass}`}>
               <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={onClose}>
@@ -847,7 +862,7 @@ export default function PostDetailModal({
             <div className="flex-1 relative">
               {post.title && (
                 <h2
-                  className={`font-display text-[1.3rem] md:text-[1.8rem] mb-3 md:mb-4 leading-tight ${textColorClass} ${
+                  className={`font-display text-[1.5rem] md:text-[2.2rem] font-semibold mb-4 md:mb-5 leading-[1.2] tracking-tight ${textColorClass} ${
                     post.type === "poem" || textAlignment === 'center' ? "text-center" : alignmentClass
                   }`}
                 >
@@ -869,14 +884,14 @@ export default function PostDetailModal({
 
               {/* Media Gallery */}
               {hasMedia && (
-                <div className="mt-4 md:mt-8">
-                  {/* Main Image Container */}
-                  <div className="relative group rounded-xl md:rounded-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.15)] mb-3 md:mb-5">
+                <div className="mt-4 md:mt-6">
+                  {/* Main Image Container - Clean single border */}
+                  <div className={`relative group rounded-lg overflow-hidden border ${hasDarkBg ? 'border-white/20' : 'border-ink/10'}`}>
                     {media[currentMediaIndex]?.media_type === "video" ? (
                       <div className="relative bg-black">
                         <video
                           src={media[currentMediaIndex].media_url}
-                          className="w-full h-[250px] md:h-[420px] object-contain"
+                          className="w-full h-auto max-h-[350px] md:max-h-[450px] object-contain"
                           controls
                           controlsList="nodownload"
                           playsInline
@@ -885,21 +900,19 @@ export default function PostDetailModal({
                         />
                       </div>
                     ) : media[currentMediaIndex] && (
-                      <div className="relative overflow-hidden">
+                      <div className="relative">
                         <Image
                           src={media[currentMediaIndex].media_url}
                           alt=""
-                          width={800}
-                          height={420}
-                          className="w-full h-[250px] md:h-[420px] object-cover cursor-pointer transition-transform duration-500 group-hover:scale-[1.02]"
+                          width={900}
+                          height={500}
+                          className="w-full h-auto max-h-[350px] md:max-h-[450px] object-cover cursor-pointer"
                           onClick={() => {
                             window.dispatchEvent(new CustomEvent('openLightbox', {
                               detail: { images: media, index: currentMediaIndex }
                             }));
                           }}
                         />
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
                       </div>
                     )}
 
@@ -908,17 +921,17 @@ export default function PostDetailModal({
                       <>
                         <button
                           onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1))}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-ink opacity-0 group-hover:opacity-100 hover:bg-white hover:scale-110 transition-all duration-300 z-10"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-white hover:text-ink transition-all duration-200 z-10"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                           </svg>
                         </button>
                         <button
                           onClick={() => setCurrentMediaIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1))}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-ink opacity-0 group-hover:opacity-100 hover:bg-white hover:scale-110 transition-all duration-300 z-10"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center text-ink/70 opacity-0 group-hover:opacity-100 hover:bg-white hover:text-ink transition-all duration-200 z-10"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </button>
@@ -926,46 +939,37 @@ export default function PostDetailModal({
                     )}
                   </div>
 
-                  {/* Caption - Elegant Design */}
+                  {/* Caption - Roman numeral style like the reference */}
                   {media[currentMediaIndex]?.caption && (
-                    <div className="text-center mb-5 px-4">
-                      <div className="inline-block relative">
-                        <span className={`absolute -left-4 top-0 text-2xl font-display ${hasDarkBg ? 'text-white/20' : 'text-purple-primary/20'}`}>"</span>
-                        <p className={`font-body text-[1rem] italic leading-relaxed ${hasDarkBg ? 'text-white/80' : 'text-ink/80'}`}>
-                          {media[currentMediaIndex].caption}
-                        </p>
-                        <span className={`absolute -right-4 bottom-0 text-2xl font-display rotate-180 ${hasDarkBg ? 'text-white/20' : 'text-purple-primary/20'}`}>"</span>
-                      </div>
-                    </div>
+                    <p className={`text-center mt-4 font-body text-[0.95rem] italic tracking-wide ${hasDarkBg ? 'text-white/60' : 'text-ink/50'}`}>
+                      {toRomanNumeral(currentMediaIndex + 1)}. {media[currentMediaIndex].caption}
+                    </p>
                   )}
 
-                  {/* Thumbnail Strip - Beautiful Design */}
+                  {/* Thumbnail Strip - Elegant rounded squares */}
                   {media.length > 1 && (
-                    <div className="flex gap-3 justify-center flex-wrap">
+                    <div className="flex gap-2 justify-center mt-4">
                       {media.map((item, idx) => (
                         <button
                           key={item.id || idx}
                           onClick={() => setCurrentMediaIndex(idx)}
-                          className={`relative w-16 h-16 rounded-xl overflow-hidden transition-all duration-300 ${
+                          className={`relative w-14 h-14 md:w-16 md:h-16 rounded-lg overflow-hidden transition-all duration-200 ${
                             idx === currentMediaIndex
-                              ? "ring-2 ring-purple-primary ring-offset-2 scale-105 shadow-lg"
-                              : "opacity-60 hover:opacity-100 hover:scale-105"
+                              ? "ring-2 ring-purple-primary/60 ring-offset-2"
+                              : "opacity-50 hover:opacity-80"
                           }`}
                         >
                           {item.media_type === "video" ? (
                             <div className="relative w-full h-full bg-black">
                               <video src={item.media_url} className="w-full h-full object-cover" preload="metadata" />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M8 5v14l11-7z" />
                                 </svg>
                               </div>
                             </div>
                           ) : (
                             <Image src={item.media_url} alt="" width={64} height={64} className="w-full h-full object-cover" />
-                          )}
-                          {idx === currentMediaIndex && (
-                            <div className="absolute inset-0 border-2 border-purple-primary rounded-xl" />
                           )}
                         </button>
                       ))}
