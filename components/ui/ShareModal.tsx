@@ -10,6 +10,8 @@ interface ShareModalProps {
   description?: string;
   type?: string;
   authorName?: string;
+  authorUsername?: string;
+  authorAvatar?: string;
   imageUrl?: string;
 }
 
@@ -95,6 +97,8 @@ export default function ShareModal({
   description = "",
   type = "post",
   authorName = "",
+  authorUsername = "",
+  authorAvatar = "",
   imageUrl = "",
 }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
@@ -214,10 +218,33 @@ export default function ShareModal({
     window.open(socialUrl, "_blank", "width=600,height=400,noopener,noreferrer");
   };
 
-  // Get first 10 words of description
-  const getFirst10Words = (text: string) => {
-    const words = text.replace(/<[^>]*>/g, '').trim().split(/\s+/);
-    return words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
+  // Get first N words of description (strips HTML)
+  const getFirstNWords = (text: string, n: number) => {
+    const cleanText = text.replace(/<[^>]*>/g, '').trim();
+    const words = cleanText.split(/\s+/);
+    return words.slice(0, n).join(' ') + (words.length > n ? '...' : '');
+  };
+
+  const hasImage = !!imageUrl;
+
+  // Helper to wrap text into lines
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+    return lines;
   };
 
   // Generate Instagram Story image
@@ -234,22 +261,113 @@ export default function ShareModal({
     canvas.width = width;
     canvas.height = height;
 
-    // Create gradient background
+    // PinkQuill gradient background (purple -> pink -> orange)
     const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, '#8e44ad');
-    gradient.addColorStop(0.5, '#ff007f');
-    gradient.addColorStop(1, '#ff9f43');
+    gradient.addColorStop(0, '#8e44ad');    // Purple
+    gradient.addColorStop(0.5, '#ff007f');  // Pink
+    gradient.addColorStop(1, '#ff9f43');    // Orange
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    // Add subtle pattern overlay
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-    for (let i = 0; i < height; i += 4) {
-      ctx.fillRect(0, i, width, 2);
+    // Add subtle texture overlay
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+    for (let i = 0; i < height; i += 3) {
+      ctx.fillRect(0, i, width, 1);
     }
 
-    // If there's an image, load and draw it
-    if (imageUrl) {
+    const maxWidth = width - 120;
+    let currentY = 120;
+
+    // ========== SECTION 1: Follow @username on PinkQuill ==========
+    // Draw author avatar (circular)
+    if (authorAvatar) {
+      try {
+        const avatar = new Image();
+        avatar.crossOrigin = 'anonymous';
+        await new Promise<void>((resolve, reject) => {
+          avatar.onload = () => resolve();
+          avatar.onerror = reject;
+          avatar.src = authorAvatar;
+        });
+
+        const avatarSize = 80;
+        const avatarX = 60;
+        const avatarY = currentY;
+
+        // Draw circular avatar
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
+        ctx.restore();
+
+        // White border around avatar
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // "Follow @username on PinkQuill" text next to avatar
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '600 36px "Josefin Sans", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`Follow @${authorUsername || 'user'}`, avatarX + avatarSize + 24, avatarY + avatarSize / 2 - 12);
+
+        ctx.font = '28px "Josefin Sans", sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillText('on PinkQuill', avatarX + avatarSize + 24, avatarY + avatarSize / 2 + 24);
+
+        currentY += avatarSize + 60;
+      } catch {
+        // Avatar failed to load, show text only
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '600 36px "Josefin Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Follow @${authorUsername || 'user'} on PinkQuill`, width / 2, currentY + 40);
+        currentY += 100;
+      }
+    } else {
+      // No avatar, just show text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 36px "Josefin Sans", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Follow @${authorUsername || 'user'} on PinkQuill`, width / 2, currentY + 40);
+      currentY += 100;
+    }
+
+    // ========== SECTION 2: Title ==========
+    currentY += 40;
+    const displayTitle = title || 'Untitled';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 56px "Libre Baskerville", Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    const titleLines = wrapText(ctx, displayTitle, maxWidth);
+    const titleLineHeight = 72;
+
+    titleLines.forEach((line, i) => {
+      ctx.fillText(line, width / 2, currentY + i * titleLineHeight);
+    });
+    currentY += titleLines.length * titleLineHeight + 40;
+
+    // ========== SECTION 3: Content (varies based on whether image exists) ==========
+    if (hasImage) {
+      // WITH IMAGE: Show first 10 words, then image
+      const excerpt = getFirstNWords(description, 10);
+      ctx.font = 'italic 32px "Crimson Pro", Georgia, serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+
+      const excerptLines = wrapText(ctx, excerpt, maxWidth);
+      excerptLines.forEach((line, i) => {
+        ctx.fillText(line, width / 2, currentY + i * 44);
+      });
+      currentY += excerptLines.length * 44 + 50;
+
+      // Draw the uploaded image
       try {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -259,9 +377,8 @@ export default function ShareModal({
           img.src = imageUrl;
         });
 
-        // Calculate image dimensions (centered, with padding)
-        const maxImgWidth = width - 120;
-        const maxImgHeight = height * 0.45;
+        const maxImgWidth = width - 100;
+        const maxImgHeight = 700;
         const imgAspect = img.width / img.height;
         let drawWidth, drawHeight;
 
@@ -274,109 +391,89 @@ export default function ShareModal({
         }
 
         const imgX = (width - drawWidth) / 2;
-        const imgY = 300;
 
         // Draw image with rounded corners
         ctx.save();
         ctx.beginPath();
-        const radius = 24;
-        ctx.roundRect(imgX, imgY, drawWidth, drawHeight, radius);
+        const radius = 20;
+        ctx.roundRect(imgX, currentY, drawWidth, drawHeight, radius);
         ctx.clip();
-        ctx.drawImage(img, imgX, imgY, drawWidth, drawHeight);
+        ctx.drawImage(img, imgX, currentY, drawWidth, drawHeight);
         ctx.restore();
 
-        // Add subtle border
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        // Subtle white border
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.roundRect(imgX, imgY, drawWidth, drawHeight, radius);
+        ctx.roundRect(imgX, currentY, drawWidth, drawHeight, radius);
         ctx.stroke();
+
+        currentY += drawHeight + 60;
       } catch {
-        // Image failed to load, continue without it
+        // Image failed to load
       }
-    }
+    } else {
+      // WITHOUT IMAGE: Show first 50 words + "Continue reading on PinkQuill"
+      const excerpt = getFirstNWords(description, 50);
+      ctx.font = '34px "Crimson Pro", Georgia, serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
 
-    // Draw title
-    const displayTitle = title || 'Untitled';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 64px "Libre Baskerville", Georgia, serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    // Word wrap title
-    const titleY = imageUrl ? 1200 : 700;
-    const maxWidth = width - 120;
-    const words = displayTitle.split(' ');
-    let lines: string[] = [];
-    let currentLine = '';
-
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
-    }
-    if (currentLine) lines.push(currentLine);
-
-    // Draw title lines
-    const lineHeight = 80;
-    const startY = titleY - ((lines.length - 1) * lineHeight) / 2;
-    lines.forEach((line, i) => {
-      ctx.fillText(line, width / 2, startY + i * lineHeight);
-    });
-
-    // Draw excerpt (first 10 words)
-    if (description) {
-      const excerpt = getFirst10Words(description);
-      ctx.font = '36px "Crimson Pro", Georgia, serif';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-
-      const excerptY = titleY + lines.length * lineHeight + 60;
-      const excerptWords = excerpt.split(' ');
-      let excerptLines: string[] = [];
-      let excerptLine = '';
-
-      for (const word of excerptWords) {
-        const testLine = excerptLine ? `${excerptLine} ${word}` : word;
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && excerptLine) {
-          excerptLines.push(excerptLine);
-          excerptLine = word;
-        } else {
-          excerptLine = testLine;
-        }
-      }
-      if (excerptLine) excerptLines.push(excerptLine);
-
+      const excerptLines = wrapText(ctx, excerpt, maxWidth);
+      const excerptLineHeight = 48;
       excerptLines.forEach((line, i) => {
-        ctx.fillText(line, width / 2, excerptY + i * 50);
+        ctx.fillText(line, width / 2, currentY + i * excerptLineHeight);
       });
+      currentY += excerptLines.length * excerptLineHeight + 60;
+
+      // "Continue reading on PinkQuill" button-like element
+      const ctaText = 'Continue reading on PinkQuill';
+      ctx.font = '600 32px "Josefin Sans", sans-serif';
+      const ctaWidth = ctx.measureText(ctaText).width + 60;
+      const ctaHeight = 60;
+      const ctaX = (width - ctaWidth) / 2;
+
+      // Draw pill-shaped button
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.beginPath();
+      ctx.roundRect(ctaX, currentY, ctaWidth, ctaHeight, 30);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(ctaX, currentY, ctaWidth, ctaHeight, 30);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(ctaText, width / 2, currentY + ctaHeight / 2);
+
+      // Show URL below
+      currentY += ctaHeight + 20;
+      ctx.font = '24px "Josefin Sans", sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      const shortUrl = url.replace(/^https?:\/\//, '').substring(0, 40);
+      ctx.fillText(shortUrl, width / 2, currentY);
     }
 
-    // Draw PinkQuill branding at bottom
-    const brandY = height - 180;
+    // ========== SECTION 4: PinkQuill branding at bottom ==========
+    const brandY = height - 140;
 
-    // Draw feather/quill icon
-    ctx.save();
-    ctx.translate(width / 2 - 100, brandY - 20);
+    // Quill icon
+    ctx.font = '36px Arial';
     ctx.fillStyle = '#ffffff';
-    ctx.font = '32px Arial';
-    ctx.fillText('✒', 0, 0);
-    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillText('✒', width / 2 - 90, brandY);
 
-    // Draw app name
-    ctx.font = 'bold 42px "Josefin Sans", sans-serif';
+    // PinkQuill text
+    ctx.font = 'bold 44px "Josefin Sans", sans-serif';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('PinkQuill', width / 2, brandY);
+    ctx.fillText('PinkQuill', width / 2 + 20, brandY);
 
-    // Draw tagline
-    ctx.font = '24px "Josefin Sans", sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.fillText('Share your creative journey', width / 2, brandY + 50);
+    // Tagline
+    ctx.font = '26px "Josefin Sans", sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.fillText('Share your creative journey', width / 2, brandY + 55);
 
     return canvas.toDataURL('image/png');
   };
@@ -510,23 +607,41 @@ export default function ShareModal({
             {/* Story Preview */}
             <div className="story-preview-container">
               <div className="story-preview">
-                {/* Gradient background */}
+                {/* PinkQuill gradient background */}
                 <div className="story-preview-bg" />
 
-                {/* Image */}
-                {imageUrl && (
-                  <div className="story-preview-image">
-                    <img src={imageUrl} alt="" />
-                  </div>
-                )}
-
-                {/* Content */}
-                <div className="story-preview-content" style={{ marginTop: imageUrl ? '0' : '40px' }}>
-                  <h4 className="story-preview-title">{title || 'Untitled'}</h4>
-                  {description && (
-                    <p className="story-preview-excerpt">{getFirst10Words(description)}</p>
+                {/* Follow section with avatar */}
+                <div className="story-preview-follow">
+                  {authorAvatar ? (
+                    <img src={authorAvatar} alt="" className="story-preview-avatar" />
+                  ) : (
+                    <div className="story-preview-avatar-placeholder" />
                   )}
+                  <div className="story-preview-follow-text">
+                    <span className="story-preview-follow-main">Follow @{authorUsername || 'user'}</span>
+                    <span className="story-preview-follow-sub">on PinkQuill</span>
+                  </div>
                 </div>
+
+                {/* Title */}
+                <h4 className="story-preview-title">{title || 'Untitled'}</h4>
+
+                {/* Content: varies based on image */}
+                {hasImage ? (
+                  <>
+                    <p className="story-preview-excerpt">{getFirstNWords(description, 10)}</p>
+                    <div className="story-preview-image">
+                      <img src={imageUrl} alt="" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="story-preview-excerpt-long">{getFirstNWords(description, 50)}</p>
+                    <div className="story-preview-cta">
+                      Continue reading on PinkQuill
+                    </div>
+                  </>
+                )}
 
                 {/* Branding */}
                 <div className="story-preview-brand">
@@ -554,7 +669,7 @@ export default function ShareModal({
                 ) : (
                   <span className="flex items-center gap-2">
                     {icons.instagram}
-                    Share to Instagram
+                    Share to Story
                   </span>
                 )}
               </button>
@@ -572,7 +687,7 @@ export default function ShareModal({
             </div>
 
             <p className="story-hint">
-              On mobile, tapping &ldquo;Share to Instagram&rdquo; will open your share menu.
+              On mobile, tapping &ldquo;Share to Story&rdquo; will open your share menu.
               On desktop, download the image and upload it to Instagram manually.
             </p>
           </div>
