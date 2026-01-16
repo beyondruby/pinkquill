@@ -209,14 +209,20 @@ export default function MessagesView() {
   }, [user]);
 
   const handleSelectConversation = (conversationId: string) => {
+    console.log("Selecting conversation:", conversationId);
     setSelectedConversation(conversationId);
     router.push(`/messages?conversation=${conversationId}`, { scroll: false });
   };
 
   const handleNewConversation = (conversationId: string) => {
+    console.log("New conversation created:", conversationId);
+    // Close modal first
     setShowNewMessage(false);
-    fetchConversations();
-    handleSelectConversation(conversationId);
+    // Select the new conversation immediately
+    setSelectedConversation(conversationId);
+    router.push(`/messages?conversation=${conversationId}`, { scroll: false });
+    // Then refresh conversations list in the background
+    fetchConversations(false);
   };
 
   // Redirect if not logged in

@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import Loading from "@/components/ui/Loading";
 
 interface User {
   id: string;
@@ -39,6 +38,12 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
     </svg>
   ),
+  spinner: (
+    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+    </svg>
+  ),
 };
 
 export default function NewMessageModal({
@@ -51,6 +56,16 @@ export default function NewMessageModal({
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when modal opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
 
   // Search users
   useEffect(() => {
@@ -61,17 +76,25 @@ export default function NewMessageModal({
       }
 
       setLoading(true);
+      setError(null);
       try {
-        const { data } = await supabase
+        const { data, error: searchError } = await supabase
           .from("profiles")
           .select("id, username, display_name, avatar_url")
           .neq("id", currentUserId)
           .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
           .limit(10);
 
+        if (searchError) {
+          console.error("Search error:", searchError);
+          setError("Failed to search users");
+          return;
+        }
+
         setUsers(data || []);
       } catch (err) {
         console.error("Failed to search users:", err);
+        setError("Failed to search users");
       } finally {
         setLoading(false);
       }
@@ -82,16 +105,25 @@ export default function NewMessageModal({
   }, [searchQuery, currentUserId]);
 
   const handleSelectUser = async (selectedUser: User) => {
+    if (creating) return; // Prevent double-clicks
+
     setCreating(true);
+    setSelectedUserId(selectedUser.id);
+    setError(null);
 
     try {
       // Check if conversation already exists
-      const { data: existingParticipations } = await supabase
+      const { data: existingParticipations, error: fetchError } = await supabase
         .from("conversation_participants")
         .select("conversation_id")
         .eq("user_id", currentUserId);
 
-      if (existingParticipations) {
+      if (fetchError) {
+        console.error("Fetch participations error:", fetchError);
+        throw new Error("Failed to check existing conversations");
+      }
+
+      if (existingParticipations && existingParticipations.length > 0) {
         for (const participation of existingParticipations) {
           const { data: otherParticipant } = await supabase
             .from("conversation_participants")
@@ -102,6 +134,7 @@ export default function NewMessageModal({
 
           if (otherParticipant) {
             // Conversation exists, use it
+            console.log("Found existing conversation:", participation.conversation_id);
             onConversationCreated(participation.conversation_id);
             return;
           }
@@ -109,20 +142,25 @@ export default function NewMessageModal({
       }
 
       // Create new conversation
+      console.log("Creating new conversation...");
       const { data: newConversation, error: convError } = await supabase
         .from("conversations")
-        .insert({})
+        .insert({
+          updated_at: new Date().toISOString(),
+        })
         .select()
         .single();
 
       if (convError) {
-        console.error("Conversation creation error:", convError.message, convError.details, convError.hint);
-        throw convError;
+        console.error("Conversation creation error:", convError);
+        throw new Error(`Failed to create conversation: ${convError.message}`);
       }
 
       if (!newConversation) {
         throw new Error("No conversation returned after insert");
       }
+
+      console.log("Created conversation:", newConversation.id);
 
       // Add participants
       const { error: participantsError } = await supabase
@@ -133,15 +171,19 @@ export default function NewMessageModal({
         ]);
 
       if (participantsError) {
-        console.error("Participants error:", participantsError.message, participantsError.details);
-        throw participantsError;
+        console.error("Participants error:", participantsError);
+        // Try to clean up the created conversation
+        await supabase.from("conversations").delete().eq("id", newConversation.id);
+        throw new Error(`Failed to add participants: ${participantsError.message}`);
       }
 
+      console.log("Added participants, calling onConversationCreated");
       onConversationCreated(newConversation.id);
     } catch (err: any) {
-      console.error("Failed to create conversation:", err?.message || err);
-    } finally {
+      console.error("Failed to create conversation:", err);
+      setError(err?.message || "Failed to create conversation. Please try again.");
       setCreating(false);
+      setSelectedUserId(null);
     }
   };
 
@@ -150,6 +192,9 @@ export default function NewMessageModal({
     if (!isOpen) {
       setSearchQuery("");
       setUsers([]);
+      setError(null);
+      setCreating(false);
+      setSelectedUserId(null);
     }
   }, [isOpen]);
 
@@ -166,11 +211,13 @@ export default function NewMessageModal({
   // Handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) onClose();
+      if (e.key === "Escape" && isOpen && !creating) {
+        onClose();
+      }
     };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, creating]);
 
   if (!isOpen) return null;
 
@@ -179,7 +226,7 @@ export default function NewMessageModal({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
-        onClick={onClose}
+        onClick={() => !creating && onClose()}
       />
 
       {/* Modal Container */}
@@ -196,8 +243,9 @@ export default function NewMessageModal({
         >
           {/* Mobile back button */}
           <button
-            onClick={onClose}
-            className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+            onClick={() => !creating && onClose()}
+            disabled={creating}
+            className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all disabled:opacity-50"
           >
             {icons.back}
           </button>
@@ -208,8 +256,9 @@ export default function NewMessageModal({
 
           {/* Desktop close button */}
           <button
-            onClick={onClose}
-            className="hidden md:flex w-10 h-10 rounded-full bg-black/[0.04] items-center justify-center text-muted hover:text-ink hover:bg-black/[0.08] transition-all hover:rotate-90"
+            onClick={() => !creating && onClose()}
+            disabled={creating}
+            className="hidden md:flex w-10 h-10 rounded-full bg-black/[0.04] items-center justify-center text-muted hover:text-ink hover:bg-black/[0.08] transition-all hover:rotate-90 disabled:opacity-50"
           >
             {icons.close}
           </button>
@@ -222,15 +271,23 @@ export default function NewMessageModal({
               {icons.search}
             </span>
             <input
+              ref={inputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for someone..."
-              autoFocus
-              className="w-full pl-12 pr-4 py-3 rounded-xl border border-black/[0.08] bg-[#fafafa] font-ui text-[0.95rem] text-ink outline-none focus:border-purple-primary focus:bg-white focus:ring-2 focus:ring-purple-primary/20 transition-all"
+              disabled={creating}
+              className="w-full pl-12 pr-4 py-3 rounded-xl border border-black/[0.08] bg-[#fafafa] font-ui text-[0.95rem] text-ink outline-none focus:border-purple-primary focus:bg-white focus:ring-2 focus:ring-purple-primary/20 transition-all disabled:opacity-50"
             />
           </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mx-4 mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
+            <p className="font-ui text-sm text-red-600">{error}</p>
+          </div>
+        )}
 
         {/* Results */}
         <div
@@ -239,11 +296,7 @@ export default function NewMessageModal({
         >
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loading text="" size="small" />
-            </div>
-          ) : creating ? (
-            <div className="flex items-center justify-center py-8">
-              <Loading text="Creating conversation" size="small" />
+              <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-8">
@@ -262,33 +315,51 @@ export default function NewMessageModal({
             </div>
           ) : (
             <div className="space-y-2">
-              {users.map((user) => (
-                <button
-                  key={user.id}
-                  onClick={() => handleSelectUser(user)}
-                  className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-purple-primary/5 active:bg-purple-primary/10 transition-all text-left group"
-                >
-                  <img
-                    src={
-                      user.avatar_url ||
-                      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
-                    }
-                    alt={user.display_name || user.username}
-                    className="w-12 h-12 rounded-full object-cover group-hover:ring-2 group-hover:ring-purple-primary/30 transition-all"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-ui text-[0.95rem] font-medium text-ink group-hover:text-purple-primary transition-colors truncate">
-                      {user.display_name || user.username}
-                    </h3>
-                    <p className="font-ui text-[0.85rem] text-muted truncate">
-                      @{user.username}
-                    </p>
-                  </div>
-                  <span className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                    {icons.message}
-                  </span>
-                </button>
-              ))}
+              {users.map((user) => {
+                const isSelected = selectedUserId === user.id;
+                const isDisabled = creating && !isSelected;
+
+                return (
+                  <button
+                    key={user.id}
+                    onClick={() => handleSelectUser(user)}
+                    disabled={creating}
+                    className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group ${
+                      isSelected
+                        ? 'bg-purple-primary/10 ring-2 ring-purple-primary'
+                        : 'hover:bg-purple-primary/5 active:bg-purple-primary/10'
+                    } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <img
+                      src={
+                        user.avatar_url ||
+                        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
+                      }
+                      alt={user.display_name || user.username}
+                      className={`w-12 h-12 rounded-full object-cover transition-all ${
+                        isSelected ? 'ring-2 ring-purple-primary' : 'group-hover:ring-2 group-hover:ring-purple-primary/30'
+                      }`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-ui text-[0.95rem] font-medium truncate transition-colors ${
+                        isSelected ? 'text-purple-primary' : 'text-ink group-hover:text-purple-primary'
+                      }`}>
+                        {user.display_name || user.username}
+                      </h3>
+                      <p className="font-ui text-[0.85rem] text-muted truncate">
+                        @{user.username}
+                      </p>
+                    </div>
+                    <span className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white'
+                        : 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white opacity-0 group-hover:opacity-100'
+                    }`}>
+                      {isSelected && creating ? icons.spinner : icons.message}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
