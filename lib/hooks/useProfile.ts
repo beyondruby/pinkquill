@@ -148,6 +148,9 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         .select(
           `
           *,
+          styling,
+          post_location,
+          metadata,
           author:profiles!posts_author_id_fkey (
             username,
             display_name,
@@ -158,7 +161,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             media_url,
             media_type,
             caption,
-            position
+            position,
+            canvas_data
           ),
           admires:admires(count),
           comments:comments(count)
@@ -220,6 +224,10 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         user_has_saved: false,
         user_has_relayed: false,
         user_reaction_type: null,
+        // Creative styling fields
+        styling: post.styling || null,
+        post_location: post.post_location || null,
+        metadata: post.metadata || null,
       }));
 
       setPosts(postsWithStats as Post[]);

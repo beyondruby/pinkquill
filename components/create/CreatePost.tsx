@@ -1736,6 +1736,55 @@ export default function CreatePost() {
               </div>
             )}
           </div>
+
+          {/* Text Alignment */}
+          <div className="flex items-center gap-0.5 pl-3 border-l border-black/10">
+            {(['left', 'center', 'right', 'justify'] as TextAlignment[]).map((align) => (
+              <button
+                key={align}
+                onClick={() => setTextAlignment(align)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                  textAlignment === align
+                    ? 'bg-purple-primary text-white'
+                    : 'hover:bg-black/5 text-muted'
+                }`}
+                title={`Align ${align}`}
+              >
+                {icons[`align${align.charAt(0).toUpperCase() + align.slice(1)}` as keyof typeof icons]}
+              </button>
+            ))}
+          </div>
+
+          {/* Line Spacing */}
+          <div className="flex items-center gap-0.5 pl-3 border-l border-black/10">
+            {(['normal', 'relaxed', 'loose'] as LineSpacing[]).map((spacing) => (
+              <button
+                key={spacing}
+                onClick={() => setLineSpacing(spacing)}
+                className={`px-2 py-1 rounded-lg font-ui text-xs transition-all ${
+                  lineSpacing === spacing
+                    ? 'bg-purple-primary text-white'
+                    : 'hover:bg-black/5 text-muted'
+                }`}
+                title={`Line spacing ${spacing}`}
+              >
+                {spacing === 'normal' ? '1x' : spacing === 'relaxed' ? '1.5x' : '2x'}
+              </button>
+            ))}
+          </div>
+
+          {/* Drop Cap */}
+          <button
+            onClick={() => setDropCapEnabled(!dropCapEnabled)}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center ml-2 transition-all ${
+              dropCapEnabled
+                ? 'bg-purple-primary text-white'
+                : 'hover:bg-black/5 text-muted'
+            }`}
+            title="Drop Cap"
+          >
+            {icons.dropCap}
+          </button>
         </div>
         )}
 
@@ -1749,7 +1798,16 @@ export default function CreatePost() {
             onKeyUp={updateFormattingState}
             onMouseUp={updateFormattingState}
             data-placeholder={currentType?.placeholder || "Let your thoughts flow freely..."}
-            className="editor-content w-full min-h-[280px] font-body text-[1.1rem] text-ink leading-relaxed outline-none"
+            className={`editor-content w-full min-h-[280px] font-body text-[1.1rem] text-ink outline-none ${
+              textAlignment === 'left' ? 'text-left' :
+              textAlignment === 'center' ? 'text-center' :
+              textAlignment === 'right' ? 'text-right' :
+              'text-justify'
+            } ${
+              lineSpacing === 'normal' ? 'leading-relaxed' :
+              lineSpacing === 'relaxed' ? 'leading-[2]' :
+              'leading-[2.5]'
+            } ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
           />
         </div>
         )}
@@ -1874,58 +1932,6 @@ export default function CreatePost() {
                   {icons.x}
                 </button>
               )}
-            </div>
-
-            {/* Text Formatting Options */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Text Alignment */}
-              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
-                {(['left', 'center', 'right', 'justify'] as TextAlignment[]).map((align) => (
-                  <button
-                    key={align}
-                    onClick={() => setTextAlignment(align)}
-                    className={`w-8 h-8 rounded-md flex items-center justify-center transition-all ${
-                      textAlignment === align
-                        ? 'bg-purple-primary text-white'
-                        : 'text-muted hover:bg-white'
-                    }`}
-                    title={`Align ${align}`}
-                  >
-                    {icons[`align${align.charAt(0).toUpperCase() + align.slice(1)}` as keyof typeof icons]}
-                  </button>
-                ))}
-              </div>
-
-              {/* Line Spacing */}
-              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
-                <span className="px-2 text-muted">{icons.lineSpacing}</span>
-                {(['normal', 'relaxed', 'loose'] as LineSpacing[]).map((spacing) => (
-                  <button
-                    key={spacing}
-                    onClick={() => setLineSpacing(spacing)}
-                    className={`px-3 py-1 rounded-md font-ui text-xs transition-all ${
-                      lineSpacing === spacing
-                        ? 'bg-purple-primary text-white'
-                        : 'text-muted hover:bg-white'
-                    }`}
-                  >
-                    {spacing === 'normal' ? '1x' : spacing === 'relaxed' ? '1.5x' : '2x'}
-                  </button>
-                ))}
-              </div>
-
-              {/* Drop Cap Toggle */}
-              <button
-                onClick={() => setDropCapEnabled(!dropCapEnabled)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                  dropCapEnabled
-                    ? 'bg-purple-primary text-white'
-                    : 'bg-gray-100 text-muted hover:bg-gray-200'
-                }`}
-              >
-                {icons.dropCap}
-                <span className="font-ui text-xs">Drop Cap</span>
-              </button>
             </div>
 
             {/* Canvas Mode Toggle */}

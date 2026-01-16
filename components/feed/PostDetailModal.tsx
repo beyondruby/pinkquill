@@ -601,7 +601,26 @@ export default function PostDetailModal({
   return (
     <>
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className={`flex flex-col md:flex-row h-full ${showComments ? "" : ""}`}>
+      {/* Outer wrapper with background - covers entire modal */}
+      <div
+        className="flex flex-col md:flex-row h-full w-full relative"
+        style={hasBackground ? getBackgroundStyle(post.styling?.background) : {}}
+      >
+        {/* Background overlay for image backgrounds */}
+        {post.styling?.background?.type === 'image' && (
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-3xl md:rounded-3xl"
+            style={{
+              opacity: post.styling.background.opacity !== undefined
+                ? 1 - post.styling.background.opacity
+                : 0.4,
+              backdropFilter: post.styling.background.blur
+                ? `blur(${post.styling.background.blur}px)`
+                : 'blur(2px)'
+            }}
+          />
+        )}
+
         {/* Mobile Close Button - Floating */}
         <button
           onClick={onClose}
@@ -614,28 +633,12 @@ export default function PostDetailModal({
 
         {/* Main Content Area - Immersive Design */}
         <div
-          className={`flex flex-col overflow-y-auto relative ${
+          className={`flex flex-col overflow-y-auto relative z-10 ${
             showComments ? "hidden md:flex md:flex-1 md:border-r" : "flex-1"
           } ${borderColorClass}`}
-          style={hasBackground ? getBackgroundStyle(post.styling?.background) : {}}
         >
-          {/* Background overlay for image backgrounds */}
-          {post.styling?.background?.type === 'image' && (
-            <div
-              className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-              style={{
-                opacity: post.styling.background.opacity !== undefined
-                  ? 1 - post.styling.background.opacity
-                  : 0.4,
-                backdropFilter: post.styling.background.blur
-                  ? `blur(${post.styling.background.blur}px)`
-                  : 'blur(2px)'
-              }}
-            />
-          )}
-
           {/* Content wrapper with padding */}
-          <div className="relative z-10 p-4 md:p-10 flex flex-col flex-1">
+          <div className="relative p-4 md:p-10 flex flex-col flex-1">
             {/* Floating Author Header */}
             <div className={`flex items-center gap-3 md:gap-4 mb-4 md:mb-6 pb-4 md:pb-6 border-b ${borderColorClass}`}>
               <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={onClose}>
@@ -765,34 +768,54 @@ export default function PostDetailModal({
               )}
             </div>
 
-            {/* Journal Date - Original beautiful purple styling */}
+            {/* Journal Header - Beautiful date, time, and metadata */}
             {post.type === "journal" && post.createdAt && (
-              <div className="journal-date">{formatDate(post.createdAt)}</div>
-            )}
+              <div className={`journal-header mb-6 ${hasDarkBg ? 'text-white' : ''}`}>
+                {/* Large Date */}
+                <div className={`font-display text-2xl md:text-3xl font-light mb-1 ${hasDarkBg ? 'text-white' : 'text-purple-primary'}`}>
+                  {formatDate(post.createdAt)}
+                </div>
 
-            {/* Journal Metadata - Simple inline display */}
-            {post.type === "journal" && (post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
-              <div className={`flex flex-wrap items-center gap-3 mb-4 text-sm ${mutedTextColorClass}`}>
-                {post.post_location && (
-                  <span className="flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                    </svg>
-                    {post.post_location}
-                  </span>
-                )}
-                {(post.metadata?.weather || post.metadata?.temperature) && (
-                  <span className="flex items-center gap-1.5">
-                    {post.metadata?.weather && weatherIcons[post.metadata.weather]}
-                    {post.metadata?.temperature || formatWeather(post.metadata?.weather)}
-                  </span>
-                )}
-                {post.metadata?.mood && (
-                  <span className="flex items-center gap-1.5">
-                    {moodIcons[post.metadata.mood] || moodIcons['reflective']}
-                    {formatMood(post.metadata.mood)}
-                  </span>
+                {/* Time */}
+                <div className={`font-ui text-sm tracking-wide mb-4 ${hasDarkBg ? 'text-white/60' : 'text-muted'}`}>
+                  {formatTime(post.createdAt)}
+                  {post.metadata?.timeOfDay && (
+                    <span className="ml-2">
+                      {timeOfDayIcons[post.metadata.timeOfDay]}
+                      <span className="ml-1">{formatTimeOfDay(post.metadata.timeOfDay)}</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Metadata Row - Location, Weather, Mood */}
+                {(post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
+                  <div className={`flex flex-wrap items-center gap-4 pt-3 border-t ${hasDarkBg ? 'border-white/10' : 'border-purple-primary/10'}`}>
+                    {post.post_location && (
+                      <div className={`flex items-center gap-2 ${hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
+                        <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                        <span className="font-ui text-sm">{post.post_location}</span>
+                      </div>
+                    )}
+                    {(post.metadata?.weather || post.metadata?.temperature) && (
+                      <div className={`flex items-center gap-2 ${hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
+                        <span className="text-purple-primary">{post.metadata?.weather && weatherIcons[post.metadata.weather]}</span>
+                        <span className="font-ui text-sm">
+                          {post.metadata?.temperature && <span className="font-medium">{post.metadata.temperature}</span>}
+                          {post.metadata?.temperature && post.metadata?.weather && <span className="mx-1">·</span>}
+                          {post.metadata?.weather && formatWeather(post.metadata.weather)}
+                        </span>
+                      </div>
+                    )}
+                    {post.metadata?.mood && (
+                      <div className={`flex items-center gap-2 ${hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
+                        <span className="text-purple-primary">{moodIcons[post.metadata.mood] || moodIcons['reflective']}</span>
+                        <span className="font-ui text-sm">{formatMood(post.metadata.mood)}</span>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}

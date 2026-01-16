@@ -292,6 +292,9 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           .select(
             `
             *,
+            styling,
+            post_location,
+            metadata,
             author:profiles!posts_author_id_fkey (
               id,
               username,
@@ -305,7 +308,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
               media_url,
               media_type,
               caption,
-              position
+              position,
+              canvas_data
             ),
             community:communities (
               id,
@@ -469,6 +473,10 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           collaborators: collaboratorsByPost.get(post.id) || [],
           mentions: mentionsByPost.get(post.id) || [],
           hashtags: hashtagsByPost.get(post.id) || [],
+          // Creative styling fields
+          styling: post.styling || null,
+          post_location: post.post_location || null,
+          metadata: post.metadata || null,
         }));
 
         // Apply algorithm scoring and sorting
