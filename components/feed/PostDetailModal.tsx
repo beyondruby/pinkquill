@@ -1203,6 +1203,7 @@ export default function PostDetailModal({
         description={post.content.substring(0, 200)}
         type={post.type}
         authorName={post.author.name}
+        imageUrl={post.media && post.media.length > 0 ? post.media[0].media_url : ""}
       />
     )}
 

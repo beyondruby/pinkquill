@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface ShareModalProps {
   description?: string;
   type?: string;
   authorName?: string;
+  imageUrl?: string;
 }
 
 // Social Icons
@@ -74,6 +75,16 @@ const icons = {
       <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
     </svg>
   ),
+  instagram: (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z" />
+    </svg>
+  ),
+  download: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    </svg>
+  ),
 };
 
 export default function ShareModal({
@@ -84,10 +95,13 @@ export default function ShareModal({
   description = "",
   type = "post",
   authorName = "",
+  imageUrl = "",
 }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [embedCopied, setEmbedCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<"share" | "embed">("share");
+  const [activeTab, setActiveTab] = useState<"share" | "embed" | "instagram">("share");
+  const [storyGenerating, setStoryGenerating] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Reset states when modal opens/closes
   useEffect(() => {
@@ -200,6 +214,225 @@ export default function ShareModal({
     window.open(socialUrl, "_blank", "width=600,height=400,noopener,noreferrer");
   };
 
+  // Get first 10 words of description
+  const getFirst10Words = (text: string) => {
+    const words = text.replace(/<[^>]*>/g, '').trim().split(/\s+/);
+    return words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
+  };
+
+  // Generate Instagram Story image
+  const generateStoryImage = async (): Promise<string | null> => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    // Instagram Story dimensions (9:16 aspect ratio)
+    const width = 1080;
+    const height = 1920;
+    canvas.width = width;
+    canvas.height = height;
+
+    // Create gradient background
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, '#8e44ad');
+    gradient.addColorStop(0.5, '#ff007f');
+    gradient.addColorStop(1, '#ff9f43');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Add subtle pattern overlay
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+    for (let i = 0; i < height; i += 4) {
+      ctx.fillRect(0, i, width, 2);
+    }
+
+    // If there's an image, load and draw it
+    if (imageUrl) {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = reject;
+          img.src = imageUrl;
+        });
+
+        // Calculate image dimensions (centered, with padding)
+        const maxImgWidth = width - 120;
+        const maxImgHeight = height * 0.45;
+        const imgAspect = img.width / img.height;
+        let drawWidth, drawHeight;
+
+        if (imgAspect > maxImgWidth / maxImgHeight) {
+          drawWidth = maxImgWidth;
+          drawHeight = maxImgWidth / imgAspect;
+        } else {
+          drawHeight = maxImgHeight;
+          drawWidth = maxImgHeight * imgAspect;
+        }
+
+        const imgX = (width - drawWidth) / 2;
+        const imgY = 300;
+
+        // Draw image with rounded corners
+        ctx.save();
+        ctx.beginPath();
+        const radius = 24;
+        ctx.roundRect(imgX, imgY, drawWidth, drawHeight, radius);
+        ctx.clip();
+        ctx.drawImage(img, imgX, imgY, drawWidth, drawHeight);
+        ctx.restore();
+
+        // Add subtle border
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(imgX, imgY, drawWidth, drawHeight, radius);
+        ctx.stroke();
+      } catch {
+        // Image failed to load, continue without it
+      }
+    }
+
+    // Draw title
+    const displayTitle = title || 'Untitled';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 64px "Libre Baskerville", Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Word wrap title
+    const titleY = imageUrl ? 1200 : 700;
+    const maxWidth = width - 120;
+    const words = displayTitle.split(' ');
+    let lines: string[] = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+
+    // Draw title lines
+    const lineHeight = 80;
+    const startY = titleY - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((line, i) => {
+      ctx.fillText(line, width / 2, startY + i * lineHeight);
+    });
+
+    // Draw excerpt (first 10 words)
+    if (description) {
+      const excerpt = getFirst10Words(description);
+      ctx.font = '36px "Crimson Pro", Georgia, serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+
+      const excerptY = titleY + lines.length * lineHeight + 60;
+      const excerptWords = excerpt.split(' ');
+      let excerptLines: string[] = [];
+      let excerptLine = '';
+
+      for (const word of excerptWords) {
+        const testLine = excerptLine ? `${excerptLine} ${word}` : word;
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && excerptLine) {
+          excerptLines.push(excerptLine);
+          excerptLine = word;
+        } else {
+          excerptLine = testLine;
+        }
+      }
+      if (excerptLine) excerptLines.push(excerptLine);
+
+      excerptLines.forEach((line, i) => {
+        ctx.fillText(line, width / 2, excerptY + i * 50);
+      });
+    }
+
+    // Draw PinkQuill branding at bottom
+    const brandY = height - 180;
+
+    // Draw feather/quill icon
+    ctx.save();
+    ctx.translate(width / 2 - 100, brandY - 20);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '32px Arial';
+    ctx.fillText('✒', 0, 0);
+    ctx.restore();
+
+    // Draw app name
+    ctx.font = 'bold 42px "Josefin Sans", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('PinkQuill', width / 2, brandY);
+
+    // Draw tagline
+    ctx.font = '24px "Josefin Sans", sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.fillText('Share your creative journey', width / 2, brandY + 50);
+
+    return canvas.toDataURL('image/png');
+  };
+
+  // Download story image
+  const handleDownloadStory = async () => {
+    setStoryGenerating(true);
+    try {
+      const dataUrl = await generateStoryImage();
+      if (dataUrl) {
+        const link = document.createElement('a');
+        link.download = `pinkquill-story-${Date.now()}.png`;
+        link.href = dataUrl;
+        link.click();
+      }
+    } catch (err) {
+      console.error('Failed to generate story:', err);
+    } finally {
+      setStoryGenerating(false);
+    }
+  };
+
+  // Share to Instagram (mobile only - uses Web Share API)
+  const handleShareToInstagram = async () => {
+    setStoryGenerating(true);
+    try {
+      const dataUrl = await generateStoryImage();
+      if (dataUrl && navigator.share && navigator.canShare) {
+        // Convert data URL to blob
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'pinkquill-story.png', { type: 'image/png' });
+
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: title,
+            text: `${title} on PinkQuill`,
+          });
+        } else {
+          // Fallback to download
+          handleDownloadStory();
+        }
+      } else {
+        // Fallback to download
+        handleDownloadStory();
+      }
+    } catch (err) {
+      console.error('Failed to share:', err);
+      // Fallback to download on error
+      handleDownloadStory();
+    } finally {
+      setStoryGenerating(false);
+    }
+  };
+
   return (
     <div className="share-modal-overlay" onClick={onClose}>
       <div className="share-modal" onClick={(e) => e.stopPropagation()}>
@@ -220,6 +453,15 @@ export default function ShareModal({
             Share
           </button>
           <button
+            className={`share-tab ${activeTab === "instagram" ? "active" : ""}`}
+            onClick={() => setActiveTab("instagram")}
+          >
+            <span className="flex items-center gap-1.5">
+              {icons.instagram}
+              Story
+            </span>
+          </button>
+          <button
             className={`share-tab ${activeTab === "embed" ? "active" : ""}`}
             onClick={() => setActiveTab("embed")}
           >
@@ -227,7 +469,10 @@ export default function ShareModal({
           </button>
         </div>
 
-        {activeTab === "share" ? (
+        {/* Hidden canvas for story generation */}
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+        {activeTab === "share" && (
           <>
             {/* Copy Link */}
             <div className="share-copy-section">
@@ -258,8 +503,82 @@ export default function ShareModal({
               ))}
             </div>
           </>
-        ) : (
-          /* Embed Tab */
+        )}
+
+        {activeTab === "instagram" && (
+          <div className="share-instagram-section">
+            {/* Story Preview */}
+            <div className="story-preview-container">
+              <div className="story-preview">
+                {/* Gradient background */}
+                <div className="story-preview-bg" />
+
+                {/* Image */}
+                {imageUrl && (
+                  <div className="story-preview-image">
+                    <img src={imageUrl} alt="" />
+                  </div>
+                )}
+
+                {/* Content */}
+                <div className="story-preview-content" style={{ marginTop: imageUrl ? '0' : '40px' }}>
+                  <h4 className="story-preview-title">{title || 'Untitled'}</h4>
+                  {description && (
+                    <p className="story-preview-excerpt">{getFirst10Words(description)}</p>
+                  )}
+                </div>
+
+                {/* Branding */}
+                <div className="story-preview-brand">
+                  <span className="story-preview-icon">✒</span>
+                  <span className="story-preview-name">PinkQuill</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="story-actions">
+              <button
+                className="story-share-btn"
+                onClick={handleShareToInstagram}
+                disabled={storyGenerating}
+              >
+                {storyGenerating ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Creating...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    {icons.instagram}
+                    Share to Instagram
+                  </span>
+                )}
+              </button>
+
+              <button
+                className="story-download-btn"
+                onClick={handleDownloadStory}
+                disabled={storyGenerating}
+              >
+                <span className="flex items-center gap-2">
+                  {icons.download}
+                  Download Image
+                </span>
+              </button>
+            </div>
+
+            <p className="story-hint">
+              On mobile, tapping &ldquo;Share to Instagram&rdquo; will open your share menu.
+              On desktop, download the image and upload it to Instagram manually.
+            </p>
+          </div>
+        )}
+
+        {activeTab === "embed" && (
           <div className="share-embed-section">
             <p className="share-embed-label">
               Copy and paste this code to embed on your website

@@ -1000,6 +1000,7 @@ export default function PostPage() {
         description={post.content.substring(0, 200)}
         type={post.type}
         authorName={post.author.display_name || post.author.username}
+        imageUrl={post.media && post.media.length > 0 ? post.media[0].media_url : ""}
       />
 
       {/* Delete Confirmation Modal */}
