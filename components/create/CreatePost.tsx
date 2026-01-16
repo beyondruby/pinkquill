@@ -7,6 +7,10 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunities, Community, SearchableUser, saveCollaboratorsAndMentions } from "@/lib/hooks";
 import { useCreateTake } from "@/lib/hooks/useTakes";
 import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
+import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle } from "@/lib/types";
+import BackgroundPicker from "@/components/create/BackgroundPicker";
+import JournalMetadataPanel from "@/components/create/JournalMetadata";
+import CanvasEditor, { CanvasImage } from "@/components/create/CanvasEditor";
 
 const postTypes = [
   { id: "thought", label: "Thought", icon: "lightbulb", placeholder: "What's on your mind?" },
@@ -237,6 +241,54 @@ const icons: Record<string, React.ReactElement> = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>
   ),
+  background: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  ),
+  alignLeft: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h10M4 18h14" />
+    </svg>
+  ),
+  alignCenter: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M5 18h14" />
+    </svg>
+  ),
+  alignRight: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M10 12h10M6 18h14" />
+    </svg>
+  ),
+  alignJustify: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  ),
+  lineSpacing: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+    </svg>
+  ),
+  dropCap: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+      <text x="2" y="18" fontSize="16" fontFamily="serif" fontWeight="bold">A</text>
+      <path d="M14 8h8M14 12h8M14 16h8" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    </svg>
+  ),
+  canvas: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9h6v6H9z" />
+    </svg>
+  ),
+  location: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
 };
 
 // Color palette for text color and highlighting
@@ -363,6 +415,21 @@ export default function CreatePost() {
   const [taggedPeople, setTaggedPeople] = useState<SearchableUser[]>([]);
   const [showCollaboratorPicker, setShowCollaboratorPicker] = useState(false);
   const [showTagPeoplePicker, setShowTagPeoplePicker] = useState(false);
+
+  // Creative Styling
+  const [styling, setStyling] = useState<PostStyling>({});
+  const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
+  const [textAlignment, setTextAlignment] = useState<TextAlignment>("left");
+  const [lineSpacing, setLineSpacing] = useState<LineSpacing>("normal");
+  const [dropCapEnabled, setDropCapEnabled] = useState(false);
+
+  // Journal Metadata
+  const [journalMetadata, setJournalMetadata] = useState<JournalMetadata>({});
+  const [postLocation, setPostLocation] = useState("");
+
+  // Canvas Editor (for free image placement)
+  const [canvasImages, setCanvasImages] = useState<CanvasImage[]>([]);
+  const [useCanvasMode, setUseCanvasMode] = useState(false);
 
   // Initial content for edit mode (set after editor mounts)
   const [initialContent, setInitialContent] = useState<string | null>(null);
@@ -963,6 +1030,19 @@ export default function CreatePost() {
         // Community posts are always public to be visible to all members
         const postVisibility = selectedCommunity ? "public" : visibility;
 
+        // Build styling object
+        const postStyling: PostStyling = {
+          background: styling.background,
+          textAlignment: textAlignment,
+          lineSpacing: lineSpacing,
+          dropCap: dropCapEnabled,
+        };
+
+        // Build metadata for journals
+        const postMetadata = selectedType === 'journal' && Object.keys(journalMetadata).length > 0
+          ? journalMetadata
+          : null;
+
         const { data: post, error: postError } = await supabase
           .from("posts")
           .insert({
@@ -973,6 +1053,9 @@ export default function CreatePost() {
             visibility: postVisibility,
             content_warning: hasContentWarning ? contentWarning.trim() || null : null,
             community_id: selectedCommunity?.id || null,
+            styling: Object.keys(postStyling).some(k => postStyling[k as keyof PostStyling] !== undefined && postStyling[k as keyof PostStyling] !== 'left' && postStyling[k as keyof PostStyling] !== 'normal' && postStyling[k as keyof PostStyling] !== false) ? postStyling : null,
+            post_location: postLocation.trim() || null,
+            metadata: postMetadata,
           })
           .select()
           .single();
@@ -1015,6 +1098,39 @@ export default function CreatePost() {
             media_type: item.type,
             caption: item.caption.trim() || null,
             position: startPosition + i,
+          });
+        }
+      }
+
+      // Upload canvas images (if canvas mode is used)
+      if (useCanvasMode && canvasImages.length > 0) {
+        for (let i = 0; i < canvasImages.length; i++) {
+          const canvasImage = canvasImages[i];
+          if (!canvasImage.file) continue;
+
+          const fileExt = canvasImage.file.name.split(".").pop();
+          const fileName = `${user.id}/${postId}/canvas-${i}-${Date.now()}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("post-media")
+            .upload(fileName, canvasImage.file, { cacheControl: '31536000' });
+
+          if (uploadError) {
+            console.error("Canvas image upload error:", uploadError);
+            continue;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from("post-media")
+            .getPublicUrl(fileName);
+
+          await supabase.from("post_media").insert({
+            post_id: postId,
+            media_url: urlData.publicUrl,
+            media_type: 'image',
+            caption: null,
+            position: 1000 + i, // Canvas images have high position numbers
+            canvas_data: canvasImage.canvasData,
           });
         }
       }
@@ -1713,6 +1829,175 @@ export default function CreatePost() {
         </div>
         )}
 
+        {/* Creative Styling Section - Hidden in Take mode */}
+        {!isTakeMode && (
+        <div className="px-6 pb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-purple-primary">{icons.background}</span>
+            <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
+              Creative Styling
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {/* Background Button */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowBackgroundPicker(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-purple-primary/20 bg-white hover:border-purple-primary/50 hover:bg-purple-primary/5 transition-all"
+              >
+                {styling.background ? (
+                  <div
+                    className="w-6 h-6 rounded-lg border border-black/10"
+                    style={{
+                      background: styling.background.type === 'solid'
+                        ? styling.background.value
+                        : styling.background.type === 'gradient'
+                        ? styling.background.value
+                        : styling.background.type === 'image'
+                        ? `url(${styling.background.imageUrl}) center/cover`
+                        : '#f5f5f5'
+                    }}
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-lg border-2 border-dashed border-purple-primary/30" />
+                )}
+                <span className="font-ui text-sm text-ink">
+                  {styling.background ? 'Change Background' : 'Add Background'}
+                </span>
+              </button>
+              {styling.background && (
+                <button
+                  onClick={() => setStyling({ ...styling, background: undefined })}
+                  className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors"
+                >
+                  {icons.x}
+                </button>
+              )}
+            </div>
+
+            {/* Text Formatting Options */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Text Alignment */}
+              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
+                {(['left', 'center', 'right', 'justify'] as TextAlignment[]).map((align) => (
+                  <button
+                    key={align}
+                    onClick={() => setTextAlignment(align)}
+                    className={`w-8 h-8 rounded-md flex items-center justify-center transition-all ${
+                      textAlignment === align
+                        ? 'bg-purple-primary text-white'
+                        : 'text-muted hover:bg-white'
+                    }`}
+                    title={`Align ${align}`}
+                  >
+                    {icons[`align${align.charAt(0).toUpperCase() + align.slice(1)}` as keyof typeof icons]}
+                  </button>
+                ))}
+              </div>
+
+              {/* Line Spacing */}
+              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
+                <span className="px-2 text-muted">{icons.lineSpacing}</span>
+                {(['normal', 'relaxed', 'loose'] as LineSpacing[]).map((spacing) => (
+                  <button
+                    key={spacing}
+                    onClick={() => setLineSpacing(spacing)}
+                    className={`px-3 py-1 rounded-md font-ui text-xs transition-all ${
+                      lineSpacing === spacing
+                        ? 'bg-purple-primary text-white'
+                        : 'text-muted hover:bg-white'
+                    }`}
+                  >
+                    {spacing === 'normal' ? '1x' : spacing === 'relaxed' ? '1.5x' : '2x'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Drop Cap Toggle */}
+              <button
+                onClick={() => setDropCapEnabled(!dropCapEnabled)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                  dropCapEnabled
+                    ? 'bg-purple-primary text-white'
+                    : 'bg-gray-100 text-muted hover:bg-gray-200'
+                }`}
+              >
+                {icons.dropCap}
+                <span className="font-ui text-xs">Drop Cap</span>
+              </button>
+            </div>
+
+            {/* Canvas Mode Toggle */}
+            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 rounded-xl border border-purple-primary/10">
+              <div className="flex items-center gap-2">
+                <span className="text-purple-primary">{icons.canvas}</span>
+                <div>
+                  <p className="font-ui text-sm font-medium text-ink">Canvas Mode</p>
+                  <p className="font-ui text-xs text-muted">Freely position images anywhere</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setUseCanvasMode(!useCanvasMode)}
+                className={`w-12 h-7 rounded-full transition-all relative ${
+                  useCanvasMode ? 'bg-gradient-to-r from-purple-primary to-pink-vivid' : 'bg-gray-300'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-all ${
+                    useCanvasMode ? 'left-6' : 'left-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+        )}
+
+        {/* Canvas Editor - shown when canvas mode is enabled */}
+        {!isTakeMode && useCanvasMode && (
+        <div className="px-6 pb-6">
+          <CanvasEditor
+            images={canvasImages}
+            onChange={setCanvasImages}
+            background={styling.background}
+            aspectRatio={4/3}
+          />
+        </div>
+        )}
+
+        {/* Journal Metadata - shown only for journal type */}
+        {!isTakeMode && selectedType === 'journal' && (
+        <div className="px-6 pb-6">
+          <JournalMetadataPanel
+            value={journalMetadata}
+            onChange={setJournalMetadata}
+            location={postLocation}
+            onLocationChange={setPostLocation}
+          />
+        </div>
+        )}
+
+        {/* Location Input - shown for all types except journal (which has it in metadata panel) */}
+        {!isTakeMode && selectedType !== 'journal' && (
+        <div className="px-6 pb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-purple-primary">{icons.location}</span>
+            <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
+              Location
+            </span>
+            <span className="font-ui text-[0.75rem] text-muted/60">(optional)</span>
+          </div>
+          <input
+            type="text"
+            value={postLocation}
+            onChange={(e) => setPostLocation(e.target.value)}
+            placeholder="Where are you writing from?"
+            className="w-full px-4 py-2.5 rounded-xl border border-purple-primary/20 bg-white font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+          />
+        </div>
+        )}
+
         {/* Tags Section */}
         <div className="px-6 pb-6">
           <div className="flex items-center gap-2 mb-3">
@@ -2179,6 +2464,15 @@ export default function CreatePost() {
           initialSelected={taggedPeople}
           maxSelections={50}
           excludeIds={collaborators.map((c) => c.id)}
+        />
+      )}
+
+      {/* Background Picker Modal */}
+      {showBackgroundPicker && (
+        <BackgroundPicker
+          value={styling.background || null}
+          onChange={(background) => setStyling({ ...styling, background: background || undefined })}
+          onClose={() => setShowBackgroundPicker(false)}
         />
       )}
     </div>

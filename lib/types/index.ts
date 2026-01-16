@@ -7,12 +7,73 @@
 // POST TYPES
 // ============================================================================
 
+// ============================================================================
+// POST STYLING TYPES (for creative backgrounds, formatting, etc.)
+// ============================================================================
+
+export type BackgroundType = 'solid' | 'gradient' | 'pattern' | 'image';
+export type TextAlignment = 'left' | 'center' | 'right' | 'justify';
+export type LineSpacing = 'normal' | 'relaxed' | 'loose';
+export type DividerStyle = 'none' | 'simple' | 'ornate' | 'dots' | 'stars' | 'wave';
+export type ShadowStyle = 'none' | 'soft' | 'medium' | 'strong';
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
+export type WeatherType = 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'snowy' | 'foggy' | 'windy';
+export type MoodType = 'reflective' | 'joyful' | 'melancholic' | 'peaceful' | 'anxious' | 'grateful' | 'creative' | 'nostalgic' | 'hopeful' | 'contemplative';
+
+export interface PostBackground {
+  type: BackgroundType;
+  value: string; // hex color, gradient CSS, pattern name, or image URL
+  imageUrl?: string; // for image backgrounds
+  opacity?: number; // 0-1, for image backgrounds
+  blur?: number; // for image backgrounds
+}
+
+export interface PostStyling {
+  background?: PostBackground;
+  textAlignment?: TextAlignment;
+  lineSpacing?: LineSpacing;
+  dropCap?: boolean;
+  dividerStyle?: DividerStyle;
+}
+
+export interface JournalMetadata {
+  weather?: WeatherType | string;
+  temperature?: string; // e.g., "15°C" or "59°F"
+  mood?: MoodType | string;
+  timeOfDay?: TimeOfDay;
+}
+
+export interface CanvasData {
+  x: number; // 0-1 percentage from left
+  y: number; // 0-1 percentage from top
+  width: number; // 0-1 percentage width
+  height: number; // 0-1 percentage height
+  rotation: number; // degrees
+  zIndex: number;
+  borderRadius: number; // pixels
+  borderWidth: number; // pixels
+  borderColor: string;
+  shadow: ShadowStyle;
+}
+
+export interface BackgroundPreset {
+  id: string;
+  name: string;
+  type: 'solid' | 'gradient' | 'pattern' | 'texture';
+  value: string;
+  preview_url?: string;
+  category: string;
+  is_system: boolean;
+  sort_order: number;
+}
+
 export interface PostMedia {
   id: string;
   media_url: string;
   media_type: "image" | "video";
   caption: string | null;
   position: number;
+  canvas_data?: CanvasData | null;
 }
 
 export type PostType =
@@ -80,6 +141,11 @@ export interface Post {
   content_warning: string | null;
   created_at: string;
   community_id: string | null;
+
+  // Creative styling options
+  styling?: PostStyling | null;
+  post_location?: string | null;
+  metadata?: JournalMetadata | null;
 
   // Joined data
   author: PostAuthor;

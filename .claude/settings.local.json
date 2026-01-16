@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(node_modules.bintsc:*)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}

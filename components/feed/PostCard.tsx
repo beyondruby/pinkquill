@@ -14,6 +14,7 @@ import ReportModal from "@/components/ui/ReportModal";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
+import { PostStyling, JournalMetadata, PostBackground } from "@/lib/types";
 import {
   HeartIcon,
   CommentIcon,
@@ -177,6 +178,10 @@ interface PostProps {
   collaborators?: CollaboratorInfo[];
   mentions?: MentionInfo[];
   hashtags?: string[];
+  // Creative styling
+  styling?: PostStyling | null;
+  post_location?: string | null;
+  metadata?: JournalMetadata | null;
 }
 
 // Format date as "January 2, 2026"
@@ -188,6 +193,51 @@ function formatDate(dateString: string): string {
     year: 'numeric'
   });
 }
+
+// Get background style for card preview
+function getBackgroundPreviewStyle(background?: PostBackground): React.CSSProperties {
+  if (!background) return {};
+  switch (background.type) {
+    case 'solid':
+      return { backgroundColor: background.value };
+    case 'gradient':
+      return { background: background.value };
+    case 'image':
+      return {
+        backgroundImage: `url(${background.imageUrl || background.value})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      };
+    default:
+      return {};
+  }
+}
+
+// Weather icons (simplified inline)
+const weatherIconsSmall: Record<string, string> = {
+  'sunny': '☀️',
+  'partly-cloudy': '⛅',
+  'cloudy': '☁️',
+  'rainy': '🌧️',
+  'stormy': '⛈️',
+  'snowy': '❄️',
+  'foggy': '🌫️',
+  'windy': '💨',
+};
+
+// Mood indicators
+const moodIndicators: Record<string, string> = {
+  'reflective': '🪞',
+  'joyful': '😊',
+  'melancholic': '🌙',
+  'peaceful': '🕊️',
+  'anxious': '😰',
+  'grateful': '🙏',
+  'creative': '✨',
+  'nostalgic': '📷',
+  'hopeful': '🌟',
+  'contemplative': '💭',
+};
 
 // Sound Wave Animation Component
 function SoundBars() {
@@ -908,23 +958,68 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     // Journal post
     if (post.type === "journal" && !hasMedia) {
       const { text: journalExcerpt, isTruncated: journalTruncated } = getExcerptByWords(post.content, 50);
+      const hasBackground = post.styling?.background;
+      const hasMetadata = post.metadata && (post.metadata.weather || post.metadata.temperature || post.metadata.mood);
+
       return (
-        <article className="post type-journal" onClick={handleOpenModal}>
-          <AuthorHeader />
-          <ContentSection>
-            <div className="journal-date">{post.createdAt ? formatDate(post.createdAt) : post.timeAgo}</div>
-            {post.title && <h3 className="journal-title">{post.title}</h3>}
-            <p className="journal-excerpt">{journalExcerpt}</p>
-            {journalTruncated && (
-              <button className="continue-reading-btn" onClick={(e) => { e.stopPropagation(); handleOpenModal(); }}>
-                Continue reading
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-              </button>
-            )}
-          </ContentSection>
-          <Actions />
+        <article
+          className={`post type-journal ${hasBackground ? 'has-background' : ''}`}
+          onClick={handleOpenModal}
+          style={hasBackground ? { position: 'relative', overflow: 'hidden' } : undefined}
+        >
+          {/* Background preview for styled journals */}
+          {hasBackground && (
+            <div
+              className="absolute inset-0 opacity-20 pointer-events-none"
+              style={getBackgroundPreviewStyle(post.styling?.background)}
+            />
+          )}
+          <div className="relative z-10">
+            <AuthorHeader />
+            <ContentSection>
+              {/* Journal metadata row */}
+              <div className="journal-header-row">
+                <div className="journal-date">{post.createdAt ? formatDate(post.createdAt) : post.timeAgo}</div>
+                {/* Metadata indicators */}
+                {(hasMetadata || post.post_location) && (
+                  <div className="journal-metadata-indicators">
+                    {post.post_location && (
+                      <span className="journal-location-indicator" title={post.post_location}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                      </span>
+                    )}
+                    {post.metadata?.weather && (
+                      <span className="journal-weather-indicator" title={post.metadata.weather}>
+                        {weatherIconsSmall[post.metadata.weather] || '🌤️'}
+                      </span>
+                    )}
+                    {post.metadata?.temperature && (
+                      <span className="journal-temp-indicator">{post.metadata.temperature}</span>
+                    )}
+                    {post.metadata?.mood && (
+                      <span className="journal-mood-indicator" title={post.metadata.mood}>
+                        {moodIndicators[post.metadata.mood] || '💭'}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              {post.title && <h3 className="journal-title">{post.title}</h3>}
+              <p className="journal-excerpt">{journalExcerpt}</p>
+              {journalTruncated && (
+                <button className="continue-reading-btn" onClick={(e) => { e.stopPropagation(); handleOpenModal(); }}>
+                  Continue reading
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </button>
+              )}
+            </ContentSection>
+            <Actions />
+          </div>
         </article>
       );
     }

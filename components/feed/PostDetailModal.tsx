@@ -16,10 +16,108 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
+import { PostStyling, JournalMetadata, CanvasData, PostBackground, TimeOfDay, WeatherType, MoodType } from "@/lib/types";
 
 // Helper to clean HTML for display (keeps tags but fixes &nbsp;)
 function cleanHtmlForDisplay(html: string): string {
   return html.replace(/&nbsp;/g, ' ');
+}
+
+// Generate background CSS from PostBackground
+function getBackgroundStyle(background?: PostBackground): React.CSSProperties {
+  if (!background) return {};
+
+  switch (background.type) {
+    case 'solid':
+      return { backgroundColor: background.value };
+    case 'gradient':
+      return { background: background.value };
+    case 'pattern':
+      return {
+        backgroundColor: '#f8f8f8',
+        backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(getPatternSvg(background.value))}")`,
+        backgroundRepeat: 'repeat',
+      };
+    case 'image':
+      return {
+        backgroundImage: `url(${background.imageUrl || background.value})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      };
+    default:
+      return {};
+  }
+}
+
+// Get SVG pattern for pattern backgrounds
+function getPatternSvg(patternName: string): string {
+  const patterns: Record<string, string> = {
+    'paper': '<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><filter id="paper"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5"/><feDiffuseLighting lighting-color="#fff" surfaceScale="2"><feDistantLight azimuth="45" elevation="60"/></feDiffuseLighting></filter><rect width="100" height="100" filter="url(%23paper)"/></svg>',
+    'linen': '<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="20" fill="%23f5f5f5"/><path d="M0 0h20v1H0zM0 5h20v1H0zM0 10h20v1H0zM0 15h20v1H0z" fill="%23e8e8e8" opacity="0.5"/></svg>',
+    'dots': '<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><circle cx="2" cy="2" r="1" fill="%23ddd"/></svg>',
+    'grid': '<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h40v40H0z" fill="none" stroke="%23e0e0e0" stroke-width="0.5"/></svg>',
+  };
+  return patterns[patternName] || patterns['paper'];
+}
+
+// Weather icons for journal display
+const weatherIcons: Record<string, React.ReactNode> = {
+  'sunny': <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>,
+  'partly-cloudy': <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 0 0-4.9 4.03A5 5 0 0 0 3 11a5 5 0 0 0 5 5h9a4 4 0 0 0 0-8h-.35A5 5 0 0 0 12 2z"/></svg>,
+  'cloudy': <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17 18H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 18z"/></svg>,
+  'rainy': <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM8 17l-2 4M12 17l-2 4M16 17l-2 4"/></svg>,
+  'stormy': <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM13 14l-4 8h5l-1 4"/></svg>,
+  'snowy': <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM8 16h.01M12 16h.01M16 16h.01M8 20h.01M12 20h.01M16 20h.01"/></svg>,
+  'foggy': <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 14h16M4 18h12M4 10h8"/></svg>,
+  'windy': <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2M12.59 19.41A2 2 0 1 0 14 16H2M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>,
+};
+
+// Time of day icons
+const timeOfDayIcons: Record<string, React.ReactNode> = {
+  'morning': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 0 0 0 10M2 12h2M20 12h2M6.34 6.34l1.42 1.42M16.24 16.24l1.42 1.42M6.34 17.66l1.42-1.42M16.24 7.76l1.42-1.42"/></svg>,
+  'afternoon': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>,
+  'evening': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v3M18.36 5.64l-2.12 2.12M21 12h-3M18.36 18.36l-2.12-2.12M12 21v-3M5.64 18.36l2.12-2.12M3 12h3M5.64 5.64l2.12 2.12"/></svg>,
+  'night': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
+};
+
+// Mood icons
+const moodIcons: Record<string, React.ReactNode> = {
+  'reflective': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>,
+  'joyful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>,
+  'melancholic': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2M9 9h.01M15 9h.01"/></svg>,
+  'peaceful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14h8M9 9h.01M15 9h.01"/></svg>,
+  'anxious': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 15h8M8 9h2M14 9h2"/></svg>,
+  'grateful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+  'creative': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>,
+  'nostalgic': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  'hopeful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  'contemplative': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>,
+};
+
+// Get shadow CSS for canvas images
+function getShadowStyle(shadow: string): string {
+  switch (shadow) {
+    case 'soft': return '0 4px 12px rgba(0,0,0,0.1)';
+    case 'medium': return '0 8px 24px rgba(0,0,0,0.15)';
+    case 'strong': return '0 12px 40px rgba(0,0,0,0.25)';
+    default: return 'none';
+  }
+}
+
+// Determine if background is dark to adjust text color
+function isDarkBackground(background?: PostBackground): boolean {
+  if (!background) return false;
+  if (background.type === 'solid') {
+    const hex = background.value.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.5;
+  }
+  if (background.type === 'image') return true;
+  if (background.type === 'gradient' && background.value.includes('#1')) return true;
+  return false;
 }
 
 interface TaggedUser {
@@ -51,6 +149,7 @@ interface MediaItem {
   media_type: "image" | "video";
   caption: string | null;
   position: number;
+  canvas_data?: CanvasData | null;
 }
 
 interface Post {
@@ -77,6 +176,10 @@ interface Post {
   mentions?: TaggedUser[];
   hashtags?: string[];
   collaborators?: CollaboratorUser[];
+  // Creative styling
+  styling?: PostStyling | null;
+  post_location?: string | null;
+  metadata?: JournalMetadata | null;
 }
 
 // Format date as "January 2, 2026"
@@ -87,6 +190,49 @@ function formatDate(dateString: string): string {
     day: 'numeric',
     year: 'numeric'
   });
+}
+
+// Format time as "10:42 PM"
+function formatTime(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
+// Format time of day label
+function formatTimeOfDay(timeOfDay?: string): string {
+  const labels: Record<string, string> = {
+    'morning': 'Morning',
+    'afternoon': 'Afternoon',
+    'evening': 'Evening',
+    'night': 'Night'
+  };
+  return timeOfDay ? labels[timeOfDay] || timeOfDay : '';
+}
+
+// Format mood label
+function formatMood(mood?: string): string {
+  if (!mood) return '';
+  return mood.charAt(0).toUpperCase() + mood.slice(1);
+}
+
+// Format weather label
+function formatWeather(weather?: string): string {
+  if (!weather) return '';
+  const labels: Record<string, string> = {
+    'sunny': 'Sunny',
+    'partly-cloudy': 'Partly Cloudy',
+    'cloudy': 'Cloudy',
+    'rainy': 'Rainy',
+    'stormy': 'Stormy',
+    'snowy': 'Snowy',
+    'foggy': 'Foggy',
+    'windy': 'Windy'
+  };
+  return labels[weather] || weather;
 }
 
 function getTimeAgo(dateString: string): string {
@@ -421,274 +567,455 @@ export default function PostDetailModal({
     deleteComment(commentId);
   };
 
+  // Determine styling properties
+  const hasBackground = post.styling?.background;
+  const hasDarkBg = isDarkBackground(post.styling?.background);
+  const textColorClass = hasDarkBg ? 'text-white' : 'text-ink';
+  const mutedTextColorClass = hasDarkBg ? 'text-white/70' : 'text-muted';
+  const borderColorClass = hasDarkBg ? 'border-white/10' : 'border-black/[0.06]';
+
+  // Text styling
+  const textAlignment = post.styling?.textAlignment || 'left';
+  const lineSpacing = post.styling?.lineSpacing || 'normal';
+  const dropCapEnabled = post.styling?.dropCap || false;
+
+  const alignmentClass = {
+    left: 'text-left',
+    center: 'text-center',
+    right: 'text-right',
+    justify: 'text-justify'
+  }[textAlignment];
+
+  const lineSpacingClass = {
+    normal: 'leading-relaxed',
+    relaxed: 'leading-[2]',
+    loose: 'leading-[2.5]'
+  }[lineSpacing];
+
+  // Check for canvas images (position >= 1000)
+  const canvasImages = post.media?.filter(m => m.position >= 1000 && m.canvas_data) || [];
+  const regularMedia = post.media?.filter(m => m.position < 1000 || !m.canvas_data) || [];
+  const hasCanvasImages = canvasImages.length > 0;
+  const hasRegularMedia = regularMedia.length > 0;
+
   return (
     <>
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className={`flex flex-col md:flex-row h-full ${showComments ? "" : ""}`}>
-        {/* Mobile Close Button */}
+        {/* Mobile Close Button - Floating */}
         <button
           onClick={onClose}
-          className="md:hidden absolute top-3 right-3 z-50 w-10 h-10 rounded-full bg-black/10 backdrop-blur-sm flex items-center justify-center text-ink"
+          className={`md:hidden absolute top-3 right-3 z-50 w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all ${
+            hasDarkBg ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-black/10 text-ink hover:bg-black/20'
+          }`}
         >
           {icons.close}
         </button>
 
-        {/* Main Content Area */}
+        {/* Main Content Area - Immersive Design */}
         <div
-          className={`flex flex-col overflow-y-auto p-4 md:p-10 ${
-            showComments ? "hidden md:flex md:flex-1 md:border-r border-black/5" : "flex-1"
-          }`}
+          className={`flex flex-col overflow-y-auto relative ${
+            showComments ? "hidden md:flex md:flex-1 md:border-r" : "flex-1"
+          } ${borderColorClass}`}
+          style={hasBackground ? getBackgroundStyle(post.styling?.background) : {}}
         >
-          {/* Author Header */}
-          <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-8 pb-4 md:pb-6 border-b border-black/[0.06]">
-            <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={onClose}>
-              <Image
-                src={post.author.avatar}
-                alt={post.author.name}
-                width={56}
-                height={56}
-                className="w-10 h-10 md:w-14 md:h-14 rounded-full object-cover border-2 md:border-[3px] border-white shadow-lg hover:scale-110 transition-transform"
-              />
-            </Link>
-            <div className="flex flex-col gap-0.5 md:gap-1 flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={onClose} className="font-ui text-[0.95rem] md:text-[1.1rem] font-medium text-ink hover:text-purple-primary transition-colors truncate">
-                  {post.author.name}
-                </Link>
-                <span className="font-ui text-[0.8rem] md:text-[0.9rem] font-light text-muted hidden sm:inline">
-                  {post.typeLabel}
-                </span>
-              </div>
-              <span className="font-ui text-[0.75rem] md:text-[0.85rem] text-muted">
-                {post.timeAgo}
-              </span>
-            </div>
-            <button
-              onClick={() => setShowComments(!showComments)}
-              className="view-discussion-btn hidden md:flex"
-            >
-              {icons.comment}
-              <span>Discussion</span>
-              <span className="badge">
-                {comments.length}
-              </span>
-            </button>
-            {/* Mobile Discussion Button */}
-            <button
-              onClick={() => setShowComments(!showComments)}
-              className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-primary/10 text-purple-primary text-sm font-medium"
-            >
-              {icons.comment}
-              <span>{comments.length}</span>
-            </button>
-
-            {/* Post Options Menu */}
-            {isOwner ? (
-              <div className="relative" ref={menuRef}>
-                <button
-                  onClick={() => setShowMenu(!showMenu)}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
-                >
-                  {icons.moreHorizontal}
-                </button>
-
-                {showMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        handleEdit();
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
-                    >
-                      {icons.edit}
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        setShowDeleteConfirm(true);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
-                    >
-                      {icons.trash}
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : user && (
-              <div className="relative" ref={menuRef}>
-                <button
-                  onClick={() => setShowMenu(!showMenu)}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
-                >
-                  {icons.moreHorizontal}
-                </button>
-
-                {showMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        setShowBlockConfirm(true);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
-                    >
-                      {icons.block}
-                      Block
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        setShowReportModal(true);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
-                    >
-                      {icons.flag}
-                      Report
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Journal Date */}
-          {post.type === "journal" && post.createdAt && (
-            <div className="journal-date">{formatDate(post.createdAt)}</div>
+          {/* Background overlay for image backgrounds */}
+          {post.styling?.background?.type === 'image' && (
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+              style={{
+                opacity: post.styling.background.opacity !== undefined
+                  ? 1 - post.styling.background.opacity
+                  : 0.4,
+                backdropFilter: post.styling.background.blur
+                  ? `blur(${post.styling.background.blur}px)`
+                  : 'blur(2px)'
+              }}
+            />
           )}
 
-          {/* Post Content */}
-          <div className="flex-1 relative">
-            {post.title && (
-              <h2
-                className={`font-display text-[1.3rem] md:text-[1.8rem] text-ink mb-3 md:mb-4 leading-tight ${
-                  post.type === "poem" ? "text-center" : ""
+          {/* Content wrapper with padding */}
+          <div className="relative z-10 p-4 md:p-10 flex flex-col flex-1">
+            {/* Floating Author Header */}
+            <div className={`flex items-center gap-3 md:gap-4 mb-4 md:mb-6 pb-4 md:pb-6 border-b ${borderColorClass}`}>
+              <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={onClose}>
+                <Image
+                  src={post.author.avatar}
+                  alt={post.author.name}
+                  width={56}
+                  height={56}
+                  className={`w-10 h-10 md:w-14 md:h-14 rounded-full object-cover border-2 md:border-[3px] shadow-lg hover:scale-110 transition-transform ${
+                    hasDarkBg ? 'border-white/30' : 'border-white'
+                  }`}
+                />
+              </Link>
+              <div className="flex flex-col gap-0.5 md:gap-1 flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/studio/${post.author.handle.replace('@', '')}`}
+                    onClick={onClose}
+                    className={`font-ui text-[0.95rem] md:text-[1.1rem] font-medium transition-colors truncate ${
+                      hasDarkBg ? 'text-white hover:text-white/80' : 'text-ink hover:text-purple-primary'
+                    }`}
+                  >
+                    {post.author.name}
+                  </Link>
+                  <span className={`font-ui text-[0.8rem] md:text-[0.9rem] font-light hidden sm:inline ${mutedTextColorClass}`}>
+                    {post.typeLabel}
+                  </span>
+                </div>
+                <span className={`font-ui text-[0.75rem] md:text-[0.85rem] ${mutedTextColorClass}`}>
+                  {post.timeAgo}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className={`view-discussion-btn hidden md:flex ${hasDarkBg ? 'bg-white/10 text-white hover:bg-white/20' : ''}`}
+              >
+                {icons.comment}
+                <span>Discussion</span>
+                <span className={`badge ${hasDarkBg ? 'bg-white/20' : ''}`}>
+                  {comments.length}
+                </span>
+              </button>
+              {/* Mobile Discussion Button */}
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className={`md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
+                  hasDarkBg ? 'bg-white/20 text-white' : 'bg-purple-primary/10 text-purple-primary'
                 }`}
               >
-                {post.title}
-              </h2>
-            )}
+                {icons.comment}
+                <span>{comments.length}</span>
+              </button>
 
-            {post.type === "poem" ? (
-              <div
-                className="font-body text-[1.05rem] md:text-[1.3rem] text-ink leading-loose italic text-center py-4 md:py-8 post-content"
-                dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
-              />
-            ) : (
-              <div
-                className="font-body text-[0.95rem] md:text-[1.1rem] text-ink leading-relaxed post-content"
-                dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
-              />
-            )}
+              {/* Post Options Menu */}
+              {isOwner ? (
+                <div className="relative" ref={menuRef}>
+                  <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                      hasDarkBg ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-muted hover:text-ink hover:bg-black/[0.04]'
+                    }`}
+                  >
+                    {icons.moreHorizontal}
+                  </button>
 
-            {/* Media Gallery */}
-            {hasMedia && (
-              <div className="mt-4 md:mt-8">
-                {/* Main Image Container */}
-                <div className="relative group rounded-xl md:rounded-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.15)] mb-3 md:mb-5">
-                  {post.media![currentMediaIndex].media_type === "video" ? (
-                    <div className="relative bg-black">
-                      <video
-                        src={post.media![currentMediaIndex].media_url}
-                        className="w-full h-[250px] md:h-[420px] object-contain"
-                        controls
-                        controlsList="nodownload"
-                        playsInline
-                        preload="none"
-                        poster="/video-placeholder.svg"
-                      />
-                    </div>
-                  ) : (
-                    <div className="relative overflow-hidden">
-                      <Image
-                        src={post.media![currentMediaIndex].media_url}
-                        alt=""
-                        width={800}
-                        height={420}
-                        className="w-full h-[250px] md:h-[420px] object-cover cursor-pointer transition-transform duration-500 group-hover:scale-[1.02]"
+                  {showMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
+                      <button
                         onClick={() => {
-                          window.dispatchEvent(new CustomEvent('openLightbox', {
-                            detail: { images: post.media!, index: currentMediaIndex }
-                          }));
+                          setShowMenu(false);
+                          handleEdit();
                         }}
-                      />
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
+                      >
+                        {icons.edit}
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowDeleteConfirm(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        {icons.trash}
+                        Delete
+                      </button>
                     </div>
                   )}
+                </div>
+              ) : user && (
+                <div className="relative" ref={menuRef}>
+                  <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                      hasDarkBg ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-muted hover:text-ink hover:bg-black/[0.04]'
+                    }`}
+                  >
+                    {icons.moreHorizontal}
+                  </button>
 
-                  {/* Navigation Arrows */}
-                  {post.media!.length > 1 && (
+                  {showMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowBlockConfirm(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
+                      >
+                        {icons.block}
+                        Block
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowReportModal(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        {icons.flag}
+                        Report
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Beautiful Journal Metadata Header */}
+            {post.type === "journal" && post.createdAt && (
+              <div className={`journal-immersive-header mb-6 md:mb-8 text-center ${hasDarkBg ? 'text-white' : ''}`}>
+                {/* Location */}
+                {post.post_location && (
+                  <div className={`flex items-center justify-center gap-2 mb-3 ${mutedTextColorClass}`}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                    <span className="font-ui text-sm tracking-wide">{post.post_location}</span>
+                  </div>
+                )}
+
+                {/* Date & Time */}
+                <div className={`font-display text-2xl md:text-3xl mb-2 ${textColorClass}`}>
+                  {formatDate(post.createdAt)}
+                </div>
+                <div className={`flex items-center justify-center gap-3 text-sm ${mutedTextColorClass}`}>
+                  <span className="font-ui">{formatTime(post.createdAt)}</span>
+                  {post.metadata?.timeOfDay && (
                     <>
-                      <button
-                        onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? post.media!.length - 1 : prev - 1))}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-ink opacity-0 group-hover:opacity-100 hover:bg-white hover:scale-110 transition-all duration-300 z-10"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => setCurrentMediaIndex((prev) => (prev === post.media!.length - 1 ? 0 : prev + 1))}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-ink opacity-0 group-hover:opacity-100 hover:bg-white hover:scale-110 transition-all duration-300 z-10"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
+                      <span className="opacity-40">·</span>
+                      <span className="flex items-center gap-1.5">
+                        {timeOfDayIcons[post.metadata.timeOfDay]}
+                        <span className="font-ui">{formatTimeOfDay(post.metadata.timeOfDay)}</span>
+                      </span>
                     </>
                   )}
                 </div>
 
-                {/* Caption - Elegant Design */}
-                {post.media![currentMediaIndex].caption && (
-                  <div className="text-center mb-5 px-4">
-                    <div className="inline-block relative">
-                      <span className="absolute -left-4 top-0 text-purple-primary/20 text-2xl font-display">"</span>
-                      <p className="font-body text-[1rem] text-ink/80 italic leading-relaxed">
-                        {post.media![currentMediaIndex].caption}
-                      </p>
-                      <span className="absolute -right-4 bottom-0 text-purple-primary/20 text-2xl font-display rotate-180">"</span>
-                    </div>
+                {/* Weather & Mood */}
+                {(post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
+                  <div className={`flex items-center justify-center gap-4 mt-4 pt-4 border-t ${borderColorClass}`}>
+                    {(post.metadata?.weather || post.metadata?.temperature) && (
+                      <div className={`flex items-center gap-2 ${mutedTextColorClass}`}>
+                        {post.metadata?.weather && weatherIcons[post.metadata.weather]}
+                        {post.metadata?.temperature && (
+                          <span className="font-ui text-sm">{post.metadata.temperature}</span>
+                        )}
+                        {post.metadata?.weather && !post.metadata?.temperature && (
+                          <span className="font-ui text-sm">{formatWeather(post.metadata.weather)}</span>
+                        )}
+                      </div>
+                    )}
+                    {post.metadata?.mood && (
+                      <>
+                        {(post.metadata?.weather || post.metadata?.temperature) && (
+                          <span className={`opacity-30 ${textColorClass}`}>·</span>
+                        )}
+                        <div className={`flex items-center gap-1.5 ${mutedTextColorClass}`}>
+                          {moodIcons[post.metadata.mood] || moodIcons['reflective']}
+                          <span className="font-ui text-sm">{formatMood(post.metadata.mood)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
-                {/* Thumbnail Strip - Beautiful Design */}
-                {post.media!.length > 1 && (
-                  <div className="flex gap-3 justify-center flex-wrap">
-                    {post.media!.map((item, idx) => (
-                      <button
-                        key={item.id || idx}
-                        onClick={() => setCurrentMediaIndex(idx)}
-                        className={`relative w-16 h-16 rounded-xl overflow-hidden transition-all duration-300 ${
-                          idx === currentMediaIndex
-                            ? "ring-2 ring-purple-primary ring-offset-2 scale-105 shadow-lg"
-                            : "opacity-60 hover:opacity-100 hover:scale-105"
-                        }`}
-                      >
-                        {item.media_type === "video" ? (
-                          <div className="relative w-full h-full bg-black">
-                            <video src={item.media_url} className="w-full h-full object-cover" preload="metadata" />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </div>
-                          </div>
-                        ) : (
-                          <Image src={item.media_url} alt="" width={64} height={64} className="w-full h-full object-cover" />
-                        )}
-                        {idx === currentMediaIndex && (
-                          <div className="absolute inset-0 border-2 border-purple-primary rounded-xl" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {/* Decorative divider */}
+                <div className={`flex items-center justify-center mt-6 mb-2 ${mutedTextColorClass}`}>
+                  <div className={`w-12 h-px ${hasDarkBg ? 'bg-white/20' : 'bg-black/10'}`} />
+                  <svg className="w-4 h-4 mx-3 opacity-30" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                  </svg>
+                  <div className={`w-12 h-px ${hasDarkBg ? 'bg-white/20' : 'bg-black/10'}`} />
+                </div>
               </div>
             )}
+
+            {/* Non-journal location display */}
+            {post.type !== "journal" && post.post_location && (
+              <div className={`flex items-center gap-2 mb-4 ${mutedTextColorClass}`}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                </svg>
+                <span className="font-ui text-sm">{post.post_location}</span>
+              </div>
+            )}
+
+            {/* Post Content */}
+            <div className="flex-1 relative">
+              {post.title && (
+                <h2
+                  className={`font-display text-[1.3rem] md:text-[1.8rem] mb-3 md:mb-4 leading-tight ${textColorClass} ${
+                    post.type === "poem" || textAlignment === 'center' ? "text-center" : alignmentClass
+                  }`}
+                >
+                  {post.title}
+                </h2>
+              )}
+
+              {post.type === "poem" ? (
+                <div
+                  className={`font-body text-[1.05rem] md:text-[1.3rem] leading-loose italic text-center py-4 md:py-8 post-content ${textColorClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
+                  dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
+                />
+              ) : (
+                <div
+                  className={`font-body text-[0.95rem] md:text-[1.1rem] post-content ${textColorClass} ${alignmentClass} ${lineSpacingClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
+                  dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
+                />
+              )}
+
+              {/* Canvas Images Display - Free-positioned images */}
+              {hasCanvasImages && (
+                <div className="relative w-full aspect-[4/3] md:aspect-[16/10] mt-4 md:mt-8 rounded-xl overflow-hidden bg-black/5">
+                  {canvasImages.map((item, idx) => {
+                    const canvas = item.canvas_data!;
+                    return (
+                      <div
+                        key={item.id || idx}
+                        className="absolute cursor-pointer transition-transform hover:scale-[1.02]"
+                        style={{
+                          left: `${canvas.x * 100}%`,
+                          top: `${canvas.y * 100}%`,
+                          width: `${canvas.width * 100}%`,
+                          height: `${canvas.height * 100}%`,
+                          zIndex: canvas.zIndex || 1,
+                          transform: `rotate(${canvas.rotation || 0}deg)`,
+                        }}
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('openLightbox', {
+                            detail: { images: canvasImages, index: idx }
+                          }));
+                        }}
+                      >
+                        <Image
+                          src={item.media_url}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          style={{
+                            borderRadius: `${canvas.borderRadius || 0}px`,
+                            border: canvas.borderWidth ? `${canvas.borderWidth}px solid ${canvas.borderColor || '#000'}` : 'none',
+                            boxShadow: getShadowStyle(canvas.shadow || 'none'),
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Regular Media Gallery */}
+              {hasRegularMedia && (
+                <div className="mt-4 md:mt-8">
+                  {/* Main Image Container */}
+                  <div className="relative group rounded-xl md:rounded-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.15)] mb-3 md:mb-5">
+                    {regularMedia[currentMediaIndex]?.media_type === "video" ? (
+                      <div className="relative bg-black">
+                        <video
+                          src={regularMedia[currentMediaIndex].media_url}
+                          className="w-full h-[250px] md:h-[420px] object-contain"
+                          controls
+                          controlsList="nodownload"
+                          playsInline
+                          preload="none"
+                          poster="/video-placeholder.svg"
+                        />
+                      </div>
+                    ) : regularMedia[currentMediaIndex] && (
+                      <div className="relative overflow-hidden">
+                        <Image
+                          src={regularMedia[currentMediaIndex].media_url}
+                          alt=""
+                          width={800}
+                          height={420}
+                          className="w-full h-[250px] md:h-[420px] object-cover cursor-pointer transition-transform duration-500 group-hover:scale-[1.02]"
+                          onClick={() => {
+                            window.dispatchEvent(new CustomEvent('openLightbox', {
+                              detail: { images: regularMedia, index: currentMediaIndex }
+                            }));
+                          }}
+                        />
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+                      </div>
+                    )}
+
+                    {/* Navigation Arrows */}
+                    {regularMedia.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? regularMedia.length - 1 : prev - 1))}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-ink opacity-0 group-hover:opacity-100 hover:bg-white hover:scale-110 transition-all duration-300 z-10"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setCurrentMediaIndex((prev) => (prev === regularMedia.length - 1 ? 0 : prev + 1))}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-ink opacity-0 group-hover:opacity-100 hover:bg-white hover:scale-110 transition-all duration-300 z-10"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Caption - Elegant Design */}
+                  {regularMedia[currentMediaIndex]?.caption && (
+                    <div className="text-center mb-5 px-4">
+                      <div className="inline-block relative">
+                        <span className={`absolute -left-4 top-0 text-2xl font-display ${hasDarkBg ? 'text-white/20' : 'text-purple-primary/20'}`}>"</span>
+                        <p className={`font-body text-[1rem] italic leading-relaxed ${hasDarkBg ? 'text-white/80' : 'text-ink/80'}`}>
+                          {regularMedia[currentMediaIndex].caption}
+                        </p>
+                        <span className={`absolute -right-4 bottom-0 text-2xl font-display rotate-180 ${hasDarkBg ? 'text-white/20' : 'text-purple-primary/20'}`}>"</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Thumbnail Strip - Beautiful Design */}
+                  {regularMedia.length > 1 && (
+                    <div className="flex gap-3 justify-center flex-wrap">
+                      {regularMedia.map((item, idx) => (
+                        <button
+                          key={item.id || idx}
+                          onClick={() => setCurrentMediaIndex(idx)}
+                          className={`relative w-16 h-16 rounded-xl overflow-hidden transition-all duration-300 ${
+                            idx === currentMediaIndex
+                              ? "ring-2 ring-purple-primary ring-offset-2 scale-105 shadow-lg"
+                              : "opacity-60 hover:opacity-100 hover:scale-105"
+                          }`}
+                        >
+                          {item.media_type === "video" ? (
+                            <div className="relative w-full h-full bg-black">
+                              <video src={item.media_url} className="w-full h-full object-cover" preload="metadata" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              </div>
+                            </div>
+                          ) : (
+                            <Image src={item.media_url} alt="" width={64} height={64} className="w-full h-full object-cover" />
+                          )}
+                          {idx === currentMediaIndex && (
+                            <div className="absolute inset-0 border-2 border-purple-primary rounded-xl" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
             {/* Legacy single image support */}
             {post.image && !hasMedia && (
@@ -733,8 +1060,8 @@ export default function PostDetailModal({
             onNavigate={onClose}
           />
 
-          {/* Actions */}
-          <div className="flex items-center gap-1.5 md:gap-2 mt-auto pt-4 md:pt-6 border-t border-black/[0.06] flex-wrap">
+          {/* Actions - Floating action bar */}
+          <div className={`flex items-center gap-1.5 md:gap-2 mt-auto pt-4 md:pt-6 border-t flex-wrap ${borderColorClass}`}>
             {/* Reaction Picker */}
             <ReactionPicker
               currentReaction={userReaction}
@@ -746,7 +1073,11 @@ export default function PostDetailModal({
             {/* Comment Button */}
             <button
               onClick={() => setShowComments(true)}
-              className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+              className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
+                hasDarkBg
+                  ? 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+                  : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+              }`}
             >
               {icons.comment}
               {comments.length > 0 && <span className="text-xs md:text-sm font-medium">{comments.length}</span>}
@@ -759,8 +1090,10 @@ export default function PostDetailModal({
                 disabled={!user}
                 className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                   isRelayed
-                    ? "bg-green-500/10 text-green-600"
-                    : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                    ? "bg-green-500/20 text-green-400"
+                    : hasDarkBg
+                      ? 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+                      : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
@@ -771,7 +1104,11 @@ export default function PostDetailModal({
             {/* Share Button */}
             <button
               onClick={() => setShowShareModal(true)}
-              className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
+                hasDarkBg
+                  ? 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+                  : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+              }`}
             >
               {icons.share}
             </button>
@@ -782,8 +1119,10 @@ export default function PostDetailModal({
               disabled={!user}
               className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
                 isSaved
-                  ? "bg-amber-500/10 text-amber-600"
-                  : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                  ? "bg-amber-500/20 text-amber-400"
+                  : hasDarkBg
+                    ? 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+                    : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
               } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isSaved ? (
@@ -794,6 +1133,7 @@ export default function PostDetailModal({
                 icons.bookmark
               )}
             </button>
+          </div>
           </div>
         </div>
 
