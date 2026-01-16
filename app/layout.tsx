@@ -27,97 +27,127 @@ const libreBaskerville = Libre_Baskerville({
   weight: ["400", "700"],
   subsets: ["latin"],
   variable: "--font-libre-baskerville",
+  display: "swap",
+  preload: true,
 });
 
 const crimsonPro = Crimson_Pro({
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "600"],
   style: ["normal", "italic"],
   subsets: ["latin"],
   variable: "--font-crimson-pro",
+  display: "swap",
+  preload: true,
 });
 
 const josefinSans = Josefin_Sans({
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
   variable: "--font-josefin-sans",
+  display: "swap",
+  preload: true,
 });
 
 const poppins = Poppins({
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   subsets: ["latin"],
   variable: "--font-poppins",
+  display: "swap",
+  preload: false,
 });
 
 const openSans = Open_Sans({
-  weight: ["400", "500", "600"],
+  weight: ["400", "600"],
   subsets: ["latin"],
   variable: "--font-open-sans",
+  display: "swap",
+  preload: false,
 });
 
 const playfairDisplay = Playfair_Display({
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   style: ["normal", "italic"],
   subsets: ["latin"],
   variable: "--font-playfair-display",
+  display: "swap",
+  preload: false,
 });
 
 const lora = Lora({
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   style: ["normal", "italic"],
   subsets: ["latin"],
   variable: "--font-lora",
+  display: "swap",
+  preload: false,
 });
 
 const merriweather = Merriweather({
-  weight: ["300", "400", "700"],
+  weight: ["400", "700"],
   style: ["normal", "italic"],
   subsets: ["latin"],
   variable: "--font-merriweather",
+  display: "swap",
+  preload: false,
 });
 
 const dancingScript = Dancing_Script({
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "700"],
   subsets: ["latin"],
   variable: "--font-dancing-script",
+  display: "swap",
+  preload: false,
 });
 
 const caveat = Caveat({
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "700"],
   subsets: ["latin"],
   variable: "--font-caveat",
+  display: "swap",
+  preload: false,
 });
 
 const sourceCodePro = Source_Code_Pro({
-  weight: ["400", "500", "600"],
+  weight: ["400", "600"],
   subsets: ["latin"],
   variable: "--font-source-code-pro",
+  display: "swap",
+  preload: false,
 });
 
 const inter = Inter({
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+  preload: false,
 });
 
 const spectral = Spectral({
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "600"],
   style: ["normal", "italic"],
   subsets: ["latin"],
   variable: "--font-spectral",
+  display: "swap",
+  preload: false,
 });
 
 const ebGaramond = EB_Garamond({
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   style: ["normal", "italic"],
   subsets: ["latin"],
   variable: "--font-eb-garamond",
+  display: "swap",
+  preload: false,
 });
 
 const cormorantGaramond = Cormorant_Garamond({
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "600"],
   style: ["normal", "italic"],
   subsets: ["latin"],
   variable: "--font-cormorant-garamond",
+  display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -157,6 +187,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Preconnect to critical origins for faster resource loading */}
+        <link rel="preconnect" href="https://loaitxbibjftsytlgddi.supabase.co" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://loaitxbibjftsytlgddi.supabase.co" />
+      </head>
       <body
         className={`${libreBaskerville.variable} ${crimsonPro.variable} ${josefinSans.variable} ${poppins.variable} ${openSans.variable} ${playfairDisplay.variable} ${lora.variable} ${merriweather.variable} ${dancingScript.variable} ${caveat.variable} ${sourceCodePro.variable} ${inter.variable} ${spectral.variable} ${ebGaramond.variable} ${cormorantGaramond.variable} antialiased`}
       >

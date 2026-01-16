@@ -1534,6 +1534,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                 width={70}
                                 height={70}
                                 className="studio-relay-author-avatar"
+                                sizes="24px"
+                                quality={80}
                               />
                               <span className="studio-relay-author-name">
                                 {relay.original_author?.display_name || relay.original_author?.username}

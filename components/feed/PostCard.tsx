@@ -677,6 +677,8 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
               width={70}
               height={70}
               className="collab-avatar first"
+              sizes="40px"
+              quality={80}
               style={small ? { width: '36px', height: '36px' } : undefined}
             />
           </Link>
@@ -695,6 +697,8 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
                   width={70}
                   height={70}
                   className="collab-avatar"
+                  sizes="32px"
+                  quality={80}
                   style={small ? { width: '36px', height: '36px' } : undefined}
                 />
               ) : (
@@ -721,6 +725,8 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
             width={70}
             height={70}
             className="author-avatar"
+            sizes="(max-width: 640px) 40px, 48px"
+            quality={80}
             style={small ? { width: '36px', height: '36px' } : undefined}
           />
         </Link>
@@ -936,7 +942,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
           <AuthorHeader />
           <ContentSection>
             <div className="video-container" onClick={(e) => e.stopPropagation()}>
-              <Image src={post.image || "/video-placeholder.svg"} alt={post.title || "Video thumbnail"} width={640} height={360} className="video-thumbnail" style={{ width: '100%', height: 'auto' }} />
+              <Image src={post.image || "/video-placeholder.svg"} alt={post.title || "Video thumbnail"} width={640} height={360} className="video-thumbnail" style={{ width: '100%', height: 'auto' }} sizes="(max-width: 640px) 90vw, 500px" quality={75} loading="lazy" />
               <div className="video-play-btn">
                 <span style={{ color: 'var(--primary-purple)', marginLeft: '4px' }}><PlayIcon /></span>
               </div>
@@ -1000,6 +1006,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
                       width={400}
                       height={400}
                       className="unified-media-image"
+                      sizes="(max-width: 640px) 45vw, (max-width: 1024px) 200px, 180px"
+                      quality={75}
+                      loading="lazy"
                     />
                   )}
                   {/* Show +N overlay on the last visible image if more than 4 */}
@@ -1023,6 +1032,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
                   width={400}
                   height={400}
                   className="unified-media-image"
+                  sizes="(max-width: 640px) 90vw, (max-width: 1024px) 400px, 360px"
+                  quality={75}
+                  loading="lazy"
                 />
               </div>
             </div>

@@ -663,6 +663,8 @@ export default function PostDetailModal({
                   className={`w-10 h-10 md:w-14 md:h-14 rounded-full object-cover border-2 md:border-[3px] shadow-lg hover:scale-110 transition-transform ${
                     hasDarkBg ? 'border-white/30' : 'border-white'
                   }`}
+                  sizes="56px"
+                  quality={80}
                 />
               </Link>
               <div className="flex flex-col gap-0.5 md:gap-1 flex-1 min-w-0">
@@ -920,6 +922,9 @@ export default function PostDetailModal({
                               detail: { images: media, index: currentMediaIndex }
                             }));
                           }}
+                          sizes="(max-width: 640px) 95vw, (max-width: 1024px) 600px, 700px"
+                          quality={80}
+                          priority={currentMediaIndex === 0}
                         />
                       </div>
                     )}
@@ -977,7 +982,7 @@ export default function PostDetailModal({
                               </div>
                             </div>
                           ) : (
-                            <Image src={item.media_url} alt="" width={64} height={64} className="w-full h-full object-cover" />
+                            <Image src={item.media_url} alt="" width={64} height={64} className="w-full h-full object-cover" sizes="64px" quality={60} loading="lazy" />
                           )}
                         </button>
                       ))}
@@ -994,6 +999,8 @@ export default function PostDetailModal({
                 width={800}
                 height={600}
                 className="w-full rounded-xl mt-6 shadow-lg cursor-pointer hover:scale-[1.02] transition-transform"
+                sizes="(max-width: 640px) 95vw, (max-width: 1024px) 600px, 700px"
+                quality={80}
               />
             )}
 
@@ -1168,6 +1175,8 @@ export default function PostDetailModal({
                   width={36}
                   height={36}
                   className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                  sizes="36px"
+                  quality={80}
                 />
                 <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-3xl px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
                   <input
