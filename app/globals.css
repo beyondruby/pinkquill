@@ -3739,6 +3739,7 @@ body {
 
 @media (min-width: 768px) {
   .studio-stats-enhanced {
+    justify-content: flex-start;
     gap: 3rem;
     padding: 1.75rem 0;
   }
