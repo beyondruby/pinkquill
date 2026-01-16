@@ -1153,17 +1153,16 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 );
               }
 
-              // Special view for Journals - grouped by day
+              // Special view for Journals - minimalist grouped by day
               if (activeFilter === "Journals") {
                 // Group journals by date
                 const journalsByDate: Record<string, typeof filteredPosts> = {};
                 filteredPosts.forEach(post => {
                   const date = new Date(post.created_at);
                   const dateKey = date.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
                   });
                   if (!journalsByDate[dateKey]) {
                     journalsByDate[dateKey] = [];
@@ -1172,18 +1171,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 });
 
                 return (
-                  <div className="studio-journals-timeline">
+                  <div className="studio-journals-grid">
                     {Object.entries(journalsByDate).map(([dateKey, dayPosts]) => (
-                      <div key={dateKey} className="journal-day-group">
-                        <div className="journal-day-header">
-                          <div className="journal-day-line" />
-                          <div className="journal-day-badge">
-                            <span className="journal-day-icon">📖</span>
-                            <span className="journal-day-date">{dateKey}</span>
-                          </div>
-                          <div className="journal-day-line" />
-                        </div>
-                        <div className="journal-day-entries">
+                      <div key={dateKey} className="journals-date-section">
+                        <div className="journals-date-label">{dateKey}</div>
+                        <div className="journals-entries">
                           {dayPosts.map((work) => {
                             const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
                             const workAuthor = isCollab && work.author ? work.author : profile;
@@ -1216,7 +1208,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
                             const hasMedia = work.media && work.media.length > 0;
                             const plainContent = work.content
-                              ? work.content.replace(/<[^>]*>/g, '').substring(0, 150)
+                              ? work.content.replace(/<[^>]*>/g, '').substring(0, 120)
                               : '';
 
                             // Get time from created_at
@@ -1226,38 +1218,26 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                               hour12: true
                             });
 
-                            // Get mood and weather from metadata if available
-                            const mood = work.metadata?.mood;
-                            const weather = work.metadata?.weather;
-
                             return (
                               <article
                                 key={work.id}
                                 onClick={() => openPostModal(postForModal)}
-                                className="journal-entry-card"
+                                className="journal-card"
                               >
-                                <div className="journal-entry-time">
-                                  <span>{entryTime}</span>
-                                </div>
-                                <div className="journal-entry-content">
+                                {hasMedia && (
+                                  <div className="journal-card-image">
+                                    <img src={work.media[0].media_url} alt="" />
+                                    {work.media.length > 1 && (
+                                      <span className="journal-card-image-count">+{work.media.length - 1}</span>
+                                    )}
+                                  </div>
+                                )}
+                                <div className="journal-card-body">
+                                  <span className="journal-card-time">{entryTime}</span>
                                   {work.title && (
-                                    <h3 className="journal-entry-title">{work.title}</h3>
+                                    <h3 className="journal-card-title">{work.title}</h3>
                                   )}
-                                  <p className="journal-entry-excerpt">{plainContent}</p>
-                                  {(mood || weather) && (
-                                    <div className="journal-entry-meta">
-                                      {mood && <span className="journal-entry-mood">{mood}</span>}
-                                      {weather && <span className="journal-entry-weather">{weather}</span>}
-                                    </div>
-                                  )}
-                                  {hasMedia && (
-                                    <div className="journal-entry-media">
-                                      <img src={work.media[0].media_url} alt="" />
-                                      {work.media.length > 1 && (
-                                        <span className="journal-entry-media-count">+{work.media.length - 1}</span>
-                                      )}
-                                    </div>
-                                  )}
+                                  <p className="journal-card-excerpt">{plainContent}</p>
                                 </div>
                               </article>
                             );
