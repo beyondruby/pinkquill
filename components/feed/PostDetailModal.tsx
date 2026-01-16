@@ -681,12 +681,23 @@ export default function PostDetailModal({
                   </Link>
                   <span className={`font-ui text-[0.8rem] md:text-[0.9rem] font-light hidden sm:inline ${mutedTextColorClass}`}>
                     {post.type === "journal" ? (
-                      <>
+                      <span className="inline-flex items-center gap-1.5">
                         wrote in their{" "}
+                        <svg className="w-4 h-4 inline" viewBox="0 0 24 24" fill="none" stroke="url(#journalGradient)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <defs>
+                            <linearGradient id="journalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#8e44ad" />
+                              <stop offset="50%" stopColor="#ff007f" />
+                              <stop offset="100%" stopColor="#ff9f43" />
+                            </linearGradient>
+                          </defs>
+                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                        </svg>
                         <span className="font-medium bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
                           Journal
                         </span>
-                      </>
+                      </span>
                     ) : (
                       post.typeLabel
                     )}
@@ -787,52 +798,76 @@ export default function PostDetailModal({
 
             {/* Journal Header - Beautiful date, time, and metadata */}
             {post.type === "journal" && post.createdAt && (
-              <div className={`journal-header mb-6 ${hasDarkBg ? 'text-white' : ''}`}>
-                {/* Date with Time on same line */}
-                <div className="flex items-baseline gap-3 mb-3">
-                  <span className={`font-display text-2xl md:text-3xl font-light tracking-tight ${hasDarkBg ? 'text-white' : 'text-purple-primary'}`}>
-                    {formatDate(post.createdAt)}
-                  </span>
-                  <span className={`font-ui text-sm tracking-wide ${hasDarkBg ? 'text-white/40' : 'text-muted/70'}`}>
+              <div className={`journal-header mb-8 ${hasDarkBg ? 'text-white' : ''}`}>
+                {/* Date - Large and prominent */}
+                <h2 className={`font-display text-3xl md:text-4xl font-normal tracking-tight mb-2 ${hasDarkBg ? 'text-white' : 'text-ink'}`}>
+                  {formatDate(post.createdAt)}
+                </h2>
+
+                {/* Time - Elegant pill design */}
+                <div className="mb-5">
+                  <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui ${
+                    hasDarkBg
+                      ? 'bg-white/10 text-white/70'
+                      : 'bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary'
+                  }`}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 6v6l4 2" />
+                    </svg>
                     {formatTime(post.createdAt)}
                   </span>
                 </div>
 
-                {/* Location, Weather, Temperature, Mood - all on one elegant line */}
+                {/* Location, Weather, Temperature, Mood - Elegantly spaced */}
                 {(post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
-                  <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 ${hasDarkBg ? 'text-white/70' : 'text-ink/60'}`}>
+                  <div className={`flex flex-col gap-3 mb-5 ${hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
                     {/* Location */}
                     {post.post_location && (
-                      <div className="flex items-center gap-1.5">
-                        <svg className={`w-3.5 h-3.5 ${hasDarkBg ? 'text-white/50' : 'text-purple-primary/60'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                        </svg>
-                        <span className="font-ui text-[13px]">{post.post_location}</span>
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${hasDarkBg ? 'bg-white/10' : 'bg-purple-primary/10'}`}>
+                          <svg className={`w-3.5 h-3.5 ${hasDarkBg ? 'text-white/70' : 'text-purple-primary'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                          </svg>
+                        </div>
+                        <span className="font-ui text-sm">{post.post_location}</span>
                       </div>
                     )}
-                    {/* Weather with icon and temperature */}
+
+                    {/* Weather with temperature */}
                     {(post.metadata?.weather || post.metadata?.temperature) && (
-                      <div className="flex items-center gap-1.5">
-                        {post.metadata?.weather && (
-                          <span className={`${hasDarkBg ? 'text-white/60' : 'text-purple-primary/70'}`}>
-                            {weatherIcons[post.metadata.weather]}
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${hasDarkBg ? 'bg-white/10' : 'bg-purple-primary/10'}`}>
+                          <span className={`${hasDarkBg ? 'text-white/70' : 'text-purple-primary'}`}>
+                            {post.metadata?.weather ? weatherIcons[post.metadata.weather] : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path d="M14 4a6 6 0 00-6 6c0 2.5 1.5 4.5 3.5 5.5L10 20h4l-1.5-4.5c2-1 3.5-3 3.5-5.5a6 6 0 00-2-4.5" />
+                              </svg>
+                            )}
                           </span>
-                        )}
-                        <span className="font-ui text-[13px]">
-                          {post.metadata?.temperature && <span>{post.metadata.temperature}</span>}
-                          {post.metadata?.temperature && post.metadata?.weather && <span className="mx-1 opacity-30">·</span>}
+                        </div>
+                        <span className="font-ui text-sm">
+                          {post.metadata?.temperature}
+                          {post.metadata?.temperature && post.metadata?.weather && <span className="mx-1.5 opacity-40">·</span>}
                           {post.metadata?.weather && formatWeather(post.metadata.weather)}
                         </span>
                       </div>
                     )}
-                    {/* Mood */}
+
+                    {/* Mood - with "Mood:" prefix */}
                     {post.metadata?.mood && (
-                      <div className="flex items-center gap-1.5">
-                        <span className={`${hasDarkBg ? 'text-white/60' : 'text-purple-primary/70'}`}>
-                          {moodIcons[post.metadata.mood] || moodIcons['reflective']}
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${hasDarkBg ? 'bg-white/10' : 'bg-purple-primary/10'}`}>
+                          <span className={`${hasDarkBg ? 'text-white/70' : 'text-purple-primary'}`}>
+                            {moodIcons[post.metadata.mood] || moodIcons['reflective']}
+                          </span>
+                        </div>
+                        <span className="font-ui text-sm">
+                          <span className={`${hasDarkBg ? 'text-white/50' : 'text-muted'}`}>Mood:</span>
+                          {' '}
+                          <span className="italic">{formatMood(post.metadata.mood)}</span>
                         </span>
-                        <span className="font-ui text-[13px] italic">{formatMood(post.metadata.mood)}</span>
                       </div>
                     )}
                   </div>
