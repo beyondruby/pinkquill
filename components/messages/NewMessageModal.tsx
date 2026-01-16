@@ -112,32 +112,32 @@ export default function NewMessageModal({
     setError(null);
 
     try {
-      // Check if conversation already exists
-      const { data: existingParticipations, error: fetchError } = await supabase
+      // First, try to find an existing conversation between these two users
+      // Using a simpler approach: query conversations where both users are participants
+      const { data: myConversations, error: fetchError } = await supabase
         .from("conversation_participants")
         .select("conversation_id")
         .eq("user_id", currentUserId);
 
-      if (fetchError) {
-        console.error("Fetch participations error:", fetchError);
-        throw new Error("Failed to check existing conversations");
-      }
+      // If fetch fails, just proceed to create a new conversation
+      // This handles the case where user has no conversations yet
+      if (!fetchError && myConversations && myConversations.length > 0) {
+        // Check if selected user is in any of these conversations
+        const conversationIds = myConversations.map(c => c.conversation_id);
 
-      if (existingParticipations && existingParticipations.length > 0) {
-        for (const participation of existingParticipations) {
-          const { data: otherParticipant } = await supabase
-            .from("conversation_participants")
-            .select("user_id")
-            .eq("conversation_id", participation.conversation_id)
-            .eq("user_id", selectedUser.id)
-            .single();
+        const { data: sharedConversation } = await supabase
+          .from("conversation_participants")
+          .select("conversation_id")
+          .eq("user_id", selectedUser.id)
+          .in("conversation_id", conversationIds)
+          .limit(1)
+          .single();
 
-          if (otherParticipant) {
-            // Conversation exists, use it
-            console.log("Found existing conversation:", participation.conversation_id);
-            onConversationCreated(participation.conversation_id);
-            return;
-          }
+        if (sharedConversation) {
+          // Found existing conversation
+          console.log("Found existing conversation:", sharedConversation.conversation_id);
+          onConversationCreated(sharedConversation.conversation_id);
+          return;
         }
       }
 
@@ -145,10 +145,8 @@ export default function NewMessageModal({
       console.log("Creating new conversation...");
       const { data: newConversation, error: convError } = await supabase
         .from("conversations")
-        .insert({
-          updated_at: new Date().toISOString(),
-        })
-        .select()
+        .insert({})
+        .select("id")
         .single();
 
       if (convError) {
@@ -162,19 +160,26 @@ export default function NewMessageModal({
 
       console.log("Created conversation:", newConversation.id);
 
-      // Add participants
-      const { error: participantsError } = await supabase
+      // Add current user as participant first
+      const { error: myParticipantError } = await supabase
         .from("conversation_participants")
-        .insert([
-          { conversation_id: newConversation.id, user_id: currentUserId },
-          { conversation_id: newConversation.id, user_id: selectedUser.id },
-        ]);
+        .insert({ conversation_id: newConversation.id, user_id: currentUserId });
 
-      if (participantsError) {
-        console.error("Participants error:", participantsError);
-        // Try to clean up the created conversation
+      if (myParticipantError) {
+        console.error("My participant error:", myParticipantError);
         await supabase.from("conversations").delete().eq("id", newConversation.id);
-        throw new Error(`Failed to add participants: ${participantsError.message}`);
+        throw new Error(`Failed to join conversation: ${myParticipantError.message}`);
+      }
+
+      // Add selected user as participant
+      const { error: otherParticipantError } = await supabase
+        .from("conversation_participants")
+        .insert({ conversation_id: newConversation.id, user_id: selectedUser.id });
+
+      if (otherParticipantError) {
+        console.error("Other participant error:", otherParticipantError);
+        await supabase.from("conversations").delete().eq("id", newConversation.id);
+        throw new Error(`Failed to add participant: ${otherParticipantError.message}`);
       }
 
       console.log("Added participants, calling onConversationCreated");
