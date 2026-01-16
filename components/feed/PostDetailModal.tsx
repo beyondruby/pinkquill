@@ -706,22 +706,7 @@ export default function PostDetailModal({
                   {comments.length}
                 </span>
               </button>
-              {/* Mobile Discussion Button - icon only with badge */}
-              <button
-                onClick={() => setShowComments(!showComments)}
-                className={`mobile-discussion-btn md:hidden relative w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                  hasDarkBg ? 'text-white/80 hover:bg-white/10' : 'text-muted hover:bg-black/5'
-                }`}
-              >
-                {icons.comment}
-                {comments.length > 0 && (
-                  <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center ${
-                    hasDarkBg ? 'bg-white text-ink' : 'bg-purple-primary text-white'
-                  }`}>
-                    {comments.length > 99 ? '99+' : comments.length}
-                  </span>
-                )}
-              </button>
+              {/* Mobile Discussion Button - hidden on mobile per user request */}
 
               {/* Post Options Menu */}
               {isOwner ? (

@@ -177,7 +177,7 @@ export default function TakeCard({
 
         {/* Content Warning Overlay */}
         {take.content_warning && !showContent && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-xl">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/90">
             <div className="flex flex-col items-center gap-4 p-6 max-w-[280px] text-center">
               <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center">
                 <svg className="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -407,7 +407,7 @@ export default function TakeCard({
       {showDeleteConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] animate-fadeIn"
+            className="fixed inset-0 bg-black/50 z-[1000] animate-fadeIn"
             onClick={() => !deleting && setShowDeleteConfirm(false)}
           />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white rounded-2xl shadow-2xl z-[1001] p-6 animate-scaleIn">

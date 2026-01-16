@@ -289,7 +289,7 @@ function CommentItem({
       {showReportModal && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60]"
+            className="fixed inset-0 bg-black/50 z-[60]"
             onClick={() => !reportSubmitting && setShowReportModal(false)}
           />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[340px] bg-white rounded-2xl shadow-2xl z-[61] p-5">
@@ -390,10 +390,10 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
 
   return (
     <>
-      {/* Backdrop - only on mobile */}
+      {/* Backdrop - only on mobile - clean solid overlay without blur */}
       {isOpen && (
         <div
-          className="take-comments-backdrop fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+          className="take-comments-backdrop fixed inset-0 bg-black/40 z-40 md:hidden"
           onClick={onClose}
         />
       )}

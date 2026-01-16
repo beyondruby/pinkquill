@@ -325,7 +325,7 @@ export default function TakesFeed({
       {/* Mobile Navigation - Back to Home */}
       <Link
         href="/"
-        className="md:hidden fixed top-3 left-3 z-50 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center text-white"
+        className="md:hidden fixed top-3 left-3 z-50 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center text-white"
         style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

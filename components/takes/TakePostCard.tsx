@@ -677,7 +677,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
       {showDeleteConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
+            className="fixed inset-0 bg-black/50 z-[1000]"
             onClick={() => !deleting && setShowDeleteConfirm(false)}
           />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white rounded-2xl shadow-2xl z-[1001] p-6">
@@ -727,7 +727,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
       {showBlockConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
+            className="fixed inset-0 bg-black/50 z-[1000]"
             onClick={() => !blockLoading && setShowBlockConfirm(false)}
           />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] p-6">
