@@ -757,7 +757,18 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
               <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()} className="author-name">
                 {post.author.name}
               </Link>
-              <span className="post-type-label">{post.typeLabel}</span>
+              <span className="post-type-label">
+                {post.type === "journal" ? (
+                  <>
+                    wrote in their{" "}
+                    <span className="font-medium bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
+                      Journal
+                    </span>
+                  </>
+                ) : (
+                  post.typeLabel
+                )}
+              </span>
             </>
           )}
           {post.community && (
@@ -768,7 +779,20 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
           )}
         </div>
         <div className="post-meta-line">
-          {hasCollaborators && <span className="post-type-label">{post.typeLabel}</span>}
+          {hasCollaborators && (
+            <span className="post-type-label">
+              {post.type === "journal" ? (
+                <>
+                  wrote in their{" "}
+                  <span className="font-medium bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
+                    Journal
+                  </span>
+                </>
+              ) : (
+                post.typeLabel
+              )}
+            </span>
+          )}
           <span className="post-time">{post.timeAgo}</span>
         </div>
       </div>

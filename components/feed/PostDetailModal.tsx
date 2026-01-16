@@ -661,7 +661,16 @@ export default function PostDetailModal({
                     {post.author.name}
                   </Link>
                   <span className={`font-ui text-[0.8rem] md:text-[0.9rem] font-light hidden sm:inline ${mutedTextColorClass}`}>
-                    {post.typeLabel}
+                    {post.type === "journal" ? (
+                      <>
+                        wrote in their{" "}
+                        <span className="font-medium bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
+                          Journal
+                        </span>
+                      </>
+                    ) : (
+                      post.typeLabel
+                    )}
                   </span>
                 </div>
                 <span className={`font-ui text-[0.75rem] md:text-[0.85rem] ${mutedTextColorClass}`}>
@@ -769,64 +778,57 @@ export default function PostDetailModal({
             {post.type === "journal" && post.createdAt && (
               <div className={`journal-header mb-6 ${hasDarkBg ? 'text-white' : ''}`}>
                 {/* Date with Time on same line */}
-                <div className="flex items-baseline gap-3 mb-2">
-                  <span className={`font-display text-2xl md:text-3xl font-light ${hasDarkBg ? 'text-white' : 'text-purple-primary'}`}>
+                <div className="flex items-baseline gap-3 mb-3">
+                  <span className={`font-display text-2xl md:text-3xl font-light tracking-tight ${hasDarkBg ? 'text-white' : 'text-purple-primary'}`}>
                     {formatDate(post.createdAt)}
                   </span>
-                  <span className={`font-ui text-sm ${hasDarkBg ? 'text-white/50' : 'text-muted'}`}>
+                  <span className={`font-ui text-sm tracking-wide ${hasDarkBg ? 'text-white/40' : 'text-muted/70'}`}>
                     {formatTime(post.createdAt)}
                   </span>
                 </div>
 
-                {/* Time of Day with beautiful icon */}
-                {post.metadata?.timeOfDay && (
-                  <div className={`flex items-center gap-2 mb-3 ${hasDarkBg ? 'text-white/70' : 'text-ink/60'}`}>
-                    <span className={`${hasDarkBg ? 'text-white/80' : 'text-purple-primary'}`}>
-                      {timeOfDayIcons[post.metadata.timeOfDay]}
-                    </span>
-                    <span className="font-ui text-sm italic">{formatTimeOfDay(post.metadata.timeOfDay)}</span>
-                  </div>
-                )}
-
-                {/* Location - elegantly positioned */}
-                {post.post_location && (
-                  <div className={`flex items-center gap-2 mb-4 ${hasDarkBg ? 'text-white/70' : 'text-ink/60'}`}>
-                    <svg className={`w-4 h-4 ${hasDarkBg ? 'text-white/60' : 'text-purple-primary/70'}`} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                    </svg>
-                    <span className="font-ui text-sm">{post.post_location}</span>
-                  </div>
-                )}
-
-                {/* Divider line */}
-                <div className={`h-px w-full mb-4 ${hasDarkBg ? 'bg-white/10' : 'bg-gradient-to-r from-purple-primary/20 via-pink-vivid/20 to-transparent'}`} />
-
-                {/* Weather and Mood row below divider */}
-                {(post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
-                  <div className="flex flex-wrap items-center gap-4">
+                {/* Location, Weather, Temperature, Mood - all on one elegant line */}
+                {(post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
+                  <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 ${hasDarkBg ? 'text-white/70' : 'text-ink/60'}`}>
+                    {/* Location */}
+                    {post.post_location && (
+                      <div className="flex items-center gap-1.5">
+                        <svg className={`w-3.5 h-3.5 ${hasDarkBg ? 'text-white/50' : 'text-purple-primary/60'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                        <span className="font-ui text-[13px]">{post.post_location}</span>
+                      </div>
+                    )}
+                    {/* Weather with icon and temperature */}
                     {(post.metadata?.weather || post.metadata?.temperature) && (
-                      <div className={`flex items-center gap-2 ${hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
-                        <span className={`${hasDarkBg ? 'text-white/70' : 'text-purple-primary'}`}>
-                          {post.metadata?.weather && weatherIcons[post.metadata.weather]}
-                        </span>
-                        <span className="font-ui text-sm">
-                          {post.metadata?.temperature && <span className="font-medium">{post.metadata.temperature}</span>}
-                          {post.metadata?.temperature && post.metadata?.weather && <span className="mx-1.5 opacity-40">·</span>}
+                      <div className="flex items-center gap-1.5">
+                        {post.metadata?.weather && (
+                          <span className={`${hasDarkBg ? 'text-white/60' : 'text-purple-primary/70'}`}>
+                            {weatherIcons[post.metadata.weather]}
+                          </span>
+                        )}
+                        <span className="font-ui text-[13px]">
+                          {post.metadata?.temperature && <span>{post.metadata.temperature}</span>}
+                          {post.metadata?.temperature && post.metadata?.weather && <span className="mx-1 opacity-30">·</span>}
                           {post.metadata?.weather && formatWeather(post.metadata.weather)}
                         </span>
                       </div>
                     )}
+                    {/* Mood */}
                     {post.metadata?.mood && (
-                      <div className={`flex items-center gap-2 ${hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
-                        <span className={`${hasDarkBg ? 'text-white/70' : 'text-purple-primary'}`}>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`${hasDarkBg ? 'text-white/60' : 'text-purple-primary/70'}`}>
                           {moodIcons[post.metadata.mood] || moodIcons['reflective']}
                         </span>
-                        <span className="font-ui text-sm">{formatMood(post.metadata.mood)}</span>
+                        <span className="font-ui text-[13px] italic">{formatMood(post.metadata.mood)}</span>
                       </div>
                     )}
                   </div>
                 )}
+
+                {/* Elegant divider line */}
+                <div className={`h-px w-full ${hasDarkBg ? 'bg-gradient-to-r from-white/20 via-white/10 to-transparent' : 'bg-gradient-to-r from-purple-primary/30 via-pink-vivid/20 to-transparent'}`} />
               </div>
             )}
 
