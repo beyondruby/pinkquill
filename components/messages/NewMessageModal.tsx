@@ -176,9 +176,9 @@ export default function NewMessageModal({
 
   return (
     <>
-      {/* Backdrop - only visible on desktop */}
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] hidden md:block animate-fadeIn"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
         onClick={onClose}
       />
 
@@ -187,7 +187,7 @@ export default function NewMessageModal({
         className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2
                    w-full h-full md:w-[480px] md:h-auto md:max-h-[600px]
                    bg-white md:rounded-2xl shadow-2xl z-[1001]
-                   flex flex-col overflow-hidden animate-slideUp md:animate-scaleIn"
+                   flex flex-col overflow-hidden"
       >
         {/* Header */}
         <div
