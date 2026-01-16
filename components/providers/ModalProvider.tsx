@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, Re
 import PostDetailModal from "@/components/feed/PostDetailModal";
 import TakeDetailModal, { TakeUpdate } from "@/components/takes/TakeDetailModal";
 import { Take, TakeReactionType } from "@/lib/hooks/useTakes";
-import { PostStyling, JournalMetadata, CanvasData, CanvasPostData } from "@/lib/types";
+import { PostStyling, JournalMetadata, CanvasData } from "@/lib/types";
 
 interface MediaItem {
   id: string;
@@ -64,7 +64,7 @@ interface Post {
   styling?: PostStyling | null;
   post_location?: string | null;
   metadata?: JournalMetadata | null;
-  canvas_data?: CanvasPostData | null;
+  canvas_data?: { textBlocks?: any[]; imageBlocks?: any[] } | null;
 }
 
 export interface PostUpdate {

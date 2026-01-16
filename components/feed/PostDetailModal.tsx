@@ -16,7 +16,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
-import { PostStyling, JournalMetadata, CanvasData, PostBackground, TimeOfDay, WeatherType, MoodType, CanvasPostData, CanvasElement, CanvasTextStyle, ShadowStyle } from "@/lib/types";
+import { PostStyling, JournalMetadata, CanvasData, PostBackground, TimeOfDay, WeatherType, MoodType, ShadowStyle } from "@/lib/types";
 
 // Helper to clean HTML for display (keeps tags but fixes &nbsp;)
 function cleanHtmlForDisplay(html: string): string {
@@ -180,7 +180,7 @@ interface Post {
   styling?: PostStyling | null;
   post_location?: string | null;
   metadata?: JournalMetadata | null;
-  canvas_data?: CanvasPostData | null;
+  canvas_data?: { textBlocks?: any[]; imageBlocks?: any[] } | null;
 }
 
 // Format date as "January 2, 2026"
@@ -600,8 +600,9 @@ export default function PostDetailModal({
   const hasRegularMedia = regularMedia.length > 0;
 
   // Check for new canvas_data approach (free-form canvas with text and images)
-  const isCanvasPost = !!post.canvas_data && post.canvas_data.elements && post.canvas_data.elements.length > 0;
-  const canvasElements = post.canvas_data?.elements || [];
+  const canvasTextBlocks = (post.canvas_data as any)?.textBlocks || [];
+  const canvasImageBlocks = (post.canvas_data as any)?.imageBlocks || [];
+  const isCanvasPost = canvasTextBlocks.length > 0 || canvasImageBlocks.length > 0;
 
   return (
     <>
@@ -853,63 +854,58 @@ export default function PostDetailModal({
                 <div
                   className="relative w-full rounded-xl overflow-hidden"
                   style={{
-                    aspectRatio: post.canvas_data?.aspectRatio || (4/3),
-                    minHeight: '300px',
+                    minHeight: '400px',
                     backgroundColor: hasBackground ? undefined : '#fafafa',
                   }}
                 >
-                  {canvasElements.sort((a: CanvasElement, b: CanvasElement) => a.zIndex - b.zIndex).map((element: CanvasElement) => (
+                  {/* Render text blocks */}
+                  {canvasTextBlocks.map((block: any) => (
                     <div
-                      key={element.id}
+                      key={block.id}
                       className="absolute"
                       style={{
-                        left: `${element.x * 100}%`,
-                        top: `${element.y * 100}%`,
-                        width: `${element.width * 100}%`,
-                        height: `${element.height * 100}%`,
-                        transform: `rotate(${element.rotation || 0}deg)`,
-                        zIndex: element.zIndex,
+                        left: `${block.x}%`,
+                        top: `${block.y}%`,
+                        width: `${block.width}%`,
                       }}
                     >
-                      {element.type === 'text' ? (
-                        <div
-                          className="w-full h-full overflow-hidden p-2"
-                          style={{
-                            fontFamily: element.textStyle?.fontFamily || "'Crimson Pro', serif",
-                            fontSize: `${element.textStyle?.fontSize || 18}px`,
-                            fontWeight: element.textStyle?.fontWeight || 'normal',
-                            fontStyle: element.textStyle?.fontStyle || 'normal',
-                            textAlign: element.textStyle?.textAlign || 'left',
-                            color: element.textStyle?.color || (hasDarkBg ? '#ffffff' : '#1e1e1e'),
-                            backgroundColor: element.textStyle?.backgroundColor || 'transparent',
-                            lineHeight: element.textStyle?.lineHeight || 1.6,
-                          }}
-                          dangerouslySetInnerHTML={{ __html: element.content || '' }}
-                        />
-                      ) : (
-                        <img
-                          src={element.imageUrl}
-                          alt=""
-                          className="w-full h-full object-cover cursor-pointer transition-transform hover:scale-[1.01]"
-                          style={{
-                            borderRadius: `${element.borderRadius || 0}px`,
-                            border: element.borderWidth ? `${element.borderWidth}px solid ${element.borderColor || '#ffffff'}` : undefined,
-                            boxShadow: getShadowStyle(element.shadow || 'none'),
-                          }}
-                          onClick={() => {
-                            const imageElements = canvasElements.filter((el: CanvasElement) => el.type === 'image');
-                            const index = imageElements.findIndex((el: CanvasElement) => el.id === element.id);
-                            if (index >= 0) {
-                              window.dispatchEvent(new CustomEvent('openLightbox', {
-                                detail: {
-                                  images: imageElements.map((el: CanvasElement) => ({ media_url: el.imageUrl })),
-                                  index
-                                }
-                              }));
-                            }
-                          }}
-                        />
-                      )}
+                      <div
+                        className={`font-body whitespace-pre-wrap ${hasDarkBg ? 'text-white' : 'text-ink'}`}
+                        style={{ fontSize: `${block.fontSize || 18}px` }}
+                      >
+                        {block.content}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Render image blocks */}
+                  {canvasImageBlocks.map((block: any, idx: number) => (
+                    <div
+                      key={block.id}
+                      className="absolute cursor-pointer"
+                      style={{
+                        left: `${block.x}%`,
+                        top: `${block.y}%`,
+                        width: `${block.width}%`,
+                      }}
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('openLightbox', {
+                          detail: {
+                            images: canvasImageBlocks.map((b: any) => ({ media_url: b.preview })),
+                            index: idx
+                          }
+                        }));
+                      }}
+                    >
+                      <img
+                        src={block.preview}
+                        alt=""
+                        className="w-full h-auto object-cover transition-transform hover:scale-[1.01]"
+                        style={{
+                          borderRadius: `${block.borderRadius || 8}px`,
+                          boxShadow: getShadowStyle(block.shadow || 'soft'),
+                        }}
+                      />
                     </div>
                   ))}
                 </div>

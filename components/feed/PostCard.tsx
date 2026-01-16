@@ -14,7 +14,7 @@ import ReportModal from "@/components/ui/ReportModal";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
-import { PostStyling, JournalMetadata, PostBackground, CanvasPostData } from "@/lib/types";
+import { PostStyling, JournalMetadata, PostBackground } from "@/lib/types";
 import {
   HeartIcon,
   CommentIcon,
@@ -183,7 +183,7 @@ interface PostProps {
   styling?: PostStyling | null;
   post_location?: string | null;
   metadata?: JournalMetadata | null;
-  canvas_data?: CanvasPostData | null;
+  canvas_data?: { textBlocks?: any[]; imageBlocks?: any[] } | null;
 }
 
 // Format date as "January 2, 2026"
