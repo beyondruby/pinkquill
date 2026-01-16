@@ -7,10 +7,10 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunities, Community, SearchableUser, saveCollaboratorsAndMentions } from "@/lib/hooks";
 import { useCreateTake } from "@/lib/hooks/useTakes";
 import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
-import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle } from "@/lib/types";
+import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle, CanvasElement, CanvasPostData } from "@/lib/types";
 import BackgroundPicker from "@/components/create/BackgroundPicker";
 import JournalMetadataPanel from "@/components/create/JournalMetadata";
-import CanvasEditor, { CanvasImage } from "@/components/create/CanvasEditor";
+import CanvasEditor from "@/components/create/CanvasEditor";
 
 const postTypes = [
   { id: "thought", label: "Thought", icon: "lightbulb", placeholder: "What's on your mind?" },
@@ -427,8 +427,8 @@ export default function CreatePost() {
   const [journalMetadata, setJournalMetadata] = useState<JournalMetadata>({});
   const [postLocation, setPostLocation] = useState("");
 
-  // Canvas Editor (for free image placement)
-  const [canvasImages, setCanvasImages] = useState<CanvasImage[]>([]);
+  // Canvas Editor (for free-form canvas with text and images)
+  const [canvasElements, setCanvasElements] = useState<CanvasElement[]>([]);
   const [useCanvasMode, setUseCanvasMode] = useState(false);
 
   // Initial content for edit mode (set after editor mounts)
@@ -1038,6 +1038,11 @@ export default function CreatePost() {
           dropCap: dropCapEnabled,
         };
 
+        // Build canvas data if canvas mode is used
+        const canvasData: CanvasPostData | null = useCanvasMode && canvasElements.length > 0
+          ? { elements: canvasElements, aspectRatio: 4/3 }
+          : null;
+
         // Build metadata for journals
         const postMetadata = selectedType === 'journal' && Object.keys(journalMetadata).length > 0
           ? journalMetadata
@@ -1049,13 +1054,14 @@ export default function CreatePost() {
             author_id: user.id,
             type: selectedType,
             title: titleText ? titleHtml : null,
-            content: content.trim(),
+            content: useCanvasMode ? '' : content.trim(), // Canvas mode stores content in canvas_data
             visibility: postVisibility,
             content_warning: hasContentWarning ? contentWarning.trim() || null : null,
             community_id: selectedCommunity?.id || null,
             styling: Object.keys(postStyling).some(k => postStyling[k as keyof PostStyling] !== undefined && postStyling[k as keyof PostStyling] !== 'left' && postStyling[k as keyof PostStyling] !== 'normal' && postStyling[k as keyof PostStyling] !== false) ? postStyling : null,
             post_location: postLocation.trim() || null,
             metadata: postMetadata,
+            canvas_data: canvasData,
           })
           .select()
           .single();
@@ -1102,36 +1108,53 @@ export default function CreatePost() {
         }
       }
 
-      // Upload canvas images (if canvas mode is used)
-      if (useCanvasMode && canvasImages.length > 0) {
-        for (let i = 0; i < canvasImages.length; i++) {
-          const canvasImage = canvasImages[i];
-          if (!canvasImage.file) continue;
+      // Upload canvas images and update canvas_data with permanent URLs
+      if (useCanvasMode && canvasElements.length > 0) {
+        const imageElements = canvasElements.filter(el => el.type === 'image' && el.imageUrl?.startsWith('data:'));
 
-          const fileExt = canvasImage.file.name.split(".").pop();
-          const fileName = `${user.id}/${postId}/canvas-${i}-${Date.now()}.${fileExt}`;
+        if (imageElements.length > 0) {
+          const updatedElements = [...canvasElements];
 
-          const { error: uploadError } = await supabase.storage
-            .from("post-media")
-            .upload(fileName, canvasImage.file, { cacheControl: '31536000' });
+          for (let i = 0; i < imageElements.length; i++) {
+            const element = imageElements[i];
+            if (!element.imageUrl) continue;
 
-          if (uploadError) {
-            console.error("Canvas image upload error:", uploadError);
-            continue;
+            // Convert data URL to blob
+            const response = await fetch(element.imageUrl);
+            const blob = await response.blob();
+            const fileExt = blob.type.split('/')[1] || 'png';
+            const fileName = `${user.id}/${postId}/canvas-${element.id}-${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from("post-media")
+              .upload(fileName, blob, { cacheControl: '31536000', contentType: blob.type });
+
+            if (uploadError) {
+              console.error("Canvas image upload error:", uploadError);
+              continue;
+            }
+
+            const { data: urlData } = supabase.storage
+              .from("post-media")
+              .getPublicUrl(fileName);
+
+            // Update the element with the permanent URL
+            const elementIndex = updatedElements.findIndex(el => el.id === element.id);
+            if (elementIndex !== -1) {
+              updatedElements[elementIndex] = {
+                ...updatedElements[elementIndex],
+                imageUrl: urlData.publicUrl
+              };
+            }
           }
 
-          const { data: urlData } = supabase.storage
-            .from("post-media")
-            .getPublicUrl(fileName);
-
-          await supabase.from("post_media").insert({
-            post_id: postId,
-            media_url: urlData.publicUrl,
-            media_type: 'image',
-            caption: null,
-            position: 1000 + i, // Canvas images have high position numbers
-            canvas_data: canvasImage.canvasData,
-          });
+          // Update the post with the new canvas_data containing permanent URLs
+          await supabase
+            .from("posts")
+            .update({
+              canvas_data: { elements: updatedElements, aspectRatio: 4/3 }
+            })
+            .eq("id", postId);
         }
       }
 
@@ -1939,8 +1962,8 @@ export default function CreatePost() {
               <div className="flex items-center gap-2">
                 <span className="text-purple-primary">{icons.canvas}</span>
                 <div>
-                  <p className="font-ui text-sm font-medium text-ink">Canvas Mode</p>
-                  <p className="font-ui text-xs text-muted">Freely position images anywhere</p>
+                  <p className="font-ui text-sm font-medium text-ink">Free Canvas Mode</p>
+                  <p className="font-ui text-xs text-muted">Write and place images anywhere like a notebook</p>
                 </div>
               </div>
               <button
@@ -1964,8 +1987,8 @@ export default function CreatePost() {
         {!isTakeMode && useCanvasMode && (
         <div className="px-6 pb-6">
           <CanvasEditor
-            images={canvasImages}
-            onChange={setCanvasImages}
+            elements={canvasElements}
+            onChange={setCanvasElements}
             background={styling.background}
             aspectRatio={4/3}
           />

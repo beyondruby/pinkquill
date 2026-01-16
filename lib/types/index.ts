@@ -56,6 +56,45 @@ export interface CanvasData {
   shadow: ShadowStyle;
 }
 
+// Canvas element types for free-form canvas mode
+export type CanvasElementType = 'text' | 'image';
+
+export interface CanvasTextStyle {
+  fontFamily?: string;
+  fontSize?: number; // pixels
+  fontWeight?: 'normal' | 'bold';
+  fontStyle?: 'normal' | 'italic';
+  textAlign?: TextAlignment;
+  color?: string;
+  backgroundColor?: string;
+  lineHeight?: number;
+}
+
+export interface CanvasElement {
+  id: string;
+  type: CanvasElementType;
+  x: number; // 0-1 percentage from left
+  y: number; // 0-1 percentage from top
+  width: number; // 0-1 percentage width
+  height: number; // 0-1 percentage height
+  rotation: number; // degrees
+  zIndex: number;
+  // For text elements
+  content?: string; // HTML content for text
+  textStyle?: CanvasTextStyle;
+  // For image elements
+  imageUrl?: string;
+  borderRadius?: number;
+  borderWidth?: number;
+  borderColor?: string;
+  shadow?: ShadowStyle;
+}
+
+export interface CanvasPostData {
+  elements: CanvasElement[];
+  aspectRatio?: number; // e.g., 4/3, 16/9
+}
+
 export interface BackgroundPreset {
   id: string;
   name: string;
@@ -146,6 +185,7 @@ export interface Post {
   styling?: PostStyling | null;
   post_location?: string | null;
   metadata?: JournalMetadata | null;
+  canvas_data?: CanvasPostData | null;
 
   // Joined data
   author: PostAuthor;

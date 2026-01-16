@@ -1,34 +1,46 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { CanvasData, ShadowStyle, PostBackground } from "@/lib/types";
+import { CanvasElement, CanvasTextStyle, ShadowStyle, PostBackground, TextAlignment } from "@/lib/types";
 
+// Legacy export for backward compatibility
 export interface CanvasImage {
   id: string;
   file?: File;
   preview: string;
   mediaUrl?: string;
-  canvasData: CanvasData;
+  canvasData: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation: number;
+    zIndex: number;
+    borderRadius: number;
+    borderWidth: number;
+    borderColor: string;
+    shadow: ShadowStyle;
+  };
 }
 
 interface CanvasEditorProps {
-  images: CanvasImage[];
-  onChange: (images: CanvasImage[]) => void;
+  elements: CanvasElement[];
+  onChange: (elements: CanvasElement[]) => void;
   background?: PostBackground | null;
-  aspectRatio?: number; // e.g., 16/9, 4/3, 1
+  aspectRatio?: number;
+  // Legacy support
+  images?: CanvasImage[];
+  onImagesChange?: (images: CanvasImage[]) => void;
 }
 
-const defaultCanvasData: CanvasData = {
-  x: 0.25,
-  y: 0.25,
-  width: 0.5,
-  height: 0.5,
-  rotation: 0,
-  zIndex: 1,
-  borderRadius: 8,
-  borderWidth: 0,
-  borderColor: "#ffffff",
-  shadow: "none",
+const defaultTextStyle: CanvasTextStyle = {
+  fontFamily: "'Crimson Pro', serif",
+  fontSize: 18,
+  fontWeight: "normal",
+  fontStyle: "normal",
+  textAlign: "left",
+  color: "#1e1e1e",
+  lineHeight: 1.6,
 };
 
 const shadowStyles: Record<ShadowStyle, string> = {
@@ -38,10 +50,25 @@ const shadowStyles: Record<ShadowStyle, string> = {
   strong: "0 12px 40px rgba(0, 0, 0, 0.35)",
 };
 
+const fontOptions = [
+  { id: "crimson", label: "Crimson Pro", family: "'Crimson Pro', serif" },
+  { id: "libre", label: "Libre Baskerville", family: "'Libre Baskerville', serif" },
+  { id: "playfair", label: "Playfair Display", family: "'Playfair Display', serif" },
+  { id: "inter", label: "Inter", family: "'Inter', sans-serif" },
+  { id: "josefin", label: "Josefin Sans", family: "'Josefin Sans', sans-serif" },
+  { id: "dancing", label: "Dancing Script", family: "'Dancing Script', cursive" },
+  { id: "caveat", label: "Caveat", family: "'Caveat', cursive" },
+];
+
 const icons = {
-  upload: (
-    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+  text: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+    </svg>
+  ),
+  image: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   ),
   trash: (
@@ -59,20 +86,40 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
     </svg>
   ),
-  rotate: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-    </svg>
-  ),
   close: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
     </svg>
   ),
+  bold: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6zM6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
+    </svg>
+  ),
+  italic: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 4h4m2 0l-6 16m-2 0h4" />
+    </svg>
+  ),
+  alignLeft: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h10M4 18h14" />
+    </svg>
+  ),
+  alignCenter: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M5 18h14" />
+    </svg>
+  ),
+  alignRight: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M10 12h10M6 18h14" />
+    </svg>
+  ),
 };
 
 export default function CanvasEditor({
-  images,
+  elements,
   onChange,
   background,
   aspectRatio = 4 / 3,
@@ -80,6 +127,7 @@ export default function CanvasEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [dragging, setDragging] = useState<{
     id: string;
     startX: number;
@@ -99,15 +147,37 @@ export default function CanvasEditor({
   } | null>(null);
   const [showProperties, setShowProperties] = useState(false);
 
-  const selectedImage = images.find((img) => img.id === selectedId);
+  const selectedElement = elements.find((el) => el.id === selectedId);
 
-  // Handle file upload
+  // Generate unique ID
+  const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Add text element
+  const addTextElement = useCallback(() => {
+    const maxZIndex = Math.max(0, ...elements.map((el) => el.zIndex));
+    const newElement: CanvasElement = {
+      id: generateId(),
+      type: "text",
+      x: 0.1,
+      y: 0.1,
+      width: 0.4,
+      height: 0.2,
+      rotation: 0,
+      zIndex: maxZIndex + 1,
+      content: "<p>Click to edit text...</p>",
+      textStyle: { ...defaultTextStyle },
+    };
+    onChange([...elements, newElement]);
+    setSelectedId(newElement.id);
+    setShowProperties(true);
+  }, [elements, onChange]);
+
+  // Handle file upload for images
   const handleFileUpload = useCallback(
     (files: FileList | null) => {
       if (!files) return;
 
-      const newImages: CanvasImage[] = [];
-      const maxZIndex = Math.max(0, ...images.map((img) => img.canvasData.zIndex));
+      const maxZIndex = Math.max(0, ...elements.map((el) => el.zIndex));
 
       Array.from(files).forEach((file, index) => {
         if (!file.type.startsWith("image/")) return;
@@ -115,75 +185,74 @@ export default function CanvasEditor({
         const reader = new FileReader();
         reader.onload = (e) => {
           const preview = e.target?.result as string;
-          const newImage: CanvasImage = {
-            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            file,
-            preview,
-            canvasData: {
-              ...defaultCanvasData,
-              x: 0.1 + index * 0.05,
-              y: 0.1 + index * 0.05,
-              zIndex: maxZIndex + index + 1,
-            },
+          const newElement: CanvasElement = {
+            id: generateId(),
+            type: "image",
+            x: 0.1 + index * 0.05,
+            y: 0.1 + index * 0.05,
+            width: 0.4,
+            height: 0.4,
+            rotation: 0,
+            zIndex: maxZIndex + index + 1,
+            imageUrl: preview,
+            borderRadius: 8,
+            borderWidth: 0,
+            borderColor: "#ffffff",
+            shadow: "none",
           };
-          newImages.push(newImage);
-
-          if (newImages.length === files.length) {
-            onChange([...images, ...newImages]);
-            if (newImages.length > 0) {
-              setSelectedId(newImages[newImages.length - 1].id);
-              setShowProperties(true);
-            }
-          }
+          onChange([...elements, newElement]);
+          setSelectedId(newElement.id);
+          setShowProperties(true);
         };
         reader.readAsDataURL(file);
       });
     },
-    [images, onChange]
+    [elements, onChange]
   );
 
   // Handle drag start
   const handleMouseDown = useCallback(
-    (e: React.MouseEvent, imageId: string) => {
+    (e: React.MouseEvent, elementId: string) => {
+      if (editingTextId === elementId) return; // Don't drag while editing
       e.preventDefault();
       e.stopPropagation();
 
-      const image = images.find((img) => img.id === imageId);
-      if (!image) return;
+      const element = elements.find((el) => el.id === elementId);
+      if (!element) return;
 
-      setSelectedId(imageId);
+      setSelectedId(elementId);
       setDragging({
-        id: imageId,
+        id: elementId,
         startX: e.clientX,
         startY: e.clientY,
-        startCanvasX: image.canvasData.x,
-        startCanvasY: image.canvasData.y,
+        startCanvasX: element.x,
+        startCanvasY: element.y,
       });
     },
-    [images]
+    [elements, editingTextId]
   );
 
   // Handle resize start
   const handleResizeStart = useCallback(
-    (e: React.MouseEvent, imageId: string, handle: string) => {
+    (e: React.MouseEvent, elementId: string, handle: string) => {
       e.preventDefault();
       e.stopPropagation();
 
-      const image = images.find((img) => img.id === imageId);
-      if (!image) return;
+      const element = elements.find((el) => el.id === elementId);
+      if (!element) return;
 
       setResizing({
-        id: imageId,
+        id: elementId,
         handle,
         startX: e.clientX,
         startY: e.clientY,
-        startWidth: image.canvasData.width,
-        startHeight: image.canvasData.height,
-        startCanvasX: image.canvasData.x,
-        startCanvasY: image.canvasData.y,
+        startWidth: element.width,
+        startHeight: element.height,
+        startCanvasX: element.x,
+        startCanvasY: element.y,
       });
     },
-    [images]
+    [elements]
   );
 
   // Handle mouse move
@@ -201,10 +270,8 @@ export default function CanvasEditor({
         const newY = Math.max(0, Math.min(1, dragging.startCanvasY + deltaY));
 
         onChange(
-          images.map((img) =>
-            img.id === dragging.id
-              ? { ...img, canvasData: { ...img.canvasData, x: newX, y: newY } }
-              : img
+          elements.map((el) =>
+            el.id === dragging.id ? { ...el, x: newX, y: newY } : el
           )
         );
       }
@@ -220,48 +287,28 @@ export default function CanvasEditor({
 
         const handle = resizing.handle;
 
-        // Handle resize based on corner/edge
         if (handle.includes("e")) {
-          newWidth = Math.max(0.1, Math.min(1 - newX, resizing.startWidth + deltaX));
+          newWidth = Math.max(0.05, Math.min(1 - newX, resizing.startWidth + deltaX));
         }
         if (handle.includes("w")) {
           const widthChange = deltaX;
-          newWidth = Math.max(0.1, resizing.startWidth - widthChange);
+          newWidth = Math.max(0.05, resizing.startWidth - widthChange);
           newX = Math.max(0, resizing.startCanvasX + widthChange);
         }
         if (handle.includes("s")) {
-          newHeight = Math.max(0.1, Math.min(1 - newY, resizing.startHeight + deltaY));
+          newHeight = Math.max(0.05, Math.min(1 - newY, resizing.startHeight + deltaY));
         }
         if (handle.includes("n")) {
           const heightChange = deltaY;
-          newHeight = Math.max(0.1, resizing.startHeight - heightChange);
+          newHeight = Math.max(0.05, resizing.startHeight - heightChange);
           newY = Math.max(0, resizing.startCanvasY + heightChange);
         }
 
-        // Maintain aspect ratio when holding Shift
-        if (e.shiftKey && (handle === "se" || handle === "sw" || handle === "ne" || handle === "nw")) {
-          const ratio = resizing.startWidth / resizing.startHeight;
-          if (Math.abs(deltaX) > Math.abs(deltaY)) {
-            newHeight = newWidth / ratio;
-          } else {
-            newWidth = newHeight * ratio;
-          }
-        }
-
         onChange(
-          images.map((img) =>
-            img.id === resizing.id
-              ? {
-                  ...img,
-                  canvasData: {
-                    ...img.canvasData,
-                    width: newWidth,
-                    height: newHeight,
-                    x: newX,
-                    y: newY,
-                  },
-                }
-              : img
+          elements.map((el) =>
+            el.id === resizing.id
+              ? { ...el, width: newWidth, height: newHeight, x: newX, y: newY }
+              : el
           )
         );
       }
@@ -280,62 +327,49 @@ export default function CanvasEditor({
         window.removeEventListener("mouseup", handleMouseUp);
       };
     }
-  }, [dragging, resizing, images, onChange]);
+  }, [dragging, resizing, elements, onChange]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!selectedId) return;
+      if (!selectedId || editingTextId) return;
 
-      const image = images.find((img) => img.id === selectedId);
-      if (!image) return;
-
-      // Delete
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
-        onChange(images.filter((img) => img.id !== selectedId));
+        onChange(elements.filter((el) => el.id !== selectedId));
         setSelectedId(null);
       }
 
-      // Arrow keys for nudging
       const nudgeAmount = e.shiftKey ? 0.05 : 0.01;
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         onChange(
-          images.map((img) =>
-            img.id === selectedId
-              ? { ...img, canvasData: { ...img.canvasData, x: Math.max(0, img.canvasData.x - nudgeAmount) } }
-              : img
+          elements.map((el) =>
+            el.id === selectedId ? { ...el, x: Math.max(0, el.x - nudgeAmount) } : el
           )
         );
       }
       if (e.key === "ArrowRight") {
         e.preventDefault();
         onChange(
-          images.map((img) =>
-            img.id === selectedId
-              ? { ...img, canvasData: { ...img.canvasData, x: Math.min(1, img.canvasData.x + nudgeAmount) } }
-              : img
+          elements.map((el) =>
+            el.id === selectedId ? { ...el, x: Math.min(1, el.x + nudgeAmount) } : el
           )
         );
       }
       if (e.key === "ArrowUp") {
         e.preventDefault();
         onChange(
-          images.map((img) =>
-            img.id === selectedId
-              ? { ...img, canvasData: { ...img.canvasData, y: Math.max(0, img.canvasData.y - nudgeAmount) } }
-              : img
+          elements.map((el) =>
+            el.id === selectedId ? { ...el, y: Math.max(0, el.y - nudgeAmount) } : el
           )
         );
       }
       if (e.key === "ArrowDown") {
         e.preventDefault();
         onChange(
-          images.map((img) =>
-            img.id === selectedId
-              ? { ...img, canvasData: { ...img.canvasData, y: Math.min(1, img.canvasData.y + nudgeAmount) } }
-              : img
+          elements.map((el) =>
+            el.id === selectedId ? { ...el, y: Math.min(1, el.y + nudgeAmount) } : el
           )
         );
       }
@@ -343,68 +377,70 @@ export default function CanvasEditor({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedId, images, onChange]);
+  }, [selectedId, editingTextId, elements, onChange]);
 
   // Layer controls
-  const bringForward = (imageId: string) => {
-    const maxZ = Math.max(...images.map((img) => img.canvasData.zIndex));
+  const bringForward = (elementId: string) => {
+    const maxZ = Math.max(...elements.map((el) => el.zIndex));
     onChange(
-      images.map((img) =>
-        img.id === imageId
-          ? { ...img, canvasData: { ...img.canvasData, zIndex: maxZ + 1 } }
-          : img
+      elements.map((el) =>
+        el.id === elementId ? { ...el, zIndex: maxZ + 1 } : el
       )
     );
   };
 
-  const sendBack = (imageId: string) => {
-    const minZ = Math.min(...images.map((img) => img.canvasData.zIndex));
+  const sendBack = (elementId: string) => {
+    const minZ = Math.min(...elements.map((el) => el.zIndex));
     onChange(
-      images.map((img) =>
-        img.id === imageId
-          ? { ...img, canvasData: { ...img.canvasData, zIndex: minZ - 1 } }
-          : img
+      elements.map((el) =>
+        el.id === elementId ? { ...el, zIndex: minZ - 1 } : el
       )
     );
   };
 
-  const deleteImage = (imageId: string) => {
-    onChange(images.filter((img) => img.id !== imageId));
-    if (selectedId === imageId) {
-      setSelectedId(null);
-    }
+  const deleteElement = (elementId: string) => {
+    onChange(elements.filter((el) => el.id !== elementId));
+    if (selectedId === elementId) setSelectedId(null);
   };
 
-  const updateImageProperty = (
-    imageId: string,
-    property: keyof CanvasData,
-    value: number | string
-  ) => {
+  const updateElement = (elementId: string, updates: Partial<CanvasElement>) => {
     onChange(
-      images.map((img) =>
-        img.id === imageId
-          ? { ...img, canvasData: { ...img.canvasData, [property]: value } }
-          : img
+      elements.map((el) =>
+        el.id === elementId ? { ...el, ...updates } : el
+      )
+    );
+  };
+
+  const updateTextStyle = (elementId: string, styleUpdates: Partial<CanvasTextStyle>) => {
+    onChange(
+      elements.map((el) =>
+        el.id === elementId
+          ? { ...el, textStyle: { ...el.textStyle, ...styleUpdates } }
+          : el
+      )
+    );
+  };
+
+  // Handle text content change
+  const handleTextChange = (elementId: string, content: string) => {
+    onChange(
+      elements.map((el) =>
+        el.id === elementId ? { ...el, content } : el
       )
     );
   };
 
   // Get background style
   const getBackgroundStyle = (): React.CSSProperties => {
-    if (!background) return { backgroundColor: "#f5f5f5" };
+    if (!background) return { backgroundColor: "#fafafa" };
 
-    if (background.type === "solid") {
-      return { backgroundColor: background.value };
-    }
-    if (background.type === "gradient") {
-      return { background: background.value };
-    }
+    if (background.type === "solid") return { backgroundColor: background.value };
+    if (background.type === "gradient") return { background: background.value };
     if (background.type === "pattern") {
       return {
         background: background.value,
         backgroundSize: background.value.includes("dots") ? "20px 20px" :
-                       background.value.includes("grid") ? "20px 20px" :
-                       background.value.includes("notebook") ? "100% 24px" : "auto"
+                       background.value.includes("grid") ? "20px 20px" : "auto"
       };
     }
     if (background.type === "image" && background.imageUrl) {
@@ -412,25 +448,28 @@ export default function CanvasEditor({
         backgroundImage: `url(${background.imageUrl})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
-        opacity: background.opacity ?? 1,
-        filter: background.blur ? `blur(${background.blur}px)` : undefined,
       };
     }
-    return { backgroundColor: "#f5f5f5" };
+    return { backgroundColor: "#fafafa" };
   };
 
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium shadow-lg shadow-purple-primary/30 hover:shadow-xl hover:shadow-purple-primary/40 transition-all"
+            onClick={addTextElement}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 text-ink font-ui text-sm font-medium hover:bg-gray-200 transition-all"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            {icons.text}
+            Add Text
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium shadow-lg shadow-purple-primary/30 hover:shadow-xl transition-all"
+          >
+            {icons.image}
             Add Image
           </button>
           <input
@@ -471,7 +510,7 @@ export default function CanvasEditor({
               </svg>
             </button>
             <button
-              onClick={() => deleteImage(selectedId)}
+              onClick={() => deleteElement(selectedId)}
               className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors"
               title="Delete"
             >
@@ -485,96 +524,131 @@ export default function CanvasEditor({
         {/* Canvas */}
         <div
           ref={canvasRef}
-          className="flex-1 relative rounded-2xl overflow-hidden border border-black/10 cursor-crosshair"
+          className="flex-1 relative rounded-2xl overflow-hidden border border-black/10"
           style={{
             aspectRatio: aspectRatio,
+            minHeight: "400px",
             ...getBackgroundStyle(),
           }}
-          onClick={() => setSelectedId(null)}
+          onClick={() => {
+            setSelectedId(null);
+            setEditingTextId(null);
+          }}
         >
-          {images.length === 0 && (
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-center text-muted/50 pointer-events-none"
-            >
-              {icons.upload}
-              <p className="mt-2 font-ui text-sm">Drop images here or click &quot;Add Image&quot;</p>
+          {elements.length === 0 && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted/50 pointer-events-none">
+              <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="font-ui text-sm">Add text or images to your canvas</p>
+              <p className="font-ui text-xs mt-1">Position them freely like a notebook</p>
             </div>
           )}
 
-          {/* Render images sorted by zIndex */}
-          {images
-            .sort((a, b) => a.canvasData.zIndex - b.canvasData.zIndex)
-            .map((image) => {
-              const { x, y, width, height, rotation, borderRadius, borderWidth, borderColor, shadow } =
-                image.canvasData;
-              const isSelected = selectedId === image.id;
+          {/* Render elements sorted by zIndex */}
+          {elements
+            .sort((a, b) => a.zIndex - b.zIndex)
+            .map((element) => {
+              const isSelected = selectedId === element.id;
+              const isEditing = editingTextId === element.id;
 
               return (
                 <div
-                  key={image.id}
-                  className={`absolute cursor-move ${isSelected ? "ring-2 ring-purple-primary" : ""}`}
+                  key={element.id}
+                  className={`absolute ${isEditing ? "" : "cursor-move"} ${
+                    isSelected ? "ring-2 ring-purple-primary ring-offset-2" : ""
+                  }`}
                   style={{
-                    left: `${x * 100}%`,
-                    top: `${y * 100}%`,
-                    width: `${width * 100}%`,
-                    height: `${height * 100}%`,
-                    transform: `rotate(${rotation}deg)`,
-                    zIndex: image.canvasData.zIndex,
+                    left: `${element.x * 100}%`,
+                    top: `${element.y * 100}%`,
+                    width: `${element.width * 100}%`,
+                    height: `${element.height * 100}%`,
+                    transform: `rotate(${element.rotation}deg)`,
+                    zIndex: element.zIndex,
                   }}
-                  onMouseDown={(e) => handleMouseDown(e, image.id)}
+                  onMouseDown={(e) => handleMouseDown(e, element.id)}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelectedId(image.id);
+                    setSelectedId(element.id);
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    if (element.type === "text") {
+                      setEditingTextId(element.id);
+                    }
                   }}
                 >
-                  <img
-                    src={image.preview}
-                    alt=""
-                    className="w-full h-full object-cover pointer-events-none"
-                    style={{
-                      borderRadius: `${borderRadius}px`,
-                      border: borderWidth > 0 ? `${borderWidth}px solid ${borderColor}` : undefined,
-                      boxShadow: shadowStyles[shadow],
-                    }}
-                    draggable={false}
-                  />
+                  {element.type === "text" ? (
+                    <div
+                      contentEditable={isEditing}
+                      suppressContentEditableWarning
+                      className={`w-full h-full overflow-hidden outline-none p-2 ${
+                        isEditing ? "cursor-text" : ""
+                      }`}
+                      style={{
+                        fontFamily: element.textStyle?.fontFamily || defaultTextStyle.fontFamily,
+                        fontSize: `${element.textStyle?.fontSize || 18}px`,
+                        fontWeight: element.textStyle?.fontWeight || "normal",
+                        fontStyle: element.textStyle?.fontStyle || "normal",
+                        textAlign: element.textStyle?.textAlign || "left",
+                        color: element.textStyle?.color || "#1e1e1e",
+                        backgroundColor: element.textStyle?.backgroundColor || "transparent",
+                        lineHeight: element.textStyle?.lineHeight || 1.6,
+                      }}
+                      onBlur={(e) => {
+                        handleTextChange(element.id, e.currentTarget.innerHTML);
+                        setEditingTextId(null);
+                      }}
+                      dangerouslySetInnerHTML={{ __html: element.content || "" }}
+                    />
+                  ) : (
+                    <img
+                      src={element.imageUrl}
+                      alt=""
+                      className="w-full h-full object-cover pointer-events-none"
+                      style={{
+                        borderRadius: `${element.borderRadius || 0}px`,
+                        border: element.borderWidth ? `${element.borderWidth}px solid ${element.borderColor}` : undefined,
+                        boxShadow: shadowStyles[element.shadow || "none"],
+                      }}
+                      draggable={false}
+                    />
+                  )}
 
                   {/* Resize handles */}
-                  {isSelected && (
+                  {isSelected && !isEditing && (
                     <>
-                      {/* Corners */}
                       <div
                         className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-purple-primary rounded-full cursor-nw-resize"
-                        onMouseDown={(e) => handleResizeStart(e, image.id, "nw")}
+                        onMouseDown={(e) => handleResizeStart(e, element.id, "nw")}
                       />
                       <div
                         className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-purple-primary rounded-full cursor-ne-resize"
-                        onMouseDown={(e) => handleResizeStart(e, image.id, "ne")}
+                        onMouseDown={(e) => handleResizeStart(e, element.id, "ne")}
                       />
                       <div
                         className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-purple-primary rounded-full cursor-sw-resize"
-                        onMouseDown={(e) => handleResizeStart(e, image.id, "sw")}
+                        onMouseDown={(e) => handleResizeStart(e, element.id, "sw")}
                       />
                       <div
                         className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-purple-primary rounded-full cursor-se-resize"
-                        onMouseDown={(e) => handleResizeStart(e, image.id, "se")}
+                        onMouseDown={(e) => handleResizeStart(e, element.id, "se")}
                       />
-                      {/* Edges */}
                       <div
                         className="absolute top-1/2 -left-1.5 w-3 h-3 bg-white border-2 border-purple-primary rounded-full cursor-w-resize -translate-y-1/2"
-                        onMouseDown={(e) => handleResizeStart(e, image.id, "w")}
+                        onMouseDown={(e) => handleResizeStart(e, element.id, "w")}
                       />
                       <div
                         className="absolute top-1/2 -right-1.5 w-3 h-3 bg-white border-2 border-purple-primary rounded-full cursor-e-resize -translate-y-1/2"
-                        onMouseDown={(e) => handleResizeStart(e, image.id, "e")}
+                        onMouseDown={(e) => handleResizeStart(e, element.id, "e")}
                       />
                       <div
                         className="absolute -top-1.5 left-1/2 w-3 h-3 bg-white border-2 border-purple-primary rounded-full cursor-n-resize -translate-x-1/2"
-                        onMouseDown={(e) => handleResizeStart(e, image.id, "n")}
+                        onMouseDown={(e) => handleResizeStart(e, element.id, "n")}
                       />
                       <div
                         className="absolute -bottom-1.5 left-1/2 w-3 h-3 bg-white border-2 border-purple-primary rounded-full cursor-s-resize -translate-x-1/2"
-                        onMouseDown={(e) => handleResizeStart(e, image.id, "s")}
+                        onMouseDown={(e) => handleResizeStart(e, element.id, "s")}
                       />
                     </>
                   )}
@@ -584,10 +658,12 @@ export default function CanvasEditor({
         </div>
 
         {/* Properties Panel */}
-        {showProperties && selectedImage && (
-          <div className="w-64 p-4 bg-white rounded-2xl border border-black/10 space-y-4">
+        {showProperties && selectedElement && (
+          <div className="w-64 p-4 bg-white rounded-2xl border border-black/10 space-y-4 h-fit">
             <div className="flex items-center justify-between">
-              <h3 className="font-ui text-sm font-semibold text-ink">Properties</h3>
+              <h3 className="font-ui text-sm font-semibold text-ink">
+                {selectedElement.type === "text" ? "Text Properties" : "Image Properties"}
+              </h3>
               <button
                 onClick={() => setShowProperties(false)}
                 className="w-6 h-6 rounded-full hover:bg-black/5 flex items-center justify-center text-muted"
@@ -596,94 +672,180 @@ export default function CanvasEditor({
               </button>
             </div>
 
-            {/* Border Radius */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="font-ui text-xs text-muted">Border Radius</label>
-                <span className="font-ui text-xs text-ink">{selectedImage.canvasData.borderRadius}px</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="50"
-                value={selectedImage.canvasData.borderRadius}
-                onChange={(e) => updateImageProperty(selectedId!, "borderRadius", parseInt(e.target.value))}
-                className="w-full accent-purple-primary"
-              />
-            </div>
+            {selectedElement.type === "text" && (
+              <>
+                {/* Font Family */}
+                <div>
+                  <label className="font-ui text-xs text-muted mb-1.5 block">Font</label>
+                  <select
+                    value={selectedElement.textStyle?.fontFamily || defaultTextStyle.fontFamily}
+                    onChange={(e) => updateTextStyle(selectedId!, { fontFamily: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-black/10 font-ui text-sm"
+                  >
+                    {fontOptions.map((font) => (
+                      <option key={font.id} value={font.family} style={{ fontFamily: font.family }}>
+                        {font.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* Border Width */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="font-ui text-xs text-muted">Border</label>
-                <span className="font-ui text-xs text-ink">{selectedImage.canvasData.borderWidth}px</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="10"
-                value={selectedImage.canvasData.borderWidth}
-                onChange={(e) => updateImageProperty(selectedId!, "borderWidth", parseInt(e.target.value))}
-                className="w-full accent-purple-primary"
-              />
-            </div>
+                {/* Font Size */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="font-ui text-xs text-muted">Font Size</label>
+                    <span className="font-ui text-xs text-ink">{selectedElement.textStyle?.fontSize || 18}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="12"
+                    max="72"
+                    value={selectedElement.textStyle?.fontSize || 18}
+                    onChange={(e) => updateTextStyle(selectedId!, { fontSize: parseInt(e.target.value) })}
+                    className="w-full accent-purple-primary"
+                  />
+                </div>
 
-            {/* Border Color */}
-            {selectedImage.canvasData.borderWidth > 0 && (
-              <div>
-                <label className="font-ui text-xs text-muted mb-1.5 block">Border Color</label>
-                <input
-                  type="color"
-                  value={selectedImage.canvasData.borderColor}
-                  onChange={(e) => updateImageProperty(selectedId!, "borderColor", e.target.value)}
-                  className="w-full h-8 rounded-lg cursor-pointer"
-                />
-              </div>
+                {/* Style Buttons */}
+                <div>
+                  <label className="font-ui text-xs text-muted mb-1.5 block">Style</label>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => updateTextStyle(selectedId!, {
+                        fontWeight: selectedElement.textStyle?.fontWeight === "bold" ? "normal" : "bold"
+                      })}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                        selectedElement.textStyle?.fontWeight === "bold"
+                          ? "bg-purple-primary text-white"
+                          : "bg-gray-100 text-muted hover:bg-gray-200"
+                      }`}
+                    >
+                      {icons.bold}
+                    </button>
+                    <button
+                      onClick={() => updateTextStyle(selectedId!, {
+                        fontStyle: selectedElement.textStyle?.fontStyle === "italic" ? "normal" : "italic"
+                      })}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                        selectedElement.textStyle?.fontStyle === "italic"
+                          ? "bg-purple-primary text-white"
+                          : "bg-gray-100 text-muted hover:bg-gray-200"
+                      }`}
+                    >
+                      {icons.italic}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Text Alignment */}
+                <div>
+                  <label className="font-ui text-xs text-muted mb-1.5 block">Alignment</label>
+                  <div className="flex gap-1">
+                    {(["left", "center", "right"] as TextAlignment[]).map((align) => (
+                      <button
+                        key={align}
+                        onClick={() => updateTextStyle(selectedId!, { textAlign: align })}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                          selectedElement.textStyle?.textAlign === align
+                            ? "bg-purple-primary text-white"
+                            : "bg-gray-100 text-muted hover:bg-gray-200"
+                        }`}
+                      >
+                        {icons[`align${align.charAt(0).toUpperCase() + align.slice(1)}` as keyof typeof icons]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Text Color */}
+                <div>
+                  <label className="font-ui text-xs text-muted mb-1.5 block">Text Color</label>
+                  <input
+                    type="color"
+                    value={selectedElement.textStyle?.color || "#1e1e1e"}
+                    onChange={(e) => updateTextStyle(selectedId!, { color: e.target.value })}
+                    className="w-full h-8 rounded-lg cursor-pointer"
+                  />
+                </div>
+              </>
             )}
 
-            {/* Shadow */}
-            <div>
-              <label className="font-ui text-xs text-muted mb-1.5 block">Shadow</label>
-              <div className="grid grid-cols-4 gap-1">
-                {(["none", "soft", "medium", "strong"] as ShadowStyle[]).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => updateImageProperty(selectedId!, "shadow", s)}
-                    className={`px-2 py-1.5 rounded-lg font-ui text-xs capitalize transition-colors ${
-                      selectedImage.canvasData.shadow === s
-                        ? "bg-purple-primary text-white"
-                        : "bg-gray-100 text-muted hover:bg-gray-200"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {selectedElement.type === "image" && (
+              <>
+                {/* Border Radius */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="font-ui text-xs text-muted">Border Radius</label>
+                    <span className="font-ui text-xs text-ink">{selectedElement.borderRadius || 0}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="50"
+                    value={selectedElement.borderRadius || 0}
+                    onChange={(e) => updateElement(selectedId!, { borderRadius: parseInt(e.target.value) })}
+                    className="w-full accent-purple-primary"
+                  />
+                </div>
 
-            {/* Rotation */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="font-ui text-xs text-muted">Rotation</label>
-                <span className="font-ui text-xs text-ink">{selectedImage.canvasData.rotation}°</span>
-              </div>
-              <input
-                type="range"
-                min="-180"
-                max="180"
-                value={selectedImage.canvasData.rotation}
-                onChange={(e) => updateImageProperty(selectedId!, "rotation", parseInt(e.target.value))}
-                className="w-full accent-purple-primary"
-              />
-            </div>
+                {/* Border Width */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="font-ui text-xs text-muted">Border</label>
+                    <span className="font-ui text-xs text-ink">{selectedElement.borderWidth || 0}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    value={selectedElement.borderWidth || 0}
+                    onChange={(e) => updateElement(selectedId!, { borderWidth: parseInt(e.target.value) })}
+                    className="w-full accent-purple-primary"
+                  />
+                </div>
 
-            {/* Size Info */}
+                {/* Border Color */}
+                {(selectedElement.borderWidth || 0) > 0 && (
+                  <div>
+                    <label className="font-ui text-xs text-muted mb-1.5 block">Border Color</label>
+                    <input
+                      type="color"
+                      value={selectedElement.borderColor || "#ffffff"}
+                      onChange={(e) => updateElement(selectedId!, { borderColor: e.target.value })}
+                      className="w-full h-8 rounded-lg cursor-pointer"
+                    />
+                  </div>
+                )}
+
+                {/* Shadow */}
+                <div>
+                  <label className="font-ui text-xs text-muted mb-1.5 block">Shadow</label>
+                  <div className="grid grid-cols-4 gap-1">
+                    {(["none", "soft", "medium", "strong"] as ShadowStyle[]).map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => updateElement(selectedId!, { shadow: s })}
+                        className={`px-2 py-1.5 rounded-lg font-ui text-xs capitalize transition-colors ${
+                          selectedElement.shadow === s
+                            ? "bg-purple-primary text-white"
+                            : "bg-gray-100 text-muted hover:bg-gray-200"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Position Info */}
             <div className="pt-2 border-t border-black/5">
               <p className="font-ui text-xs text-muted">
-                Size: {Math.round(selectedImage.canvasData.width * 100)}% × {Math.round(selectedImage.canvasData.height * 100)}%
+                Size: {Math.round(selectedElement.width * 100)}% × {Math.round(selectedElement.height * 100)}%
               </p>
               <p className="font-ui text-xs text-muted mt-1">
-                Position: {Math.round(selectedImage.canvasData.x * 100)}%, {Math.round(selectedImage.canvasData.y * 100)}%
+                Position: {Math.round(selectedElement.x * 100)}%, {Math.round(selectedElement.y * 100)}%
               </p>
             </div>
           </div>
@@ -692,7 +854,7 @@ export default function CanvasEditor({
 
       {/* Help text */}
       <p className="font-ui text-xs text-muted text-center">
-        Drag images to position. Use corners to resize (hold Shift for aspect ratio). Arrow keys to nudge. Delete key to remove.
+        Double-click text to edit. Drag elements to position. Use corners to resize. Arrow keys to nudge. Delete key to remove.
       </p>
     </div>
   );

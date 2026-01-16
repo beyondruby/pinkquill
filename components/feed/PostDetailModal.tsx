@@ -16,7 +16,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
-import { PostStyling, JournalMetadata, CanvasData, PostBackground, TimeOfDay, WeatherType, MoodType } from "@/lib/types";
+import { PostStyling, JournalMetadata, CanvasData, PostBackground, TimeOfDay, WeatherType, MoodType, CanvasPostData, CanvasElement, CanvasTextStyle, ShadowStyle } from "@/lib/types";
 
 // Helper to clean HTML for display (keeps tags but fixes &nbsp;)
 function cleanHtmlForDisplay(html: string): string {
@@ -180,6 +180,7 @@ interface Post {
   styling?: PostStyling | null;
   post_location?: string | null;
   metadata?: JournalMetadata | null;
+  canvas_data?: CanvasPostData | null;
 }
 
 // Format date as "January 2, 2026"
@@ -592,11 +593,15 @@ export default function PostDetailModal({
     loose: 'leading-[2.5]'
   }[lineSpacing];
 
-  // Check for canvas images (position >= 1000)
+  // Check for canvas images (position >= 1000) - legacy approach
   const canvasImages = post.media?.filter(m => m.position >= 1000 && m.canvas_data) || [];
   const regularMedia = post.media?.filter(m => m.position < 1000 || !m.canvas_data) || [];
   const hasCanvasImages = canvasImages.length > 0;
   const hasRegularMedia = regularMedia.length > 0;
+
+  // Check for new canvas_data approach (free-form canvas with text and images)
+  const isCanvasPost = !!post.canvas_data && post.canvas_data.elements && post.canvas_data.elements.length > 0;
+  const canvasElements = post.canvas_data?.elements || [];
 
   return (
     <>
@@ -833,7 +838,7 @@ export default function PostDetailModal({
 
             {/* Post Content */}
             <div className="flex-1 relative">
-              {post.title && (
+              {post.title && !isCanvasPost && (
                 <h2
                   className={`font-display text-[1.3rem] md:text-[1.8rem] mb-3 md:mb-4 leading-tight ${textColorClass} ${
                     post.type === "poem" || textAlignment === 'center' ? "text-center" : alignmentClass
@@ -843,7 +848,72 @@ export default function PostDetailModal({
                 </h2>
               )}
 
-              {post.type === "poem" ? (
+              {/* Free-form Canvas Post View */}
+              {isCanvasPost ? (
+                <div
+                  className="relative w-full rounded-xl overflow-hidden"
+                  style={{
+                    aspectRatio: post.canvas_data?.aspectRatio || (4/3),
+                    minHeight: '300px',
+                    backgroundColor: hasBackground ? undefined : '#fafafa',
+                  }}
+                >
+                  {canvasElements.sort((a: CanvasElement, b: CanvasElement) => a.zIndex - b.zIndex).map((element: CanvasElement) => (
+                    <div
+                      key={element.id}
+                      className="absolute"
+                      style={{
+                        left: `${element.x * 100}%`,
+                        top: `${element.y * 100}%`,
+                        width: `${element.width * 100}%`,
+                        height: `${element.height * 100}%`,
+                        transform: `rotate(${element.rotation || 0}deg)`,
+                        zIndex: element.zIndex,
+                      }}
+                    >
+                      {element.type === 'text' ? (
+                        <div
+                          className="w-full h-full overflow-hidden p-2"
+                          style={{
+                            fontFamily: element.textStyle?.fontFamily || "'Crimson Pro', serif",
+                            fontSize: `${element.textStyle?.fontSize || 18}px`,
+                            fontWeight: element.textStyle?.fontWeight || 'normal',
+                            fontStyle: element.textStyle?.fontStyle || 'normal',
+                            textAlign: element.textStyle?.textAlign || 'left',
+                            color: element.textStyle?.color || (hasDarkBg ? '#ffffff' : '#1e1e1e'),
+                            backgroundColor: element.textStyle?.backgroundColor || 'transparent',
+                            lineHeight: element.textStyle?.lineHeight || 1.6,
+                          }}
+                          dangerouslySetInnerHTML={{ __html: element.content || '' }}
+                        />
+                      ) : (
+                        <img
+                          src={element.imageUrl}
+                          alt=""
+                          className="w-full h-full object-cover cursor-pointer transition-transform hover:scale-[1.01]"
+                          style={{
+                            borderRadius: `${element.borderRadius || 0}px`,
+                            border: element.borderWidth ? `${element.borderWidth}px solid ${element.borderColor || '#ffffff'}` : undefined,
+                            boxShadow: getShadowStyle(element.shadow || 'none'),
+                          }}
+                          onClick={() => {
+                            const imageElements = canvasElements.filter((el: CanvasElement) => el.type === 'image');
+                            const index = imageElements.findIndex((el: CanvasElement) => el.id === element.id);
+                            if (index >= 0) {
+                              window.dispatchEvent(new CustomEvent('openLightbox', {
+                                detail: {
+                                  images: imageElements.map((el: CanvasElement) => ({ media_url: el.imageUrl })),
+                                  index
+                                }
+                              }));
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : post.type === "poem" ? (
                 <div
                   className={`font-body text-[1.05rem] md:text-[1.3rem] leading-loose italic text-center py-4 md:py-8 post-content ${textColorClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
                   dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
