@@ -693,6 +693,7 @@ export default function PostDetailModal({
                   {post.timeAgo}
                 </span>
               </div>
+              {/* Desktop Discussion Button - with word */}
               <button
                 onClick={() => setShowComments(!showComments)}
                 className={`view-discussion-btn hidden md:flex ${hasDarkBg ? 'bg-white/10 text-white hover:bg-white/20' : ''}`}
@@ -703,15 +704,21 @@ export default function PostDetailModal({
                   {comments.length}
                 </span>
               </button>
-              {/* Mobile Discussion Button */}
+              {/* Mobile Discussion Button - icon only with badge */}
               <button
                 onClick={() => setShowComments(!showComments)}
-                className={`md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
-                  hasDarkBg ? 'bg-white/20 text-white' : 'bg-purple-primary/10 text-purple-primary'
+                className={`mobile-discussion-btn md:hidden relative w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                  hasDarkBg ? 'text-white/80 hover:bg-white/10' : 'text-muted hover:bg-black/5'
                 }`}
               >
                 {icons.comment}
-                <span>{comments.length}</span>
+                {comments.length > 0 && (
+                  <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center ${
+                    hasDarkBg ? 'bg-white text-ink' : 'bg-purple-primary text-white'
+                  }`}>
+                    {comments.length > 99 ? '99+' : comments.length}
+                  </span>
+                )}
               </button>
 
               {/* Post Options Menu */}
