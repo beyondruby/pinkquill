@@ -121,6 +121,7 @@ interface MediaItem {
   media_type: "image" | "video";
   caption: string | null;
   position: number;
+  canvas_data?: any | null;
 }
 
 interface CommunityInfo {

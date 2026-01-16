@@ -72,6 +72,9 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           .select(
             `
             *,
+            styling,
+            post_location,
+            metadata,
             author:profiles!posts_author_id_fkey (
               id,
               username,
@@ -85,7 +88,8 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
               media_url,
               media_type,
               caption,
-              position
+              position,
+              canvas_data
             ),
             community:communities (
               id,
@@ -235,6 +239,10 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           content_warning: post.content_warning,
           created_at: post.created_at,
           community_id: post.community_id,
+          // Creative styling fields
+          styling: post.styling || null,
+          post_location: post.post_location || null,
+          metadata: post.metadata || null,
           author: post.author,
           media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
           community: post.community,

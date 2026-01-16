@@ -765,73 +765,35 @@ export default function PostDetailModal({
               )}
             </div>
 
-            {/* Beautiful Journal Metadata Header */}
+            {/* Journal Date - Original beautiful purple styling */}
             {post.type === "journal" && post.createdAt && (
-              <div className={`journal-immersive-header mb-6 md:mb-8 text-center ${hasDarkBg ? 'text-white' : ''}`}>
-                {/* Location */}
+              <div className="journal-date">{formatDate(post.createdAt)}</div>
+            )}
+
+            {/* Journal Metadata - Simple inline display */}
+            {post.type === "journal" && (post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
+              <div className={`flex flex-wrap items-center gap-3 mb-4 text-sm ${mutedTextColorClass}`}>
                 {post.post_location && (
-                  <div className={`flex items-center justify-center gap-2 mb-3 ${mutedTextColorClass}`}>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <span className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                     </svg>
-                    <span className="font-ui text-sm tracking-wide">{post.post_location}</span>
-                  </div>
+                    {post.post_location}
+                  </span>
                 )}
-
-                {/* Date & Time */}
-                <div className={`font-display text-2xl md:text-3xl mb-2 ${textColorClass}`}>
-                  {formatDate(post.createdAt)}
-                </div>
-                <div className={`flex items-center justify-center gap-3 text-sm ${mutedTextColorClass}`}>
-                  <span className="font-ui">{formatTime(post.createdAt)}</span>
-                  {post.metadata?.timeOfDay && (
-                    <>
-                      <span className="opacity-40">·</span>
-                      <span className="flex items-center gap-1.5">
-                        {timeOfDayIcons[post.metadata.timeOfDay]}
-                        <span className="font-ui">{formatTimeOfDay(post.metadata.timeOfDay)}</span>
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                {/* Weather & Mood */}
-                {(post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
-                  <div className={`flex items-center justify-center gap-4 mt-4 pt-4 border-t ${borderColorClass}`}>
-                    {(post.metadata?.weather || post.metadata?.temperature) && (
-                      <div className={`flex items-center gap-2 ${mutedTextColorClass}`}>
-                        {post.metadata?.weather && weatherIcons[post.metadata.weather]}
-                        {post.metadata?.temperature && (
-                          <span className="font-ui text-sm">{post.metadata.temperature}</span>
-                        )}
-                        {post.metadata?.weather && !post.metadata?.temperature && (
-                          <span className="font-ui text-sm">{formatWeather(post.metadata.weather)}</span>
-                        )}
-                      </div>
-                    )}
-                    {post.metadata?.mood && (
-                      <>
-                        {(post.metadata?.weather || post.metadata?.temperature) && (
-                          <span className={`opacity-30 ${textColorClass}`}>·</span>
-                        )}
-                        <div className={`flex items-center gap-1.5 ${mutedTextColorClass}`}>
-                          {moodIcons[post.metadata.mood] || moodIcons['reflective']}
-                          <span className="font-ui text-sm">{formatMood(post.metadata.mood)}</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                {(post.metadata?.weather || post.metadata?.temperature) && (
+                  <span className="flex items-center gap-1.5">
+                    {post.metadata?.weather && weatherIcons[post.metadata.weather]}
+                    {post.metadata?.temperature || formatWeather(post.metadata?.weather)}
+                  </span>
                 )}
-
-                {/* Decorative divider */}
-                <div className={`flex items-center justify-center mt-6 mb-2 ${mutedTextColorClass}`}>
-                  <div className={`w-12 h-px ${hasDarkBg ? 'bg-white/20' : 'bg-black/10'}`} />
-                  <svg className="w-4 h-4 mx-3 opacity-30" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                  </svg>
-                  <div className={`w-12 h-px ${hasDarkBg ? 'bg-white/20' : 'bg-black/10'}`} />
-                </div>
+                {post.metadata?.mood && (
+                  <span className="flex items-center gap-1.5">
+                    {moodIcons[post.metadata.mood] || moodIcons['reflective']}
+                    {formatMood(post.metadata.mood)}
+                  </span>
+                )}
               </div>
             )}
 

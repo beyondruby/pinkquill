@@ -50,6 +50,7 @@ interface PostMedia {
   media_type: "image" | "video";
   caption: string | null;
   position: number;
+  canvas_data?: any | null;
 }
 
 interface Post {
@@ -97,6 +98,10 @@ interface Post {
     };
   }>;
   hashtags?: string[];
+  // Creative styling
+  styling?: any | null;
+  post_location?: string | null;
+  metadata?: any | null;
 }
 
 interface PostItem {
@@ -210,6 +215,9 @@ export default function Feed() {
         .from("posts")
         .select(`
           *,
+          styling,
+          post_location,
+          metadata,
           author:profiles!posts_author_id_fkey (
             username,
             display_name,
@@ -220,7 +228,8 @@ export default function Feed() {
             media_url,
             media_type,
             caption,
-            position
+            position,
+            canvas_data
           ),
           community:communities (
             slug,
@@ -591,6 +600,10 @@ export default function Feed() {
               collaborators: post.collaborators || [],
               mentions: post.mentions || [],
               hashtags: post.hashtags || [],
+              // Creative styling fields
+              styling: post.styling || null,
+              post_location: post.post_location || null,
+              metadata: post.metadata || null,
             }}
             onPostDeleted={handlePostDeleted}
           />

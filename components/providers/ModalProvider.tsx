@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, Re
 import PostDetailModal from "@/components/feed/PostDetailModal";
 import TakeDetailModal, { TakeUpdate } from "@/components/takes/TakeDetailModal";
 import { Take, TakeReactionType } from "@/lib/hooks/useTakes";
+import { PostStyling, JournalMetadata, CanvasData } from "@/lib/types";
 
 interface MediaItem {
   id: string;
@@ -11,6 +12,7 @@ interface MediaItem {
   media_type: "image" | "video";
   caption: string | null;
   position: number;
+  canvas_data?: CanvasData | null;
 }
 
 interface TaggedUser {
@@ -58,6 +60,10 @@ interface Post {
   mentions?: TaggedUser[];
   hashtags?: string[];
   collaborators?: CollaboratorUser[];
+  // Creative styling
+  styling?: PostStyling | null;
+  post_location?: string | null;
+  metadata?: JournalMetadata | null;
 }
 
 export interface PostUpdate {
