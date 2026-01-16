@@ -399,13 +399,9 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
       )}
 
       {/* Panel - Side panel on desktop, bottom sheet on mobile */}
+      {/* Panel - Side panel on desktop, bottom sheet on mobile */}
       <div
-        className={`take-comments-panel fixed z-50 flex flex-col bg-white md:bg-[#fafafa] transform transition-transform duration-300 ease-out
-          /* Mobile: bottom sheet */
-          inset-x-0 bottom-0 h-[85vh] rounded-t-3xl
-          /* Desktop: side panel */
-          md:inset-auto md:top-0 md:right-0 md:h-full md:w-[380px] md:rounded-none
-          ${isOpen ? "translate-y-0 md:translate-x-0" : "translate-y-full md:translate-y-0 md:translate-x-full"}`}
+        className={`take-comments-panel fixed z-50 flex flex-col bg-white md:bg-[#fafafa] transform transition-transform duration-300 ease-out inset-x-0 bottom-0 h-[85vh] rounded-t-3xl md:inset-auto md:top-0 md:right-0 md:h-full md:w-[380px] md:rounded-none ${isOpen ? "translate-y-0 md:translate-x-0" : "translate-y-full md:translate-y-0 md:translate-x-full"}`}
       >
         {/* Mobile drag handle */}
         <div className="md:hidden flex justify-center pt-3 pb-1">
