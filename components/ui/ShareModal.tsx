@@ -310,14 +310,51 @@ export default function ShareModal({
       }
     }
 
-    // ========== GLASS EFFECT CARD ==========
+    // ========== CALCULATE DYNAMIC CARD HEIGHT ==========
     const cardMargin = 45;
     const cardX = cardMargin;
-    const cardY = height * 0.12;
     const cardWidth = width - (cardMargin * 2);
-    const cardHeight = height * 0.72;
     const cardRadius = 40;
+    const contentPadding = 60;
+    const contentWidth = cardWidth - (contentPadding * 2);
 
+    // Pre-calculate content dimensions to determine card height
+    const displayTitle = (title || 'Untitled').substring(0, 150) + ((title || '').length > 150 ? '...' : '');
+    const cleanDescription = (description || '').replace(/<[^>]*>/g, '').trim();
+    const displayExcerpt = cleanDescription.substring(0, 2000) + (cleanDescription.length > 2000 ? '...' : '');
+
+    // Calculate title height
+    ctx.font = 'bold 48px "Libre Baskerville", Georgia, serif';
+    const titleLines = wrapText(ctx, displayTitle, contentWidth);
+    const titleLineHeight = 62;
+    const titleHeight = titleLines.length * titleLineHeight;
+
+    // Calculate excerpt height
+    ctx.font = 'italic 32px "Crimson Pro", Georgia, serif';
+    const excerptLines = displayExcerpt ? wrapText(ctx, displayExcerpt, contentWidth) : [];
+    const excerptLineHeight = 38;
+    const maxExcerptLines = 25;
+    const actualExcerptLines = Math.min(excerptLines.length, maxExcerptLines);
+    const excerptHeight = actualExcerptLines * excerptLineHeight;
+
+    // Calculate total content height
+    const topPadding = 70;           // Space from card top to title
+    const afterTitleSpace = 40;      // Space after title
+    const dividerHeight = 40;        // Divider + space after
+    const afterExcerptSpace = 30;    // Space after excerpt
+    const followTextSpace = 100;     // Space for follow text at bottom
+
+    const totalContentHeight = topPadding + titleHeight + afterTitleSpace + dividerHeight + excerptHeight + afterExcerptSpace + followTextSpace;
+
+    // Set card height with min/max bounds
+    const minCardHeight = height * 0.35;  // Minimum 35% of canvas
+    const maxCardHeight = height * 0.78;  // Maximum 78% of canvas
+    const cardHeight = Math.max(minCardHeight, Math.min(maxCardHeight, totalContentHeight));
+
+    // Center card vertically with slight upward bias
+    const cardY = Math.max(height * 0.08, (height - cardHeight - 120) / 2);
+
+    // ========== GLASS EFFECT CARD ==========
     // Glass card background - more transparent/see-through
     ctx.save();
     ctx.beginPath();
@@ -346,24 +383,18 @@ export default function ShareModal({
     ctx.stroke();
 
     // ========== CARD CONTENT ==========
-    const contentPadding = 60;
-    const contentWidth = cardWidth - (contentPadding * 2);
-    let contentY = cardY + 70;
+    let contentY = cardY + topPadding;
 
-    // Title (first 150 characters)
-    const displayTitle = (title || 'Untitled').substring(0, 150) + ((title || '').length > 150 ? '...' : '');
+    // Title
     ctx.fillStyle = '#1e1e1e';
     ctx.font = 'bold 48px "Libre Baskerville", Georgia, serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
-    const titleLines = wrapText(ctx, displayTitle, contentWidth);
-    const titleLineHeight = 62;
-
     titleLines.forEach((line, i) => {
       ctx.fillText(line, width / 2, contentY + i * titleLineHeight);
     });
-    contentY += titleLines.length * titleLineHeight + 40;
+    contentY += titleHeight + afterTitleSpace;
 
     // Decorative divider
     ctx.strokeStyle = 'rgba(142, 68, 173, 0.3)';
@@ -372,25 +403,18 @@ export default function ShareModal({
     ctx.moveTo(width / 2 - 60, contentY);
     ctx.lineTo(width / 2 + 60, contentY);
     ctx.stroke();
-    contentY += 40;
+    contentY += dividerHeight;
 
-    // Content excerpt (first 2000 characters)
-    const cleanDescription = (description || '').replace(/<[^>]*>/g, '').trim();
-    const displayExcerpt = cleanDescription.substring(0, 2000) + (cleanDescription.length > 2000 ? '...' : '');
-
+    // Content excerpt
     if (displayExcerpt) {
       ctx.fillStyle = '#444444';
       ctx.font = 'italic 32px "Crimson Pro", Georgia, serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      const excerptLines = wrapText(ctx, displayExcerpt, contentWidth);
-      const excerptLineHeight = 38;
-
-      excerptLines.slice(0, 25).forEach((line, i) => {
+      excerptLines.slice(0, maxExcerptLines).forEach((line, i) => {
         ctx.fillText(line, width / 2, contentY + i * excerptLineHeight);
       });
-      contentY += Math.min(excerptLines.length, 25) * excerptLineHeight + 30;
     }
 
     // "follow @username on pinkquill" at bottom of card
