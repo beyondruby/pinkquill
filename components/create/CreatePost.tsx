@@ -286,37 +286,42 @@ const icons: Record<string, React.ReactElement> = {
 
 // Color palette for text color and highlighting
 const textColors = [
-  // Row 1 - Grayscale
-  { id: "black", color: "#1e1e1e", label: "Black" },
-  { id: "darkgray", color: "#555555", label: "Dark Gray" },
-  { id: "gray", color: "#888888", label: "Gray" },
+  // Row 1 - White & Very Light
+  { id: "white", color: "#ffffff", label: "White" },
+  { id: "snow", color: "#f8fafc", label: "Snow" },
+  { id: "ivory", color: "#f1f5f9", label: "Ivory" },
+  { id: "silver", color: "#e2e8f0", label: "Silver" },
+  // Row 2 - Grayscale
   { id: "lightgray", color: "#bbbbbb", label: "Light Gray" },
-  // Row 2 - Warm colors
+  { id: "gray", color: "#888888", label: "Gray" },
+  { id: "darkgray", color: "#555555", label: "Dark Gray" },
+  { id: "black", color: "#1e1e1e", label: "Black" },
+  // Row 3 - Warm colors
   { id: "darkred", color: "#991b1b", label: "Dark Red" },
   { id: "red", color: "#dc2626", label: "Red" },
   { id: "orange", color: "#ea580c", label: "Orange" },
   { id: "amber", color: "#d97706", label: "Amber" },
-  // Row 3 - Earth & Yellow
+  // Row 4 - Earth & Yellow
   { id: "yellow", color: "#ca8a04", label: "Yellow" },
   { id: "lime", color: "#65a30d", label: "Lime" },
   { id: "green", color: "#16a34a", label: "Green" },
   { id: "emerald", color: "#059669", label: "Emerald" },
-  // Row 4 - Cool colors
+  // Row 5 - Cool colors
   { id: "teal", color: "#0d9488", label: "Teal" },
   { id: "cyan", color: "#0891b2", label: "Cyan" },
   { id: "blue", color: "#2563eb", label: "Blue" },
   { id: "indigo", color: "#4f46e5", label: "Indigo" },
-  // Row 5 - Purple & Pink
+  // Row 6 - Purple & Pink
   { id: "violet", color: "#7c3aed", label: "Violet" },
   { id: "purple", color: "#9333ea", label: "Purple" },
   { id: "fuchsia", color: "#c026d3", label: "Fuchsia" },
   { id: "pink", color: "#db2777", label: "Pink" },
-  // Row 6 - Light/Pastel colors
+  // Row 7 - Light/Pastel colors
   { id: "lightpink", color: "#f9a8d4", label: "Light Pink" },
   { id: "lightpurple", color: "#c4b5fd", label: "Light Purple" },
   { id: "lightblue", color: "#93c5fd", label: "Light Blue" },
   { id: "lightcyan", color: "#67e8f9", label: "Light Cyan" },
-  // Row 7 - More Light colors
+  // Row 8 - More Light colors
   { id: "lightgreen", color: "#86efac", label: "Light Green" },
   { id: "lightyellow", color: "#fde047", label: "Light Yellow" },
   { id: "lightorange", color: "#fdba74", label: "Light Orange" },
@@ -324,21 +329,26 @@ const textColors = [
 ];
 
 const highlightColors = [
-  // Row 1
+  // Row 1 - Light/White
   { id: "none", color: "transparent", label: "None" },
+  { id: "white", color: "#ffffff", label: "White" },
+  { id: "lightgray", color: "#f1f5f9", label: "Light Gray" },
+  { id: "cream", color: "#fefce8", label: "Cream" },
+  // Row 2 - Warm highlights
   { id: "yellow", color: "#fef08a", label: "Yellow" },
+  { id: "amber", color: "#fde68a", label: "Amber" },
+  { id: "orange", color: "#fed7aa", label: "Orange" },
+  { id: "rose", color: "#fda4af", label: "Rose" },
+  // Row 3 - Cool highlights
   { id: "lime", color: "#bef264", label: "Lime" },
   { id: "green", color: "#86efac", label: "Green" },
-  // Row 2
   { id: "cyan", color: "#a5f3fc", label: "Cyan" },
   { id: "blue", color: "#93c5fd", label: "Blue" },
+  // Row 4 - Purple/Pink highlights
   { id: "indigo", color: "#a5b4fc", label: "Indigo" },
   { id: "purple", color: "#c4b5fd", label: "Purple" },
-  // Row 3
   { id: "pink", color: "#f9a8d4", label: "Pink" },
-  { id: "rose", color: "#fda4af", label: "Rose" },
-  { id: "orange", color: "#fed7aa", label: "Orange" },
-  { id: "amber", color: "#fde68a", label: "Amber" },
+  { id: "lavender", color: "#e9d5ff", label: "Lavender" },
 ];
 
 interface MediaItem {
@@ -1578,12 +1588,27 @@ export default function CreatePost() {
                 <div className="px-3 py-2 bg-black/[0.02] border-b border-black/[0.06]">
                   <span className="font-ui text-xs font-medium text-muted uppercase tracking-wide">Text Color</span>
                 </div>
-                <div className="p-3">
+                <div className="p-3 max-h-[400px] overflow-y-auto">
+                  {/* White & Light */}
+                  <div className="mb-3">
+                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">White & Light</span>
+                    <div className="flex gap-2 mt-1.5">
+                      {textColors.slice(0, 4).map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleTextColor(c.color)}
+                          className="w-10 h-10 rounded-xl border border-black/10 hover:border-purple-400 hover:shadow-lg transition-all"
+                          style={{ backgroundColor: c.color }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
                   {/* Grayscale */}
                   <div className="mb-3">
                     <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Grayscale</span>
                     <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(0, 4).map((c) => (
+                      {textColors.slice(4, 8).map((c) => (
                         <button
                           key={c.id}
                           onClick={() => handleTextColor(c.color)}
@@ -1598,7 +1623,7 @@ export default function CreatePost() {
                   <div className="mb-3">
                     <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Warm</span>
                     <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(4, 8).map((c) => (
+                      {textColors.slice(8, 12).map((c) => (
                         <button
                           key={c.id}
                           onClick={() => handleTextColor(c.color)}
@@ -1613,7 +1638,7 @@ export default function CreatePost() {
                   <div className="mb-3">
                     <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Nature</span>
                     <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(8, 12).map((c) => (
+                      {textColors.slice(12, 16).map((c) => (
                         <button
                           key={c.id}
                           onClick={() => handleTextColor(c.color)}
@@ -1628,7 +1653,7 @@ export default function CreatePost() {
                   <div className="mb-3">
                     <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Cool</span>
                     <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(12, 16).map((c) => (
+                      {textColors.slice(16, 20).map((c) => (
                         <button
                           key={c.id}
                           onClick={() => handleTextColor(c.color)}
@@ -1643,7 +1668,7 @@ export default function CreatePost() {
                   <div className="mb-3">
                     <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Vibrant</span>
                     <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(16, 20).map((c) => (
+                      {textColors.slice(20, 24).map((c) => (
                         <button
                           key={c.id}
                           onClick={() => handleTextColor(c.color)}
@@ -1658,7 +1683,7 @@ export default function CreatePost() {
                   <div className="mb-3">
                     <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Light</span>
                     <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(20, 24).map((c) => (
+                      {textColors.slice(24, 28).map((c) => (
                         <button
                           key={c.id}
                           onClick={() => handleTextColor(c.color)}
@@ -1669,11 +1694,11 @@ export default function CreatePost() {
                       ))}
                     </div>
                   </div>
-                  {/* More Light */}
+                  {/* Soft */}
                   <div>
                     <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Soft</span>
                     <div className="flex gap-2 mt-1.5">
-                      {textColors.slice(24, 28).map((c) => (
+                      {textColors.slice(28, 32).map((c) => (
                         <button
                           key={c.id}
                           onClick={() => handleTextColor(c.color)}
@@ -1718,17 +1743,65 @@ export default function CreatePost() {
                     <span>✕</span>
                     <span>Remove Highlight</span>
                   </button>
-                  {/* Highlight colors */}
-                  <div className="grid grid-cols-4 gap-2">
-                    {highlightColors.filter(c => c.id !== "none").map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => handleHighlight(c.color)}
-                        className="w-11 h-11 rounded-xl border-2 border-white shadow-sm hover:border-purple-400 hover:shadow-lg transition-all"
-                        style={{ backgroundColor: c.color }}
-                        title={c.label}
-                      />
-                    ))}
+                  {/* White & Light */}
+                  <div className="mb-2">
+                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Light</span>
+                    <div className="flex gap-2 mt-1.5">
+                      {highlightColors.slice(1, 4).map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleHighlight(c.color)}
+                          className="w-11 h-11 rounded-xl border border-black/10 hover:border-purple-400 hover:shadow-lg transition-all"
+                          style={{ backgroundColor: c.color }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {/* Warm highlights */}
+                  <div className="mb-2">
+                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Warm</span>
+                    <div className="flex gap-2 mt-1.5">
+                      {highlightColors.slice(4, 8).map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleHighlight(c.color)}
+                          className="w-11 h-11 rounded-xl border-2 border-white shadow-sm hover:border-purple-400 hover:shadow-lg transition-all"
+                          style={{ backgroundColor: c.color }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {/* Cool highlights */}
+                  <div className="mb-2">
+                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Cool</span>
+                    <div className="flex gap-2 mt-1.5">
+                      {highlightColors.slice(8, 12).map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleHighlight(c.color)}
+                          className="w-11 h-11 rounded-xl border-2 border-white shadow-sm hover:border-purple-400 hover:shadow-lg transition-all"
+                          style={{ backgroundColor: c.color }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {/* Purple/Pink */}
+                  <div>
+                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Purple & Pink</span>
+                    <div className="flex gap-2 mt-1.5">
+                      {highlightColors.slice(12, 16).map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleHighlight(c.color)}
+                          className="w-11 h-11 rounded-xl border-2 border-white shadow-sm hover:border-purple-400 hover:shadow-lg transition-all"
+                          style={{ backgroundColor: c.color }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
