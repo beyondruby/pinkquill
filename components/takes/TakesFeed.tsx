@@ -203,6 +203,21 @@ export default function TakesFeed({
     else cardRefs.current.delete(takeId);
   }, []);
 
+  // Navigation handlers for desktop arrows
+  const goToPrevious = useCallback(() => {
+    if (activeIndex > 0) {
+      const prevTake = takes[activeIndex - 1];
+      cardRefs.current.get(prevTake.id)?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [activeIndex, takes]);
+
+  const goToNext = useCallback(() => {
+    if (activeIndex < takes.length - 1) {
+      const nextTake = takes[activeIndex + 1];
+      cardRefs.current.get(nextTake.id)?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [activeIndex, takes]);
+
   // Loading state
   if (loading && takes.length === 0) {
     return (
@@ -314,21 +329,6 @@ export default function TakesFeed({
       </div>
     );
   }
-
-  // Navigation handlers
-  const goToPrevious = useCallback(() => {
-    if (activeIndex > 0) {
-      const prevTake = takes[activeIndex - 1];
-      cardRefs.current.get(prevTake.id)?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [activeIndex, takes]);
-
-  const goToNext = useCallback(() => {
-    if (activeIndex < takes.length - 1) {
-      const nextTake = takes[activeIndex + 1];
-      cardRefs.current.get(nextTake.id)?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [activeIndex, takes]);
 
   return (
     <div className={`tiktok-feed-container ${commentsPanelOpen ? "comments-open" : ""}`}>
