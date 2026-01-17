@@ -5669,9 +5669,9 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 /* Navigation Arrows - Right Side (Desktop Only) */
 .takes-nav-arrows {
   position: fixed;
-  right: calc((100vw - 500px) / 4 + 500px);
+  right: 80px;
   top: 50%;
-  transform: translate(50%, -50%);
+  transform: translateY(-50%);
   flex-direction: column;
   align-items: center;
   gap: 20px;
@@ -5720,9 +5720,9 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 28px;
 }
 
-/* Adjust when comments panel is open */
+/* Hide when comments panel is open */
 .tiktok-feed-container.comments-open .takes-nav-arrows {
-  right: calc((100vw - 500px - 400px) / 4 + 500px);
+  display: none;
 }
 
 /* Status States */
