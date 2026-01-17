@@ -350,8 +350,8 @@ export default function ShareModal({
     const contentWidth = cardWidth - (contentPadding * 2);
     let contentY = cardY + 70;
 
-    // Title (first 75 characters)
-    const displayTitle = (title || 'Untitled').substring(0, 75) + ((title || '').length > 75 ? '...' : '');
+    // Title (first 150 characters)
+    const displayTitle = (title || 'Untitled').substring(0, 150) + ((title || '').length > 150 ? '...' : '');
     ctx.fillStyle = '#1e1e1e';
     ctx.font = 'bold 48px "Libre Baskerville", Georgia, serif';
     ctx.textAlign = 'center';
@@ -374,9 +374,9 @@ export default function ShareModal({
     ctx.stroke();
     contentY += 40;
 
-    // Content excerpt (first 250 characters)
+    // Content excerpt (first 550 characters)
     const cleanDescription = (description || '').replace(/<[^>]*>/g, '').trim();
-    const displayExcerpt = cleanDescription.substring(0, 250) + (cleanDescription.length > 250 ? '...' : '');
+    const displayExcerpt = cleanDescription.substring(0, 550) + (cleanDescription.length > 550 ? '...' : '');
 
     if (displayExcerpt) {
       ctx.fillStyle = '#444444';
@@ -385,12 +385,12 @@ export default function ShareModal({
       ctx.textBaseline = 'top';
 
       const excerptLines = wrapText(ctx, displayExcerpt, contentWidth);
-      const excerptLineHeight = 44;
+      const excerptLineHeight = 42;
 
-      excerptLines.slice(0, 7).forEach((line, i) => {
+      excerptLines.slice(0, 12).forEach((line, i) => {
         ctx.fillText(line, width / 2, contentY + i * excerptLineHeight);
       });
-      contentY += Math.min(excerptLines.length, 7) * excerptLineHeight + 40;
+      contentY += Math.min(excerptLines.length, 12) * excerptLineHeight + 40;
     }
 
     // "follow @username on pinkquill" at bottom of card
@@ -401,7 +401,7 @@ export default function ShareModal({
     ctx.font = '28px "Josefin Sans", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`follow @${cleanUsername} on pinkquill`, width / 2, followY);
+    ctx.fillText(`follow @${cleanUsername} on pinkquill.com`, width / 2, followY);
 
     // ========== PINKQUILL BRANDING AT BOTTOM OF PHOTO (OUTSIDE CARD) ==========
     const brandY = height - 80;
@@ -556,7 +556,7 @@ export default function ShareModal({
                 <div className="story-glass-card">
                   {/* Title */}
                   <h4 className="story-card-title">
-                    {(title || 'Untitled').substring(0, 75)}{(title || '').length > 75 ? '...' : ''}
+                    {(title || 'Untitled').substring(0, 150)}{(title || '').length > 150 ? '...' : ''}
                   </h4>
 
                   {/* Decorative divider */}
@@ -565,14 +565,14 @@ export default function ShareModal({
                   {/* Content excerpt */}
                   {description && (
                     <p className="story-card-excerpt">
-                      {description.replace(/<[^>]*>/g, '').substring(0, 250)}
-                      {description.replace(/<[^>]*>/g, '').length > 250 ? '...' : ''}
+                      {description.replace(/<[^>]*>/g, '').substring(0, 550)}
+                      {description.replace(/<[^>]*>/g, '').length > 550 ? '...' : ''}
                     </p>
                   )}
 
                   {/* Follow text */}
                   <div className="story-card-follow">
-                    follow @{(authorUsername || 'anonymous').replace(/^@/, '')} on pinkquill
+                    follow @{(authorUsername || 'anonymous').replace(/^@/, '')} on pinkquill.com
                   </div>
                 </div>
 

@@ -64,20 +64,19 @@ function getExcerpt(content: string, maxLength: number): string {
   return text.substring(0, maxLength) + "...";
 }
 
-// Truncated content component with "Continue reading" link (20 word limit for feeds)
+// Truncated content component with "Continue reading" link (250 character limit for feeds)
 interface TruncatedContentProps {
   content: string;
-  maxWords?: number;
+  maxChars?: number;
   onReadMore: () => void;
   className?: string;
   isPoem?: boolean;
 }
 
-function TruncatedContent({ content, maxWords = 20, onReadMore, className = "", isPoem = false }: TruncatedContentProps) {
+function TruncatedContent({ content, maxChars = 250, onReadMore, className = "", isPoem = false }: TruncatedContentProps) {
   const plainText = stripHtml(content);
-  const wordCount = countWords(plainText);
-  const isTruncated = wordCount > maxWords;
-  const { text: truncatedText } = getExcerptByWords(content, maxWords);
+  const isTruncated = plainText.length > maxChars;
+  const truncatedText = getExcerpt(content, maxChars);
 
   return (
     <div className="truncated-content-wrapper">
