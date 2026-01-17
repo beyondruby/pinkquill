@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus } from "@/lib/hooks";
+import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities } from "@/lib/hooks";
 import { useUserTakes, useRelayedTakes } from "@/lib/hooks/useTakes";
 import { useTrackProfileView } from "@/lib/hooks/useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -392,6 +392,16 @@ const icons = {
       <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z"/>
     </svg>
   ),
+  store: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+    </svg>
+  ),
+  community: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  ),
 };
 
 function formatCount(num: number): string {
@@ -431,9 +441,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const { relays, loading: relaysLoading } = useRelays(username);
   const { takes: userTakes, loading: takesLoading } = useUserTakes(username, user?.id);
   const { takes: relayedTakes, loading: relayedTakesLoading } = useRelayedTakes(username, user?.id);
+  const { communities: userCommunities, loading: communitiesLoading } = useCommunities(profile?.id, 'joined');
   const { revealedCards, observeCard } = useScrollReveal();
   const [pageLoaded, setPageLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState<"posts" | "takes" | "admired" | "relays">("posts");
+  const [showCommunitiesModal, setShowCommunitiesModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"posts" | "takes" | "admired" | "relays" | "store">("posts");
   const [relaySubTab, setRelaySubTab] = useState<"posts" | "takes">("posts");
   const [activeFilter, setActiveFilter] = useState("All");
   const [followStatus, setFollowStatus] = useState<FollowStatus>(null);
@@ -1024,7 +1036,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between pt-6 border-t border-pink-vivid/10">
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-pink-vivid/10">
                 {/* Social Links */}
                 {profile.website && parseSocialLinks(profile.website).length > 0 ? (
                   <div className="flex items-center gap-1">
@@ -1050,6 +1062,46 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     })}
                   </div>
                 ) : <div />}
+
+                {/* Communities - subtle overlapping avatars */}
+                {userCommunities && userCommunities.length > 0 && (
+                  <button
+                    onClick={() => setShowCommunitiesModal(true)}
+                    className="group flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-pink-vivid/5 transition-all duration-300"
+                  >
+                    <div className="flex -space-x-2">
+                      {userCommunities.slice(0, 3).map((community, index) => (
+                        <div
+                          key={community.id}
+                          className="w-6 h-6 rounded-full border-2 border-white overflow-hidden transition-transform duration-300 group-hover:translate-x-0"
+                          style={{
+                            zIndex: 3 - index,
+                            transform: `translateX(${index * 2}px)`,
+                          }}
+                        >
+                          {community.avatar_url ? (
+                            <img
+                              src={community.avatar_url}
+                              alt={community.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-purple-primary/30 to-pink-vivid/30 flex items-center justify-center">
+                              <span className="text-[8px] font-ui text-purple-primary font-medium">
+                                {community.name?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <span className="font-ui text-xs text-ink/40 group-hover:text-ink/60 transition-colors">
+                      {userCommunities.length === 1
+                        ? '1 community'
+                        : `${userCommunities.length} communities`}
+                    </span>
+                  </button>
+                )}
 
                 {/* Joined */}
                 <div className="flex items-center gap-2 text-ink/30">
@@ -1090,6 +1142,12 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             className={`studio-tab-btn ${activeTab === "admired" ? "active" : ""}`}
           >
             {icons.heart} Admired
+          </button>
+          <button
+            onClick={() => setActiveTab("store")}
+            className={`studio-tab-btn ${activeTab === "store" ? "active" : ""}`}
+          >
+            {icons.store} Store
           </button>
         </div>
 
@@ -1599,6 +1657,32 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             )}
           </div>
         )}
+
+        {/* Store Section */}
+        {activeTab === "store" && (
+          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
+            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-purple-50/90 via-white to-pink-50/80 p-8 md:p-12 lg:p-16 border border-purple-200/50 shadow-[0_8px_40px_-12px_rgba(142,68,173,0.15)] text-center">
+              {/* Store Icon */}
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center">
+                <svg className="w-10 h-10 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+
+              <h3 className="font-display text-xl md:text-2xl text-ink mb-3">Store Coming Soon</h3>
+              <p className="font-body text-muted text-[0.95rem] max-w-md mx-auto">
+                A place to share and sell your creative work. Stay tuned for updates.
+              </p>
+
+              {/* Subtle decorative element */}
+              <div className="mt-8 flex justify-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-primary/20" />
+                <span className="w-1.5 h-1.5 rounded-full bg-pink-vivid/30" />
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-warm/20" />
+              </div>
+            </div>
+          </div>
+        )}
           </>
         )}
 
@@ -1756,6 +1840,79 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </div>
               </>
             )}
+          </div>
+        </>
+      )}
+
+      {/* Communities Modal */}
+      {showCommunitiesModal && userCommunities && userCommunities.length > 0 && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
+            onClick={() => setShowCommunitiesModal(false)}
+          />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-[400px] max-h-[80vh] bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden">
+            {/* Header */}
+            <div className="p-5 border-b border-black/[0.06] flex items-center justify-between">
+              <h3 className="font-display text-lg text-ink">Communities</h3>
+              <button
+                onClick={() => setShowCommunitiesModal(false)}
+                className="w-8 h-8 rounded-full hover:bg-black/[0.04] flex items-center justify-center text-muted transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Community List */}
+            <div className="overflow-y-auto max-h-[calc(80vh-80px)]">
+              {userCommunities.map((community) => (
+                <a
+                  key={community.id}
+                  href={`/c/${community.slug || community.id}`}
+                  onClick={() => setShowCommunitiesModal(false)}
+                  className="flex items-center gap-3 p-4 hover:bg-black/[0.02] transition-colors border-b border-black/[0.04] last:border-b-0"
+                >
+                  {/* Community Avatar */}
+                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                    {community.avatar_url ? (
+                      <img
+                        src={community.avatar_url}
+                        alt={community.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center">
+                        <span className="text-lg font-ui text-purple-primary font-medium">
+                          {community.name?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Community Info */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-ui text-sm font-medium text-ink truncate">{community.name}</h4>
+                    {community.description && (
+                      <p className="font-body text-xs text-muted line-clamp-1 mt-0.5">
+                        {community.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="font-ui text-[10px] text-ink/40">
+                        {community.member_count || 0} members
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Arrow */}
+                  <svg className="w-4 h-4 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              ))}
+            </div>
           </div>
         </>
       )}
