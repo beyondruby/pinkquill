@@ -1084,7 +1084,7 @@ export default function CreatePost() {
           .from("posts")
           .update({
             type: selectedType,
-            title: titleText ? titleHtml : null,
+            title: titleText || null,
             content: content.trim(),
             visibility,
             content_warning: hasContentWarning ? contentWarning.trim() || null : null,
@@ -1137,7 +1137,7 @@ export default function CreatePost() {
           .insert({
             author_id: user.id,
             type: selectedType,
-            title: titleText ? titleHtml : null,
+            title: titleText || null,
             content: content.trim(),
             visibility: postVisibility,
             content_warning: hasContentWarning ? contentWarning.trim() || null : null,
