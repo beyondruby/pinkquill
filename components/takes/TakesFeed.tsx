@@ -315,6 +315,21 @@ export default function TakesFeed({
     );
   }
 
+  // Navigation handlers
+  const goToPrevious = useCallback(() => {
+    if (activeIndex > 0) {
+      const prevTake = takes[activeIndex - 1];
+      cardRefs.current.get(prevTake.id)?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [activeIndex, takes]);
+
+  const goToNext = useCallback(() => {
+    if (activeIndex < takes.length - 1) {
+      const nextTake = takes[activeIndex + 1];
+      cardRefs.current.get(nextTake.id)?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [activeIndex, takes]);
+
   return (
     <div className={`tiktok-feed-container ${commentsPanelOpen ? "comments-open" : ""}`}>
       {/* Background */}
@@ -332,6 +347,66 @@ export default function TakesFeed({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
       </Link>
+
+      {/* Right Side Navigation Arrows */}
+      <div className="takes-nav-arrows">
+        {/* Up Arrow */}
+        <button
+          onClick={goToPrevious}
+          disabled={activeIndex === 0}
+          className={`takes-nav-arrow ${activeIndex === 0 ? 'disabled' : ''}`}
+          aria-label="Previous take"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+            <defs>
+              <linearGradient id="navArrowGradUp" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="#8e44ad" />
+                <stop offset="50%" stopColor="#ff007f" />
+                <stop offset="100%" stopColor="#ff9f43" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M12 19V5M5 12l7-7 7 7"
+              stroke="url(#navArrowGradUp)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+
+        {/* Counter */}
+        <div className="takes-nav-counter">
+          <span className="current">{activeIndex + 1}</span>
+          <span className="separator">/</span>
+          <span className="total">{takes.length}</span>
+        </div>
+
+        {/* Down Arrow */}
+        <button
+          onClick={goToNext}
+          disabled={activeIndex >= takes.length - 1}
+          className={`takes-nav-arrow ${activeIndex >= takes.length - 1 ? 'disabled' : ''}`}
+          aria-label="Next take"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+            <defs>
+              <linearGradient id="navArrowGradDown" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#8e44ad" />
+                <stop offset="50%" stopColor="#ff007f" />
+                <stop offset="100%" stopColor="#ff9f43" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M12 5v14M5 12l7 7 7-7"
+              stroke="url(#navArrowGradDown)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
 
       {/* Feed */}
       <div ref={feedRef} className="tiktok-feed">

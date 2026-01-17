@@ -5666,6 +5666,102 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   padding-right: 400px;
 }
 
+/* Navigation Arrows - Right Side */
+.takes-nav-arrows {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+}
+
+.takes-nav-arrow {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid transparent;
+  background-image: linear-gradient(white, white), linear-gradient(135deg, #8e44ad, #ff007f, #ff9f43);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(142, 68, 173, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.takes-nav-arrow:hover:not(.disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(142, 68, 173, 0.25), 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.takes-nav-arrow:active:not(.disabled) {
+  transform: scale(0.95);
+}
+
+.takes-nav-arrow.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: none;
+}
+
+.takes-nav-arrow.disabled svg path {
+  stroke: #ccc;
+}
+
+.takes-nav-arrow svg {
+  width: 24px;
+  height: 24px;
+}
+
+.takes-nav-counter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.takes-nav-counter .current {
+  background: linear-gradient(135deg, #8e44ad, #ff007f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.takes-nav-counter .separator {
+  color: #ccc;
+  margin: 0 1px;
+}
+
+.takes-nav-counter .total {
+  color: #999;
+}
+
+/* Hide on mobile - use swipe instead */
+@media (max-width: 767px) {
+  .takes-nav-arrows {
+    display: none;
+  }
+}
+
+/* Adjust when comments panel is open */
+.tiktok-feed-container.comments-open .takes-nav-arrows {
+  right: 424px;
+}
+
 /* Status States */
 .tiktok-status {
   position: absolute;
