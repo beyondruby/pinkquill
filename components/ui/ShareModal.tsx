@@ -310,7 +310,7 @@ export default function ShareModal({
       }
     }
 
-    // ========== CALCULATE DYNAMIC CARD HEIGHT ==========
+    // ========== DYNAMIC SIZING BASED ON CONTENT LENGTH ==========
     const cardMargin = 45;
     const cardX = cardMargin;
     const cardWidth = width - (cardMargin * 2);
@@ -318,50 +318,87 @@ export default function ShareModal({
     const contentPadding = 60;
     const contentWidth = cardWidth - (contentPadding * 2);
 
-    // Pre-calculate content dimensions to determine card height
-    const displayTitle = (title || 'Untitled').substring(0, 150) + ((title || '').length > 150 ? '...' : '');
-    const cleanDescription = (description || '').replace(/<[^>]*>/g, '').trim();
-    const displayExcerpt = cleanDescription.substring(0, 2000) + (cleanDescription.length > 2000 ? '...' : '');
+    // Get content (strip HTML from both title and description)
+    const cleanTitle = (title || 'Untitled').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+    const displayTitle = cleanTitle.substring(0, 150) + (cleanTitle.length > 150 ? '...' : '');
+    const cleanDescription = (description || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+    const totalChars = displayTitle.length + cleanDescription.length;
 
-    // Calculate title height
-    ctx.font = 'bold 48px "Libre Baskerville", Georgia, serif';
+    // Scale font sizes based on content length
+    let titleFontSize: number;
+    let excerptFontSize: number;
+    let titleLineHeight: number;
+    let excerptLineHeight: number;
+    let maxExcerptChars: number;
+
+    if (totalChars < 100) {
+      // Very short - make it big and impactful
+      titleFontSize = 72;
+      excerptFontSize = 52;
+      titleLineHeight = 88;
+      excerptLineHeight = 64;
+      maxExcerptChars = 100;
+    } else if (totalChars < 250) {
+      // Short - still large
+      titleFontSize = 60;
+      excerptFontSize = 44;
+      titleLineHeight = 76;
+      excerptLineHeight = 54;
+      maxExcerptChars = 250;
+    } else if (totalChars < 500) {
+      // Medium
+      titleFontSize = 52;
+      excerptFontSize = 36;
+      titleLineHeight = 68;
+      excerptLineHeight = 46;
+      maxExcerptChars = 500;
+    } else if (totalChars < 1000) {
+      // Medium-long
+      titleFontSize = 48;
+      excerptFontSize = 32;
+      titleLineHeight = 62;
+      excerptLineHeight = 40;
+      maxExcerptChars = 1000;
+    } else {
+      // Long - smaller text
+      titleFontSize = 44;
+      excerptFontSize = 28;
+      titleLineHeight = 56;
+      excerptLineHeight = 36;
+      maxExcerptChars = 2000;
+    }
+
+    const displayExcerpt = cleanDescription.substring(0, maxExcerptChars) + (cleanDescription.length > maxExcerptChars ? '...' : '');
+
+    // Calculate title dimensions
+    ctx.font = `bold ${titleFontSize}px "Libre Baskerville", Georgia, serif`;
     const titleLines = wrapText(ctx, displayTitle, contentWidth);
-    const titleLineHeight = 62;
     const titleHeight = titleLines.length * titleLineHeight;
 
-    // Calculate excerpt height
-    ctx.font = 'italic 32px "Crimson Pro", Georgia, serif';
+    // Calculate excerpt dimensions
+    ctx.font = `italic ${excerptFontSize}px "Crimson Pro", Georgia, serif`;
     const excerptLines = displayExcerpt ? wrapText(ctx, displayExcerpt, contentWidth) : [];
-    const excerptLineHeight = 38;
-    const maxExcerptLines = 25;
-    const actualExcerptLines = Math.min(excerptLines.length, maxExcerptLines);
-    const excerptHeight = actualExcerptLines * excerptLineHeight;
+    const excerptHeight = excerptLines.length * excerptLineHeight;
 
-    // Calculate total content height
-    const topPadding = 70;           // Space from card top to title
-    const afterTitleSpace = 40;      // Space after title
-    const dividerHeight = 40;        // Divider + space after
-    const afterExcerptSpace = 30;    // Space after excerpt
-    const followTextSpace = 100;     // Space for follow text at bottom
+    // Calculate card height to fit content snugly
+    const topPadding = 60;
+    const afterTitleSpace = 35;
+    const dividerHeight = 35;
+    const afterExcerptSpace = 25;
+    const followTextSpace = 90;
 
-    const totalContentHeight = topPadding + titleHeight + afterTitleSpace + dividerHeight + excerptHeight + afterExcerptSpace + followTextSpace;
+    const cardHeight = topPadding + titleHeight + afterTitleSpace + dividerHeight + excerptHeight + afterExcerptSpace + followTextSpace;
 
-    // Set card height with min/max bounds
-    const minCardHeight = height * 0.35;  // Minimum 35% of canvas
-    const maxCardHeight = height * 0.78;  // Maximum 78% of canvas
-    const cardHeight = Math.max(minCardHeight, Math.min(maxCardHeight, totalContentHeight));
-
-    // Center card vertically with slight upward bias
-    const cardY = Math.max(height * 0.08, (height - cardHeight - 120) / 2);
+    // Center card vertically
+    const cardY = (height - cardHeight - 100) / 2;
 
     // ========== GLASS EFFECT CARD ==========
-    // Glass card background - more transparent/see-through
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardWidth, cardHeight, cardRadius);
     ctx.clip();
 
-    // Frosted glass effect - more transparent
+    // Frosted glass effect
     ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
     ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
 
@@ -375,7 +412,7 @@ export default function ShareModal({
 
     ctx.restore();
 
-    // Card border (subtle)
+    // Card border
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -387,7 +424,7 @@ export default function ShareModal({
 
     // Title
     ctx.fillStyle = '#1e1e1e';
-    ctx.font = 'bold 48px "Libre Baskerville", Georgia, serif';
+    ctx.font = `bold ${titleFontSize}px "Libre Baskerville", Georgia, serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
@@ -408,17 +445,17 @@ export default function ShareModal({
     // Content excerpt
     if (displayExcerpt) {
       ctx.fillStyle = '#444444';
-      ctx.font = 'italic 32px "Crimson Pro", Georgia, serif';
+      ctx.font = `italic ${excerptFontSize}px "Crimson Pro", Georgia, serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      excerptLines.slice(0, maxExcerptLines).forEach((line, i) => {
+      excerptLines.forEach((line, i) => {
         ctx.fillText(line, width / 2, contentY + i * excerptLineHeight);
       });
     }
 
     // "follow @username on pinkquill" at bottom of card
-    const followY = cardY + cardHeight - 80;
+    const followY = cardY + cardHeight - 70;
     const cleanUsername = (authorUsername || 'anonymous').replace(/^@/, '');
 
     ctx.fillStyle = '#666666';
