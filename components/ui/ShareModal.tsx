@@ -261,24 +261,123 @@ export default function ShareModal({
     canvas.width = width;
     canvas.height = height;
 
-    // PinkQuill gradient background (purple -> pink -> orange)
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, '#8e44ad');    // Purple
-    gradient.addColorStop(0.5, '#ff007f');  // Pink
-    gradient.addColorStop(1, '#ff9f43');    // Orange
-    ctx.fillStyle = gradient;
+    // ========== WATERCOLOR BACKGROUND ==========
+    // Base gradient (soft pink tones)
+    const baseGradient = ctx.createLinearGradient(0, 0, width, height);
+    baseGradient.addColorStop(0, '#fdf2f8');     // Very light pink
+    baseGradient.addColorStop(0.3, '#fce7f3');   // Soft pink
+    baseGradient.addColorStop(0.6, '#fbcfe8');   // Light pink
+    baseGradient.addColorStop(1, '#f9a8d4');     // Pink
+    ctx.fillStyle = baseGradient;
     ctx.fillRect(0, 0, width, height);
 
-    // Add subtle texture overlay
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-    for (let i = 0; i < height; i += 3) {
-      ctx.fillRect(0, i, width, 1);
+    // Watercolor blob 1 - Purple (top left)
+    const blob1Gradient = ctx.createRadialGradient(width * 0.2, height * 0.15, 0, width * 0.2, height * 0.15, width * 0.5);
+    blob1Gradient.addColorStop(0, 'rgba(142, 68, 173, 0.15)');
+    blob1Gradient.addColorStop(0.5, 'rgba(142, 68, 173, 0.08)');
+    blob1Gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = blob1Gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Watercolor blob 2 - Pink (center right)
+    const blob2Gradient = ctx.createRadialGradient(width * 0.8, height * 0.4, 0, width * 0.8, height * 0.4, width * 0.6);
+    blob2Gradient.addColorStop(0, 'rgba(255, 0, 127, 0.12)');
+    blob2Gradient.addColorStop(0.5, 'rgba(255, 0, 127, 0.06)');
+    blob2Gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = blob2Gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Watercolor blob 3 - Orange (bottom)
+    const blob3Gradient = ctx.createRadialGradient(width * 0.5, height * 0.85, 0, width * 0.5, height * 0.85, width * 0.5);
+    blob3Gradient.addColorStop(0, 'rgba(255, 159, 67, 0.1)');
+    blob3Gradient.addColorStop(0.5, 'rgba(255, 159, 67, 0.05)');
+    blob3Gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = blob3Gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Watercolor blob 4 - Purple (bottom left)
+    const blob4Gradient = ctx.createRadialGradient(width * 0.1, height * 0.7, 0, width * 0.1, height * 0.7, width * 0.4);
+    blob4Gradient.addColorStop(0, 'rgba(142, 68, 173, 0.08)');
+    blob4Gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = blob4Gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Subtle paper texture overlay
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+    for (let i = 0; i < height; i += 4) {
+      if (Math.random() > 0.5) {
+        ctx.fillRect(0, i, width, 1);
+      }
     }
 
-    const maxWidth = width - 120;
-    let currentY = 120;
+    // ========== GLASS EFFECT CARD ==========
+    const cardMargin = 60;
+    const cardX = cardMargin;
+    const cardY = height * 0.25;
+    const cardWidth = width - (cardMargin * 2);
+    const cardHeight = height * 0.55;
+    const cardRadius = 40;
 
-    // ========== SECTION 1: Follow @username on PinkQuill ==========
+    // Glass card background
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, cardRadius);
+    ctx.clip();
+
+    // Frosted glass effect
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
+
+    // Subtle inner glow
+    const innerGlow = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardHeight);
+    innerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+    innerGlow.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
+    innerGlow.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+    ctx.fillStyle = innerGlow;
+    ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
+
+    ctx.restore();
+
+    // Card border (subtle)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, cardRadius);
+    ctx.stroke();
+
+    // ========== CARD CONTENT ==========
+    const contentPadding = 60;
+    const contentX = cardX + contentPadding;
+    const contentWidth = cardWidth - (contentPadding * 2);
+    let contentY = cardY + 80;
+
+    // Title (first 50 characters)
+    const displayTitle = (title || 'Untitled').substring(0, 50) + ((title || '').length > 50 ? '...' : '');
+    ctx.fillStyle = '#1e1e1e';
+    ctx.font = 'bold 52px "Libre Baskerville", Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    const titleLines = wrapText(ctx, displayTitle, contentWidth);
+    const titleLineHeight = 68;
+
+    titleLines.forEach((line, i) => {
+      ctx.fillText(line, width / 2, contentY + i * titleLineHeight);
+    });
+    contentY += titleLines.length * titleLineHeight + 60;
+
+    // Decorative divider
+    ctx.strokeStyle = 'rgba(142, 68, 173, 0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(width / 2 - 60, contentY);
+    ctx.lineTo(width / 2 + 60, contentY);
+    ctx.stroke();
+    contentY += 50;
+
+    // Profile section
+    const profileCenterY = contentY + 50;
+
     // Draw author avatar (circular)
     if (authorAvatar) {
       try {
@@ -290,9 +389,21 @@ export default function ShareModal({
           avatar.src = authorAvatar;
         });
 
-        const avatarSize = 80;
-        const avatarX = 60;
-        const avatarY = currentY;
+        const avatarSize = 100;
+        const avatarX = width / 2 - avatarSize / 2;
+        const avatarY = profileCenterY;
+
+        // Avatar shadow
+        ctx.save();
+        ctx.shadowColor = 'rgba(142, 68, 173, 0.3)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 8;
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.restore();
 
         // Draw circular avatar
         ctx.save();
@@ -302,178 +413,79 @@ export default function ShareModal({
         ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
         ctx.restore();
 
-        // White border around avatar
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        // Avatar border
+        ctx.strokeStyle = 'rgba(142, 68, 173, 0.4)';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
         ctx.stroke();
 
-        // "Follow @username on PinkQuill" text next to avatar
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '600 36px "Josefin Sans", sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`Follow @${authorUsername || 'user'}`, avatarX + avatarSize + 24, avatarY + avatarSize / 2 - 12);
-
-        ctx.font = '28px "Josefin Sans", sans-serif';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.fillText('on PinkQuill', avatarX + avatarSize + 24, avatarY + avatarSize / 2 + 24);
-
-        currentY += avatarSize + 60;
+        contentY = avatarY + avatarSize + 30;
       } catch {
-        // Avatar failed to load, show text only
+        // Avatar failed to load, show placeholder
+        const avatarSize = 100;
+        const avatarX = width / 2 - avatarSize / 2;
+        const avatarY = profileCenterY;
+
+        // Gradient placeholder
+        const placeholderGradient = ctx.createLinearGradient(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize);
+        placeholderGradient.addColorStop(0, '#8e44ad');
+        placeholderGradient.addColorStop(1, '#ff007f');
+
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+        ctx.fillStyle = placeholderGradient;
+        ctx.fill();
+
+        // Initial
         ctx.fillStyle = '#ffffff';
-        ctx.font = '600 36px "Josefin Sans", sans-serif';
+        ctx.font = 'bold 48px "Josefin Sans", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`Follow @${authorUsername || 'user'} on PinkQuill`, width / 2, currentY + 40);
-        currentY += 100;
+        ctx.textBaseline = 'middle';
+        ctx.fillText((authorName || 'U').charAt(0).toUpperCase(), width / 2, avatarY + avatarSize / 2);
+
+        contentY = avatarY + avatarSize + 30;
       }
     } else {
-      // No avatar, just show text
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '600 36px "Josefin Sans", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(`Follow @${authorUsername || 'user'} on PinkQuill`, width / 2, currentY + 40);
-      currentY += 100;
-    }
+      // No avatar provided, show gradient placeholder
+      const avatarSize = 100;
+      const avatarX = width / 2 - avatarSize / 2;
+      const avatarY = profileCenterY;
 
-    // ========== SECTION 2: Title ==========
-    currentY += 40;
-    const displayTitle = title || 'Untitled';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 56px "Libre Baskerville", Georgia, serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
+      const placeholderGradient = ctx.createLinearGradient(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize);
+      placeholderGradient.addColorStop(0, '#8e44ad');
+      placeholderGradient.addColorStop(1, '#ff007f');
 
-    const titleLines = wrapText(ctx, displayTitle, maxWidth);
-    const titleLineHeight = 72;
-
-    titleLines.forEach((line, i) => {
-      ctx.fillText(line, width / 2, currentY + i * titleLineHeight);
-    });
-    currentY += titleLines.length * titleLineHeight + 40;
-
-    // ========== SECTION 3: Content (varies based on whether image exists) ==========
-    if (hasImage) {
-      // WITH IMAGE: Show first 10 words, then image
-      const excerpt = getFirstNWords(description, 10);
-      ctx.font = 'italic 32px "Crimson Pro", Georgia, serif';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-
-      const excerptLines = wrapText(ctx, excerpt, maxWidth);
-      excerptLines.forEach((line, i) => {
-        ctx.fillText(line, width / 2, currentY + i * 44);
-      });
-      currentY += excerptLines.length * 44 + 50;
-
-      // Draw the uploaded image
-      try {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = reject;
-          img.src = imageUrl;
-        });
-
-        const maxImgWidth = width - 100;
-        const maxImgHeight = 700;
-        const imgAspect = img.width / img.height;
-        let drawWidth, drawHeight;
-
-        if (imgAspect > maxImgWidth / maxImgHeight) {
-          drawWidth = maxImgWidth;
-          drawHeight = maxImgWidth / imgAspect;
-        } else {
-          drawHeight = maxImgHeight;
-          drawWidth = maxImgHeight * imgAspect;
-        }
-
-        const imgX = (width - drawWidth) / 2;
-
-        // Draw image with rounded corners
-        ctx.save();
-        ctx.beginPath();
-        const radius = 20;
-        ctx.roundRect(imgX, currentY, drawWidth, drawHeight, radius);
-        ctx.clip();
-        ctx.drawImage(img, imgX, currentY, drawWidth, drawHeight);
-        ctx.restore();
-
-        // Subtle white border
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(imgX, currentY, drawWidth, drawHeight, radius);
-        ctx.stroke();
-
-        currentY += drawHeight + 60;
-      } catch {
-        // Image failed to load
-      }
-    } else {
-      // WITHOUT IMAGE: Show first 50 words + "Continue reading on PinkQuill"
-      const excerpt = getFirstNWords(description, 50);
-      ctx.font = '34px "Crimson Pro", Georgia, serif';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-
-      const excerptLines = wrapText(ctx, excerpt, maxWidth);
-      const excerptLineHeight = 48;
-      excerptLines.forEach((line, i) => {
-        ctx.fillText(line, width / 2, currentY + i * excerptLineHeight);
-      });
-      currentY += excerptLines.length * excerptLineHeight + 60;
-
-      // "Continue reading on PinkQuill" button-like element
-      const ctaText = 'Continue reading on PinkQuill';
-      ctx.font = '600 32px "Josefin Sans", sans-serif';
-      const ctaWidth = ctx.measureText(ctaText).width + 60;
-      const ctaHeight = 60;
-      const ctaX = (width - ctaWidth) / 2;
-
-      // Draw pill-shaped button
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.beginPath();
-      ctx.roundRect(ctaX, currentY, ctaWidth, ctaHeight, 30);
+      ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+      ctx.fillStyle = placeholderGradient;
       ctx.fill();
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(ctaX, currentY, ctaWidth, ctaHeight, 30);
-      ctx.stroke();
-
       ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 48px "Josefin Sans", sans-serif';
+      ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(ctaText, width / 2, currentY + ctaHeight / 2);
+      ctx.fillText((authorName || 'U').charAt(0).toUpperCase(), width / 2, avatarY + avatarSize / 2);
 
-      // Show URL below
-      currentY += ctaHeight + 20;
-      ctx.font = '24px "Josefin Sans", sans-serif';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-      const shortUrl = url.replace(/^https?:\/\//, '').substring(0, 40);
-      ctx.fillText(shortUrl, width / 2, currentY);
+      contentY = avatarY + avatarSize + 30;
     }
 
-    // ========== SECTION 4: PinkQuill branding at bottom ==========
-    const brandY = height - 140;
-
-    // Quill icon
-    ctx.font = '36px Arial';
-    ctx.fillStyle = '#ffffff';
+    // Author name
+    ctx.fillStyle = '#1e1e1e';
+    ctx.font = '600 38px "Josefin Sans", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('✒', width / 2 - 90, brandY);
+    ctx.textBaseline = 'top';
+    ctx.fillText(authorName || 'Anonymous', width / 2, contentY);
 
-    // PinkQuill text
-    ctx.font = 'bold 44px "Josefin Sans", sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('PinkQuill', width / 2 + 20, brandY);
+    // ========== PINKQUILL BRANDING AT BOTTOM OF CARD ==========
+    const brandY = cardY + cardHeight - 100;
 
-    // Tagline
-    ctx.font = '26px "Josefin Sans", sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-    ctx.fillText('Share your creative journey', width / 2, brandY + 55);
+    // "PinkQuill - share your creative journey"
+    ctx.fillStyle = '#777777';
+    ctx.font = '28px "Josefin Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('PinkQuill — share your creative journey', width / 2, brandY);
 
     return canvas.toDataURL('image/png');
   };
@@ -606,47 +618,41 @@ export default function ShareModal({
           <div className="share-instagram-section">
             {/* Story Preview */}
             <div className="story-preview-container">
-              <div className="story-preview">
-                {/* PinkQuill gradient background */}
-                <div className="story-preview-bg" />
-
-                {/* Follow section with avatar */}
-                <div className="story-preview-follow">
-                  {authorAvatar ? (
-                    <img src={authorAvatar} alt="" className="story-preview-avatar" />
-                  ) : (
-                    <div className="story-preview-avatar-placeholder" />
-                  )}
-                  <div className="story-preview-follow-text">
-                    <span className="story-preview-follow-main">Follow @{authorUsername || 'user'}</span>
-                    <span className="story-preview-follow-sub">on PinkQuill</span>
-                  </div>
+              <div className="story-preview story-preview-watercolor">
+                {/* Watercolor Background */}
+                <div className="story-watercolor-bg">
+                  <div className="story-watercolor-blob blob-purple-1" />
+                  <div className="story-watercolor-blob blob-pink" />
+                  <div className="story-watercolor-blob blob-orange" />
+                  <div className="story-watercolor-blob blob-purple-2" />
                 </div>
 
-                {/* Title */}
-                <h4 className="story-preview-title">{title || 'Untitled'}</h4>
+                {/* Glass Card */}
+                <div className="story-glass-card">
+                  {/* Title */}
+                  <h4 className="story-card-title">
+                    {(title || 'Untitled').substring(0, 50)}{(title || '').length > 50 ? '...' : ''}
+                  </h4>
 
-                {/* Content: varies based on image */}
-                {hasImage ? (
-                  <>
-                    <p className="story-preview-excerpt">{getFirstNWords(description, 10)}</p>
-                    <div className="story-preview-image">
-                      <img src={imageUrl} alt="" />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="story-preview-excerpt-long">{getFirstNWords(description, 50)}</p>
-                    <div className="story-preview-cta">
-                      Continue reading on PinkQuill
-                    </div>
-                  </>
-                )}
+                  {/* Decorative divider */}
+                  <div className="story-card-divider" />
 
-                {/* Branding */}
-                <div className="story-preview-brand">
-                  <span className="story-preview-icon">✒</span>
-                  <span className="story-preview-name">PinkQuill</span>
+                  {/* Profile */}
+                  <div className="story-card-profile">
+                    {authorAvatar ? (
+                      <img src={authorAvatar} alt="" className="story-card-avatar" />
+                    ) : (
+                      <div className="story-card-avatar-placeholder">
+                        {(authorName || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="story-card-name">{authorName || 'Anonymous'}</span>
+                  </div>
+
+                  {/* Branding */}
+                  <div className="story-card-brand">
+                    PinkQuill — share your creative journey
+                  </div>
                 </div>
               </div>
             </div>
