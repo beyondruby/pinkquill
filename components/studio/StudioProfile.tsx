@@ -402,6 +402,11 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
   ),
+  collection: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+    </svg>
+  ),
 };
 
 function formatCount(num: number): string {
@@ -445,7 +450,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const { revealedCards, observeCard } = useScrollReveal();
   const [pageLoaded, setPageLoaded] = useState(false);
   const [showCommunitiesModal, setShowCommunitiesModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"posts" | "takes" | "admired" | "relays" | "store">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "takes" | "relays" | "store" | "collections">("posts");
   const [relaySubTab, setRelaySubTab] = useState<"posts" | "takes">("posts");
   const [activeFilter, setActiveFilter] = useState("All");
   const [followStatus, setFollowStatus] = useState<FollowStatus>(null);
@@ -1063,43 +1068,28 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   </div>
                 ) : <div />}
 
-                {/* Communities - subtle overlapping avatars */}
+                {/* Communities - elegant minimal pill */}
                 {userCommunities && userCommunities.length > 0 && (
                   <button
                     onClick={() => setShowCommunitiesModal(true)}
-                    className="group flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-pink-vivid/5 transition-all duration-300"
+                    className="group flex items-center gap-2.5 px-3 py-2 rounded-xl border border-transparent hover:border-pink-vivid/10 hover:bg-gradient-to-r hover:from-purple-primary/[0.03] hover:to-pink-vivid/[0.03] transition-all duration-300"
                   >
-                    <div className="flex -space-x-2">
-                      {userCommunities.slice(0, 3).map((community, index) => (
-                        <div
-                          key={community.id}
-                          className="w-6 h-6 rounded-full border-2 border-white overflow-hidden transition-transform duration-300 group-hover:translate-x-0"
-                          style={{
-                            zIndex: 3 - index,
-                            transform: `translateX(${index * 2}px)`,
-                          }}
-                        >
-                          {community.avatar_url ? (
-                            <img
-                              src={community.avatar_url}
-                              alt={community.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-purple-primary/30 to-pink-vivid/30 flex items-center justify-center">
-                              <span className="text-[8px] font-ui text-purple-primary font-medium">
-                                {community.name?.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <span className="font-ui text-xs text-ink/40 group-hover:text-ink/60 transition-colors">
+                    {/* Icon */}
+                    <span className="text-pink-vivid/40 group-hover:text-pink-vivid/60 transition-colors">
+                      {icons.community}
+                    </span>
+
+                    {/* Text */}
+                    <span className="font-ui text-xs text-ink/50 group-hover:text-ink/70 transition-colors">
                       {userCommunities.length === 1
                         ? '1 community'
                         : `${userCommunities.length} communities`}
                     </span>
+
+                    {/* Subtle arrow */}
+                    <svg className="w-3 h-3 text-ink/20 group-hover:text-ink/40 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </button>
                 )}
 
@@ -1138,16 +1128,16 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             {icons.relay} Relays
           </button>
           <button
-            onClick={() => setActiveTab("admired")}
-            className={`studio-tab-btn ${activeTab === "admired" ? "active" : ""}`}
-          >
-            {icons.heart} Admired
-          </button>
-          <button
             onClick={() => setActiveTab("store")}
             className={`studio-tab-btn ${activeTab === "store" ? "active" : ""}`}
           >
             {icons.store} Store
+          </button>
+          <button
+            onClick={() => setActiveTab("collections")}
+            className={`studio-tab-btn ${activeTab === "collections" ? "active" : ""}`}
+          >
+            {icons.collection} Collections
           </button>
         </div>
 
@@ -1683,6 +1673,32 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             </div>
           </div>
         )}
+
+        {/* Collections Section */}
+        {activeTab === "collections" && (
+          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
+            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-rose-50/90 via-white to-orange-50/80 p-8 md:p-12 lg:p-16 border border-rose-200/50 shadow-[0_8px_40px_-12px_rgba(255,0,127,0.12)] text-center">
+              {/* Collections Icon */}
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-pink-vivid/10 to-orange-warm/10 flex items-center justify-center">
+                <svg className="w-10 h-10 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+
+              <h3 className="font-display text-xl md:text-2xl text-ink mb-3">Collections Coming Soon</h3>
+              <p className="font-body text-muted text-[0.95rem] max-w-md mx-auto">
+                Curate and organize your favorite works into beautiful collections.
+              </p>
+
+              {/* Subtle decorative element */}
+              <div className="mt-8 flex justify-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-pink-vivid/20" />
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-warm/30" />
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-primary/20" />
+              </div>
+            </div>
+          </div>
+        )}
           </>
         )}
 
@@ -1870,7 +1886,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               {userCommunities.map((community) => (
                 <a
                   key={community.id}
-                  href={`/c/${community.slug || community.id}`}
+                  href={`/community/${community.slug || community.id}`}
                   onClick={() => setShowCommunitiesModal(false)}
                   className="flex items-center gap-3 p-4 hover:bg-black/[0.02] transition-colors border-b border-black/[0.04] last:border-b-0"
                 >
