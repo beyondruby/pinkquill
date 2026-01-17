@@ -311,11 +311,11 @@ export default function ShareModal({
     }
 
     // ========== GLASS EFFECT CARD ==========
-    const cardMargin = 60;
+    const cardMargin = 50;
     const cardX = cardMargin;
-    const cardY = height * 0.25;
+    const cardY = height * 0.18;
     const cardWidth = width - (cardMargin * 2);
-    const cardHeight = height * 0.55;
+    const cardHeight = height * 0.65;
     const cardRadius = 40;
 
     // Glass card background - more transparent/see-through
@@ -350,8 +350,8 @@ export default function ShareModal({
     const contentWidth = cardWidth - (contentPadding * 2);
     let contentY = cardY + 70;
 
-    // Title (first 50 characters)
-    const displayTitle = (title || 'Untitled').substring(0, 50) + ((title || '').length > 50 ? '...' : '');
+    // Title (first 75 characters)
+    const displayTitle = (title || 'Untitled').substring(0, 75) + ((title || '').length > 75 ? '...' : '');
     ctx.fillStyle = '#1e1e1e';
     ctx.font = 'bold 48px "Libre Baskerville", Georgia, serif';
     ctx.textAlign = 'center';
@@ -374,9 +374,9 @@ export default function ShareModal({
     ctx.stroke();
     contentY += 40;
 
-    // Content excerpt (first 150 characters)
+    // Content excerpt (first 250 characters)
     const cleanDescription = (description || '').replace(/<[^>]*>/g, '').trim();
-    const displayExcerpt = cleanDescription.substring(0, 150) + (cleanDescription.length > 150 ? '...' : '');
+    const displayExcerpt = cleanDescription.substring(0, 250) + (cleanDescription.length > 250 ? '...' : '');
 
     if (displayExcerpt) {
       ctx.fillStyle = '#444444';
@@ -387,21 +387,21 @@ export default function ShareModal({
       const excerptLines = wrapText(ctx, displayExcerpt, contentWidth);
       const excerptLineHeight = 44;
 
-      excerptLines.slice(0, 4).forEach((line, i) => {
+      excerptLines.slice(0, 7).forEach((line, i) => {
         ctx.fillText(line, width / 2, contentY + i * excerptLineHeight);
       });
-      contentY += Math.min(excerptLines.length, 4) * excerptLineHeight + 40;
+      contentY += Math.min(excerptLines.length, 7) * excerptLineHeight + 40;
     }
 
     // "follow @username on pinkquill" at bottom of card
     const followY = cardY + cardHeight - 80;
-    const usernameText = authorUsername ? `@${authorUsername}` : '@anonymous';
+    const cleanUsername = (authorUsername || 'anonymous').replace(/^@/, '');
 
     ctx.fillStyle = '#666666';
     ctx.font = '28px "Josefin Sans", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`follow ${usernameText} on pinkquill`, width / 2, followY);
+    ctx.fillText(`follow @${cleanUsername} on pinkquill`, width / 2, followY);
 
     // ========== PINKQUILL BRANDING AT BOTTOM OF PHOTO (OUTSIDE CARD) ==========
     const brandY = height - 80;
@@ -556,7 +556,7 @@ export default function ShareModal({
                 <div className="story-glass-card">
                   {/* Title */}
                   <h4 className="story-card-title">
-                    {(title || 'Untitled').substring(0, 50)}{(title || '').length > 50 ? '...' : ''}
+                    {(title || 'Untitled').substring(0, 75)}{(title || '').length > 75 ? '...' : ''}
                   </h4>
 
                   {/* Decorative divider */}
@@ -565,14 +565,14 @@ export default function ShareModal({
                   {/* Content excerpt */}
                   {description && (
                     <p className="story-card-excerpt">
-                      {description.replace(/<[^>]*>/g, '').substring(0, 150)}
-                      {description.replace(/<[^>]*>/g, '').length > 150 ? '...' : ''}
+                      {description.replace(/<[^>]*>/g, '').substring(0, 250)}
+                      {description.replace(/<[^>]*>/g, '').length > 250 ? '...' : ''}
                     </p>
                   )}
 
                   {/* Follow text */}
                   <div className="story-card-follow">
-                    follow @{authorUsername || 'anonymous'} on pinkquill
+                    follow @{(authorUsername || 'anonymous').replace(/^@/, '')} on pinkquill
                   </div>
                 </div>
 

@@ -2791,14 +2791,15 @@ body {
   }
 }
 
-/* Glass Card - More transparent/see-through */
+/* Glass Card - More transparent/see-through, bigger */
 .story-glass-card {
   position: relative;
   z-index: 1;
-  width: calc(100% - 20px);
-  margin: 10px;
-  margin-bottom: 28px;
-  padding: 14px 12px;
+  width: calc(100% - 16px);
+  margin: 8px;
+  margin-bottom: 24px;
+  padding: 16px 14px;
+  min-height: 65%;
   background: rgba(255, 255, 255, 0.45);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -2839,11 +2840,12 @@ body {
   font-size: 0.45rem;
   font-style: italic;
   color: #444;
-  line-height: 1.45;
+  line-height: 1.5;
   text-align: center;
   margin: 0;
+  flex: 1;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
