@@ -348,16 +348,15 @@ export default function TakesFeed({
         </svg>
       </Link>
 
-      {/* Right Side Navigation Arrows */}
-      <div className="takes-nav-arrows">
-        {/* Up Arrow */}
+      {/* Right Side Navigation Arrows - Desktop Only */}
+      <div className="takes-nav-arrows hidden md:flex">
         <button
           onClick={goToPrevious}
           disabled={activeIndex === 0}
           className={`takes-nav-arrow ${activeIndex === 0 ? 'disabled' : ''}`}
           aria-label="Previous take"
         >
-          <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+          <svg viewBox="0 0 24 24" fill="none">
             <defs>
               <linearGradient id="navArrowGradUp" x1="0%" y1="100%" x2="0%" y2="0%">
                 <stop offset="0%" stopColor="#8e44ad" />
@@ -375,21 +374,13 @@ export default function TakesFeed({
           </svg>
         </button>
 
-        {/* Counter */}
-        <div className="takes-nav-counter">
-          <span className="current">{activeIndex + 1}</span>
-          <span className="separator">/</span>
-          <span className="total">{takes.length}</span>
-        </div>
-
-        {/* Down Arrow */}
         <button
           onClick={goToNext}
           disabled={activeIndex >= takes.length - 1}
           className={`takes-nav-arrow ${activeIndex >= takes.length - 1 ? 'disabled' : ''}`}
           aria-label="Next take"
         >
-          <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+          <svg viewBox="0 0 24 24" fill="none">
             <defs>
               <linearGradient id="navArrowGradDown" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#8e44ad" />

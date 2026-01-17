@@ -5666,22 +5666,21 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   padding-right: 400px;
 }
 
-/* Navigation Arrows - Right Side */
+/* Navigation Arrows - Right Side (Desktop Only) */
 .takes-nav-arrows {
   position: fixed;
-  right: 24px;
+  right: calc((100vw - 500px) / 4 + 500px);
   top: 50%;
-  transform: translateY(-50%);
-  display: flex;
+  transform: translate(50%, -50%);
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 20px;
   z-index: 100;
 }
 
 .takes-nav-arrow {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.95);
   border: 2px solid transparent;
@@ -5693,12 +5692,12 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   justify-content: center;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 16px rgba(142, 68, 173, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(142, 68, 173, 0.2), 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .takes-nav-arrow:hover:not(.disabled) {
   transform: scale(1.1);
-  box-shadow: 0 6px 24px rgba(142, 68, 173, 0.25), 0 4px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 28px rgba(142, 68, 173, 0.3), 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .takes-nav-arrow:active:not(.disabled) {
@@ -5706,60 +5705,24 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .takes-nav-arrow.disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.6);
   box-shadow: none;
 }
 
 .takes-nav-arrow.disabled svg path {
-  stroke: #ccc;
+  stroke: #bbb;
 }
 
 .takes-nav-arrow svg {
-  width: 24px;
-  height: 24px;
-}
-
-.takes-nav-counter {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.takes-nav-counter .current {
-  background: linear-gradient(135deg, #8e44ad, #ff007f);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.takes-nav-counter .separator {
-  color: #ccc;
-  margin: 0 1px;
-}
-
-.takes-nav-counter .total {
-  color: #999;
-}
-
-/* Hide on mobile - use swipe instead */
-@media (max-width: 767px) {
-  .takes-nav-arrows {
-    display: none;
-  }
+  width: 28px;
+  height: 28px;
 }
 
 /* Adjust when comments panel is open */
 .tiktok-feed-container.comments-open .takes-nav-arrows {
-  right: 424px;
+  right: calc((100vw - 500px - 400px) / 4 + 500px);
 }
 
 /* Status States */
