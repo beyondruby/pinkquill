@@ -2812,11 +2812,11 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .story-glass-card {
   position: relative;
   z-index: 1;
-  width: calc(100% - 16px);
-  margin: 8px;
-  margin-bottom: 24px;
-  padding: 16px 14px;
-  min-height: 65%;
+  width: calc(100% - 12px);
+  margin: 6px;
+  margin-bottom: 20px;
+  padding: 14px 12px;
+  min-height: 72%;
   background: rgba(255, 255, 255, 0.45);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -2828,7 +2828,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .story-card-title {
@@ -2854,15 +2854,15 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .story-card-excerpt {
   font-family: var(--font-body);
-  font-size: 0.4rem;
+  font-size: 0.38rem;
   font-style: italic;
   color: #444;
-  line-height: 1.4;
+  line-height: 1.35;
   text-align: center;
   margin: 0;
   flex: 1;
   display: -webkit-box;
-  -webkit-line-clamp: 16;
+  -webkit-line-clamp: 25;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

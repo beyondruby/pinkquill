@@ -311,11 +311,11 @@ export default function ShareModal({
     }
 
     // ========== GLASS EFFECT CARD ==========
-    const cardMargin = 50;
+    const cardMargin = 45;
     const cardX = cardMargin;
-    const cardY = height * 0.18;
+    const cardY = height * 0.12;
     const cardWidth = width - (cardMargin * 2);
-    const cardHeight = height * 0.65;
+    const cardHeight = height * 0.72;
     const cardRadius = 40;
 
     // Glass card background - more transparent/see-through
@@ -374,9 +374,9 @@ export default function ShareModal({
     ctx.stroke();
     contentY += 40;
 
-    // Content excerpt (first 750 characters)
+    // Content excerpt (first 2000 characters)
     const cleanDescription = (description || '').replace(/<[^>]*>/g, '').trim();
-    const displayExcerpt = cleanDescription.substring(0, 750) + (cleanDescription.length > 750 ? '...' : '');
+    const displayExcerpt = cleanDescription.substring(0, 2000) + (cleanDescription.length > 2000 ? '...' : '');
 
     if (displayExcerpt) {
       ctx.fillStyle = '#444444';
@@ -385,12 +385,12 @@ export default function ShareModal({
       ctx.textBaseline = 'top';
 
       const excerptLines = wrapText(ctx, displayExcerpt, contentWidth);
-      const excerptLineHeight = 40;
+      const excerptLineHeight = 38;
 
-      excerptLines.slice(0, 16).forEach((line, i) => {
+      excerptLines.slice(0, 25).forEach((line, i) => {
         ctx.fillText(line, width / 2, contentY + i * excerptLineHeight);
       });
-      contentY += Math.min(excerptLines.length, 16) * excerptLineHeight + 40;
+      contentY += Math.min(excerptLines.length, 25) * excerptLineHeight + 30;
     }
 
     // "follow @username on pinkquill" at bottom of card
@@ -565,8 +565,8 @@ export default function ShareModal({
                   {/* Content excerpt */}
                   {description && (
                     <p className="story-card-excerpt">
-                      {description.replace(/<[^>]*>/g, '').substring(0, 750)}
-                      {description.replace(/<[^>]*>/g, '').length > 750 ? '...' : ''}
+                      {description.replace(/<[^>]*>/g, '').substring(0, 2000)}
+                      {description.replace(/<[^>]*>/g, '').length > 2000 ? '...' : ''}
                     </p>
                   )}
 
