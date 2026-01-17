@@ -5,7 +5,8 @@
       "Bash(node_modules.bintsc:*)",
       "Bash(npm run build:*)",
       "Bash(npx next build)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

@@ -138,7 +138,7 @@ function CommunityRow({ community, rank }: { community: any; rank?: number }) {
           e.preventDefault();
           // Join logic would go here
         }}
-        className="px-3 py-1.5 rounded-full bg-purple-primary/10 text-purple-primary font-ui text-xs font-medium hover:bg-purple-primary hover:text-white transition-all opacity-0 group-hover:opacity-100"
+        className="px-3 py-1.5 rounded-full bg-purple-primary/10 text-purple-primary font-ui text-xs font-medium hover:bg-purple-primary hover:text-white transition-all md:opacity-0 md:group-hover:opacity-100"
       >
         Join
       </button>
@@ -566,7 +566,9 @@ export default function ExplorePageContent() {
   } = useExplore(user?.id);
 
   const [showCategories, setShowCategories] = useState(false);
+  const [showMobileFilter, setShowMobileFilter] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
 
   // Check if current tab is a category filter
   const isCategory = CATEGORY_FILTERS.some(c => c.id === activeTab);
@@ -597,11 +599,13 @@ export default function ExplorePageContent() {
   const handleCategorySelect = (categoryId: ExploreTab) => {
     setActiveTab(categoryId);
     setShowCategories(false);
+    setShowMobileFilter(false);
   };
 
   const handlePrimaryTabSelect = (tabId: ExploreTab) => {
     setActiveTab(tabId);
     setShowCategories(false);
+    setShowMobileFilter(false);
   };
 
   // Get current category label if active
@@ -609,8 +613,8 @@ export default function ExplorePageContent() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-black/[0.05]">
+      {/* Header - Desktop */}
+      <header className="sticky top-0 z-40 bg-white border-b border-black/[0.05] hidden md:block">
         <div className="max-w-[640px] mx-auto px-4">
           {/* Navigation Bar */}
           <div className="flex items-center h-[52px]">
@@ -706,8 +710,143 @@ export default function ExplorePageContent() {
         </div>
       </header>
 
+      {/* Header - Mobile */}
+      <header className="sticky top-0 z-40 bg-white border-b border-black/[0.05] md:hidden">
+        {/* Title Row with Filter Button */}
+        <div className="flex items-center justify-between px-4 h-12">
+          <h1 className="font-display text-lg text-ink">Explore</h1>
+
+          {/* Filter Button - Shows current category if selected */}
+          <button
+            onClick={() => setShowMobileFilter(true)}
+            className={`flex items-center gap-1.5 h-8 px-3 rounded-full font-ui text-[13px] transition-all ${
+              isCategory
+                ? "text-purple-primary bg-purple-primary/10"
+                : "text-muted bg-black/[0.04]"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            {isCategory ? currentCategory?.label : "Filter"}
+          </button>
+        </div>
+
+        {/* Scrollable Tabs */}
+        <div
+          ref={tabsScrollRef}
+          className="flex items-center overflow-x-auto scrollbar-hide px-4 pb-2 gap-1 -mx-4"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          <div className="flex items-center gap-1 px-4">
+            {PRIMARY_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handlePrimaryTabSelect(tab.id)}
+                className={`relative flex-shrink-0 h-9 px-4 rounded-full font-ui text-[13px] transition-all ${
+                  activeTab === tab.id && isPrimaryTab
+                    ? "text-white bg-gradient-to-r from-purple-primary to-pink-vivid font-medium"
+                    : "text-ink bg-black/[0.04] active:bg-black/[0.08]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Filter Modal */}
+      {showMobileFilter && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowMobileFilter(false)}
+          />
+
+          {/* Bottom Sheet */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[70vh] overflow-hidden animate-slideUp">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-black/10" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-3 border-b border-black/[0.05]">
+              <h3 className="font-ui text-base font-medium text-ink">Filter by Type</h3>
+              <button
+                onClick={() => setShowMobileFilter(false)}
+                className="w-8 h-8 rounded-full bg-black/[0.05] flex items-center justify-center"
+              >
+                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Options */}
+            <div className="p-4 pb-8 overflow-y-auto" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
+              {/* All Types Option */}
+              <button
+                onClick={() => handlePrimaryTabSelect("for-you")}
+                className={`w-full flex items-center justify-between p-4 rounded-xl mb-2 transition-all ${
+                  !isCategory
+                    ? "bg-purple-primary/10 border-2 border-purple-primary"
+                    : "bg-black/[0.03] border-2 border-transparent"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    !isCategory ? "bg-purple-primary text-white" : "bg-black/[0.06] text-muted"
+                  }`}>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                  </div>
+                  <span className={`font-ui text-[15px] ${!isCategory ? "text-purple-primary font-medium" : "text-ink"}`}>
+                    All Types
+                  </span>
+                </div>
+                {!isCategory && (
+                  <svg className="w-5 h-5 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Category Grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {CATEGORY_FILTERS.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => handleCategorySelect(category.id)}
+                    className={`flex items-center gap-2 p-3 rounded-xl transition-all ${
+                      activeTab === category.id
+                        ? "bg-purple-primary/10 border-2 border-purple-primary"
+                        : "bg-black/[0.03] border-2 border-transparent active:bg-black/[0.06]"
+                    }`}
+                  >
+                    <span className={`font-ui text-[14px] ${
+                      activeTab === category.id ? "text-purple-primary font-medium" : "text-ink"
+                    }`}>
+                      {category.label}
+                    </span>
+                    {activeTab === category.id && (
+                      <svg className="w-4 h-4 text-purple-primary ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
-      <main className="max-w-[640px] mx-auto px-4 py-4">
+      <main className="max-w-[640px] mx-auto px-4 py-4 md:px-4 pb-20 md:pb-4">
         {/* Communities Tab View */}
         {activeTab === "communities" ? (
           <CommunitiesTabView />
