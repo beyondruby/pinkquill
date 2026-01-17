@@ -1311,7 +1311,7 @@ export default function CreatePost() {
 
 
       {/* Editor Card */}
-      <div className="bg-white rounded-[24px] shadow-sm border border-black/[0.04] overflow-hidden">
+      <div className="bg-white rounded-[24px] shadow-sm border border-black/[0.04]">
         {/* Take Mode - Video Upload Section */}
         {isTakeMode && (
           <div className="p-6">
@@ -1533,7 +1533,7 @@ export default function CreatePost() {
             </button>
 
             {showFontMenu && (
-              <div className="absolute top-full left-0 mt-1 w-56 max-h-80 overflow-y-auto bg-white rounded-xl shadow-xl border border-black/[0.06] z-20">
+              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-1 w-56 max-h-80 overflow-y-auto bg-white rounded-xl shadow-xl border border-black/[0.06] z-50">
                 {fontOptions.map((font) => (
                   <button
                     key={font.id}
@@ -1564,7 +1564,7 @@ export default function CreatePost() {
             </button>
 
             {showTextColorMenu && (
-              <div className="absolute top-full left-0 mt-2 w-[220px] bg-white rounded-2xl shadow-2xl border border-black/[0.08] z-20 overflow-hidden">
+              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-2 w-[220px] bg-white rounded-2xl shadow-2xl border border-black/[0.08] z-50 overflow-hidden">
                 <div className="px-3 py-2 bg-black/[0.02] border-b border-black/[0.06]">
                   <span className="font-ui text-xs font-medium text-muted uppercase tracking-wide">Text Color</span>
                 </div>
@@ -1665,7 +1665,7 @@ export default function CreatePost() {
             </button>
 
             {showHighlightMenu && (
-              <div className="absolute top-full left-0 mt-2 w-[220px] bg-white rounded-2xl shadow-2xl border border-black/[0.08] z-20 overflow-hidden">
+              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-2 w-[220px] bg-white rounded-2xl shadow-2xl border border-black/[0.08] z-50 overflow-hidden">
                 <div className="px-3 py-2 bg-black/[0.02] border-b border-black/[0.06]">
                   <span className="font-ui text-xs font-medium text-muted uppercase tracking-wide">Highlight</span>
                 </div>
