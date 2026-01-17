@@ -242,6 +242,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           styling: post.styling || null,
           post_location: post.post_location || null,
           metadata: post.metadata || null,
+          spotify_track: post.spotify_track || null,
           author: post.author,
           media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
           community: post.community,

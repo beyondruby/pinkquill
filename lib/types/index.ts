@@ -42,6 +42,17 @@ export interface JournalMetadata {
   timeOfDay?: TimeOfDay;
 }
 
+// Spotify track data stored with posts
+export interface SpotifyTrack {
+  id: string;           // Spotify track ID
+  name: string;         // Track name
+  artist: string;       // Artist name(s)
+  album: string;        // Album name
+  albumArt: string;     // Album cover URL
+  previewUrl?: string;  // 30-second preview URL (if available)
+  externalUrl: string;  // Spotify URL to open the track
+}
+
 export interface BackgroundPreset {
   id: string;
   name: string;
@@ -131,6 +142,7 @@ export interface Post {
   styling?: PostStyling | null;
   post_location?: string | null;
   metadata?: JournalMetadata | null;
+  spotify_track?: SpotifyTrack | null;
 
   // Joined data
   author: PostAuthor;

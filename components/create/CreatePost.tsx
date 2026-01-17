@@ -7,7 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunities, Community, SearchableUser, saveCollaboratorsAndMentions } from "@/lib/hooks";
 import { useCreateTake } from "@/lib/hooks/useTakes";
 import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
-import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle } from "@/lib/types";
+import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle, SpotifyTrack } from "@/lib/types";
 import BackgroundPicker from "@/components/create/BackgroundPicker";
 import JournalMetadataPanel from "@/components/create/JournalMetadata";
 
@@ -282,6 +282,16 @@ const icons: Record<string, React.ReactElement> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
+  spotify: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+    </svg>
+  ),
+  music: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+    </svg>
+  ),
 };
 
 // Color palette for text color and highlighting
@@ -439,6 +449,13 @@ export default function CreatePost() {
   // Journal Metadata
   const [journalMetadata, setJournalMetadata] = useState<JournalMetadata>({});
   const [postLocation, setPostLocation] = useState("");
+
+  // Spotify Track
+  const [spotifyTrack, setSpotifyTrack] = useState<SpotifyTrack | null>(null);
+  const [showSpotifyPicker, setShowSpotifyPicker] = useState(false);
+  const [spotifyUrl, setSpotifyUrl] = useState("");
+  const [loadingSpotify, setLoadingSpotify] = useState(false);
+  const [spotifyError, setSpotifyError] = useState<string | null>(null);
 
 
   // Initial content for edit mode (set after editor mounts)
@@ -795,6 +812,67 @@ export default function CreatePost() {
     }
   };
 
+  // Spotify URL handler
+  const parseSpotifyUrl = (url: string): string | null => {
+    // Match various Spotify URL formats
+    const patterns = [
+      /spotify\.com\/track\/([a-zA-Z0-9]+)/,
+      /spotify\.com\/intl-[a-z]+\/track\/([a-zA-Z0-9]+)/,
+      /open\.spotify\.com\/track\/([a-zA-Z0-9]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
+  const fetchSpotifyTrack = async (url: string) => {
+    setLoadingSpotify(true);
+    setSpotifyError(null);
+
+    const trackId = parseSpotifyUrl(url);
+    if (!trackId) {
+      setSpotifyError("Please paste a valid Spotify track URL");
+      setLoadingSpotify(false);
+      return;
+    }
+
+    try {
+      // Use Spotify oEmbed API (no auth required)
+      const oEmbedUrl = `https://open.spotify.com/oembed?url=https://open.spotify.com/track/${trackId}`;
+      const response = await fetch(oEmbedUrl);
+
+      if (!response.ok) {
+        throw new Error("Could not fetch track info");
+      }
+
+      const data = await response.json();
+
+      // Parse the title which is usually "Song Name - Artist"
+      const titleParts = data.title?.split(" - ") || ["Unknown", "Unknown Artist"];
+      const trackName = titleParts[0] || "Unknown";
+      const artistName = titleParts.slice(1).join(" - ") || "Unknown Artist";
+
+      const track: SpotifyTrack = {
+        id: trackId,
+        name: trackName,
+        artist: artistName,
+        album: "", // oEmbed doesn't provide album name
+        albumArt: data.thumbnail_url || "",
+        externalUrl: `https://open.spotify.com/track/${trackId}`,
+      };
+
+      setSpotifyTrack(track);
+      setShowSpotifyPicker(false);
+      setSpotifyUrl("");
+    } catch {
+      setSpotifyError("Could not fetch track info. Please check the URL.");
+    } finally {
+      setLoadingSpotify(false);
+    }
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -1010,6 +1088,7 @@ export default function CreatePost() {
             content: content.trim(),
             visibility,
             content_warning: hasContentWarning ? contentWarning.trim() || null : null,
+            spotify_track: spotifyTrack,
           })
           .eq("id", editPostId);
 
@@ -1066,6 +1145,7 @@ export default function CreatePost() {
             styling: Object.keys(postStyling).some(k => postStyling[k as keyof PostStyling] !== undefined && postStyling[k as keyof PostStyling] !== 'left' && postStyling[k as keyof PostStyling] !== 'normal' && postStyling[k as keyof PostStyling] !== false) ? postStyling : null,
             post_location: postLocation.trim() || null,
             metadata: postMetadata,
+            spotify_track: spotifyTrack,
           })
           .select()
           .single();
@@ -2006,6 +2086,115 @@ export default function CreatePost() {
             </div>
 
           </div>
+        </div>
+        )}
+
+        {/* Spotify Song Section - Hidden in Take mode */}
+        {!isTakeMode && (
+        <div className="px-6 pb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[#1DB954]">{icons.spotify}</span>
+            <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
+              Currently Listening
+            </span>
+            <span className="font-ui text-[0.75rem] text-muted/60">(optional)</span>
+          </div>
+
+          {spotifyTrack ? (
+            // Show selected track
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-[#1DB954]/5 to-[#191414]/5 border border-[#1DB954]/20">
+              {spotifyTrack.albumArt && (
+                <img
+                  src={spotifyTrack.albumArt}
+                  alt={spotifyTrack.album || spotifyTrack.name}
+                  className="w-14 h-14 rounded-lg shadow-lg object-cover"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-ui text-sm font-medium text-ink truncate">
+                  {spotifyTrack.name}
+                </p>
+                <p className="font-ui text-[0.8rem] text-muted truncate">
+                  {spotifyTrack.artist}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={spotifyTrack.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-full bg-[#1DB954] flex items-center justify-center text-white hover:scale-105 transition-transform"
+                >
+                  {icons.music}
+                </a>
+                <button
+                  onClick={() => setSpotifyTrack(null)}
+                  className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors"
+                >
+                  {icons.x}
+                </button>
+              </div>
+            </div>
+          ) : showSpotifyPicker ? (
+            // Show URL input
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={spotifyUrl}
+                  onChange={(e) => setSpotifyUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && spotifyUrl.trim()) {
+                      e.preventDefault();
+                      fetchSpotifyTrack(spotifyUrl.trim());
+                    }
+                  }}
+                  placeholder="Paste Spotify track URL..."
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-[#1DB954]/30 bg-white font-ui text-sm text-ink focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all placeholder:text-muted/50"
+                  autoFocus
+                />
+                <button
+                  onClick={() => spotifyUrl.trim() && fetchSpotifyTrack(spotifyUrl.trim())}
+                  disabled={loadingSpotify || !spotifyUrl.trim()}
+                  className="px-4 py-2.5 rounded-xl bg-[#1DB954] font-ui text-sm font-medium text-white hover:bg-[#1ed760] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loadingSpotify ? (
+                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  ) : (
+                    "Add"
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSpotifyPicker(false);
+                    setSpotifyUrl("");
+                    setSpotifyError(null);
+                  }}
+                  className="px-3 py-2.5 rounded-xl border border-black/10 font-ui text-sm text-muted hover:bg-black/[0.03] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+              {spotifyError && (
+                <p className="font-ui text-sm text-red-500">{spotifyError}</p>
+              )}
+              <p className="font-ui text-[0.75rem] text-muted/70">
+                Copy a track link from Spotify app or web player
+              </p>
+            </div>
+          ) : (
+            // Show add button
+            <button
+              onClick={() => setShowSpotifyPicker(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#1DB954]/20 bg-white hover:border-[#1DB954]/50 hover:bg-[#1DB954]/5 transition-all"
+            >
+              <span className="text-[#1DB954]">{icons.music}</span>
+              <span className="font-ui text-sm text-ink">Add a song</span>
+            </button>
+          )}
         </div>
         )}
 
