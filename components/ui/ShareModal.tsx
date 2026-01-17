@@ -374,9 +374,9 @@ export default function ShareModal({
     ctx.stroke();
     contentY += 40;
 
-    // Content excerpt (first 550 characters)
+    // Content excerpt (first 750 characters)
     const cleanDescription = (description || '').replace(/<[^>]*>/g, '').trim();
-    const displayExcerpt = cleanDescription.substring(0, 550) + (cleanDescription.length > 550 ? '...' : '');
+    const displayExcerpt = cleanDescription.substring(0, 750) + (cleanDescription.length > 750 ? '...' : '');
 
     if (displayExcerpt) {
       ctx.fillStyle = '#444444';
@@ -385,12 +385,12 @@ export default function ShareModal({
       ctx.textBaseline = 'top';
 
       const excerptLines = wrapText(ctx, displayExcerpt, contentWidth);
-      const excerptLineHeight = 42;
+      const excerptLineHeight = 40;
 
-      excerptLines.slice(0, 12).forEach((line, i) => {
+      excerptLines.slice(0, 16).forEach((line, i) => {
         ctx.fillText(line, width / 2, contentY + i * excerptLineHeight);
       });
-      contentY += Math.min(excerptLines.length, 12) * excerptLineHeight + 40;
+      contentY += Math.min(excerptLines.length, 16) * excerptLineHeight + 40;
     }
 
     // "follow @username on pinkquill" at bottom of card
@@ -565,8 +565,8 @@ export default function ShareModal({
                   {/* Content excerpt */}
                   {description && (
                     <p className="story-card-excerpt">
-                      {description.replace(/<[^>]*>/g, '').substring(0, 550)}
-                      {description.replace(/<[^>]*>/g, '').length > 550 ? '...' : ''}
+                      {description.replace(/<[^>]*>/g, '').substring(0, 750)}
+                      {description.replace(/<[^>]*>/g, '').length > 750 ? '...' : ''}
                     </p>
                   )}
 

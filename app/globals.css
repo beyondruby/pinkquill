@@ -2854,15 +2854,15 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .story-card-excerpt {
   font-family: var(--font-body);
-  font-size: 0.42rem;
+  font-size: 0.4rem;
   font-style: italic;
   color: #444;
-  line-height: 1.45;
+  line-height: 1.4;
   text-align: center;
   margin: 0;
   flex: 1;
   display: -webkit-box;
-  -webkit-line-clamp: 12;
+  -webkit-line-clamp: 16;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
