@@ -118,19 +118,52 @@ const moodIcons: Record<string, React.ReactNode> = {
   'lonely': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>,
 };
 
+// Calculate luminance from hex color
+function getLuminance(hex: string): number {
+  const cleanHex = hex.replace('#', '');
+  if (cleanHex.length < 6) return 1; // Default to light if invalid
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+// Extract hex colors from a gradient string
+function extractColorsFromGradient(gradient: string): string[] {
+  const hexPattern = /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g;
+  return gradient.match(hexPattern) || [];
+}
+
 // Determine if background is dark to adjust text color
 function isDarkBackground(background?: PostBackground): boolean {
   if (!background) return false;
+
+  // Solid colors - check luminance directly
   if (background.type === 'solid') {
-    const hex = background.value.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance < 0.5;
+    return getLuminance(background.value) < 0.5;
   }
+
+  // Image backgrounds are always treated as dark (overlay added)
   if (background.type === 'image') return true;
-  if (background.type === 'gradient' && background.value.includes('#1')) return true;
+
+  // Gradients - analyze the colors in the gradient
+  if (background.type === 'gradient') {
+    const colors = extractColorsFromGradient(background.value);
+    if (colors.length === 0) return false;
+
+    // Calculate average luminance of all colors in gradient
+    const avgLuminance = colors.reduce((sum, color) => sum + getLuminance(color), 0) / colors.length;
+    return avgLuminance < 0.5;
+  }
+
+  // Patterns - check if it contains dark colors
+  if (background.type === 'pattern') {
+    const colors = extractColorsFromGradient(background.value);
+    if (colors.length === 0) return false;
+    const avgLuminance = colors.reduce((sum, color) => sum + getLuminance(color), 0) / colors.length;
+    return avgLuminance < 0.4; // Slightly stricter for patterns
+  }
+
   return false;
 }
 
@@ -612,13 +645,33 @@ export default function PostDetailModal({
   return (
     <>
     <Modal isOpen={isOpen} onClose={onClose}>
-      {/* Outer wrapper - no background here anymore */}
+      {/* Outer wrapper with full background */}
       <div className="flex flex-col md:flex-row h-full w-full relative">
+        {/* Background layer - covers entire modal */}
+        {hasBackground && (
+          <div
+            className="absolute inset-0 rounded-3xl"
+            style={{
+              ...getBackgroundStyle(post.styling?.background),
+              opacity: post.styling?.background?.type === 'image'
+                ? (post.styling.background.opacity ?? 1)
+                : 1,
+              filter: post.styling?.background?.type === 'image' && post.styling.background.blur
+                ? `blur(${post.styling.background.blur}px)`
+                : undefined,
+            }}
+          />
+        )}
+        {/* Dark overlay for image backgrounds to ensure text readability */}
+        {post.styling?.background?.type === 'image' && (
+          <div className="absolute inset-0 bg-black/30 rounded-3xl" />
+        )}
+
         {/* Main Content Area - Immersive Design */}
         <div
-          className={`post-detail-content flex flex-col overflow-y-auto relative ${
+          className={`post-detail-content flex flex-col overflow-y-auto relative z-10 ${
             showComments ? "hidden md:flex md:flex-1 md:border-r" : "flex-1"
-          } ${hasBackground ? '' : borderColorClass}`}
+          } ${borderColorClass}`}
         >
           {/* Content wrapper with padding */}
           <div className="post-detail-wrapper relative p-4 md:p-6 flex flex-col flex-1">
@@ -775,31 +828,6 @@ export default function PostDetailModal({
                 </div>
               )}
             </div>
-
-            {/* Content area with background */}
-            <div className="relative rounded-2xl overflow-hidden">
-              {/* Background layer for content area */}
-              {hasBackground && (
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    ...getBackgroundStyle(post.styling?.background),
-                    opacity: post.styling?.background?.type === 'image'
-                      ? (post.styling.background.opacity ?? 1)
-                      : 1,
-                    filter: post.styling?.background?.type === 'image' && post.styling.background.blur
-                      ? `blur(${post.styling.background.blur}px)`
-                      : undefined,
-                  }}
-                />
-              )}
-              {/* Dark overlay for image backgrounds to ensure text readability */}
-              {post.styling?.background?.type === 'image' && (
-                <div className="absolute inset-0 bg-black/30" />
-              )}
-
-              {/* Content with padding when background is present */}
-              <div className={`relative z-10 ${hasBackground ? 'p-4 md:p-6' : ''}`}>
 
             {/* Journal Header - Beautiful date, time, and metadata */}
             {post.type === "journal" && post.createdAt && (
@@ -1063,12 +1091,11 @@ export default function PostDetailModal({
             hashtags={post.hashtags}
             onNavigate={onClose}
           />
-              </div>
-            </div>
-            {/* End of content area with background */}
 
-          {/* Actions - Floating action bar (outside background, always white) */}
-          <div className="flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t border-black/[0.06] flex-wrap sticky bottom-0 bg-white z-20">
+          {/* Actions - Floating action bar with adaptive colors */}
+          <div className={`flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap sticky bottom-0 z-20 ${borderColorClass} ${
+            hasDarkBg ? 'bg-black/20 backdrop-blur-sm' : 'bg-white/80 backdrop-blur-sm'
+          }`}>
             {/* Reaction Picker */}
             <ReactionPicker
               currentReaction={userReaction}
@@ -1080,7 +1107,11 @@ export default function PostDetailModal({
             {/* Comment Button */}
             <button
               onClick={() => setShowComments(true)}
-              className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+              className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
+                hasDarkBg
+                  ? 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
+                  : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+              }`}
             >
               {icons.comment}
               {comments.length > 0 && <span className="text-xs md:text-sm font-medium">{comments.length}</span>}
@@ -1093,8 +1124,10 @@ export default function PostDetailModal({
                 disabled={!user}
                 className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                   isRelayed
-                    ? "bg-green-500/20 text-green-400"
-                    : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+                    ? "bg-green-500/30 text-green-400"
+                    : hasDarkBg
+                      ? 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
+                      : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
@@ -1105,7 +1138,11 @@ export default function PostDetailModal({
             {/* Share Button */}
             <button
               onClick={() => setShowShareModal(true)}
-              className="w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
+                hasDarkBg
+                  ? 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
+                  : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+              }`}
             >
               {icons.share}
             </button>
@@ -1116,8 +1153,10 @@ export default function PostDetailModal({
               disabled={!user}
               className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
                 isSaved
-                  ? "bg-amber-500/20 text-amber-400"
-                  : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+                  ? "bg-amber-500/30 text-amber-400"
+                  : hasDarkBg
+                    ? 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
+                    : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
               } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isSaved ? (
