@@ -1195,6 +1195,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                               content: work.content,
                               media: work.media,
                               styling: work.styling,
+                              post_location: work.post_location,
                               metadata: work.metadata,
                               stats: {
                                 admires: work.admires_count,
@@ -1269,6 +1270,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       title: work.title || undefined,
                     content: work.content,
                     media: work.media,
+                    styling: work.styling,
+                    post_location: work.post_location,
+                    metadata: work.metadata,
                     stats: {
                       admires: work.admires_count,
                       comments: work.comments_count,
@@ -1458,6 +1462,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         title: relay.title || undefined,
                         content: relay.content,
                         media: relay.media,
+                        styling: relay.styling,
+                        post_location: relay.post_location,
+                        metadata: relay.metadata,
                         stats: {
                           admires: relay.admires_count,
                           comments: relay.comments_count,

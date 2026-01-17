@@ -52,6 +52,13 @@ interface MediaItem {
   position: number;
 }
 
+interface JournalMetadata {
+  weather?: string;
+  temperature?: string;
+  mood?: string;
+  timeOfDay?: string;
+}
+
 interface Post {
   id: string;
   author_id: string;
@@ -65,6 +72,8 @@ interface Post {
   mentions?: TaggedUser[];
   hashtags?: string[];
   collaborators?: CollaboratorUser[];
+  post_location?: string | null;
+  metadata?: JournalMetadata | null;
 }
 
 function getTimeAgo(dateString: string): string {
@@ -87,6 +96,47 @@ function formatDate(dateString: string): string {
     year: 'numeric'
   });
 }
+
+function formatTime(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
+function formatWeather(weather: string): string {
+  return weather.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+function formatMood(mood: string): string {
+  return mood.charAt(0).toUpperCase() + mood.slice(1);
+}
+
+// Weather icons for journal display
+const weatherIcons: Record<string, React.ReactNode> = {
+  'sunny': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>,
+  'partly-cloudy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 0 0-4.9 4.03A5 5 0 0 0 3 11a5 5 0 0 0 5 5h9a4 4 0 0 0 0-8h-.35A5 5 0 0 0 12 2z"/></svg>,
+  'cloudy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 18H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 18z"/></svg>,
+  'rainy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM8 17l-2 4M12 17l-2 4M16 17l-2 4"/></svg>,
+  'stormy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM13 14l-4 8h5l-1 4"/></svg>,
+  'snowy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 13H7a5 5 0 0 1-.9-9.9 6 6 0 0 1 11.8 0A5 5 0 0 1 17 13zM8 16h.01M12 16h.01M16 16h.01M8 20h.01M12 20h.01M16 20h.01"/></svg>,
+  'foggy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 14h16M4 18h12M4 10h8"/></svg>,
+  'windy': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2M12.59 19.41A2 2 0 1 0 14 16H2M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>,
+};
+
+// Mood icons for journal display
+const moodIcons: Record<string, React.ReactNode> = {
+  'reflective': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
+  'joyful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
+  'melancholic': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
+  'peaceful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14h8"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
+  'anxious': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 15h8"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>,
+  'grateful': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+  'creative': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  'nostalgic': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+};
 
 function getTypeLabel(type: string): string {
   const labels: Record<string, string> = {
@@ -644,7 +694,27 @@ export default function PostPage() {
                     {post.author.display_name || post.author.username}
                   </Link>
                   <span className="font-ui text-[0.75rem] md:text-[0.85rem] text-muted hidden sm:inline">
-                    {getTypeLabel(post.type)}
+                    {post.type === "journal" ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        wrote in their{" "}
+                        <svg className="w-4 h-4 inline" viewBox="0 0 24 24" fill="none" stroke="url(#journalGradientPage)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <defs>
+                            <linearGradient id="journalGradientPage" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#8e44ad" />
+                              <stop offset="50%" stopColor="#ff007f" />
+                              <stop offset="100%" stopColor="#ff9f43" />
+                            </linearGradient>
+                          </defs>
+                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                        </svg>
+                        <span className="font-medium bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
+                          Journal
+                        </span>
+                      </span>
+                    ) : (
+                      getTypeLabel(post.type)
+                    )}
                   </span>
                 </div>
                 <span className="font-ui text-[0.7rem] md:text-[0.8rem] text-muted">
@@ -730,12 +800,83 @@ export default function PostPage() {
             <div className="p-4 md:p-6">
               {/* Actual Content */}
               <div className="relative">
-                {/* Journal Date */}
+                {/* Journal Header - Beautiful date, time, and metadata */}
                 {post.type === "journal" && (
-                  <div className="text-center mb-3 md:mb-4">
-                    <span className="font-ui text-[0.7rem] md:text-[0.75rem] text-muted tracking-wider uppercase">
-                      {formatDate(post.created_at)}
-                    </span>
+                  <div className="journal-header mb-6">
+                    {/* Date with Time on same line */}
+                    <div className="flex items-center gap-4 mb-4">
+                      <h2 className="font-display text-2xl md:text-3xl font-normal tracking-tight text-purple-primary">
+                        {formatDate(post.created_at)}
+                      </h2>
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 6v6l4 2" />
+                        </svg>
+                        {formatTime(post.created_at)}
+                      </span>
+                    </div>
+
+                    {/* Location, Weather, Mood - Same line with creative spacing */}
+                    {(post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-5 text-ink/70">
+                        {/* Location */}
+                        {post.post_location && (
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-purple-primary/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                            </svg>
+                            <span className="font-ui text-sm">{post.post_location}</span>
+                          </div>
+                        )}
+
+                        {/* Separator dot */}
+                        {post.post_location && (post.metadata?.weather || post.metadata?.temperature) && (
+                          <span className="hidden sm:block w-1 h-1 rounded-full bg-purple-primary/30" />
+                        )}
+
+                        {/* Weather with temperature */}
+                        {(post.metadata?.weather || post.metadata?.temperature) && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-purple-primary/70">
+                              {post.metadata?.weather ? weatherIcons[post.metadata.weather] : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path d="M14 4a6 6 0 00-6 6c0 2.5 1.5 4.5 3.5 5.5L10 20h4l-1.5-4.5c2-1 3.5-3 3.5-5.5a6 6 0 00-2-4.5" />
+                                </svg>
+                              )}
+                            </span>
+                            <span className="font-ui text-sm">
+                              {post.metadata?.temperature}
+                              {post.metadata?.temperature && post.metadata?.weather && <span className="mx-1 opacity-40">·</span>}
+                              {post.metadata?.weather && formatWeather(post.metadata.weather)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Separator dot */}
+                        {(post.metadata?.weather || post.metadata?.temperature) && post.metadata?.mood && (
+                          <span className="hidden sm:block w-1 h-1 rounded-full bg-purple-primary/30" />
+                        )}
+
+                        {/* Mood with prefix */}
+                        {post.metadata?.mood && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-purple-primary/70">
+                              {moodIcons[post.metadata.mood] || moodIcons['reflective']}
+                            </span>
+                            <span className="font-ui text-sm">
+                              <span className="text-muted">Mood:</span>
+                              {' '}
+                              <span className="italic">{formatMood(post.metadata.mood)}</span>
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Elegant divider line */}
+                    <div className="h-px w-full bg-gradient-to-r from-purple-primary/30 via-pink-vivid/20 to-transparent" />
                   </div>
                 )}
 
