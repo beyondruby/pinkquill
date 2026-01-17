@@ -1200,7 +1200,7 @@ export default function PostDetailModal({
           />
 
           {/* Actions - Floating action bar with adaptive colors */}
-          <div className={`flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap z-20 ${borderColorClass}`}>
+          <div className={`post-actions-bar flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap z-20 ${borderColorClass} ${hasDarkBg ? 'dark-bg' : ''}`}>
             {/* Reaction Picker */}
             <ReactionPicker
               currentReaction={userReaction}

@@ -265,7 +265,7 @@ export default function ReactionPicker({
       {/* Main Button */}
       <button
         ref={buttonRef}
-        className={`action-btn group/reaction ${currentReaction ? 'active' : ''}`}
+        className={`action-btn reaction-picker-trigger group/reaction ${currentReaction ? 'active' : ''}`}
         onClick={handleMainClick}
         disabled={disabled}
       >
@@ -296,7 +296,7 @@ export default function ReactionPicker({
       {/* Reaction Picker Popup */}
       {isOpen && (
         <div
-          className="absolute bottom-full left-0 mb-2 z-50 animate-reactionPop"
+          className="reaction-picker-dropdown absolute bottom-full left-0 mb-2 z-50 animate-reactionPop"
           onMouseEnter={() => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
           }}
