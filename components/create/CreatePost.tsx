@@ -290,7 +290,7 @@ const textColors = [
   { id: "black", color: "#1e1e1e", label: "Black" },
   { id: "darkgray", color: "#555555", label: "Dark Gray" },
   { id: "gray", color: "#888888", label: "Gray" },
-  { id: "lightgray", color: "#aaaaaa", label: "Light Gray" },
+  { id: "lightgray", color: "#bbbbbb", label: "Light Gray" },
   // Row 2 - Warm colors
   { id: "darkred", color: "#991b1b", label: "Dark Red" },
   { id: "red", color: "#dc2626", label: "Red" },
@@ -311,6 +311,16 @@ const textColors = [
   { id: "purple", color: "#9333ea", label: "Purple" },
   { id: "fuchsia", color: "#c026d3", label: "Fuchsia" },
   { id: "pink", color: "#db2777", label: "Pink" },
+  // Row 6 - Light/Pastel colors
+  { id: "lightpink", color: "#f9a8d4", label: "Light Pink" },
+  { id: "lightpurple", color: "#c4b5fd", label: "Light Purple" },
+  { id: "lightblue", color: "#93c5fd", label: "Light Blue" },
+  { id: "lightcyan", color: "#67e8f9", label: "Light Cyan" },
+  // Row 7 - More Light colors
+  { id: "lightgreen", color: "#86efac", label: "Light Green" },
+  { id: "lightyellow", color: "#fde047", label: "Light Yellow" },
+  { id: "lightorange", color: "#fdba74", label: "Light Orange" },
+  { id: "lightrose", color: "#fda4af", label: "Light Rose" },
 ];
 
 const highlightColors = [
@@ -1630,10 +1640,40 @@ export default function CreatePost() {
                     </div>
                   </div>
                   {/* Vibrant */}
-                  <div>
+                  <div className="mb-3">
                     <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Vibrant</span>
                     <div className="flex gap-2 mt-1.5">
                       {textColors.slice(16, 20).map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleTextColor(c.color)}
+                          className="w-10 h-10 rounded-xl border-2 border-transparent hover:border-purple-400 hover:shadow-lg transition-all"
+                          style={{ backgroundColor: c.color }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {/* Light Pastels */}
+                  <div className="mb-3">
+                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Light</span>
+                    <div className="flex gap-2 mt-1.5">
+                      {textColors.slice(20, 24).map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleTextColor(c.color)}
+                          className="w-10 h-10 rounded-xl border-2 border-transparent hover:border-purple-400 hover:shadow-lg transition-all"
+                          style={{ backgroundColor: c.color }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {/* More Light */}
+                  <div>
+                    <span className="font-ui text-[10px] text-muted/60 uppercase tracking-wide">Soft</span>
+                    <div className="flex gap-2 mt-1.5">
+                      {textColors.slice(24, 28).map((c) => (
                         <button
                           key={c.id}
                           onClick={() => handleTextColor(c.color)}

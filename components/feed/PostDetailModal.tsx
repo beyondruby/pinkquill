@@ -612,33 +612,13 @@ export default function PostDetailModal({
   return (
     <>
     <Modal isOpen={isOpen} onClose={onClose}>
-      {/* Outer wrapper with background - covers entire modal */}
+      {/* Outer wrapper - no background here anymore */}
       <div className="flex flex-col md:flex-row h-full w-full relative">
-        {/* Background layer - separate div for image backgrounds with opacity/blur */}
-        {hasBackground && (
-          <div
-            className="absolute inset-0 rounded-3xl"
-            style={{
-              ...getBackgroundStyle(post.styling?.background),
-              opacity: post.styling?.background?.type === 'image'
-                ? (post.styling.background.opacity ?? 1)
-                : 1,
-              filter: post.styling?.background?.type === 'image' && post.styling.background.blur
-                ? `blur(${post.styling.background.blur}px)`
-                : undefined,
-            }}
-          />
-        )}
-        {/* Dark overlay for image backgrounds to ensure text readability */}
-        {post.styling?.background?.type === 'image' && (
-          <div className="absolute inset-0 bg-black/30 rounded-3xl" />
-        )}
-
         {/* Main Content Area - Immersive Design */}
         <div
-          className={`post-detail-content flex flex-col overflow-y-auto relative z-10 ${
+          className={`post-detail-content flex flex-col overflow-y-auto relative ${
             showComments ? "hidden md:flex md:flex-1 md:border-r" : "flex-1"
-          } ${borderColorClass}`}
+          } ${hasBackground ? '' : borderColorClass}`}
         >
           {/* Content wrapper with padding */}
           <div className="post-detail-wrapper relative p-4 md:p-6 flex flex-col flex-1">
@@ -795,6 +775,31 @@ export default function PostDetailModal({
                 </div>
               )}
             </div>
+
+            {/* Content area with background */}
+            <div className="relative rounded-2xl overflow-hidden">
+              {/* Background layer for content area */}
+              {hasBackground && (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    ...getBackgroundStyle(post.styling?.background),
+                    opacity: post.styling?.background?.type === 'image'
+                      ? (post.styling.background.opacity ?? 1)
+                      : 1,
+                    filter: post.styling?.background?.type === 'image' && post.styling.background.blur
+                      ? `blur(${post.styling.background.blur}px)`
+                      : undefined,
+                  }}
+                />
+              )}
+              {/* Dark overlay for image backgrounds to ensure text readability */}
+              {post.styling?.background?.type === 'image' && (
+                <div className="absolute inset-0 bg-black/30" />
+              )}
+
+              {/* Content with padding when background is present */}
+              <div className={`relative z-10 ${hasBackground ? 'p-4 md:p-6' : ''}`}>
 
             {/* Journal Header - Beautiful date, time, and metadata */}
             {post.type === "journal" && post.createdAt && (
@@ -1058,9 +1063,12 @@ export default function PostDetailModal({
             hashtags={post.hashtags}
             onNavigate={onClose}
           />
+              </div>
+            </div>
+            {/* End of content area with background */}
 
-          {/* Actions - Floating action bar */}
-          <div className={`flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap sticky bottom-0 bg-inherit z-20 ${borderColorClass}`}>
+          {/* Actions - Floating action bar (outside background, always white) */}
+          <div className="flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t border-black/[0.06] flex-wrap sticky bottom-0 bg-white z-20">
             {/* Reaction Picker */}
             <ReactionPicker
               currentReaction={userReaction}
@@ -1072,11 +1080,7 @@ export default function PostDetailModal({
             {/* Comment Button */}
             <button
               onClick={() => setShowComments(true)}
-              className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
-                hasDarkBg
-                  ? 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
-                  : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
-              }`}
+              className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
             >
               {icons.comment}
               {comments.length > 0 && <span className="text-xs md:text-sm font-medium">{comments.length}</span>}
@@ -1090,9 +1094,7 @@ export default function PostDetailModal({
                 className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                   isRelayed
                     ? "bg-green-500/20 text-green-400"
-                    : hasDarkBg
-                      ? 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
-                      : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+                    : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
@@ -1103,11 +1105,7 @@ export default function PostDetailModal({
             {/* Share Button */}
             <button
               onClick={() => setShowShareModal(true)}
-              className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
-                hasDarkBg
-                  ? 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
-                  : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
-              }`}
+              className="w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
             >
               {icons.share}
             </button>
@@ -1119,9 +1117,7 @@ export default function PostDetailModal({
               className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
                 isSaved
                   ? "bg-amber-500/20 text-amber-400"
-                  : hasDarkBg
-                    ? 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
-                    : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+                  : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
               } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isSaved ? (
