@@ -318,28 +318,28 @@ export default function ShareModal({
     const cardHeight = height * 0.55;
     const cardRadius = 40;
 
-    // Glass card background
+    // Glass card background - more transparent/see-through
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardWidth, cardHeight, cardRadius);
     ctx.clip();
 
-    // Frosted glass effect
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    // Frosted glass effect - more transparent
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
     ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
 
     // Subtle inner glow
     const innerGlow = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardHeight);
-    innerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+    innerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
     innerGlow.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
-    innerGlow.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+    innerGlow.addColorStop(1, 'rgba(255, 255, 255, 0.08)');
     ctx.fillStyle = innerGlow;
     ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
 
     ctx.restore();
 
     // Card border (subtle)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardWidth, cardHeight, cardRadius);
@@ -347,24 +347,23 @@ export default function ShareModal({
 
     // ========== CARD CONTENT ==========
     const contentPadding = 60;
-    const contentX = cardX + contentPadding;
     const contentWidth = cardWidth - (contentPadding * 2);
-    let contentY = cardY + 80;
+    let contentY = cardY + 70;
 
     // Title (first 50 characters)
     const displayTitle = (title || 'Untitled').substring(0, 50) + ((title || '').length > 50 ? '...' : '');
     ctx.fillStyle = '#1e1e1e';
-    ctx.font = 'bold 52px "Libre Baskerville", Georgia, serif';
+    ctx.font = 'bold 48px "Libre Baskerville", Georgia, serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
     const titleLines = wrapText(ctx, displayTitle, contentWidth);
-    const titleLineHeight = 68;
+    const titleLineHeight = 62;
 
     titleLines.forEach((line, i) => {
       ctx.fillText(line, width / 2, contentY + i * titleLineHeight);
     });
-    contentY += titleLines.length * titleLineHeight + 60;
+    contentY += titleLines.length * titleLineHeight + 40;
 
     // Decorative divider
     ctx.strokeStyle = 'rgba(142, 68, 173, 0.3)';
@@ -373,116 +372,42 @@ export default function ShareModal({
     ctx.moveTo(width / 2 - 60, contentY);
     ctx.lineTo(width / 2 + 60, contentY);
     ctx.stroke();
-    contentY += 50;
+    contentY += 40;
 
-    // Profile section
-    const profileCenterY = contentY + 50;
+    // Content excerpt (first 150 characters)
+    const cleanDescription = (description || '').replace(/<[^>]*>/g, '').trim();
+    const displayExcerpt = cleanDescription.substring(0, 150) + (cleanDescription.length > 150 ? '...' : '');
 
-    // Draw author avatar (circular)
-    if (authorAvatar) {
-      try {
-        const avatar = new Image();
-        avatar.crossOrigin = 'anonymous';
-        await new Promise<void>((resolve, reject) => {
-          avatar.onload = () => resolve();
-          avatar.onerror = reject;
-          avatar.src = authorAvatar;
-        });
-
-        const avatarSize = 100;
-        const avatarX = width / 2 - avatarSize / 2;
-        const avatarY = profileCenterY;
-
-        // Avatar shadow
-        ctx.save();
-        ctx.shadowColor = 'rgba(142, 68, 173, 0.3)';
-        ctx.shadowBlur = 20;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 8;
-        ctx.beginPath();
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff';
-        ctx.fill();
-        ctx.restore();
-
-        // Draw circular avatar
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
-        ctx.restore();
-
-        // Avatar border
-        ctx.strokeStyle = 'rgba(142, 68, 173, 0.4)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-        ctx.stroke();
-
-        contentY = avatarY + avatarSize + 30;
-      } catch {
-        // Avatar failed to load, show placeholder
-        const avatarSize = 100;
-        const avatarX = width / 2 - avatarSize / 2;
-        const avatarY = profileCenterY;
-
-        // Gradient placeholder
-        const placeholderGradient = ctx.createLinearGradient(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize);
-        placeholderGradient.addColorStop(0, '#8e44ad');
-        placeholderGradient.addColorStop(1, '#ff007f');
-
-        ctx.beginPath();
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-        ctx.fillStyle = placeholderGradient;
-        ctx.fill();
-
-        // Initial
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 48px "Josefin Sans", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText((authorName || 'U').charAt(0).toUpperCase(), width / 2, avatarY + avatarSize / 2);
-
-        contentY = avatarY + avatarSize + 30;
-      }
-    } else {
-      // No avatar provided, show gradient placeholder
-      const avatarSize = 100;
-      const avatarX = width / 2 - avatarSize / 2;
-      const avatarY = profileCenterY;
-
-      const placeholderGradient = ctx.createLinearGradient(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize);
-      placeholderGradient.addColorStop(0, '#8e44ad');
-      placeholderGradient.addColorStop(1, '#ff007f');
-
-      ctx.beginPath();
-      ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-      ctx.fillStyle = placeholderGradient;
-      ctx.fill();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 48px "Josefin Sans", sans-serif';
+    if (displayExcerpt) {
+      ctx.fillStyle = '#444444';
+      ctx.font = 'italic 32px "Crimson Pro", Georgia, serif';
       ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText((authorName || 'U').charAt(0).toUpperCase(), width / 2, avatarY + avatarSize / 2);
+      ctx.textBaseline = 'top';
 
-      contentY = avatarY + avatarSize + 30;
+      const excerptLines = wrapText(ctx, displayExcerpt, contentWidth);
+      const excerptLineHeight = 44;
+
+      excerptLines.slice(0, 4).forEach((line, i) => {
+        ctx.fillText(line, width / 2, contentY + i * excerptLineHeight);
+      });
+      contentY += Math.min(excerptLines.length, 4) * excerptLineHeight + 40;
     }
 
-    // Author name
-    ctx.fillStyle = '#1e1e1e';
-    ctx.font = '600 38px "Josefin Sans", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText(authorName || 'Anonymous', width / 2, contentY);
+    // "follow @username on pinkquill" at bottom of card
+    const followY = cardY + cardHeight - 80;
+    const usernameText = authorUsername ? `@${authorUsername}` : '@anonymous';
 
-    // ========== PINKQUILL BRANDING AT BOTTOM OF CARD ==========
-    const brandY = cardY + cardHeight - 100;
-
-    // "PinkQuill - share your creative journey"
-    ctx.fillStyle = '#777777';
+    ctx.fillStyle = '#666666';
     ctx.font = '28px "Josefin Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`follow ${usernameText} on pinkquill`, width / 2, followY);
+
+    // ========== PINKQUILL BRANDING AT BOTTOM OF PHOTO (OUTSIDE CARD) ==========
+    const brandY = height - 80;
+
+    ctx.fillStyle = 'rgba(80, 80, 80, 0.7)';
+    ctx.font = '26px "Josefin Sans", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('PinkQuill — share your creative journey', width / 2, brandY);
@@ -637,22 +562,23 @@ export default function ShareModal({
                   {/* Decorative divider */}
                   <div className="story-card-divider" />
 
-                  {/* Profile */}
-                  <div className="story-card-profile">
-                    {authorAvatar ? (
-                      <img src={authorAvatar} alt="" className="story-card-avatar" />
-                    ) : (
-                      <div className="story-card-avatar-placeholder">
-                        {(authorName || 'U').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <span className="story-card-name">{authorName || 'Anonymous'}</span>
-                  </div>
+                  {/* Content excerpt */}
+                  {description && (
+                    <p className="story-card-excerpt">
+                      {description.replace(/<[^>]*>/g, '').substring(0, 150)}
+                      {description.replace(/<[^>]*>/g, '').length > 150 ? '...' : ''}
+                    </p>
+                  )}
 
-                  {/* Branding */}
-                  <div className="story-card-brand">
-                    PinkQuill — share your creative journey
+                  {/* Follow text */}
+                  <div className="story-card-follow">
+                    follow @{authorUsername || 'anonymous'} on pinkquill
                   </div>
+                </div>
+
+                {/* Branding outside card at bottom */}
+                <div className="story-bottom-brand">
+                  PinkQuill — share your creative journey
                 </div>
               </div>
             </div>
