@@ -1272,8 +1272,8 @@ export default function PostDetailModal({
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         url={postUrl}
-        title={post.title || post.content.substring(0, 100)}
-        description={post.content.substring(0, 200)}
+        title={post.title || post.content.substring(0, 150)}
+        description={post.content}
         type={post.type}
         authorName={post.author.name}
         authorUsername={post.author.handle}
