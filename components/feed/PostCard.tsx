@@ -951,7 +951,6 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
             {post.content && (
               <TruncatedContent
                 content={post.content}
-                maxWords={20}
                 onReadMore={handleOpenModal}
               />
             )}
@@ -962,7 +961,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     }
 
     // UNIFIED LAYOUT for all other post types
-    // Format: Title → First 20 words → Images (square) → Continue reading
+    // Format: Title → First 250 chars → Images (square) → Continue reading
     return (
       <article className="post type-unified" onClick={handleOpenModal}>
         <AuthorHeader />
@@ -970,11 +969,10 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
           {/* 1. Title */}
           {post.title && <h3 className="unified-post-title">{post.title}</h3>}
 
-          {/* 2. First 20 words with Continue reading */}
+          {/* 2. First 250 chars with Continue reading */}
           {post.content && (
             <TruncatedContent
               content={post.content}
-              maxWords={20}
               onReadMore={handleOpenModal}
             />
           )}

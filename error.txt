@@ -1,96 +1,26 @@
-
-Render blocking requests Est savings of 810 ms
-Requests are blocking the page's initial render, which may delay LCP. Deferring or inlining can move these network requests out of the critical path.LCPFCPUnscored
-URL
-Transfer Size
-Duration
-pinkquill.com 1st party
-56.2 KiB	1,480 ms
-…chunks/67dc5ca7e8a07fd7.css(www.pinkquill.com)
-6.7 KiB
-170 ms
-…chunks/ba411e1736c52b89.css(www.pinkquill.com)
-2.0 KiB
-490 ms
-…chunks/f9cc66a62b42b1b5.css(www.pinkquill.com)
-47.5 KiB
-820 ms
-
-
-
-LCP breakdown
-Each subpart has specific improvement strategies. Ideally, most of the LCP time should be spent on loading the resources, not within delays.LCPUnscored
-Subpart
-Duration
-Time to first byte
-0 ms
-Element render delay
-3,790 ms
-
-Avoid chaining critical requests by reducing the length of chains, reducing the download size of resources, or deferring the download of unnecessary resources to improve page load.LCPUnscored
-Maximum critical path latency: 4,092 ms
-Initial Navigation
-https://www.pinkquill.com - 581 ms, 7.53 KiB
-…chunks/67dc5ca7e8a07fd7.css(www.pinkquill.com) - 896 ms, 6.66 KiB
-…media/d38a53d0ba90b32d-s.3eaec13b.woff2(www.pinkquill.com) - 4,092 ms, 46.35 KiB
-…media/5b0229109f6656bb-s.6c710ca8.woff2(www.pinkquill.com) - 3,914 ms, 22.72 KiB
-…chunks/ba411e1736c52b89.css(www.pinkquill.com) - 885 ms, 2.03 KiB
-…chunks/f9cc66a62b42b1b5.css(www.pinkquill.com) - 787 ms, 47.49 KiB
-Preconnected origins
-preconnect hints help the browser establish a connection earlier in the page load, saving time when the first request for that origin is made. The following are the origins that the page preconnected to.
-no origins were preconnected
-Preconnect candidates
-Add preconnect hints to your most important origins, but try to use no more than 4.
-No additional origins are good candidates for preconnecting
-
-
-
-Improve image delivery Est savings of 109 KiB
-Reducing the download time of images can improve the perceived load time of the page and LCP. Learn more about optimizing image sizeLCPFCPUnscored
-URL
-Resource Size
-Est Savings
-pinkquill.com 1st party
-132.7 KiB	108.9 KiB
-article.post > div.unified-media-grid > div.unified-media-item > img.unified-media-image
-<img alt="" loading="lazy" width="400" height="400" decoding="async" data-nimg="1" class="unified-media-image" srcset="/_next/image?url=https%3A%2F%2Floaitxbibjftsytlgddi.supabase.co%2Fstorage%…" src="/_next/image?url=https%3A%2F%2Floaitxbibjftsytlgddi.supabase.co%2Fstorage%…" style="color: transparent;">
-/_next/image?url=…(www.pinkquill.com)
-92.0 KiB
-76.4 KiB
-Increasing the image compression factor could improve this image's download size.
-22.4 KiB
-This image file is larger than it needs to be (653x655) for its displayed dimensions (344x278). Use responsive images to reduce the image download size.
-71.4 KiB
-article.post > div.unified-media-grid > div.unified-media-item > img.unified-media-image
-<img alt="" loading="lazy" width="400" height="400" decoding="async" data-nimg="1" class="unified-media-image" srcset="/_next/image?url=https%3A%2F%2Floaitxbibjftsytlgddi.supabase.co%2Fstorage%…" src="/_next/image?url=https%3A%2F%2Floaitxbibjftsytlgddi.supabase.co%2Fstorage%…" style="color: transparent;">
-/_next/image?url=…(www.pinkquill.com)
-23.9 KiB
-19.1 KiB
-This image file is larger than it needs to be (828x827) for its displayed dimensions (278x495). Use responsive images to reduce the image download size.
-19.1 KiB
-article.post > div.unified-media-grid > div.unified-media-item > img.unified-media-image
-<img alt="" loading="lazy" width="400" height="400" decoding="async" data-nimg="1" class="unified-media-image" srcset="/_next/image?url=https%3A%2F%2Floaitxbibjftsytlgddi.supabase.co%2Fstorage%…" src="/_next/image?url=https%3A%2F%2Floaitxbibjftsytlgddi.supabase.co%2Fstorage%…" style="color: transparent;">
-/_next/image?url=…(www.pinkquill.com)
-16.8 KiB
-13.5 KiB
-This image file is larger than it needs to be (828x827) for its displayed dimensions (278x495). Use responsive images to reduce the image download size.
-13.5 KiB
-
-
-
-Use efficient cache lifetimes Est savings of 895 KiB
-A long cache lifetime can speed up repeat visits to your page. Learn more about caching.LCPFCPUnscored
-Request
-Cache TTL
-Transfer Size
-supabase.co
-1,118 KiB
-…avatars/community-5119cd39-f163-45b9-93bc-41ac205c4dab-176….jpg(loaitxbibjftsytlgddi.supabase.co)
-1h
-684 KiB
-…avatars/d54e4632-2980-4cb8-b8c1-f4bbfe6e3367-176….jpeg(loaitxbibjftsytlgddi.supabase.co)
-1h
-315 KiB
-…avatars/f2acb46a-e16b-4fe5-adb8-e8cbfcfecf3b-176….jpeg(loaitxbibjftsytlgddi.supabase.co)
-1h
-119 KiB
+  run `npm fund` for details
+Detected Next.js version: 16.1.1
+Running "npm run build"
+> quill@0.1.0 build
+> next build
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ✓ optimizeCss
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 19.5s
+  Running TypeScript ...
+Failed to compile.
+./components/feed/PostCard.tsx:954:17
+Type error: Type '{ content: string; maxWords: number; onReadMore: () => void; }' is not assignable to type 'IntrinsicAttributes & TruncatedContentProps'.
+  Property 'maxWords' does not exist on type 'IntrinsicAttributes & TruncatedContentProps'.
+  952 |               <TruncatedContent
+  953 |                 content={post.content}
+> 954 |                 maxWords={20}
+      |                 ^
+  955 |                 onReadMore={handleOpenModal}
+  956 |               />
+  957 |             )}
+Next.js build worker exited with code: 1 and signal: null
+Error: Command "npm run build" exited with 1
