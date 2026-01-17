@@ -101,6 +101,15 @@ interface Post {
   styling?: any | null;
   post_location?: string | null;
   metadata?: any | null;
+  spotify_track?: {
+    id: string;
+    name: string;
+    artist: string;
+    album: string;
+    albumArt: string;
+    previewUrl?: string;
+    externalUrl: string;
+  } | null;
 }
 
 interface PostItem {
@@ -602,6 +611,7 @@ export default function Feed() {
               styling: post.styling || null,
               post_location: post.post_location || null,
               metadata: post.metadata || null,
+              spotify_track: post.spotify_track || null,
             }}
             onPostDeleted={handlePostDeleted}
           />
