@@ -41,6 +41,15 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   min-height: 100vh;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Ensure long words/URLs break and wrap properly */
+p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Hide scrollbar for horizontal scroll sections */
@@ -575,6 +584,10 @@ body {
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
+  overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .post:hover {
   box-shadow: 0 8px 40px rgba(142, 68, 173, 0.1);
@@ -1673,9 +1686,13 @@ body {
 .modal-content-area {
   padding: 2.5rem;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   flex: 1;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .modal-card.with-discussion .modal-content-area {
   border-right: 1px solid rgba(0, 0, 0, 0.05);
@@ -3402,6 +3419,9 @@ body {
   font-size: 1rem;
   line-height: 1.7;
   color: var(--ink);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .continue-reading-btn {
