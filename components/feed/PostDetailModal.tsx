@@ -924,11 +924,11 @@ export default function PostDetailModal({
               </div>
             )}
 
-            {/* Post Content */}
+            {/* Post Content - Text color controlled by user styling */}
             <div className="flex-1 relative">
               {post.title && (
                 <h2
-                  className={`font-display text-[1.5rem] md:text-[2.2rem] font-semibold mb-4 md:mb-5 leading-[1.2] tracking-tight ${textColorClass} ${
+                  className={`font-display text-[1.5rem] md:text-[2.2rem] font-semibold mb-4 md:mb-5 leading-[1.2] tracking-tight text-ink ${
                     post.type === "poem" || textAlignment === 'center' ? "text-center" : alignmentClass
                   }`}
                 >
@@ -938,12 +938,12 @@ export default function PostDetailModal({
 
               {post.type === "poem" ? (
                 <div
-                  className={`font-body text-[1.05rem] md:text-[1.3rem] leading-loose italic text-center py-4 md:py-8 post-content ${textColorClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
+                  className={`font-body text-[1.05rem] md:text-[1.3rem] leading-loose italic text-center py-4 md:py-8 post-content text-ink ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
                   dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
                 />
               ) : (
                 <div
-                  className={`font-body text-[0.95rem] md:text-[1.1rem] post-content ${textColorClass} ${alignmentClass} ${lineSpacingClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
+                  className={`font-body text-[0.95rem] md:text-[1.1rem] post-content text-ink ${alignmentClass} ${lineSpacingClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
                   dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
                 />
               )}
@@ -1093,9 +1093,7 @@ export default function PostDetailModal({
           />
 
           {/* Actions - Floating action bar with adaptive colors */}
-          <div className={`flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap sticky bottom-0 z-20 ${borderColorClass} ${
-            hasDarkBg ? 'bg-black/20 backdrop-blur-sm' : 'bg-white/80 backdrop-blur-sm'
-          }`}>
+          <div className={`flex items-center gap-1.5 md:gap-2 mt-6 pt-4 md:pt-6 border-t flex-wrap z-20 ${borderColorClass}`}>
             {/* Reaction Picker */}
             <ReactionPicker
               currentReaction={userReaction}
