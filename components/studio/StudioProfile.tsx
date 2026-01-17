@@ -1068,28 +1068,51 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   </div>
                 ) : <div />}
 
-                {/* Communities - elegant minimal pill */}
+                {/* Communities - stacked circle avatars */}
                 {userCommunities && userCommunities.length > 0 && (
                   <button
                     onClick={() => setShowCommunitiesModal(true)}
-                    className="group flex items-center gap-2.5 px-3 py-2 rounded-xl border border-transparent hover:border-pink-vivid/10 hover:bg-gradient-to-r hover:from-purple-primary/[0.03] hover:to-pink-vivid/[0.03] transition-all duration-300"
+                    className="group flex items-center gap-1 py-1.5 rounded-full hover:bg-pink-vivid/[0.04] transition-all duration-300 px-1"
                   >
-                    {/* Icon */}
-                    <span className="text-pink-vivid/40 group-hover:text-pink-vivid/60 transition-colors">
-                      {icons.community}
-                    </span>
+                    {/* Stacked Community Avatars */}
+                    <div className="flex items-center">
+                      {userCommunities.slice(0, userCommunities.length > 4 ? 3 : 4).map((community, index) => (
+                        <div
+                          key={community.id}
+                          className="relative w-7 h-7 rounded-full border-2 border-white overflow-hidden shadow-sm transition-all duration-300 group-hover:shadow-md"
+                          style={{
+                            marginLeft: index === 0 ? 0 : '-8px',
+                            zIndex: 10 - index,
+                          }}
+                        >
+                          {community.avatar_url ? (
+                            <img
+                              src={community.avatar_url}
+                              alt={community.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-purple-primary/40 to-pink-vivid/40 flex items-center justify-center">
+                              <span className="text-[9px] font-ui text-white font-semibold">
+                                {community.name?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
 
-                    {/* Text */}
-                    <span className="font-ui text-xs text-ink/50 group-hover:text-ink/70 transition-colors">
-                      {userCommunities.length === 1
-                        ? '1 community'
-                        : `${userCommunities.length} communities`}
-                    </span>
-
-                    {/* Subtle arrow */}
-                    <svg className="w-3 h-3 text-ink/20 group-hover:text-ink/40 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                      {/* +X more indicator */}
+                      {userCommunities.length > 4 && (
+                        <div
+                          className="relative w-7 h-7 rounded-full border-2 border-white overflow-hidden shadow-sm bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center transition-all duration-300 group-hover:shadow-md"
+                          style={{ marginLeft: '-8px', zIndex: 6 }}
+                        >
+                          <span className="text-[9px] font-ui text-white font-bold">
+                            +{userCommunities.length - 3}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </button>
                 )}
 
@@ -1891,7 +1914,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   className="flex items-center gap-3 p-4 hover:bg-black/[0.02] transition-colors border-b border-black/[0.04] last:border-b-0"
                 >
                   {/* Community Avatar */}
-                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                  <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
                     {community.avatar_url ? (
                       <img
                         src={community.avatar_url}
@@ -1909,7 +1932,26 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
                   {/* Community Info */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-ui text-sm font-medium text-ink truncate">{community.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-ui text-sm font-medium text-ink truncate">{community.name}</h4>
+                      {/* Admin/Moderator Badge */}
+                      {community.user_role === 'admin' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white text-[9px] font-ui font-semibold uppercase tracking-wide">
+                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                          </svg>
+                          Admin
+                        </span>
+                      )}
+                      {community.user_role === 'moderator' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-[9px] font-ui font-semibold uppercase tracking-wide">
+                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+                          </svg>
+                          Mod
+                        </span>
+                      )}
+                    </div>
                     {community.description && (
                       <p className="font-body text-xs text-muted line-clamp-1 mt-0.5">
                         {community.description}
@@ -1923,7 +1965,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   </div>
 
                   {/* Arrow */}
-                  <svg className="w-4 h-4 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-muted/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </a>
