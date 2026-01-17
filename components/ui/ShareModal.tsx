@@ -381,11 +381,11 @@ export default function ShareModal({
     const excerptHeight = excerptLines.length * excerptLineHeight;
 
     // Calculate card height to fit content snugly
-    const topPadding = 60;
-    const afterTitleSpace = 35;
-    const dividerHeight = 35;
-    const afterExcerptSpace = 25;
-    const followTextSpace = 90;
+    const topPadding = 70;
+    const afterTitleSpace = 40;
+    const dividerHeight = 40;
+    const afterExcerptSpace = 50;
+    const followTextSpace = 100;
 
     const cardHeight = topPadding + titleHeight + afterTitleSpace + dividerHeight + excerptHeight + afterExcerptSpace + followTextSpace;
 
@@ -455,7 +455,7 @@ export default function ShareModal({
     }
 
     // "follow @username on pinkquill" at bottom of card
-    const followY = cardY + cardHeight - 70;
+    const followY = cardY + cardHeight - 55;
     const cleanUsername = (authorUsername || 'anonymous').replace(/^@/, '');
 
     ctx.fillStyle = '#666666';
