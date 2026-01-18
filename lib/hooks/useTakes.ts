@@ -1485,7 +1485,7 @@ export function useSavedTakes(userId?: string) {
       (relays || []).forEach(r => { relaysCount[r.take_id] = (relaysCount[r.take_id] || 0) + 1; });
 
       // Order by save time
-      const saveTimeMap = new Map(savedData.map(s => [s.take_id, s.created_at]));
+      const saveTimeMap = new Map<string, string>(savedData.map(s => [s.take_id as string, s.created_at as string]));
 
       const processedTakes: Take[] = takesData.map(take => ({
         ...take,
