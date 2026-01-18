@@ -472,3 +472,30 @@ export interface PaginatedResult<T> {
   data: T[];
   pagination: PaginationState;
 }
+
+// ============================================================================
+// COLLABORATION TYPES
+// ============================================================================
+
+export type CollaboratorStatus = "pending" | "accepted" | "declined";
+
+export interface CollaborationInvite {
+  id: string;
+  post_id: string;
+  user_id: string;
+  status: CollaboratorStatus;
+  invited_at: string;
+  post: {
+    id: string;
+    title: string | null;
+    type: string;
+    content: string;
+    status: string;
+    author: {
+      id: string;
+      username: string;
+      display_name: string | null;
+      avatar_url: string | null;
+    };
+  };
+}
