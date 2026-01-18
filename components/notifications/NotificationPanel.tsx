@@ -507,6 +507,10 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
   const communityName = notification.community?.name || "a community";
   const postType = notification.post?.type || 'post';
 
+  if (!notification.type) {
+    return { actor: actorName, action: 'interacted with you' };
+  }
+
   switch (notification.type) {
     case 'admire':
       return { actor: actorName, action: `admired your ${postType}` };
@@ -567,27 +571,31 @@ function NotificationItem({
   onClose: () => void;
 }) {
   const getNotificationLink = (): string => {
-    if (notification.type === 'follow' ||
-        notification.type === 'follow_request' ||
-        notification.type === 'follow_request_accepted') {
-      return `/studio/${notification.actor?.username}`;
-    }
-    if (notification.type.startsWith('community_') && notification.community?.slug) {
-      return `/community/${notification.community.slug}`;
-    }
-    // Collaboration and mention notifications link to the post
-    if (notification.type === 'collaboration_invite' ||
-        notification.type === 'collaboration_accepted' ||
-        notification.type === 'collaboration_declined' ||
-        notification.type === 'mention') {
+    try {
+      if (notification.type === 'follow' ||
+          notification.type === 'follow_request' ||
+          notification.type === 'follow_request_accepted') {
+        return `/studio/${notification.actor?.username || 'unknown'}`;
+      }
+      if (notification.type?.startsWith('community_') && notification.community?.slug) {
+        return `/community/${notification.community.slug}`;
+      }
+      // Collaboration and mention notifications link to the post
+      if (notification.type === 'collaboration_invite' ||
+          notification.type === 'collaboration_accepted' ||
+          notification.type === 'collaboration_declined' ||
+          notification.type === 'mention') {
+        if (notification.post_id) {
+          return `/post/${notification.post_id}`;
+        }
+      }
       if (notification.post_id) {
         return `/post/${notification.post_id}`;
       }
+      return `/studio/${notification.actor?.username || 'unknown'}`;
+    } catch {
+      return '/';
     }
-    if (notification.post_id) {
-      return `/post/${notification.post_id}`;
-    }
-    return `/studio/${notification.actor?.username}`;
   };
 
   const handleClick = () => {
@@ -717,8 +725,8 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length + invites.length + followRequests.length;
-  const hasContent = notifications.length > 0 || invites.length > 0 || followRequests.length > 0;
+  const unreadCount = (notifications?.filter(n => !n.read)?.length || 0) + (invites?.length || 0) + (followRequests?.length || 0);
+  const hasContent = (notifications?.length || 0) > 0 || (invites?.length || 0) > 0 || (followRequests?.length || 0) > 0;
 
   if (!isOpen) return null;
 
@@ -794,7 +802,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
           ) : (
             <div className="p-3 space-y-1">
               {/* Follow Requests Section */}
-              {followRequests.length > 0 && (
+              {followRequests && followRequests.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center gap-2 px-3 py-2 mb-2">
                     {icons.followRequest}
@@ -806,7 +814,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                     </span>
                   </div>
                   <div className="space-y-3">
-                    {followRequests.map((request) => (
+                    {followRequests.filter(request => request?.requester).map((request) => (
                       <FollowRequestCard
                         key={request.follower_id}
                         request={request}
@@ -819,7 +827,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
               )}
 
               {/* Collaboration Invites Section */}
-              {invites.length > 0 && (
+              {invites && invites.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center gap-2 px-3 py-2 mb-2">
                     {icons.collaborationInvite}
@@ -831,9 +839,9 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                     </span>
                   </div>
                   <div className="space-y-3">
-                    {invites.map((invite) => (
+                    {invites.filter(invite => invite.post?.author).map((invite) => (
                       <CollaborationInviteCard
-                        key={`${invite.post_id}-${invite.post.author.id}`}
+                        key={`${invite.post_id}-${invite.post?.author?.id || 'unknown'}`}
                         invite={invite}
                         userId={user?.id || ""}
                         onRespond={() => {
@@ -846,14 +854,16 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
               )}
 
               {/* Regular Notifications */}
-              {notifications.filter(n => n.type !== 'collaboration_invite' && n.type !== 'follow_request').map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onMarkAsRead={markAsRead}
-                  onClose={onClose}
-                />
-              ))}
+              {(notifications || [])
+                .filter(n => n && n.type !== 'collaboration_invite' && n.type !== 'follow_request' && n.actor)
+                .map((notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    notification={notification}
+                    onMarkAsRead={markAsRead}
+                    onClose={onClose}
+                  />
+                ))}
             </div>
           )}
         </div>

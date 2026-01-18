@@ -484,8 +484,12 @@ export function useFollowRequests(userId?: string) {
         throw error;
       }
 
-      setRequests((data as unknown as FollowRequest[]) || []);
-      setCount(data?.length || 0);
+      // Filter out invalid requests that don't have required fields
+      const validRequests = ((data || []) as unknown as FollowRequest[]).filter(
+        request => request && request.follower_id && request.requester
+      );
+      setRequests(validRequests);
+      setCount(validRequests.length);
     } catch (err) {
       console.error("[useFollowRequests] Error:", err);
       setRequests([]);

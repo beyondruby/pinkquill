@@ -68,6 +68,7 @@ export default function CollaborationInviteCard({
   const { accept, decline } = useCollaborationInvites(userId);
 
   const handleAccept = async () => {
+    if (!invite.post?.author?.id) return;
     setResponding(true);
     setResponseType("accept");
     const result = await accept(invite.post_id, invite.post.author.id);
@@ -78,6 +79,7 @@ export default function CollaborationInviteCard({
   };
 
   const handleDecline = async () => {
+    if (!invite.post?.author?.id) return;
     setResponding(true);
     setResponseType("decline");
     const result = await decline(invite.post_id, invite.post.author.id);
@@ -87,9 +89,14 @@ export default function CollaborationInviteCard({
     setResponding(false);
   };
 
-  const author = invite.post.author;
-  const postTypeLabel = getPostTypeLabel(invite.post.type);
-  const excerpt = getExcerpt(invite.post.content);
+  const author = invite.post?.author;
+  const postTypeLabel = getPostTypeLabel(invite.post?.type || 'post');
+  const excerpt = getExcerpt(invite.post?.content || '');
+
+  // If we don't have valid data, don't render
+  if (!author || !invite.post) {
+    return null;
+  }
 
   return (
     <div className="collab-invite-card">
