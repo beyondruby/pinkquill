@@ -5,18 +5,35 @@ import { supabase } from "../supabase";
 import type { ReactionType, ReactionCounts } from "../types";
 
 // ============================================================================
+// Toggle Result Type
+// ============================================================================
+
+interface ToggleResult {
+  success: boolean;
+  error?: unknown;
+}
+
+// ============================================================================
 // useToggleAdmire - Simple admire toggle
 // ============================================================================
 
 export function useToggleAdmire() {
-  const toggle = async (postId: string, userId: string, isAdmired: boolean) => {
-    if (isAdmired) {
-      await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
-    } else {
-      await supabase.from("admires").insert({
-        post_id: postId,
-        user_id: userId,
-      });
+  const toggle = async (postId: string, userId: string, isAdmired: boolean): Promise<ToggleResult> => {
+    try {
+      if (isAdmired) {
+        const { error } = await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("admires").insert({
+          post_id: postId,
+          user_id: userId,
+        });
+        if (error) throw error;
+      }
+      return { success: true };
+    } catch (err) {
+      console.error("[useToggleAdmire] Error:", err);
+      return { success: false, error: err };
     }
   };
 
@@ -28,14 +45,22 @@ export function useToggleAdmire() {
 // ============================================================================
 
 export function useToggleSave() {
-  const toggle = async (postId: string, userId: string, isSaved: boolean) => {
-    if (isSaved) {
-      await supabase.from("saves").delete().eq("post_id", postId).eq("user_id", userId);
-    } else {
-      await supabase.from("saves").insert({
-        post_id: postId,
-        user_id: userId,
-      });
+  const toggle = async (postId: string, userId: string, isSaved: boolean): Promise<ToggleResult> => {
+    try {
+      if (isSaved) {
+        const { error } = await supabase.from("saves").delete().eq("post_id", postId).eq("user_id", userId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("saves").insert({
+          post_id: postId,
+          user_id: userId,
+        });
+        if (error) throw error;
+      }
+      return { success: true };
+    } catch (err) {
+      console.error("[useToggleSave] Error:", err);
+      return { success: false, error: err };
     }
   };
 
@@ -47,14 +72,22 @@ export function useToggleSave() {
 // ============================================================================
 
 export function useToggleRelay() {
-  const toggle = async (postId: string, userId: string, isRelayed: boolean) => {
-    if (isRelayed) {
-      await supabase.from("relays").delete().eq("post_id", postId).eq("user_id", userId);
-    } else {
-      await supabase.from("relays").insert({
-        post_id: postId,
-        user_id: userId,
-      });
+  const toggle = async (postId: string, userId: string, isRelayed: boolean): Promise<ToggleResult> => {
+    try {
+      if (isRelayed) {
+        const { error } = await supabase.from("relays").delete().eq("post_id", postId).eq("user_id", userId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("relays").insert({
+          post_id: postId,
+          user_id: userId,
+        });
+        if (error) throw error;
+      }
+      return { success: true };
+    } catch (err) {
+      console.error("[useToggleRelay] Error:", err);
+      return { success: false, error: err };
     }
   };
 

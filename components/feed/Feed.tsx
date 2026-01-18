@@ -126,8 +126,11 @@ interface TakeItem {
 
 type FeedItem = PostItem | TakeItem;
 
+// Timeout for feed loading (10 seconds)
+const FEED_LOAD_TIMEOUT = 10000;
+
 export default function Feed() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { subscribeToTakeDeletes, subscribeToDeletes } = useModal();
   const { takes: fetchedTakes, loading: takesLoading } = useTakes(user?.id);
 
@@ -139,6 +142,9 @@ export default function Feed() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Mounted ref to prevent state updates after unmount
+  const mountedRef = useRef(true);
 
   // Cache for blocked users and following (to avoid refetching on each page)
   const blockedUsersRef = useRef<{ blockedBy: Set<string>; iBlocked: Set<string> } | null>(null);
@@ -415,35 +421,68 @@ export default function Feed() {
     }
   }, [fetchFilteringData]);
 
-  // Initial load
+  // Initial load - wait for auth to complete first
   useEffect(() => {
+    mountedRef.current = true;
+
+    // Don't fetch until auth is resolved
+    if (authLoading) {
+      return;
+    }
+
     const loadInitialPosts = async () => {
+      // Timeout protection
+      const timeoutId = setTimeout(() => {
+        if (mountedRef.current && initialLoading) {
+          console.warn("[Feed] Load timeout - forcing completion");
+          setInitialLoading(false);
+          setError("Loading took too long. Please refresh the page.");
+        }
+      }, FEED_LOAD_TIMEOUT);
+
       try {
-        setInitialLoading(true);
-        setError(null);
+        if (mountedRef.current) {
+          setInitialLoading(true);
+          setError(null);
+        }
+
         const initialPosts = await fetchPosts(0, user?.id);
-        setPosts(initialPosts);
-        setPage(0);
+
+        if (mountedRef.current) {
+          setPosts(initialPosts);
+          setPage(0);
+        }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to fetch posts";
-        setError(errorMessage);
+        if (mountedRef.current) {
+          const errorMessage = err instanceof Error ? err.message : "Failed to fetch posts";
+          setError(errorMessage);
+        }
       } finally {
-        setInitialLoading(false);
+        clearTimeout(timeoutId);
+        if (mountedRef.current) {
+          setInitialLoading(false);
+        }
       }
     };
 
     loadInitialPosts();
-  }, [user?.id, fetchPosts]);
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [user?.id, authLoading, fetchPosts]);
 
   // Load more when bottom is in view
   useEffect(() => {
     const loadMorePosts = async () => {
-      if (!inView || loadingMore || !hasMore || initialLoading) return;
+      if (!inView || loadingMore || !hasMore || initialLoading || authLoading) return;
 
       try {
-        setLoadingMore(true);
+        if (mountedRef.current) setLoadingMore(true);
         const nextPage = page + 1;
         const newPosts = await fetchPosts(nextPage, user?.id);
+
+        if (!mountedRef.current) return;
 
         if (newPosts.length > 0) {
           setPosts(prev => [...prev, ...newPosts]);
@@ -456,12 +495,12 @@ export default function Feed() {
       } catch (err) {
         console.error("[Feed] Error loading more posts:", err);
       } finally {
-        setLoadingMore(false);
+        if (mountedRef.current) setLoadingMore(false);
       }
     };
 
     loadMorePosts();
-  }, [inView, loadingMore, hasMore, initialLoading, page, user?.id, fetchPosts]);
+  }, [inView, loadingMore, hasMore, initialLoading, authLoading, page, user?.id, fetchPosts]);
 
   // Sync local takes with fetched takes
   useEffect(() => {
@@ -517,7 +556,8 @@ export default function Feed() {
   };
 
   // Initial loading state - show 5 skeletons
-  if (initialLoading || takesLoading) {
+  // Also show skeleton while auth is loading to prevent flash of content
+  if (authLoading || initialLoading || takesLoading) {
     return (
       <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
         {[...Array(5)].map((_, i) => (

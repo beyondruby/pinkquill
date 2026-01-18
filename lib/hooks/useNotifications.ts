@@ -43,17 +43,24 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const fetchedRef = useRef(false);
+  const mountedRef = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Store userId in ref to avoid re-subscription on userId change
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
   const fetchNotifications = useCallback(async () => {
-    if (!userId) {
-      setNotifications([]);
-      setLoading(false);
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) {
+      if (mountedRef.current) {
+        setNotifications([]);
+        setLoading(false);
+      }
       return;
     }
 
     try {
-      if (!fetchedRef.current) {
+      if (!fetchedRef.current && mountedRef.current) {
         setLoading(true);
       }
 
@@ -79,9 +86,11 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
           )
         `
         )
-        .eq("user_id", userId)
+        .eq("user_id", currentUserId)
         .order("created_at", { ascending: false })
         .limit(50);
+
+      if (!mountedRef.current) return;
 
       if (error) throw error;
 
@@ -93,27 +102,37 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
         console.error("[useNotifications] Error:", err);
       }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [userId]);
+  }, []); // Remove userId dependency - use ref instead
 
-  // Initial fetch
+  // Initial fetch and cleanup
   useEffect(() => {
+    mountedRef.current = true;
+    fetchedRef.current = false;
+
     if (userId) {
       fetchNotifications();
     }
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [userId, fetchNotifications]);
 
-  // Real-time subscription
+  // Real-time subscription - separate effect with stable dependencies
   useEffect(() => {
     if (!userId) return;
 
-    // Prevent duplicate subscriptions
+    // Clean up any existing channel first
     if (channelRef.current) {
-      return;
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
 
-    const channelName = `notifications-realtime-${userId}-${Date.now()}`;
+    const channelName = `notifications-realtime-${userId}`;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -125,7 +144,9 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          fetchNotifications();
+          if (mountedRef.current) {
+            fetchNotifications();
+          }
         }
       )
       .subscribe();
@@ -138,7 +159,7 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
         channelRef.current = null;
       }
     };
-  }, [userId, fetchNotifications]);
+  }, [userId]); // Only depend on userId, not fetchNotifications
 
   return { notifications, loading, refetch: fetchNotifications };
 }
@@ -154,27 +175,43 @@ interface UseUnreadCountReturn {
 
 export function useUnreadCount(userId?: string): UseUnreadCountReturn {
   const [count, setCount] = useState(0);
+  const mountedRef = useRef(true);
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
   const fetchCount = useCallback(async () => {
-    if (!userId) {
-      setCount(0);
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) {
+      if (mountedRef.current) setCount(0);
       return;
     }
 
-    const { count: unreadCount } = await supabase
-      .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("read", false);
+    try {
+      const { count: unreadCount } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", currentUserId)
+        .eq("read", false);
 
-    setCount(unreadCount || 0);
-  }, [userId]);
+      if (mountedRef.current) {
+        setCount(unreadCount || 0);
+      }
+    } catch (err) {
+      console.error("[useUnreadCount] Error:", err);
+    }
+  }, []); // No dependencies - use ref
 
   // Initial fetch
   useEffect(() => {
+    mountedRef.current = true;
+
     if (userId) {
       fetchCount();
     }
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [userId, fetchCount]);
 
   // Real-time subscription
@@ -193,7 +230,9 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          fetchCount();
+          if (mountedRef.current) {
+            fetchCount();
+          }
         }
       )
       .subscribe();
@@ -201,7 +240,7 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, fetchCount]);
+  }, [userId]); // Only depend on userId
 
   return { count, refetch: fetchCount };
 }
@@ -233,80 +272,103 @@ interface UseUnreadMessagesCountReturn {
 
 export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountReturn {
   const [count, setCount] = useState(0);
-  const [hasFetched, setHasFetched] = useState(false);
+  const mountedRef = useRef(true);
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
   const fetchCount = useCallback(async () => {
-    if (!userId) {
-      setCount(0);
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) {
+      if (mountedRef.current) setCount(0);
       return;
     }
 
-    // Get blocked users (both directions)
-    const [blockedByResult, iBlockedResult] = await Promise.all([
-      supabase.from("blocks").select("blocker_id").eq("blocked_id", userId),
-      supabase.from("blocks").select("blocked_id").eq("blocker_id", userId),
-    ]);
+    try {
+      // Get blocked users (both directions)
+      const [blockedByResult, iBlockedResult] = await Promise.all([
+        supabase.from("blocks").select("blocker_id").eq("blocked_id", currentUserId),
+        supabase.from("blocks").select("blocked_id").eq("blocker_id", currentUserId),
+      ]);
 
-    const blockedUserIds = new Set<string>();
-    (blockedByResult.data || []).forEach((b) => blockedUserIds.add(b.blocker_id));
-    (iBlockedResult.data || []).forEach((b) => blockedUserIds.add(b.blocked_id));
+      if (!mountedRef.current) return;
 
-    // Get conversations
-    const { data: participations } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id")
-      .eq("user_id", userId);
+      const blockedUserIds = new Set<string>();
+      (blockedByResult.data || []).forEach((b) => blockedUserIds.add(b.blocker_id));
+      (iBlockedResult.data || []).forEach((b) => blockedUserIds.add(b.blocked_id));
 
-    if (!participations || participations.length === 0) {
-      setCount(0);
-      setHasFetched(true);
-      return;
+      // Get conversations
+      const { data: participations } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .eq("user_id", currentUserId);
+
+      if (!mountedRef.current) return;
+
+      if (!participations || participations.length === 0) {
+        setCount(0);
+        return;
+      }
+
+      const conversationIds = participations.map((p) => p.conversation_id);
+
+      // Get unread messages
+      const { data: unreadMessages } = await supabase
+        .from("messages")
+        .select("sender_id")
+        .in("conversation_id", conversationIds)
+        .eq("is_read", false)
+        .neq("sender_id", currentUserId);
+
+      if (!mountedRef.current) return;
+
+      // Filter out blocked users
+      const filteredCount = (unreadMessages || []).filter((m) => !blockedUserIds.has(m.sender_id)).length;
+
+      setCount(filteredCount);
+    } catch (err) {
+      console.error("[useUnreadMessagesCount] Error:", err);
     }
+  }, []); // No dependencies - use ref
 
-    const conversationIds = participations.map((p) => p.conversation_id);
-
-    // Get unread messages
-    const { data: unreadMessages } = await supabase
-      .from("messages")
-      .select("sender_id")
-      .in("conversation_id", conversationIds)
-      .eq("is_read", false)
-      .neq("sender_id", userId);
-
-    // Filter out blocked users
-    const filteredCount = (unreadMessages || []).filter((m) => !blockedUserIds.has(m.sender_id)).length;
-
-    setCount(filteredCount);
-    setHasFetched(true);
-  }, [userId]);
-
+  // Initial fetch
   useEffect(() => {
-    if (!hasFetched && userId) {
+    mountedRef.current = true;
+
+    if (userId) {
       fetchCount();
     }
 
-    if (userId) {
-      const channelName = `unread-messages-count-${userId}`;
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "messages",
-          },
-          () => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [userId, fetchCount]);
+
+  // Real-time subscription - separate effect
+  useEffect(() => {
+    if (!userId) return;
+
+    const channelName = `unread-messages-count-${userId}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+        },
+        () => {
+          if (mountedRef.current) {
             fetchCount();
           }
-        )
-        .subscribe();
+        }
+      )
+      .subscribe();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [userId, hasFetched, fetchCount]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]); // Only depend on userId
 
   return { count, refetch: fetchCount };
 }

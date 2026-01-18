@@ -404,6 +404,7 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   const fetchSavedPosts = useCallback(async () => {
     if (!userId) {
@@ -424,6 +425,8 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
         .order("created_at", { ascending: false });
 
       if (savedError) throw savedError;
+      if (!mountedRef.current) return;
+
       if (!savedData || savedData.length === 0) {
         setPosts([]);
         setLoading(false);
@@ -465,6 +468,8 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
         .in("id", postIds);
 
       if (postsError) throw postsError;
+      if (!mountedRef.current) return;
+
       if (!postsData) {
         setPosts([]);
         setLoading(false);
@@ -476,6 +481,8 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
         supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
         supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
       ]);
+
+      if (!mountedRef.current) return;
 
       const userAdmires = new Set((userAdmiresResult.data || []).map((a) => a.post_id));
       const userRelays = new Set((userRelaysResult.data || []).map((r) => r.post_id));
@@ -502,17 +509,28 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
         return timeB - timeA;
       });
 
-      setPosts(postsWithStats as Post[]);
+      if (mountedRef.current) {
+        setPosts(postsWithStats as Post[]);
+      }
     } catch (err) {
       console.error("[useSavedPosts] Error:", err);
-      setError("Failed to load saved posts");
+      if (mountedRef.current) {
+        setError("Failed to load saved posts");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [userId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchSavedPosts();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchSavedPosts]);
 
   return { posts, loading, error, refetch: fetchSavedPosts };
@@ -525,17 +543,22 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
 export function useRelays(username: string) {
   const [relays, setRelays] = useState<RelayedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     const fetchRelays = async () => {
       if (!username) {
-        setRelays([]);
-        setLoading(false);
+        if (mountedRef.current) {
+          setRelays([]);
+          setLoading(false);
+        }
         return;
       }
 
       try {
-        setLoading(true);
+        if (mountedRef.current) setLoading(true);
 
         // Get user's profile id
         const { data: profileData } = await supabase
@@ -544,8 +567,11 @@ export function useRelays(username: string) {
           .eq("username", username)
           .single();
 
+        if (!mountedRef.current) return;
+
         if (!profileData) {
           setRelays([]);
+          setLoading(false);
           return;
         }
 
@@ -581,8 +607,11 @@ export function useRelays(username: string) {
           .eq("user_id", profileData.id)
           .order("created_at", { ascending: false });
 
+        if (!mountedRef.current) return;
+
         if (!relaysData || relaysData.length === 0) {
           setRelays([]);
+          setLoading(false);
           return;
         }
 
@@ -594,6 +623,8 @@ export function useRelays(username: string) {
           supabase.from("comments").select("post_id").in("post_id", postIds),
           supabase.from("relays").select("post_id").in("post_id", postIds),
         ]);
+
+        if (!mountedRef.current) return;
 
         const admiresCounts: Record<string, number> = {};
         const commentsCounts: Record<string, number> = {};
@@ -627,15 +658,23 @@ export function useRelays(username: string) {
           };
         });
 
-        setRelays(processedRelays as RelayedPost[]);
+        if (mountedRef.current) {
+          setRelays(processedRelays as RelayedPost[]);
+        }
       } catch (err) {
         console.error("[useRelays] Error:", err);
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
     fetchRelays();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [username]);
 
   return { relays, loading };
