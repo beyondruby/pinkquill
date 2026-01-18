@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useToggleSave, useToggleRelay, useComments, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, ReactionType } from "@/lib/hooks";
+import { useToggleSave, useToggleRelay, useComments, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, useCollaborationInvites, ReactionType } from "@/lib/hooks";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import CommentItem from "@/components/feed/CommentItem";
@@ -191,6 +191,13 @@ export default function PostPage() {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [showContent, setShowContent] = useState(true);
+  const [pendingCollabInvite, setPendingCollabInvite] = useState<{
+    post_id: string;
+    author_id: string;
+    author_name: string;
+  } | null>(null);
+  const [collabResponding, setCollabResponding] = useState(false);
+  const [collabResponseType, setCollabResponseType] = useState<"accept" | "decline" | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const { blockUser } = useBlock();
@@ -203,6 +210,9 @@ export default function PostPage() {
   const { react: toggleReaction, removeReaction } = useToggleReaction();
   const { counts: reactionCounts } = useReactionCounts(postId);
   const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(postId, user?.id);
+
+  // Collaboration invite hooks
+  const { accept: acceptCollab, decline: declineCollab } = useCollaborationInvites(user?.id || "");
 
   // Single fetch function for all data
   const fetchData = useCallback(async () => {
@@ -396,6 +406,8 @@ export default function PostPage() {
           .from("post_collaborators")
           .select(`
             role,
+            status,
+            user_id,
             user:profiles!post_collaborators_user_id_fkey (
               id,
               username,
@@ -403,11 +415,28 @@ export default function PostPage() {
               avatar_url
             )
           `)
-          .eq("post_id", postId)
-          .eq("status", "accepted");
+          .eq("post_id", postId);
 
         if (collabData) {
+          // Check if current user has a pending invite
+          if (user) {
+            const userInvite = collabData.find(
+              (c: any) => c.user_id === user.id && c.status === "pending"
+            );
+            if (userInvite) {
+              setPendingCollabInvite({
+                post_id: postId,
+                author_id: postData.author_id,
+                author_name: postData.author?.display_name || postData.author?.username || "Unknown",
+              });
+            } else {
+              setPendingCollabInvite(null);
+            }
+          }
+
+          // Only show accepted collaborators in the post
           collaborators = collabData
+            .filter((c: any) => c.status === "accepted")
             .map((c: any) => ({ role: c.role, user: c.user }))
             .filter((c: any) => c.user !== null);
         }
@@ -635,6 +664,45 @@ export default function PostPage() {
     }
   };
 
+  // Collaboration invite handlers
+  const handleAcceptCollab = async () => {
+    if (!pendingCollabInvite || !user) return;
+
+    setCollabResponding(true);
+    setCollabResponseType("accept");
+    try {
+      const result = await acceptCollab(pendingCollabInvite.post_id, pendingCollabInvite.author_id);
+      if (result.success) {
+        setPendingCollabInvite(null);
+        // Refetch to update collaborators list
+        fetchData();
+      }
+    } catch (err) {
+      console.error("Failed to accept collaboration:", err);
+    } finally {
+      setCollabResponding(false);
+      setCollabResponseType(null);
+    }
+  };
+
+  const handleDeclineCollab = async () => {
+    if (!pendingCollabInvite || !user) return;
+
+    setCollabResponding(true);
+    setCollabResponseType("decline");
+    try {
+      const result = await declineCollab(pendingCollabInvite.post_id, pendingCollabInvite.author_id);
+      if (result.success) {
+        setPendingCollabInvite(null);
+      }
+    } catch (err) {
+      console.error("Failed to decline collaboration:", err);
+    } finally {
+      setCollabResponding(false);
+      setCollabResponseType(null);
+    }
+  };
+
   const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${postId}` : `/post/${postId}`;
 
   // Loading state
@@ -688,6 +756,70 @@ export default function PostPage() {
         <div className="max-w-[1100px] mx-auto py-6 px-4 md:py-8 md:px-6 flex flex-col lg:flex-row gap-6">
           {/* Left Column - Post */}
           <div className="flex-1 min-w-0">
+            {/* Collaboration Invite Banner */}
+            {pendingCollabInvite && (
+              <div className="mb-4 bg-gradient-to-r from-purple-primary/5 via-pink-vivid/5 to-orange-warm/5 rounded-2xl border border-purple-primary/20 overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm" />
+                <div className="p-4 md:p-5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-display text-lg font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent mb-1">
+                        Collaboration Invite
+                      </h3>
+                      <p className="font-body text-sm text-ink/80 mb-4">
+                        <span className="font-medium">{pendingCollabInvite.author_name}</span> has invited you to collaborate on this post. Your name will appear as a co-creator.
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={handleAcceptCollab}
+                          disabled={collabResponding}
+                          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium hover:shadow-lg hover:shadow-purple-primary/30 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        >
+                          {collabResponding && collabResponseType === "accept" ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Accepting...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Accept
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={handleDeclineCollab}
+                          disabled={collabResponding}
+                          className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-black/10 bg-white text-ink font-ui text-sm font-medium hover:border-black/20 hover:bg-black/[0.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {collabResponding && collabResponseType === "decline" ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-ink border-t-transparent rounded-full animate-spin" />
+                              Declining...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Decline
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Post Card */}
             <article className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden">
             {/* Author Header */}
