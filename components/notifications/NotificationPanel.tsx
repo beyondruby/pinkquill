@@ -806,7 +806,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                     </span>
                   </div>
                   <div className="space-y-3">
-                    {followRequests.map((request) => (
+                    {followRequests.filter(r => r?.requester).map((request) => (
                       <FollowRequestCard
                         key={request.follower_id}
                         request={request}
@@ -831,9 +831,9 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                     </span>
                   </div>
                   <div className="space-y-3">
-                    {invites.map((invite) => (
+                    {invites.filter(invite => invite?.post?.author?.id).map((invite) => (
                       <CollaborationInviteCard
-                        key={`${invite.post_id}-${invite.post.author.id}`}
+                        key={`${invite.post_id}-${invite.post?.author?.id || 'unknown'}`}
                         invite={invite}
                         userId={user?.id || ""}
                         onRespond={() => {
@@ -846,7 +846,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
               )}
 
               {/* Regular Notifications */}
-              {notifications.filter(n => n.type !== 'collaboration_invite' && n.type !== 'follow_request').map((notification) => (
+              {notifications.filter(n => n.type !== 'collaboration_invite' && n.type !== 'follow_request' && n.actor).map((notification) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
