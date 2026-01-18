@@ -28,9 +28,6 @@ export { useComments } from "./useComments";
 // Profile & Follows
 export { useProfile, useFollow, useFollowList, useFollowRequests } from "./useProfile";
 
-// Collaboration
-export { useCollaborationInvites } from "./useCollaboration";
-
 // Notifications
 export {
   createNotification,
@@ -100,6 +97,4 @@ export type {
   CommunityInvitation,
   PaginationState,
   PaginatedResult,
-  CollaboratorStatus,
-  CollaborationInvite,
 } from "../types";

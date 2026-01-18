@@ -1,10 +1,10 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  // Update the Supabase session on each request
-  // This is critical for keeping auth fresh during navigation
-  return await updateSession(request);
+export function middleware(request: NextRequest) {
+  // Simply pass through - the main purpose of this middleware
+  // is to use the matcher config below to exclude static files
+  // from any processing. Auth is handled client-side.
+  return NextResponse.next();
 }
 
 export const config = {

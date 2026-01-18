@@ -30,13 +30,8 @@ export default function FollowRequestCard({
     setDeclining(false);
   };
 
-  // Defensive check for missing data
-  if (!request?.requester) {
-    return null;
-  }
-
   const requester = request.requester;
-  const timeAgo = getTimeAgo(request.requested_at || new Date().toISOString());
+  const timeAgo = getTimeAgo(request.requested_at);
 
   return (
     <div className="bg-white rounded-2xl border border-black/[0.06] p-4 hover:border-purple-primary/20 transition-all">

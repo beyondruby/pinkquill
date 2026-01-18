@@ -424,7 +424,7 @@ export default function PostPage() {
 
       // Check if current user has interacted (relays and saves - reactions handled by hooks)
       if (user) {
-        const userRelayed = relaysResult.data?.some((r: { user_id: string }) => r.user_id === user.id) || false;
+        const userRelayed = relaysResult.data?.some(r => r.user_id === user.id) || false;
         setIsRelayed(userRelayed);
 
         const { data: saveData } = await supabase

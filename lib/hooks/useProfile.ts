@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabase";
 import type { Profile, Post, PostMedia, FollowUser, FollowStatus, FollowRequest, NotificationType } from "../types";
 
@@ -47,7 +47,6 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
   const [error, setError] = useState<string | null>(null);
   const [isBlockedByUser, setIsBlockedByUser] = useState(false);
   const [isPrivateAccount, setIsPrivateAccount] = useState(false);
-  const mountedRef = useRef(true);
 
   const fetchProfile = useCallback(async () => {
     if (!username) return;
@@ -67,15 +66,12 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
 
       if (profileError) {
         if (profileError.code === "PGRST116") {
-          if (mountedRef.current) setError("User not found");
+          setError("User not found");
         } else {
           throw profileError;
         }
-        if (mountedRef.current) setLoading(false);
         return;
       }
-
-      if (!mountedRef.current) return;
 
       const isOwnProfile = viewerId && viewerId === profileData.id;
 
@@ -88,8 +84,6 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           .eq("blocked_id", viewerId)
           .maybeSingle();
 
-        if (!mountedRef.current) return;
-
         if (blockData) {
           setIsBlockedByUser(true);
           setError("blocked");
@@ -97,8 +91,6 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           return;
         }
       }
-
-      if (!mountedRef.current) return;
 
       // Check follow status
       let viewerFollowsProfile = false;
@@ -110,11 +102,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           .eq("following_id", profileData.id)
           .eq("status", "accepted")
           .maybeSingle();
-        if (!mountedRef.current) return;
         viewerFollowsProfile = !!followCheck;
       }
-
-      if (!mountedRef.current) return;
 
       // Handle private accounts
       if (!isOwnProfile && profileData.is_private && !viewerFollowsProfile) {
@@ -133,8 +122,6 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             .eq("follower_id", profileData.id)
             .eq("status", "accepted"),
         ]);
-
-        if (!mountedRef.current) return;
 
         setProfile({
           ...profileData,
@@ -208,8 +195,6 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         postsQuery,
       ]);
 
-      if (!mountedRef.current) return;
-
       const worksCount = postsData.data?.length || 0;
 
       // Calculate total admires
@@ -244,28 +229,17 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         metadata: post.metadata || null,
       }));
 
-      if (mountedRef.current) {
-        setPosts(postsWithStats as Post[]);
-      }
+      setPosts(postsWithStats as Post[]);
     } catch (err) {
       console.error("[useProfile] Error:", err);
-      if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : "Failed to fetch profile");
-      }
+      setError(err instanceof Error ? err.message : "Failed to fetch profile");
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [username, viewerId]);
 
   useEffect(() => {
-    mountedRef.current = true;
     fetchProfile();
-
-    return () => {
-      mountedRef.current = false;
-    };
   }, [fetchProfile]);
 
   return { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, refetch: fetchProfile };
@@ -404,13 +378,12 @@ export function useFollow() {
 export function useFollowList(userId: string, type: "followers" | "following") {
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
 
   const fetchList = useCallback(async () => {
     if (!userId) return;
 
     try {
-      if (mountedRef.current) setLoading(true);
+      setLoading(true);
 
       if (type === "followers") {
         const { data, error } = await supabase
@@ -431,9 +404,7 @@ export function useFollowList(userId: string, type: "followers" | "following") {
           .eq("status", "accepted");
 
         if (error) throw error;
-        if (mountedRef.current) {
-          setUsers((data?.map((d) => d.follower) as unknown as FollowUser[]) || []);
-        }
+        setUsers((data?.map((d) => d.follower) as unknown as FollowUser[]) || []);
       } else {
         const { data, error } = await supabase
           .from("follows")
@@ -453,26 +424,17 @@ export function useFollowList(userId: string, type: "followers" | "following") {
           .eq("status", "accepted");
 
         if (error) throw error;
-        if (mountedRef.current) {
-          setUsers((data?.map((d) => d.following) as unknown as FollowUser[]) || []);
-        }
+        setUsers((data?.map((d) => d.following) as unknown as FollowUser[]) || []);
       }
     } catch (err) {
       console.error("[useFollowList] Error:", err);
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [userId, type]);
 
   useEffect(() => {
-    mountedRef.current = true;
     fetchList();
-
-    return () => {
-      mountedRef.current = false;
-    };
   }, [fetchList]);
 
   return { users, loading, refetch: fetchList };
@@ -486,20 +448,16 @@ export function useFollowRequests(userId?: string) {
   const [requests, setRequests] = useState<FollowRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [count, setCount] = useState(0);
-  const mountedRef = useRef(true);
 
   const fetchRequests = useCallback(async () => {
     if (!userId) {
-      if (mountedRef.current) {
-        setRequests([]);
-        setLoading(false);
-      }
+      setRequests([]);
+      setLoading(false);
       return;
     }
 
     try {
-      if (mountedRef.current) setLoading(true);
-
+      setLoading(true);
       const { data, error } = await supabase
         .from("follows")
         .select(
@@ -514,8 +472,6 @@ export function useFollowRequests(userId?: string) {
         .eq("following_id", userId)
         .eq("status", "pending")
         .order("requested_at", { ascending: false });
-
-      if (!mountedRef.current) return;
 
       if (error) {
         // Handle schema not migrated
@@ -532,14 +488,10 @@ export function useFollowRequests(userId?: string) {
       setCount(data?.length || 0);
     } catch (err) {
       console.error("[useFollowRequests] Error:", err);
-      if (mountedRef.current) {
-        setRequests([]);
-        setCount(0);
-      }
+      setRequests([]);
+      setCount(0);
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [userId]);
 
@@ -588,12 +540,7 @@ export function useFollowRequests(userId?: string) {
   };
 
   useEffect(() => {
-    mountedRef.current = true;
     fetchRequests();
-
-    return () => {
-      mountedRef.current = false;
-    };
   }, [fetchRequests]);
 
   // Real-time subscription
@@ -611,7 +558,6 @@ export function useFollowRequests(userId?: string) {
           filter: `following_id=eq.${userId}`,
         },
         (payload) => {
-          if (!mountedRef.current) return;
           if (payload.eventType === "INSERT" && (payload.new as any)?.status === "pending") {
             fetchRequests();
           } else if (payload.eventType === "DELETE") {

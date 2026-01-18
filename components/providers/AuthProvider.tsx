@@ -248,20 +248,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (session) {
-          // Set user immediately for early access to user.id
+          // Set user immediately so components can start rendering
           setUser(session.user);
-          // Wait for profile fetch to complete before clearing loading
-          // This prevents race conditions where components render with user but no profile
-          try {
-            await handleSession(session);
-          } catch (err) {
+          // Clear loading early - don't wait for profile fetch
+          clearTimeout(loadingTimeout);
+          setLoading(false);
+          // Fetch profile in background (non-blocking)
+          handleSession(session).catch(err => {
             console.error("Profile fetch error:", err);
-          } finally {
-            if (isMounted) {
-              clearTimeout(loadingTimeout);
-              setLoading(false);
-            }
-          }
+          });
         } else {
           clearTimeout(loadingTimeout);
           setLoading(false);

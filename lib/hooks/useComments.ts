@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabase";
 import type { Comment, NotificationType } from "../types";
 
@@ -56,12 +56,11 @@ interface UseCommentsReturn {
 export function useComments(postId: string, userId?: string): UseCommentsReturn {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
 
   // Fetch only top-level comments initially
   const fetchComments = useCallback(async () => {
     try {
-      if (mountedRef.current) setLoading(true);
+      setLoading(true);
 
       // Only fetch top-level comments (no parent)
       const { data, error } = await supabase
@@ -81,8 +80,6 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         .order("created_at", { ascending: false }); // Newest first
 
       if (error) throw error;
-
-      if (!mountedRef.current) return;
 
       if (!data || data.length === 0) {
         setComments([]);
@@ -104,8 +101,6 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
           : Promise.resolve({ data: [] }),
         supabase.from("comments").select("parent_id").in("parent_id", commentIds),
       ]);
-
-      if (!mountedRef.current) return;
 
       const likesCounts: Record<string, number> = {};
       const userLikes = new Set<string>();
@@ -132,15 +127,11 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         replies: [], // Empty initially - load on demand
       }));
 
-      if (mountedRef.current) {
-        setComments(transformedComments);
-      }
+      setComments(transformedComments);
     } catch (err) {
       console.error("[useComments] Error:", err);
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [postId, userId]);
 
@@ -164,7 +155,6 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
           .order("created_at", { ascending: true }); // Oldest first for replies
 
         if (error) throw error;
-        if (!mountedRef.current) return [];
         if (!data || data.length === 0) return [];
 
         const replyIds = data.map((c) => c.id);
@@ -180,8 +170,6 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
                 .in("comment_id", replyIds)
             : Promise.resolve({ data: [] }),
         ]);
-
-        if (!mountedRef.current) return [];
 
         const likesCounts: Record<string, number> = {};
         const userLikes = new Set<string>();
@@ -202,16 +190,14 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         }));
 
         // Update parent comment with replies
-        if (mountedRef.current) {
-          setComments((current) =>
-            current.map((c) => {
-              if (c.id === commentId) {
-                return { ...c, replies };
-              }
-              return c;
-            })
-          );
-        }
+        setComments((current) =>
+          current.map((c) => {
+            if (c.id === commentId) {
+              return { ...c, replies };
+            }
+            return c;
+          })
+        );
 
         return replies;
       } catch (err) {
@@ -356,10 +342,8 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
       }
     } catch (err) {
       console.error("[useComments] toggleLike Error:", err);
-      // Revert on error by refetching (only if still mounted)
-      if (mountedRef.current) {
-        fetchComments();
-      }
+      // Revert on error
+      fetchComments();
     }
   };
 
@@ -394,15 +378,9 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
 
   // Initial fetch
   useEffect(() => {
-    mountedRef.current = true;
-
     if (postId) {
       fetchComments();
     }
-
-    return () => {
-      mountedRef.current = false;
-    };
   }, [postId, fetchComments]);
 
   return {

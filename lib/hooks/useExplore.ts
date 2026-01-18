@@ -253,8 +253,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         }
       });
 
-      const followingIds = new Set<string>(
-        (followsResult.data || []).map((f) => f.following_id as string)
+      const followingIds = new Set(
+        (followsResult.data || []).map((f) => f.following_id)
       );
 
       return {

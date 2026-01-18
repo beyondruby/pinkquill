@@ -67,11 +67,6 @@ export default function CollaborationInviteCard({
   const [responseType, setResponseType] = useState<"accept" | "decline" | null>(null);
   const { accept, decline } = useCollaborationInvites(userId);
 
-  // Defensive check for missing data - must come after hooks
-  if (!invite?.post?.author) {
-    return null;
-  }
-
   const handleAccept = async () => {
     setResponding(true);
     setResponseType("accept");
@@ -94,7 +89,7 @@ export default function CollaborationInviteCard({
 
   const author = invite.post.author;
   const postTypeLabel = getPostTypeLabel(invite.post.type);
-  const excerpt = getExcerpt(invite.post.content || "");
+  const excerpt = getExcerpt(invite.post.content);
 
   return (
     <div className="collab-invite-card">
