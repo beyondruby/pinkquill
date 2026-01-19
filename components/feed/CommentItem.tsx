@@ -192,7 +192,7 @@ export default function CommentItem({
   };
 
   return (
-    <div id={`comment-${comment.id}`} className={`${isReply ? "ml-11 mt-3" : ""} transition-all duration-500`}>
+    <div className={`${isReply ? "ml-11 mt-3" : ""}`}>
       <div className="flex gap-3 group">
         <Link href={`/studio/${comment.author.username}`} className="flex-shrink-0">
           <Image

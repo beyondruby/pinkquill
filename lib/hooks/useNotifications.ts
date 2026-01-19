@@ -14,8 +14,7 @@ export async function createNotification(
   type: NotificationType,
   postId?: string,
   content?: string,
-  communityId?: string,
-  commentId?: string
+  communityId?: string
 ) {
   // Don't notify yourself
   if (userId === actorId) return;
@@ -27,7 +26,6 @@ export async function createNotification(
     post_id: postId || null,
     content: content || null,
     community_id: communityId || null,
-    comment_id: commentId || null,
   });
 }
 
@@ -87,9 +85,7 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
 
       if (error) throw error;
 
-      // Filter out invalid notifications that don't have required fields
-      const validNotifications = (data || []).filter(n => n && n.id && n.type);
-      setNotifications(validNotifications);
+      setNotifications(data || []);
       fetchedRef.current = true;
     } catch (err: any) {
       const errMsg = err?.message || "";

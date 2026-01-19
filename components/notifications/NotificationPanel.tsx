@@ -2,12 +2,11 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useNotifications, useMarkAsRead, useCollaborationInvites, useFollowRequests, useCommunityInvitations, Notification } from "@/lib/hooks";
+import { useNotifications, useMarkAsRead, useCollaborationInvites, useFollowRequests, Notification } from "@/lib/hooks";
 import { useAuth } from "@/components/providers/AuthProvider";
 import Loading from "@/components/ui/Loading";
 import CollaborationInviteCard from "./CollaborationInviteCard";
 import FollowRequestCard from "./FollowRequestCard";
-import CommunityInviteCard from "./CommunityInviteCard";
 
 interface NotificationPanelProps {
   isOpen: boolean;
@@ -371,21 +370,6 @@ const icons = {
       <path d="M16 3l.5 1.5-.5.5-.5-.5.5-1.5z" fill="url(#collabInviteGrad)" opacity="0.6" />
     </svg>
   ),
-  communityInvite: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="commInviteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8e44ad" />
-          <stop offset="50%" stopColor="#ff007f" />
-          <stop offset="100%" stopColor="#ff9f43" />
-        </linearGradient>
-      </defs>
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="url(#commInviteGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="9" cy="7" r="4" stroke="url(#commInviteGrad)" strokeWidth="2" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="url(#commInviteGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="url(#commInviteGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
   collaborationAccepted: (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
       <defs>
@@ -523,10 +507,6 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
   const communityName = notification.community?.name || "a community";
   const postType = notification.post?.type || 'post';
 
-  if (!notification.type) {
-    return { actor: actorName, action: 'interacted with you' };
-  }
-
   switch (notification.type) {
     case 'admire':
       return { actor: actorName, action: `admired your ${postType}` };
@@ -587,40 +567,27 @@ function NotificationItem({
   onClose: () => void;
 }) {
   const getNotificationLink = (): string => {
-    try {
-      if (notification.type === 'follow' ||
-          notification.type === 'follow_request' ||
-          notification.type === 'follow_request_accepted') {
-        return `/studio/${notification.actor?.username || 'unknown'}`;
-      }
-      if (notification.type?.startsWith('community_') && notification.community?.slug) {
-        return `/community/${notification.community.slug}`;
-      }
-      // Collaboration and mention notifications link to the post
-      if (notification.type === 'collaboration_invite' ||
-          notification.type === 'collaboration_accepted' ||
-          notification.type === 'collaboration_declined' ||
-          notification.type === 'mention') {
-        if (notification.post_id) {
-          return `/post/${notification.post_id}`;
-        }
-      }
-      // Comment-related notifications should scroll to the comment
-      if ((notification.type === 'reply' || notification.type === 'comment_like' || notification.type === 'comment') &&
-          notification.post_id) {
-        // Use comment_id if available for scrolling to specific comment
-        if (notification.comment_id) {
-          return `/post/${notification.post_id}?comment=${notification.comment_id}`;
-        }
-        return `/post/${notification.post_id}`;
-      }
+    if (notification.type === 'follow' ||
+        notification.type === 'follow_request' ||
+        notification.type === 'follow_request_accepted') {
+      return `/studio/${notification.actor?.username}`;
+    }
+    if (notification.type.startsWith('community_') && notification.community?.slug) {
+      return `/community/${notification.community.slug}`;
+    }
+    // Collaboration and mention notifications link to the post
+    if (notification.type === 'collaboration_invite' ||
+        notification.type === 'collaboration_accepted' ||
+        notification.type === 'collaboration_declined' ||
+        notification.type === 'mention') {
       if (notification.post_id) {
         return `/post/${notification.post_id}`;
       }
-      return `/studio/${notification.actor?.username || 'unknown'}`;
-    } catch {
-      return '/';
     }
+    if (notification.post_id) {
+      return `/post/${notification.post_id}`;
+    }
+    return `/studio/${notification.actor?.username}`;
   };
 
   const handleClick = () => {
@@ -717,25 +684,6 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
   const { markAsRead, markAllAsRead } = useMarkAsRead();
   const { invites, refetch: refetchInvites } = useCollaborationInvites(user?.id || "");
   const { requests: followRequests, loading: followRequestsLoading, accept: acceptFollowRequest, decline: declineFollowRequest, refetch: refetchFollowRequests } = useFollowRequests(user?.id);
-  const { invitations: communityInvitations, loading: communityInvitesLoading, accept: acceptCommunityInvite, decline: declineCommunityInvite, refetch: refetchCommunityInvites } = useCommunityInvitations(user?.id);
-
-  // Community invite handlers
-  const handleAcceptCommunityInvite = async (inviteId: string, communityId: string) => {
-    if (!user?.id) return { success: false };
-    const result = await acceptCommunityInvite(inviteId, communityId, user.id);
-    if (result.success) {
-      refetchCommunityInvites();
-    }
-    return result;
-  };
-
-  const handleDeclineCommunityInvite = async (inviteId: string) => {
-    const result = await declineCommunityInvite(inviteId);
-    if (result.success) {
-      refetchCommunityInvites();
-    }
-    return result;
-  };
 
   const handleAcceptFollowRequest = async (requesterId: string) => {
     await acceptFollowRequest(requesterId);
@@ -769,8 +717,8 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
     }
   };
 
-  const unreadCount = (notifications?.filter(n => !n.read)?.length || 0) + (invites?.length || 0) + (followRequests?.length || 0);
-  const hasContent = (notifications?.length || 0) > 0 || (invites?.length || 0) > 0 || (followRequests?.length || 0) > 0;
+  const unreadCount = notifications.filter(n => !n.read).length + invites.length + followRequests.length;
+  const hasContent = notifications.length > 0 || invites.length > 0 || followRequests.length > 0;
 
   if (!isOpen) return null;
 
@@ -846,7 +794,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
           ) : (
             <div className="p-3 space-y-1">
               {/* Follow Requests Section */}
-              {followRequests && followRequests.length > 0 && (
+              {followRequests.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center gap-2 px-3 py-2 mb-2">
                     {icons.followRequest}
@@ -858,7 +806,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                     </span>
                   </div>
                   <div className="space-y-3">
-                    {followRequests.filter(request => request?.requester).map((request) => (
+                    {followRequests.map((request) => (
                       <FollowRequestCard
                         key={request.follower_id}
                         request={request}
@@ -871,7 +819,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
               )}
 
               {/* Collaboration Invites Section */}
-              {invites && invites.length > 0 && (
+              {invites.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center gap-2 px-3 py-2 mb-2">
                     {icons.collaborationInvite}
@@ -883,9 +831,9 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                     </span>
                   </div>
                   <div className="space-y-3">
-                    {invites.filter(invite => invite.post?.author).map((invite) => (
+                    {invites.map((invite) => (
                       <CollaborationInviteCard
-                        key={`${invite.post_id}-${invite.post?.author?.id || 'unknown'}`}
+                        key={`${invite.post_id}-${invite.post.author.id}`}
                         invite={invite}
                         userId={user?.id || ""}
                         onRespond={() => {
@@ -897,45 +845,15 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                 </div>
               )}
 
-              {/* Community Invites Section */}
-              {communityInvitations && communityInvitations.length > 0 && (
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 px-3 py-2 mb-2">
-                    {icons.communityInvite}
-                    <span className="font-ui text-sm font-medium text-ink">
-                      Community Invites
-                    </span>
-                    <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary rounded-full font-ui">
-                      {communityInvitations.length}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {communityInvitations.filter(invite => invite.community && invite.inviter).map((invite) => (
-                      <CommunityInviteCard
-                        key={invite.id}
-                        invite={invite}
-                        onAccept={handleAcceptCommunityInvite}
-                        onDecline={handleDeclineCommunityInvite}
-                        onRespond={() => {
-                          refetchCommunityInvites();
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Regular Notifications */}
-              {(notifications || [])
-                .filter(n => n && n.type !== 'collaboration_invite' && n.type !== 'follow_request' && n.type !== 'community_invite' && n.actor)
-                .map((notification) => (
-                  <NotificationItem
-                    key={notification.id}
-                    notification={notification}
-                    onMarkAsRead={markAsRead}
-                    onClose={onClose}
-                  />
-                ))}
+              {notifications.filter(n => n.type !== 'collaboration_invite' && n.type !== 'follow_request').map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  notification={notification}
+                  onMarkAsRead={markAsRead}
+                  onClose={onClose}
+                />
+              ))}
             </div>
           )}
         </div>

@@ -489,9 +489,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     });
 
     // Send notification for new reactions (not removals or changes)
-    // Use the actual reaction type for the notification
+    // Always use "admire" as notification type for all reaction types
     if (!wasReacted && !isSameReaction) {
-      await createNotification(post.authorId, user.id, reactionType, post.id);
+      await createNotification(post.authorId, user.id, "admire", post.id);
     }
   };
 

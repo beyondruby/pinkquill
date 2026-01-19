@@ -3563,31 +3563,6 @@ export function useCommunityInvitations(userId?: string) {
     fetchInvitations();
   }, [userId]);
 
-  // Real-time subscription for community invitations
-  useEffect(() => {
-    if (!userId) return;
-
-    const channel = supabase
-      .channel(`community-invitations-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "community_invitations",
-          filter: `invitee_id=eq.${userId}`,
-        },
-        () => {
-          fetchInvitations();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId]);
-
   return { invitations, loading, accept, decline, refetch: fetchInvitations };
 }
 
@@ -5193,11 +5168,7 @@ export function useCollaborationInvites(userId?: string) {
         }
         throw error;
       }
-      // Filter out invalid invites that don't have required fields
-      const validInvites = (data || []).filter(invite =>
-        invite && invite.post_id && invite.post?.author?.id
-      );
-      setInvites(validInvites);
+      setInvites(data || []);
     } catch (err: any) {
       // Silently handle table doesn't exist errors and network errors
       const errMsg = err?.message || '';
