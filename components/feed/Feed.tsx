@@ -14,6 +14,18 @@ import TakePostCard from "@/components/takes/TakePostCard";
 const POSTS_PER_PAGE = 10;
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1000;
+const LOADING_TIMEOUT_MS = 30000; // 30 seconds max loading time
+const REQUEST_TIMEOUT_MS = 15000; // 15 seconds per request
+
+// Helper: Add timeout to a promise
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage = "Request timed out"): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMessage)), ms)
+    ),
+  ]);
+}
 
 function getTimeAgo(dateString: string): string {
   const now = new Date();
@@ -246,8 +258,8 @@ export default function Feed() {
       const from = pageNum * POSTS_PER_PAGE;
       const to = (pageNum + 1) * POSTS_PER_PAGE - 1;
 
-      // Fetch posts with range for pagination
-      const { data: postsData, error: postsError } = await supabase
+      // Fetch posts with range for pagination (with timeout)
+      const postsQuery = supabase
         .from("posts")
         .select(`
           *,
@@ -275,7 +287,14 @@ export default function Feed() {
         .order("created_at", { ascending: false })
         .range(from, to);
 
-      if (postsError) throw postsError;
+      const postsResult = await withTimeout(
+        Promise.resolve(postsQuery),
+        REQUEST_TIMEOUT_MS,
+        "Posts fetch timed out"
+      );
+
+      if (postsResult.error) throw postsResult.error;
+      const postsData = postsResult.data;
 
       // Filter posts based on visibility and blocking rules
       const filteredPosts = (postsData || []).filter(post => {
@@ -313,46 +332,56 @@ export default function Feed() {
 
       const postIds = filteredPosts.map(p => p.id);
 
-      // Batch fetch counts and additional data
-      const [admiresResult, commentsResult, relaysResult, collaboratorsResult, mentionsResult, tagsResult] = await Promise.all([
-        supabase.from("admires").select("post_id").in("post_id", postIds),
-        supabase.from("comments").select("post_id").in("post_id", postIds),
-        supabase.from("relays").select("post_id").in("post_id", postIds),
-        supabase
-          .from("post_collaborators")
-          .select(`
-            post_id,
-            status,
-            role,
-            user:profiles!post_collaborators_user_id_fkey (
-              id,
-              username,
-              display_name,
-              avatar_url
-            )
-          `)
-          .in("post_id", postIds)
-          .eq("status", "accepted"),
-        supabase
-          .from("post_mentions")
-          .select(`
-            post_id,
-            user:profiles!post_mentions_user_id_fkey (
-              id,
-              username,
-              display_name,
-              avatar_url
-            )
-          `)
-          .in("post_id", postIds),
-        supabase
-          .from("post_tags")
-          .select(`
-            post_id,
-            tag:tags(name)
-          `)
-          .in("post_id", postIds),
-      ]);
+      // Batch fetch counts and additional data (with timeout)
+      const [admiresResult, commentsResult, relaysResult, collaboratorsResult, mentionsResult, tagsResult] = await withTimeout(
+        Promise.all([
+          Promise.resolve(supabase.from("admires").select("post_id").in("post_id", postIds)),
+          Promise.resolve(supabase.from("comments").select("post_id").in("post_id", postIds)),
+          Promise.resolve(supabase.from("relays").select("post_id").in("post_id", postIds)),
+          Promise.resolve(
+            supabase
+              .from("post_collaborators")
+              .select(`
+                post_id,
+                status,
+                role,
+                user:profiles!post_collaborators_user_id_fkey (
+                  id,
+                  username,
+                  display_name,
+                  avatar_url
+                )
+              `)
+              .in("post_id", postIds)
+              .eq("status", "accepted")
+          ),
+          Promise.resolve(
+            supabase
+              .from("post_mentions")
+              .select(`
+                post_id,
+                user:profiles!post_mentions_user_id_fkey (
+                  id,
+                  username,
+                  display_name,
+                  avatar_url
+                )
+              `)
+              .in("post_id", postIds)
+          ),
+          Promise.resolve(
+            supabase
+              .from("post_tags")
+              .select(`
+                post_id,
+                tag:tags(name)
+              `)
+              .in("post_id", postIds)
+          ),
+        ]),
+        REQUEST_TIMEOUT_MS,
+        "Batch counts fetch timed out"
+      );
 
       // Count occurrences per post
       const admiresCounts: Record<string, number> = {};
@@ -533,6 +562,21 @@ export default function Feed() {
   useEffect(() => {
     setTakes(fetchedTakes);
   }, [fetchedTakes]);
+
+  // Loading timeout safeguard - prevents stuck loading state
+  useEffect(() => {
+    if (!initialLoading) return;
+
+    const timeoutId = setTimeout(() => {
+      console.warn("[Feed] Loading timeout reached - forcing load complete");
+      setInitialLoading(false);
+      if (posts.length === 0) {
+        setError("Loading timed out. Please refresh the page.");
+      }
+    }, LOADING_TIMEOUT_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [initialLoading, posts.length]);
 
   // Subscribe to delete events from modal
   useEffect(() => {

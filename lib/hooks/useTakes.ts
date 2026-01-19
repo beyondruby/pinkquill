@@ -3,6 +3,19 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 
+// Request timeout in milliseconds
+const REQUEST_TIMEOUT_MS = 15000;
+
+// Helper: Add timeout to a promise
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage = "Request timed out"): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMessage)), ms)
+    ),
+  ]);
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -88,11 +101,22 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
   const offsetRef = useRef(0);
   const fetchedRef = useRef(false);
   const takesRef = useRef<Take[]>(takes);
+  const lastUserIdRef = useRef<string | undefined>(userId);
 
   // Keep ref in sync with state
   useEffect(() => {
     takesRef.current = takes;
   }, [takes]);
+
+  // Reset fetch state when user changes
+  useEffect(() => {
+    if (lastUserIdRef.current !== userId) {
+      fetchedRef.current = false;
+      lastUserIdRef.current = userId;
+      setTakes([]);
+      offsetRef.current = 0;
+    }
+  }, [userId]);
 
   const fetchTakes = useCallback(async (reset = true) => {
     try {
@@ -114,9 +138,14 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       if (soundId) query = query.eq("sound_id", soundId);
       if (authorId) query = query.eq("author_id", authorId);
 
-      const { data: takesData, error: takesError } = await query;
+      const takesResult = await withTimeout(
+        Promise.resolve(query),
+        REQUEST_TIMEOUT_MS,
+        "Takes fetch timed out"
+      );
 
-      if (takesError) throw takesError;
+      if (takesResult.error) throw takesResult.error;
+      const takesData = takesResult.data;
       if (!takesData || takesData.length === 0) {
         if (reset) setTakes([]);
         setHasMore(false);
@@ -195,22 +224,26 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         { data: userReaction },
         { data: userSaves },
         { data: userRelays },
-      ] = await Promise.all([
-        supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", accessibleAuthorIds),
-        supabase.from("take_reactions").select("take_id, reaction_type").in("take_id", accessibleTakeIds),
-        supabase.from("take_comments").select("take_id").in("take_id", accessibleTakeIds),
-        supabase.from("take_saves").select("take_id").in("take_id", accessibleTakeIds),
-        supabase.from("take_relays").select("take_id").in("take_id", accessibleTakeIds),
-        userId
-          ? supabase.from("take_reactions").select("take_id, reaction_type").eq("user_id", userId).in("take_id", accessibleTakeIds)
-          : Promise.resolve({ data: [] as { take_id: string; reaction_type: string }[] }),
-        userId
-          ? supabase.from("take_saves").select("take_id").eq("user_id", userId).in("take_id", accessibleTakeIds)
-          : Promise.resolve({ data: [] as { take_id: string }[] }),
-        userId
-          ? supabase.from("take_relays").select("take_id").eq("user_id", userId).in("take_id", accessibleTakeIds)
-          : Promise.resolve({ data: [] as { take_id: string }[] }),
-      ]);
+      ] = await withTimeout(
+        Promise.all([
+          Promise.resolve(supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", accessibleAuthorIds)),
+          Promise.resolve(supabase.from("take_reactions").select("take_id, reaction_type").in("take_id", accessibleTakeIds)),
+          Promise.resolve(supabase.from("take_comments").select("take_id").in("take_id", accessibleTakeIds)),
+          Promise.resolve(supabase.from("take_saves").select("take_id").in("take_id", accessibleTakeIds)),
+          Promise.resolve(supabase.from("take_relays").select("take_id").in("take_id", accessibleTakeIds)),
+          userId
+            ? Promise.resolve(supabase.from("take_reactions").select("take_id, reaction_type").eq("user_id", userId).in("take_id", accessibleTakeIds))
+            : Promise.resolve({ data: [] as { take_id: string; reaction_type: string }[], error: null }),
+          userId
+            ? Promise.resolve(supabase.from("take_saves").select("take_id").eq("user_id", userId).in("take_id", accessibleTakeIds))
+            : Promise.resolve({ data: [] as { take_id: string }[], error: null }),
+          userId
+            ? Promise.resolve(supabase.from("take_relays").select("take_id").eq("user_id", userId).in("take_id", accessibleTakeIds))
+            : Promise.resolve({ data: [] as { take_id: string }[], error: null }),
+        ]),
+        REQUEST_TIMEOUT_MS,
+        "Batch fetch timed out"
+      );
 
       // Fall back to admires table if reactions table doesn't exist
       let reactionsData = reactions;
@@ -318,6 +351,21 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       fetchTakes();
     }
   }, [fetchTakes]);
+
+  // Loading timeout safeguard - prevents stuck loading state
+  useEffect(() => {
+    if (!loading) return;
+
+    const timeoutId = setTimeout(() => {
+      console.warn("[useTakes] Loading timeout reached - forcing load complete");
+      setLoading(false);
+      if (takes.length === 0) {
+        setError("Loading timed out");
+      }
+    }, REQUEST_TIMEOUT_MS + 5000); // Give a bit more time than individual requests
+
+    return () => clearTimeout(timeoutId);
+  }, [loading, takes.length]);
 
   // Toggle reaction (full reaction system)
   const toggleReaction = useCallback(async (takeId: string, reactionType: TakeReactionType) => {
