@@ -85,7 +85,9 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
 
       if (error) throw error;
 
-      setNotifications(data || []);
+      // Filter out invalid notifications that don't have required fields
+      const validNotifications = (data || []).filter(n => n && n.id && n.type);
+      setNotifications(validNotifications);
       fetchedRef.current = true;
     } catch (err: any) {
       const errMsg = err?.message || "";

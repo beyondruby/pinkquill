@@ -5168,7 +5168,11 @@ export function useCollaborationInvites(userId?: string) {
         }
         throw error;
       }
-      setInvites(data || []);
+      // Filter out invalid invites that don't have required fields
+      const validInvites = (data || []).filter(invite =>
+        invite && invite.post_id && invite.post?.author?.id
+      );
+      setInvites(validInvites);
     } catch (err: any) {
       // Silently handle table doesn't exist errors and network errors
       const errMsg = err?.message || '';

@@ -31,7 +31,12 @@ export default function FollowRequestCard({
   };
 
   const requester = request.requester;
-  const timeAgo = getTimeAgo(request.requested_at);
+  const timeAgo = getTimeAgo(request.requested_at || new Date().toISOString());
+
+  // If we don't have valid requester data, don't render
+  if (!requester) {
+    return null;
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-black/[0.06] p-4 hover:border-purple-primary/20 transition-all">
