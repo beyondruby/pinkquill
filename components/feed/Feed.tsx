@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useInView } from "react-intersection-observer";
-import { useTakes, Take } from "@/lib/hooks/useTakes";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
 import { supabase } from "@/lib/supabase";
 import PostCard from "./PostCard";
 import PostSkeleton from "./PostSkeleton";
-import TakePostCard from "@/components/takes/TakePostCard";
 
 const POSTS_PER_PAGE = 10;
 
@@ -111,30 +109,12 @@ interface Post {
   } | null;
 }
 
-interface PostItem {
-  type: 'post';
-  data: Post;
-  timestamp: string;
-}
-
-interface TakeItem {
-  type: 'take';
-  data: Take;
-  timestamp: string;
-}
-
-type FeedItem = PostItem | TakeItem;
-
 export default function Feed() {
   const { user, loading: authLoading } = useAuth();
-  const { subscribeToTakeDeletes, subscribeToDeletes } = useModal();
+  const { subscribeToDeletes } = useModal();
 
-  // Takes loading is independent - don't block posts on it
-  const { takes: fetchedTakes, loading: takesLoading } = useTakes(user?.id);
-
-  // Posts state
+  // Posts state only - no takes
   const [posts, setPosts] = useState<Post[]>([]);
-  const [takes, setTakes] = useState<Take[]>([]);
   const [page, setPage] = useState(0);
   const [postsLoading, setPostsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -151,7 +131,7 @@ export default function Feed() {
     rootMargin: "100px",
   });
 
-  // Simplified fetch - single query with minimal joins
+  // Simplified fetch - posts only
   const fetchPosts = useCallback(async (pageNum: number, userId?: string) => {
     const from = pageNum * POSTS_PER_PAGE;
     const to = from + POSTS_PER_PAGE - 1;
@@ -205,7 +185,7 @@ export default function Feed() {
 
     const postIds = postsData.map(p => p.id);
 
-    // Batch fetch counts in parallel - use count queries for efficiency
+    // Batch fetch counts in parallel
     const [admiresRes, commentsRes, relaysRes] = await Promise.all([
       supabase.from("admires").select("post_id").in("post_id", postIds),
       supabase.from("comments").select("post_id").in("post_id", postIds),
@@ -243,9 +223,8 @@ export default function Feed() {
       userRelays = new Set((uRelays.data || []).map(r => r.post_id));
     }
 
-    // Map posts - handle Supabase returning single objects for one-to-one joins
+    // Map posts
     const processedPosts: Post[] = postsData.map(post => {
-      // Supabase returns single object for one-to-many with fkey, array for many-to-many
       const author = Array.isArray(post.author) ? post.author[0] : post.author;
       const community = Array.isArray(post.community) ? post.community[0] : post.community;
 
@@ -332,47 +311,19 @@ export default function Feed() {
     loadMore();
   }, [inView, loadingMore, hasMore, postsLoading, authLoading, page, user?.id, fetchPosts]);
 
-  // Sync takes (independent of posts loading)
-  useEffect(() => {
-    setTakes(fetchedTakes);
-  }, [fetchedTakes]);
-
   // Subscribe to deletes
   useEffect(() => {
-    const unsubTakes = subscribeToTakeDeletes((id) => {
-      setTakes(curr => curr.filter(t => t.id !== id));
-    });
     const unsubPosts = subscribeToDeletes((id) => {
       setPosts(curr => curr.filter(p => p.id !== id));
     });
-    return () => { unsubTakes(); unsubPosts(); };
-  }, [subscribeToTakeDeletes, subscribeToDeletes]);
-
-  // Combine posts and takes
-  const feedItems = useMemo(() => {
-    const items: FeedItem[] = [];
-
-    posts.forEach(post => {
-      items.push({ type: 'post', data: post, timestamp: post.created_at });
-    });
-
-    takes.forEach(take => {
-      items.push({ type: 'take', data: take, timestamp: take.created_at });
-    });
-
-    items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return items;
-  }, [posts, takes]);
+    return () => { unsubPosts(); };
+  }, [subscribeToDeletes]);
 
   const handlePostDeleted = (postId: string) => {
     setPosts(curr => curr.filter(p => p.id !== postId));
   };
 
-  const handleTakeDeleted = (takeId: string) => {
-    setTakes(curr => curr.filter(t => t.id !== takeId));
-  };
-
-  // Show skeletons only while posts are loading (don't wait for takes)
+  // Show skeletons while loading
   if (authLoading || postsLoading) {
     return (
       <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
@@ -396,7 +347,6 @@ export default function Feed() {
               setPage(0);
               setHasMore(true);
               setPostsLoading(true);
-              // Trigger re-fetch
               setTimeout(() => {
                 fetchPosts(0, user?.id).then(p => {
                   setPosts(p);
@@ -418,8 +368,7 @@ export default function Feed() {
     );
   }
 
-  // Show content even if takes are still loading
-  if (feedItems.length === 0 && !takesLoading) {
+  if (posts.length === 0) {
     return (
       <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
         <div className="text-center">
@@ -442,60 +391,49 @@ export default function Feed() {
 
   return (
     <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
-      {feedItems.map((item) => {
-        if (item.type === 'take') {
-          return (
-            <div key={`take-${item.data.id}`} className="feed-take-card">
-              <TakePostCard take={item.data} onTakeDeleted={handleTakeDeleted} />
-            </div>
-          );
-        }
-
-        const post = item.data;
-        return (
-          <PostCard
-            key={post.id}
-            post={{
-              id: post.id,
-              authorId: post.author_id,
-              author: {
-                name: post.author.display_name || post.author.username,
-                handle: `@${post.author.username}`,
-                avatar: post.author.avatar_url || "/defaultprofile.png",
-              },
-              type: post.type,
-              typeLabel: getTypeLabel(post.type),
-              timeAgo: getTimeAgo(post.created_at),
-              createdAt: post.created_at,
-              title: post.title || undefined,
-              content: post.content,
-              contentWarning: post.content_warning || undefined,
-              media: post.media || [],
-              stats: {
-                admires: post.admires_count,
-                comments: post.comments_count,
-                relays: post.relays_count,
-              },
-              isAdmired: post.user_has_admired,
-              isSaved: post.user_has_saved,
-              isRelayed: post.user_has_relayed,
-              community: post.community ? {
-                slug: post.community.slug,
-                name: post.community.name,
-                avatar_url: post.community.avatar_url,
-              } : undefined,
-              collaborators: post.collaborators || [],
-              mentions: post.mentions || [],
-              hashtags: post.hashtags || [],
-              styling: post.styling || null,
-              post_location: post.post_location || null,
-              metadata: post.metadata || null,
-              spotify_track: post.spotify_track || null,
-            }}
-            onPostDeleted={handlePostDeleted}
-          />
-        );
-      })}
+      {posts.map((post) => (
+        <PostCard
+          key={post.id}
+          post={{
+            id: post.id,
+            authorId: post.author_id,
+            author: {
+              name: post.author.display_name || post.author.username,
+              handle: `@${post.author.username}`,
+              avatar: post.author.avatar_url || "/defaultprofile.png",
+            },
+            type: post.type,
+            typeLabel: getTypeLabel(post.type),
+            timeAgo: getTimeAgo(post.created_at),
+            createdAt: post.created_at,
+            title: post.title || undefined,
+            content: post.content,
+            contentWarning: post.content_warning || undefined,
+            media: post.media || [],
+            stats: {
+              admires: post.admires_count,
+              comments: post.comments_count,
+              relays: post.relays_count,
+            },
+            isAdmired: post.user_has_admired,
+            isSaved: post.user_has_saved,
+            isRelayed: post.user_has_relayed,
+            community: post.community ? {
+              slug: post.community.slug,
+              name: post.community.name,
+              avatar_url: post.community.avatar_url,
+            } : undefined,
+            collaborators: post.collaborators || [],
+            mentions: post.mentions || [],
+            hashtags: post.hashtags || [],
+            styling: post.styling || null,
+            post_location: post.post_location || null,
+            metadata: post.metadata || null,
+            spotify_track: post.spotify_track || null,
+          }}
+          onPostDeleted={handlePostDeleted}
+        />
+      ))}
 
       {/* Infinite scroll trigger */}
       <div ref={bottomRef} className="h-4" />
@@ -508,7 +446,7 @@ export default function Feed() {
       )}
 
       {/* End of feed */}
-      {!hasMore && feedItems.length > 0 && (
+      {!hasMore && posts.length > 0 && (
         <div className="text-center py-8">
           <p className="font-body text-muted text-sm italic">
             You've reached the end of the feed
