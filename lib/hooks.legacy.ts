@@ -2179,19 +2179,40 @@ export async function createNotification(
   content?: string,
   communityId?: string,
   commentId?: string
-) {
+): Promise<{ success: boolean; error?: any }> {
   // Don't notify yourself
-  if (userId === actorId) return;
+  if (userId === actorId) {
+    return { success: true };
+  }
 
-  await supabase.from("notifications").insert({
-    user_id: userId,
-    actor_id: actorId,
-    type,
-    post_id: postId || null,
-    content: content || null,
-    community_id: communityId || null,
-    comment_id: commentId || null,
-  });
+  try {
+    const { error } = await supabase.from("notifications").insert({
+      user_id: userId,
+      actor_id: actorId,
+      type,
+      post_id: postId || null,
+      content: content || null,
+      community_id: communityId || null,
+      comment_id: commentId || null,
+    });
+
+    if (error) {
+      console.error('[createNotification] Failed to create notification:', {
+        type,
+        userId,
+        actorId,
+        postId,
+        error: error.message,
+        code: error.code,
+      });
+      return { success: false, error };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('[createNotification] Exception:', err);
+    return { success: false, error: err };
+  }
 }
 
 // Fetch notifications for a user
@@ -5631,14 +5652,36 @@ export async function saveCollaboratorsAndMentions(
   collaborators: { id: string; role?: string }[],
   mentionIds: string[],
   hasCollaborators: boolean
-) {
+): Promise<{ success: boolean; collaboratorsAdded: boolean; notificationsSent: boolean; error?: any }> {
+  let collaboratorsAdded = false;
+  let notificationsSent = false;
+
   try {
+    console.log('[saveCollaboratorsAndMentions] Starting:', {
+      postId,
+      authorId,
+      collaboratorCount: collaborators.length,
+      mentionCount: mentionIds.length,
+      hasCollaborators,
+    });
+
     // If there are collaborators, set post to draft status
     if (hasCollaborators && collaborators.length > 0) {
-      await supabase
+      const { error: statusError } = await supabase
         .from('posts')
         .update({ status: 'draft' })
         .eq('id', postId);
+
+      if (statusError) {
+        console.error('[saveCollaboratorsAndMentions] Failed to set post to draft:', {
+          postId,
+          error: statusError.message,
+          code: statusError.code,
+        });
+        // Continue anyway - the post will be published immediately but collaborators will still be invited
+      } else {
+        console.log('[saveCollaboratorsAndMentions] Post set to draft status');
+      }
     }
 
     // Insert collaborators
@@ -5650,30 +5693,47 @@ export async function saveCollaboratorsAndMentions(
         role: collab.role || null,
       }));
 
-      const { error: collabError } = await supabase
+      console.log('[saveCollaboratorsAndMentions] Inserting collaborators:', collaboratorRecords);
+
+      const { data: insertedCollabs, error: collabError } = await supabase
         .from('post_collaborators')
-        .insert(collaboratorRecords);
+        .insert(collaboratorRecords)
+        .select();
 
       if (collabError) {
-        // Table might not exist yet or other issue - log and continue gracefully
-        const errorStr = JSON.stringify(collabError);
+        // Log the full error for debugging
+        console.error('[saveCollaboratorsAndMentions] Collaborators insert error:', {
+          error: collabError.message,
+          code: collabError.code,
+          details: collabError.details,
+          hint: collabError.hint,
+        });
+
+        // Table might not exist yet or other issue
         const isTableMissing = collabError.code === '42P01' ||
           collabError.message?.includes('relation') ||
-          collabError.message?.includes('does not exist') ||
-          errorStr === '{}';
+          collabError.message?.includes('does not exist');
 
         if (isTableMissing) {
-          console.warn('[saveCollaboratorsAndMentions] post_collaborators table not ready - skipping collaborators');
-        } else {
-          console.warn('[saveCollaboratorsAndMentions] Collaborators error (continuing):', collabError);
+          console.warn('[saveCollaboratorsAndMentions] post_collaborators table not ready');
         }
       } else {
-        // Send notifications to all collaborators (only if insert succeeded)
-        await Promise.all(
-          collaborators.map(collab =>
-            createNotification(collab.id, authorId, 'collaboration_invite', postId)
-          )
+        collaboratorsAdded = true;
+        console.log('[saveCollaboratorsAndMentions] Collaborators inserted successfully:', insertedCollabs?.length);
+
+        // Send notifications to all collaborators
+        console.log('[saveCollaboratorsAndMentions] Sending collaboration invite notifications...');
+        const notificationResults = await Promise.all(
+          collaborators.map(async (collab) => {
+            const result = await createNotification(collab.id, authorId, 'collaboration_invite', postId);
+            console.log(`[saveCollaboratorsAndMentions] Notification to ${collab.id}:`, result);
+            return result;
+          })
         );
+
+        const successfulNotifications = notificationResults.filter(r => r.success).length;
+        notificationsSent = successfulNotifications > 0;
+        console.log(`[saveCollaboratorsAndMentions] Notifications sent: ${successfulNotifications}/${collaborators.length}`);
       }
     }
 
@@ -5684,38 +5744,51 @@ export async function saveCollaboratorsAndMentions(
         user_id: userId,
       }));
 
-      const { error: mentionError } = await supabase
+      console.log('[saveCollaboratorsAndMentions] Inserting mentions:', mentionRecords);
+
+      const { data: insertedMentions, error: mentionError } = await supabase
         .from('post_mentions')
-        .insert(mentionRecords);
+        .insert(mentionRecords)
+        .select();
 
       if (mentionError) {
-        // Table might not exist yet or other issue - log and continue gracefully
-        const errorStr = JSON.stringify(mentionError);
+        console.error('[saveCollaboratorsAndMentions] Mentions insert error:', {
+          error: mentionError.message,
+          code: mentionError.code,
+          details: mentionError.details,
+        });
+
         const isTableMissing = mentionError.code === '42P01' ||
           mentionError.message?.includes('relation') ||
-          mentionError.message?.includes('does not exist') ||
-          errorStr === '{}';
+          mentionError.message?.includes('does not exist');
 
         if (isTableMissing) {
-          console.warn('[saveCollaboratorsAndMentions] post_mentions table not ready - skipping mentions');
-        } else {
-          console.warn('[saveCollaboratorsAndMentions] Mentions error (continuing):', mentionError);
+          console.warn('[saveCollaboratorsAndMentions] post_mentions table not ready');
         }
       } else {
-        // Send notifications to all mentioned users (only if insert succeeded)
+        console.log('[saveCollaboratorsAndMentions] Mentions inserted successfully:', insertedMentions?.length);
+
+        // Send notifications to all mentioned users
         await Promise.all(
-          mentionIds.map(userId =>
-            createNotification(userId, authorId, 'mention', postId)
-          )
+          mentionIds.map(async (userId) => {
+            const result = await createNotification(userId, authorId, 'mention', postId);
+            console.log(`[saveCollaboratorsAndMentions] Mention notification to ${userId}:`, result);
+            return result;
+          })
         );
       }
     }
 
-    return { success: true };
+    console.log('[saveCollaboratorsAndMentions] Completed:', {
+      collaboratorsAdded,
+      notificationsSent,
+    });
+
+    return { success: true, collaboratorsAdded, notificationsSent };
   } catch (err) {
     // Don't fail the post creation - just log and continue
-    console.warn('[saveCollaboratorsAndMentions] Error (post still created):', err);
-    return { success: false, error: err };
+    console.error('[saveCollaboratorsAndMentions] Fatal error:', err);
+    return { success: false, collaboratorsAdded, notificationsSent, error: err };
   }
 }
 
