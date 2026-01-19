@@ -13,7 +13,8 @@ async function createNotification(
   actorId: string,
   type: NotificationType,
   postId?: string,
-  content?: string
+  content?: string,
+  commentId?: string
 ) {
   // Don't notify yourself
   if (userId === actorId) return;
@@ -24,6 +25,7 @@ async function createNotification(
     type,
     post_id: postId || null,
     content: content || null,
+    comment_id: commentId || null,
   });
 }
 
@@ -273,7 +275,8 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
             currentUserId,
             "reply",
             postId,
-            content.substring(0, 100)
+            content.substring(0, 100),
+            data.id // Pass the new reply's comment_id for navigation
           );
         }
       } else {
@@ -336,7 +339,8 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
             currentUserId,
             "comment_like",
             postId,
-            comment.content?.substring(0, 100)
+            comment.content?.substring(0, 100),
+            commentId // Pass the comment_id for navigation
           );
         }
       }

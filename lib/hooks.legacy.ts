@@ -3563,6 +3563,31 @@ export function useCommunityInvitations(userId?: string) {
     fetchInvitations();
   }, [userId]);
 
+  // Real-time subscription for community invitations
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`community-invitations-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_invitations",
+          filter: `invitee_id=eq.${userId}`,
+        },
+        () => {
+          fetchInvitations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
   return { invitations, loading, accept, decline, refetch: fetchInvitations };
 }
 

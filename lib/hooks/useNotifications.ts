@@ -14,7 +14,8 @@ export async function createNotification(
   type: NotificationType,
   postId?: string,
   content?: string,
-  communityId?: string
+  communityId?: string,
+  commentId?: string
 ) {
   // Don't notify yourself
   if (userId === actorId) return;
@@ -26,6 +27,7 @@ export async function createNotification(
     post_id: postId || null,
     content: content || null,
     community_id: communityId || null,
+    comment_id: commentId || null,
   });
 }
 

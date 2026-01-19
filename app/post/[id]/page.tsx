@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -169,7 +169,9 @@ function getTypeLabel(type: string): string {
 export default function PostPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const postId = params.id as string;
+  const targetCommentId = searchParams.get('comment');
   const { user, profile } = useAuth();
 
   const [post, setPost] = useState<Post | null>(null);
@@ -213,6 +215,25 @@ export default function PostPage() {
 
   // Collaboration invite hooks
   const { accept: acceptCollab, decline: declineCollab } = useCollaborationInvites(user?.id || "");
+
+  // Scroll to target comment from notification link
+  useEffect(() => {
+    if (targetCommentId && !commentsLoading && comments.length > 0) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        const commentElement = document.getElementById(`comment-${targetCommentId}`);
+        if (commentElement) {
+          commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Add highlight animation
+          commentElement.classList.add('comment-highlight');
+          setTimeout(() => {
+            commentElement.classList.remove('comment-highlight');
+          }, 2000);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [targetCommentId, commentsLoading, comments]);
 
   // Single fetch function for all data
   const fetchData = useCallback(async () => {
@@ -493,9 +514,9 @@ export default function PostPage() {
     // Database update (real-time subscription will update counts)
     await toggleReaction(post.id, user.id, reactionType, userReaction);
 
-    // Create notification for reaction
+    // Create notification for reaction (use actual reaction type)
     if (!isSameReaction && post.author_id !== user.id) {
-      await createNotification(post.author_id, user.id, "admire", post.id);
+      await createNotification(post.author_id, user.id, reactionType, post.id);
     }
   };
 
