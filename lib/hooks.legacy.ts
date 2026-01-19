@@ -2257,15 +2257,18 @@ export function useNotifications(userId?: string) {
         .order("created_at", { ascending: false })
         .limit(50);
 
+      console.log('[useNotifications] Query result:', { dataCount: data?.length, error, userId });
+
       if (error) throw error;
 
+      console.log('[useNotifications] Notifications:', data?.map(n => ({ id: n.id, type: n.type, read: n.read })));
       setNotifications(data || []);
       fetchedRef.current = true;
     } catch (err: any) {
       // Silently handle network errors (transient)
       const errMsg = err?.message || '';
       if (!errMsg.includes('Failed to fetch') && !errMsg.includes('NetworkError')) {
-        console.error("Failed to fetch notifications:", err);
+        console.error("[useNotifications] Failed to fetch:", err);
       }
     } finally {
       setLoading(false);
@@ -5211,7 +5214,10 @@ export function useCollaborationInvites(userId?: string) {
         .eq('status', 'pending')
         .order('invited_at', { ascending: false });
 
+      console.log('[useCollaborationInvites] Query result:', { data, error, userId });
+
       if (error) {
+        console.error('[useCollaborationInvites] Query error:', error);
         // Table might not exist yet - silently ignore
         if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
           setInvites([]);
@@ -5219,6 +5225,8 @@ export function useCollaborationInvites(userId?: string) {
         }
         throw error;
       }
+
+      console.log('[useCollaborationInvites] Found invites:', data?.length, data);
       setInvites(data || []);
     } catch (err: any) {
       // Silently handle table doesn't exist errors and network errors

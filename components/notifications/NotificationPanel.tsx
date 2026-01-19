@@ -692,6 +692,17 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
   const invites = rawInvites.filter(invite => invite.post && invite.post.author);
   const { requests: followRequests, loading: followRequestsLoading, accept: acceptFollowRequest, decline: declineFollowRequest, refetch: refetchFollowRequests } = useFollowRequests(user?.id);
 
+  // Debug logging
+  console.log('[NotificationPanel] Data:', {
+    userId: user?.id,
+    notificationsCount: notifications.length,
+    rawInvitesCount: rawInvites.length,
+    filteredInvitesCount: invites.length,
+    followRequestsCount: followRequests.length,
+    loading,
+    rawInvites: rawInvites.map(i => ({ post_id: i.post_id, hasPost: !!i.post, hasAuthor: !!i.post?.author })),
+  });
+
   const handleAcceptFollowRequest = async (requesterId: string) => {
     await acceptFollowRequest(requesterId);
     refetchFollowRequests();
