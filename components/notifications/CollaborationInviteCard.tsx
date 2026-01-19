@@ -149,11 +149,12 @@ export default function CollaborationInviteCard({
       </div>
 
       {/* Actions */}
-      <div className="collab-invite-actions">
+      <div className="collab-invite-actions" style={{ display: 'flex', gap: '12px', padding: '16px 20px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
         <button
           onClick={handleAccept}
           disabled={responding}
           className="collab-invite-btn collab-invite-btn-accept"
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 20px', borderRadius: '12px', background: 'linear-gradient(135deg, #8e44ad, #ff007f)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600 }}
         >
           {responding && responseType === "accept" ? (
             <FontAwesomeIcon icon={faSpinner} spin className="w-4 h-4" />
@@ -168,6 +169,7 @@ export default function CollaborationInviteCard({
           onClick={handleDecline}
           disabled={responding}
           className="collab-invite-btn collab-invite-btn-decline"
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 20px', borderRadius: '12px', background: 'rgba(0,0,0,0.05)', color: '#777', border: 'none', cursor: 'pointer', fontWeight: 600 }}
         >
           {responding && responseType === "decline" ? (
             <FontAwesomeIcon icon={faSpinner} spin className="w-4 h-4" />
