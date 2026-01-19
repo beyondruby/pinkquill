@@ -20,7 +20,11 @@
       "mcp__supabase__execute_sql",
       "mcp__supabase__apply_migration",
       "mcp__supabase__get_logs",
-      "mcp__supabase__get_advisors"
+      "mcp__supabase__get_advisors",
+      "Bash(wc:*)",
+      "Bash(done)",
+      "Bash(ls:*)",
+      "mcp__supabase__list_migrations"
     ]
   }
 }

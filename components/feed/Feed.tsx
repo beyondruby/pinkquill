@@ -12,6 +12,8 @@ import PostSkeleton from "./PostSkeleton";
 import TakePostCard from "@/components/takes/TakePostCard";
 
 const POSTS_PER_PAGE = 10;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1000;
 
 function getTimeAgo(dateString: string): string {
   const now = new Date();
@@ -127,7 +129,7 @@ interface TakeItem {
 type FeedItem = PostItem | TakeItem;
 
 export default function Feed() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { subscribeToTakeDeletes, subscribeToDeletes } = useModal();
   const { takes: fetchedTakes, loading: takesLoading } = useTakes(user?.id);
 
@@ -139,11 +141,14 @@ export default function Feed() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0); // Used to force re-fetch on manual retry
 
   // Cache for blocked users and following (to avoid refetching on each page)
   const blockedUsersRef = useRef<{ blockedBy: Set<string>; iBlocked: Set<string> } | null>(null);
   const followingIdsRef = useRef<Set<string> | null>(null);
   const privateAccountIdsRef = useRef<Set<string> | null>(null);
+  // Track the user ID the cache was built for
+  const cacheUserIdRef = useRef<string | undefined>(undefined);
 
   // Intersection observer for infinite scroll
   const { ref: bottomRef, inView } = useInView({
@@ -151,15 +156,37 @@ export default function Feed() {
     rootMargin: "100px",
   });
 
-  // Fetch blocked users and following list (cached)
+  // Clear cache when user changes
+  const clearCache = useCallback(() => {
+    blockedUsersRef.current = null;
+    followingIdsRef.current = null;
+    privateAccountIdsRef.current = null;
+    cacheUserIdRef.current = undefined;
+  }, []);
+
+  // Fetch blocked users and following list (cached per user)
   const fetchFilteringData = useCallback(async (currentUserId?: string) => {
-    if (blockedUsersRef.current && followingIdsRef.current && privateAccountIdsRef.current) {
+    // Check if cache is valid for current user
+    const cacheIsValid =
+      cacheUserIdRef.current === currentUserId &&
+      blockedUsersRef.current !== null &&
+      followingIdsRef.current !== null &&
+      privateAccountIdsRef.current !== null;
+
+    if (cacheIsValid) {
       return {
-        blockedBy: blockedUsersRef.current.blockedBy,
-        iBlocked: blockedUsersRef.current.iBlocked,
-        followingIds: followingIdsRef.current,
-        privateAccountIds: privateAccountIdsRef.current,
+        blockedBy: blockedUsersRef.current!.blockedBy,
+        iBlocked: blockedUsersRef.current!.iBlocked,
+        followingIds: followingIdsRef.current!,
+        privateAccountIds: privateAccountIdsRef.current!,
       };
+    }
+
+    // Clear stale cache if user changed
+    if (cacheUserIdRef.current !== currentUserId) {
+      blockedUsersRef.current = null;
+      followingIdsRef.current = null;
+      privateAccountIdsRef.current = null;
     }
 
     let blockedBy = new Set<string>();
@@ -202,10 +229,11 @@ export default function Feed() {
 
     const privateAccountIds = new Set<string>((privateAccountsData || []).map(p => p.id));
 
-    // Cache the results
+    // Cache the results with user context
     blockedUsersRef.current = { blockedBy, iBlocked };
     followingIdsRef.current = followingIds;
     privateAccountIdsRef.current = privateAccountIds;
+    cacheUserIdRef.current = currentUserId;
 
     return { blockedBy, iBlocked, followingIds, privateAccountIds };
   }, []);
@@ -415,53 +443,91 @@ export default function Feed() {
     }
   }, [fetchFilteringData]);
 
-  // Initial load
+  // Initial load - wait for auth to complete first
   useEffect(() => {
+    // Don't start loading until auth is resolved
+    if (authLoading) {
+      return;
+    }
+
     const loadInitialPosts = async () => {
       try {
         setInitialLoading(true);
         setError(null);
-        const initialPosts = await fetchPosts(0, user?.id);
-        setPosts(initialPosts);
-        setPage(0);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to fetch posts";
-        setError(errorMessage);
+        setHasMore(true);
+
+        // Clear cache when user changes to ensure fresh data
+        clearCache();
+
+        // Retry logic for failed fetches
+        let lastError: Error | null = null;
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            const initialPosts = await fetchPosts(0, user?.id);
+            setPosts(initialPosts);
+            setPage(0);
+            return; // Success - exit the retry loop
+          } catch (err) {
+            lastError = err instanceof Error ? err : new Error("Failed to fetch posts");
+            console.warn(`[Feed] Fetch attempt ${attempt + 1} failed:`, lastError.message);
+
+            if (attempt < MAX_RETRIES) {
+              // Wait before retrying (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
+            }
+          }
+        }
+
+        // All retries failed
+        setError(lastError?.message || "Failed to fetch posts");
       } finally {
         setInitialLoading(false);
       }
     };
 
     loadInitialPosts();
-  }, [user?.id, fetchPosts]);
+  }, [authLoading, user?.id, fetchPosts, clearCache, retryKey]);
 
   // Load more when bottom is in view
   useEffect(() => {
     const loadMorePosts = async () => {
-      if (!inView || loadingMore || !hasMore || initialLoading) return;
+      if (!inView || loadingMore || !hasMore || initialLoading || authLoading) return;
 
       try {
         setLoadingMore(true);
         const nextPage = page + 1;
-        const newPosts = await fetchPosts(nextPage, user?.id);
 
-        if (newPosts.length > 0) {
-          setPosts(prev => [...prev, ...newPosts]);
-          setPage(nextPage);
+        // Retry logic for loading more posts
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            const newPosts = await fetchPosts(nextPage, user?.id);
+
+            if (newPosts.length > 0) {
+              setPosts(prev => [...prev, ...newPosts]);
+              setPage(nextPage);
+            }
+
+            if (newPosts.length < POSTS_PER_PAGE) {
+              setHasMore(false);
+            }
+            return; // Success - exit retry loop
+          } catch (err) {
+            console.warn(`[Feed] Load more attempt ${attempt + 1} failed:`, err);
+            if (attempt < MAX_RETRIES) {
+              await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
+            }
+          }
         }
 
-        if (newPosts.length < POSTS_PER_PAGE) {
-          setHasMore(false);
-        }
-      } catch (err) {
-        console.error("[Feed] Error loading more posts:", err);
+        // All retries failed - silently fail for pagination (don't show error)
+        console.error("[Feed] Failed to load more posts after retries");
       } finally {
         setLoadingMore(false);
       }
     };
 
     loadMorePosts();
-  }, [inView, loadingMore, hasMore, initialLoading, page, user?.id, fetchPosts]);
+  }, [inView, loadingMore, hasMore, initialLoading, authLoading, page, user?.id, fetchPosts]);
 
   // Sync local takes with fetched takes
   useEffect(() => {
@@ -516,8 +582,8 @@ export default function Feed() {
     setTakes(current => current.filter(t => t.id !== takeId));
   };
 
-  // Initial loading state - show 5 skeletons
-  if (initialLoading || takesLoading) {
+  // Initial loading state - show 5 skeletons (also wait for auth)
+  if (authLoading || initialLoading || takesLoading) {
     return (
       <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
         {[...Array(5)].map((_, i) => (
@@ -528,10 +594,26 @@ export default function Feed() {
   }
 
   if (error) {
+    const handleRetry = () => {
+      setError(null);
+      clearCache();
+      setPosts([]);
+      setPage(0);
+      setHasMore(true);
+      // Increment retryKey to trigger useEffect re-run
+      setRetryKey(k => k + 1);
+    };
+
     return (
       <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
-        <div className="text-center text-red-500">
-          <p className="font-body">{error}</p>
+        <div className="text-center">
+          <p className="font-body text-red-500 mb-4">{error}</p>
+          <button
+            onClick={handleRetry}
+            className="px-6 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-sm font-medium text-white hover:opacity-90 transition-opacity"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
