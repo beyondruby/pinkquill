@@ -687,7 +687,9 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
   const { user } = useAuth();
   const { notifications, loading } = useNotifications(user?.id);
   const { markAsRead, markAllAsRead } = useMarkAsRead();
-  const { invites, refetch: refetchInvites } = useCollaborationInvites(user?.id || "");
+  const { invites: rawInvites, refetch: refetchInvites } = useCollaborationInvites(user?.id || "");
+  // Filter out invites where post or author is null (e.g., deleted posts)
+  const invites = rawInvites.filter(invite => invite.post && invite.post.author);
   const { requests: followRequests, loading: followRequestsLoading, accept: acceptFollowRequest, decline: declineFollowRequest, refetch: refetchFollowRequests } = useFollowRequests(user?.id);
 
   const handleAcceptFollowRequest = async (requesterId: string) => {
