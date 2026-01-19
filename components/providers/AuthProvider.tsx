@@ -50,8 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const lastSessionIdRef = useRef<string | null>(null);
 
   // Fetch profile from database with timeout
-  const fetchProfile = useCallback(async (userId: string, retries = 2): Promise<Profile | null> => {
-    const timeoutMs = 8000; // 8 second timeout per attempt
+  const fetchProfile = useCallback(async (userId: string, retries = 1): Promise<Profile | null> => {
+    const timeoutMs = 5000; // 5 second timeout per attempt (reduced from 8s)
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {

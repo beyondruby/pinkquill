@@ -12,20 +12,6 @@ import PostSkeleton from "./PostSkeleton";
 import TakePostCard from "@/components/takes/TakePostCard";
 
 const POSTS_PER_PAGE = 10;
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 1000;
-const LOADING_TIMEOUT_MS = 30000; // 30 seconds max loading time
-const REQUEST_TIMEOUT_MS = 15000; // 15 seconds per request
-
-// Helper: Add timeout to a promise
-function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage = "Request timed out"): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(errorMessage)), ms)
-    ),
-  ]);
-}
 
 function getTimeAgo(dateString: string): string {
   const now = new Date();
@@ -111,7 +97,6 @@ interface Post {
     };
   }>;
   hashtags?: string[];
-  // Creative styling
   styling?: any | null;
   post_location?: string | null;
   metadata?: any | null;
@@ -143,24 +128,22 @@ type FeedItem = PostItem | TakeItem;
 export default function Feed() {
   const { user, loading: authLoading } = useAuth();
   const { subscribeToTakeDeletes, subscribeToDeletes } = useModal();
+
+  // Takes loading is independent - don't block posts on it
   const { takes: fetchedTakes, loading: takesLoading } = useTakes(user?.id);
 
-  // Posts state for infinite scroll
+  // Posts state
   const [posts, setPosts] = useState<Post[]>([]);
   const [takes, setTakes] = useState<Take[]>([]);
   const [page, setPage] = useState(0);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryKey, setRetryKey] = useState(0); // Used to force re-fetch on manual retry
 
-  // Cache for blocked users and following (to avoid refetching on each page)
-  const blockedUsersRef = useRef<{ blockedBy: Set<string>; iBlocked: Set<string> } | null>(null);
-  const followingIdsRef = useRef<Set<string> | null>(null);
-  const privateAccountIdsRef = useRef<Set<string> | null>(null);
-  // Track the user ID the cache was built for
-  const cacheUserIdRef = useRef<string | undefined>(undefined);
+  // Track if we've done initial fetch
+  const fetchedRef = useRef(false);
+  const lastUserIdRef = useRef<string | undefined>(undefined);
 
   // Intersection observer for infinite scroll
   const { ref: bottomRef, inView } = useInView({
@@ -168,469 +151,232 @@ export default function Feed() {
     rootMargin: "100px",
   });
 
-  // Clear cache when user changes
-  const clearCache = useCallback(() => {
-    blockedUsersRef.current = null;
-    followingIdsRef.current = null;
-    privateAccountIdsRef.current = null;
-    cacheUserIdRef.current = undefined;
-  }, []);
+  // Simplified fetch - single query with minimal joins
+  const fetchPosts = useCallback(async (pageNum: number, userId?: string) => {
+    const from = pageNum * POSTS_PER_PAGE;
+    const to = from + POSTS_PER_PAGE - 1;
 
-  // Fetch blocked users and following list (cached per user)
-  const fetchFilteringData = useCallback(async (currentUserId?: string) => {
-    // Check if cache is valid for current user
-    const cacheIsValid =
-      cacheUserIdRef.current === currentUserId &&
-      blockedUsersRef.current !== null &&
-      followingIdsRef.current !== null &&
-      privateAccountIdsRef.current !== null;
+    // Single query - let RLS handle visibility
+    const { data: postsData, error: queryError } = await supabase
+      .from("posts")
+      .select(`
+        id,
+        author_id,
+        type,
+        title,
+        content,
+        content_warning,
+        created_at,
+        visibility,
+        styling,
+        post_location,
+        metadata,
+        spotify_track,
+        author:profiles!posts_author_id_fkey (
+          username,
+          display_name,
+          avatar_url
+        ),
+        media:post_media (
+          id,
+          media_url,
+          media_type,
+          caption,
+          position
+        ),
+        community:communities (
+          slug,
+          name,
+          avatar_url
+        )
+      `)
+      .eq("status", "published")
+      .eq("visibility", "public")
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
-    if (cacheIsValid) {
-      return {
-        blockedBy: blockedUsersRef.current!.blockedBy,
-        iBlocked: blockedUsersRef.current!.iBlocked,
-        followingIds: followingIdsRef.current!,
-        privateAccountIds: privateAccountIdsRef.current!,
-      };
+    if (queryError) {
+      throw queryError;
     }
 
-    // Clear stale cache if user changed
-    if (cacheUserIdRef.current !== currentUserId) {
-      blockedUsersRef.current = null;
-      followingIdsRef.current = null;
-      privateAccountIdsRef.current = null;
+    if (!postsData || postsData.length === 0) {
+      return [];
     }
 
-    let blockedBy = new Set<string>();
-    let iBlocked = new Set<string>();
-    let followingIds = new Set<string>();
+    const postIds = postsData.map(p => p.id);
 
-    if (currentUserId) {
-      const [blockedByResult, iBlockedResult] = await Promise.all([
-        supabase.from("blocks").select("blocker_id").eq("blocked_id", currentUserId),
-        supabase.from("blocks").select("blocked_id").eq("blocker_id", currentUserId),
+    // Batch fetch counts in parallel - use count queries for efficiency
+    const [admiresRes, commentsRes, relaysRes] = await Promise.all([
+      supabase.from("admires").select("post_id").in("post_id", postIds),
+      supabase.from("comments").select("post_id").in("post_id", postIds),
+      supabase.from("relays").select("post_id").in("post_id", postIds),
+    ]);
+
+    // Count by post_id
+    const admiresCount: Record<string, number> = {};
+    const commentsCount: Record<string, number> = {};
+    const relaysCount: Record<string, number> = {};
+
+    (admiresRes.data || []).forEach(a => {
+      admiresCount[a.post_id] = (admiresCount[a.post_id] || 0) + 1;
+    });
+    (commentsRes.data || []).forEach(c => {
+      commentsCount[c.post_id] = (commentsCount[c.post_id] || 0) + 1;
+    });
+    (relaysRes.data || []).forEach(r => {
+      relaysCount[r.post_id] = (relaysCount[r.post_id] || 0) + 1;
+    });
+
+    // User interactions (only if logged in)
+    let userAdmires = new Set<string>();
+    let userSaves = new Set<string>();
+    let userRelays = new Set<string>();
+
+    if (userId) {
+      const [uAdmires, uSaves, uRelays] = await Promise.all([
+        supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
+        supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
+        supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
       ]);
-
-      (blockedByResult.data || []).forEach(b => blockedBy.add(b.blocker_id));
-      (iBlockedResult.data || []).forEach(b => iBlocked.add(b.blocked_id));
-
-      // Try with status column first, fall back to without if it doesn't exist
-      const { data: followingData, error: followingError } = await supabase
-        .from("follows")
-        .select("following_id")
-        .eq("follower_id", currentUserId)
-        .eq("status", "accepted");
-
-      if (followingError && (followingError.code === "42703" || followingError.message?.includes("status"))) {
-        // Status column doesn't exist - fall back to simple query
-        const { data: fallbackData } = await supabase
-          .from("follows")
-          .select("following_id")
-          .eq("follower_id", currentUserId);
-        (fallbackData || []).forEach(f => followingIds.add(f.following_id));
-      } else {
-        (followingData || []).forEach(f => followingIds.add(f.following_id));
-      }
+      userAdmires = new Set((uAdmires.data || []).map(a => a.post_id));
+      userSaves = new Set((uSaves.data || []).map(s => s.post_id));
+      userRelays = new Set((uRelays.data || []).map(r => r.post_id));
     }
 
-    // Get private accounts
-    const { data: privateAccountsData } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("is_private", true);
+    // Map posts - handle Supabase returning single objects for one-to-one joins
+    const processedPosts: Post[] = postsData.map(post => {
+      // Supabase returns single object for one-to-many with fkey, array for many-to-many
+      const author = Array.isArray(post.author) ? post.author[0] : post.author;
+      const community = Array.isArray(post.community) ? post.community[0] : post.community;
 
-    const privateAccountIds = new Set<string>((privateAccountsData || []).map(p => p.id));
-
-    // Cache the results with user context
-    blockedUsersRef.current = { blockedBy, iBlocked };
-    followingIdsRef.current = followingIds;
-    privateAccountIdsRef.current = privateAccountIds;
-    cacheUserIdRef.current = currentUserId;
-
-    return { blockedBy, iBlocked, followingIds, privateAccountIds };
-  }, []);
-
-  // Fetch posts with pagination
-  const fetchPosts = useCallback(async (pageNum: number, currentUserId?: string) => {
-    try {
-      const { blockedBy, iBlocked, followingIds, privateAccountIds } = await fetchFilteringData(currentUserId);
-
-      const from = pageNum * POSTS_PER_PAGE;
-      const to = (pageNum + 1) * POSTS_PER_PAGE - 1;
-
-      // Fetch posts with range for pagination (with timeout)
-      const postsQuery = supabase
-        .from("posts")
-        .select(`
-          *,
-          styling,
-          post_location,
-          metadata,
-          author:profiles!posts_author_id_fkey (
-            username,
-            display_name,
-            avatar_url
-          ),
-          media:post_media (
-            id,
-            media_url,
-            media_type,
-            caption,
-            position
-          ),
-          community:communities (
-            slug,
-            name,
-            avatar_url
-          )
-        `)
-        .order("created_at", { ascending: false })
-        .range(from, to);
-
-      const postsResult = await withTimeout(
-        Promise.resolve(postsQuery),
-        REQUEST_TIMEOUT_MS,
-        "Posts fetch timed out"
-      );
-
-      if (postsResult.error) throw postsResult.error;
-      const postsData = postsResult.data;
-
-      // Filter posts based on visibility and blocking rules
-      const filteredPosts = (postsData || []).filter(post => {
-        // Filter blocked users
-        if (blockedBy.has(post.author_id) || iBlocked.has(post.author_id)) {
-          return false;
-        }
-
-        const isOwnPost = currentUserId && post.author_id === currentUserId;
-        const isFollowing = followingIds.has(post.author_id);
-        const isPrivateAccount = privateAccountIds.has(post.author_id);
-
-        // User can always see their own posts
-        if (isOwnPost) return true;
-
-        // Posts from private accounts are only visible to accepted followers
-        if (isPrivateAccount && !isFollowing) return false;
-
-        // Check post visibility
-        if (post.visibility === 'public') return true;
-        if (post.visibility === 'followers' && isFollowing) return true;
-
-        // Private posts are never shown to others
-        return false;
-      });
-
-      // Check if we've reached the end
-      if (postsData && postsData.length < POSTS_PER_PAGE) {
-        setHasMore(false);
-      }
-
-      if (filteredPosts.length === 0) {
-        return [];
-      }
-
-      const postIds = filteredPosts.map(p => p.id);
-
-      // Batch fetch counts and additional data (with timeout)
-      const [admiresResult, commentsResult, relaysResult, collaboratorsResult, mentionsResult, tagsResult] = await withTimeout(
-        Promise.all([
-          Promise.resolve(supabase.from("admires").select("post_id").in("post_id", postIds)),
-          Promise.resolve(supabase.from("comments").select("post_id").in("post_id", postIds)),
-          Promise.resolve(supabase.from("relays").select("post_id").in("post_id", postIds)),
-          Promise.resolve(
-            supabase
-              .from("post_collaborators")
-              .select(`
-                post_id,
-                status,
-                role,
-                user:profiles!post_collaborators_user_id_fkey (
-                  id,
-                  username,
-                  display_name,
-                  avatar_url
-                )
-              `)
-              .in("post_id", postIds)
-              .eq("status", "accepted")
-          ),
-          Promise.resolve(
-            supabase
-              .from("post_mentions")
-              .select(`
-                post_id,
-                user:profiles!post_mentions_user_id_fkey (
-                  id,
-                  username,
-                  display_name,
-                  avatar_url
-                )
-              `)
-              .in("post_id", postIds)
-          ),
-          Promise.resolve(
-            supabase
-              .from("post_tags")
-              .select(`
-                post_id,
-                tag:tags(name)
-              `)
-              .in("post_id", postIds)
-          ),
-        ]),
-        REQUEST_TIMEOUT_MS,
-        "Batch counts fetch timed out"
-      );
-
-      // Count occurrences per post
-      const admiresCounts: Record<string, number> = {};
-      const commentsCounts: Record<string, number> = {};
-      const relaysCounts: Record<string, number> = {};
-
-      (admiresResult.data || []).forEach(a => {
-        admiresCounts[a.post_id] = (admiresCounts[a.post_id] || 0) + 1;
-      });
-      (commentsResult.data || []).forEach(c => {
-        commentsCounts[c.post_id] = (commentsCounts[c.post_id] || 0) + 1;
-      });
-      (relaysResult.data || []).forEach(r => {
-        relaysCounts[r.post_id] = (relaysCounts[r.post_id] || 0) + 1;
-      });
-
-      // Group collaborators, mentions, and hashtags by post_id
-      const collaboratorsByPost: Record<string, any[]> = {};
-      const mentionsByPost: Record<string, any[]> = {};
-      const hashtagsByPost: Record<string, string[]> = {};
-
-      (collaboratorsResult.data || []).forEach(c => {
-        if (!collaboratorsByPost[c.post_id]) {
-          collaboratorsByPost[c.post_id] = [];
-        }
-        collaboratorsByPost[c.post_id].push({
-          status: c.status,
-          role: c.role,
-          user: c.user,
-        });
-      });
-
-      (mentionsResult.data || []).forEach(m => {
-        if (!mentionsByPost[m.post_id]) {
-          mentionsByPost[m.post_id] = [];
-        }
-        mentionsByPost[m.post_id].push({
-          user: m.user,
-        });
-      });
-
-      (tagsResult.data || []).forEach((t: any) => {
-        const tagName = t.tag?.name;
-        if (tagName) {
-          if (!hashtagsByPost[t.post_id]) {
-            hashtagsByPost[t.post_id] = [];
-          }
-          hashtagsByPost[t.post_id].push(tagName);
-        }
-      });
-
-      // Fetch user interactions if logged in
-      let userAdmires = new Set<string>();
-      let userSaves = new Set<string>();
-      let userRelays = new Set<string>();
-
-      if (currentUserId) {
-        const [userAdmiresResult, userSavesResult, userRelaysResult] = await Promise.all([
-          supabase.from("admires").select("post_id").eq("user_id", currentUserId).in("post_id", postIds),
-          supabase.from("saves").select("post_id").eq("user_id", currentUserId).in("post_id", postIds),
-          supabase.from("relays").select("post_id").eq("user_id", currentUserId).in("post_id", postIds),
-        ]);
-
-        userAdmires = new Set((userAdmiresResult.data || []).map(a => a.post_id));
-        userSaves = new Set((userSavesResult.data || []).map(s => s.post_id));
-        userRelays = new Set((userRelaysResult.data || []).map(r => r.post_id));
-      }
-
-      // Map posts with all their data
-      const postsWithStats: Post[] = filteredPosts.map(post => ({
+      return {
         ...post,
+        author: author || { username: 'unknown', display_name: null, avatar_url: null },
+        community: community || null,
         media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-        admires_count: admiresCounts[post.id] || 0,
-        comments_count: commentsCounts[post.id] || 0,
-        relays_count: relaysCounts[post.id] || 0,
+        admires_count: admiresCount[post.id] || 0,
+        comments_count: commentsCount[post.id] || 0,
+        relays_count: relaysCount[post.id] || 0,
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: userSaves.has(post.id),
         user_has_relayed: userRelays.has(post.id),
-        collaborators: collaboratorsByPost[post.id] || [],
-        mentions: mentionsByPost[post.id] || [],
-        hashtags: hashtagsByPost[post.id] || [],
-      }));
+        collaborators: [],
+        mentions: [],
+        hashtags: [],
+      };
+    });
 
-      return postsWithStats;
-    } catch (err) {
-      console.error("[Feed] Error fetching posts:", err);
-      throw err;
-    }
-  }, [fetchFilteringData]);
+    return processedPosts;
+  }, []);
 
-  // Initial load - wait for auth to complete first
+  // Initial load
   useEffect(() => {
-    // Don't start loading until auth is resolved
-    if (authLoading) {
-      return;
+    // Reset if user changed
+    if (lastUserIdRef.current !== user?.id) {
+      fetchedRef.current = false;
+      lastUserIdRef.current = user?.id;
+      setPosts([]);
+      setPage(0);
+      setHasMore(true);
     }
 
-    const loadInitialPosts = async () => {
+    // Don't fetch until auth is resolved
+    if (authLoading) return;
+
+    // Don't re-fetch if already fetched
+    if (fetchedRef.current) return;
+
+    const loadPosts = async () => {
+      fetchedRef.current = true;
+      setPostsLoading(true);
+      setError(null);
+
       try {
-        setInitialLoading(true);
-        setError(null);
-        setHasMore(true);
-
-        // Clear cache when user changes to ensure fresh data
-        clearCache();
-
-        // Retry logic for failed fetches
-        let lastError: Error | null = null;
-        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          try {
-            const initialPosts = await fetchPosts(0, user?.id);
-            setPosts(initialPosts);
-            setPage(0);
-            return; // Success - exit the retry loop
-          } catch (err) {
-            lastError = err instanceof Error ? err : new Error("Failed to fetch posts");
-            console.warn(`[Feed] Fetch attempt ${attempt + 1} failed:`, lastError.message);
-
-            if (attempt < MAX_RETRIES) {
-              // Wait before retrying (exponential backoff)
-              await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
-            }
-          }
-        }
-
-        // All retries failed
-        setError(lastError?.message || "Failed to fetch posts");
+        const initialPosts = await fetchPosts(0, user?.id);
+        setPosts(initialPosts);
+        setHasMore(initialPosts.length === POSTS_PER_PAGE);
+      } catch (err) {
+        console.error("[Feed] Error:", err);
+        setError("Failed to load posts. Please refresh.");
       } finally {
-        setInitialLoading(false);
+        setPostsLoading(false);
       }
     };
 
-    loadInitialPosts();
-  }, [authLoading, user?.id, fetchPosts, clearCache, retryKey]);
+    loadPosts();
+  }, [authLoading, user?.id, fetchPosts]);
 
-  // Load more when bottom is in view
+  // Load more when scrolling
   useEffect(() => {
-    const loadMorePosts = async () => {
-      if (!inView || loadingMore || !hasMore || initialLoading || authLoading) return;
+    if (!inView || loadingMore || !hasMore || postsLoading || authLoading) return;
 
+    const loadMore = async () => {
+      setLoadingMore(true);
       try {
-        setLoadingMore(true);
         const nextPage = page + 1;
+        const newPosts = await fetchPosts(nextPage, user?.id);
 
-        // Retry logic for loading more posts
-        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          try {
-            const newPosts = await fetchPosts(nextPage, user?.id);
-
-            if (newPosts.length > 0) {
-              setPosts(prev => [...prev, ...newPosts]);
-              setPage(nextPage);
-            }
-
-            if (newPosts.length < POSTS_PER_PAGE) {
-              setHasMore(false);
-            }
-            return; // Success - exit retry loop
-          } catch (err) {
-            console.warn(`[Feed] Load more attempt ${attempt + 1} failed:`, err);
-            if (attempt < MAX_RETRIES) {
-              await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
-            }
-          }
+        if (newPosts.length > 0) {
+          setPosts(prev => [...prev, ...newPosts]);
+          setPage(nextPage);
         }
 
-        // All retries failed - silently fail for pagination (don't show error)
-        console.error("[Feed] Failed to load more posts after retries");
+        setHasMore(newPosts.length === POSTS_PER_PAGE);
+      } catch (err) {
+        console.error("[Feed] Load more error:", err);
       } finally {
         setLoadingMore(false);
       }
     };
 
-    loadMorePosts();
-  }, [inView, loadingMore, hasMore, initialLoading, authLoading, page, user?.id, fetchPosts]);
+    loadMore();
+  }, [inView, loadingMore, hasMore, postsLoading, authLoading, page, user?.id, fetchPosts]);
 
-  // Sync local takes with fetched takes
+  // Sync takes (independent of posts loading)
   useEffect(() => {
     setTakes(fetchedTakes);
   }, [fetchedTakes]);
 
-  // Loading timeout safeguard - prevents stuck loading state
+  // Subscribe to deletes
   useEffect(() => {
-    if (!initialLoading) return;
-
-    const timeoutId = setTimeout(() => {
-      console.warn("[Feed] Loading timeout reached - forcing load complete");
-      setInitialLoading(false);
-      if (posts.length === 0) {
-        setError("Loading timed out. Please refresh the page.");
-      }
-    }, LOADING_TIMEOUT_MS);
-
-    return () => clearTimeout(timeoutId);
-  }, [initialLoading, posts.length]);
-
-  // Subscribe to delete events from modal
-  useEffect(() => {
-    const unsubscribeTakes = subscribeToTakeDeletes((takeId) => {
-      setTakes(current => current.filter(t => t.id !== takeId));
+    const unsubTakes = subscribeToTakeDeletes((id) => {
+      setTakes(curr => curr.filter(t => t.id !== id));
     });
-    const unsubscribePosts = subscribeToDeletes((postId) => {
-      setPosts(current => current.filter(p => p.id !== postId));
+    const unsubPosts = subscribeToDeletes((id) => {
+      setPosts(curr => curr.filter(p => p.id !== id));
     });
-    return () => {
-      unsubscribeTakes();
-      unsubscribePosts();
-    };
+    return () => { unsubTakes(); unsubPosts(); };
   }, [subscribeToTakeDeletes, subscribeToDeletes]);
 
-  // Combine and sort posts and takes by timestamp
+  // Combine posts and takes
   const feedItems = useMemo(() => {
     const items: FeedItem[] = [];
 
     posts.forEach(post => {
-      items.push({
-        type: 'post',
-        data: post,
-        timestamp: post.created_at,
-      });
+      items.push({ type: 'post', data: post, timestamp: post.created_at });
     });
 
     takes.forEach(take => {
-      items.push({
-        type: 'take',
-        data: take,
-        timestamp: take.created_at,
-      });
+      items.push({ type: 'take', data: take, timestamp: take.created_at });
     });
 
-    // Sort by timestamp, newest first
     items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
     return items;
   }, [posts, takes]);
 
   const handlePostDeleted = (postId: string) => {
-    setPosts(current => current.filter(p => p.id !== postId));
+    setPosts(curr => curr.filter(p => p.id !== postId));
   };
 
   const handleTakeDeleted = (takeId: string) => {
-    setTakes(current => current.filter(t => t.id !== takeId));
+    setTakes(curr => curr.filter(t => t.id !== takeId));
   };
 
-  // Initial loading state - show 5 skeletons (also wait for auth)
-  if (authLoading || initialLoading || takesLoading) {
+  // Show skeletons only while posts are loading (don't wait for takes)
+  if (authLoading || postsLoading) {
     return (
       <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
-        {[...Array(5)].map((_, i) => (
+        {[...Array(3)].map((_, i) => (
           <PostSkeleton key={i} />
         ))}
       </div>
@@ -638,22 +384,31 @@ export default function Feed() {
   }
 
   if (error) {
-    const handleRetry = () => {
-      setError(null);
-      clearCache();
-      setPosts([]);
-      setPage(0);
-      setHasMore(true);
-      // Increment retryKey to trigger useEffect re-run
-      setRetryKey(k => k + 1);
-    };
-
     return (
       <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
         <div className="text-center">
           <p className="font-body text-red-500 mb-4">{error}</p>
           <button
-            onClick={handleRetry}
+            onClick={() => {
+              fetchedRef.current = false;
+              setError(null);
+              setPosts([]);
+              setPage(0);
+              setHasMore(true);
+              setPostsLoading(true);
+              // Trigger re-fetch
+              setTimeout(() => {
+                fetchPosts(0, user?.id).then(p => {
+                  setPosts(p);
+                  setHasMore(p.length === POSTS_PER_PAGE);
+                  setPostsLoading(false);
+                  fetchedRef.current = true;
+                }).catch(() => {
+                  setError("Failed to load. Please refresh.");
+                  setPostsLoading(false);
+                });
+              }, 100);
+            }}
             className="px-6 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-sm font-medium text-white hover:opacity-90 transition-opacity"
           >
             Try Again
@@ -663,7 +418,8 @@ export default function Feed() {
     );
   }
 
-  if (feedItems.length === 0) {
+  // Show content even if takes are still loading
+  if (feedItems.length === 0 && !takesLoading) {
     return (
       <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
         <div className="text-center">
@@ -705,9 +461,7 @@ export default function Feed() {
               author: {
                 name: post.author.display_name || post.author.username,
                 handle: `@${post.author.username}`,
-                avatar:
-                  post.author.avatar_url ||
-                  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80",
+                avatar: post.author.avatar_url || "/defaultprofile.png",
               },
               type: post.type,
               typeLabel: getTypeLabel(post.type),
@@ -733,7 +487,6 @@ export default function Feed() {
               collaborators: post.collaborators || [],
               mentions: post.mentions || [],
               hashtags: post.hashtags || [],
-              // Creative styling fields
               styling: post.styling || null,
               post_location: post.post_location || null,
               metadata: post.metadata || null,
@@ -747,30 +500,14 @@ export default function Feed() {
       {/* Infinite scroll trigger */}
       <div ref={bottomRef} className="h-4" />
 
-      {/* Loading spinner for pagination */}
+      {/* Loading more indicator */}
       {loadingMore && (
         <div className="flex justify-center py-8">
-          <div className="loading-spinner" />
-          <style jsx>{`
-            .loading-spinner {
-              width: 32px;
-              height: 32px;
-              border: 3px solid #e8e8e8;
-              border-top-color: #8e44ad;
-              border-radius: 50%;
-              animation: spin 0.8s linear infinite;
-            }
-
-            @keyframes spin {
-              to {
-                transform: rotate(360deg);
-              }
-            }
-          `}</style>
+          <div className="w-8 h-8 border-3 border-gray-200 border-t-purple-600 rounded-full animate-spin" />
         </div>
       )}
 
-      {/* End of feed message */}
+      {/* End of feed */}
       {!hasMore && feedItems.length > 0 && (
         <div className="text-center py-8">
           <p className="font-body text-muted text-sm italic">

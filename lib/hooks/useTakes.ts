@@ -3,18 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 
-// Request timeout in milliseconds
-const REQUEST_TIMEOUT_MS = 15000;
-
-// Helper: Add timeout to a promise
-function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage = "Request timed out"): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(errorMessage)), ms)
-    ),
-  ]);
-}
+// Request timeout in milliseconds - reduced from 15s to 8s for faster fallback
+const REQUEST_TIMEOUT_MS = 8000;
 
 // ============================================================================
 // TYPES
@@ -126,7 +116,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       }
       setError(null);
 
-      // Build query
+      // Build query - simplified, let RLS handle visibility
       let query = supabase
         .from("takes")
         .select("*")
@@ -138,153 +128,68 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       if (soundId) query = query.eq("sound_id", soundId);
       if (authorId) query = query.eq("author_id", authorId);
 
-      const takesResult = await withTimeout(
-        Promise.resolve(query),
-        REQUEST_TIMEOUT_MS,
-        "Takes fetch timed out"
-      );
+      const { data: takesData, error: takesError } = await query;
 
-      if (takesResult.error) throw takesResult.error;
-      const takesData = takesResult.data;
+      if (takesError) throw takesError;
       if (!takesData || takesData.length === 0) {
         if (reset) setTakes([]);
         setHasMore(false);
         return;
       }
 
-      // Get unique author IDs and take IDs
       const authorIds = [...new Set(takesData.map(t => t.author_id))];
       const takeIds = takesData.map(t => t.id);
 
-      // Fetch private accounts for filtering
-      const { data: privateAccounts } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("is_private", true)
-        .in("id", authorIds);
-
-      // Fetch user's follows with fallback if status column doesn't exist
-      let userFollows: { following_id: string }[] = [];
-      if (userId) {
-        const { data, error } = await supabase
-          .from("follows")
-          .select("following_id")
-          .eq("follower_id", userId)
-          .eq("status", "accepted");
-
-        if (error && (error.code === "42703" || error.message?.includes("status"))) {
-          // Status column doesn't exist - fall back to simple query
-          const { data: fallbackData } = await supabase
-            .from("follows")
-            .select("following_id")
-            .eq("follower_id", userId);
-          userFollows = fallbackData || [];
-        } else {
-          userFollows = data || [];
-        }
-      }
-
-      const privateAccountIds = new Set((privateAccounts || []).map(p => p.id));
-      const followingIds = new Set(userFollows.map(f => f.following_id));
-
-      // Filter out takes from private accounts that the user doesn't follow
-      const accessibleTakes = takesData.filter(take => {
-        const isOwnTake = userId && take.author_id === userId;
-        const isPrivateAccount = privateAccountIds.has(take.author_id);
-        const isFollowing = followingIds.has(take.author_id);
-
-        // User can always see their own takes
-        if (isOwnTake) return true;
-
-        // If author has private account, must be following
-        if (isPrivateAccount && !isFollowing) return false;
-
-        return true;
-      });
-
-      // If no accessible takes, return early
-      if (accessibleTakes.length === 0) {
-        if (reset) setTakes([]);
-        setHasMore(takesData.length === limit); // There might be more takes we can't access
-        return;
-      }
-
-      // Re-calculate IDs based on accessible takes
-      const accessibleAuthorIds = [...new Set(accessibleTakes.map(t => t.author_id))];
-      const accessibleTakeIds = accessibleTakes.map(t => t.id);
-
-      // Parallel fetch: authors, counts, user interactions
-      // Try reactions table first, fall back to admires
+      // Parallel fetch: authors, counts, user interactions - all in one batch
       const [
-        { data: authors },
-        { data: reactions, error: reactionsError },
-        { data: comments },
-        { data: saves },
-        { data: relays },
-        { data: userReaction },
-        { data: userSaves },
-        { data: userRelays },
-      ] = await withTimeout(
-        Promise.all([
-          Promise.resolve(supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", accessibleAuthorIds)),
-          Promise.resolve(supabase.from("take_reactions").select("take_id, reaction_type").in("take_id", accessibleTakeIds)),
-          Promise.resolve(supabase.from("take_comments").select("take_id").in("take_id", accessibleTakeIds)),
-          Promise.resolve(supabase.from("take_saves").select("take_id").in("take_id", accessibleTakeIds)),
-          Promise.resolve(supabase.from("take_relays").select("take_id").in("take_id", accessibleTakeIds)),
-          userId
-            ? Promise.resolve(supabase.from("take_reactions").select("take_id, reaction_type").eq("user_id", userId).in("take_id", accessibleTakeIds))
-            : Promise.resolve({ data: [] as { take_id: string; reaction_type: string }[], error: null }),
-          userId
-            ? Promise.resolve(supabase.from("take_saves").select("take_id").eq("user_id", userId).in("take_id", accessibleTakeIds))
-            : Promise.resolve({ data: [] as { take_id: string }[], error: null }),
-          userId
-            ? Promise.resolve(supabase.from("take_relays").select("take_id").eq("user_id", userId).in("take_id", accessibleTakeIds))
-            : Promise.resolve({ data: [] as { take_id: string }[], error: null }),
-        ]),
-        REQUEST_TIMEOUT_MS,
-        "Batch fetch timed out"
-      );
+        authorsRes,
+        reactionsRes,
+        commentsRes,
+        savesRes,
+        relaysRes,
+      ] = await Promise.all([
+        supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds),
+        supabase.from("take_reactions").select("take_id, reaction_type").in("take_id", takeIds),
+        supabase.from("take_comments").select("take_id").in("take_id", takeIds),
+        supabase.from("take_saves").select("take_id").in("take_id", takeIds),
+        supabase.from("take_relays").select("take_id").in("take_id", takeIds),
+      ]);
 
-      // Fall back to admires table if reactions table doesn't exist
-      let reactionsData = reactions;
-      let userReactionsData = userReaction;
-      const useAdmiresFallback = reactionsError && (reactionsError.code === '42P01' || reactionsError.message?.includes('does not exist'));
+      // User interactions (only if logged in)
+      let userReactionMap = new Map<string, TakeReactionType>();
+      let userSaveSet = new Set<string>();
+      let userRelaySet = new Set<string>();
 
-      if (useAdmiresFallback) {
-        const [{ data: admires }, { data: userAdmires }] = await Promise.all([
-          supabase.from("take_admires").select("take_id").in("take_id", accessibleTakeIds),
-          userId
-            ? supabase.from("take_admires").select("take_id").eq("user_id", userId).in("take_id", accessibleTakeIds)
-            : Promise.resolve({ data: [] }),
+      if (userId) {
+        const [userReactionRes, userSavesRes, userRelaysRes] = await Promise.all([
+          supabase.from("take_reactions").select("take_id, reaction_type").eq("user_id", userId).in("take_id", takeIds),
+          supabase.from("take_saves").select("take_id").eq("user_id", userId).in("take_id", takeIds),
+          supabase.from("take_relays").select("take_id").eq("user_id", userId).in("take_id", takeIds),
         ]);
-        // Convert to reaction format
-        reactionsData = (admires || []).map(a => ({ take_id: a.take_id, reaction_type: 'admire' }));
-        userReactionsData = (userAdmires || []).map(a => ({ take_id: a.take_id, reaction_type: 'admire' }));
+
+        (userReactionRes.data || []).forEach(r => {
+          userReactionMap.set(r.take_id, r.reaction_type as TakeReactionType);
+        });
+        userSaveSet = new Set((userSavesRes.data || []).map(s => s.take_id));
+        userRelaySet = new Set((userRelaysRes.data || []).map(r => r.take_id));
       }
 
       // Build lookup maps
-      const authorMap = new Map((authors || []).map(a => [a.id, a]));
-
+      const authorMap = new Map((authorsRes.data || []).map(a => [a.id, a]));
       const reactionsCount: Record<string, number> = {};
       const reactionsByType: Record<string, TakeReactionCounts> = {};
       const commentsCount: Record<string, number> = {};
       const savesCount: Record<string, number> = {};
       const relaysCount: Record<string, number> = {};
 
-      // Initialize reaction counts by type for each take
-      accessibleTakeIds.forEach(takeId => {
+      // Initialize reaction counts by type
+      takeIds.forEach(takeId => {
         reactionsByType[takeId] = {
-          admire: 0,
-          snap: 0,
-          ovation: 0,
-          support: 0,
-          inspired: 0,
-          applaud: 0,
-          total: 0,
+          admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0,
         };
       });
 
-      (reactionsData || []).forEach(r => {
+      (reactionsRes.data || []).forEach(r => {
         reactionsCount[r.take_id] = (reactionsCount[r.take_id] || 0) + 1;
         const type = r.reaction_type as TakeReactionType;
         if (reactionsByType[r.take_id] && type in reactionsByType[r.take_id]) {
@@ -292,20 +197,12 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
           reactionsByType[r.take_id].total++;
         }
       });
-      (comments || []).forEach(c => { commentsCount[c.take_id] = (commentsCount[c.take_id] || 0) + 1; });
-      (saves || []).forEach(s => { savesCount[s.take_id] = (savesCount[s.take_id] || 0) + 1; });
-      (relays || []).forEach(r => { relaysCount[r.take_id] = (relaysCount[r.take_id] || 0) + 1; });
-
-      // Build user reaction map
-      const userReactionMap = new Map<string, TakeReactionType>();
-      (userReactionsData || []).forEach(r => {
-        userReactionMap.set(r.take_id, r.reaction_type as TakeReactionType);
-      });
-      const userSaveSet = new Set((userSaves || []).map(s => s.take_id));
-      const userRelaySet = new Set((userRelays || []).map(r => r.take_id));
+      (commentsRes.data || []).forEach(c => { commentsCount[c.take_id] = (commentsCount[c.take_id] || 0) + 1; });
+      (savesRes.data || []).forEach(s => { savesCount[s.take_id] = (savesCount[s.take_id] || 0) + 1; });
+      (relaysRes.data || []).forEach(r => { relaysCount[r.take_id] = (relaysCount[r.take_id] || 0) + 1; });
 
       // Build final takes array
-      const processedTakes: Take[] = accessibleTakes.map(take => ({
+      const processedTakes: Take[] = takesData.map(take => ({
         ...take,
         author: authorMap.get(take.author_id) || { username: "unknown", display_name: null, avatar_url: null },
         admires_count: reactionsCount[take.id] || 0,
@@ -333,6 +230,8 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     } catch (err) {
       console.error("[useTakes] Error:", err);
       setError(err instanceof Error ? err.message : "Failed to load takes");
+      // Don't block the UI - just show empty state gracefully
+      if (reset) setTakes([]);
     } finally {
       setLoading(false);
     }
@@ -352,20 +251,18 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     }
   }, [fetchTakes]);
 
-  // Loading timeout safeguard - prevents stuck loading state
+  // Loading timeout safeguard - prevents stuck loading state (10 seconds max)
   useEffect(() => {
     if (!loading) return;
 
     const timeoutId = setTimeout(() => {
       console.warn("[useTakes] Loading timeout reached - forcing load complete");
       setLoading(false);
-      if (takes.length === 0) {
-        setError("Loading timed out");
-      }
-    }, REQUEST_TIMEOUT_MS + 5000); // Give a bit more time than individual requests
+      // Don't show error - just gracefully complete loading
+    }, 10000);
 
     return () => clearTimeout(timeoutId);
-  }, [loading, takes.length]);
+  }, [loading]);
 
   // Toggle reaction (full reaction system)
   const toggleReaction = useCallback(async (takeId: string, reactionType: TakeReactionType) => {
