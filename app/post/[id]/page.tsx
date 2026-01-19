@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -169,7 +169,9 @@ function getTypeLabel(type: string): string {
 export default function PostPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const postId = params.id as string;
+  const commentIdFromUrl = searchParams.get('comment');
   const { user, profile } = useAuth();
 
   const [post, setPost] = useState<Post | null>(null);
@@ -203,6 +205,25 @@ export default function PostPage() {
   const { react: toggleReaction, removeReaction } = useToggleReaction();
   const { counts: reactionCounts } = useReactionCounts(postId);
   const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(postId, user?.id);
+
+  // Scroll to comment when navigating from notification
+  useEffect(() => {
+    if (commentIdFromUrl && !commentsLoading && comments.length > 0) {
+      // Wait a bit for DOM to render
+      const timeoutId = setTimeout(() => {
+        const commentElement = document.getElementById(`comment-${commentIdFromUrl}`);
+        if (commentElement) {
+          commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Add highlight effect
+          commentElement.classList.add('highlight-comment');
+          setTimeout(() => {
+            commentElement.classList.remove('highlight-comment');
+          }, 2000);
+        }
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [commentIdFromUrl, commentsLoading, comments.length]);
 
   // Single fetch function for all data
   const fetchData = useCallback(async () => {

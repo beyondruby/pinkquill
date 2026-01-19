@@ -583,9 +583,9 @@ export default function PostDetailModal({
     // Database update (real-time subscription will update counts)
     await toggleReaction(post.id, user.id, reactionType, userReaction);
 
-    // Create notification for reaction
+    // Create notification for reaction (use actual reaction type)
     if (!isSameReaction && post.authorId && post.authorId !== user.id) {
-      await createNotification(post.authorId, user.id, "admire", post.id);
+      await createNotification(post.authorId, user.id, reactionType, post.id);
     }
 
     // Notify other components
@@ -642,6 +642,11 @@ export default function PostDetailModal({
 
     // Database update
     await toggleSave(post.id, user.id, isSaved);
+
+    // Create notification when saving (not when unsaving)
+    if (newIsSaved && post.authorId && post.authorId !== user.id) {
+      await createNotification(post.authorId, user.id, 'save', post.id);
+    }
   };
 
   const handleRelay = async () => {

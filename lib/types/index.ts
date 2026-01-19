@@ -301,6 +301,7 @@ export interface Notification {
   actor_id: string;
   type: NotificationType;
   post_id: string | null;
+  comment_id: string | null;
   community_id: string | null;
   content: string | null;
   read: boolean;

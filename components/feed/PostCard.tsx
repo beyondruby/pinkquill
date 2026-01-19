@@ -489,9 +489,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     });
 
     // Send notification for new reactions (not removals or changes)
-    // Always use "admire" as notification type for all reaction types
+    // Use the actual reaction type (admire, snap, ovation, support, inspired, applaud)
     if (!wasReacted && !isSameReaction) {
-      await createNotification(post.authorId, user.id, "admire", post.id);
+      await createNotification(post.authorId, user.id, reactionType, post.id);
     }
   };
 
@@ -536,6 +536,11 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     });
 
     await toggleSave(post.id, user.id, isSaved);
+
+    // Create notification when saving (not when unsaving)
+    if (newIsSaved && post.authorId !== user.id) {
+      await createNotification(post.authorId, user.id, 'save', post.id);
+    }
   };
 
   const handleRelay = async (e: React.MouseEvent) => {

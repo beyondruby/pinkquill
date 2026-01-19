@@ -584,6 +584,11 @@ function NotificationItem({
         return `/post/${notification.post_id}`;
       }
     }
+    // Reply and comment_like notifications link to post with comment anchor
+    if ((notification.type === 'reply' || notification.type === 'comment_like') &&
+        notification.post_id && notification.comment_id) {
+      return `/post/${notification.post_id}?comment=${notification.comment_id}`;
+    }
     if (notification.post_id) {
       return `/post/${notification.post_id}`;
     }

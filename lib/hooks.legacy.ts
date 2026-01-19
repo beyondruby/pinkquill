@@ -2148,6 +2148,7 @@ export interface Notification {
   actor_id: string;
   type: NotificationType;
   post_id: string | null;
+  comment_id: string | null;
   community_id: string | null;
   content: string | null;
   read: boolean;
@@ -2176,7 +2177,8 @@ export async function createNotification(
   type: NotificationType,
   postId?: string,
   content?: string,
-  communityId?: string
+  communityId?: string,
+  commentId?: string
 ) {
   // Don't notify yourself
   if (userId === actorId) return;
@@ -2188,6 +2190,7 @@ export async function createNotification(
     post_id: postId || null,
     content: content || null,
     community_id: communityId || null,
+    comment_id: commentId || null,
   });
 }
 
@@ -3442,6 +3445,23 @@ export function useJoinCommunity() {
         }
         throw error;
       }
+
+      // Notify community admins about the join request
+      const { data: admins } = await supabase
+        .from("community_members")
+        .select("user_id")
+        .eq("community_id", communityId)
+        .eq("role", "admin")
+        .eq("status", "active");
+
+      if (admins && admins.length > 0) {
+        await Promise.all(
+          admins.map(admin =>
+            createNotification(admin.user_id, userId, 'community_join_request', undefined, undefined, communityId)
+          )
+        );
+      }
+
       return { success: true };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
@@ -4012,13 +4032,18 @@ export function useCommunityModeration(communityId: string) {
     }
   };
 
-  const promoteUser = async (userId: string, role: 'admin' | 'moderator') => {
+  const promoteUser = async (userId: string, role: 'admin' | 'moderator', actorId?: string) => {
     try {
       await supabase
         .from("community_members")
         .update({ role })
         .eq("community_id", communityId)
         .eq("user_id", userId);
+
+      // Notify user about their role change
+      if (actorId) {
+        await createNotification(userId, actorId, 'community_role_change', undefined, `You are now a ${role}`, communityId);
+      }
 
       return { success: true };
     } catch (err) {
@@ -4027,13 +4052,18 @@ export function useCommunityModeration(communityId: string) {
     }
   };
 
-  const demoteUser = async (userId: string) => {
+  const demoteUser = async (userId: string, actorId?: string) => {
     try {
       await supabase
         .from("community_members")
         .update({ role: 'member' })
         .eq("community_id", communityId)
         .eq("user_id", userId);
+
+      // Notify user about their role change
+      if (actorId) {
+        await createNotification(userId, actorId, 'community_role_change', undefined, 'You are now a member', communityId);
+      }
 
       return { success: true };
     } catch (err) {
