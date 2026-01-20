@@ -65,15 +65,8 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
 
     setInvitationLoading(true);
     try {
-      // Update invitation status
-      const { error: updateError } = await supabase
-        .from("community_invitations")
-        .update({ status: 'accepted', responded_at: new Date().toISOString() })
-        .eq("id", community.pending_invitation_id);
-
-      if (updateError) throw updateError;
-
-      // Add as member
+      // IMPORTANT: Add as member FIRST while invitation is still 'pending'
+      // The RLS policy checks for pending invitation status
       const { error: insertError } = await supabase.from("community_members").insert({
         community_id: community.id,
         user_id: userId,
@@ -82,6 +75,17 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
       });
 
       if (insertError) throw insertError;
+
+      // THEN update invitation status to 'accepted'
+      const { error: updateError } = await supabase
+        .from("community_invitations")
+        .update({ status: 'accepted', responded_at: new Date().toISOString() })
+        .eq("id", community.pending_invitation_id);
+
+      if (updateError) {
+        // If update fails, we should still consider this a success since member was added
+        console.warn("[JoinButton] Invitation update failed but member was added:", updateError);
+      }
 
       if (onUpdate) onUpdate();
     } catch (err) {
