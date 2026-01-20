@@ -11,9 +11,13 @@ import NotificationPanel from "@/components/notifications/NotificationPanel";
 
 export default function MobileHeader() {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const { count: unreadCount } = useUnreadCount(user?.id);
-  const { count: unreadMessagesCount } = useUnreadMessagesCount(user?.id);
+  const { user, loading } = useAuth();
+
+  // CRITICAL: Only fetch notification/message counts AFTER auth is fully loaded
+  // This prevents cascading async operations during auth initialization
+  const shouldFetchCounts = !loading && !!user;
+  const { count: unreadCount } = useUnreadCount(shouldFetchCounts ? user?.id : undefined);
+  const { count: unreadMessagesCount } = useUnreadMessagesCount(shouldFetchCounts ? user?.id : undefined);
   const { markAllAsRead } = useMarkAsRead();
   const [showNotifications, setShowNotifications] = useState(false);
 

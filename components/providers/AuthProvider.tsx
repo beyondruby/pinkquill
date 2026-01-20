@@ -141,6 +141,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     let isMounted = true;
+    let authCompleted = false;
+
+    // CRITICAL: Timeout safeguard to prevent infinite loading
+    // If auth doesn't complete in 8 seconds, force loading to false
+    const timeoutId = setTimeout(() => {
+      if (isMounted && !authCompleted) {
+        console.warn("Auth initialization timed out after 8s - forcing completion");
+        setLoading(false);
+        authCompleted = true;
+      }
+    }, 8000);
+
+    const completeAuth = () => {
+      if (!authCompleted) {
+        clearTimeout(timeoutId);
+        authCompleted = true;
+      }
+    };
 
     const initAuth = async () => {
       try {
@@ -156,12 +174,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setProfile(null);
           setLoading(false);
+          completeAuth();
           return;
         }
 
-        // User is authenticated and email is verified (middleware ensures this)
+        // User is authenticated
         setUser(user);
         setLoading(false);
+        completeAuth();
 
         // Fetch profile in background (don't block initial render)
         if (fetchingProfileRef.current !== user.id) {
@@ -184,6 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setProfile(null);
           setLoading(false);
+          completeAuth();
         }
       }
     };
@@ -197,11 +218,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setProfile(null);
           fetchingProfileRef.current = null;
+          completeAuth();
           return;
         }
 
         if (event === "SIGNED_IN" && session?.user) {
           setUser(session.user);
+          setLoading(false);
+          completeAuth();
 
           // Fetch profile for newly signed in user
           if (fetchingProfileRef.current !== session.user.id) {
@@ -224,6 +248,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Just update the user object, profile doesn't need refresh
           setUser(session.user);
         }
+
+        // Handle INITIAL_SESSION event (fires when page loads with existing session)
+        if (event === "INITIAL_SESSION") {
+          if (session?.user) {
+            setUser(session.user);
+            setLoading(false);
+            completeAuth();
+
+            // Fetch profile
+            if (fetchingProfileRef.current !== session.user.id) {
+              fetchingProfileRef.current = session.user.id;
+
+              let userProfile = await fetchProfile(session.user.id);
+
+              if (!userProfile && isMounted) {
+                userProfile = await createProfile(session.user);
+              }
+
+              if (isMounted) {
+                setProfile(userProfile);
+              }
+              fetchingProfileRef.current = null;
+            }
+          } else {
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+            completeAuth();
+          }
+        }
       }
     );
 
@@ -231,6 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, [fetchProfile, createProfile]);

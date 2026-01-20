@@ -23,15 +23,11 @@ export default function InsightsLayout({
   }, [user, loading, router]);
 
   if (loading) {
+    // Show minimal loading state - don't render sidebars to avoid hook cascades
     return (
-      <>
-        <MobileHeader />
-        <LeftSidebar />
-        <div className="pt-16 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-        <MobileBottomNav />
-      </>
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+        <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
+      </div>
     );
   }
 

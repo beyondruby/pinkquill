@@ -88,8 +88,12 @@ const icons: Record<string, React.ReactElement> = {
 export default function LeftSidebar() {
   const pathname = usePathname();
   const { user, profile, loading, signOut } = useAuth();
-  const { count: unreadCount } = useUnreadCount(user?.id);
-  const { count: unreadMessagesCount } = useUnreadMessagesCount(user?.id);
+
+  // CRITICAL: Only fetch notification/message counts AFTER auth is fully loaded
+  // This prevents cascading async operations during auth initialization
+  const shouldFetchCounts = !loading && !!user;
+  const { count: unreadCount } = useUnreadCount(shouldFetchCounts ? user?.id : undefined);
+  const { count: unreadMessagesCount } = useUnreadMessagesCount(shouldFetchCounts ? user?.id : undefined);
   const { markAllAsRead } = useMarkAsRead();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
