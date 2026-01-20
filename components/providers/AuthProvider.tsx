@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { User, Session } from "@supabase/supabase-js";
+import { User } from "@supabase/supabase-js";
 
 interface Profile {
   id: string;
@@ -46,61 +46,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Track if we're currently fetching a profile to prevent duplicate fetches
   const fetchingProfileRef = useRef<string | null>(null);
-  // Track the last processed session to prevent duplicate processing
-  const lastSessionIdRef = useRef<string | null>(null);
 
-  // Fetch profile from database with timeout
-  const fetchProfile = useCallback(async (userId: string, retries = 1): Promise<Profile | null> => {
-    const timeoutMs = 5000; // 5 second timeout per attempt (reduced from 8s)
+  // Fetch profile from database
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
 
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        // Create an AbortController for timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-        const fetchPromise = supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", userId)
-          .abortSignal(controller.signal)
-          .single();
-
-        const { data, error } = await fetchPromise;
-        clearTimeout(timeoutId);
-
-        if (error) {
-          // PGRST116 = no rows found - profile doesn't exist yet
-          if (error.code === "PGRST116") {
-            return null;
-          }
-          // Abort/timeout or network error - retry
-          if ((error.message?.includes("aborted") || error.message?.includes("Failed to fetch")) && attempt < retries) {
-            await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-            continue;
-          }
-          // Only log non-abort errors
-          if (!error.message?.includes("aborted")) {
-            console.error("Error fetching profile:", error.message);
-          }
+      if (error) {
+        // PGRST116 = no rows found - profile doesn't exist yet
+        if (error.code === "PGRST116") {
           return null;
         }
-
-        return data as Profile;
-      } catch (err: any) {
-        // Network error or timeout - retry silently
-        if (attempt < retries) {
-          await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-          continue;
-        }
-        // Only log if it's not an abort error
-        if (!err?.message?.includes("aborted")) {
-          console.error("Failed to fetch profile:", err);
-        }
+        console.error("Error fetching profile:", error.message);
         return null;
       }
+
+      return data as Profile;
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
+      return null;
     }
-    return null;
   }, []);
 
   // Create profile for new users
@@ -136,20 +105,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           attempts++;
         } else if (error.code === "23505" && error.message.includes("profiles_pkey")) {
           // Profile already exists (race condition) - fetch and return it
-          const existingProfile = await fetchProfile(user.id, 0);
+          const existingProfile = await fetchProfile(user.id);
           if (existingProfile) {
             return existingProfile;
           }
-          // If still can't fetch, return null
           return null;
         } else if (error.code === "23503") {
           // Foreign key violation - user doesn't exist in auth.users
-          // This happens with stale/corrupted sessions - sign out to clear
           console.warn("Auth user not found in database. Clearing session.");
           await supabase.auth.signOut();
           return null;
         } else {
-          // Different error - log and return null
           console.error("Error creating profile:", error.message);
           return null;
         }
@@ -175,84 +141,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     let isMounted = true;
-    let authInitialized = false;
 
-    // Timeout to prevent infinite loading (10 seconds max - increased for cold starts/slow networks)
-    const loadingTimeout = setTimeout(() => {
-      if (isMounted && !authInitialized) {
-        console.warn("Auth initialization timed out - forcing loading to false");
-        setLoading(false);
-        authInitialized = true;
-      }
-    }, 10000);
+    const initAuth = async () => {
+      try {
+        // Use getUser() instead of getSession() for better security
+        // getUser() validates the JWT with the server
+        // The middleware has already refreshed the session if needed
+        const { data: { user }, error } = await supabase.auth.getUser();
 
-    // Helper to complete auth initialization
-    const completeAuthInit = () => {
-      if (!authInitialized) {
-        clearTimeout(loadingTimeout);
+        if (!isMounted) return;
+
+        if (error || !user) {
+          // No valid user - clear state and finish loading
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        // User is authenticated and email is verified (middleware ensures this)
+        setUser(user);
         setLoading(false);
-        authInitialized = true;
+
+        // Fetch profile in background (don't block initial render)
+        if (fetchingProfileRef.current !== user.id) {
+          fetchingProfileRef.current = user.id;
+
+          let userProfile = await fetchProfile(user.id);
+
+          if (!userProfile && isMounted) {
+            userProfile = await createProfile(user);
+          }
+
+          if (isMounted) {
+            setProfile(userProfile);
+          }
+          fetchingProfileRef.current = null;
+        }
+      } catch (err) {
+        console.error("Auth init error:", err);
+        if (isMounted) {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
       }
     };
 
-    // Process session with email verification check BEFORE setting user
-    const processSession = async (session: Session | null) => {
-      if (!session?.user) {
-        setUser(null);
-        setProfile(null);
-        fetchingProfileRef.current = null;
-        lastSessionIdRef.current = null;
-        completeAuthInit();
-        return;
-      }
-
-      // SECURITY: Check if email is confirmed BEFORE setting user
-      // This prevents flash of authenticated state for unverified users
-      if (!session.user.email_confirmed_at) {
-        console.warn("User email not confirmed. Signing out.");
-        await supabase.auth.signOut();
-        setUser(null);
-        setProfile(null);
-        fetchingProfileRef.current = null;
-        lastSessionIdRef.current = null;
-        completeAuthInit();
-        return;
-      }
-
-      const userId = session.user.id;
-
-      // Skip if we already processed this session
-      if (lastSessionIdRef.current === userId) {
-        completeAuthInit();
-        return;
-      }
-
-      // Skip if we're already fetching this user's profile
-      if (fetchingProfileRef.current === userId) {
-        return;
-      }
-
-      fetchingProfileRef.current = userId;
-
-      // Set user only after email verification passes
-      setUser(session.user);
-      completeAuthInit();
-
-      // Fetch or create profile in background
-      let userProfile = await fetchProfile(userId);
-
-      if (!userProfile) {
-        userProfile = await createProfile(session.user);
-      }
-
-      if (isMounted) {
-        setProfile(userProfile);
-        lastSessionIdRef.current = userId;
-      }
-      fetchingProfileRef.current = null;
-    };
-
-    // Set up auth state listener FIRST to catch all events including INITIAL_SESSION
+    // Set up auth state listener for sign in/out events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
@@ -260,50 +196,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === "SIGNED_OUT") {
           setUser(null);
           setProfile(null);
-          lastSessionIdRef.current = null;
           fetchingProfileRef.current = null;
-          completeAuthInit();
           return;
         }
 
-        // Handle initial session, sign in, and token refresh events
-        if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-          await processSession(session);
+        if (event === "SIGNED_IN" && session?.user) {
+          setUser(session.user);
+
+          // Fetch profile for newly signed in user
+          if (fetchingProfileRef.current !== session.user.id) {
+            fetchingProfileRef.current = session.user.id;
+
+            let userProfile = await fetchProfile(session.user.id);
+
+            if (!userProfile && isMounted) {
+              userProfile = await createProfile(session.user);
+            }
+
+            if (isMounted) {
+              setProfile(userProfile);
+            }
+            fetchingProfileRef.current = null;
+          }
+        }
+
+        if (event === "TOKEN_REFRESHED" && session?.user) {
+          // Just update the user object, profile doesn't need refresh
+          setUser(session.user);
         }
       }
     );
-
-    // Also call getSession as a fallback in case INITIAL_SESSION doesn't fire
-    // (can happen in some edge cases with SSR or stale listeners)
-    const initAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (!isMounted) return;
-
-        if (error) {
-          console.error("Auth session error:", error);
-          completeAuthInit();
-          return;
-        }
-
-        // Only process if we haven't already initialized via onAuthStateChange
-        if (!authInitialized) {
-          await processSession(session);
-        }
-      } catch (err) {
-        console.error("Auth init error:", err);
-        if (isMounted) {
-          completeAuthInit();
-        }
-      }
-    };
 
     initAuth();
 
     return () => {
       isMounted = false;
-      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, [fetchProfile, createProfile]);
