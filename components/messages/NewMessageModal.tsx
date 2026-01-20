@@ -135,14 +135,12 @@ export default function NewMessageModal({
 
         if (sharedConversation) {
           // Found existing conversation
-          console.log("Found existing conversation:", sharedConversation.conversation_id);
           onConversationCreated(sharedConversation.conversation_id);
           return;
         }
       }
 
       // Create new conversation
-      console.log("Creating new conversation...");
       const { data: newConversation, error: convError } = await supabase
         .from("conversations")
         .insert({})
@@ -157,8 +155,6 @@ export default function NewMessageModal({
       if (!newConversation) {
         throw new Error("No conversation returned after insert");
       }
-
-      console.log("Created conversation:", newConversation.id);
 
       // Add current user as participant first
       const { error: myParticipantError } = await supabase
@@ -182,7 +178,6 @@ export default function NewMessageModal({
         throw new Error(`Failed to add participant: ${otherParticipantError.message}`);
       }
 
-      console.log("Added participants, calling onConversationCreated");
       onConversationCreated(newConversation.id);
     } catch (err: any) {
       console.error("Failed to create conversation:", err);

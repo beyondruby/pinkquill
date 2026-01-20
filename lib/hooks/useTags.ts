@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
-import type { Post, PostMedia } from "../types";
+import type { Post, PostMedia, AggregateCount } from "../types";
+import { getAggregateCount } from "../types";
 
 // ============================================================================
 // TYPES
@@ -277,9 +278,9 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
         created_at: post.created_at,
         author: post.author,
         media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-        admires_count: (post.admires as any)?.[0]?.count || 0,
-        comments_count: (post.comments as any)?.[0]?.count || 0,
-        relays_count: (post.relays as any)?.[0]?.count || 0,
+        admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
+        comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
+        relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
         reactions_count: 0,
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: userSaves.has(post.id),

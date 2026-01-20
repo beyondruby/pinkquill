@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useNotifications, useMarkAsRead, useCollaborationInvites, useFollowRequests, Notification } from "@/lib/hooks";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -353,6 +353,25 @@ const icons = {
       <path d="M4.93 4.93l14.14 14.14" stroke="url(#bannedGrad)" strokeWidth="2" />
     </svg>
   ),
+  joinRequest: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="joinReqGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ff9f43" />
+          <stop offset="100%" stopColor="#8e44ad" />
+        </linearGradient>
+      </defs>
+      <circle cx="9" cy="7" r="4" fill="url(#joinReqGrad)" />
+      <path
+        d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
+        stroke="url(#joinReqGrad)"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <circle cx="18" cy="12" r="5" stroke="url(#joinReqGrad)" strokeWidth="2" fill="none" />
+      <path d="M18 10v4M16 12h4" stroke="url(#joinReqGrad)" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  ),
   collaborationInvite: (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
       <defs>
@@ -483,6 +502,8 @@ function getNotificationIcon(type: string) {
       return icons.followRequestAccepted;
     case 'community_invite':
       return icons.invite;
+    case 'community_join_request':
+      return icons.joinRequest;
     case 'community_join_approved':
       return icons.approved;
     case 'community_muted':
@@ -538,6 +559,8 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
       return { actor: actorName, action: 'accepted your follow request' };
     case 'community_invite':
       return { actor: actorName, action: `invited you to join ${communityName}` };
+    case 'community_join_request':
+      return { actor: actorName, action: `requested to join ${communityName}` };
     case 'community_join_approved':
       return { actor: 'Your request', action: `to join ${communityName} was approved` };
     case 'community_muted':
@@ -571,6 +594,10 @@ function NotificationItem({
         notification.type === 'follow_request' ||
         notification.type === 'follow_request_accepted') {
       return `/studio/${notification.actor?.username}`;
+    }
+    if (notification.type === 'community_join_request' && notification.community?.slug) {
+      // Link to the members settings page where admins can approve/reject
+      return `/community/${notification.community.slug}/settings/members`;
     }
     if (notification.type.startsWith('community_') && notification.community?.slug) {
       return `/community/${notification.community.slug}`;
@@ -692,17 +719,6 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
   const invites = rawInvites.filter(invite => invite.post && invite.post.author);
   const { requests: followRequests, loading: followRequestsLoading, accept: acceptFollowRequest, decline: declineFollowRequest, refetch: refetchFollowRequests } = useFollowRequests(user?.id);
 
-  // Debug logging
-  console.log('[NotificationPanel] Data:', {
-    userId: user?.id,
-    notificationsCount: notifications.length,
-    rawInvitesCount: rawInvites.length,
-    filteredInvitesCount: invites.length,
-    followRequestsCount: followRequests.length,
-    loading,
-    rawInvites: rawInvites.map(i => ({ post_id: i.post_id, hasPost: !!i.post, hasAuthor: !!i.post?.author })),
-  });
-
   const handleAcceptFollowRequest = async (requesterId: string) => {
     await acceptFollowRequest(requesterId);
     refetchFollowRequests();
@@ -713,21 +729,27 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
     refetchFollowRequests();
   };
 
+  // Use a ref for onClose to avoid stale closure in event listener
+  const onCloseRef = useRef(onClose);
   useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
+    document.addEventListener('keydown', handleEscape);
+    document.body.style.overflow = 'hidden';
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const handleMarkAllAsRead = async () => {
     if (user) {

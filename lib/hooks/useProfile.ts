@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabase";
-import type { Profile, Post, PostMedia, FollowUser, FollowStatus, FollowRequest, NotificationType } from "../types";
+import type { Profile, Post, PostMedia, FollowUser, FollowStatus, FollowRequest, NotificationType, AggregateCount } from "../types";
+import { getAggregateCount } from "../types";
 
 // ============================================================================
 // Helper: Create notification
@@ -200,7 +201,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       // Calculate total admires
       let totalAdmires = 0;
       (postsData.data || []).forEach((post) => {
-        totalAdmires += (post.admires as any)?.[0]?.count || 0;
+        totalAdmires += getAggregateCount(post.admires as AggregateCount[] | null);
       });
 
       setProfile({
@@ -215,8 +216,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       const postsWithStats = (postsData.data || []).map((post) => ({
         ...post,
         media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-        admires_count: (post.admires as any)?.[0]?.count || 0,
-        comments_count: (post.comments as any)?.[0]?.count || 0,
+        admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
+        comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
         relays_count: 0,
         reactions_count: 0,
         user_has_admired: false,
@@ -309,27 +310,41 @@ export function useFollow() {
   };
 
   const unfollow = async (followerId: string, followingId: string): Promise<void> => {
-    await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", followingId);
+    const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", followingId);
+    if (error) {
+      console.error("[useFollow] Failed to unfollow:", error.message);
+      throw error;
+    }
   };
 
   const acceptRequest = async (ownerId: string, requesterId: string): Promise<void> => {
-    await supabase
+    const { error } = await supabase
       .from("follows")
       .update({ status: "accepted" })
       .eq("follower_id", requesterId)
       .eq("following_id", ownerId)
       .eq("status", "pending");
 
+    if (error) {
+      console.error("[useFollow] Failed to accept follow request:", error.message);
+      throw error;
+    }
+
     await createNotification(requesterId, ownerId, "follow_request_accepted");
   };
 
   const declineRequest = async (ownerId: string, requesterId: string): Promise<void> => {
-    await supabase
+    const { error } = await supabase
       .from("follows")
       .delete()
       .eq("follower_id", requesterId)
       .eq("following_id", ownerId)
       .eq("status", "pending");
+
+    if (error) {
+      console.error("[useFollow] Failed to decline follow request:", error.message);
+      throw error;
+    }
   };
 
   const getPendingRequests = async (userId: string) => {
@@ -508,13 +523,15 @@ export function useFollowRequests(userId?: string) {
 
       if (error) {
         // Try delete + insert as fallback
-        await supabase.from("follows").delete().eq("follower_id", requesterId).eq("following_id", userId);
+        const { error: deleteError } = await supabase.from("follows").delete().eq("follower_id", requesterId).eq("following_id", userId);
+        if (deleteError) console.warn("[useFollowRequests] Fallback delete failed:", deleteError.message);
 
-        await supabase.from("follows").insert({
+        const { error: insertError } = await supabase.from("follows").insert({
           follower_id: requesterId,
           following_id: userId,
           status: "accepted",
         });
+        if (insertError) throw insertError;
       }
 
       await createNotification(requesterId, userId, "follow_request_accepted");
@@ -530,7 +547,8 @@ export function useFollowRequests(userId?: string) {
     if (!userId) return;
 
     try {
-      await supabase.from("follows").delete().eq("follower_id", requesterId).eq("following_id", userId);
+      const { error } = await supabase.from("follows").delete().eq("follower_id", requesterId).eq("following_id", userId);
+      if (error) throw error;
 
       setRequests((prev) => prev.filter((r) => r.follower_id !== requesterId));
       setCount((prev) => Math.max(0, prev - 1));
@@ -558,7 +576,8 @@ export function useFollowRequests(userId?: string) {
           filter: `following_id=eq.${userId}`,
         },
         (payload) => {
-          if (payload.eventType === "INSERT" && (payload.new as any)?.status === "pending") {
+          const newData = payload.new as { status?: string } | null;
+          if (payload.eventType === "INSERT" && newData?.status === "pending") {
             fetchRequests();
           } else if (payload.eventType === "DELETE") {
             fetchRequests();

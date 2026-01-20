@@ -122,7 +122,7 @@ export default function LeftSidebar() {
 
   return (
     <>
-      <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white/95 backdrop-blur-xl border-r border-border-light flex-col p-6 z-[100] overflow-visible">
+      <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white/95 backdrop-blur-xl border-r border-border-light flex-col p-6 z-[100] overflow-visible" aria-label="Main navigation">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm flex items-center justify-center shadow-lg shadow-purple-primary/20">
@@ -168,13 +168,15 @@ export default function LeftSidebar() {
                     ? "text-pink-vivid bg-pink-vivid/10 font-medium"
                     : "text-muted hover:text-purple-primary hover:bg-purple-primary/10"
                 }`}
+                aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+                aria-expanded={showNotifications}
               >
                 <div className="relative">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                   {unreadCount > 0 && (
-                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-red-500 text-white font-ui text-[0.65rem] font-semibold rounded-full flex items-center justify-center px-1">
+                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-red-500 text-white font-ui text-[0.65rem] font-semibold rounded-full flex items-center justify-center px-1" aria-hidden="true">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                   )}
@@ -190,13 +192,14 @@ export default function LeftSidebar() {
                     ? "text-pink-vivid bg-pink-vivid/10 font-medium"
                     : "text-muted hover:text-purple-primary hover:bg-purple-primary/10"
                 }`}
+                aria-label={unreadMessagesCount > 0 ? `Messages, ${unreadMessagesCount} unread` : "Messages"}
               >
                 <div className="relative">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                   {unreadMessagesCount > 0 && (
-                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-red-500 text-white font-ui text-[0.65rem] font-semibold rounded-full flex items-center justify-center px-1">
+                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-red-500 text-white font-ui text-[0.65rem] font-semibold rounded-full flex items-center justify-center px-1" aria-hidden="true">
                       {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
                     </span>
                   )}

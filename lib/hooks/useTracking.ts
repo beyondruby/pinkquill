@@ -36,15 +36,23 @@ async function isBlockedEitherWay(
   if (!userId1) return false;
   if (userId1 === userId2) return false;
 
-  const { data } = await supabase
-    .from("blocks")
-    .select("id")
-    .or(
-      `and(blocker_id.eq.${userId1},blocked_id.eq.${userId2}),and(blocker_id.eq.${userId2},blocked_id.eq.${userId1})`
-    )
-    .limit(1);
+  // Check both directions separately to avoid SQL injection from string interpolation
+  const [{ data: block1 }, { data: block2 }] = await Promise.all([
+    supabase
+      .from("blocks")
+      .select("id")
+      .eq("blocker_id", userId1)
+      .eq("blocked_id", userId2)
+      .maybeSingle(),
+    supabase
+      .from("blocks")
+      .select("id")
+      .eq("blocker_id", userId2)
+      .eq("blocked_id", userId1)
+      .maybeSingle(),
+  ]);
 
-  return (data?.length || 0) > 0;
+  return !!(block1 || block2);
 }
 
 // ============================================================================

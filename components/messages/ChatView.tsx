@@ -7,6 +7,7 @@ import { useBlock, useSendVoiceNote, useSendMedia } from "@/lib/hooks";
 import VoiceRecorder from "./VoiceRecorder";
 import VoiceNotePlayer from "./VoiceNotePlayer";
 import Loading from "@/components/ui/Loading";
+import EmojiPicker from "@/components/ui/EmojiPicker";
 
 interface Message {
   id: string;
@@ -137,6 +138,7 @@ export default function ChatView({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ file: File; url: string; type: 'image' | 'video' } | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -351,7 +353,10 @@ export default function ChatView({
             supabase
               .from("messages")
               .update({ is_read: true })
-              .eq("id", newMsg.id);
+              .eq("id", newMsg.id)
+              .then(({ error }) => {
+                if (error) console.error("Failed to mark message as read:", error.message);
+              });
           }
         }
       )
@@ -370,11 +375,7 @@ export default function ChatView({
           );
         }
       )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("Realtime subscription active for conversation:", conversationId);
-        }
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
@@ -884,15 +885,28 @@ export default function ChatView({
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Write a message..."
+                  aria-label="Message input"
                   className="flex-1 py-3 border-none bg-transparent outline-none font-body text-[0.95rem] text-ink placeholder:text-muted/60"
                 />
-                <button className="w-8 h-8 flex items-center justify-center text-muted hover:text-purple-primary transition-all">
-                  {icons.smile}
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="w-8 h-8 flex items-center justify-center text-muted hover:text-purple-primary transition-all"
+                    aria-label="Add emoji"
+                    aria-expanded={showEmojiPicker}
+                  >
+                    {icons.smile}
+                  </button>
+                  <EmojiPicker
+                    isOpen={showEmojiPicker}
+                    onClose={() => setShowEmojiPicker(false)}
+                    onSelect={(emoji) => setNewMessage((prev) => prev + emoji)}
+                  />
+                </div>
                 <button
                   onClick={() => setShowVoiceRecorder(true)}
                   className="w-8 h-8 flex items-center justify-center text-muted hover:text-purple-primary transition-all ml-1"
-                  title="Record voice note"
+                  aria-label="Record voice note"
                 >
                   {icons.mic}
                 </button>
@@ -903,10 +917,11 @@ export default function ChatView({
           <button
             onClick={mediaPreview ? handleSendMedia : handleSend}
             disabled={(!newMessage.trim() && !mediaPreview) || sending || sendingMedia || showVoiceRecorder}
+            aria-label={sendingMedia ? "Sending message" : (mediaPreview ? "Send media" : "Send message")}
             className="w-11 h-11 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center shadow-lg shadow-purple-primary/30 hover:scale-105 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             {sendingMedia ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
             ) : (
               icons.send
             )}

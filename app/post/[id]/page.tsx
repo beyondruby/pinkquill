@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import DOMPurify from "dompurify";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useToggleSave, useToggleRelay, useComments, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, ReactionType } from "@/lib/hooks";
@@ -14,11 +15,19 @@ import LeftSidebar from "@/components/layout/LeftSidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import PostTags from "@/components/feed/PostTags";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { icons } from "@/components/ui/Icons";
 
-// Helper to clean HTML for display (keeps tags but fixes &nbsp;)
+// Helper to sanitize and clean HTML for display
 function cleanHtmlForDisplay(html: string): string {
-  return html.replace(/&nbsp;/g, ' ');
+  // First sanitize to prevent XSS attacks
+  const sanitized = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'span', 'div'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style'],
+    ALLOW_DATA_ATTR: false,
+  });
+  // Then clean up &nbsp; entities
+  return sanitized.replace(/&nbsp;/g, ' ');
 }
 
 interface TaggedUser {
@@ -702,7 +711,7 @@ export default function PostPage() {
   const hasMedia = post.media && post.media.length > 0;
 
   return (
-    <>
+    <ErrorBoundary>
       <MobileHeader />
       <LeftSidebar />
       <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen bg-[#fdfdfd]">
@@ -1282,6 +1291,6 @@ export default function PostPage() {
       )}
 
       <MobileBottomNav />
-    </>
+    </ErrorBoundary>
   );
 }

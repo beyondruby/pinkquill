@@ -733,7 +733,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     <div className="actions-wrapper">
       <MentionsDisplay />
       <HashtagsDisplay />
-      <div className="actions">
+      <div className="actions" role="toolbar" aria-label="Post actions">
         <div className="actions-left">
         {/* Reaction Picker with real-time counts */}
         <ReactionPicker
@@ -742,22 +742,33 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
           onReact={handleReaction}
           onRemoveReaction={handleRemoveReaction}
         />
-        <button className="action-btn">
+        <button className="action-btn" aria-label={`${post.stats?.comments ?? 0} comments`}>
           <CommentIcon />
           <span className="action-count">{post.stats?.comments ?? 0}</span>
         </button>
         {(!user || user.id !== post.authorId) && (
-          <button className={`action-btn ${isRelayed ? 'active' : ''}`} onClick={handleRelay} style={isRelayed ? { color: '#22c55e' } : undefined}>
+          <button
+            className={`action-btn ${isRelayed ? 'active' : ''}`}
+            onClick={handleRelay}
+            style={isRelayed ? { color: '#22c55e' } : undefined}
+            aria-label={isRelayed ? `Remove relay, ${relayCount} relays` : `Relay post, ${relayCount} relays`}
+            aria-pressed={isRelayed}
+          >
             <RelayIcon />
             <span className="action-count">{relayCount}</span>
           </button>
         )}
       </div>
       <div className="actions-right">
-        <button className="action-btn" onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }}>
+        <button className="action-btn" onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} aria-label="Share post">
           <ShareIcon />
         </button>
-        <button className={`action-btn ${isSaved ? 'saved' : ''}`} onClick={handleSave}>
+        <button
+          className={`action-btn ${isSaved ? 'saved' : ''}`}
+          onClick={handleSave}
+          aria-label={isSaved ? "Remove from saved" : "Save post"}
+          aria-pressed={isSaved}
+        >
           <BookmarkIcon filled={isSaved} />
         </button>
       </div>
@@ -888,6 +899,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
+            aria-label="Post options menu"
+            aria-expanded={showMenu}
+            aria-haspopup="menu"
           >
             <EllipsisIcon />
           </button>
@@ -895,6 +909,8 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
             <div
               className="absolute right-0 top-full mt-2 w-36 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50"
               onClick={(e) => e.stopPropagation()}
+              role="menu"
+              aria-label="Post options"
             >
               <button
                 onClick={() => {
@@ -902,8 +918,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
                   handleEdit();
                 }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                role="menuitem"
               >
-                <EditIcon />
+                <EditIcon aria-hidden="true" />
                 Edit
               </button>
               <button
@@ -912,8 +929,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
                   setShowDeleteConfirm(true);
                 }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
+                role="menuitem"
               >
-                <TrashIcon />
+                <TrashIcon aria-hidden="true" />
                 Delete
               </button>
             </div>
@@ -927,6 +945,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
+            aria-label="Post options menu"
+            aria-expanded={showMenu}
+            aria-haspopup="menu"
           >
             <EllipsisIcon />
           </button>
@@ -934,6 +955,8 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
             <div
               className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50"
               onClick={(e) => e.stopPropagation()}
+              role="menu"
+              aria-label="Post options"
             >
               <button
                 onClick={() => {
@@ -941,26 +964,28 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
                   setShowBlockConfirm(true);
                 }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                role="menuitem"
               >
-                <BlockIcon />
+                <BlockIcon aria-hidden="true" />
                 Block @{post.author.handle.replace('@', '')}
               </button>
-              <div className="h-px bg-black/[0.06] mx-3" />
+              <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
               <button
                 onClick={() => {
                   setShowMenu(false);
                   setShowReportModal(true);
                 }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
+                role="menuitem"
               >
-                <FlagIcon />
+                <FlagIcon aria-hidden="true" />
                 Report
               </button>
             </div>
           )}
         </div>
       ) : (
-        <button className="post-menu-btn" onClick={(e) => e.stopPropagation()}>
+        <button className="post-menu-btn" onClick={(e) => e.stopPropagation()} aria-label="Post options">
           <EllipsisIcon />
         </button>
       )}
@@ -1097,15 +1122,16 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
                         src={item.media_url}
                         className="unified-media-image"
                         preload="metadata"
+                        aria-label={item.caption || `Video ${idx + 1} in post by ${post.author.name}`}
                       />
-                      <div className="unified-video-play">
+                      <div className="unified-video-play" aria-hidden="true">
                         <PlayIcon />
                       </div>
                     </div>
                   ) : (
                     <Image
                       src={item.media_url}
-                      alt=""
+                      alt={item.caption || `Image ${idx + 1} in post by ${post.author.name}`}
                       width={400}
                       height={400}
                       className="unified-media-image"

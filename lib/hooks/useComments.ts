@@ -355,9 +355,14 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
   const deleteComment = async (commentId: string): Promise<{ success: boolean }> => {
     try {
       // Delete in order: likes, replies, then the comment
-      await supabase.from("comment_likes").delete().eq("comment_id", commentId);
-      await supabase.from("comments").delete().eq("parent_id", commentId);
-      await supabase.from("comments").delete().eq("id", commentId);
+      const { error: likesError } = await supabase.from("comment_likes").delete().eq("comment_id", commentId);
+      if (likesError) console.warn("[useComments] Failed to delete comment likes:", likesError.message);
+
+      const { error: repliesError } = await supabase.from("comments").delete().eq("parent_id", commentId);
+      if (repliesError) console.warn("[useComments] Failed to delete replies:", repliesError.message);
+
+      const { error: commentError } = await supabase.from("comments").delete().eq("id", commentId);
+      if (commentError) throw commentError;
 
       // Update local state
       setComments((current) => {

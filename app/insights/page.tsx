@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { useInsightsDashboard, TimeRange, DateRange } from "@/lib/hooks/useInsights";
 import DateRangePicker from "@/components/insights/DateRangePicker";
 import MetricCard from "@/components/insights/cards/MetricCard";
@@ -32,10 +34,34 @@ const postTypeLabels: Record<string, string> = {
 };
 
 export default function InsightsOverviewPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [customRange, setCustomRange] = useState<DateRange | undefined>();
 
   const { insights, loading, error } = useInsightsDashboard(timeRange, customRange);
+
+  // Auth guard - redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/insights");
+    }
+  }, [user, authLoading, router]);
+
+  // Show loading while checking auth
+  if (authLoading || !user) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="font-display text-3xl text-ink">Insights Overview</h1>
+            <p className="font-body text-muted mt-1">Track your performance and growth</p>
+          </div>
+        </div>
+        <LoadingSkeleton />
+      </div>
+    );
+  }
 
   const handleTimeRangeChange = (range: TimeRange, custom?: DateRange) => {
     setTimeRange(range);

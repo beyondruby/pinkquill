@@ -473,3 +473,69 @@ export interface PaginatedResult<T> {
   data: T[];
   pagination: PaginationState;
 }
+
+// ============================================================================
+// SUPABASE QUERY RESULT TYPES
+// ============================================================================
+
+/**
+ * Supabase aggregate count result - returned from queries like `admires(count)`
+ * Returns an array with a single object containing the count
+ */
+export interface AggregateCount {
+  count: number;
+}
+
+/**
+ * Raw post data from Supabase query before transformation
+ * This represents the exact shape returned by the database query
+ */
+export interface RawPostQueryResult {
+  id: string;
+  author_id: string;
+  type: PostType;
+  title: string | null;
+  content: string;
+  visibility: PostVisibility;
+  status?: PostStatus;
+  content_warning: string | null;
+  created_at: string;
+  community_id: string | null;
+  styling?: PostStyling | null;
+  post_location?: string | null;
+  metadata?: JournalMetadata | null;
+  spotify_track?: SpotifyTrack | null;
+  author: PostAuthor;
+  media: PostMedia[];
+  community?: PostCommunity | null;
+  // Aggregate counts come as array with single object
+  admires: AggregateCount[] | null;
+  comments: AggregateCount[] | null;
+  relays: AggregateCount[] | null;
+}
+
+/**
+ * Supabase real-time payload for follows table
+ */
+export interface FollowPayload {
+  follower_id: string;
+  following_id: string;
+  status?: FollowStatus;
+  created_at?: string;
+}
+
+/**
+ * Supabase real-time payload for post_collaborators table
+ */
+export interface CollaboratorPayload {
+  post_id: string;
+  user_id: string;
+  status: string;
+}
+
+/**
+ * Helper to safely extract count from aggregate result
+ */
+export function getAggregateCount(aggregate: AggregateCount[] | null | undefined): number {
+  return aggregate?.[0]?.count ?? 0;
+}

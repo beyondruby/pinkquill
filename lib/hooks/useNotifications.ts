@@ -106,13 +106,30 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
     }
   }, [userId, fetchNotifications]);
 
+  // Track the userId for which we have a subscription
+  const subscribedUserIdRef = useRef<string | null>(null);
+
   // Real-time subscription
   useEffect(() => {
-    if (!userId) return;
-
-    // Prevent duplicate subscriptions
-    if (channelRef.current) {
+    if (!userId) {
+      // Clean up any existing subscription when userId is cleared
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        subscribedUserIdRef.current = null;
+      }
       return;
+    }
+
+    // If we already have a subscription for this user, don't create another
+    if (channelRef.current && subscribedUserIdRef.current === userId) {
+      return;
+    }
+
+    // Clean up previous subscription if userId changed
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
 
     const channelName = `notifications-realtime-${userId}-${Date.now()}`;
@@ -133,11 +150,13 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
       .subscribe();
 
     channelRef.current = channel;
+    subscribedUserIdRef.current = userId;
 
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+        subscribedUserIdRef.current = null;
       }
     };
   }, [userId, fetchNotifications]);
@@ -214,11 +233,17 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
 
 export function useMarkAsRead() {
   const markAsRead = async (notificationId: string) => {
-    await supabase.from("notifications").update({ read: true }).eq("id", notificationId);
+    const { error } = await supabase.from("notifications").update({ read: true }).eq("id", notificationId);
+    if (error) {
+      console.error("[useMarkAsRead] Failed to mark notification as read:", error.message);
+    }
   };
 
   const markAllAsRead = async (userId: string) => {
-    await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
+    const { error } = await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
+    if (error) {
+      console.error("[useMarkAsRead] Failed to mark all notifications as read:", error.message);
+    }
   };
 
   return { markAsRead, markAllAsRead };

@@ -148,9 +148,7 @@ export default function AuthForm() {
               avatar_url: '/defaultprofile.png',
             });
 
-          if (profileError) {
-            console.log("Profile will be created after email confirmation:", profileError.message);
-          }
+          // Profile will be created after email confirmation if there was an error
 
           // Move to OTP step
           setPendingEmail(emailOrUsername);

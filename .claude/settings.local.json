@@ -24,7 +24,10 @@
       "Bash(wc:*)",
       "Bash(done)",
       "Bash(ls:*)",
-      "mcp__supabase__list_migrations"
+      "mcp__supabase__list_migrations",
+      "Bash(find:*)",
+      "Bash(xargs:*)",
+      "Bash(grep:*)"
     ]
   }
 }

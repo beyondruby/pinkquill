@@ -67,7 +67,7 @@ export default function AccountSettingsPage() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newPassword || !confirmPassword) {
+    if (!currentPassword || !newPassword || !confirmPassword) {
       setPasswordError("Please fill in all fields");
       return;
     }
@@ -82,11 +82,29 @@ export default function AccountSettingsPage() {
       return;
     }
 
+    if (currentPassword === newPassword) {
+      setPasswordError("New password must be different from current password");
+      return;
+    }
+
     setPasswordLoading(true);
     setPasswordError(null);
     setPasswordSuccess(false);
 
     try {
+      // First, verify current password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || "",
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        setPasswordError("Current password is incorrect");
+        setPasswordLoading(false);
+        return;
+      }
+
+      // If current password is correct, update to new password
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -208,6 +226,23 @@ export default function AccountSettingsPage() {
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <div>
             <label className="block font-ui text-sm text-ink mb-2">
+              Current Password
+            </label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => {
+                setCurrentPassword(e.target.value);
+                setPasswordError(null);
+                setPasswordSuccess(false);
+              }}
+              placeholder="Enter current password"
+              className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block font-ui text-sm text-ink mb-2">
               New Password
             </label>
             <input
@@ -257,7 +292,7 @@ export default function AccountSettingsPage() {
 
           <button
             type="submit"
-            disabled={passwordLoading || !newPassword || !confirmPassword}
+            disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
             className="px-6 py-2.5 bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium rounded-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             {passwordLoading ? (

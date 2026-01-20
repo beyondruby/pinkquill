@@ -14,6 +14,7 @@ import PostTags from "@/components/feed/PostTags";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import LeftSidebar from "@/components/layout/LeftSidebar";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { icons } from "@/components/ui/Icons";
 
 interface Take {
@@ -586,7 +587,7 @@ export default function SingleTakePage({ params }: PageProps) {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <LeftSidebar />
       <main className="ml-[220px] min-h-screen bg-[#fdfdfd]">
         <div className="max-w-[1100px] mx-auto py-8 px-6 flex gap-6">
@@ -990,6 +991,6 @@ export default function SingleTakePage({ params }: PageProps) {
           </div>
         </div>
       )}
-    </>
+    </ErrorBoundary>
   );
 }

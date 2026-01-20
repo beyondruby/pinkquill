@@ -2,13 +2,20 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabase";
-import type { Post, PostMedia, PaginationState, RelayedPost } from "../types";
+import type { Post, PostMedia, PaginationState, RelayedPost, ReactionType, AggregateCount, PostAuthor } from "../types";
+import { getAggregateCount } from "../types";
+import { withRetry, categorizeError } from "../utils/retry";
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
 const DEFAULT_PAGE_SIZE = 20;
+const RETRY_OPTIONS = {
+  maxAttempts: 3,
+  initialDelay: 500,
+  maxDelay: 5000,
+};
 
 // ============================================================================
 // useFeed - Main feed hook with pagination
@@ -247,15 +254,15 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
           community: post.community,
           // Extract counts from aggregation
-          admires_count: (post.admires as any)?.[0]?.count || 0,
-          comments_count: (post.comments as any)?.[0]?.count || 0,
-          relays_count: (post.relays as any)?.[0]?.count || 0,
+          admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
+          comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
+          relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
           reactions_count: 0, // Will be computed from reactions if needed
           // User flags
           user_has_admired: userAdmires.has(post.id),
           user_has_saved: userSaves.has(post.id),
           user_has_relayed: userRelays.has(post.id),
-          user_reaction_type: (userReactions.get(post.id) as any) || null,
+          user_reaction_type: (userReactions.get(post.id) as ReactionType | undefined) || null,
           // Collaborators and mentions
           collaborators: collaboratorsByPost.get(post.id) || [],
           mentions: mentionsByPost.get(post.id) || [],
@@ -278,9 +285,10 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           total: totalCount || undefined,
         });
       } catch (err) {
-        console.error("[useFeed] Error:", err);
+        const categorized = categorizeError(err);
+        console.error("[useFeed] Error:", categorized.message);
         if (mountedRef.current) {
-          setError(err instanceof Error ? err.message : "Failed to fetch posts");
+          setError(categorized.userMessage);
         }
       } finally {
         fetchingRef.current = false;
@@ -313,10 +321,17 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
     };
   }, [fetchPosts]);
 
-  // Real-time subscriptions for interactions
+  // Real-time subscriptions for interactions - use ref to track userId for closures
+  const userIdRef = useRef(userId);
   useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+
+  useEffect(() => {
+    // Create a unique channel name to avoid subscription conflicts
+    const channelName = `feed-interactions-${userId || 'anon'}-${Date.now()}`;
     const channel = supabase
-      .channel("feed-interactions")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "admires" },
@@ -334,13 +349,13 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
                 return {
                   ...post,
                   admires_count: post.admires_count + 1,
-                  user_has_admired: newData?.user_id === userId ? true : post.user_has_admired,
+                  user_has_admired: newData?.user_id === userIdRef.current ? true : post.user_has_admired,
                 };
               } else if (payload.eventType === "DELETE") {
                 return {
                   ...post,
                   admires_count: Math.max(0, post.admires_count - 1),
-                  user_has_admired: oldData?.user_id === userId ? false : post.user_has_admired,
+                  user_has_admired: oldData?.user_id === userIdRef.current ? false : post.user_has_admired,
                 };
               }
               return post;
@@ -365,13 +380,13 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
                 return {
                   ...post,
                   relays_count: post.relays_count + 1,
-                  user_has_relayed: newData?.user_id === userId ? true : post.user_has_relayed,
+                  user_has_relayed: newData?.user_id === userIdRef.current ? true : post.user_has_relayed,
                 };
               } else if (payload.eventType === "DELETE") {
                 return {
                   ...post,
                   relays_count: Math.max(0, post.relays_count - 1),
-                  user_has_relayed: oldData?.user_id === userId ? false : post.user_has_relayed,
+                  user_has_relayed: oldData?.user_id === userIdRef.current ? false : post.user_has_relayed,
                 };
               }
               return post;
@@ -484,9 +499,9 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
       const postsWithStats = postsData.map((post) => ({
         ...post,
         media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-        admires_count: (post.admires as any)?.[0]?.count || 0,
-        comments_count: (post.comments as any)?.[0]?.count || 0,
-        relays_count: (post.relays as any)?.[0]?.count || 0,
+        admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
+        comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
+        relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
         reactions_count: 0,
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: true,
@@ -586,7 +601,44 @@ export function useRelays(username: string) {
           return;
         }
 
-        const postIds = relaysData.map((r) => (r.post as any).id);
+        // Type for relay post data from the query
+        interface RelayPostData {
+          id: string;
+          author_id: string;
+          type: string;
+          title: string | null;
+          content: string;
+          visibility: string;
+          created_at: string;
+          author: {
+            username: string;
+            display_name: string | null;
+            avatar_url: string | null;
+          };
+          media: {
+            id: string;
+            media_url: string;
+            media_type: string;
+            caption: string | null;
+            position: number;
+          }[];
+        }
+
+        // Helper to extract post data - handles both object and array return types from Supabase
+        const getPostData = (post: unknown): RelayPostData | null => {
+          if (!post) return null;
+          if (Array.isArray(post)) return post[0] as RelayPostData;
+          return post as RelayPostData;
+        };
+
+        const postIds = relaysData
+          .map((r) => getPostData(r.post)?.id)
+          .filter((id): id is string => !!id);
+
+        if (postIds.length === 0) {
+          setRelays([]);
+          return;
+        }
 
         // Batch fetch counts
         const [admiresResult, commentsResult, relaysCountResult] = await Promise.all([
@@ -609,23 +661,26 @@ export function useRelays(username: string) {
           relaysCounts[r.post_id] = (relaysCounts[r.post_id] || 0) + 1;
         });
 
-        const processedRelays = relaysData.map((relay) => {
-          const post = relay.post as any;
-          return {
-            ...post,
-            media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-            relayed_at: relay.created_at,
-            original_author: post.author,
-            admires_count: admiresCounts[post.id] || 0,
-            comments_count: commentsCounts[post.id] || 0,
-            relays_count: relaysCounts[post.id] || 0,
-            reactions_count: 0,
-            user_has_admired: false,
-            user_has_saved: false,
-            user_has_relayed: false,
-            user_reaction_type: null,
-          };
-        });
+        const processedRelays = relaysData
+          .map((relay) => {
+            const post = getPostData(relay.post);
+            if (!post) return null;
+            return {
+              ...post,
+              media: (post.media || []).sort((a, b) => a.position - b.position) as PostMedia[],
+              relayed_at: relay.created_at,
+              original_author: post.author as PostAuthor,
+              admires_count: admiresCounts[post.id] || 0,
+              comments_count: commentsCounts[post.id] || 0,
+              relays_count: relaysCounts[post.id] || 0,
+              reactions_count: 0,
+              user_has_admired: false,
+              user_has_saved: false,
+              user_has_relayed: false,
+              user_reaction_type: null,
+            };
+          })
+          .filter((relay): relay is NonNullable<typeof relay> => relay !== null);
 
         setRelays(processedRelays as RelayedPost[]);
       } catch (err) {

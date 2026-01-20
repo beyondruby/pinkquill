@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
-import type { Post, PostMedia, PaginationState } from "../types";
+import type { Post, PostMedia, PaginationState, ReactionType, AggregateCount } from "../types";
+import { getAggregateCount } from "../types";
 
 // ============================================================================
 // TYPES
@@ -461,14 +462,14 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           author: post.author,
           media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
           community: post.community,
-          admires_count: (post.admires as any)?.[0]?.count || 0,
-          comments_count: (post.comments as any)?.[0]?.count || 0,
-          relays_count: (post.relays as any)?.[0]?.count || 0,
+          admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
+          comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
+          relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
           reactions_count: 0,
           user_has_admired: userAdmires.has(post.id),
           user_has_saved: userSaves.has(post.id),
           user_has_relayed: userRelays.has(post.id),
-          user_reaction_type: (userReactions.get(post.id) as any) || null,
+          user_reaction_type: (userReactions.get(post.id) as ReactionType | undefined) || null,
           collaborators: collaboratorsByPost.get(post.id) || [],
           mentions: mentionsByPost.get(post.id) || [],
           hashtags: hashtagsByPost.get(post.id) || [],
@@ -497,8 +498,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
                 userInterestsRef.current
               ),
             }))
-            .sort((a, b) => (b as any)._score - (a as any)._score)
-            .map(({ _score, ...post }: any) => post);
+            .sort((a, b) => (b._score ?? 0) - (a._score ?? 0))
+            .map(({ _score, ...post }) => post as Post);
         } else if (activeTab === "trending") {
           // Filter and sort by trending score (high engagement + recency)
           const now = Date.now();
@@ -515,8 +516,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
                 post.relays_count
               ) / Math.max(1, (now - new Date(post.created_at).getTime()) / (1000 * 60 * 60)),
             }))
-            .sort((a, b) => (b as any)._trendingScore - (a as any)._trendingScore)
-            .map(({ _trendingScore, ...post }: any) => post);
+            .sort((a, b) => (b._trendingScore ?? 0) - (a._trendingScore ?? 0))
+            .map(({ _trendingScore, ...post }) => post as Post);
         }
 
         // Paginate the results

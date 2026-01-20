@@ -11,12 +11,20 @@ import type { ReactionType, ReactionCounts } from "../types";
 export function useToggleAdmire() {
   const toggle = async (postId: string, userId: string, isAdmired: boolean) => {
     if (isAdmired) {
-      await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
+      const { error } = await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
+      if (error) {
+        console.error("[useToggleAdmire] Failed to remove admire:", error.message);
+        throw error;
+      }
     } else {
-      await supabase.from("admires").insert({
+      const { error } = await supabase.from("admires").insert({
         post_id: postId,
         user_id: userId,
       });
+      if (error) {
+        console.error("[useToggleAdmire] Failed to add admire:", error.message);
+        throw error;
+      }
     }
   };
 
@@ -30,12 +38,20 @@ export function useToggleAdmire() {
 export function useToggleSave() {
   const toggle = async (postId: string, userId: string, isSaved: boolean) => {
     if (isSaved) {
-      await supabase.from("saves").delete().eq("post_id", postId).eq("user_id", userId);
+      const { error } = await supabase.from("saves").delete().eq("post_id", postId).eq("user_id", userId);
+      if (error) {
+        console.error("[useToggleSave] Failed to unsave:", error.message);
+        throw error;
+      }
     } else {
-      await supabase.from("saves").insert({
+      const { error } = await supabase.from("saves").insert({
         post_id: postId,
         user_id: userId,
       });
+      if (error) {
+        console.error("[useToggleSave] Failed to save:", error.message);
+        throw error;
+      }
     }
   };
 
@@ -49,12 +65,20 @@ export function useToggleSave() {
 export function useToggleRelay() {
   const toggle = async (postId: string, userId: string, isRelayed: boolean) => {
     if (isRelayed) {
-      await supabase.from("relays").delete().eq("post_id", postId).eq("user_id", userId);
+      const { error } = await supabase.from("relays").delete().eq("post_id", postId).eq("user_id", userId);
+      if (error) {
+        console.error("[useToggleRelay] Failed to remove relay:", error.message);
+        throw error;
+      }
     } else {
-      await supabase.from("relays").insert({
+      const { error } = await supabase.from("relays").insert({
         post_id: postId,
         user_id: userId,
       });
+      if (error) {
+        console.error("[useToggleRelay] Failed to add relay:", error.message);
+        throw error;
+      }
     }
   };
 
@@ -147,13 +171,15 @@ export function useToggleReaction() {
 
     try {
       if (currentReaction === "admire") {
-        await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
+        const { error } = await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
+        if (error) throw error;
         return { success: true, removed: true };
       } else {
-        await supabase.from("admires").insert({
+        const { error } = await supabase.from("admires").insert({
           post_id: postId,
           user_id: userId,
         });
+        if (error) throw error;
         return { success: true, added: true };
       }
     } catch (err) {
@@ -172,7 +198,8 @@ export function useToggleReaction() {
 
       if (error) {
         if (error.code === "42P01" || error.message?.includes("does not exist")) {
-          await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
+          const { error: fallbackError } = await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
+          if (fallbackError) throw fallbackError;
         } else {
           throw error;
         }
@@ -417,34 +444,56 @@ export function useBlock() {
   };
 
   const checkIsBlockedEitherWay = async (userId1: string, userId2: string): Promise<boolean> => {
-    const { data } = await supabase
-      .from("blocks")
-      .select("id")
-      .or(
-        `and(blocker_id.eq.${userId1},blocked_id.eq.${userId2}),and(blocker_id.eq.${userId2},blocked_id.eq.${userId1})`
-      )
-      .limit(1);
-    return (data?.length || 0) > 0;
+    // Check both directions separately to avoid SQL injection from string interpolation
+    const [{ data: block1 }, { data: block2 }] = await Promise.all([
+      supabase
+        .from("blocks")
+        .select("id")
+        .eq("blocker_id", userId1)
+        .eq("blocked_id", userId2)
+        .maybeSingle(),
+      supabase
+        .from("blocks")
+        .select("id")
+        .eq("blocker_id", userId2)
+        .eq("blocked_id", userId1)
+        .maybeSingle(),
+    ]);
+    return !!(block1 || block2);
   };
 
   const blockUser = async (blockerId: string, blockedId: string) => {
-    const { error } = await supabase.from("blocks").insert({
-      blocker_id: blockerId,
-      blocked_id: blockedId,
-    });
+    try {
+      // Insert the block record
+      const { error: blockError } = await supabase.from("blocks").insert({
+        blocker_id: blockerId,
+        blocked_id: blockedId,
+      });
 
-    if (error) {
-      console.error("Failed to block user:", error);
-      return { success: false, error };
+      if (blockError) {
+        console.error("Failed to block user:", blockError);
+        return { success: false, error: blockError };
+      }
+
+      // Remove mutual follows - handle errors gracefully
+      const [followRemove1, followRemove2] = await Promise.all([
+        supabase.from("follows").delete().eq("follower_id", blockerId).eq("following_id", blockedId),
+        supabase.from("follows").delete().eq("follower_id", blockedId).eq("following_id", blockerId),
+      ]);
+
+      // Log errors but don't fail the block operation - the block is the primary action
+      if (followRemove1.error) {
+        console.error("Failed to remove follow (blocker->blocked):", followRemove1.error);
+      }
+      if (followRemove2.error) {
+        console.error("Failed to remove follow (blocked->blocker):", followRemove2.error);
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error("Unexpected error in blockUser:", err);
+      return { success: false, error: err };
     }
-
-    // Remove mutual follows
-    await Promise.all([
-      supabase.from("follows").delete().eq("follower_id", blockerId).eq("following_id", blockedId),
-      supabase.from("follows").delete().eq("follower_id", blockedId).eq("following_id", blockerId),
-    ]);
-
-    return { success: true };
   };
 
   const unblockUser = async (blockerId: string, blockedId: string) => {

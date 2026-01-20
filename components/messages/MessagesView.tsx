@@ -9,6 +9,17 @@ import ConversationList from "./ConversationList";
 import ChatView from "./ChatView";
 import NewMessageModal from "./NewMessageModal";
 
+// Type for the participant query result from Supabase
+interface ParticipantQueryResult {
+  user_id: string;
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
+}
+
 export interface Conversation {
   id: string;
   updated_at: string;
@@ -105,7 +116,8 @@ export default function MessagesView() {
             .eq("conversation_id", convId)
             .neq("user_id", user.id);
 
-          const otherParticipant = participants?.[0]?.user as any;
+          const participantData = participants as ParticipantQueryResult[] | null;
+          const otherParticipant = participantData?.[0]?.user;
 
           // Check if either user has blocked the other
           let isBlocked = false;
@@ -209,13 +221,11 @@ export default function MessagesView() {
   }, [user]);
 
   const handleSelectConversation = (conversationId: string) => {
-    console.log("Selecting conversation:", conversationId);
     setSelectedConversation(conversationId);
     router.push(`/messages?conversation=${conversationId}`, { scroll: false });
   };
 
   const handleNewConversation = (conversationId: string) => {
-    console.log("New conversation created:", conversationId);
     // Close modal first
     setShowNewMessage(false);
     // Select the new conversation immediately

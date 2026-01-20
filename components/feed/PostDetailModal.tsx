@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import DOMPurify from "dompurify";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
@@ -18,9 +19,16 @@ import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
 import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack } from "@/lib/types";
 
-// Helper to clean HTML for display (keeps tags but fixes &nbsp;)
+// Helper to sanitize and clean HTML for display
 function cleanHtmlForDisplay(html: string): string {
-  return html.replace(/&nbsp;/g, ' ');
+  // First sanitize to prevent XSS attacks
+  const sanitized = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'span', 'div'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style'],
+    ALLOW_DATA_ATTR: false,
+  });
+  // Then clean up &nbsp; entities
+  return sanitized.replace(/&nbsp;/g, ' ');
 }
 
 // Convert number to Roman numeral

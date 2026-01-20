@@ -3,6 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities } from "@/lib/hooks";
+
+// Type for follows table real-time payload
+interface FollowRealtimePayload {
+  follower_id: string;
+  following_id: string;
+  status?: FollowStatus;
+  created_at?: string;
+}
 import { useUserTakes, useRelayedTakes } from "@/lib/hooks/useTakes";
 import { useTrackProfileView } from "@/lib/hooks/useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -513,8 +521,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         },
         (payload) => {
           // Check if this update is for the profile we're viewing
-          if (payload.new && (payload.new as any).following_id === profile.id) {
-            const newStatus = (payload.new as any).status as FollowStatus;
+          const newData = payload.new as FollowRealtimePayload | null;
+          if (newData && newData.following_id === profile.id) {
+            const newStatus = newData.status ?? null;
             setFollowStatus(newStatus);
 
             // If follow was just accepted, refetch the full profile to get all the data
@@ -534,7 +543,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         },
         (payload) => {
           // Check if the deleted follow was for this profile
-          if (payload.old && (payload.old as any).following_id === profile.id) {
+          const oldData = payload.old as FollowRealtimePayload | null;
+          if (oldData && oldData.following_id === profile.id) {
             setFollowStatus(null);
           }
         }

@@ -434,13 +434,15 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       } else {
         await supabase.from("take_relays").insert({ take_id: takeId, user_id: userId });
 
-        // Create notification for the take author (silent fail)
+        // Create notification for the take author
         if (take.author_id !== userId) {
           supabase.from("notifications").insert({
             user_id: take.author_id,
             actor_id: userId,
             type: "relay",
             take_id: takeId,
+          }).then(({ error }) => {
+            if (error) console.error("[useTakes.toggleRelay] Failed to create notification:", error.message);
           });
         }
       }
