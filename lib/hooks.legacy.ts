@@ -3616,7 +3616,10 @@ export function useJoinRequests(communityId: string) {
   const [loading, setLoading] = useState(true);
 
   const fetchRequests = async () => {
+    console.log("[useJoinRequests] fetchRequests called, communityId:", communityId);
+
     if (!communityId) {
+      console.log("[useJoinRequests] No communityId, returning empty");
       setRequests([]);
       setLoading(false);
       return;
@@ -3624,6 +3627,7 @@ export function useJoinRequests(communityId: string) {
 
     try {
       setLoading(true);
+      console.log("[useJoinRequests] Fetching join requests for community:", communityId);
 
       const { data, error } = await supabase
         .from("community_join_requests")
@@ -3639,6 +3643,8 @@ export function useJoinRequests(communityId: string) {
         .eq("community_id", communityId)
         .eq("status", "pending")
         .order("created_at", { ascending: true });
+
+      console.log("[useJoinRequests] Query result - data:", data?.length, "error:", error);
 
       if (error) throw error;
 
