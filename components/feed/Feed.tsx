@@ -132,120 +132,151 @@ export default function Feed() {
   });
 
   // Simplified fetch - posts only
-  const fetchPosts = useCallback(async (pageNum: number, userId?: string) => {
+  const fetchPosts = useCallback(async (pageNum: number, userId?: string): Promise<Post[]> => {
     const from = pageNum * POSTS_PER_PAGE;
     const to = from + POSTS_PER_PAGE - 1;
 
-    // Single query - let RLS handle visibility
-    const { data: postsData, error: queryError } = await supabase
-      .from("posts")
-      .select(`
-        id,
-        author_id,
-        type,
-        title,
-        content,
-        content_warning,
-        created_at,
-        visibility,
-        styling,
-        post_location,
-        metadata,
-        spotify_track,
-        author:profiles!posts_author_id_fkey (
-          username,
-          display_name,
-          avatar_url
-        ),
-        media:post_media (
+    console.log("[Feed] Starting fetchPosts, page:", pageNum, "userId:", userId);
+    const startTime = Date.now();
+
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.error("[Feed] Query timeout after 15s - aborting");
+      controller.abort();
+    }, 15000);
+
+    try {
+      // Single query - let RLS handle visibility
+      console.log("[Feed] Executing Supabase query...");
+      const { data: postsData, error: queryError } = await supabase
+        .from("posts")
+        .select(`
           id,
-          media_url,
-          media_type,
-          caption,
-          position
-        ),
-        community:communities (
-          slug,
-          name,
-          avatar_url
-        )
-      `)
-      .eq("status", "published")
-      .eq("visibility", "public")
-      .order("created_at", { ascending: false })
-      .range(from, to);
+          author_id,
+          type,
+          title,
+          content,
+          content_warning,
+          created_at,
+          visibility,
+          styling,
+          post_location,
+          metadata,
+          spotify_track,
+          author:profiles!posts_author_id_fkey (
+            username,
+            display_name,
+            avatar_url
+          ),
+          media:post_media (
+            id,
+            media_url,
+            media_type,
+            caption,
+            position
+          ),
+          community:communities (
+            slug,
+            name,
+            avatar_url
+          )
+        `)
+        .eq("status", "published")
+        .eq("visibility", "public")
+        .order("created_at", { ascending: false })
+        .range(from, to)
+        .abortSignal(controller.signal);
 
-    if (queryError) {
-      throw queryError;
-    }
+      clearTimeout(timeoutId);
+      console.log("[Feed] Query completed in", Date.now() - startTime, "ms, rows:", postsData?.length);
 
-    if (!postsData || postsData.length === 0) {
-      return [];
-    }
+      if (queryError) {
+        console.error("[Feed] Query error:", queryError);
+        throw queryError;
+      }
 
-    const postIds = postsData.map(p => p.id);
+      if (!postsData || postsData.length === 0) {
+        console.log("[Feed] No posts returned");
+        return [];
+      }
 
-    // Batch fetch counts in parallel
-    const [admiresRes, commentsRes, relaysRes] = await Promise.all([
-      supabase.from("admires").select("post_id").in("post_id", postIds),
-      supabase.from("comments").select("post_id").in("post_id", postIds),
-      supabase.from("relays").select("post_id").in("post_id", postIds),
-    ]);
+      const postIds = postsData.map(p => p.id);
 
-    // Count by post_id
-    const admiresCount: Record<string, number> = {};
-    const commentsCount: Record<string, number> = {};
-    const relaysCount: Record<string, number> = {};
-
-    (admiresRes.data || []).forEach(a => {
-      admiresCount[a.post_id] = (admiresCount[a.post_id] || 0) + 1;
-    });
-    (commentsRes.data || []).forEach(c => {
-      commentsCount[c.post_id] = (commentsCount[c.post_id] || 0) + 1;
-    });
-    (relaysRes.data || []).forEach(r => {
-      relaysCount[r.post_id] = (relaysCount[r.post_id] || 0) + 1;
-    });
-
-    // User interactions (only if logged in)
-    let userAdmires = new Set<string>();
-    let userSaves = new Set<string>();
-    let userRelays = new Set<string>();
-
-    if (userId) {
-      const [uAdmires, uSaves, uRelays] = await Promise.all([
-        supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
-        supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
-        supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
+      console.log("[Feed] Fetching counts for", postIds.length, "posts...");
+      // Batch fetch counts in parallel
+      const [admiresRes, commentsRes, relaysRes] = await Promise.all([
+        supabase.from("admires").select("post_id").in("post_id", postIds),
+        supabase.from("comments").select("post_id").in("post_id", postIds),
+        supabase.from("relays").select("post_id").in("post_id", postIds),
       ]);
-      userAdmires = new Set((uAdmires.data || []).map(a => a.post_id));
-      userSaves = new Set((uSaves.data || []).map(s => s.post_id));
-      userRelays = new Set((uRelays.data || []).map(r => r.post_id));
+      console.log("[Feed] Counts fetched");
+
+      // Count by post_id
+      const admiresCount: Record<string, number> = {};
+      const commentsCount: Record<string, number> = {};
+      const relaysCount: Record<string, number> = {};
+
+      (admiresRes.data || []).forEach(a => {
+        admiresCount[a.post_id] = (admiresCount[a.post_id] || 0) + 1;
+      });
+      (commentsRes.data || []).forEach(c => {
+        commentsCount[c.post_id] = (commentsCount[c.post_id] || 0) + 1;
+      });
+      (relaysRes.data || []).forEach(r => {
+        relaysCount[r.post_id] = (relaysCount[r.post_id] || 0) + 1;
+      });
+
+      // User interactions (only if logged in)
+      let userAdmires = new Set<string>();
+      let userSaves = new Set<string>();
+      let userRelays = new Set<string>();
+
+      if (userId) {
+        console.log("[Feed] Fetching user interactions...");
+        const [uAdmires, uSaves, uRelays] = await Promise.all([
+          supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
+          supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
+          supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
+        ]);
+        userAdmires = new Set((uAdmires.data || []).map(a => a.post_id));
+        userSaves = new Set((uSaves.data || []).map(s => s.post_id));
+        userRelays = new Set((uRelays.data || []).map(r => r.post_id));
+        console.log("[Feed] User interactions fetched");
+      }
+
+      // Map posts
+      const processedPosts: Post[] = postsData.map(post => {
+        const author = Array.isArray(post.author) ? post.author[0] : post.author;
+        const community = Array.isArray(post.community) ? post.community[0] : post.community;
+
+        return {
+          ...post,
+          author: author || { username: 'unknown', display_name: null, avatar_url: null },
+          community: community || null,
+          media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
+          admires_count: admiresCount[post.id] || 0,
+          comments_count: commentsCount[post.id] || 0,
+          relays_count: relaysCount[post.id] || 0,
+          user_has_admired: userAdmires.has(post.id),
+          user_has_saved: userSaves.has(post.id),
+          user_has_relayed: userRelays.has(post.id),
+          collaborators: [],
+          mentions: [],
+          hashtags: [],
+        };
+      });
+
+      console.log("[Feed] Returning", processedPosts.length, "posts, total time:", Date.now() - startTime, "ms");
+      return processedPosts;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.error("[Feed] Query was aborted due to timeout");
+        throw new Error("Query timed out. Please try again.");
+      }
+      throw err;
     }
-
-    // Map posts
-    const processedPosts: Post[] = postsData.map(post => {
-      const author = Array.isArray(post.author) ? post.author[0] : post.author;
-      const community = Array.isArray(post.community) ? post.community[0] : post.community;
-
-      return {
-        ...post,
-        author: author || { username: 'unknown', display_name: null, avatar_url: null },
-        community: community || null,
-        media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-        admires_count: admiresCount[post.id] || 0,
-        comments_count: commentsCount[post.id] || 0,
-        relays_count: relaysCount[post.id] || 0,
-        user_has_admired: userAdmires.has(post.id),
-        user_has_saved: userSaves.has(post.id),
-        user_has_relayed: userRelays.has(post.id),
-        collaborators: [],
-        mentions: [],
-        hashtags: [],
-      };
-    });
-
-    return processedPosts;
   }, []);
 
   // Initial load

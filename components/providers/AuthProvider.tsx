@@ -162,15 +162,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initAuth = async () => {
       try {
+        console.log("[Auth] Starting initAuth...");
+        const startTime = Date.now();
+
         // Use getUser() instead of getSession() for better security
         // getUser() validates the JWT with the server
-        // The middleware has already refreshed the session if needed
         const { data: { user }, error } = await supabase.auth.getUser();
+        console.log("[Auth] getUser completed in", Date.now() - startTime, "ms, user:", user?.id || "none", "error:", error?.message || "none");
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          console.log("[Auth] Component unmounted during auth, aborting");
+          return;
+        }
 
         if (error || !user) {
           // No valid user - clear state and finish loading
+          console.log("[Auth] No user found, setting loading=false");
           setUser(null);
           setProfile(null);
           setLoading(false);
@@ -179,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // User is authenticated
+        console.log("[Auth] User authenticated, setting user and loading=false");
         setUser(user);
         setLoading(false);
         completeAuth();
@@ -186,15 +194,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Fetch profile in background (don't block initial render)
         if (fetchingProfileRef.current !== user.id) {
           fetchingProfileRef.current = user.id;
+          console.log("[Auth] Fetching profile for user:", user.id);
 
           let userProfile = await fetchProfile(user.id);
+          console.log("[Auth] Profile fetch result:", userProfile ? "found" : "not found");
 
           if (!userProfile && isMounted) {
+            console.log("[Auth] Creating new profile...");
             userProfile = await createProfile(user);
+            console.log("[Auth] Profile created:", userProfile ? "success" : "failed");
           }
 
           if (isMounted) {
             setProfile(userProfile);
+            console.log("[Auth] Profile set, auth complete");
           }
           fetchingProfileRef.current = null;
         }
