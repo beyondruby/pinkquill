@@ -163,55 +163,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchProfile]);
 
-  // Handle session changes - with deduplication
-  const handleSession = useCallback(async (session: Session | null) => {
-    if (!session?.user) {
-      setUser(null);
-      setProfile(null);
-      fetchingProfileRef.current = null;
-      lastSessionIdRef.current = null;
-      return;
-    }
-
-    // SECURITY: Check if email is confirmed
-    // If email_confirmed_at is null, the user hasn't verified their email
-    if (!session.user.email_confirmed_at) {
-      console.warn("User email not confirmed. Signing out.");
-      await supabase.auth.signOut();
-      setUser(null);
-      setProfile(null);
-      fetchingProfileRef.current = null;
-      lastSessionIdRef.current = null;
-      return;
-    }
-
-    const userId = session.user.id;
-
-    // Skip if we already processed this session
-    if (lastSessionIdRef.current === userId) {
-      return;
-    }
-
-    // Skip if we're already fetching this user's profile
-    if (fetchingProfileRef.current === userId) {
-      return;
-    }
-
-    fetchingProfileRef.current = userId;
-    setUser(session.user);
-
-    // Fetch or create profile
-    let userProfile = await fetchProfile(userId);
-
-    if (!userProfile) {
-      userProfile = await createProfile(session.user);
-    }
-
-    setProfile(userProfile);
-    lastSessionIdRef.current = userId;
-    fetchingProfileRef.current = null;
-  }, [fetchProfile, createProfile]);
-
   // Refresh profile (useful after profile updates)
   const refreshProfile = useCallback(async () => {
     if (!user) return;
@@ -224,53 +175,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     let isMounted = true;
+    let authInitialized = false;
 
-    // Timeout to prevent infinite loading (5 seconds max for session check)
+    // Timeout to prevent infinite loading (10 seconds max - increased for cold starts/slow networks)
     const loadingTimeout = setTimeout(() => {
-      if (isMounted) {
+      if (isMounted && !authInitialized) {
         console.warn("Auth initialization timed out - forcing loading to false");
         setLoading(false);
+        authInitialized = true;
       }
-    }, 5000);
+    }, 10000);
 
-    // Get initial session immediately
-    const initAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (!isMounted) return;
-
-        if (error) {
-          console.error("Auth session error:", error);
-          clearTimeout(loadingTimeout);
-          setLoading(false);
-          return;
-        }
-
-        if (session) {
-          // Set user immediately so components can start rendering
-          setUser(session.user);
-          // Clear loading early - don't wait for profile fetch
-          clearTimeout(loadingTimeout);
-          setLoading(false);
-          // Fetch profile in background (non-blocking)
-          handleSession(session).catch(err => {
-            console.error("Profile fetch error:", err);
-          });
-        } else {
-          clearTimeout(loadingTimeout);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error("Auth init error:", err);
-        if (isMounted) {
-          clearTimeout(loadingTimeout);
-          setLoading(false);
-        }
+    // Helper to complete auth initialization
+    const completeAuthInit = () => {
+      if (!authInitialized) {
+        clearTimeout(loadingTimeout);
+        setLoading(false);
+        authInitialized = true;
       }
     };
 
-    // Set up auth state listener for subsequent changes
+    // Process session with email verification check BEFORE setting user
+    const processSession = async (session: Session | null) => {
+      if (!session?.user) {
+        setUser(null);
+        setProfile(null);
+        fetchingProfileRef.current = null;
+        lastSessionIdRef.current = null;
+        completeAuthInit();
+        return;
+      }
+
+      // SECURITY: Check if email is confirmed BEFORE setting user
+      // This prevents flash of authenticated state for unverified users
+      if (!session.user.email_confirmed_at) {
+        console.warn("User email not confirmed. Signing out.");
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+        fetchingProfileRef.current = null;
+        lastSessionIdRef.current = null;
+        completeAuthInit();
+        return;
+      }
+
+      const userId = session.user.id;
+
+      // Skip if we already processed this session
+      if (lastSessionIdRef.current === userId) {
+        completeAuthInit();
+        return;
+      }
+
+      // Skip if we're already fetching this user's profile
+      if (fetchingProfileRef.current === userId) {
+        return;
+      }
+
+      fetchingProfileRef.current = userId;
+
+      // Set user only after email verification passes
+      setUser(session.user);
+      completeAuthInit();
+
+      // Fetch or create profile in background
+      let userProfile = await fetchProfile(userId);
+
+      if (!userProfile) {
+        userProfile = await createProfile(session.user);
+      }
+
+      if (isMounted) {
+        setProfile(userProfile);
+        lastSessionIdRef.current = userId;
+      }
+      fetchingProfileRef.current = null;
+    };
+
+    // Set up auth state listener FIRST to catch all events including INITIAL_SESSION
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
@@ -280,17 +262,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(null);
           lastSessionIdRef.current = null;
           fetchingProfileRef.current = null;
+          completeAuthInit();
           return;
         }
 
-        // Handle sign in and token refresh events
-        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-          if (session) {
-            await handleSession(session);
-          }
+        // Handle initial session, sign in, and token refresh events
+        if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          await processSession(session);
         }
       }
     );
+
+    // Also call getSession as a fallback in case INITIAL_SESSION doesn't fire
+    // (can happen in some edge cases with SSR or stale listeners)
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (!isMounted) return;
+
+        if (error) {
+          console.error("Auth session error:", error);
+          completeAuthInit();
+          return;
+        }
+
+        // Only process if we haven't already initialized via onAuthStateChange
+        if (!authInitialized) {
+          await processSession(session);
+        }
+      } catch (err) {
+        console.error("Auth init error:", err);
+        if (isMounted) {
+          completeAuthInit();
+        }
+      }
+    };
 
     initAuth();
 
@@ -299,7 +306,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
-  }, [handleSession]);
+  }, [fetchProfile, createProfile]);
 
   // Sign out function
   const signOut = useCallback(async () => {
