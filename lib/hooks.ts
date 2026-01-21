@@ -72,6 +72,9 @@ export type { VoiceRecorderState, AudioPlayerState, MediaLimits } from "./hooks/
 export { useDrafts, useAutoSave } from "./hooks/useDrafts";
 export type { PostDraft, DraftMedia, DraftCollaborator, DraftMention } from "./hooks/useDrafts";
 
+// UI Hooks (action menus, etc.)
+export { useActionMenu, useActionMenuWithModals } from "./hooks/useActionMenu";
+
 // ============================================================================
 // TYPES (from centralized types file)
 // ============================================================================
@@ -99,6 +102,7 @@ export type {
   Conversation,
   ConversationParticipant,
   Message,
+  MessageType,
   Community,
   CommunityMember,
   CommunityRule,

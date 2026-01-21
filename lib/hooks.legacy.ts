@@ -1,46 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
+// Import types from centralized types file instead of redefining them
+import type { Post, PostMedia, ReactionType } from "./types";
 
-export interface PostMedia {
-  id: string;
-  media_url: string;
-  media_type: "image" | "video";
-  caption: string | null;
-  position: number;
-}
-
-export type ReactionType = 'admire' | 'snap' | 'ovation' | 'support' | 'inspired' | 'applaud';
-
-export interface Post {
-  id: string;
-  author_id: string;
-  type: "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "screenplay" | "story" | "letter" | "quote";
-  title: string | null;
-  content: string;
-  visibility: string;
-  content_warning: string | null;
-  created_at: string;
-  community_id: string | null;
-  author: {
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-  media: PostMedia[];
-  community?: {
-    slug: string;
-    name: string;
-    avatar_url: string | null;
-  } | null;
-  admires_count: number;
-  reactions_count: number;
-  comments_count: number;
-  relays_count: number;
-  user_has_admired: boolean;
-  user_reaction_type: ReactionType | null;
-  user_has_saved: boolean;
-  user_has_relayed: boolean;
-}
+// Re-export for backwards compatibility with existing imports
+export type { Post, PostMedia, ReactionType };
 
 export function usePosts(userId?: string) {
   const [posts, setPosts] = useState<Post[]>([]);

@@ -4,25 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useBlock, useSendVoiceNote, useSendMedia } from "@/lib/hooks";
+import type { Message } from "@/lib/types";
 import VoiceRecorder from "./VoiceRecorder";
 import VoiceNotePlayer from "./VoiceNotePlayer";
 import Loading from "@/components/ui/Loading";
 import EmojiPicker from "@/components/ui/EmojiPicker";
 
-interface Message {
-  id: string;
-  sender_id: string;
-  content: string;
-  message_type?: "text" | "voice" | "media";
-  voice_url?: string;
-  voice_duration?: number;
-  waveform_data?: number[];
-  media_url?: string;
-  media_type?: "image" | "video";
-  created_at: string;
-  is_read: boolean;
-}
-
+// Local type for chat participants (simplified from ConversationParticipant)
 interface Participant {
   id: string;
   username: string;

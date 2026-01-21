@@ -344,13 +344,24 @@ export interface ConversationParticipant {
   };
 }
 
+export type MessageType = "text" | "voice" | "media";
+
 export interface Message {
   id: string;
-  conversation_id: string;
+  conversation_id?: string; // Optional for optimistic updates before server response
   sender_id: string;
   content: string;
   is_read: boolean;
   created_at: string;
+  // Message type for different content types
+  message_type?: MessageType;
+  // Voice message fields
+  voice_url?: string;
+  voice_duration?: number;
+  waveform_data?: number[];
+  // Media message fields
+  media_url?: string;
+  media_type?: "image" | "video";
   sender?: {
     username: string;
     display_name: string | null;

@@ -2,30 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabase";
-import type { Profile, Post, PostMedia, FollowUser, FollowStatus, FollowRequest, NotificationType, AggregateCount } from "../types";
+import type { Profile, Post, PostMedia, FollowUser, FollowStatus, FollowRequest, AggregateCount } from "../types";
 import { getAggregateCount } from "../types";
-
-// ============================================================================
-// Helper: Create notification
-// ============================================================================
-
-async function createNotification(
-  userId: string,
-  actorId: string,
-  type: NotificationType,
-  postId?: string,
-  content?: string
-) {
-  if (userId === actorId) return;
-
-  await supabase.from("notifications").insert({
-    user_id: userId,
-    actor_id: actorId,
-    type,
-    post_id: postId || null,
-    content: content || null,
-  });
-}
+import { createNotification } from "./useNotifications";
 
 // ============================================================================
 // useProfile - Fetch user profile and posts

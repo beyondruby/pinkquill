@@ -28,7 +28,8 @@
       "Bash(find:*)",
       "Bash(xargs:*)",
       "Bash(grep:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(echo:*)"
     ]
   }
 }

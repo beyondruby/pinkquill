@@ -65,6 +65,15 @@ export * from "./useTakes";
 // Insights
 export * from "./useInsights";
 
+// Explore & Tags
+export { useExplore } from "./useExplore";
+export type { ExploreTab } from "./useExplore";
+export { useTrendingTags, useTagPosts, usePopularTags } from "./useTags";
+export type { TrendingTag } from "./useTags";
+
+// UI Hooks (action menus, etc.)
+export { useActionMenu, useActionMenuWithModals } from "./useActionMenu";
+
 // Re-export types
 export type {
   Post,
@@ -89,6 +98,7 @@ export type {
   Conversation,
   ConversationParticipant,
   Message,
+  MessageType,
   Community,
   CommunityMember,
   CommunityRule,
