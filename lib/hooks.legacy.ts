@@ -2286,14 +2286,16 @@ export function useNotifications(userId?: string) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
-    if (!userId) return;
-
-    // Prevent duplicate subscriptions
+    // Cleanup previous subscription first
     if (channelRef.current) {
-      return;
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
 
-    const channelName = `notifications-realtime-${userId}-${Date.now()}`;
+    if (!userId) return;
+
+    // CRITICAL: Use stable channel name to prevent connection leaks
+    const channelName = `notifications-realtime-legacy-${userId}`;
     const channel = supabase
       .channel(channelName)
       .on(

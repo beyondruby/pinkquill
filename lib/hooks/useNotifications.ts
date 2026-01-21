@@ -132,7 +132,8 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
       channelRef.current = null;
     }
 
-    const channelName = `notifications-realtime-${userId}-${Date.now()}`;
+    // CRITICAL: Use stable channel name to prevent connection leaks
+    const channelName = `notifications-realtime-${userId}`;
     const channel = supabase
       .channel(channelName)
       .on(

@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useInView } from "react-intersection-observer";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
-import { supabase } from "@/lib/supabase";
+import { useFeed } from "@/lib/hooks/useFeed";
 import PostCard from "./PostCard";
 import PostSkeleton from "./PostSkeleton";
-
-const POSTS_PER_PAGE = 10;
+import type { Post } from "@/lib/types";
 
 function getTimeAgo(dateString: string): string {
   const now = new Date();
@@ -40,90 +39,22 @@ function getTypeLabel(type: string): string {
   return labels[type] || "shared something";
 }
 
-type PostType = "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "screenplay" | "story" | "letter" | "quote";
-
-interface PostMedia {
-  id: string;
-  media_url: string;
-  media_type: "image" | "video";
-  caption: string | null;
-  position: number;
-}
-
-interface Post {
-  id: string;
-  author_id: string;
-  author: {
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-  type: PostType;
-  title: string | null;
-  content: string;
-  content_warning: string | null;
-  created_at: string;
-  visibility?: string;
-  media: PostMedia[];
-  admires_count: number;
-  comments_count: number;
-  relays_count: number;
-  user_has_admired: boolean;
-  user_has_saved: boolean;
-  user_has_relayed: boolean;
-  community?: {
-    slug: string;
-    name: string;
-    avatar_url: string | null;
-  } | null;
-  collaborators?: Array<{
-    status: 'pending' | 'accepted' | 'declined';
-    role?: string | null;
-    user: {
-      id: string;
-      username: string;
-      display_name: string | null;
-      avatar_url: string | null;
-    };
-  }>;
-  mentions?: Array<{
-    user: {
-      id: string;
-      username: string;
-      display_name: string | null;
-      avatar_url: string | null;
-    };
-  }>;
-  hashtags?: string[];
-  styling?: any | null;
-  post_location?: string | null;
-  metadata?: any | null;
-  spotify_track?: {
-    id: string;
-    name: string;
-    artist: string;
-    album: string;
-    albumArt: string;
-    previewUrl?: string;
-    externalUrl: string;
-  } | null;
-}
-
 export default function Feed() {
   const { user, loading: authLoading } = useAuth();
   const { subscribeToDeletes } = useModal();
 
-  // Posts state only - no takes
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [page, setPage] = useState(0);
-  const [postsLoading, setPostsLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use the optimized useFeed hook with AbortController and stable channels
+  const {
+    posts: feedPosts,
+    loading: postsLoading,
+    error,
+    pagination,
+    loadMore,
+    refresh,
+  } = useFeed(user?.id, { pageSize: 10 });
 
-  // Track if we've done initial fetch
-  const fetchedRef = useRef(false);
-  const lastUserIdRef = useRef<string | undefined>(undefined);
+  // Local state for filtering deleted posts
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
 
   // Intersection observer for infinite scroll
   const { ref: bottomRef, inView } = useInView({
@@ -131,231 +62,30 @@ export default function Feed() {
     rootMargin: "100px",
   });
 
-  // Simplified fetch - posts only
-  const fetchPosts = useCallback(async (pageNum: number, userId?: string): Promise<Post[]> => {
-    const from = pageNum * POSTS_PER_PAGE;
-    const to = from + POSTS_PER_PAGE - 1;
-
-    console.log("[Feed] Starting fetchPosts, page:", pageNum, "userId:", userId);
-    const startTime = Date.now();
-
-    // Create abort controller for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.error("[Feed] Query timeout after 15s - aborting");
-      controller.abort();
-    }, 15000);
-
-    try {
-      // Single query - let RLS handle visibility
-      console.log("[Feed] Executing Supabase query...");
-      const { data: postsData, error: queryError } = await supabase
-        .from("posts")
-        .select(`
-          id,
-          author_id,
-          type,
-          title,
-          content,
-          content_warning,
-          created_at,
-          visibility,
-          styling,
-          post_location,
-          metadata,
-          spotify_track,
-          author:profiles!posts_author_id_fkey (
-            username,
-            display_name,
-            avatar_url
-          ),
-          media:post_media (
-            id,
-            media_url,
-            media_type,
-            caption,
-            position
-          ),
-          community:communities (
-            slug,
-            name,
-            avatar_url
-          )
-        `)
-        .eq("status", "published")
-        .eq("visibility", "public")
-        .order("created_at", { ascending: false })
-        .range(from, to)
-        .abortSignal(controller.signal);
-
-      clearTimeout(timeoutId);
-      console.log("[Feed] Query completed in", Date.now() - startTime, "ms, rows:", postsData?.length);
-
-      if (queryError) {
-        console.error("[Feed] Query error:", queryError);
-        throw queryError;
-      }
-
-      if (!postsData || postsData.length === 0) {
-        console.log("[Feed] No posts returned");
-        return [];
-      }
-
-      const postIds = postsData.map(p => p.id);
-
-      console.log("[Feed] Fetching counts for", postIds.length, "posts...");
-      // Batch fetch counts in parallel
-      const [admiresRes, commentsRes, relaysRes] = await Promise.all([
-        supabase.from("admires").select("post_id").in("post_id", postIds),
-        supabase.from("comments").select("post_id").in("post_id", postIds),
-        supabase.from("relays").select("post_id").in("post_id", postIds),
-      ]);
-      console.log("[Feed] Counts fetched");
-
-      // Count by post_id
-      const admiresCount: Record<string, number> = {};
-      const commentsCount: Record<string, number> = {};
-      const relaysCount: Record<string, number> = {};
-
-      (admiresRes.data || []).forEach(a => {
-        admiresCount[a.post_id] = (admiresCount[a.post_id] || 0) + 1;
-      });
-      (commentsRes.data || []).forEach(c => {
-        commentsCount[c.post_id] = (commentsCount[c.post_id] || 0) + 1;
-      });
-      (relaysRes.data || []).forEach(r => {
-        relaysCount[r.post_id] = (relaysCount[r.post_id] || 0) + 1;
-      });
-
-      // User interactions (only if logged in)
-      let userAdmires = new Set<string>();
-      let userSaves = new Set<string>();
-      let userRelays = new Set<string>();
-
-      if (userId) {
-        console.log("[Feed] Fetching user interactions...");
-        const [uAdmires, uSaves, uRelays] = await Promise.all([
-          supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
-          supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
-          supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
-        ]);
-        userAdmires = new Set((uAdmires.data || []).map(a => a.post_id));
-        userSaves = new Set((uSaves.data || []).map(s => s.post_id));
-        userRelays = new Set((uRelays.data || []).map(r => r.post_id));
-        console.log("[Feed] User interactions fetched");
-      }
-
-      // Map posts
-      const processedPosts: Post[] = postsData.map(post => {
-        const author = Array.isArray(post.author) ? post.author[0] : post.author;
-        const community = Array.isArray(post.community) ? post.community[0] : post.community;
-
-        return {
-          ...post,
-          author: author || { username: 'unknown', display_name: null, avatar_url: null },
-          community: community || null,
-          media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-          admires_count: admiresCount[post.id] || 0,
-          comments_count: commentsCount[post.id] || 0,
-          relays_count: relaysCount[post.id] || 0,
-          user_has_admired: userAdmires.has(post.id),
-          user_has_saved: userSaves.has(post.id),
-          user_has_relayed: userRelays.has(post.id),
-          collaborators: [],
-          mentions: [],
-          hashtags: [],
-        };
-      });
-
-      console.log("[Feed] Returning", processedPosts.length, "posts, total time:", Date.now() - startTime, "ms");
-      return processedPosts;
-    } catch (err) {
-      clearTimeout(timeoutId);
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.error("[Feed] Query was aborted due to timeout");
-        throw new Error("Query timed out. Please try again.");
-      }
-      throw err;
-    }
-  }, []);
-
-  // Initial load
-  useEffect(() => {
-    // Reset if user changed
-    if (lastUserIdRef.current !== user?.id) {
-      fetchedRef.current = false;
-      lastUserIdRef.current = user?.id;
-      setPosts([]);
-      setPage(0);
-      setHasMore(true);
-    }
-
-    // Don't fetch until auth is resolved
-    if (authLoading) return;
-
-    // Don't re-fetch if already fetched
-    if (fetchedRef.current) return;
-
-    const loadPosts = async () => {
-      fetchedRef.current = true;
-      setPostsLoading(true);
-      setError(null);
-
-      try {
-        const initialPosts = await fetchPosts(0, user?.id);
-        setPosts(initialPosts);
-        setHasMore(initialPosts.length === POSTS_PER_PAGE);
-      } catch (err) {
-        console.error("[Feed] Error:", err);
-        setError("Failed to load posts. Please refresh.");
-      } finally {
-        setPostsLoading(false);
-      }
-    };
-
-    loadPosts();
-  }, [authLoading, user?.id, fetchPosts]);
-
   // Load more when scrolling
   useEffect(() => {
-    if (!inView || loadingMore || !hasMore || postsLoading || authLoading) return;
-
-    const loadMore = async () => {
-      setLoadingMore(true);
-      try {
-        const nextPage = page + 1;
-        const newPosts = await fetchPosts(nextPage, user?.id);
-
-        if (newPosts.length > 0) {
-          setPosts(prev => [...prev, ...newPosts]);
-          setPage(nextPage);
-        }
-
-        setHasMore(newPosts.length === POSTS_PER_PAGE);
-      } catch (err) {
-        console.error("[Feed] Load more error:", err);
-      } finally {
-        setLoadingMore(false);
-      }
-    };
-
-    loadMore();
-  }, [inView, loadingMore, hasMore, postsLoading, authLoading, page, user?.id, fetchPosts]);
+    if (inView && pagination.hasMore && !postsLoading) {
+      loadMore();
+    }
+  }, [inView, pagination.hasMore, postsLoading, loadMore]);
 
   // Subscribe to deletes
   useEffect(() => {
     const unsubPosts = subscribeToDeletes((id) => {
-      setPosts(curr => curr.filter(p => p.id !== id));
+      setDeletedIds(prev => new Set(prev).add(id));
     });
     return () => { unsubPosts(); };
   }, [subscribeToDeletes]);
 
+  // Filter out deleted posts
+  const posts = feedPosts.filter(p => !deletedIds.has(p.id));
+
   const handlePostDeleted = (postId: string) => {
-    setPosts(curr => curr.filter(p => p.id !== postId));
+    setDeletedIds(prev => new Set(prev).add(postId));
   };
 
-  // Show skeletons while loading
-  if (authLoading || postsLoading) {
+  // Show skeletons while loading (only on initial load)
+  if (authLoading || (postsLoading && posts.length === 0)) {
     return (
       <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
         {[...Array(3)].map((_, i) => (
@@ -371,25 +101,7 @@ export default function Feed() {
         <div className="text-center">
           <p className="font-body text-red-500 mb-4">{error}</p>
           <button
-            onClick={() => {
-              fetchedRef.current = false;
-              setError(null);
-              setPosts([]);
-              setPage(0);
-              setHasMore(true);
-              setPostsLoading(true);
-              setTimeout(() => {
-                fetchPosts(0, user?.id).then(p => {
-                  setPosts(p);
-                  setHasMore(p.length === POSTS_PER_PAGE);
-                  setPostsLoading(false);
-                  fetchedRef.current = true;
-                }).catch(() => {
-                  setError("Failed to load. Please refresh.");
-                  setPostsLoading(false);
-                });
-              }, 100);
-            }}
+            onClick={() => refresh()}
             className="px-6 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-sm font-medium text-white hover:opacity-90 transition-opacity"
           >
             Try Again
@@ -454,7 +166,10 @@ export default function Feed() {
               name: post.community.name,
               avatar_url: post.community.avatar_url,
             } : undefined,
-            collaborators: post.collaborators || [],
+            collaborators: (post.collaborators || []).map(c => ({
+              ...c,
+              status: c.status as 'pending' | 'accepted' | 'declined',
+            })),
             mentions: post.mentions || [],
             hashtags: post.hashtags || [],
             styling: post.styling || null,
@@ -470,14 +185,14 @@ export default function Feed() {
       <div ref={bottomRef} className="h-4" />
 
       {/* Loading more indicator */}
-      {loadingMore && (
+      {postsLoading && posts.length > 0 && (
         <div className="flex justify-center py-8">
           <div className="w-8 h-8 border-3 border-gray-200 border-t-purple-600 rounded-full animate-spin" />
         </div>
       )}
 
       {/* End of feed */}
-      {!hasMore && posts.length > 0 && (
+      {!pagination.hasMore && posts.length > 0 && (
         <div className="text-center py-8">
           <p className="font-body text-muted text-sm italic">
             You've reached the end of the feed
