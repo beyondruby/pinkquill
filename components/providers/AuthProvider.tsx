@@ -263,33 +263,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Handle INITIAL_SESSION event (fires when page loads with existing session)
+        // CRITICAL: Do NOT set user/loading here - let initAuth() handle initial load
+        // This prevents race conditions where child components start fetching before
+        // getUser() validates the session with the server.
+        // initAuth() runs immediately after this listener is set up, so it will
+        // properly validate and set the user state.
         if (event === "INITIAL_SESSION") {
-          if (session?.user) {
-            setUser(session.user);
-            setLoading(false);
-            completeAuth();
-
-            // Fetch profile
-            if (fetchingProfileRef.current !== session.user.id) {
-              fetchingProfileRef.current = session.user.id;
-
-              let userProfile = await fetchProfile(session.user.id);
-
-              if (!userProfile && isMounted) {
-                userProfile = await createProfile(session.user);
-              }
-
-              if (isMounted) {
-                setProfile(userProfile);
-              }
-              fetchingProfileRef.current = null;
-            }
-          } else {
-            setUser(null);
-            setProfile(null);
-            setLoading(false);
-            completeAuth();
-          }
+          // Intentionally do nothing here - initAuth() handles the initial session
+          // This prevents premature loading=false which would trigger child component fetches
+          return;
         }
       }
     );
