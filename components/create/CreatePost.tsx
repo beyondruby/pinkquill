@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunities, Community, SearchableUser, saveCollaboratorsAndMentions } from "@/lib/hooks";
+import { useCommunities, useDrafts, useAutoSave, Community, SearchableUser, saveCollaboratorsAndMentions, PostDraft } from "@/lib/hooks";
 import { useCreateTake } from "@/lib/hooks/useTakes";
 import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
 import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle, SpotifyTrack } from "@/lib/types";
@@ -474,7 +474,67 @@ export default function CreatePost() {
   // Take creation hook
   const { createTake, uploading: takeUploading, progress: takeProgress, error: takeError } = useCreateTake();
 
+  // Drafts
+  const { drafts, saveDraft, loadDraft, deleteDraft, getMostRecentDraft } = useDrafts();
+  const [showDraftRecovery, setShowDraftRecovery] = useState(false);
+  const [recoveredDraft, setRecoveredDraft] = useState<PostDraft | null>(null);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [draftSaveStatus, setDraftSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+
   const isTakeMode = selectedType === "take";
+
+  // Auto-save draft callback
+  const getDraftData = useCallback(() => {
+    // Don't auto-save takes or when editing existing posts
+    if (isTakeMode || isEditing) return null;
+
+    const title = titleRef.current?.innerText?.trim() || "";
+    const content = editorRef.current?.innerHTML || "";
+
+    // Don't save empty drafts
+    if (!title && !content && mediaItems.length === 0) {
+      return null;
+    }
+
+    return {
+      type: selectedType,
+      title,
+      content,
+      visibility: visibility as "public" | "private",
+      contentWarning: hasContentWarning ? contentWarning : "",
+      collaborators: collaborators.map(c => ({
+        id: c.id,
+        username: c.username,
+        display_name: c.display_name,
+        avatar_url: c.avatar_url,
+        role: c.role
+      })),
+      mentions: taggedPeople.map(p => ({
+        id: p.id,
+        username: p.username,
+        display_name: p.display_name,
+        avatar_url: p.avatar_url
+      })),
+      communityId: selectedCommunity?.id || null,
+      communityName: selectedCommunity?.name,
+      mediaMetadata: mediaItems.map(m => ({
+        id: m.id,
+        preview: m.preview,
+        type: m.type,
+        caption: m.caption
+      })),
+      styling: styling as PostDraft["styling"],
+    };
+  }, [isTakeMode, isEditing, selectedType, visibility, hasContentWarning, contentWarning, collaborators, taggedPeople, selectedCommunity, mediaItems, styling]);
+
+  // Auto-save every 30 seconds
+  const { lastSaved: autoSaveTime } = useAutoSave(getDraftData, {
+    enabled: !isEditing && !isTakeMode,
+    interval: 30000, // 30 seconds
+    onSave: (id) => {
+      setCurrentDraftId(id);
+    }
+  });
   const currentType = postTypes.find((t) => t.id === selectedType);
 
   // Load existing post data when editing
@@ -1022,6 +1082,156 @@ export default function CreatePost() {
     }
   }, [takeCaption, isTakeMode]);
 
+  // Check for recoverable draft on mount (not in edit mode)
+  useEffect(() => {
+    if (isEditing) return;
+
+    const recentDraft = getMostRecentDraft();
+    if (recentDraft) {
+      // Only show recovery if draft is less than 7 days old
+      const draftAge = Date.now() - new Date(recentDraft.updatedAt).getTime();
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      if (draftAge < sevenDays) {
+        setRecoveredDraft(recentDraft);
+        setShowDraftRecovery(true);
+      }
+    }
+  }, [isEditing, getMostRecentDraft]);
+
+  // Handle recovering a draft
+  const handleRecoverDraft = useCallback(() => {
+    if (!recoveredDraft) return;
+
+    // Set post type
+    setSelectedType(recoveredDraft.type);
+
+    // Set title
+    if (titleRef.current && recoveredDraft.title) {
+      titleRef.current.innerText = recoveredDraft.title;
+    }
+
+    // Set content (needs to wait for editor to mount)
+    setTimeout(() => {
+      if (editorRef.current && recoveredDraft.content) {
+        editorRef.current.innerHTML = recoveredDraft.content;
+        setCharCount(editorRef.current.innerText.length);
+      }
+    }, 100);
+
+    // Set other state
+    setVisibility(recoveredDraft.visibility);
+    if (recoveredDraft.contentWarning) {
+      setHasContentWarning(true);
+      setContentWarning(recoveredDraft.contentWarning);
+    }
+    setCollaborators(recoveredDraft.collaborators.map(c => ({
+      ...c,
+      role: c.role || "collaborator",
+      is_verified: false // Default for recovered drafts
+    })));
+    setTaggedPeople(recoveredDraft.mentions.map(m => ({
+      ...m,
+      is_verified: false // Default for recovered drafts
+    })));
+    if (recoveredDraft.styling) {
+      setStyling(recoveredDraft.styling as PostStyling);
+    }
+
+    // Set current draft ID so we update instead of create new
+    setCurrentDraftId(recoveredDraft.id);
+    setShowDraftRecovery(false);
+  }, [recoveredDraft]);
+
+  // Handle dismissing draft recovery
+  const handleDismissDraftRecovery = useCallback(() => {
+    setShowDraftRecovery(false);
+    setRecoveredDraft(null);
+  }, []);
+
+  // Handle deleting recovered draft
+  const handleDeleteRecoveredDraft = useCallback(() => {
+    if (recoveredDraft) {
+      deleteDraft(recoveredDraft.id);
+    }
+    setShowDraftRecovery(false);
+    setRecoveredDraft(null);
+  }, [recoveredDraft, deleteDraft]);
+
+  // Save draft handler
+  const handleSaveDraft = useCallback(() => {
+    if (isTakeMode) return; // Takes can't be saved as drafts
+
+    const title = titleRef.current?.innerText?.trim() || "";
+    const content = editorRef.current?.innerHTML || "";
+
+    // Don't save empty drafts
+    if (!title && !content && mediaItems.length === 0) {
+      setError("Nothing to save - add some content first");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    setDraftSaveStatus("saving");
+
+    const draftData = {
+      type: selectedType,
+      title,
+      content,
+      visibility: visibility as "public" | "private",
+      contentWarning: hasContentWarning ? contentWarning : "",
+      collaborators: collaborators.map(c => ({
+        id: c.id,
+        username: c.username,
+        display_name: c.display_name,
+        avatar_url: c.avatar_url,
+        role: c.role,
+      })),
+      mentions: taggedPeople.map(p => ({
+        id: p.id,
+        username: p.username,
+        display_name: p.display_name,
+        avatar_url: p.avatar_url,
+      })),
+      communityId: selectedCommunity?.id || null,
+      communityName: selectedCommunity?.name,
+      mediaMetadata: mediaItems.map(m => ({
+        id: m.id,
+        preview: m.preview,
+        type: m.type,
+        caption: m.caption,
+      })),
+      styling: styling,
+    };
+
+    const id = saveDraft(draftData, currentDraftId || undefined);
+    setCurrentDraftId(id);
+    setDraftSaveStatus("saved");
+
+    // Reset status after 2 seconds
+    setTimeout(() => setDraftSaveStatus("idle"), 2000);
+  }, [
+    isTakeMode,
+    selectedType,
+    visibility,
+    hasContentWarning,
+    contentWarning,
+    collaborators,
+    taggedPeople,
+    selectedCommunity,
+    mediaItems,
+    styling,
+    saveDraft,
+    currentDraftId,
+  ]);
+
+  // Delete current draft after successful publish
+  const clearCurrentDraft = useCallback(() => {
+    if (currentDraftId) {
+      deleteDraft(currentDraftId);
+      setCurrentDraftId(null);
+    }
+  }, [currentDraftId, deleteDraft]);
+
   const handlePublish = async () => {
     if (!user) {
       router.push("/login");
@@ -1332,6 +1542,9 @@ export default function CreatePost() {
         }
       }
 
+      // Clear draft after successful publish
+      clearCurrentDraft();
+
       // Navigate based on context
       if (isEditing) {
         router.push(`/post/${postId}`);
@@ -1381,6 +1594,60 @@ export default function CreatePost() {
 
   return (
     <div className="max-w-[720px] mx-auto py-10 px-6">
+      {/* Draft Recovery Banner */}
+      {showDraftRecovery && recoveredDraft && (
+        <div className="mb-6 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 border border-purple-primary/20 rounded-2xl p-5 animate-fadeIn">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-ui text-[0.95rem] font-semibold text-ink mb-1">
+                You have an unsaved draft
+              </h3>
+              <p className="font-body text-[0.85rem] text-muted mb-3">
+                {recoveredDraft.title ? `"${recoveredDraft.title.substring(0, 50)}${recoveredDraft.title.length > 50 ? '...' : ''}"` : 'Untitled'}
+                {' · '}
+                {new Date(recoveredDraft.updatedAt).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit'
+                })}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleRecoverDraft}
+                  className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.85rem] font-medium text-white shadow-md shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-lg transition-all"
+                >
+                  Continue Editing
+                </button>
+                <button
+                  onClick={handleDismissDraftRecovery}
+                  className="px-4 py-2 rounded-full border border-black/[0.08] bg-white font-ui text-[0.85rem] text-muted hover:border-purple-primary hover:text-purple-primary transition-all"
+                >
+                  Start Fresh
+                </button>
+                <button
+                  onClick={handleDeleteRecoveredDraft}
+                  className="px-4 py-2 rounded-full font-ui text-[0.85rem] text-red-500 hover:bg-red-50 transition-all"
+                >
+                  Delete Draft
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={handleDismissDraftRecovery}
+              className="p-1.5 rounded-full hover:bg-black/5 text-muted transition-all flex-shrink-0"
+            >
+              {icons.x}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="font-display text-[2rem] text-ink mb-2">
@@ -2629,8 +2896,35 @@ export default function CreatePost() {
 
           <div className="flex gap-3">
             {!isTakeMode && (
-              <button className="px-5 py-2.5 rounded-full border border-black/[0.08] bg-white font-ui text-[0.9rem] text-muted hover:border-purple-primary hover:text-purple-primary transition-all">
-                Save Draft
+              <button
+                onClick={handleSaveDraft}
+                disabled={draftSaveStatus === "saving"}
+                className={`px-5 py-2.5 rounded-full border font-ui text-[0.9rem] transition-all ${
+                  draftSaveStatus === "saved"
+                    ? "border-green-500 bg-green-50 text-green-600"
+                    : draftSaveStatus === "saving"
+                    ? "border-purple-primary/50 bg-purple-50 text-purple-primary"
+                    : "border-black/[0.08] bg-white text-muted hover:border-purple-primary hover:text-purple-primary"
+                }`}
+              >
+                {draftSaveStatus === "saving" ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Saving...
+                  </span>
+                ) : draftSaveStatus === "saved" ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Draft Saved
+                  </span>
+                ) : (
+                  "Save Draft"
+                )}
               </button>
             )}
             <button

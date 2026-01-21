@@ -68,6 +68,10 @@ export {
 } from "./hooks/useMedia";
 export type { VoiceRecorderState, AudioPlayerState, MediaLimits } from "./hooks/useMedia";
 
+// Drafts
+export { useDrafts, useAutoSave } from "./hooks/useDrafts";
+export type { PostDraft, DraftMedia, DraftCollaborator, DraftMention } from "./hooks/useDrafts";
+
 // ============================================================================
 // TYPES (from centralized types file)
 // ============================================================================
