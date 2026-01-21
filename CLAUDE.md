@@ -13,34 +13,95 @@ quill/
 ├── app/                          # Next.js App Router
 │   ├── (feed)/                   # Route group (authenticated pages)
 │   │   ├── page.tsx              # Home feed
-│   │   ├── layout.tsx            # Layout with Header + Sidebars
+│   │   ├── layout.tsx            # Layout with Header + Sidebars + Mobile nav
 │   │   ├── create/page.tsx       # Create post page
-│   │   └── messages/page.tsx     # Messaging interface
+│   │   ├── messages/page.tsx     # Messaging interface
+│   │   ├── saved/page.tsx        # Saved/bookmarked posts
+│   │   ├── explore/page.tsx      # Explore feed with trending content
+│   │   └── about/page.tsx        # About page
 │   ├── settings/                 # Settings pages
 │   │   ├── layout.tsx            # Settings layout with SettingsSidebar
 │   │   ├── page.tsx              # Settings index (redirects)
 │   │   ├── profile/page.tsx      # Edit profile settings
 │   │   ├── account/page.tsx      # Account settings (email/password)
 │   │   └── privacy/page.tsx      # Privacy settings (blocked users)
+│   ├── community/                # Communities feature
+│   │   ├── layout.tsx            # Community layout
+│   │   ├── page.tsx              # Communities list/discovery
+│   │   ├── create/page.tsx       # Create new community
+│   │   └── [slug]/               # Individual community pages
+│   │       ├── layout.tsx        # Community detail layout
+│   │       ├── page.tsx          # Community feed
+│   │       ├── members/page.tsx  # Community members list
+│   │       ├── about/page.tsx    # Community info
+│   │       └── settings/         # Community admin settings
+│   ├── insights/                 # Analytics feature
+│   │   ├── layout.tsx            # Insights layout with sidebar
+│   │   ├── page.tsx              # Insights overview dashboard
+│   │   ├── audience/page.tsx     # Audience analytics
+│   │   ├── communities/page.tsx  # Community statistics
+│   │   └── content/              # Content performance
+│   ├── help/                     # Help documentation
+│   │   ├── layout.tsx            # Help layout
+│   │   ├── page.tsx              # Help index
+│   │   ├── getting-started/      # Getting started guide
+│   │   └── [topic]/page.tsx      # Help topics
+│   ├── takes/                    # Video responses feature
+│   │   ├── layout.tsx            # Takes layout
+│   │   ├── page.tsx              # Takes feed
+│   │   └── create/page.tsx       # Create new take
 │   ├── post/[id]/page.tsx        # Post detail page
+│   ├── take/[id]/page.tsx        # Take detail page
 │   ├── studio/[username]/page.tsx # User profile page
+│   ├── tag/[tag]/page.tsx        # Hashtag feed page
 │   ├── login/page.tsx            # Login/signup page
+│   ├── auth/callback/route.ts    # OAuth callback handler
+│   ├── privacy/page.tsx          # Privacy policy
+│   ├── terms/page.tsx            # Terms of service
 │   ├── layout.tsx                # Root layout with providers
+│   ├── error.tsx                 # Error boundary
+│   ├── global-error.tsx          # Global error handler
 │   └── globals.css               # Global styles + Tailwind
 ├── components/
 │   ├── auth/                     # Authentication
 │   ├── feed/                     # Feed & posts
 │   ├── create/                   # Post creation
+│   ├── takes/                    # Video responses
+│   ├── communities/              # Community features
+│   ├── insights/                 # Analytics components
 │   ├── messages/                 # Messaging
 │   ├── notifications/            # Notifications
 │   ├── studio/                   # User profiles
 │   ├── layout/                   # Layout components
 │   ├── ui/                       # Reusable UI
 │   ├── settings/                 # Settings components
+│   ├── search/                   # Search functionality
+│   ├── explore/                  # Explore page
+│   ├── about/                    # About page
 │   └── providers/                # Context providers
 ├── lib/
-│   ├── supabase.ts               # Supabase client
-│   └── hooks.ts                  # Custom React hooks
+│   ├── hooks/                    # Modular React hooks
+│   │   ├── index.ts              # Barrel exports
+│   │   ├── useFeed.ts            # Post fetching (feed, saved, relays)
+│   │   ├── useProfile.ts         # User profiles, follow system
+│   │   ├── useInteractions.ts    # Likes, saves, reactions, blocks
+│   │   ├── useComments.ts        # Comments and replies
+│   │   ├── useNotifications.ts   # Notification system
+│   │   ├── useExplore.ts         # Explore/trending content
+│   │   ├── useTags.ts            # Hashtag system
+│   │   └── useMedia.ts           # Voice recorder, audio player
+│   ├── types/
+│   │   └── index.ts              # All TypeScript interfaces
+│   ├── utils/
+│   │   ├── index.ts              # Utility functions
+│   │   └── retry.ts              # Retry logic for network requests
+│   ├── hooks.ts                  # Main hooks barrel export
+│   ├── hooks.legacy.ts           # Legacy hooks (communities, collaboration, search)
+│   └── supabase.ts               # Supabase client configuration
+├── supabase/migrations/          # Database migrations
+├── email-templates/              # Email templates for auth
+├── public/                       # Static assets
+├── middleware.ts                 # Next.js middleware
 └── package.json
 ```
 
@@ -52,18 +113,55 @@ quill/
 | Component | Description |
 |-----------|-------------|
 | `AuthForm.tsx` | Login/signup form with email auth via Supabase |
+| `AuthModal.tsx` | Modal wrapper for auth dialogs |
 
 ### Feed
 | Component | Description |
 |-----------|-------------|
-| `Feed.tsx` | Main feed container, fetches and displays public posts (filters blocked users) |
-| `PostCard.tsx` | Individual post card with author, content, media, actions, block/report menu |
+| `Feed.tsx` | Main feed container, fetches and displays public posts (RLS handles blocking) |
+| `PostCard.tsx` | Individual post card with author, content, media, reactions, actions, block/report menu |
 | `PostDetailModal.tsx` | Full post modal with discussion/comments panel |
+| `PostSkeleton.tsx` | Loading skeleton for posts |
+| `PostTags.tsx` | Display @mentions, hashtags, and collaborators on posts |
+| `ReactionPicker.tsx` | Multi-reaction picker (admire, snap, ovation, support, inspired, applaud) |
+| `CommentItem.tsx` | Individual comment in thread with replies |
 
 ### Create
 | Component | Description |
 |-----------|-------------|
-| `CreatePost.tsx` | Rich post creation with 11 types, media upload, content warnings |
+| `CreatePost.tsx` | Rich post creation with 11 types, media upload, content warnings, collaborators, mentions, styling |
+| `BackgroundPicker/` | Background/styling picker for posts (colors, gradients, patterns) |
+| `JournalMetadata/` | Metadata for journal entries (weather, mood, time of day) |
+
+### Takes (Video Responses)
+| Component | Description |
+|-----------|-------------|
+| `TakesFeed.tsx` | Takes feed container |
+| `TakeCard.tsx` | Individual take/video card |
+| `TakeDetailModal.tsx` | Take detail with comments |
+| `TakePostCard.tsx` | Take linked to original post |
+| `CreateTake.tsx` | Record/upload take video |
+| `TakePlayer.tsx` | Video player for takes |
+| `TakeComments.tsx` | Comments on takes |
+
+### Communities
+| Component | Description |
+|-----------|-------------|
+| `CommunityCard.tsx` | Community preview card |
+| `CommunityHeader.tsx` | Community header with cover image |
+| `CommunityBadge.tsx` | Badge showing community affiliation |
+| `JoinButton.tsx` | Join/leave community button |
+| `InviteModal.tsx` | Invite users to community |
+
+### Insights (Analytics)
+| Component | Description |
+|-----------|-------------|
+| `InsightsSidebar.tsx` | Navigation for insights sections |
+| `DateRangePicker.tsx` | Date range selector |
+| `cards/MetricCard.tsx` | Metric display card |
+| `charts/GrowthChart.tsx` | Growth trend chart |
+| `charts/ViewsChart.tsx` | Views over time chart |
+| `charts/TrafficSourcesChart.tsx` | Traffic sources breakdown |
 
 ### Messages
 | Component | Description |
@@ -72,45 +170,63 @@ quill/
 | `ConversationList.tsx` | Lists conversations with last message preview |
 | `ChatView.tsx` | Individual chat view with message history, info menu (block/report/delete) |
 | `NewMessageModal.tsx` | Modal to start new conversations |
+| `VoiceRecorder.tsx` | Voice message recorder with waveform |
+| `VoiceNotePlayer.tsx` | Voice message player |
 
 ### Notifications
 | Component | Description |
 |-----------|-------------|
-| `NotificationPanel.tsx` | Shows admires, comments, relays, saves, follows, replies, comment likes, collaboration invites, mentions |
-| `CollaborationInviteCard.tsx` | Special card for collaboration invites with accept/decline buttons |
+| `NotificationPanel.tsx` | Shows all notification types with real-time updates |
+| `CollaborationInviteCard.tsx` | Special card for collaboration invites with accept/decline |
+| `FollowRequestCard.tsx` | Follow request cards for private accounts |
 
 ### Studio/Profile
 | Component | Description |
 |-----------|-------------|
-| `StudioProfile.tsx` | User profile with bio, stats, posts, relays, 3-dot menu (share/block/report) |
+| `StudioProfile.tsx` | User profile with bio, stats, posts, relays, collaborated posts, 3-dot menu |
 | `FollowersModal.tsx` | Modal showing followers/following list |
 
 ### Layout
 | Component | Description |
 |-----------|-------------|
-| `Header.tsx` | Top navigation with logo and search |
 | `LeftSidebar.tsx` | Left nav: Home, Explore, Saved, Create, Notifications |
 | `RightSidebar.tsx` | Right sidebar for trends/suggestions |
+| `ConditionalRightSidebar.tsx` | Responsive right sidebar (hidden on mobile) |
 | `MainContent.tsx` | Central content wrapper |
+| `MobileHeader.tsx` | Mobile top header |
+| `MobileBottomNav.tsx` | Mobile bottom navigation bar |
 
 ### Settings
 | Component | Description |
 |-----------|-------------|
 | `SettingsSidebar.tsx` | Settings navigation: Edit Profile, Account, Notifications, Privacy |
 
+### Search
+| Component | Description |
+|-----------|-------------|
+| `SearchBar.tsx` | Search input field with dropdown |
+| `SearchDropdown.tsx` | Search results dropdown (users, posts, communities, tags) |
+| `SearchResultItem.tsx` | Individual search result |
+
 ### UI
 | Component | Description |
 |-----------|-------------|
 | `Modal.tsx` | Base modal with backdrop and escape key |
 | `ShareModal.tsx` | Share via link, social, or embed code |
+| `ReportModal.tsx` | Report user/post modal |
 | `Lightbox.tsx` | Full-screen image gallery viewer |
 | `PeoplePickerModal.tsx` | Modal for selecting collaborators or tagged people with search |
+| `EmojiPicker.tsx` | Emoji/reaction picker |
+| `ErrorBoundary.tsx` | React error boundary |
+| `Loading.tsx` | Loading spinner |
+| `Skeleton.tsx` | Generic skeleton loader |
 
 ### Providers
 | Component | Description |
 |-----------|-------------|
 | `AuthProvider.tsx` | Auth context: user, profile, loading, signOut() |
 | `ModalProvider.tsx` | Post modal context with URL history sync |
+| `AuthModalProvider.tsx` | Auth modal visibility state |
 
 ---
 
@@ -128,8 +244,10 @@ tagline         TEXT
 role            TEXT
 education       TEXT
 location        TEXT
+languages       TEXT
 website         TEXT
 is_verified     BOOLEAN DEFAULT false
+is_private      BOOLEAN DEFAULT false
 created_at      TIMESTAMPTZ
 ```
 
@@ -137,12 +255,17 @@ created_at      TIMESTAMPTZ
 ```sql
 id              UUID PRIMARY KEY
 author_id       UUID REFERENCES profiles(id)
+community_id    UUID REFERENCES communities(id)
 type            TEXT (poem|journal|thought|visual|audio|video|essay|screenplay|story|letter|quote)
 title           TEXT
 content         TEXT (HTML)
-visibility      TEXT (public|private)
+visibility      TEXT (public|followers|private)
 content_warning TEXT
-status          TEXT DEFAULT 'published' -- 'draft' (awaiting collaborators), 'published', 'archived'
+status          TEXT DEFAULT 'published' -- 'draft', 'published', 'archived'
+styling         JSONB -- creative backgrounds, text alignment, etc.
+post_location   TEXT
+metadata        JSONB -- journal metadata (weather, mood, time_of_day)
+spotify_track   JSONB -- Spotify track data
 created_at      TIMESTAMPTZ
 ```
 
@@ -163,10 +286,21 @@ user_id         UUID REFERENCES profiles(id)
 PRIMARY KEY (post_id, user_id)
 ```
 
+### reactions (multi-reaction system)
+```sql
+id              UUID PRIMARY KEY
+post_id         UUID REFERENCES posts(id)
+user_id         UUID REFERENCES profiles(id)
+reaction_type   TEXT (admire|snap|ovation|support|inspired|applaud)
+created_at      TIMESTAMPTZ
+UNIQUE(post_id, user_id)
+```
+
 ### saves (bookmarks)
 ```sql
 post_id         UUID REFERENCES posts(id)
 user_id         UUID REFERENCES profiles(id)
+created_at      TIMESTAMPTZ
 PRIMARY KEY (post_id, user_id)
 ```
 
@@ -200,6 +334,8 @@ PRIMARY KEY (comment_id, user_id)
 ```sql
 follower_id     UUID REFERENCES profiles(id)
 following_id    UUID REFERENCES profiles(id)
+status          TEXT DEFAULT 'accepted' -- 'pending', 'accepted' (for private accounts)
+requested_at    TIMESTAMPTZ DEFAULT NOW()
 PRIMARY KEY (follower_id, following_id)
 ```
 
@@ -208,9 +344,10 @@ PRIMARY KEY (follower_id, following_id)
 id              UUID PRIMARY KEY
 user_id         UUID REFERENCES profiles(id)
 actor_id        UUID REFERENCES profiles(id)
-type            TEXT (admire|comment|relay|save|follow|reply|comment_like|collaboration_invite|collaboration_accepted|collaboration_declined|mention)
+type            TEXT -- see NotificationType below
 post_id         UUID REFERENCES posts(id)
 comment_id      UUID REFERENCES comments(id)
+community_id    UUID REFERENCES communities(id)
 content         TEXT
 read            BOOLEAN DEFAULT false
 created_at      TIMESTAMPTZ
@@ -256,8 +393,81 @@ id              UUID PRIMARY KEY
 conversation_id UUID REFERENCES conversations(id)
 sender_id       UUID REFERENCES profiles(id)
 content         TEXT
+message_type    TEXT DEFAULT 'text' -- 'text', 'voice', 'media'
+media_url       TEXT
+media_type      TEXT
+voice_url       TEXT
+voice_duration  INTEGER
+waveform_data   JSONB
 is_read         BOOLEAN DEFAULT false
 created_at      TIMESTAMPTZ
+```
+
+### communities
+```sql
+id              UUID PRIMARY KEY
+slug            TEXT UNIQUE NOT NULL
+name            TEXT NOT NULL
+description     TEXT
+avatar_url      TEXT
+cover_url       TEXT
+privacy         TEXT DEFAULT 'public' -- 'public', 'private'
+topics          TEXT[]
+created_by      UUID REFERENCES profiles(id)
+created_at      TIMESTAMPTZ
+updated_at      TIMESTAMPTZ
+```
+
+### community_members
+```sql
+id              UUID PRIMARY KEY
+community_id    UUID REFERENCES communities(id)
+user_id         UUID REFERENCES profiles(id)
+role            TEXT DEFAULT 'member' -- 'admin', 'moderator', 'member'
+status          TEXT DEFAULT 'active' -- 'active', 'muted', 'banned'
+muted_until     TIMESTAMPTZ
+joined_at       TIMESTAMPTZ
+UNIQUE(community_id, user_id)
+```
+
+### community_rules
+```sql
+id              UUID PRIMARY KEY
+community_id    UUID REFERENCES communities(id)
+rule_number     INTEGER
+title           TEXT
+description     TEXT
+```
+
+### community_tags
+```sql
+id              UUID PRIMARY KEY
+community_id    UUID REFERENCES communities(id)
+tag             TEXT
+tag_type        TEXT -- 'genre', 'theme', 'type', 'custom'
+```
+
+### community_join_requests
+```sql
+id              UUID PRIMARY KEY
+community_id    UUID REFERENCES communities(id)
+user_id         UUID REFERENCES profiles(id)
+message         TEXT
+status          TEXT DEFAULT 'pending' -- 'pending', 'approved', 'rejected'
+reviewed_by     UUID REFERENCES profiles(id)
+reviewed_at     TIMESTAMPTZ
+created_at      TIMESTAMPTZ
+```
+
+### community_invitations
+```sql
+id              UUID PRIMARY KEY
+community_id    UUID REFERENCES communities(id)
+inviter_id      UUID REFERENCES profiles(id)
+invitee_id      UUID REFERENCES profiles(id)
+status          TEXT DEFAULT 'pending' -- 'pending', 'accepted', 'declined'
+created_at      TIMESTAMPTZ
+responded_at    TIMESTAMPTZ
 ```
 
 ### post_collaborators
@@ -265,6 +475,7 @@ created_at      TIMESTAMPTZ
 id              UUID PRIMARY KEY
 post_id         UUID REFERENCES posts(id) ON DELETE CASCADE
 user_id         UUID REFERENCES profiles(id) ON DELETE CASCADE
+role            TEXT
 status          TEXT DEFAULT 'pending' -- 'pending', 'accepted', 'declined'
 invited_at      TIMESTAMPTZ DEFAULT NOW()
 responded_at    TIMESTAMPTZ
@@ -280,17 +491,47 @@ created_at      TIMESTAMPTZ DEFAULT NOW()
 UNIQUE(post_id, user_id)
 ```
 
+### tags
+```sql
+id              UUID PRIMARY KEY
+name            TEXT UNIQUE NOT NULL
+created_at      TIMESTAMPTZ DEFAULT NOW()
+```
+
+### post_tags
+```sql
+id              UUID PRIMARY KEY
+post_id         UUID REFERENCES posts(id) ON DELETE CASCADE
+tag_id          UUID REFERENCES tags(id) ON DELETE CASCADE
+created_at      TIMESTAMPTZ DEFAULT NOW()
+UNIQUE(post_id, tag_id)
+```
+
 ---
 
-## Custom Hooks (lib/hooks.ts)
+## Custom Hooks (lib/hooks/)
 
-### Post Hooks
+### Feed Hooks (useFeed.ts)
 ```typescript
-usePosts(userId?: string)
-// Returns: { posts, loading, error, refetch }
-// Fetches public posts with author, media, interaction counts
-// Filters out posts from blocked users (both directions)
+useFeed(userId?: string, options?: { pageSize?: number; communityId?: string })
+// Returns: { posts, loading, error, pagination, loadMore, refresh }
+// Optimized feed with RLS-based filtering, pagination, real-time updates
+// Fetches collaborators, mentions, hashtags, and all interaction states
 
+usePosts(userId?: string) // DEPRECATED - use useFeed
+// Returns: { posts, loading, error, refetch }
+
+useSavedPosts(userId?: string)
+// Returns: { posts, loading, error, refetch }
+// Fetches user's saved/bookmarked posts
+
+useRelays(username: string)
+// Returns: { relays, loading }
+// Fetches relayed posts for a user's profile
+```
+
+### Interaction Hooks (useInteractions.ts)
+```typescript
 useToggleAdmire()
 // Returns: { toggle: (postId, userId, isAdmired) => Promise }
 
@@ -299,39 +540,61 @@ useToggleSave()
 
 useToggleRelay()
 // Returns: { toggle: (postId, userId, isRelayed) => Promise }
+
+useToggleReaction()
+// Returns: { react, removeReaction, getReaction }
+// Multi-reaction system with fallback to admires table
+
+useReactionCounts(postId: string)
+// Returns: { counts, loading, refetch }
+// Real-time reaction counts per type
+
+useUserReaction(postId: string, userId?: string)
+// Returns: { reaction, loading, setReaction, refetch }
+// User's current reaction with real-time updates
+
+useBlock()
+// Returns: { checkIsBlocked, checkIsBlockedEitherWay, blockUser, unblockUser, getBlockedUsers }
 ```
 
-### Profile Hooks
+### Profile Hooks (useProfile.ts)
 ```typescript
 useProfile(username: string, viewerId?: string)
-// Returns: { profile, posts, loading, error, isBlockedByUser }
-// If viewerId is blocked by the profile owner, isBlockedByUser = true
+// Returns: { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, refetch }
+// Handles private accounts, blocked users, visibility filtering
 
 useFollow()
-// Returns: { checkIsFollowing, toggle }
+// Returns: { checkFollowStatus, checkIsFollowing, checkIsPrivate, follow, unfollow,
+//            acceptRequest, declineRequest, getPendingRequests, toggle }
+// Full follow system with private account support
 
 useFollowList(userId: string, type: 'followers' | 'following')
 // Returns: { users, loading, refetch }
+
+useFollowRequests(userId?: string)
+// Returns: { requests, loading, count, accept, decline, refetch }
+// Manage follow requests for private accounts with real-time updates
 ```
 
-### Comment Hooks
+### Comment Hooks (useComments.ts)
 ```typescript
-useComments(postId: string)
-// Returns: { comments, loading, addComment, refetch }
-// Supports nested replies (parent_id)
-// Creates notifications for replies and comment likes
+useComments(postId: string, userId?: string)
+// Returns: { comments, loading, addComment, toggleLike, deleteComment, fetchReplies, refetch }
+// Optimized: lazy-loads replies on demand, creates notifications for replies and likes
 ```
 
-### Notification Hooks
+### Notification Hooks (useNotifications.ts)
 ```typescript
+createNotification(userId, actorId, type, postId?, content?, communityId?, commentId?)
+// Helper function to create notifications (prevents self-notifications)
+
 useNotifications(userId?: string)
 // Returns: { notifications, loading, refetch }
-// Has real-time subscription for instant updates
-// Types: admire, comment, relay, save, follow, reply, comment_like
+// Real-time subscription for instant updates
 
 useUnreadCount(userId?: string)
 // Returns: { count, refetch }
-// Real-time subscription
+// Real-time unread notification count
 
 useMarkAsRead()
 // Returns: { markAsRead, markAllAsRead }
@@ -341,75 +604,271 @@ useUnreadMessagesCount(userId?: string)
 // Filters out messages from blocked users
 ```
 
-### Relay Hooks
+### Explore Hooks (useExplore.ts)
 ```typescript
-useRelays(username: string)
-// Returns: { relays, loading }
+useExplore(userId?: string, options?: { pageSize?: number; tab?: ExploreTab })
+// Returns: { posts, loading, error, pagination, loadMore, refresh, activeTab, setActiveTab }
+// Personalized algorithm with engagement scoring, time decay, trending boost
+// Tabs: for-you, trending, video, communities, topics, poem, journal, etc.
 ```
 
-### Block Hooks
+### Tag Hooks (useTags.ts)
 ```typescript
-useBlock()
-// Returns: { checkIsBlocked, checkIsBlockedEitherWay, blockUser, unblockUser, getBlockedUsers }
+useTrendingTags(limit?: number)
+// Returns: { tags, loading, error, refetch }
+// Real trending tags from database (last 30 days, sorted by recent activity)
 
-checkIsBlocked(blockerId, blockedId)
-// Checks if blockerId has blocked blockedId
+useTagPosts(tagName: string, userId?: string)
+// Returns: { posts, loading, error, hasMore, loadMore, tagInfo }
+// Paginated posts for a specific hashtag
 
-checkIsBlockedEitherWay(userId1, userId2)
-// Checks if either user has blocked the other
-
-blockUser(blockerId, blockedId)
-// Blocks user and removes mutual follows
-
-unblockUser(blockerId, blockedId)
-// Removes block
-
-getBlockedUsers(userId)
-// Returns list of users blocked by userId
+usePopularTags(limit?: number)
+// Returns: { tags, loading }
+// All-time popular tags
 ```
 
-### Collaboration Hooks
+### Media Hooks (useMedia.ts)
 ```typescript
-useCollaborators(postId: string)
-// Returns: { collaborators, loading, inviteCollaborator, removeCollaborator }
-// Manages collaborators for a post
+useVoiceRecorder(maxDuration?: number)
+// Returns: { isRecording, isPaused, duration, audioBlob, audioUrl, waveformData, error,
+//            hasPermission, isSupported, startRecording, stopRecording, pauseRecording,
+//            resumeRecording, cancelRecording, requestPermission, reset }
+// Full voice recording with waveform visualization
 
-useCollaborationInvites(userId: string)
+useAudioPlayer(audioUrl: string | null)
+// Returns: { isPlaying, isLoading, currentTime, duration, playbackRate, error,
+//            play, pause, toggle, seek, setPlaybackRate }
+
+useSendVoiceNote()
+// Returns: { sendVoiceNote, sending, progress, error }
+// Upload and send voice notes in conversations
+
+useSendMedia(limits?: MediaLimits)
+// Returns: { sendMedia, validateFile, sending, progress, error, limits }
+// Upload and send images/videos in conversations
+```
+
+### Community Hooks (hooks.legacy.ts)
+```typescript
+useCommunity(slug: string, userId?: string)
+// Returns: { community, loading, error, refetch }
+
+useCommunities(userId?: string, filter?: 'all' | 'joined' | 'created')
+// Returns: { communities, loading, error, refetch }
+
+useDiscoverCommunities(options?: { category?: string; tag?: string; limit?: number })
+// Returns: { communities, loading, error }
+
+useSuggestedCommunities(userId?: string, limit?: number)
+// Returns: { communities, loading }
+
+useCommunityMembers(communityId: string, options?: { role?: string; status?: string })
+// Returns: { members, loading, refetch }
+
+useCommunityPosts(communityId: string, userId?: string, sortBy?: 'newest' | 'top')
+// Returns: { posts, loading, error, loadMore, hasMore, refetch }
+
+useJoinCommunity()
+// Returns: { join, leave, requestJoin, cancelRequest, isJoining }
+
+useCommunityInvitations(userId?: string)
+// Returns: { invitations, loading, accept, decline, refetch }
+
+useJoinRequests(communityId: string)
+// Returns: { requests, loading, approve, reject, refetch }
+
+useCreateCommunity()
+// Returns: { create, creating, error }
+
+useUpdateCommunity()
+// Returns: { update, updating, error }
+
+useDeleteCommunity()
+// Returns: { delete: deleteCommunity, deleting, error }
+
+useCommunityModeration(communityId: string)
+// Returns: { updateMemberRole, updateMemberStatus, removeMember, loading }
+```
+
+### Collaboration Hooks (hooks.legacy.ts)
+```typescript
+useCollaborators(postId?: string)
+// Returns: { collaborators, loading, inviteCollaborator, removeCollaborator, refetch }
+
+useCollaborationInvites(userId?: string)
 // Returns: { invites, loading, accept, decline, refetch }
-// Fetches pending collaboration invites for a user
-// Used in NotificationPanel to show invite cards
 
-usePendingCollaborations(userId: string)
+usePendingCollaborations(userId?: string)
 // Returns: { posts, loading }
-// Fetches posts where user has pending collaborator responses
 
-useMentions(postId: string)
-// Returns: { mentions, loading, addMention, removeMention }
-// Manages @mentions/tags for a post
+useMentions(postId?: string)
+// Returns: { mentions, loading, addMention, removeMention, refetch }
 
-useMentionedPosts(userId: string)
+useMentionedPosts(userId?: string)
 // Returns: { posts, loading }
-// Fetches posts where user is mentioned/tagged
-```
 
-### User Search Hooks
-```typescript
-useUserSearch(currentUserId: string)
+useUserSearch(currentUserId?: string)
 // Returns: { results, loading, search, suggestions }
-// Debounced search for users by username/display_name
-// Also provides suggestions from following list
-// Used in PeoplePickerModal for collaborators and tags
+// Debounced search for users, includes following suggestions
+
+saveCollaboratorsAndMentions(postId, collaborators, mentions)
+// Helper function to save collaborators and mentions for a post
 
 fetchCollaboratedPosts(userId: string)
-// Helper function that returns posts where user is accepted collaborator
-// Used in StudioProfile to show collaborated posts in grid
+// Helper to fetch posts where user is accepted collaborator
 ```
 
-### Helper Functions
+### Search Hook (hooks.legacy.ts)
 ```typescript
-createNotification(userId, actorId, type, postId?, content?, commentId?)
-// Creates notification (prevents self-notifications)
-// Supports all notification types including reply and comment_like
+useSearch(query: string, options?: { debounceMs?: number; limit?: number })
+// Returns: { results: { profiles, posts, communities, tags }, loading, error }
+// Unified search across profiles, posts, communities, and tags
+```
+
+---
+
+## TypeScript Types (lib/types/index.ts)
+
+### Post Types
+```typescript
+type PostType = 'poem' | 'journal' | 'thought' | 'visual' | 'audio' | 'video' |
+                'essay' | 'screenplay' | 'story' | 'letter' | 'quote';
+
+type PostVisibility = 'public' | 'followers' | 'private';
+type PostStatus = 'draft' | 'published' | 'archived';
+
+interface Post {
+  id: string;
+  author_id: string;
+  type: PostType;
+  title: string | null;
+  content: string;
+  visibility: PostVisibility;
+  status?: PostStatus;
+  content_warning: string | null;
+  created_at: string;
+  community_id: string | null;
+  styling?: PostStyling | null;
+  post_location?: string | null;
+  metadata?: JournalMetadata | null;
+  spotify_track?: SpotifyTrack | null;
+  author: PostAuthor;
+  media: PostMedia[];
+  community?: PostCommunity | null;
+  admires_count: number;
+  reactions_count: number;
+  comments_count: number;
+  relays_count: number;
+  user_has_admired: boolean;
+  user_reaction_type: ReactionType | null;
+  user_has_saved: boolean;
+  user_has_relayed: boolean;
+  collaborators?: PostCollaborator[];
+  mentions?: PostMention[];
+  hashtags?: string[];
+}
+```
+
+### Styling Types
+```typescript
+type BackgroundType = 'solid' | 'gradient' | 'pattern' | 'image';
+type TextAlignment = 'left' | 'center' | 'right' | 'justify';
+type LineSpacing = 'normal' | 'relaxed' | 'loose';
+type DividerStyle = 'none' | 'simple' | 'ornate' | 'dots' | 'stars' | 'wave';
+type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
+type WeatherType = 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'snowy' | 'foggy' | 'windy';
+type MoodType = 'reflective' | 'joyful' | 'melancholic' | 'peaceful' | 'anxious' | 'grateful' |
+                'creative' | 'nostalgic' | 'hopeful' | 'contemplative' | 'excited' | 'curious' |
+                'serene' | 'restless' | 'inspired' | 'determined' | 'vulnerable' | 'content' |
+                'overwhelmed' | 'lonely';
+
+interface PostStyling {
+  background?: PostBackground;
+  textAlignment?: TextAlignment;
+  lineSpacing?: LineSpacing;
+  dropCap?: boolean;
+  dividerStyle?: DividerStyle;
+}
+
+interface JournalMetadata {
+  weather?: WeatherType | string;
+  temperature?: string;
+  mood?: MoodType | string;
+  timeOfDay?: TimeOfDay;
+}
+
+interface SpotifyTrack {
+  id: string;
+  name: string;
+  artist: string;
+  album: string;
+  albumArt: string;
+  previewUrl?: string;
+  externalUrl: string;
+}
+```
+
+### Reaction Types
+```typescript
+type ReactionType = 'admire' | 'snap' | 'ovation' | 'support' | 'inspired' | 'applaud';
+
+interface ReactionCounts {
+  admire: number;
+  snap: number;
+  ovation: number;
+  support: number;
+  inspired: number;
+  applaud: number;
+  total: number;
+}
+```
+
+### Notification Types
+```typescript
+type NotificationType =
+  | 'admire' | 'snap' | 'ovation' | 'support' | 'inspired' | 'applaud'  // Reactions
+  | 'comment' | 'relay' | 'save'                                        // Post interactions
+  | 'follow' | 'follow_request' | 'follow_request_accepted'             // Following
+  | 'reply' | 'comment_like'                                            // Comment interactions
+  | 'community_invite' | 'community_join_request' | 'community_join_approved'
+  | 'community_role_change' | 'community_muted' | 'community_banned'    // Community
+  | 'collaboration_invite' | 'collaboration_accepted' | 'collaboration_declined'
+  | 'mention';                                                          // Collaboration
+```
+
+### Community Types
+```typescript
+interface Community {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  avatar_url: string | null;
+  cover_url: string | null;
+  privacy: 'public' | 'private';
+  topics: string[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  member_count?: number;
+  post_count?: number;
+  is_member?: boolean;
+  user_role?: 'admin' | 'moderator' | 'member' | null;
+  user_status?: 'active' | 'muted' | 'banned' | null;
+  has_pending_request?: boolean;
+  has_pending_invitation?: boolean;
+}
+
+interface CommunityMember {
+  id: string;
+  community_id: string;
+  user_id: string;
+  role: 'admin' | 'moderator' | 'member';
+  status: 'active' | 'muted' | 'banned';
+  muted_until: string | null;
+  joined_at: string;
+  profile: { id, username, display_name, avatar_url, is_verified };
+}
 ```
 
 ---
@@ -421,7 +880,7 @@ createNotification(userId, actorId, type, postId?, content?, commentId?)
 const { user, profile, loading, signOut } = useAuth();
 
 // user: Supabase User | null
-// profile: { id, username, display_name, avatar_url, bio, ... } | null
+// profile: Profile | null (includes is_private for private accounts)
 // loading: boolean
 // signOut: () => Promise<void>
 ```
@@ -445,7 +904,7 @@ const { openPostModal, closePostModal, subscribeToUpdates, notifyUpdate } = useM
 When User A blocks User B:
 
 1. **Profile Access**: User B sees "User not found" when viewing User A's profile
-2. **Feed Filtering**: Posts from both users are hidden from each other's feeds
+2. **Feed Filtering**: Posts from both users are hidden from each other's feeds (RLS handles this)
 3. **Messaging (Instagram-style)**:
    - Both users can still "send" messages
    - Messages appear to send but are never delivered to the other party
@@ -465,23 +924,20 @@ Settings → Privacy → Shows list of blocked users with unblock option
 
 ---
 
-## Report System
+## Private Accounts System
 
-### Report Types
-- `user` - Report a user profile
-- `post` - Report a post
+### How Private Accounts Work
 
-### Report Reasons (Quick Select)
-- Spam
-- Harassment
-- Impersonation
-- Inappropriate content
-- Other (custom text)
+1. **Profile Visibility**: Private account profiles show limited info to non-followers
+2. **Follow Requests**: Following a private account sends a "pending" request
+3. **Request Management**: Account owner sees requests in notifications and can accept/decline
+4. **Post Visibility**: All posts from private accounts only visible to accepted followers
+5. **Notifications**: Special notification types for follow_request and follow_request_accepted
 
-### Where to Report
-- Profile page: 3-dot menu → Report
-- Post card: 3-dot menu → Report
-- Messages: Info (i) button → Report
+### Implementation
+- `profiles.is_private` boolean flag
+- `follows.status` column: 'pending' or 'accepted'
+- `follows.requested_at` timestamp for request ordering
 
 ---
 
@@ -499,7 +955,7 @@ When creating a post, users can add collaborators:
 1. Author adds collaborators via PeoplePickerModal in CreatePost
 2. Post saved with `status: 'draft'` and collaborators as `pending`
 3. Notifications sent to all invited collaborators
-4. Collaborators see special CollaborationInviteCard in NotificationPanel
+4. Collaborators see CollaborationInviteCard in NotificationPanel
 5. When all collaborators accept → post `status` becomes `'published'`
 6. If any decline → author notified, can remove them and publish
 
@@ -511,19 +967,55 @@ Users can tag/mention people in posts:
 - Clicking a tag navigates to that user's profile
 - Mention notifications sent to tagged users
 
-### Components
-- `PeoplePickerModal.tsx` - Modal for selecting collaborators or mentions
-- `CollaborationInviteCard.tsx` - Special notification card with accept/decline
-- `PostCard.tsx` - Displays collaborators (overlapping avatars) and mentions
-- `StudioProfile.tsx` - Shows collaborated posts with "Collab" badge
+### Hashtags
+- Posts can include #hashtags in content
+- Tags are extracted and stored in `tags` and `post_tags` tables
+- `/tag/[tag]` page shows all posts with that hashtag
+- Trending tags shown in explore and right sidebar
 
-### Notification Types
-| Type | Icon | Message |
-|------|------|---------|
-| `collaboration_invite` | ✨ | "invited you to collaborate" |
-| `collaboration_accepted` | 🎉 | "accepted your collaboration" |
-| `collaboration_declined` | 💔 | "declined your collaboration" |
-| `mention` | 🏷️ | "mentioned you in a post" |
+---
+
+## Communities System
+
+### Community Features
+- **Creation**: Users can create communities with name, description, avatar, cover, topics
+- **Privacy**: Public (anyone can join) or Private (approval required)
+- **Roles**: Admin (creator), Moderator (appointed), Member
+- **Moderation**: Mute, ban, role management
+- **Rules**: Community rules that members must follow
+- **Join Requests**: Private communities require approval
+- **Invitations**: Members can invite others to communities
+
+### Community Posts
+- Posts can be created within a community
+- Community badge shown on posts
+- Separate community feed page
+- Community posts appear in main feed with community attribution
+
+---
+
+## Explore Algorithm
+
+The explore page uses a scoring algorithm for personalized content:
+
+### Engagement Signals
+- Admires: 1.0 weight
+- Comments: 1.5 weight
+- Relays: 2.0 weight
+
+### Relationship Signals
+- Following author: 3.0x boost
+- Previously admired author: 2.0x boost
+
+### Content Preference
+- Preferred post type (based on user history): 1.5x boost
+
+### Time Decay
+- Posts start decaying after 48 hours
+- Exponential decay function
+
+### Trending Boost
+- Posts with 10+ engagement in 24 hours get 2.5x boost
 
 ---
 
@@ -539,6 +1031,7 @@ Users can tag/mention people in posts:
 - Role/Occupation
 - Education
 - Location
+- Languages
 - Website
 
 ### Account (`/settings/account`)
@@ -547,11 +1040,9 @@ Users can tag/mention people in posts:
 - Danger zone (delete account)
 
 ### Privacy (`/settings/privacy`)
+- Toggle private account
 - View blocked users
 - Unblock users
-
-### Notifications (`/settings/notifications`)
-- Notification preferences (planned)
 
 ---
 
@@ -559,25 +1050,24 @@ Users can tag/mention people in posts:
 
 ### CSS Variables (globals.css)
 ```css
---primary-purple: #8e44ad
---vivid-pink: #ff007f
---warm-orange: #ff9f43
---ink: #1e1e1e
---muted-text: #777
---paper: #ffffff
---background: #fdfdfd
+--color-purple-primary: #8e44ad
+--color-pink-vivid: #ff007f
+--color-orange-warm: #ff9f43
+--color-ink: #1e1e1e
+--color-muted: #777777
+--color-paper: #ffffff
+--color-background: #fdfdfd
 
---font-display: 'Libre Baskerville', serif  /* Titles, poems */
---font-body: 'Crimson Pro', serif           /* Content */
---font-ui: 'Josefin Sans', sans-serif       /* UI elements */
+--font-display: var(--font-poppins), sans-serif  /* Titles */
+--font-body: var(--font-open-sans), sans-serif   /* Content */
+--font-ui: var(--font-poppins), sans-serif       /* UI elements */
 ```
 
 ### Key Style Patterns
-- **Posts**: `.post`, `.type-poem`, `.type-journal`, `.type-manifesto`, etc.
-- **Actions**: `.action-btn`, `.action-btn.active`, `.action-btn.saved`
+- **Posts**: `.post`, `.type-poem`, `.type-journal`, etc.
+- **Actions**: `.action-btn`, `.action-btn.active`
 - **Modal**: `.modal-overlay`, `.modal-card`
 - **Animations**: `animate-fadeIn`, `animate-scaleIn`, `animate-slideUp`
-- **Truncation**: `.continue-reading-btn` (purple with arrow)
 - **Gradients**: `bg-gradient-to-r from-purple-primary to-pink-vivid`
 
 ### Tailwind v4
@@ -593,16 +1083,18 @@ Users can tag/mention people in posts:
 - **URL**: `NEXT_PUBLIC_SUPABASE_URL`
 - **Key**: `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - **Features Used**:
-  - Auth (email/password)
+  - Auth (email/password, magic link)
   - PostgreSQL database
-  - Real-time subscriptions (notifications, messages)
+  - Real-time subscriptions (notifications, messages, reactions)
   - Row Level Security (RLS)
-  - Storage (avatars, covers, media)
+  - Storage (avatars, covers, media, voice-notes)
 
 ### Dependencies
 ```json
 "@supabase/supabase-js": "^2.89.0"
 "@fortawesome/react-fontawesome": "^3.1.1"
+"recharts": "^2.x"  // Analytics charts
+"dompurify": "^3.x"  // HTML sanitization
 "next": "16.1.1"
 "react": "^19.2.3"
 "tailwindcss": "^4"
@@ -616,7 +1108,7 @@ Users can tag/mention people in posts:
 |------|-------|-------------|
 | `thought` | "shared a thought" | Short manifesto/reflection |
 | `poem` | "wrote a poem" | Centered, italic poetry |
-| `journal` | "wrote in their journal" | Personal journal entry |
+| `journal` | "wrote in their journal" | Personal journal entry with metadata |
 | `essay` | "wrote an essay" | Long-form essay |
 | `story` | "shared a story" | Fiction/narrative |
 | `letter` | "wrote a letter" | Letter format |
@@ -634,6 +1126,8 @@ Users can tag/mention people in posts:
 |-------|-------------|
 | `/` | Main feed (requires auth) |
 | `/create` | Create new post |
+| `/explore` | Explore trending content |
+| `/saved` | Saved/bookmarked posts |
 | `/messages` | Direct messages |
 | `/settings` | Settings index |
 | `/settings/profile` | Edit profile |
@@ -641,38 +1135,56 @@ Users can tag/mention people in posts:
 | `/settings/privacy` | Privacy & blocked users |
 | `/studio/[username]` | User profile |
 | `/post/[id]` | Post detail page |
+| `/tag/[tag]` | Hashtag feed |
+| `/community` | Communities list |
+| `/community/create` | Create community |
+| `/community/[slug]` | Community page |
+| `/community/[slug]/members` | Community members |
+| `/community/[slug]/settings` | Community settings |
+| `/insights` | Analytics dashboard |
+| `/insights/audience` | Audience analytics |
+| `/insights/content` | Content analytics |
+| `/takes` | Takes/video feed |
+| `/takes/create` | Create take |
+| `/take/[id]` | Take detail |
+| `/help` | Help documentation |
 | `/login` | Login/signup |
+| `/privacy` | Privacy policy |
+| `/terms` | Terms of service |
 
 ---
 
 ## Key Patterns
 
-### Post Fetching
-Posts are fetched with related data in one query, filtering blocked users:
+### Optimized Post Fetching
+Posts are fetched with RLS-based filtering and batch queries:
 ```typescript
-// Get blocked users first
-const blockedByUsers = await getBlockedBy(userId);
-const usersIBlocked = await getBlocked(userId);
-
-// Then filter posts
+// RLS handles visibility/blocking - no client-side filtering needed
 supabase.from("posts").select(`
-  *,
+  *, styling, post_location, metadata,
   author:profiles!posts_author_id_fkey (...),
-  media:post_media (...)
-`)
-// Client-side filter for blocked users
+  media:post_media (...),
+  community:communities (...),
+  admires:admires(count),
+  comments:comments(count),
+  relays:relays(count)
+`);
+
+// Batch fetch user interactions
+const [admiresResult, savesResult, relaysResult, reactionsResult] = await Promise.all([...]);
 ```
 
 ### Real-time Updates
-Notifications and messages use Supabase real-time:
+Notifications, messages, and reactions use Supabase real-time:
 ```typescript
 supabase.channel('notifications')
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, callback)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications',
+       filter: `user_id=eq.${userId}` }, callback)
   .subscribe()
 ```
 
 ### Auth Flow
-1. User signs in via `supabase.auth.signInWithPassword()`
+1. User signs in via `supabase.auth.signInWithPassword()` or magic link
 2. `AuthProvider` listens to `onAuthStateChange`
 3. Profile is fetched/created from `profiles` table
 4. Auth state available via `useAuth()` hook
@@ -681,15 +1193,20 @@ supabase.channel('notifications')
 Posts over 50 words show "Continue reading" link that opens modal.
 
 ### Optimistic Updates
-All interactions (admire, save, relay, block) use optimistic UI updates for instant feedback.
+All interactions (admire, save, relay, block, react) use optimistic UI updates.
+
+### Lazy-Loaded Replies
+Comments hook initially fetches only top-level comments; replies are loaded on demand via `fetchReplies()`.
 
 ---
 
 ## SQL Setup Scripts
 
-### Enable Real-time on notifications
+### Enable Real-time
 ```sql
 ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE reactions;
 ```
 
 ### Blocks table
@@ -717,33 +1234,44 @@ CREATE INDEX idx_blocks_blocker ON blocks(blocker_id);
 CREATE INDEX idx_blocks_blocked ON blocks(blocked_id);
 ```
 
-### Reports table
+### Reactions table
 ```sql
-CREATE TABLE IF NOT EXISTS reports (
+CREATE TABLE IF NOT EXISTS reactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  reporter_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  reported_user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  reported_post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
-  reason TEXT NOT NULL,
-  type TEXT NOT NULL,
-  status TEXT DEFAULT 'pending',
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  reaction_type TEXT NOT NULL CHECK (reaction_type IN ('admire', 'snap', 'ovation', 'support', 'inspired', 'applaud')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(post_id, user_id)
+);
+
+ALTER TABLE reactions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read reactions" ON reactions FOR SELECT USING (true);
+CREATE POLICY "Users can add reactions" ON reactions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update reactions" ON reactions FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete reactions" ON reactions FOR DELETE USING (auth.uid() = user_id);
+
+CREATE INDEX idx_reactions_post ON reactions(post_id);
+CREATE INDEX idx_reactions_user ON reactions(user_id);
+```
+
+### Tags tables
+```sql
+CREATE TABLE IF NOT EXISTS tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT UNIQUE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+CREATE TABLE IF NOT EXISTS post_tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(post_id, tag_id)
+);
 
-CREATE POLICY "Users can create reports" ON reports
-  FOR INSERT WITH CHECK (auth.uid() = reporter_id);
-CREATE POLICY "Users can view their own reports" ON reports
-  FOR SELECT USING (auth.uid() = reporter_id);
-```
-
-### Update notification types
-```sql
-ALTER TABLE notifications
-DROP CONSTRAINT IF EXISTS notifications_type_check;
-
-ALTER TABLE notifications
-ADD CONSTRAINT notifications_type_check
-CHECK (type IN ('admire', 'comment', 'relay', 'save', 'follow', 'reply', 'comment_like'));
+CREATE INDEX idx_post_tags_post ON post_tags(post_id);
+CREATE INDEX idx_post_tags_tag ON post_tags(tag_id);
 ```

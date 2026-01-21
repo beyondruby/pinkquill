@@ -27,7 +27,8 @@
       "mcp__supabase__list_migrations",
       "Bash(find:*)",
       "Bash(xargs:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(tree:*)"
     ]
   }
 }
