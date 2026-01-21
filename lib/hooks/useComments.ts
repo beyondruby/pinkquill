@@ -1,33 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
-import type { Comment, NotificationType } from "../types";
-
-// ============================================================================
-// Helper: Create notification
-// ============================================================================
-
-async function createNotification(
-  userId: string,
-  actorId: string,
-  type: NotificationType,
-  postId?: string,
-  content?: string,
-  commentId?: string
-) {
-  // Don't notify yourself
-  if (userId === actorId) return;
-
-  await supabase.from("notifications").insert({
-    user_id: userId,
-    actor_id: actorId,
-    type,
-    post_id: postId || null,
-    content: content || null,
-    comment_id: commentId || null,
-  });
-}
+import { createNotification } from "./useNotifications";
+import type { Comment } from "../types";
 
 // ============================================================================
 // useComments - Optimized with lazy-loaded replies
@@ -58,6 +34,7 @@ interface UseCommentsReturn {
 export function useComments(postId: string, userId?: string): UseCommentsReturn {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   // Fetch only top-level comments initially
   const fetchComments = useCallback(async () => {
@@ -81,6 +58,9 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         .is("parent_id", null) // Only top-level
         .order("created_at", { ascending: false }); // Newest first
 
+      // Check if still mounted before updating state
+      if (!mountedRef.current) return;
+
       if (error) throw error;
 
       if (!data || data.length === 0) {
@@ -103,6 +83,9 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
           : Promise.resolve({ data: [] }),
         supabase.from("comments").select("parent_id").in("parent_id", commentIds),
       ]);
+
+      // Check if still mounted after second batch of queries
+      if (!mountedRef.current) return;
 
       const likesCounts: Record<string, number> = {};
       const userLikes = new Set<string>();
@@ -133,7 +116,9 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
     } catch (err) {
       console.error("[useComments] Error:", err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [postId, userId]);
 
@@ -385,11 +370,17 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
     }
   };
 
-  // Initial fetch
+  // Initial fetch and cleanup
   useEffect(() => {
+    mountedRef.current = true;
+
     if (postId) {
       fetchComments();
     }
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [postId, fetchComments]);
 
   return {

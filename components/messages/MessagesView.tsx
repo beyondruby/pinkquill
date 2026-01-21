@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useBlock } from "@/lib/hooks";
 import ConversationList from "./ConversationList";
 import ChatView from "./ChatView";
 import NewMessageModal from "./NewMessageModal";
@@ -57,7 +56,6 @@ export default function MessagesView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { checkIsBlocked } = useBlock();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,14 +69,14 @@ export default function MessagesView() {
     }
   }, [searchParams]);
 
-  // Fetch conversations
+  // Fetch conversations - OPTIMIZED: Batched queries instead of N+1
   const fetchConversations = async (showLoading = true) => {
     if (!user) return;
 
     try {
       if (showLoading) setLoading(true);
 
-      // Get all conversations the user is part of
+      // BATCH QUERY 1: Get all conversations with participants in one query
       const { data: participations } = await supabase
         .from("conversation_participants")
         .select("conversation_id")
@@ -92,76 +90,120 @@ export default function MessagesView() {
 
       const conversationIds = participations.map((p) => p.conversation_id);
 
-      // Fetch conversation details
-      const conversationsData = await Promise.all(
-        conversationIds.map(async (convId) => {
-          // Get conversation
-          const { data: conv } = await supabase
-            .from("conversations")
-            .select("*")
-            .eq("id", convId)
-            .single();
+      // BATCH QUERY 2-5: Run all queries in parallel instead of per-conversation
+      const [
+        conversationsResult,
+        allParticipantsResult,
+        blockedByMeResult,
+        blockedMeResult,
+        allMessagesResult,
+        unreadCountsResult,
+      ] = await Promise.all([
+        // Get all conversations at once
+        supabase
+          .from("conversations")
+          .select("id, updated_at")
+          .in("id", conversationIds),
+        // Get all other participants at once
+        supabase
+          .from("conversation_participants")
+          .select(`
+            conversation_id,
+            user_id,
+            user:profiles (
+              id,
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .in("conversation_id", conversationIds)
+          .neq("user_id", user.id),
+        // Get all users I've blocked
+        supabase
+          .from("blocks")
+          .select("blocked_id")
+          .eq("blocker_id", user.id),
+        // Get all users who blocked me
+        supabase
+          .from("blocks")
+          .select("blocker_id")
+          .eq("blocked_id", user.id),
+        // Get latest message per conversation (we'll filter in JS)
+        supabase
+          .from("messages")
+          .select("conversation_id, content, created_at, sender_id, message_type, voice_duration, media_type")
+          .in("conversation_id", conversationIds)
+          .order("created_at", { ascending: false }),
+        // Get unread counts per conversation
+        supabase
+          .from("messages")
+          .select("conversation_id, sender_id")
+          .in("conversation_id", conversationIds)
+          .eq("is_read", false)
+          .neq("sender_id", user.id),
+      ]);
 
-          // Get other participant
-          const { data: participants } = await supabase
-            .from("conversation_participants")
-            .select(`
-              user:profiles (
-                id,
-                username,
-                display_name,
-                avatar_url
-              )
-            `)
-            .eq("conversation_id", convId)
-            .neq("user_id", user.id);
+      // Build lookup maps for O(1) access
+      const conversationsMap = new Map(
+        (conversationsResult.data || []).map((c) => [c.id, c])
+      );
 
-          const participantData = participants as ParticipantQueryResult[] | null;
-          const otherParticipant = participantData?.[0]?.user;
+      const participantsMap = new Map<string, ParticipantQueryResult["user"]>();
+      (allParticipantsResult.data || []).forEach((p: any) => {
+        if (p.user && !participantsMap.has(p.conversation_id)) {
+          participantsMap.set(p.conversation_id, p.user);
+        }
+      });
 
-          // Check if either user has blocked the other
-          let isBlocked = false;
-          if (otherParticipant?.id) {
-            const [theyBlockedMe, iBlockedThem] = await Promise.all([
-              checkIsBlocked(otherParticipant.id, user.id),
-              checkIsBlocked(user.id, otherParticipant.id),
-            ]);
-            isBlocked = theyBlockedMe || iBlockedThem;
-          }
+      // Build blocked sets
+      const blockedByMe = new Set((blockedByMeResult.data || []).map((b) => b.blocked_id));
+      const blockedMe = new Set((blockedMeResult.data || []).map((b) => b.blocker_id));
 
-          // Get last message - only show my messages if blocked
-          let lastMessage = null;
-          if (isBlocked) {
-            // Only show my own last message
-            const { data: myLastMessages } = await supabase
-              .from("messages")
-              .select("content, created_at, sender_id, message_type, voice_duration, media_type")
-              .eq("conversation_id", convId)
-              .eq("sender_id", user.id)
-              .order("created_at", { ascending: false })
-              .limit(1);
-            lastMessage = myLastMessages?.[0] || null;
-          } else {
-            const { data: lastMessages } = await supabase
-              .from("messages")
-              .select("content, created_at, sender_id, message_type, voice_duration, media_type")
-              .eq("conversation_id", convId)
-              .order("created_at", { ascending: false })
-              .limit(1);
-            lastMessage = lastMessages?.[0] || null;
-          }
+      // Build last message map (first message per conversation since ordered desc)
+      const lastMessageMap = new Map<string, any>();
+      const myLastMessageMap = new Map<string, any>(); // For blocked users
+      (allMessagesResult.data || []).forEach((m: any) => {
+        // Store first (latest) message per conversation
+        if (!lastMessageMap.has(m.conversation_id)) {
+          lastMessageMap.set(m.conversation_id, m);
+        }
+        // Also track my last message for blocked scenarios
+        if (m.sender_id === user.id && !myLastMessageMap.has(m.conversation_id)) {
+          myLastMessageMap.set(m.conversation_id, m);
+        }
+      });
 
-          // Get unread count - don't count blocked user's messages
-          let unreadCount = 0;
-          if (!isBlocked) {
-            const { count } = await supabase
-              .from("messages")
-              .select("*", { count: "exact", head: true })
-              .eq("conversation_id", convId)
-              .eq("is_read", false)
-              .neq("sender_id", user.id);
-            unreadCount = count || 0;
-          }
+      // Build unread count map (excluding blocked users)
+      const unreadCountMap = new Map<string, number>();
+      (unreadCountsResult.data || []).forEach((m: any) => {
+        // Only count if sender is not blocked
+        if (!blockedByMe.has(m.sender_id) && !blockedMe.has(m.sender_id)) {
+          unreadCountMap.set(
+            m.conversation_id,
+            (unreadCountMap.get(m.conversation_id) || 0) + 1
+          );
+        }
+      });
+
+      // Transform data
+      const conversationsData: Conversation[] = conversationIds
+        .map((convId) => {
+          const conv = conversationsMap.get(convId);
+          const otherParticipant = participantsMap.get(convId);
+
+          // Check block status
+          const isBlocked = otherParticipant
+            ? blockedByMe.has(otherParticipant.id) || blockedMe.has(otherParticipant.id)
+            : false;
+
+          // Get appropriate last message
+          const lastMessage = isBlocked
+            ? myLastMessageMap.get(convId) || null
+            : lastMessageMap.get(convId) || null;
+
+          // Get unread count (already filtered for blocks)
+          const unreadCount = isBlocked ? 0 : unreadCountMap.get(convId) || 0;
 
           return {
             id: convId,
@@ -172,11 +214,20 @@ export default function MessagesView() {
               display_name: null,
               avatar_url: null,
             },
-            last_message: lastMessage,
+            last_message: lastMessage
+              ? {
+                  content: lastMessage.content,
+                  created_at: lastMessage.created_at,
+                  sender_id: lastMessage.sender_id,
+                  message_type: lastMessage.message_type,
+                  voice_duration: lastMessage.voice_duration,
+                  media_type: lastMessage.media_type,
+                }
+              : null,
             unread_count: unreadCount,
           };
         })
-      );
+        .filter((c) => c.participant.id); // Filter out conversations with unknown participants
 
       // Sort by most recent
       conversationsData.sort(
@@ -197,25 +248,43 @@ export default function MessagesView() {
   }, [user]);
 
   // Real-time subscription for new messages - update silently without loading state
+  // OPTIMIZED: User-specific channel name + debounced refetch to prevent excessive queries
   useEffect(() => {
     if (!user) return;
 
+    let debounceTimer: NodeJS.Timeout | null = null;
+    const debouncedRefetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchConversations(false); // Silent update
+      }, 500); // Debounce 500ms to batch rapid message updates
+    };
+
+    // Use user-specific channel name to prevent conflicts
     const channel = supabase
-      .channel("messages-changes")
+      .channel(`messages-list-${user.id}`)
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "messages",
         },
-        () => {
-          fetchConversations(false); // Silent update
-        }
+        debouncedRefetch
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+        },
+        debouncedRefetch
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [user]);

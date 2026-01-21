@@ -16,19 +16,38 @@ export async function createNotification(
   content?: string,
   communityId?: string,
   commentId?: string
-) {
+): Promise<boolean> {
   // Don't notify yourself
-  if (userId === actorId) return;
+  if (userId === actorId) return true;
 
-  await supabase.from("notifications").insert({
-    user_id: userId,
-    actor_id: actorId,
-    type,
-    post_id: postId || null,
-    content: content || null,
-    community_id: communityId || null,
-    comment_id: commentId || null,
-  });
+  try {
+    const { error } = await supabase.from("notifications").insert({
+      user_id: userId,
+      actor_id: actorId,
+      type,
+      post_id: postId || null,
+      content: content || null,
+      community_id: communityId || null,
+      comment_id: commentId || null,
+    });
+
+    if (error) {
+      // Log error but don't throw - notifications are non-critical
+      console.error("[createNotification] Failed to create notification:", {
+        type,
+        userId,
+        actorId,
+        error: error.message,
+      });
+      return false;
+    }
+
+    return true;
+  } catch (err: any) {
+    // Catch network errors etc.
+    console.error("[createNotification] Unexpected error:", err?.message || err);
+    return false;
+  }
 }
 
 // ============================================================================
@@ -176,6 +195,7 @@ interface UseUnreadCountReturn {
 
 export function useUnreadCount(userId?: string): UseUnreadCountReturn {
   const [count, setCount] = useState(0);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchCount = useCallback(async () => {
     if (!userId) {
@@ -183,14 +203,30 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
       return;
     }
 
-    const { count: unreadCount } = await supabase
-      .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("read", false);
+    try {
+      const { count: unreadCount, error } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("read", false);
 
-    setCount(unreadCount || 0);
+      if (error) {
+        console.error("[useUnreadCount] Error fetching count:", error.message);
+        return;
+      }
+
+      setCount(unreadCount || 0);
+    } catch (err: any) {
+      console.error("[useUnreadCount] Unexpected error:", err?.message || err);
+    }
   }, [userId]);
+
+  // Use ref to access latest fetchCount in subscription callback
+  // This prevents channel recreation when fetchCount reference changes
+  const fetchCountRef = useRef(fetchCount);
+  useEffect(() => {
+    fetchCountRef.current = fetchCount;
+  }, [fetchCount]);
 
   // Initial fetch
   useEffect(() => {
@@ -199,9 +235,21 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
     }
   }, [userId, fetchCount]);
 
-  // Real-time subscription
+  // Real-time subscription - only depends on userId to prevent channel recreation
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      // Clean up if userId becomes undefined
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      return;
+    }
+
+    // Clean up previous channel if it exists
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
 
     const channelName = `unread-count-realtime-${userId}`;
     const channel = supabase
@@ -215,15 +263,21 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          fetchCount();
+          // Use ref to get latest fetchCount
+          fetchCountRef.current();
         }
       )
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [userId, fetchCount]);
+  }, [userId]); // Only userId - no fetchCount to prevent recreation
 
   return { count, refetch: fetchCount };
 }
@@ -261,7 +315,8 @@ interface UseUnreadMessagesCountReturn {
 
 export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountReturn {
   const [count, setCount] = useState(0);
-  const [hasFetched, setHasFetched] = useState(false);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const fetchedRef = useRef(false);
 
   const fetchCount = useCallback(async () => {
     if (!userId) {
@@ -269,72 +324,119 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
       return;
     }
 
-    // Get blocked users (both directions)
-    const [blockedByResult, iBlockedResult] = await Promise.all([
-      supabase.from("blocks").select("blocker_id").eq("blocked_id", userId),
-      supabase.from("blocks").select("blocked_id").eq("blocker_id", userId),
-    ]);
+    try {
+      // Get blocked users (both directions)
+      const [blockedByResult, iBlockedResult] = await Promise.all([
+        supabase.from("blocks").select("blocker_id").eq("blocked_id", userId),
+        supabase.from("blocks").select("blocked_id").eq("blocker_id", userId),
+      ]);
 
-    const blockedUserIds = new Set<string>();
-    (blockedByResult.data || []).forEach((b) => blockedUserIds.add(b.blocker_id));
-    (iBlockedResult.data || []).forEach((b) => blockedUserIds.add(b.blocked_id));
+      const blockedUserIds = new Set<string>();
+      (blockedByResult.data || []).forEach((b) => blockedUserIds.add(b.blocker_id));
+      (iBlockedResult.data || []).forEach((b) => blockedUserIds.add(b.blocked_id));
 
-    // Get conversations
-    const { data: participations } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id")
-      .eq("user_id", userId);
+      // Get conversations
+      const { data: participations } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .eq("user_id", userId);
 
-    if (!participations || participations.length === 0) {
-      setCount(0);
-      setHasFetched(true);
+      if (!participations || participations.length === 0) {
+        setCount(0);
+        fetchedRef.current = true;
+        return;
+      }
+
+      const conversationIds = participations.map((p) => p.conversation_id);
+
+      // Get unread messages
+      const { data: unreadMessages } = await supabase
+        .from("messages")
+        .select("sender_id")
+        .in("conversation_id", conversationIds)
+        .eq("is_read", false)
+        .neq("sender_id", userId);
+
+      // Filter out blocked users
+      const filteredCount = (unreadMessages || []).filter((m) => !blockedUserIds.has(m.sender_id)).length;
+
+      setCount(filteredCount);
+      fetchedRef.current = true;
+    } catch (err: any) {
+      console.error("[useUnreadMessagesCount] Error:", err?.message || err);
+    }
+  }, [userId]);
+
+  // Use ref to access latest fetchCount in subscription callback
+  const fetchCountRef = useRef(fetchCount);
+  useEffect(() => {
+    fetchCountRef.current = fetchCount;
+  }, [fetchCount]);
+
+  // Initial fetch - separate from subscription
+  useEffect(() => {
+    if (userId && !fetchedRef.current) {
+      fetchCount();
+    }
+  }, [userId, fetchCount]);
+
+  // Real-time subscription - only depends on userId
+  useEffect(() => {
+    if (!userId) {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
       return;
     }
 
-    const conversationIds = participations.map((p) => p.conversation_id);
-
-    // Get unread messages
-    const { data: unreadMessages } = await supabase
-      .from("messages")
-      .select("sender_id")
-      .in("conversation_id", conversationIds)
-      .eq("is_read", false)
-      .neq("sender_id", userId);
-
-    // Filter out blocked users
-    const filteredCount = (unreadMessages || []).filter((m) => !blockedUserIds.has(m.sender_id)).length;
-
-    setCount(filteredCount);
-    setHasFetched(true);
-  }, [userId]);
-
-  useEffect(() => {
-    if (!hasFetched && userId) {
-      fetchCount();
+    // Clean up previous channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
     }
 
-    if (userId) {
-      const channelName = `unread-messages-count-${userId}`;
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "messages",
-          },
-          () => {
-            fetchCount();
-          }
-        )
-        .subscribe();
+    // Debounce rapid message updates
+    let debounceTimer: NodeJS.Timeout | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchCountRef.current();
+      }, 300);
+    };
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [userId, hasFetched, fetchCount]);
+    const channelName = `unread-messages-count-${userId}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        debouncedFetch
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+        },
+        debouncedFetch
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [userId]); // Only userId - prevents channel recreation
 
   return { count, refetch: fetchCount };
 }
