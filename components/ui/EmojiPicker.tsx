@@ -84,7 +84,7 @@ export default function EmojiPicker({ onSelect, isOpen, onClose }: EmojiPickerPr
   return (
     <div
       ref={pickerRef}
-      className="absolute bottom-full mb-2 left-0 w-[320px] bg-white rounded-2xl shadow-xl border border-black/[0.08] overflow-hidden z-50"
+      className="absolute bottom-full mb-2 right-0 w-[320px] bg-white rounded-2xl shadow-xl border border-black/[0.08] overflow-hidden z-50"
     >
       {/* Search */}
       <div className="p-3 border-b border-black/[0.06]">
