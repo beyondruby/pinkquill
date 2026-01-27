@@ -12,7 +12,7 @@ export default function CommunitySettingsPage() {
   const slug = params.slug as string;
   const { user } = useAuth();
   const { community, loading } = useCommunity(slug, user?.id);
-  const { deleteCommunity, loading: deleting } = useDeleteCommunity();
+  const { delete: deleteCommunity, deleting } = useDeleteCommunity();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmName, setConfirmName] = useState('');
 

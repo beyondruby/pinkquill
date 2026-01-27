@@ -57,7 +57,7 @@ export default function CommunityMembersPage() {
     if (!user?.id) return;
     setActionLoading(true);
     const mutedUntil = new Date(Date.now() + hours * 60 * 60 * 1000);
-    const result = await muteUser(userId, user.id, mutedUntil);
+    const result = await muteUser(userId, mutedUntil);
     if (result.success) refetch();
     setActionLoading(false);
   };
@@ -66,7 +66,7 @@ export default function CommunityMembersPage() {
     if (!user?.id) return;
     if (confirm('Are you sure you want to ban this user? They will be removed from the community.')) {
       setActionLoading(true);
-      const result = await banUser(userId, user.id);
+      const result = await banUser(userId);
       if (result.success) refetch();
       setActionLoading(false);
     }

@@ -10,6 +10,7 @@ import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeopleP
 import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle, SpotifyTrack } from "@/lib/types";
 import BackgroundPicker from "@/components/create/BackgroundPicker";
 import JournalMetadataPanel from "@/components/create/JournalMetadata";
+import DOMPurify from "dompurify";
 
 const postTypes = [
   { id: "thought", label: "Thought", icon: "lightbulb", placeholder: "What's on your mind?" },
@@ -695,7 +696,7 @@ export default function CreatePost() {
   // Set initial content once editor mounts (for edit mode)
   useEffect(() => {
     if (initialContent !== null && editorRef.current && !loadingPost) {
-      editorRef.current.innerHTML = initialContent;
+      editorRef.current.innerHTML = DOMPurify.sanitize(initialContent);
       setCharCount(editorRef.current.innerText.length);
       // Clear initial content so this only runs once
       setInitialContent(null);
@@ -705,7 +706,7 @@ export default function CreatePost() {
   // Set initial title once title editor mounts (for edit mode)
   useEffect(() => {
     if (initialTitle !== null && titleRef.current && !loadingPost) {
-      titleRef.current.innerHTML = initialTitle;
+      titleRef.current.innerHTML = DOMPurify.sanitize(initialTitle);
       setInitialTitle(null);
     }
   }, [initialTitle, loadingPost]);
@@ -1113,7 +1114,7 @@ export default function CreatePost() {
     // Set content (needs to wait for editor to mount)
     setTimeout(() => {
       if (editorRef.current && recoveredDraft.content) {
-        editorRef.current.innerHTML = recoveredDraft.content;
+        editorRef.current.innerHTML = DOMPurify.sanitize(recoveredDraft.content);
         setCharCount(editorRef.current.innerText.length);
       }
     }, 100);

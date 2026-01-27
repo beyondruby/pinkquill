@@ -16,15 +16,12 @@ export default function CommunityMembersSettingsPage() {
   const { community, refetch: refetchCommunity } = useCommunity(slug, user?.id);
   const [activeTab, setActiveTab] = useState<TabType>('moderators');
 
-  console.log("[MembersPage] Render - community:", community?.id, "privacy:", community?.privacy, "user_role:", community?.user_role);
-
   const { members: moderators, loading: modsLoading, refetch: refetchMods } = useCommunityMembers(
     community?.id || '',
     { role: 'moderator' }
   );
 
   const { requests, loading: requestsLoading, approve, reject, refetch: refetchRequests } = useJoinRequests(community?.id || '');
-  console.log("[MembersPage] Join requests:", requests.length, "loading:", requestsLoading);
 
   const { promoteUser, demoteUser } = useCommunityModeration(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);

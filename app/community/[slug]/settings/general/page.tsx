@@ -12,7 +12,7 @@ export default function CommunityGeneralSettingsPage() {
   const slug = params.slug as string;
   const { user } = useAuth();
   const { community, refetch } = useCommunity(slug, user?.id);
-  const { update, loading, error } = useUpdateCommunity();
+  const { update, updating: loading, error } = useUpdateCommunity();
 
   const [formData, setFormData] = useState({
     name: '',

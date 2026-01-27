@@ -11,7 +11,7 @@ export default function CommunityRulesSettingsPage() {
   const slug = params.slug as string;
   const { user } = useAuth();
   const { community, rules: existingRules, refetch } = useCommunity(slug, user?.id);
-  const { updateRules, loading, error } = useUpdateCommunity();
+  const { updateRules, updating: loading, error } = useUpdateCommunity();
 
   const [rules, setRules] = useState<{ title: string; description: string }[]>([]);
   const [newRule, setNewRule] = useState({ title: '', description: '' });

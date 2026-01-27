@@ -60,7 +60,7 @@ const COMMUNITY_TYPES = [
 export default function CreateCommunityPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { create, loading, error } = useCreateCommunity();
+  const { create, creating: loading, error } = useCreateCommunity();
 
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({

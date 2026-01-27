@@ -13,7 +13,7 @@ interface JoinButtonProps {
 }
 
 export default function JoinButton({ community, userId, onUpdate, size = 'md', className = '' }: JoinButtonProps) {
-  const { join, leave, requestJoin, cancelRequest, loading } = useJoinCommunity();
+  const { join, leave, requestJoin, cancelRequest, isJoining: loading } = useJoinCommunity();
   const [isHovering, setIsHovering] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [requestMessage, setRequestMessage] = useState('');
