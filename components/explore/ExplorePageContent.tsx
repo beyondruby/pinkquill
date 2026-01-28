@@ -615,7 +615,7 @@ export default function ExplorePageContent() {
     <div className="min-h-screen">
       {/* Header - Desktop */}
       <header className="sticky top-0 z-40 bg-white border-b border-black/[0.05] hidden md:block">
-        <div className="max-w-[640px] mx-auto px-4">
+        <div className="max-w-[640px] lg:max-w-[780px] mx-auto px-4">
           {/* Navigation Bar */}
           <div className="flex items-center h-[52px]">
             {/* Title */}
@@ -846,7 +846,7 @@ export default function ExplorePageContent() {
       )}
 
       {/* Main Content */}
-      <main className="max-w-[640px] mx-auto px-4 py-4 md:px-4 pb-20 md:pb-4">
+      <main className="max-w-[640px] lg:max-w-[780px] mx-auto px-4 py-4 md:px-4 pb-20 md:pb-4">
         {/* Communities Tab View */}
         {activeTab === "communities" ? (
           <CommunitiesTabView />
