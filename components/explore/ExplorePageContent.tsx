@@ -846,7 +846,7 @@ export default function ExplorePageContent() {
       )}
 
       {/* Main Content */}
-      <main className="max-w-[640px] lg:max-w-[780px] mx-auto px-4 py-4 md:px-4 pb-20 md:pb-4">
+      <main className="max-w-[640px] mx-auto px-4 py-4 md:px-4 pb-20 md:pb-4">
         {/* Communities Tab View */}
         {activeTab === "communities" ? (
           <CommunitiesTabView />
