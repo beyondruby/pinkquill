@@ -162,16 +162,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initAuth = async () => {
       try {
-        // Use getUser() instead of getSession() for better security
-        // getUser() validates the JWT with the server
-        const { data: { user }, error } = await supabase.auth.getUser();
+        // Step 1: Quick check with getSession() - reads from localStorage, no network call
+        // This gives us a fast initial state while we validate in background
+        const { data: { session: localSession } } = await supabase.auth.getSession();
 
-        if (!isMounted) {
-          return;
-        }
+        if (!isMounted) return;
 
-        if (error || !user) {
-          // No valid user - clear state and finish loading
+        if (!localSession?.user) {
+          // No local session - user is definitely not logged in
           setUser(null);
           setProfile(null);
           setLoading(false);
@@ -179,19 +177,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // User is authenticated
-        setUser(user);
+        // We have a local session - use it immediately for fast UI
+        setUser(localSession.user);
         setLoading(false);
         completeAuth();
 
-        // Fetch profile in background (don't block initial render)
-        if (fetchingProfileRef.current !== user.id) {
-          fetchingProfileRef.current = user.id;
+        // Step 2: Validate session with server in background
+        // This ensures the token is still valid (not revoked, not expired)
+        const { data: { user: validatedUser }, error: validateError } = await supabase.auth.getUser();
 
-          let userProfile = await fetchProfile(user.id);
+        if (!isMounted) return;
+
+        if (validateError || !validatedUser) {
+          // Session was invalid - clear state and sign out
+          console.warn("Session validation failed, signing out:", validateError?.message);
+          setUser(null);
+          setProfile(null);
+          await supabase.auth.signOut();
+          return;
+        }
+
+        // Session is valid - update user if it changed (e.g., email verified)
+        setUser(validatedUser);
+
+        // Step 3: Fetch profile in background
+        if (fetchingProfileRef.current !== validatedUser.id) {
+          fetchingProfileRef.current = validatedUser.id;
+
+          let userProfile = await fetchProfile(validatedUser.id);
 
           if (!userProfile && isMounted) {
-            userProfile = await createProfile(user);
+            userProfile = await createProfile(validatedUser);
           }
 
           if (isMounted) {
