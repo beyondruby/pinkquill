@@ -202,10 +202,10 @@ function DiscoverCommunitiesSection() {
                 <img
                   src={community.avatar_url}
                   alt={community.name}
-                  className="w-10 h-10 rounded-xl object-cover border border-black/[0.04]"
+                  className="w-10 h-10 rounded-full object-cover border border-black/[0.04]"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center">
                   <span className="font-ui text-sm font-semibold text-purple-primary">
                     {community.name.charAt(0).toUpperCase()}
                   </span>

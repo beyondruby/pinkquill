@@ -101,7 +101,7 @@ export default function CommunityCard({ community, variant = 'default', rank }: 
 
         {/* Avatar - Overlapping */}
         <div className="relative px-4 -mt-8 z-10">
-          <div className={`rounded-xl overflow-hidden border-4 border-white shadow-lg bg-white ${
+          <div className={`rounded-full overflow-hidden border-4 border-white shadow-lg bg-white ${
             isFeatured ? 'w-16 h-16' : 'w-14 h-14'
           }`}>
             {community.avatar_url ? (

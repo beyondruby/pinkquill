@@ -913,12 +913,12 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
                 alt={post.community!.name}
                 width={70}
                 height={70}
-                className="w-10 h-10 md:w-11 md:h-11 rounded-xl object-cover border border-black/[0.06] hover:border-purple-primary/30 transition-colors"
+                className="w-10 h-10 md:w-11 md:h-11 rounded-full object-cover border border-black/[0.06] hover:border-purple-primary/30 transition-colors"
                 sizes="44px"
                 quality={80}
               />
             ) : (
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center border border-black/[0.06]">
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center border border-black/[0.06]">
                 <span className="font-ui text-sm font-semibold text-white">
                   {post.community!.name.charAt(0).toUpperCase()}
                 </span>

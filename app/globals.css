@@ -10180,7 +10180,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .create-take-community-avatar {
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: 9999px;
   object-fit: cover;
 }
 

@@ -187,8 +187,8 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
           <div className="max-w-7xl mx-auto flex items-end gap-6 md:gap-8">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="absolute -inset-1 bg-white/30 rounded-2xl blur-sm" />
-              <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden border-3 border-white/40 shadow-2xl">
+              <div className="absolute -inset-1 bg-white/30 rounded-full blur-sm" />
+              <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-3 border-white/40 shadow-2xl">
                 {community.avatar_url ? (
                   <img
                     src={community.avatar_url}

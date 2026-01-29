@@ -686,10 +686,10 @@ function NotificationItem({
               <img
                 src={notification.community.avatar_url}
                 alt=""
-                className="w-4 h-4 rounded-md object-cover"
+                className="w-4 h-4 rounded-full object-cover"
               />
             ) : (
-              <div className="w-4 h-4 rounded-md bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
+              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
                 <span className="text-white text-[0.5rem] font-bold">
                   {notification.community.name.charAt(0)}
                 </span>

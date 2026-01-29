@@ -1924,7 +1924,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   className="flex items-center gap-3 p-4 hover:bg-black/[0.02] transition-colors border-b border-black/[0.04] last:border-b-0"
                 >
                   {/* Community Avatar */}
-                  <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
                     {community.avatar_url ? (
                       <img
                         src={community.avatar_url}
