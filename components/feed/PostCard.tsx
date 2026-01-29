@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -344,7 +344,7 @@ function SoundBars() {
   );
 }
 
-export default function PostCard({ post, onPostDeleted }: { post: PostProps; onPostDeleted?: (postId: string) => void }) {
+function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDeleted?: (postId: string) => void }) {
   const router = useRouter();
   const { openPostModal, subscribeToUpdates, notifyUpdate } = useModal();
   const { user } = useAuth();
@@ -377,7 +377,17 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
 
   const { blockUser } = useBlock();
   const menuRef = useRef<HTMLDivElement>(null);
+  const reportTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isOwner = user && user.id === post.authorId;
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (reportTimeoutRef.current) {
+        clearTimeout(reportTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Track post views and impressions
   const viewTrackerRef = usePostViewTracker(post.id, post.authorId, "feed");
@@ -409,8 +419,8 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     return unsubscribe;
   }, [post.id, subscribeToUpdates, setUserReaction]);
 
-  // Open post modal
-  const handleOpenModal = () => {
+  // Open post modal - memoized to prevent re-creation
+  const handleOpenModal = useCallback(() => {
     // Map mentions to flat user objects for the modal
     const mappedMentions = (post.mentions || [])
       .map(m => m.user)
@@ -430,9 +440,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
       hashtags: post.hashtags || [],
       collaborators: post.collaborators || [],
     });
-  };
+  }, [post, isAdmired, isSaved, isRelayed, admireCount, relayCount, openPostModal]);
 
-  const handleAdmire = async (e: React.MouseEvent) => {
+  const handleAdmire = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
       openAuthModal();
@@ -457,10 +467,10 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     if (newIsAdmired) {
       await createNotification(post.authorId, user.id, 'admire', post.id);
     }
-  };
+  }, [user, openAuthModal, isAdmired, post.id, post.authorId, notifyUpdate, toggleAdmire]);
 
-  // Handle reaction (new reaction system with real-time)
-  const handleReaction = async (reactionType: ReactionType) => {
+  // Handle reaction (new reaction system with real-time) - memoized
+  const handleReaction = useCallback(async (reactionType: ReactionType) => {
     if (!user) {
       openAuthModal();
       return;
@@ -493,9 +503,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     if (!wasReacted && !isSameReaction) {
       await createNotification(post.authorId, user.id, reactionType, post.id);
     }
-  };
+  }, [user, openAuthModal, userReaction, post.id, post.authorId, notifyUpdate, toggleReaction, setUserReaction]);
 
-  const handleRemoveReaction = async () => {
+  const handleRemoveReaction = useCallback(async () => {
     if (!user) {
       openAuthModal();
       return;
@@ -516,9 +526,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
       countChange: -1,
       reactionType: null,
     });
-  };
+  }, [user, openAuthModal, userReaction, post.id, notifyUpdate, removeReaction, setUserReaction]);
 
-  const handleSave = async (e: React.MouseEvent) => {
+  const handleSave = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
       openAuthModal();
@@ -541,9 +551,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     if (newIsSaved && post.authorId !== user.id) {
       await createNotification(post.authorId, user.id, 'save', post.id);
     }
-  };
+  }, [user, openAuthModal, isSaved, post.id, post.authorId, notifyUpdate, toggleSave]);
 
-  const handleRelay = async (e: React.MouseEvent) => {
+  const handleRelay = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
       openAuthModal();
@@ -570,7 +580,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     if (newIsRelayed) {
       await createNotification(post.authorId, user.id, 'relay', post.id);
     }
-  };
+  }, [user, openAuthModal, isRelayed, post.id, post.authorId, notifyUpdate, toggleRelay]);
 
   // Click outside to close menu
   useEffect(() => {
@@ -589,7 +599,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     };
   }, [showMenu]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     setDeleting(true);
     try {
       // Delete related data first
@@ -621,13 +631,13 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
       console.error("Failed to delete post:", err);
       setDeleting(false);
     }
-  };
+  }, [post.id, onPostDeleted]);
 
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     router.push(`/create?edit=${post.id}`);
-  };
+  }, [router, post.id]);
 
-  const handleReport = async (reason: string, details?: string) => {
+  const handleReport = useCallback(async (reason: string, details?: string) => {
     if (!user) return;
 
     setReportSubmitting(true);
@@ -646,7 +656,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
       }
 
       setReportSubmitted(true);
-      setTimeout(() => {
+      reportTimeoutRef.current = setTimeout(() => {
         setShowReportModal(false);
         setReportSubmitted(false);
       }, 2000);
@@ -654,9 +664,9 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
       console.error("Failed to submit report:", err);
     }
     setReportSubmitting(false);
-  };
+  }, [user, post.id]);
 
-  const handleBlockUser = async () => {
+  const handleBlockUser = useCallback(async () => {
     if (!user) return;
 
     setBlockLoading(true);
@@ -669,7 +679,7 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
       }
     }
     setBlockLoading(false);
-  };
+  }, [user, blockUser, post.authorId, post.id, onPostDeleted]);
 
   // Mentions/Tagged People display
   const hasMentions = post.mentions && post.mentions.length > 0;
@@ -1285,3 +1295,20 @@ export default function PostCard({ post, onPostDeleted }: { post: PostProps; onP
     </>
   );
 }
+
+// Memoize component to prevent unnecessary re-renders when parent updates
+const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if these specific props change
+  return (
+    prevProps.post.id === nextProps.post.id &&
+    prevProps.post.stats?.admires === nextProps.post.stats?.admires &&
+    prevProps.post.stats?.comments === nextProps.post.stats?.comments &&
+    prevProps.post.stats?.relays === nextProps.post.stats?.relays &&
+    prevProps.post.isAdmired === nextProps.post.isAdmired &&
+    prevProps.post.isSaved === nextProps.post.isSaved &&
+    prevProps.post.isRelayed === nextProps.post.isRelayed &&
+    prevProps.post.reactionType === nextProps.post.reactionType
+  );
+});
+
+export default PostCard;

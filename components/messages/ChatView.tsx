@@ -134,6 +134,16 @@ export default function ChatView({
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const reportTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaErrorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (reportTimeoutRef.current) clearTimeout(reportTimeoutRef.current);
+      if (mediaErrorTimeoutRef.current) clearTimeout(mediaErrorTimeoutRef.current);
+    };
+  }, []);
   const { checkIsBlocked, blockUser, unblockUser } = useBlock();
   const { sendVoiceNote, sending: sendingVoice } = useSendVoiceNote();
   const { sendMedia, validateFile, sending: sendingMedia, limits } = useSendMedia();
@@ -203,7 +213,7 @@ export default function ChatView({
       });
       setReportSuccess(true);
       setReportReason("");
-      setTimeout(() => {
+      reportTimeoutRef.current = setTimeout(() => {
         setShowReportModal(false);
         setReportSuccess(false);
       }, 2000);
@@ -479,7 +489,8 @@ export default function ChatView({
     const validation = validateFile(file);
     if (!validation.valid) {
       setMediaError(validation.error || 'Invalid file');
-      setTimeout(() => setMediaError(null), 3000);
+      if (mediaErrorTimeoutRef.current) clearTimeout(mediaErrorTimeoutRef.current);
+      mediaErrorTimeoutRef.current = setTimeout(() => setMediaError(null), 3000);
       return;
     }
 
@@ -518,7 +529,8 @@ export default function ChatView({
     } else {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       setMediaError('Failed to send media');
-      setTimeout(() => setMediaError(null), 3000);
+      if (mediaErrorTimeoutRef.current) clearTimeout(mediaErrorTimeoutRef.current);
+      mediaErrorTimeoutRef.current = setTimeout(() => setMediaError(null), 3000);
     }
   };
 

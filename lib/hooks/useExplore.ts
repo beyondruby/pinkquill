@@ -334,8 +334,9 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         }
 
         // For "for-you" and "trending", fetch more posts to score and sort
+        // Using 1.5x multiplier to balance algorithm quality with efficiency
         const fetchLimit = activeTab === "for-you" || activeTab === "trending"
-          ? Math.max(pageSize * 3, 100)
+          ? Math.ceil(pageSize * 1.5)
           : pageSize;
 
         // Exclude user's own posts for discovery

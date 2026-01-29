@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Comment } from "@/lib/hooks";
@@ -67,7 +67,7 @@ function getTimeAgo(dateString: string): string {
   return date.toLocaleDateString();
 }
 
-export default function CommentItem({
+function CommentItemComponent({
   comment,
   currentUserId,
   onLike,
@@ -105,9 +105,17 @@ export default function CommentItem({
   const [isReporting, setIsReporting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const reportTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { blockUser } = useBlock();
 
   const isOwner = currentUserId === comment.user_id;
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (reportTimeoutRef.current) clearTimeout(reportTimeoutRef.current);
+    };
+  }, []);
 
   const handleBlock = async () => {
     if (!currentUserId || isOwner) return;
@@ -137,7 +145,7 @@ export default function CommentItem({
         type: "comment",
       });
       setReportSubmitted(true);
-      setTimeout(() => {
+      reportTimeoutRef.current = setTimeout(() => {
         setShowReportModal(false);
         setReportSubmitted(false);
       }, 1500);
@@ -426,3 +434,16 @@ export default function CommentItem({
     </div>
   );
 }
+
+// Memoize to prevent unnecessary re-renders in comment threads
+const CommentItem = memo(CommentItemComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.comment.id === nextProps.comment.id &&
+    prevProps.comment.is_liked === nextProps.comment.is_liked &&
+    prevProps.comment.likes_count === nextProps.comment.likes_count &&
+    prevProps.comment.reply_count === nextProps.comment.reply_count &&
+    prevProps.currentUserId === nextProps.currentUserId
+  );
+});
+
+export default CommentItem;
