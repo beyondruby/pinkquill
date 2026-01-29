@@ -439,9 +439,9 @@ function CommentItemComponent({
 const CommentItem = memo(CommentItemComponent, (prevProps, nextProps) => {
   return (
     prevProps.comment.id === nextProps.comment.id &&
-    prevProps.comment.is_liked === nextProps.comment.is_liked &&
+    prevProps.comment.user_has_liked === nextProps.comment.user_has_liked &&
     prevProps.comment.likes_count === nextProps.comment.likes_count &&
-    prevProps.comment.reply_count === nextProps.comment.reply_count &&
+    prevProps.comment.replies_count === nextProps.comment.replies_count &&
     prevProps.currentUserId === nextProps.currentUserId
   );
 });
