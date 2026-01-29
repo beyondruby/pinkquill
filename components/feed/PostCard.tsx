@@ -927,7 +927,7 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
           </Link>
 
           <div className="author-info" style={centered ? { textAlign: 'left' } : undefined}>
-            {/* Primary line: Community name + time */}
+            {/* Primary line: Community name + Posted by author */}
             <div className="author-name-line">
               <Link
                 href={`/community/${post.community!.slug}`}
@@ -937,11 +937,6 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
                 {post.community!.name}
               </Link>
               <span className="post-time-separator">·</span>
-              <span className="post-time">{post.timeAgo}</span>
-            </div>
-
-            {/* Secondary line: Posted by author */}
-            <div className="post-meta-line community-post-meta">
               <span className="posted-by-label">Posted by</span>
               <Link
                 href={`/studio/${post.author.handle.replace('@', '')}`}
@@ -966,6 +961,11 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
                   )}
                 </>
               )}
+            </div>
+
+            {/* Secondary line: Time */}
+            <div className="post-meta-line community-post-meta">
+              <span className="post-time">{post.timeAgo}</span>
             </div>
           </div>
           <PostMenu />
