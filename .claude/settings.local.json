@@ -30,7 +30,8 @@
       "Bash(grep:*)",
       "Bash(tree:*)",
       "Bash(echo:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(awk:*)"
     ]
   }
 }

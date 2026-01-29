@@ -789,118 +789,11 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
   // Get accepted collaborators
   const acceptedCollaborators = (post.collaborators || []).filter(c => c.status === 'accepted');
   const hasCollaborators = acceptedCollaborators.length > 0;
+  const hasCommunity = !!post.community;
 
-  // Author Header component
-  const AuthorHeader = ({ small = false, centered = false }: { small?: boolean; centered?: boolean }) => (
-    <div className="author-header" style={centered ? { justifyContent: 'center' } : undefined}>
-      {/* Avatar Stack for Collaborators */}
-      {hasCollaborators ? (
-        <div className="collab-avatars group" onClick={(e) => e.stopPropagation()}>
-          {/* Author Avatar */}
-          <Link href={`/studio/${post.author.handle.replace('@', '')}`}>
-            <Image
-              src={post.author.avatar}
-              alt={post.author.name}
-              width={70}
-              height={70}
-              className="collab-avatar first"
-              sizes="40px"
-              quality={80}
-              style={small ? { width: '36px', height: '36px' } : undefined}
-            />
-          </Link>
-          {/* Collaborator Avatars */}
-          {acceptedCollaborators.slice(0, 3).map((collab, index) => (
-            <Link
-              key={collab.user.id}
-              href={`/studio/${collab.user.username}`}
-              className="collab-avatar-link"
-              style={{ zIndex: 10 - index }}
-            >
-              {collab.user.avatar_url ? (
-                <Image
-                  src={collab.user.avatar_url}
-                  alt={collab.user.display_name || collab.user.username}
-                  width={70}
-                  height={70}
-                  className="collab-avatar"
-                  sizes="32px"
-                  quality={80}
-                  style={small ? { width: '36px', height: '36px' } : undefined}
-                />
-              ) : (
-                <div
-                  className="collab-avatar collab-avatar-placeholder"
-                  style={small ? { width: '36px', height: '36px' } : undefined}
-                >
-                  {(collab.user.display_name || collab.user.username)[0].toUpperCase()}
-                </div>
-              )}
-            </Link>
-          ))}
-          {acceptedCollaborators.length > 3 && (
-            <div className="collab-avatar collab-avatar-more" style={small ? { width: '36px', height: '36px' } : undefined}>
-              +{acceptedCollaborators.length - 3}
-            </div>
-          )}
-        </div>
-      ) : (
-        <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()}>
-          <Image
-            src={post.author.avatar}
-            alt={post.author.name}
-            width={70}
-            height={70}
-            className="author-avatar"
-            sizes="(max-width: 640px) 40px, 48px"
-            quality={80}
-            style={small ? { width: '36px', height: '36px' } : undefined}
-          />
-        </Link>
-      )}
-      <div className="author-info" style={centered ? { textAlign: 'left' } : undefined}>
-        <div className="author-name-line">
-          {hasCollaborators ? (
-            <>
-              <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()} className="author-name">
-                {post.author.name}
-              </Link>
-              <span className="collab-separator">&</span>
-              {acceptedCollaborators.length === 1 ? (
-                <Link href={`/studio/${acceptedCollaborators[0].user.username}`} onClick={(e) => e.stopPropagation()} className="author-name">
-                  {acceptedCollaborators[0].user.display_name || acceptedCollaborators[0].user.username}
-                </Link>
-              ) : (
-                <span className="collab-count">{acceptedCollaborators.length} others</span>
-              )}
-              <span className="collab-label">collaborated</span>
-            </>
-          ) : (
-            <>
-              <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()} className="author-name">
-                {post.author.name}
-              </Link>
-              <span className="post-type-label">
-                <StyledTypeLabel type={post.type} />
-              </span>
-            </>
-          )}
-          {post.community && (
-            <>
-              <span className="post-type-label">in</span>
-              <CommunityBadge community={post.community} size="sm" showAvatar={false} />
-            </>
-          )}
-        </div>
-        <div className="post-meta-line">
-          {hasCollaborators && (
-            <span className="post-type-label">
-              <StyledTypeLabel type={post.type} />
-            </span>
-          )}
-          <span className="post-time">{post.timeAgo}</span>
-        </div>
-      </div>
+  // Post menu component for owner and non-owner actions
+  const PostMenu = () => (
+    <>
       {isOwner ? (
         <div className="relative" ref={menuRef}>
           <button
@@ -999,8 +892,199 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
           <EllipsisIcon />
         </button>
       )}
-    </div>
+    </>
   );
+
+  // Author Header component - Reddit-style for community posts
+  const AuthorHeader = ({ small = false, centered = false }: { small?: boolean; centered?: boolean }) => {
+    // Reddit-style: Community posts show community first, author as secondary
+    if (hasCommunity) {
+      return (
+        <div className="author-header" style={centered ? { justifyContent: 'center' } : undefined}>
+          {/* Community Avatar */}
+          <Link
+            href={`/community/${post.community!.slug}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-shrink-0"
+          >
+            {post.community!.avatar_url ? (
+              <Image
+                src={post.community!.avatar_url}
+                alt={post.community!.name}
+                width={70}
+                height={70}
+                className="w-10 h-10 md:w-11 md:h-11 rounded-xl object-cover border border-black/[0.06] hover:border-purple-primary/30 transition-colors"
+                sizes="44px"
+                quality={80}
+              />
+            ) : (
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center border border-black/[0.06]">
+                <span className="font-ui text-sm font-semibold text-white">
+                  {post.community!.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+          </Link>
+
+          <div className="author-info" style={centered ? { textAlign: 'left' } : undefined}>
+            {/* Primary line: Community name + time */}
+            <div className="author-name-line">
+              <Link
+                href={`/community/${post.community!.slug}`}
+                onClick={(e) => e.stopPropagation()}
+                className="author-name font-semibold hover:text-purple-primary transition-colors"
+              >
+                {post.community!.name}
+              </Link>
+              <span className="post-time-separator">·</span>
+              <span className="post-time">{post.timeAgo}</span>
+            </div>
+
+            {/* Secondary line: Posted by author */}
+            <div className="post-meta-line community-post-meta">
+              <span className="posted-by-label">Posted by</span>
+              <Link
+                href={`/studio/${post.author.handle.replace('@', '')}`}
+                onClick={(e) => e.stopPropagation()}
+                className="posted-by-author"
+              >
+                @{post.author.handle.replace('@', '')}
+              </Link>
+              {hasCollaborators && (
+                <>
+                  <span className="collab-separator">&</span>
+                  {acceptedCollaborators.length === 1 ? (
+                    <Link
+                      href={`/studio/${acceptedCollaborators[0].user.username}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="posted-by-author"
+                    >
+                      @{acceptedCollaborators[0].user.username}
+                    </Link>
+                  ) : (
+                    <span className="collab-count">{acceptedCollaborators.length} others</span>
+                  )}
+                </>
+              )}
+              <span className="post-type-indicator">
+                <StyledTypeLabel type={post.type} />
+              </span>
+            </div>
+          </div>
+          <PostMenu />
+        </div>
+      );
+    }
+
+    // Standard author-first layout for non-community posts
+    return (
+      <div className="author-header" style={centered ? { justifyContent: 'center' } : undefined}>
+        {/* Avatar Stack for Collaborators */}
+        {hasCollaborators ? (
+          <div className="collab-avatars group" onClick={(e) => e.stopPropagation()}>
+            {/* Author Avatar */}
+            <Link href={`/studio/${post.author.handle.replace('@', '')}`}>
+              <Image
+                src={post.author.avatar}
+                alt={post.author.name}
+                width={70}
+                height={70}
+                className="collab-avatar first"
+                sizes="40px"
+                quality={80}
+                style={small ? { width: '36px', height: '36px' } : undefined}
+              />
+            </Link>
+            {/* Collaborator Avatars */}
+            {acceptedCollaborators.slice(0, 3).map((collab, index) => (
+              <Link
+                key={collab.user.id}
+                href={`/studio/${collab.user.username}`}
+                className="collab-avatar-link"
+                style={{ zIndex: 10 - index }}
+              >
+                {collab.user.avatar_url ? (
+                  <Image
+                    src={collab.user.avatar_url}
+                    alt={collab.user.display_name || collab.user.username}
+                    width={70}
+                    height={70}
+                    className="collab-avatar"
+                    sizes="32px"
+                    quality={80}
+                    style={small ? { width: '36px', height: '36px' } : undefined}
+                  />
+                ) : (
+                  <div
+                    className="collab-avatar collab-avatar-placeholder"
+                    style={small ? { width: '36px', height: '36px' } : undefined}
+                  >
+                    {(collab.user.display_name || collab.user.username)[0].toUpperCase()}
+                  </div>
+                )}
+              </Link>
+            ))}
+            {acceptedCollaborators.length > 3 && (
+              <div className="collab-avatar collab-avatar-more" style={small ? { width: '36px', height: '36px' } : undefined}>
+                +{acceptedCollaborators.length - 3}
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()}>
+            <Image
+              src={post.author.avatar}
+              alt={post.author.name}
+              width={70}
+              height={70}
+              className="author-avatar"
+              sizes="(max-width: 640px) 40px, 48px"
+              quality={80}
+              style={small ? { width: '36px', height: '36px' } : undefined}
+            />
+          </Link>
+        )}
+        <div className="author-info" style={centered ? { textAlign: 'left' } : undefined}>
+          <div className="author-name-line">
+            {hasCollaborators ? (
+              <>
+                <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()} className="author-name">
+                  {post.author.name}
+                </Link>
+                <span className="collab-separator">&</span>
+                {acceptedCollaborators.length === 1 ? (
+                  <Link href={`/studio/${acceptedCollaborators[0].user.username}`} onClick={(e) => e.stopPropagation()} className="author-name">
+                    {acceptedCollaborators[0].user.display_name || acceptedCollaborators[0].user.username}
+                  </Link>
+                ) : (
+                  <span className="collab-count">{acceptedCollaborators.length} others</span>
+                )}
+                <span className="collab-label">collaborated</span>
+              </>
+            ) : (
+              <>
+                <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()} className="author-name">
+                  {post.author.name}
+                </Link>
+                <span className="post-type-label">
+                  <StyledTypeLabel type={post.type} />
+                </span>
+              </>
+            )}
+          </div>
+          <div className="post-meta-line">
+            {hasCollaborators && (
+              <span className="post-type-label">
+                <StyledTypeLabel type={post.type} />
+              </span>
+            )}
+            <span className="post-time">{post.timeAgo}</span>
+          </div>
+        </div>
+        <PostMenu />
+      </div>
+    );
+  };
 
   // Content Section wrapper - applies blur and warning overlay only to content, not header/actions
   const ContentSection = ({ children }: { children: React.ReactNode }) => {
