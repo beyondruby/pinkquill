@@ -966,9 +966,6 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
                   )}
                 </>
               )}
-              <span className="post-type-indicator">
-                <StyledTypeLabel type={post.type} />
-              </span>
             </div>
           </div>
           <PostMenu />
