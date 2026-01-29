@@ -19,7 +19,6 @@ const authNavItems = [
   { icon: "home", label: "Home", href: "/" },
   { icon: "takes", label: "Takes", href: "/takes" },
   { icon: "compass", label: "Explore", href: "/explore" },
-  { icon: "bookmark", label: "Saved", href: "/saved" },
   { icon: "users", label: "Communities", href: "/community" },
 ];
 
@@ -276,6 +275,17 @@ export default function LeftSidebar() {
           {/* Dropdown Menu */}
           {showMenu && (
             <div className="absolute bottom-full left-0 right-0 mb-2 p-1.5 rounded-2xl bg-white/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-black/[0.06] z-50 animate-fadeIn">
+              <Link
+                href="/saved"
+                onClick={() => setShowMenu(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+              >
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                <span className="font-ui text-[0.9rem]">Saved</span>
+              </Link>
+
               <Link
                 href="/insights"
                 onClick={() => setShowMenu(false)}
