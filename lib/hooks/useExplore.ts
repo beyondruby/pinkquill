@@ -12,7 +12,6 @@ import { getAggregateCount } from "../types";
 export type ExploreTab =
   | "for-you"
   | "trending"
-  | "video"
   | "communities"
   | "topics"
   | "poem"
@@ -326,16 +325,17 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           .eq("status", "published")
           .eq("visibility", "public");
 
-        // Filter by post type if specific tab selected
-        if (activeTab === "video") {
-          query = query.eq("type", "video");
+        // Filter by post type or community
+        if (activeTab === "communities") {
+          // Only posts from public communities
+          query = query.not("community_id", "is", null);
         } else if (["poem", "journal", "thought", "visual", "essay", "story", "letter", "quote"].includes(activeTab)) {
           query = query.eq("type", activeTab);
         }
 
-        // For "for-you" and "trending", fetch more posts to score and sort
+        // For algorithmic tabs, fetch more posts to score and sort
         // Using 1.5x multiplier to balance algorithm quality with efficiency
-        const fetchLimit = activeTab === "for-you" || activeTab === "trending"
+        const fetchLimit = activeTab === "for-you" || activeTab === "trending" || activeTab === "communities"
           ? Math.ceil(pageSize * 1.5)
           : pageSize;
 
@@ -519,6 +519,49 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
             }))
             .sort((a, b) => (b._trendingScore ?? 0) - (a._trendingScore ?? 0))
             .map(({ _trendingScore, ...post }) => post as Post);
+        } else if (activeTab === "communities") {
+          // Algorithm for community posts discovery
+          // Prioritizes: engagement, user interests, recency, variety
+          transformedPosts = transformedPosts
+            .map((post) => {
+              let score = 0;
+
+              // Base engagement score
+              score += calculateEngagementScore(
+                post.admires_count,
+                post.comments_count,
+                post.relays_count
+              );
+
+              // Time decay for freshness
+              score *= calculateTimeDecay(post.created_at);
+
+              // Trending boost for viral community posts
+              if (isTrending(post.admires_count, post.comments_count, post.relays_count, post.created_at)) {
+                score *= WEIGHTS.TRENDING_BOOST;
+              }
+
+              // User interest signals
+              if (userInterestsRef.current) {
+                // Boost posts from authors user has engaged with
+                if (userInterestsRef.current.admiredAuthors.has(post.author_id)) {
+                  score *= 1.5;
+                }
+
+                // Boost posts of types user prefers
+                const typePreference = userInterestsRef.current.admiredPostTypes.get(post.type) || 0;
+                if (typePreference > 0) {
+                  score *= 1 + (typePreference / 20);
+                }
+              }
+
+              // Add randomness for variety
+              score *= 0.85 + Math.random() * 0.3;
+
+              return { ...post, _communityScore: score };
+            })
+            .sort((a, b) => (b._communityScore ?? 0) - (a._communityScore ?? 0))
+            .map(({ _communityScore, ...post }) => post as Post);
         }
 
         // Paginate the results

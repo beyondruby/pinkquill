@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useExplore, useTrendingTags, useDiscoverCommunities } from "@/lib/hooks";
+import { useExplore, useTrendingTags } from "@/lib/hooks";
 import type { ExploreTab } from "@/lib/hooks";
 import PostCard from "@/components/feed/PostCard";
 import Link from "next/link";
@@ -11,7 +11,6 @@ import Link from "next/link";
 const PRIMARY_TABS: { id: ExploreTab; label: string }[] = [
   { id: "for-you", label: "For You" },
   { id: "trending", label: "Trending" },
-  { id: "video", label: "Takes" },
   { id: "communities", label: "Communities" },
   { id: "topics", label: "Topics" },
 ];
@@ -92,248 +91,6 @@ function TrendingSidebar() {
           </Link>
         ))}
       </div>
-    </div>
-  );
-}
-
-// Community Categories
-const COMMUNITY_CATEGORIES = [
-  { id: "writing", label: "Writing & Prose" },
-  { id: "poetry", label: "Poetry" },
-  { id: "visual", label: "Visual Arts" },
-  { id: "music", label: "Music & Audio" },
-  { id: "photography", label: "Photography" },
-  { id: "film", label: "Film & Video" },
-  { id: "discussion", label: "Discussion" },
-  { id: "lifestyle", label: "Lifestyle" },
-];
-
-// Community Row Item
-function CommunityRow({ community, rank }: { community: any; rank?: number }) {
-  return (
-    <Link
-      href={`/community/${community.slug}`}
-      className="flex items-center gap-3 py-3 px-1 hover:bg-black/[0.02] -mx-1 rounded-lg transition-colors group"
-    >
-      {rank !== undefined && (
-        <span className="w-6 font-ui text-sm text-muted/60 tabular-nums">{rank}</span>
-      )}
-      {community.avatar_url ? (
-        <img src={community.avatar_url} alt={community.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
-      ) : (
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center flex-shrink-0">
-          <span className="font-ui text-xs font-semibold text-white">{community.name.charAt(0)}</span>
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <h4 className="font-ui text-sm font-medium text-ink truncate group-hover:text-purple-primary transition-colors">
-          {community.name}
-        </h4>
-        <p className="font-body text-xs text-muted">
-          {community.member_count || 0} members
-        </p>
-      </div>
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          // Join logic would go here
-        }}
-        className="px-3 py-1.5 rounded-full bg-purple-primary/10 text-purple-primary font-ui text-xs font-medium hover:bg-purple-primary hover:text-white transition-all md:opacity-0 md:group-hover:opacity-100"
-      >
-        Join
-      </button>
-    </Link>
-  );
-}
-
-// Full Communities Tab View - Reddit Style
-function CommunitiesTabView() {
-  const { trending, communities, loading } = useDiscoverCommunities({ limit: 100 });
-
-  // Group communities by their topics/categories
-  const communitiesByCategory = COMMUNITY_CATEGORIES.reduce((acc, category) => {
-    acc[category.id] = communities.filter((community: any) => {
-      const topics = community.topics || [];
-      const name = community.name.toLowerCase();
-      const description = (community.description || '').toLowerCase();
-      const categoryKeywords = category.label.toLowerCase().split(/[&\s]+/);
-
-      return topics.some((topic: string) =>
-        categoryKeywords.some(keyword => topic.toLowerCase().includes(keyword))
-      ) || categoryKeywords.some(keyword =>
-        name.includes(keyword) || description.includes(keyword)
-      );
-    });
-    return acc;
-  }, {} as Record<string, any[]>);
-
-  // Get uncategorized communities
-  const categorizedIds = new Set(
-    Object.values(communitiesByCategory).flat().map((c: any) => c.id)
-  );
-  const uncategorized = communities.filter((c: any) => !categorizedIds.has(c.id));
-
-  // Get categories that have communities
-  const activeCategories = COMMUNITY_CATEGORIES.filter(
-    cat => (communitiesByCategory[cat.id] || []).length > 0
-  );
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        {/* Top communities skeleton */}
-        <div className="bg-white rounded-xl border border-black/[0.04] p-4">
-          <div className="h-5 bg-gray-100 rounded w-40 mb-4 animate-pulse" />
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-6 h-4 bg-gray-100 rounded animate-pulse" />
-                <div className="w-9 h-9 rounded-full bg-gray-100 animate-pulse" />
-                <div className="flex-1">
-                  <div className="h-4 bg-gray-100 rounded w-32 mb-1 animate-pulse" />
-                  <div className="h-3 bg-gray-100 rounded w-20 animate-pulse" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Browse skeleton */}
-        <div className="bg-white rounded-xl border border-black/[0.04] p-4">
-          <div className="h-5 bg-gray-100 rounded w-48 mb-4 animate-pulse" />
-          <div className="flex flex-wrap gap-2">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-8 w-24 bg-gray-100 rounded-full animate-pulse" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Empty state
-  if (communities.length === 0) {
-    return (
-      <div className="bg-white rounded-xl border border-black/[0.04] p-8 text-center">
-        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center">
-          <svg className="w-6 h-6 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        </div>
-        <h3 className="font-display text-lg text-ink mb-2">No communities yet</h3>
-        <p className="font-body text-sm text-muted max-w-[280px] mx-auto">
-          Communities are spaces for creators to connect.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Top Communities */}
-      {trending.length > 0 && (
-        <div className="bg-white rounded-xl border border-black/[0.04] overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/[0.04]">
-            <h2 className="font-ui text-sm font-semibold text-ink">Top Communities</h2>
-          </div>
-          <div className="p-4 pt-2">
-            <div className="divide-y divide-black/[0.04]">
-              {trending.slice(0, 5).map((community: any, index: number) => (
-                <CommunityRow key={community.id} community={community} rank={index + 1} />
-              ))}
-            </div>
-            {trending.length > 5 && (
-              <Link
-                href="/community"
-                className="block text-center py-3 mt-2 font-ui text-sm text-purple-primary hover:text-pink-vivid transition-colors"
-              >
-                See all
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Browse by Topic */}
-      {activeCategories.length > 0 && (
-        <div className="bg-white rounded-xl border border-black/[0.04] overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/[0.04]">
-            <h2 className="font-ui text-sm font-semibold text-ink">Browse by Topic</h2>
-          </div>
-          <div className="p-4">
-            <div className="flex flex-wrap gap-2">
-              {activeCategories.map((category) => {
-                const count = communitiesByCategory[category.id]?.length || 0;
-                return (
-                  <Link
-                    key={category.id}
-                    href={`/community?topic=${category.id}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/[0.03] hover:bg-purple-primary/10 hover:text-purple-primary font-ui text-sm text-ink transition-all"
-                  >
-                    {category.label}
-                    <span className="text-muted text-xs">({count})</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* All Communities by Category */}
-      {activeCategories.map((category) => {
-        const categoryCommunities = communitiesByCategory[category.id] || [];
-        if (categoryCommunities.length === 0) return null;
-
-        return (
-          <div key={category.id} className="bg-white rounded-xl border border-black/[0.04] overflow-hidden">
-            <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-between">
-              <h2 className="font-ui text-sm font-semibold text-ink">{category.label}</h2>
-              <span className="font-ui text-xs text-muted">{categoryCommunities.length} communities</span>
-            </div>
-            <div className="p-4 pt-2">
-              <div className="divide-y divide-black/[0.04]">
-                {categoryCommunities.slice(0, 3).map((community: any) => (
-                  <CommunityRow key={community.id} community={community} />
-                ))}
-              </div>
-              {categoryCommunities.length > 3 && (
-                <Link
-                  href={`/community?topic=${category.id}`}
-                  className="block text-center py-3 mt-2 font-ui text-sm text-purple-primary hover:text-pink-vivid transition-colors"
-                >
-                  See all {categoryCommunities.length}
-                </Link>
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Other Communities */}
-      {uncategorized.length > 0 && (
-        <div className="bg-white rounded-xl border border-black/[0.04] overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-between">
-            <h2 className="font-ui text-sm font-semibold text-ink">Other</h2>
-            <span className="font-ui text-xs text-muted">{uncategorized.length} communities</span>
-          </div>
-          <div className="p-4 pt-2">
-            <div className="divide-y divide-black/[0.04]">
-              {uncategorized.slice(0, 3).map((community: any) => (
-                <CommunityRow key={community.id} community={community} />
-              ))}
-            </div>
-            {uncategorized.length > 3 && (
-              <Link
-                href="/community"
-                className="block text-center py-3 mt-2 font-ui text-sm text-purple-primary hover:text-pink-vivid transition-colors"
-              >
-                See all {uncategorized.length}
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -431,13 +188,9 @@ function EmptyState({ tab }: { tab: ExploreTab }) {
       title: "Nothing trending",
       subtitle: "Check back later to see what's popular.",
     },
-    video: {
-      title: "No videos",
-      subtitle: "Video content will appear here.",
-    },
     communities: {
-      title: "No communities",
-      subtitle: "Communities will appear here.",
+      title: "No community posts",
+      subtitle: "Posts from communities you might like will appear here.",
     },
     topics: {
       title: "No topics",
@@ -847,11 +600,8 @@ export default function ExplorePageContent() {
 
       {/* Main Content */}
       <main className="max-w-[640px] mx-auto px-4 py-4 md:px-4 pb-20 md:pb-4">
-        {/* Communities Tab View */}
-        {activeTab === "communities" ? (
-          <CommunitiesTabView />
-        ) : activeTab === "topics" ? (
-          /* Topics Tab View */
+        {/* Topics Tab View */}
+        {activeTab === "topics" ? (
           <TopicsTabView />
         ) : (
           <>
