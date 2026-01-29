@@ -816,7 +816,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             .single();
 
                           if (otherParticipant) {
-                            window.location.href = `/messages?conversation=${participation.conversation_id}`;
+                            router.push(`/messages?conversation=${participation.conversation_id}`);
                             return;
                           }
                         }
@@ -834,7 +834,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           { conversation_id: newConversation.id, user_id: user.id },
                           { conversation_id: newConversation.id, user_id: profile.id },
                         ]);
-                        window.location.href = `/messages?conversation=${newConversation.id}`;
+                        router.push(`/messages?conversation=${newConversation.id}`);
                       }
                     } catch (err) {
                       console.error("Failed to start conversation:", err);

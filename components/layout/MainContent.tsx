@@ -18,7 +18,11 @@ export default function MainContent({ children }: { children: React.ReactNode })
         isHomepage ? "lg:mr-[280px]" : "mr-0"
       }`}
     >
-      {children}
+      {/* Key based on pathname forces React to remount children when route changes */}
+      {/* This ensures hooks re-fetch data and state resets properly on navigation */}
+      <div key={pathname}>
+        {children}
+      </div>
     </main>
   );
 }
