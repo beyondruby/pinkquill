@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -313,59 +313,64 @@ export default function RightSidebar() {
   const { user } = useAuth();
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const fetchSuggestedUsers = async () => {
-    try {
-      setLoading(true);
-      
-      // Get users that the current user is not following
-      let query = supabase
-        .from("profiles")
-        .select("id, username, display_name, avatar_url, tagline")
-        .limit(5);
-
-      if (user) {
-        // Get IDs of users already following
-        const { data: followingData } = await supabase
-          .from("follows")
-          .select("following_id")
-          .eq("follower_id", user.id);
-
-        const followingIds = followingData?.map((f) => f.following_id) || [];
-        followingIds.push(user.id); // Exclude self
-
-        if (followingIds.length > 0) {
-          query = query.not("id", "in", `(${followingIds.join(",")})`);
-        }
-      }
-
-      const { data: users } = await query;
-
-      // Get follower counts for each user
-      const usersWithCounts = await Promise.all(
-        (users || []).map(async (u) => {
-          const { count } = await supabase
-            .from("follows")
-            .select("*", { count: "exact", head: true })
-            .eq("following_id", u.id);
-          return { ...u, followers_count: count || 0 };
-        })
-      );
-
-      // Sort by followers count
-      usersWithCounts.sort((a, b) => b.followers_count - a.followers_count);
-
-      setSuggestedUsers(usersWithCounts);
-    } catch (err) {
-      console.error("Failed to fetch suggestions:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    // Only fetch once per session
+    if (hasFetchedRef.current) return;
+
+    const fetchSuggestedUsers = async () => {
+      try {
+        setLoading(true);
+
+        // Get users that the current user is not following
+        let query = supabase
+          .from("profiles")
+          .select("id, username, display_name, avatar_url, tagline")
+          .limit(5);
+
+        if (user) {
+          // Get IDs of users already following
+          const { data: followingData } = await supabase
+            .from("follows")
+            .select("following_id")
+            .eq("follower_id", user.id);
+
+          const followingIds = followingData?.map((f) => f.following_id) || [];
+          followingIds.push(user.id); // Exclude self
+
+          if (followingIds.length > 0) {
+            query = query.not("id", "in", `(${followingIds.join(",")})`);
+          }
+        }
+
+        const { data: users } = await query;
+
+        // Get follower counts for each user
+        const usersWithCounts = await Promise.all(
+          (users || []).map(async (u) => {
+            const { count } = await supabase
+              .from("follows")
+              .select("*", { count: "exact", head: true })
+              .eq("following_id", u.id);
+            return { ...u, followers_count: count || 0 };
+          })
+        );
+
+        // Sort by followers count
+        usersWithCounts.sort((a, b) => b.followers_count - a.followers_count);
+
+        setSuggestedUsers(usersWithCounts);
+        hasFetchedRef.current = true;
+      } catch (err) {
+        console.error("Failed to fetch suggestions:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchSuggestedUsers();
-  }, [user]);
+  }, [user?.id]);
 
   return (
     <aside className="hidden lg:flex fixed right-0 top-0 bottom-0 w-[280px] bg-white/60 backdrop-blur-md border-l border-black/[0.04] flex-col p-6 overflow-y-auto z-[100]">
@@ -417,7 +422,7 @@ export default function RightSidebar() {
                     </div>
                   </Link>
                 </div>
-                <FollowButton userId={suggestedUser.id} onFollow={fetchSuggestedUsers} />
+                <FollowButton userId={suggestedUser.id} onFollow={() => {}} />
               </div>
             ))}
           </div>
