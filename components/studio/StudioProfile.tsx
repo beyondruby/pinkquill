@@ -1717,192 +1717,132 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 <Loading />
               </div>
             ) : collections.length === 0 ? (
-              <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-rose-50/90 via-white to-orange-50/80 p-8 md:p-12 lg:p-16 border border-rose-200/50 shadow-[0_8px_40px_-12px_rgba(255,0,127,0.12)] text-center overflow-hidden">
-                {/* Decorative background elements */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-pink-vivid/5 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-primary/5 to-transparent rounded-full blur-2xl translate-y-1/2 -translate-x-1/4" />
-
-                <div className="relative">
-                  <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-pink-vivid/15 via-purple-primary/10 to-orange-warm/15 flex items-center justify-center shadow-lg shadow-pink-vivid/10">
-                    <svg className="w-12 h-12 text-pink-vivid/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  </div>
-                  <h3 className="font-display text-2xl md:text-3xl text-ink mb-3">No Collections Yet</h3>
-                  <p className="font-body text-muted text-[0.95rem] max-w-md mx-auto leading-relaxed">
-                    {isOwnProfile
-                      ? "Create a collection to organize your works. Go to Create Post and select a collection to get started!"
-                      : `${profile?.display_name || profile?.username} hasn't created any collections yet.`}
-                  </p>
-
-                  {/* Decorative dots */}
-                  <div className="mt-8 flex justify-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-purple-primary/30" />
-                    <span className="w-2 h-2 rounded-full bg-pink-vivid/40" />
-                    <span className="w-2 h-2 rounded-full bg-orange-warm/30" />
-                  </div>
+              <div className="rounded-2xl bg-white p-8 md:p-12 lg:p-16 border border-black/[0.06] text-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-purple-primary/10 flex items-center justify-center">
+                  <svg className="w-10 h-10 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
                 </div>
+                <h3 className="font-display text-2xl text-ink mb-3">No Collections Yet</h3>
+                <p className="font-body text-muted max-w-md mx-auto">
+                  {isOwnProfile
+                    ? "Create a collection to organize your works. Go to Create Post and select a collection to get started!"
+                    : `${profile?.display_name || profile?.username} hasn't created any collections yet.`}
+                </p>
               </div>
             ) : (
-              <div className="space-y-8">
-                {collections.map((collection, collectionIndex) => (
+              <div className="space-y-6">
+                {collections.map((collection) => (
                   <div
                     key={collection.id}
-                    className="group/collection relative"
+                    className="bg-white rounded-2xl border border-black/[0.06] overflow-hidden"
                   >
-                    {/* Collection Card */}
-                    <div className="relative bg-gradient-to-br from-white via-white to-purple-50/30 rounded-3xl border border-black/[0.05] shadow-[0_4px_24px_-8px_rgba(0,0,0,0.08)] overflow-hidden transition-all duration-300 hover:shadow-[0_8px_40px_-12px_rgba(142,68,173,0.15)]">
-                      {/* Subtle gradient accent line at top */}
-                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-primary/0 via-pink-vivid/40 to-purple-primary/0 opacity-0 group-hover/collection:opacity-100 transition-opacity duration-300" />
-
-                      {/* Collection Header */}
-                      <div
-                        onClick={async () => {
-                          if (isOwnProfile) {
-                            await toggleCollapse(collection.id, collection.is_collapsed);
-                            refetchCollections();
-                          }
-                        }}
-                        className={`relative flex items-center gap-5 px-6 py-5 ${isOwnProfile ? 'cursor-pointer' : ''} transition-colors`}
-                      >
-                        {/* Collection Icon with enhanced styling */}
-                        <div className="relative flex-shrink-0">
-                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-primary/10 via-pink-vivid/5 to-orange-warm/10 flex items-center justify-center shadow-sm ring-1 ring-black/[0.03]">
-                            {collection.icon_url ? (
-                              <img src={collection.icon_url} alt="" className="w-full h-full object-cover rounded-2xl" />
-                            ) : collection.icon_emoji ? (
-                              <span className="text-3xl">{String.fromCodePoint(parseInt(collection.icon_emoji, 16))}</span>
-                            ) : (
-                              <svg className="w-7 h-7 text-purple-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                              </svg>
-                            )}
-                          </div>
-                          {/* Item count badge */}
-                          <div className="absolute -bottom-1 -right-1 px-2 py-0.5 bg-white rounded-full shadow-sm ring-1 ring-black/[0.05]">
-                            <span className="font-ui text-[10px] font-semibold text-purple-primary">
-                              {collection.items?.length || 0}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Collection Info */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-display text-xl font-semibold text-ink mb-0.5 group-hover/collection:text-purple-primary transition-colors">
-                            {collection.name}
-                          </h3>
-                          {collection.description && (
-                            <p className="font-body text-sm text-muted line-clamp-2 leading-relaxed">
-                              {collection.description}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Collapse Arrow (only for owner) */}
-                        {isOwnProfile && (
-                          <div className={`w-10 h-10 rounded-xl bg-black/[0.03] flex items-center justify-center transition-all duration-200 hover:bg-purple-primary/10 ${collection.is_collapsed ? '' : 'rotate-180'}`}>
-                            <svg
-                              className="w-5 h-5 text-muted"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
+                    {/* Collection Header */}
+                    <div
+                      onClick={async () => {
+                        if (isOwnProfile) {
+                          await toggleCollapse(collection.id, collection.is_collapsed);
+                          refetchCollections();
+                        }
+                      }}
+                      className={`flex items-center gap-4 px-6 py-5 ${isOwnProfile ? 'cursor-pointer hover:bg-black/[0.01]' : ''} transition-colors`}
+                    >
+                      {/* Collection Icon */}
+                      <div className="w-14 h-14 rounded-xl bg-purple-primary/10 flex items-center justify-center flex-shrink-0">
+                        {collection.icon_url ? (
+                          <img src={collection.icon_url} alt="" className="w-full h-full object-cover rounded-xl" />
+                        ) : collection.icon_emoji ? (
+                          <span className="text-2xl">{String.fromCodePoint(parseInt(collection.icon_emoji, 16))}</span>
+                        ) : (
+                          <svg className="w-7 h-7 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
                         )}
                       </div>
 
-                      {/* Collection Items - Magazine-style grid */}
-                      {!collection.is_collapsed && collection.items && collection.items.length > 0 && (
-                        <div className="px-6 pb-6">
-                          <div className="h-px bg-gradient-to-r from-transparent via-black/[0.06] to-transparent mb-5" />
+                      {/* Collection Info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-display text-lg font-semibold text-ink">
+                          {collection.name}
+                        </h3>
+                        {collection.description && (
+                          <p className="font-body text-sm text-muted line-clamp-1 mt-0.5">
+                            {collection.description}
+                          </p>
+                        )}
+                        <p className="font-ui text-xs text-muted mt-1">
+                          {collection.items?.length || 0} items
+                        </p>
+                      </div>
 
-                          {/* Bento-style grid layout */}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {collection.items.map((item, itemIndex) => {
-                              // Make first item larger on larger screens
-                              const isFeatureItem = itemIndex === 0 && collection.items!.length > 2;
-
-                              return (
-                                <button
-                                  key={item.id}
-                                  onClick={() => router.push(`/studio/${username}/collections/${collection.slug}/${item.slug}`)}
-                                  className={`group/item relative text-left ${isFeatureItem ? 'sm:col-span-2 sm:row-span-2' : ''}`}
-                                >
-                                  {/* Item Card */}
-                                  <div className={`relative ${isFeatureItem ? 'aspect-[4/3] sm:aspect-square' : 'aspect-[4/3]'} rounded-2xl overflow-hidden bg-gradient-to-br from-slate-100 via-purple-50/50 to-pink-50/30 ring-1 ring-black/[0.05] transition-all duration-300 group-hover/item:ring-purple-primary/30 group-hover/item:shadow-lg group-hover/item:shadow-purple-primary/10`}>
-                                    {item.cover_url ? (
-                                      <>
-                                        <img
-                                          src={item.cover_url}
-                                          alt={item.name}
-                                          className="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-105"
-                                        />
-                                        {/* Gradient overlay for text readability */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent" />
-                                      </>
-                                    ) : (
-                                      <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="w-16 h-16 rounded-2xl bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-sm">
-                                          <svg className="w-8 h-8 text-purple-primary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                          </svg>
-                                        </div>
-                                        {/* Gradient overlay for consistency */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                                      </div>
-                                    )}
-
-                                    {/* Item Info Overlay */}
-                                    <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
-                                      <h4 className={`font-display ${isFeatureItem ? 'text-base sm:text-lg' : 'text-sm'} font-semibold text-white drop-shadow-sm line-clamp-1 mb-0.5`}>
-                                        {item.name}
-                                      </h4>
-                                      <div className="flex items-center gap-1.5">
-                                        <svg className="w-3.5 h-3.5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <span className="font-ui text-xs text-white/80">
-                                          {item.posts_count || 0} {(item.posts_count || 0) === 1 ? 'post' : 'posts'}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    {/* Hover effect overlay */}
-                                    <div className="absolute inset-0 bg-purple-primary/0 group-hover/item:bg-purple-primary/10 transition-colors duration-300" />
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Empty Collection Items */}
-                      {!collection.is_collapsed && (!collection.items || collection.items.length === 0) && (
-                        <div className="px-6 pb-6">
-                          <div className="h-px bg-gradient-to-r from-transparent via-black/[0.06] to-transparent mb-5" />
-                          <div className="relative py-12 text-center bg-gradient-to-br from-slate-50/80 to-purple-50/50 rounded-2xl overflow-hidden">
-                            {/* Subtle pattern */}
-                            <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(142,68,173,0.1) 1px, transparent 0)', backgroundSize: '20px 20px' }} />
-
-                            <div className="relative">
-                              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white shadow-sm flex items-center justify-center">
-                                <svg className="w-7 h-7 text-purple-primary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                              </div>
-                              <p className="font-body text-sm text-muted">
-                                {isOwnProfile
-                                  ? "No items yet. Add items when creating posts!"
-                                  : "No items in this collection yet."}
-                              </p>
-                            </div>
-                          </div>
+                      {/* Collapse Arrow (only for owner) */}
+                      {isOwnProfile && (
+                        <div className={`w-9 h-9 rounded-lg bg-black/[0.03] flex items-center justify-center transition-transform duration-200 ${collection.is_collapsed ? '' : 'rotate-180'}`}>
+                          <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
                         </div>
                       )}
                     </div>
+
+                    {/* Collection Items Grid */}
+                    {!collection.is_collapsed && collection.items && collection.items.length > 0 && (
+                      <div className="px-6 pb-6">
+                        <div className="h-px bg-black/[0.06] mb-5" />
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                          {collection.items.map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={() => router.push(`/studio/${username}/collections/${collection.slug}/${item.slug}`)}
+                              className="group text-left"
+                            >
+                              {/* Item Cover */}
+                              <div className="aspect-square rounded-xl bg-purple-primary/5 border border-black/[0.06] overflow-hidden mb-2 group-hover:border-purple-primary/30 transition-colors">
+                                {item.cover_url ? (
+                                  <img
+                                    src={item.cover_url}
+                                    alt={item.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <svg className="w-8 h-8 text-purple-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                              {/* Item Info */}
+                              <h4 className="font-ui text-sm font-medium text-ink truncate group-hover:text-purple-primary transition-colors">
+                                {item.name}
+                              </h4>
+                              <p className="font-ui text-xs text-muted">
+                                {item.posts_count || 0} posts
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty Collection Items */}
+                    {!collection.is_collapsed && (!collection.items || collection.items.length === 0) && (
+                      <div className="px-6 pb-6">
+                        <div className="h-px bg-black/[0.06] mb-5" />
+                        <div className="py-10 text-center bg-black/[0.02] rounded-xl">
+                          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-white flex items-center justify-center border border-black/[0.06]">
+                            <svg className="w-6 h-6 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                          </div>
+                          <p className="font-body text-sm text-muted">
+                            {isOwnProfile
+                              ? "No items yet. Add items when creating posts!"
+                              : "No items in this collection yet."}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
