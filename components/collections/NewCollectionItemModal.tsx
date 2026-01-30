@@ -74,17 +74,16 @@ export default function NewCollectionItemModal({
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `collection-item-cover-${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `collections/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("media")
-        .upload(filePath, file);
+        .from("covers")
+        .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from("media")
-        .getPublicUrl(filePath);
+        .from("covers")
+        .getPublicUrl(fileName);
 
       setCoverUrl(publicUrl);
     } catch (err: any) {
