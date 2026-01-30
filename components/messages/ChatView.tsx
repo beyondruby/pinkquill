@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { useBlock, useSendVoiceNote, useSendMedia, useUnreadMessagesCount } from "@/lib/hooks";
+import { useBlock, useSendVoiceNote, useSendMedia } from "@/lib/hooks";
 import type { Message } from "@/lib/types";
 import VoiceRecorder from "./VoiceRecorder";
 import VoiceNotePlayer from "./VoiceNotePlayer";
@@ -147,7 +147,6 @@ export default function ChatView({
   const { checkIsBlocked, blockUser, unblockUser } = useBlock();
   const { sendVoiceNote, sending: sendingVoice } = useSendVoiceNote();
   const { sendMedia, validateFile, sending: sendingMedia, limits } = useSendMedia();
-  const { refetch: refetchUnreadMessages } = useUnreadMessagesCount(currentUserId);
 
   // Scroll to bottom - instant on initial load, smooth for new messages
   const scrollToBottom = (smooth = true) => {
@@ -288,17 +287,12 @@ export default function ChatView({
       setMessages(messagesData || []);
 
       // Mark messages as read
-      const { error: markReadError } = await supabase
+      await supabase
         .from("messages")
         .update({ is_read: true })
         .eq("conversation_id", conversationId)
         .neq("sender_id", currentUserId)
         .eq("is_read", false);
-
-      // Refetch unread count if messages were marked as read
-      if (!markReadError) {
-        refetchUnreadMessages();
-      }
     } catch (err) {
       console.error("Failed to fetch chat data:", err);
     } finally {
@@ -359,12 +353,7 @@ export default function ChatView({
               .update({ is_read: true })
               .eq("id", newMsg.id)
               .then(({ error }) => {
-                if (error) {
-                  console.error("Failed to mark message as read:", error.message);
-                } else {
-                  // Refetch unread count
-                  refetchUnreadMessages();
-                }
+                if (error) console.error("Failed to mark message as read:", error.message);
               });
           }
         }
