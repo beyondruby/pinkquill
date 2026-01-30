@@ -98,7 +98,7 @@ function stripHtml(html: string): string {
   return doc.body.textContent || "";
 }
 
-type PostType = "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "screenplay" | "story" | "letter" | "quote";
+type PostType = "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "blog" | "story" | "letter" | "quote";
 type TabType = "all" | "posts" | "takes";
 
 interface SavedPost {

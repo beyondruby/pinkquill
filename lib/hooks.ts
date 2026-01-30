@@ -75,6 +75,23 @@ export type { PostDraft, DraftMedia, DraftCollaborator, DraftMention } from "./h
 // UI Hooks (action menus, etc.)
 export { useActionMenu, useActionMenuWithModals } from "./hooks/useActionMenu";
 
+// Collections
+export {
+  useCollections,
+  useCollection,
+  useCollectionItem,
+  useCreateCollection,
+  useCreateCollectionItem,
+  useAddPostToCollectionItem,
+  useUpdateCollection,
+  useUpdateCollectionItem,
+  useDeleteCollection,
+  useDeleteCollectionItem,
+  useReorderCollections,
+  useReorderCollectionItems,
+  useToggleCollectionCollapse,
+} from "./hooks/useCollections";
+
 // ============================================================================
 // TYPES (from centralized types file)
 // ============================================================================
@@ -111,6 +128,11 @@ export type {
   CommunityInvitation,
   PaginationState,
   PaginatedResult,
+  Collection,
+  CollectionItem,
+  CollectionItemPost,
+  CollectionWithItems,
+  CollectionItemMetadata,
 } from "./types";
 
 // ============================================================================

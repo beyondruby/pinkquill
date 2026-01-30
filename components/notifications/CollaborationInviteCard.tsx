@@ -30,7 +30,7 @@ function getPostTypeLabel(type: string): string {
     visual: "visual post",
     audio: "voice note",
     video: "video",
-    screenplay: "screenplay",
+    blog: "blog post",
   };
   return labels[type] || "post";
 }

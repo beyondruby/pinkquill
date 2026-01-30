@@ -71,6 +71,23 @@ export type { ExploreTab } from "./useExplore";
 export { useTrendingTags, useTagPosts, usePopularTags } from "./useTags";
 export type { TrendingTag } from "./useTags";
 
+// Collections
+export {
+  useCollections,
+  useCollection,
+  useCollectionItem,
+  useCreateCollection,
+  useCreateCollectionItem,
+  useAddPostToCollectionItem,
+  useUpdateCollection,
+  useUpdateCollectionItem,
+  useDeleteCollection,
+  useDeleteCollectionItem,
+  useReorderCollections,
+  useReorderCollectionItems,
+  useToggleCollectionCollapse,
+} from "./useCollections";
+
 // UI Hooks (action menus, etc.)
 export { useActionMenu, useActionMenuWithModals } from "./useActionMenu";
 
@@ -107,4 +124,9 @@ export type {
   CommunityInvitation,
   PaginationState,
   PaginatedResult,
+  Collection,
+  CollectionItem,
+  CollectionItemPost,
+  CollectionWithItems,
+  CollectionItemMetadata,
 } from "../types";

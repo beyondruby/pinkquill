@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFeatherPointed } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -97,23 +97,29 @@ export default function LeftSidebar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const createMenuRef = useRef<HTMLDivElement>(null);
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const router = useRouter();
 
-  // Close menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowMenu(false);
       }
+      if (createMenuRef.current && !createMenuRef.current.contains(event.target as Node)) {
+        setShowCreateMenu(false);
+      }
     };
 
-    if (showMenu) {
+    if (showMenu || showCreateMenu) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showMenu]);
+  }, [showMenu, showCreateMenu]);
 
   const handleOpenNotifications = async () => {
     setShowNotifications(true);
@@ -215,17 +221,57 @@ export default function LeftSidebar() {
 
       {/* Create Button - Only for authenticated users */}
       {user && (
-        <Link
-          href="/create"
-          className="w-full h-12 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-xl flex items-center justify-center gap-2 text-white shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300 mt-auto"
-        >
-          <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
-            <line x1="16" y1="8" x2="2" y2="22"/>
-            <line x1="17.5" y1="15" x2="9" y2="15"/>
-          </svg>
-          <span className="font-ui text-[0.95rem] font-bold">Create</span>
-        </Link>
+        <div className="relative mt-auto" ref={createMenuRef}>
+          <button
+            onClick={() => setShowCreateMenu(!showCreateMenu)}
+            className="w-full h-12 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-xl flex items-center justify-center gap-2 text-white shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300"
+          >
+            <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+              <line x1="16" y1="8" x2="2" y2="22"/>
+              <line x1="17.5" y1="15" x2="9" y2="15"/>
+            </svg>
+            <span className="font-ui text-[0.95rem] font-bold">Create</span>
+            <svg className={`w-4 h-4 transition-transform duration-200 ${showCreateMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Create Menu Dropdown */}
+          {showCreateMenu && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 p-1.5 rounded-2xl bg-white/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-black/[0.06] z-50 animate-fadeIn">
+              <button
+                onClick={() => {
+                  setShowCreateMenu(false);
+                  router.push("/create");
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+              >
+                <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+                  <line x1="16" y1="8" x2="2" y2="22"/>
+                  <line x1="17.5" y1="15" x2="9" y2="15"/>
+                </svg>
+                <span className="font-ui text-[0.9rem]">Create a Post</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowCreateMenu(false);
+                  // TODO: Implement store/sell functionality
+                  alert("Store feature coming soon!");
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+              >
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <span className="font-ui text-[0.9rem]">Sell</span>
+                <span className="ml-auto text-[0.7rem] font-medium text-muted bg-black/[0.04] px-1.5 py-0.5 rounded">Soon</span>
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Profile & Menu - Authenticated users */}

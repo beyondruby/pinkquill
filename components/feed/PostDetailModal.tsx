@@ -311,7 +311,7 @@ interface Post {
   id: string;
   authorId?: string;
   author: Author;
-  type: "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "screenplay" | "story" | "letter" | "quote";
+  type: "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "blog" | "story" | "letter" | "quote";
   typeLabel: string;
   timeAgo: string;
   createdAt?: string;

@@ -10,6 +10,9 @@ import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeopleP
 import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle, SpotifyTrack } from "@/lib/types";
 import BackgroundPicker from "@/components/create/BackgroundPicker";
 import JournalMetadataPanel from "@/components/create/JournalMetadata";
+import CollectionSelector from "@/components/collections/CollectionSelector";
+import { useAddPostToCollectionItem } from "@/lib/hooks/useCollections";
+import type { Collection, CollectionItem } from "@/lib/types";
 import DOMPurify from "dompurify";
 
 const postTypes = [
@@ -18,7 +21,7 @@ const postTypes = [
   { id: "poem", label: "Poem", icon: "feather", placeholder: "Let your verses flow..." },
   { id: "journal", label: "Journal", icon: "book", placeholder: "Dear diary..." },
   { id: "essay", label: "Essay", icon: "scroll", placeholder: "Begin your exploration..." },
-  { id: "screenplay", label: "Screenplay", icon: "film", placeholder: "FADE IN..." },
+  { id: "blog", label: "Blog", icon: "blog", placeholder: "Share your thoughts with the world..." },
   { id: "story", label: "Story", icon: "bookOpen", placeholder: "Once upon a time..." },
   { id: "letter", label: "Letter", icon: "envelope", placeholder: "Dear reader..." },
   { id: "quote", label: "Quote", icon: "quote", placeholder: "Share words that inspire..." },
@@ -91,9 +94,9 @@ const icons: Record<string, React.ReactElement> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
   ),
-  film: (
+  blog: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
     </svg>
   ),
   bookOpen: (
@@ -398,6 +401,11 @@ export default function CreatePost() {
   const { communities: userCommunities } = useCommunities(user?.id, 'joined');
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
+
+  // Collection selection
+  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
+  const [selectedCollectionItem, setSelectedCollectionItem] = useState<CollectionItem | null>(null);
+  const { addPost: addPostToCollectionItem } = useAddPostToCollectionItem();
 
   // Set community from URL param
   useEffect(() => {
@@ -1545,6 +1553,15 @@ export default function CreatePost() {
 
       // Clear draft after successful publish
       clearCurrentDraft();
+
+      // Add post to collection item if selected
+      if (selectedCollectionItem && !isEditing) {
+        try {
+          await addPostToCollectionItem(selectedCollectionItem.id, postId);
+        } catch (collectionErr) {
+          console.warn("Could not add post to collection:", collectionErr);
+        }
+      }
 
       // Navigate based on context
       if (isEditing) {
@@ -2892,6 +2909,16 @@ export default function CreatePost() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Collection Selector - Only for non-community posts */}
+            {!selectedCommunity && !isEditing && !isTakeMode && (
+              <CollectionSelector
+                selectedCollection={selectedCollection}
+                selectedItem={selectedCollectionItem}
+                onSelectCollection={setSelectedCollection}
+                onSelectItem={setSelectedCollectionItem}
+              />
             )}
           </div>
 

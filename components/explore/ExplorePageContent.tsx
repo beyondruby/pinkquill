@@ -255,7 +255,7 @@ function transformPostForCard(post: any) {
     audio: "recorded a voice note",
     video: "shared a video",
     essay: "wrote an essay",
-    screenplay: "wrote a screenplay",
+    blog: "published a blog post",
     story: "shared a story",
     letter: "wrote a letter",
     quote: "shared a quote",
