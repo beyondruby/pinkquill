@@ -287,18 +287,22 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
 // ============================================================================
 
 export function useMarkAsRead() {
-  const markAsRead = async (notificationId: string) => {
+  const markAsRead = async (notificationId: string): Promise<boolean> => {
     const { error } = await supabase.from("notifications").update({ read: true }).eq("id", notificationId);
     if (error) {
       console.error("[useMarkAsRead] Failed to mark notification as read:", error.message);
+      return false;
     }
+    return true;
   };
 
-  const markAllAsRead = async (userId: string) => {
+  const markAllAsRead = async (userId: string): Promise<boolean> => {
     const { error } = await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
     if (error) {
       console.error("[useMarkAsRead] Failed to mark all notifications as read:", error.message);
+      return false;
     }
+    return true;
   };
 
   return { markAsRead, markAllAsRead };

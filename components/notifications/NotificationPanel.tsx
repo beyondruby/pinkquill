@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useNotifications, useMarkAsRead, useCollaborationInvites, useFollowRequests, Notification } from "@/lib/hooks";
+import { useNotifications, useMarkAsRead, useUnreadCount, useCollaborationInvites, useFollowRequests, Notification } from "@/lib/hooks";
 import { useAuth } from "@/components/providers/AuthProvider";
 import Loading from "@/components/ui/Loading";
 import CollaborationInviteCard from "./CollaborationInviteCard";
@@ -712,8 +712,9 @@ function NotificationItem({
 
 export default function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   const { user } = useAuth();
-  const { notifications, loading } = useNotifications(user?.id);
+  const { notifications, loading, refetch: refetchNotifications } = useNotifications(user?.id);
   const { markAsRead, markAllAsRead } = useMarkAsRead();
+  const { refetch: refetchUnreadCount } = useUnreadCount(user?.id);
   const { invites: rawInvites, refetch: refetchInvites } = useCollaborationInvites(user?.id || "");
   // Filter out invites where post or author is null (e.g., deleted posts)
   const invites = rawInvites.filter(invite => invite.post && invite.post.author);
@@ -753,7 +754,20 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
 
   const handleMarkAllAsRead = async () => {
     if (user) {
-      await markAllAsRead(user.id);
+      const success = await markAllAsRead(user.id);
+      if (success) {
+        // Refetch to update UI immediately instead of waiting for real-time
+        refetchNotifications();
+        refetchUnreadCount();
+      }
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    const success = await markAsRead(notificationId);
+    if (success) {
+      // Refetch count to update badge immediately
+      refetchUnreadCount();
     }
   };
 
@@ -890,7 +904,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
-                  onMarkAsRead={markAsRead}
+                  onMarkAsRead={handleMarkAsRead}
                   onClose={onClose}
                 />
               ))}
