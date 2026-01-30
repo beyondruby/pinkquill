@@ -1694,6 +1694,17 @@ export default function CreatePost() {
         ))}
       </div>
 
+      {/* Collection Selector - Below post types, for organizing posts */}
+      {!isEditing && !isTakeMode && (
+        <div className="flex justify-center mb-6">
+          <CollectionSelector
+            selectedCollection={selectedCollection}
+            selectedItem={selectedCollectionItem}
+            onSelectCollection={setSelectedCollection}
+            onSelectItem={setSelectedCollectionItem}
+          />
+        </div>
+      )}
 
       {/* Editor Card */}
       <div className="bg-white rounded-[24px] shadow-sm border border-black/[0.04]">
@@ -2911,16 +2922,7 @@ export default function CreatePost() {
               </div>
             )}
 
-            {/* Collection Selector - Only for non-community posts */}
-            {!selectedCommunity && !isEditing && !isTakeMode && (
-              <CollectionSelector
-                selectedCollection={selectedCollection}
-                selectedItem={selectedCollectionItem}
-                onSelectCollection={setSelectedCollection}
-                onSelectItem={setSelectedCollectionItem}
-              />
-            )}
-          </div>
+                      </div>
 
           <div className="flex gap-3">
             {!isTakeMode && (
