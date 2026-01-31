@@ -137,11 +137,13 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
 
   const { createTake, uploading, progress, error } = useCreateTake();
   const { communities } = useCommunities(user?.id, "joined");
-  const { sounds: trendingSounds } = useTrendingSounds(10);
-  const { sounds: searchedSounds, loading: searchingSound } = useSounds(user?.id, {
+
+  // Sounds - gracefully handle if table doesn't exist yet
+  const { sounds: trendingSounds = [] } = useTrendingSounds(10) || { sounds: [] };
+  const { sounds: searchedSounds = [], loading: searchingSound = false } = useSounds(user?.id, {
     search: soundSearch,
     limit: 20,
-  });
+  }) || { sounds: [], loading: false };
 
   const displaySounds = soundSearch ? searchedSounds : trendingSounds;
 
