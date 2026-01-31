@@ -145,9 +145,25 @@ export default function CollectionSelector({
     }
     // Handle regular emojis
     if (collection.icon_emoji) {
+      // Check if it's a hex code point (all hex characters)
+      if (/^[0-9A-Fa-f]+$/.test(collection.icon_emoji)) {
+        try {
+          const codePoint = parseInt(collection.icon_emoji, 16);
+          if (!isNaN(codePoint) && codePoint > 0) {
+            return (
+              <span className={`${textSize} leading-none`}>
+                {String.fromCodePoint(codePoint)}
+              </span>
+            );
+          }
+        } catch {
+          // Fall through to display as-is
+        }
+      }
+      // Display emoji as-is (it's already a unicode character)
       return (
         <span className={`${textSize} leading-none`}>
-          {String.fromCodePoint(parseInt(collection.icon_emoji, 16))}
+          {collection.icon_emoji}
         </span>
       );
     }

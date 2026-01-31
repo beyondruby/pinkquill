@@ -544,11 +544,19 @@ function CollectionCard({
       }
     }
     if (collection.icon_emoji) {
-      try {
-        return <span className="text-3xl">{String.fromCodePoint(parseInt(collection.icon_emoji, 16))}</span>;
-      } catch {
-        return <span className="text-3xl">{collection.icon_emoji}</span>;
+      // Check if it's a hex code point (all hex characters)
+      if (/^[0-9A-Fa-f]+$/.test(collection.icon_emoji)) {
+        try {
+          const codePoint = parseInt(collection.icon_emoji, 16);
+          if (!isNaN(codePoint) && codePoint > 0) {
+            return <span className="text-3xl">{String.fromCodePoint(codePoint)}</span>;
+          }
+        } catch {
+          // Fall through to display as-is
+        }
       }
+      // Display emoji as-is (it's already a unicode character)
+      return <span className="text-3xl">{collection.icon_emoji}</span>;
     }
     if (collection.icon_url) {
       return <img src={collection.icon_url} alt="" className="w-10 h-10 rounded-lg object-cover" />;

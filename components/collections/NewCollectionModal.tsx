@@ -476,7 +476,9 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                     {brandedIcons.find(i => i.id === iconEmoji)?.icon}
                   </div>
                 ) : iconEmoji ? (
-                  <span className="text-4xl">{String.fromCodePoint(parseInt(iconEmoji, 16))}</span>
+                  <span className="text-4xl">
+                    {/^[0-9A-Fa-f]+$/.test(iconEmoji) ? String.fromCodePoint(parseInt(iconEmoji, 16)) : iconEmoji}
+                  </span>
                 ) : (
                   <svg className="w-8 h-8 text-purple-primary/50 group-hover:text-purple-primary/70 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -542,7 +544,11 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                               }`}
                               title={option.label}
                             >
-                              <span className="text-lg">{String.fromCodePoint(parseInt(option.emoji, 16))}</span>
+                              <span className="text-lg">
+                                {/^[0-9A-Fa-f]+$/.test(option.emoji)
+                                  ? String.fromCodePoint(parseInt(option.emoji, 16))
+                                  : option.emoji}
+                              </span>
                             </button>
                           ))}
                         </div>

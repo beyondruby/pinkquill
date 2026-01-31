@@ -284,7 +284,11 @@ export default function NewCollectionItemModal({
               <p className="text-sm text-muted flex items-center gap-1.5 mt-0.5">
                 <span>Adding to</span>
                 {collection.icon_emoji ? (
-                  <span className="text-base">{String.fromCodePoint(parseInt(collection.icon_emoji, 16))}</span>
+                  <span className="text-base">
+                    {/^[0-9A-Fa-f]+$/.test(collection.icon_emoji)
+                      ? String.fromCodePoint(parseInt(collection.icon_emoji, 16))
+                      : collection.icon_emoji}
+                  </span>
                 ) : collection.icon_url ? (
                   <img src={collection.icon_url} alt="" className="w-4 h-4 rounded object-cover" />
                 ) : null}
@@ -324,7 +328,11 @@ export default function NewCollectionItemModal({
                       {itemIcons.find(i => i.id === iconEmoji)?.icon}
                     </div>
                   ) : iconEmoji ? (
-                    <span className="text-2xl">{String.fromCodePoint(parseInt(iconEmoji, 16))}</span>
+                    <span className="text-2xl">
+                      {/^[0-9A-Fa-f]+$/.test(iconEmoji)
+                        ? String.fromCodePoint(parseInt(iconEmoji, 16))
+                        : iconEmoji}
+                    </span>
                   ) : (
                     <svg className="w-6 h-6 text-purple-primary/50 group-hover:text-purple-primary/70 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -379,7 +387,11 @@ export default function NewCollectionItemModal({
                                 }`}
                                 title={option.label}
                               >
-                                <span className="text-base">{String.fromCodePoint(parseInt(option.emoji, 16))}</span>
+                                <span className="text-base">
+                                  {/^[0-9A-Fa-f]+$/.test(option.emoji)
+                                    ? String.fromCodePoint(parseInt(option.emoji, 16))
+                                    : option.emoji}
+                                </span>
                               </button>
                             ))}
                           </div>
