@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useJoinCommunity, Community } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
+import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
 interface JoinButtonProps {
   community: Community;
@@ -303,7 +304,7 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
               <div className="relative flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 overflow-hidden">
                   {community.avatar_url ? (
-                    <img src={community.avatar_url} alt="" className="w-full h-full object-cover" />
+                    <img src={getOptimizedAvatarUrl(community.avatar_url, 48)} alt="" className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <span className="text-white text-lg font-bold">{community.name.charAt(0)}</span>
                   )}

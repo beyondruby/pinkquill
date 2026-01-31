@@ -2,6 +2,7 @@
 
 import { Conversation } from "./MessagesView";
 import { ConversationSkeleton } from "@/components/ui/Skeleton";
+import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
 
 function formatVoiceDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -79,12 +80,10 @@ export default function ConversationList({
           {/* Avatar */}
           <div className="relative flex-shrink-0">
             <img
-              src={
-                conversation.participant.avatar_url ||
-                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
-              }
+              src={getOptimizedAvatarUrl(conversation.participant.avatar_url, 48) || DEFAULT_AVATAR}
               alt={conversation.participant.display_name || conversation.participant.username}
               className="w-12 h-12 rounded-full object-cover"
+              loading="lazy"
             />
             {/* Online indicator - placeholder for future feature */}
             {/* <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" /> */}

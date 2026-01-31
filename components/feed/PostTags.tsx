@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
 interface TaggedUser {
   id: string;
@@ -57,7 +58,7 @@ export default function PostTags({ hashtags = [], mentions = [], collaborators =
               >
                 <div className="collab-chip-avatar">
                   {collab.user.avatar_url ? (
-                    <img src={collab.user.avatar_url} alt="" />
+                    <img src={getOptimizedAvatarUrl(collab.user.avatar_url, 24)} alt="" loading="lazy" />
                   ) : (
                     <span className="collab-chip-avatar-fallback">
                       {(collab.user.display_name || collab.user.username)[0].toUpperCase()}

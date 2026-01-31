@@ -1,6 +1,7 @@
 "use client";
 
 import type { TypingUser } from "@/lib/types";
+import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
 
 interface TypingIndicatorProps {
   typingUsers: TypingUser[];
@@ -19,9 +20,10 @@ export default function TypingIndicator({ typingUsers, typingText }: TypingIndic
         {typingUsers.slice(0, 3).map((user) => (
           <img
             key={user.user_id}
-            src={user.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+            src={getOptimizedAvatarUrl(user.avatar_url, 24) || DEFAULT_AVATAR}
             alt={user.display_name || user.username}
             className="w-6 h-6 rounded-full object-cover border-2 border-white shadow-sm"
+            loading="lazy"
           />
         ))}
       </div>

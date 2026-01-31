@@ -32,7 +32,9 @@
       "Bash(echo:*)",
       "Bash(npm run lint:*)",
       "Bash(awk:*)",
-      "Bash(npm run test:run:*)"
+      "Bash(npm run test:run:*)",
+      "mcp__supabase__search_docs",
+      "Bash(npm test:*)"
     ]
   }
 }

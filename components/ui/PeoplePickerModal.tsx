@@ -13,6 +13,7 @@ import {
   faPen,
 } from "@fortawesome/free-solid-svg-icons";
 import { useUserSearch, SearchableUser } from "@/lib/hooks";
+import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
 // Extended user with role for collaborators
 export interface CollaboratorWithRole extends SearchableUser {
@@ -229,9 +230,10 @@ export default function PeoplePickerModal({
                       <div className="relative">
                         {user.avatar_url ? (
                           <img
-                            src={user.avatar_url}
+                            src={getOptimizedAvatarUrl(user.avatar_url, 24)}
                             alt={user.display_name || user.username}
                             className="w-6 h-6 rounded-full object-cover"
+                            loading="lazy"
                           />
                         ) : (
                           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-xs font-medium">
@@ -454,9 +456,10 @@ function UserRow({ user, isSelected, onClick, disabled }: UserRowProps) {
       <div className="relative flex-shrink-0">
         {user.avatar_url ? (
           <img
-            src={user.avatar_url}
+            src={getOptimizedAvatarUrl(user.avatar_url, 40)}
             alt={user.display_name || user.username}
             className="w-10 h-10 rounded-full object-cover"
+            loading="lazy"
           />
         ) : (
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white font-medium">

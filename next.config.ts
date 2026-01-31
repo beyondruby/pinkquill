@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    // Use custom loader for Supabase image optimization
+    loader: "custom",
+    loaderFile: "./lib/supabase-image-loader.ts",
     remotePatterns: [
       {
         protocol: "https",

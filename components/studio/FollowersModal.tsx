@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useFollowList, FollowUser } from "@/lib/hooks";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
+import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
 
 interface FollowersModalProps {
   isOpen: boolean;
@@ -61,9 +62,10 @@ function UserCard({
     <div className="flex items-center gap-4 p-4 hover:bg-black/[0.02] rounded-xl transition-all">
       <Link href={`/studio/${user.username}`} className="flex-shrink-0">
         <img
-          src={user.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"}
+          src={getOptimizedAvatarUrl(user.avatar_url, 48) || DEFAULT_AVATAR}
           alt={user.display_name || user.username}
           className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+          loading="lazy"
         />
       </Link>
 

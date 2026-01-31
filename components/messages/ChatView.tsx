@@ -11,6 +11,7 @@ import MessageReactionPicker from "./MessageReactionPicker";
 import TypingIndicator from "./TypingIndicator";
 import Loading from "@/components/ui/Loading";
 import EmojiPicker from "@/components/ui/EmojiPicker";
+import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
 
 // Local type for chat participants (simplified from ConversationParticipant)
 interface Participant {
@@ -602,12 +603,10 @@ export default function ChatView({
           className="flex items-center gap-3 flex-1 group"
         >
           <img
-            src={
-              participant?.avatar_url ||
-              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
-            }
+            src={getOptimizedAvatarUrl(participant?.avatar_url, 44) || DEFAULT_AVATAR}
             alt={participant?.display_name || participant?.username}
             className="w-11 h-11 rounded-full object-cover group-hover:ring-2 group-hover:ring-purple-primary/30 transition-all"
+            loading="lazy"
           />
           <div>
             <h2 className="font-ui text-[1rem] font-medium text-ink group-hover:text-purple-primary transition-colors">
@@ -681,12 +680,10 @@ export default function ChatView({
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="text-center">
               <img
-                src={
-                  participant?.avatar_url ||
-                  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
-                }
+                src={getOptimizedAvatarUrl(participant?.avatar_url, 80) || DEFAULT_AVATAR}
                 alt={participant?.display_name || participant?.username}
                 className="w-20 h-20 rounded-full object-cover mx-auto mb-4 shadow-lg"
+                loading="lazy"
               />
               <h3 className="font-display text-[1.2rem] text-ink mb-1">
                 {participant?.display_name || participant?.username}

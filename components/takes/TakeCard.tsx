@@ -7,6 +7,7 @@ import TakeReactionPicker from "./TakeReactionPicker";
 import ReportModal from "@/components/ui/ReportModal";
 import ShareModal from "@/components/ui/ShareModal";
 import { Take, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
+import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
 interface TakeCardProps {
   take: Take;
@@ -324,7 +325,7 @@ export default function TakeCard({
         <div className="tiktok-action-profile">
           <Link href={`/studio/${take.author.username}`} className="tiktok-profile-link">
             {take.author.avatar_url ? (
-              <img src={take.author.avatar_url} alt={take.author.username} />
+              <img src={getOptimizedAvatarUrl(take.author.avatar_url, 48)} alt={take.author.username} loading="lazy" />
             ) : (
               <div className="tiktok-profile-placeholder">
                 {take.author.username[0]?.toUpperCase()}

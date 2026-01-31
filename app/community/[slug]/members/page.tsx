@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useCommunityMembers, useCommunityModeration, useJoinRequests } from "@/lib/hooks";
 import InviteModal from "@/components/communities/InviteModal";
+import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
 type RoleFilter = 'all' | 'admin' | 'moderator' | 'member';
 type ModerationTab = 'members' | 'muted' | 'banned';
@@ -293,9 +294,10 @@ export default function CommunityMembersPage() {
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {request.profile?.avatar_url ? (
                         <img
-                          src={request.profile.avatar_url}
+                          src={getOptimizedAvatarUrl(request.profile.avatar_url, 40)}
                           alt=""
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
@@ -435,9 +437,10 @@ export default function CommunityMembersPage() {
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {member.profile?.avatar_url ? (
                         <img
-                          src={member.profile.avatar_url}
+                          src={getOptimizedAvatarUrl(member.profile.avatar_url, 48)}
                           alt=""
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold">
@@ -590,7 +593,7 @@ export default function CommunityMembersPage() {
                   <Link href={`/studio/${member.profile?.username}`} className="flex-shrink-0">
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {member.profile?.avatar_url ? (
-                        <img src={member.profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                        <img src={getOptimizedAvatarUrl(member.profile.avatar_url, 40)} alt="" className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
                           {(member.profile?.display_name || member.profile?.username || '?').charAt(0).toUpperCase()}
@@ -678,7 +681,7 @@ export default function CommunityMembersPage() {
                   <Link href={`/studio/${member.profile?.username}`} className="flex-shrink-0">
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {member.profile?.avatar_url ? (
-                        <img src={member.profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                        <img src={getOptimizedAvatarUrl(member.profile.avatar_url, 40)} alt="" className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
                           {(member.profile?.display_name || member.profile?.username || '?').charAt(0).toUpperCase()}

@@ -9,6 +9,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useUnreadCount, useMarkAsRead, useUnreadMessagesCount } from "@/lib/hooks";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
 import SearchBar from "@/components/search/SearchBar";
+import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
 
 const publicNavItems = [
   { icon: "home", label: "Home", href: "/" },
@@ -292,7 +293,7 @@ export default function LeftSidebar() {
             className="flex items-center gap-3 p-3 cursor-pointer rounded-xl hover:bg-purple-primary/5 transition-all duration-300"
           >
             <img
-              src={profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"}
+              src={getOptimizedAvatarUrl(profile.avatar_url, 38) || DEFAULT_AVATAR}
               alt="Profile"
               className="w-[38px] h-[38px] rounded-full object-cover border-2 border-pink-vivid"
             />
