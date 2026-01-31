@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, useDeleteCollection, useDeleteCollectionItem, useUpdateCollection, useUpdateCollectionItem, usePinnedPosts } from "@/lib/hooks";
+import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, useDeleteCollection, useDeleteCollectionItem, useUpdateCollection, useUpdateCollectionItem, usePinnedPosts, useReorderCollections } from "@/lib/hooks";
 
 // Type for follows table real-time payload
 interface FollowRealtimePayload {
@@ -497,6 +497,11 @@ interface CollectionCardProps {
   onDelete: () => void;
   onDeleteItem: (itemId: string) => void;
   router: AppRouterInstance;
+  // Reordering props
+  index: number;
+  totalCount: number;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
 function CollectionCard({
@@ -506,7 +511,11 @@ function CollectionCard({
   onToggleCollapse,
   onDelete,
   onDeleteItem,
-  router
+  router,
+  index,
+  totalCount,
+  onMoveUp,
+  onMoveDown,
 }: CollectionCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
@@ -595,7 +604,41 @@ function CollectionCard({
             </div>
 
             {/* Actions */}
-            <div className="shrink-0 flex items-center gap-2">
+            <div className="shrink-0 flex items-center gap-1">
+              {/* Reorder buttons - only for owner */}
+              {isOwnProfile && totalCount > 1 && (
+                <div className="flex items-center gap-0.5 mr-1">
+                  <button
+                    onClick={onMoveUp}
+                    disabled={index === 0}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                      index === 0
+                        ? 'text-muted/30 cursor-not-allowed'
+                        : 'text-muted hover:text-ink hover:bg-black/[0.05]'
+                    }`}
+                    title="Move up"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={onMoveDown}
+                    disabled={index === totalCount - 1}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                      index === totalCount - 1
+                        ? 'text-muted/30 cursor-not-allowed'
+                        : 'text-muted hover:text-ink hover:bg-black/[0.05]'
+                    }`}
+                    title="Move down"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
               {/* Collapse toggle */}
               <button
                 onClick={onToggleCollapse}
@@ -801,6 +844,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const { communities: userCommunities, loading: communitiesLoading } = useCommunities(profile?.id, 'joined');
   const { collections, loading: collectionsLoading, refetch: refetchCollections } = useCollections(profile?.id);
   const { toggleCollapse } = useToggleCollectionCollapse();
+  const { reorderCollections } = useReorderCollections();
   const { pinnedPostIds, isPinned, canPin, pinPost, unpinPost } = usePinnedPosts(profile?.id);
   const { revealedCards, observeCard } = useScrollReveal();
   const [pageLoaded, setPageLoaded] = useState(false);
@@ -2710,12 +2754,28 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               </div>
             ) : (
               <div className="space-y-6">
-                {collections.map((collection) => (
+                {collections.map((collection, index) => (
                   <CollectionCard
                     key={collection.id}
                     collection={collection}
                     isOwnProfile={isOwnProfile}
                     username={username}
+                    index={index}
+                    totalCount={collections.length}
+                    onMoveUp={async () => {
+                      if (index === 0) return;
+                      const newOrder = [...collections];
+                      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+                      await reorderCollections(newOrder.map(c => c.id));
+                      refetchCollections();
+                    }}
+                    onMoveDown={async () => {
+                      if (index === collections.length - 1) return;
+                      const newOrder = [...collections];
+                      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                      await reorderCollections(newOrder.map(c => c.id));
+                      refetchCollections();
+                    }}
                     onToggleCollapse={async () => {
                       await toggleCollapse(collection.id, collection.is_collapsed);
                       refetchCollections();
