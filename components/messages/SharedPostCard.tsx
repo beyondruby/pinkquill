@@ -12,7 +12,6 @@ interface SharedPostCardProps {
   cachedPost?: SharedPostPreview;
 }
 
-// Post type labels
 const POST_TYPE_LABELS: Record<PostType, string> = {
   poem: "Poem",
   journal: "Journal",
@@ -27,10 +26,7 @@ const POST_TYPE_LABELS: Record<PostType, string> = {
   quote: "Quote",
 };
 
-/**
- * Strip HTML tags and truncate text
- */
-function getExcerpt(html: string, maxLength: number = 60): string {
+function getExcerpt(html: string, maxLength: number = 80): string {
   const text = html.replace(/<[^>]*>/g, "").trim();
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength).trim() + "...";
@@ -65,164 +61,107 @@ export default function SharedPostCard({
     fetchPost();
   }, [postId, cachedPost]);
 
-  // Loading state - compact skeleton
+  // Loading skeleton
   if (loading) {
     return (
-      <div
-        className={`w-full max-w-[280px] rounded-2xl overflow-hidden ${
-          isOwnMessage ? "bg-white/5" : "bg-gray-100"
-        }`}
-      >
-        <div className="flex items-center gap-3 p-3 animate-pulse">
-          <div className={`w-14 h-14 rounded-lg flex-shrink-0 ${isOwnMessage ? "bg-white/10" : "bg-gray-200"}`} />
-          <div className="flex-1 min-w-0">
-            <div className={`h-3 rounded ${isOwnMessage ? "bg-white/10" : "bg-gray-200"} w-24 mb-2`} />
-            <div className={`h-2.5 rounded ${isOwnMessage ? "bg-white/10" : "bg-gray-200"} w-full mb-1`} />
-            <div className={`h-2.5 rounded ${isOwnMessage ? "bg-white/10" : "bg-gray-200"} w-2/3`} />
+      <div className="w-[240px] rounded-xl overflow-hidden bg-white border border-gray-200">
+        <div className="animate-pulse">
+          <div className="h-[160px] bg-gray-100" />
+          <div className="p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-6 h-6 rounded-full bg-gray-100" />
+              <div className="h-3 bg-gray-100 rounded w-20" />
+            </div>
+            <div className="h-3 bg-gray-100 rounded w-full mb-1.5" />
+            <div className="h-3 bg-gray-100 rounded w-3/4" />
           </div>
         </div>
       </div>
     );
   }
 
-  // Error or deleted post
+  // Error state
   if (error || !post) {
     return (
-      <div
-        className={`w-full max-w-[280px] rounded-2xl overflow-hidden ${
-          isOwnMessage
-            ? "bg-white/5 border border-white/10"
-            : "bg-gray-50 border border-gray-200"
-        }`}
-      >
-        <div className="flex items-center gap-3 p-3">
-          <div className={`w-14 h-14 rounded-lg flex-shrink-0 flex items-center justify-center ${
-            isOwnMessage ? "bg-white/10" : "bg-gray-100"
-          }`}>
-            <svg
-              className={`w-6 h-6 ${isOwnMessage ? "text-white/30" : "text-gray-300"}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
+      <div className="w-[240px] rounded-xl overflow-hidden bg-white border border-gray-200">
+        <div className="p-6 text-center">
+          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gray-100 flex items-center justify-center">
+            <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
             </svg>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className={`font-ui text-sm ${isOwnMessage ? "text-white/50" : "text-gray-400"}`}>
-              Post unavailable
-            </p>
-            <p className={`font-ui text-xs ${isOwnMessage ? "text-white/30" : "text-gray-300"}`}>
-              This post may have been deleted
-            </p>
-          </div>
+          <p className="font-ui text-sm text-gray-500">Post unavailable</p>
         </div>
       </div>
     );
   }
 
   const typeLabel = POST_TYPE_LABELS[post.type] || "Post";
+  const hasMedia = post.media && post.media.media_url;
 
   return (
     <Link href={`/post/${post.id}`} className="block">
-      <div
-        className={`w-full max-w-[280px] rounded-2xl overflow-hidden transition-all active:scale-[0.98] ${
-          isOwnMessage
-            ? "bg-white/5 hover:bg-white/10 border border-white/10"
-            : "bg-white hover:bg-gray-50 border border-gray-200"
-        }`}
-      >
-        <div className="flex gap-3 p-3">
-          {/* Thumbnail */}
-          <div className={`w-14 h-14 rounded-lg flex-shrink-0 overflow-hidden ${
-            !post.media ? (isOwnMessage ? "bg-white/10" : "bg-gray-100") : ""
-          }`}>
-            {post.media ? (
-              <div className="relative w-full h-full">
-                <img
-                  src={post.media.media_url}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-                {post.media.media_type === "video" && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <img
-                  src={post.author.avatar_url || DEFAULT_AVATAR}
-                  alt=""
-                  className="w-8 h-8 rounded-full object-cover"
-                />
+      <div className="w-[240px] rounded-xl overflow-hidden bg-white border border-gray-200 hover:border-gray-300 transition-colors active:scale-[0.98] transition-transform">
+        {/* Media preview */}
+        {hasMedia ? (
+          <div className="relative h-[160px] bg-gray-100">
+            <img
+              src={post.media!.media_url}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+            {post.media!.media_type === "video" && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-11 h-11 rounded-full bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                  <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
               </div>
             )}
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            {/* Author and type */}
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className={`font-ui text-xs font-semibold truncate ${
-                isOwnMessage ? "text-white" : "text-gray-900"
-              }`}>
-                {post.author.display_name || post.author.username}
-              </span>
-              <span className={`font-ui text-[10px] ${
-                isOwnMessage ? "text-white/50" : "text-gray-400"
-              }`}>
-                · {typeLabel}
-              </span>
+            {/* Type badge on media */}
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm">
+              <span className="font-ui text-[10px] font-medium text-white">{typeLabel}</span>
             </div>
-
-            {/* Title or excerpt */}
-            {post.title ? (
-              <p className={`font-ui text-xs line-clamp-2 ${
-                isOwnMessage ? "text-white/80" : "text-gray-600"
-              }`}>
-                {post.title}
-              </p>
-            ) : (
-              <p className={`font-ui text-xs line-clamp-2 ${
-                isOwnMessage ? "text-white/70" : "text-gray-500"
-              }`}>
-                {getExcerpt(post.content, 60)}
-              </p>
-            )}
-
-            {/* Tap to view hint */}
-            <p className={`font-ui text-[10px] mt-1 ${
-              isOwnMessage ? "text-white/40" : "text-gray-400"
-            }`}>
-              Tap to view
+          </div>
+        ) : (
+          /* No media - show styled content preview */
+          <div className="h-[120px] bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
+            <p className="font-body text-sm text-gray-600 text-center line-clamp-4 italic">
+              "{getExcerpt(post.content, 100)}"
             </p>
           </div>
+        )}
 
-          {/* Arrow indicator */}
-          <div className="flex items-center">
-            <svg
-              className={`w-4 h-4 ${isOwnMessage ? "text-white/30" : "text-gray-300"}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+        {/* Footer */}
+        <div className="p-3 border-t border-gray-100">
+          <div className="flex items-center gap-2">
+            <img
+              src={post.author.avatar_url || DEFAULT_AVATAR}
+              alt=""
+              className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-ui text-xs font-semibold text-gray-900 truncate">
+                {post.author.display_name || post.author.username}
+              </p>
+              <p className="font-ui text-[10px] text-gray-500 truncate">
+                @{post.author.username}
+              </p>
+            </div>
+            {!hasMedia && (
+              <span className="px-2 py-0.5 rounded-full bg-purple-100 font-ui text-[10px] font-medium text-purple-700">
+                {typeLabel}
+              </span>
+            )}
           </div>
+
+          {/* Title if exists and has media */}
+          {hasMedia && post.title && (
+            <p className="mt-2 font-ui text-xs text-gray-700 line-clamp-2">
+              {post.title}
+            </p>
+          )}
         </div>
       </div>
     </Link>
