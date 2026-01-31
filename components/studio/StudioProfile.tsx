@@ -2480,10 +2480,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {/* Takes Section */}
         {activeTab === "takes" && (
           <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
-            <div className="studio-works-header">
-              <h2 className="studio-works-title">Takes</h2>
-            </div>
-
             {takesLoading ? (
               <div className="py-12">
                 <Loading text="Loading takes" size="medium" />
