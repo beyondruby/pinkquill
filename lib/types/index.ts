@@ -428,6 +428,7 @@ export interface CommunityMember {
   role: "admin" | "moderator" | "member";
   status: "active" | "muted" | "banned";
   muted_until: string | null;
+  mute_reason: string | null;
   banned_until: string | null;
   ban_reason: string | null;
   joined_at: string;

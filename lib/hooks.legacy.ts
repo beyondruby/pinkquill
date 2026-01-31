@@ -54,6 +54,9 @@ export interface CommunityMember {
   role: 'admin' | 'moderator' | 'member';
   status: 'active' | 'muted' | 'banned';
   muted_until: string | null;
+  mute_reason: string | null;
+  banned_until: string | null;
+  ban_reason: string | null;
   joined_at: string;
   profile: {
     id: string;
@@ -1224,8 +1227,9 @@ export function useCommunityModeration(communityId: string) {
     actorId: string,
     options?: {
       mutedUntil?: Date;
+      muteReason?: string;
       bannedUntil?: Date;
-      reason?: string;
+      banReason?: string;
     }
   ) => {
     setLoading(true);
@@ -1233,19 +1237,22 @@ export function useCommunityModeration(communityId: string) {
       const updateData: {
         status: string;
         muted_until?: string | null;
+        mute_reason?: string | null;
         banned_until?: string | null;
         ban_reason?: string | null;
       } = { status };
 
-      if (status === 'muted' && options?.mutedUntil) {
-        updateData.muted_until = options.mutedUntil.toISOString();
+      if (status === 'muted') {
+        updateData.muted_until = options?.mutedUntil ? options.mutedUntil.toISOString() : null;
+        updateData.mute_reason = options?.muteReason || null;
       } else {
         updateData.muted_until = null;
+        updateData.mute_reason = null;
       }
 
       if (status === 'banned') {
         updateData.banned_until = options?.bannedUntil ? options.bannedUntil.toISOString() : null;
-        updateData.ban_reason = options?.reason || null;
+        updateData.ban_reason = options?.banReason || null;
       } else {
         updateData.banned_until = null;
         updateData.ban_reason = null;
@@ -1262,12 +1269,17 @@ export function useCommunityModeration(communityId: string) {
       // Build notification content with duration/reason info
       let notificationContent: string | undefined;
       if (status === 'muted') {
+        const parts: string[] = [];
         if (options?.mutedUntil) {
           const duration = formatDuration(options.mutedUntil);
-          notificationContent = `You have been muted for ${duration}`;
+          parts.push(`You have been muted for ${duration}`);
         } else {
-          notificationContent = "You have been muted indefinitely";
+          parts.push("You have been muted indefinitely");
         }
+        if (options?.muteReason) {
+          parts.push(`Reason: ${options.muteReason}`);
+        }
+        notificationContent = parts.join(". ");
       } else if (status === 'banned') {
         const parts: string[] = [];
         if (options?.bannedUntil) {
@@ -1276,8 +1288,8 @@ export function useCommunityModeration(communityId: string) {
         } else {
           parts.push("You have been permanently banned");
         }
-        if (options?.reason) {
-          parts.push(`Reason: ${options.reason}`);
+        if (options?.banReason) {
+          parts.push(`Reason: ${options.banReason}`);
         }
         notificationContent = parts.join(". ");
       }
@@ -1349,10 +1361,13 @@ export function useCommunityModeration(communityId: string) {
     return updateMemberRole(userId, 'member', user.id);
   };
 
-  const muteUser = async (userId: string, mutedUntil?: Date) => {
+  const muteUser = async (userId: string, options?: { mutedUntil?: Date; reason?: string }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
-    return updateMemberStatus(userId, 'muted', user.id, { mutedUntil });
+    return updateMemberStatus(userId, 'muted', user.id, {
+      mutedUntil: options?.mutedUntil,
+      muteReason: options?.reason,
+    });
   };
 
   const banUser = async (userId: string, options?: { bannedUntil?: Date; reason?: string }) => {
@@ -1360,7 +1375,7 @@ export function useCommunityModeration(communityId: string) {
     if (!user) return { success: false, error: 'Not authenticated' };
     return updateMemberStatus(userId, 'banned', user.id, {
       bannedUntil: options?.bannedUntil,
-      reason: options?.reason,
+      banReason: options?.reason,
     });
   };
 
