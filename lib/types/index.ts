@@ -586,6 +586,7 @@ export interface CollectionItem {
   slug: string;
   description: string | null;
   cover_url: string | null;
+  icon_emoji: string | null;
   position: number;
   metadata: CollectionItemMetadata;
   created_at: string;

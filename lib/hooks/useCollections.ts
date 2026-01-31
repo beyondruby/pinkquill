@@ -378,6 +378,7 @@ interface UseCreateCollectionItemReturn {
     options?: {
       description?: string;
       coverUrl?: string;
+      iconEmoji?: string;
       metadata?: CollectionItemMetadata;
     }
   ) => Promise<CollectionItem | null>;
@@ -396,6 +397,7 @@ export function useCreateCollectionItem(userId?: string): UseCreateCollectionIte
       options?: {
         description?: string;
         coverUrl?: string;
+        iconEmoji?: string;
         metadata?: CollectionItemMetadata;
       }
     ): Promise<CollectionItem | null> => {
@@ -449,6 +451,7 @@ export function useCreateCollectionItem(userId?: string): UseCreateCollectionIte
             slug,
             description: options?.description || null,
             cover_url: options?.coverUrl || null,
+            icon_emoji: options?.iconEmoji || null,
             metadata: options?.metadata || {},
             position: nextPosition,
           })
@@ -628,6 +631,7 @@ interface UseUpdateCollectionItemReturn {
       name: string;
       description: string | null;
       cover_url: string | null;
+      icon_emoji: string | null;
       metadata: CollectionItemMetadata;
     }>
   ) => Promise<boolean>;
@@ -646,6 +650,7 @@ export function useUpdateCollectionItem(): UseUpdateCollectionItemReturn {
         name: string;
         description: string | null;
         cover_url: string | null;
+        icon_emoji: string | null;
         metadata: CollectionItemMetadata;
       }>
     ): Promise<boolean> => {
