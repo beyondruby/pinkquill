@@ -2223,29 +2223,14 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 );
               }
 
-              // Communities View - Beautiful grid with community badges
+              // Communities View - Simple and creative grid
               if (postViewMode === "communities") {
-                const typeLabels: Record<string, string> = {
-                  poem: "Poetry",
-                  journal: "Journal",
-                  thought: "Thought",
-                  essay: "Essay",
-                  story: "Story",
-                  letter: "Letter",
-                  visual: "Visual",
-                  quote: "Quote",
-                  audio: "Audio",
-                  video: "Video",
-                  blog: "Blog",
-                  screenplay: "Screenplay",
-                };
-
                 return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredPosts.map((work) => {
                       const hasMedia = work.media && work.media.length > 0;
                       const plainContent = work.content
-                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 100)
+                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 120)
                         : '';
                       const community = work.community;
 
@@ -2253,80 +2238,56 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <article
                           key={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
-                          className="group relative bg-white rounded-2xl border border-black/[0.06] overflow-hidden cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                          className="group relative bg-white rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 border border-black/[0.05]"
                         >
-                          {/* Image or Gradient Header */}
-                          <div className="relative h-40 overflow-hidden">
-                            {hasMedia ? (
-                              <>
-                                <img
-                                  src={work.media[0].media_url}
-                                  alt=""
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                />
-                                {work.media.length > 1 && (
-                                  <span className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full font-medium">
-                                    +{work.media.length - 1}
-                                  </span>
-                                )}
-                              </>
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-purple-primary/20 via-pink-vivid/10 to-orange-warm/20 flex items-center justify-center">
-                                <svg className="w-12 h-12 text-purple-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                                </svg>
-                              </div>
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-
-                            {/* Community Badge - Floating on image, clickable */}
-                            {community && (
-                              <div className="absolute bottom-3 left-3 right-3">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/community/${community.slug}`);
-                                  }}
-                                  className="flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200 w-full text-left"
-                                >
-                                  {community.avatar_url ? (
-                                    <img
-                                      src={community.avatar_url}
-                                      alt={community.name}
-                                      className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
-                                    />
-                                  ) : (
-                                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center flex-shrink-0">
-                                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                      </svg>
-                                    </div>
-                                  )}
-                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                    <svg className="w-3.5 h-3.5 text-purple-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
-                                    <span className="font-ui text-sm font-medium text-ink truncate">{community.name}</span>
-                                  </div>
-                                  <svg className="w-4 h-4 text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
-                                </button>
-                              </div>
-                            )}
-
-                            {/* Type Badge - Top left */}
-                            <div className="absolute top-3 left-3">
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-white/90 backdrop-blur-sm text-purple-primary shadow-sm">
-                                {typeLabels[work.type] || work.type}
-                              </span>
+                          {/* Image */}
+                          {hasMedia && (
+                            <div className="relative h-44 overflow-hidden">
+                              <img
+                                src={work.media[0].media_url}
+                                alt=""
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              />
+                              {work.media.length > 1 && (
+                                <span className="absolute top-2.5 right-2.5 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
+                                  +{work.media.length - 1}
+                                </span>
+                              )}
                             </div>
-                          </div>
+                          )}
 
                           {/* Content */}
                           <div className="p-4">
+                            {/* Community Tag - Simple clickable pill */}
+                            {community && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/community/${community.slug}`);
+                                }}
+                                className="inline-flex items-center gap-1.5 mb-3 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 hover:from-purple-primary/20 hover:to-pink-vivid/20 transition-colors"
+                              >
+                                {community.avatar_url ? (
+                                  <img
+                                    src={community.avatar_url}
+                                    alt=""
+                                    className="w-4 h-4 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
+                                    <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                                    </svg>
+                                  </span>
+                                )}
+                                <span className="text-xs font-medium bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+                                  {community.name}
+                                </span>
+                              </button>
+                            )}
+
                             {work.title && (
-                              <h4 className="font-display font-semibold text-ink mb-1.5 line-clamp-1 group-hover:text-purple-primary transition-colors">
+                              <h4 className="font-display font-semibold text-ink text-[0.95rem] mb-1.5 line-clamp-2 group-hover:text-purple-primary transition-colors">
                                 {work.title}
                               </h4>
                             )}
@@ -2336,20 +2297,20 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             )}
 
                             {/* Footer */}
-                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-black/[0.04]">
-                              <span className="text-xs text-muted font-medium">{getTimeAgo(work.created_at)}</span>
-                              <div className="flex items-center gap-4 text-muted">
-                                <span className="flex items-center gap-1.5 text-xs">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/[0.04]">
+                              <span className="text-xs text-muted">{getTimeAgo(work.created_at)}</span>
+                              <div className="flex items-center gap-3 text-muted">
+                                <span className="flex items-center gap-1 text-xs">
+                                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
                                   </svg>
-                                  <span className="font-medium">{work.admires_count || 0}</span>
+                                  {work.admires_count || 0}
                                 </span>
-                                <span className="flex items-center gap-1.5 text-xs">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <span className="flex items-center gap-1 text-xs">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                   </svg>
-                                  <span className="font-medium">{work.comments_count || 0}</span>
+                                  {work.comments_count || 0}
                                 </span>
                               </div>
                             </div>
