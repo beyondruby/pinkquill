@@ -1707,25 +1707,21 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 video: "Video",
               };
 
-              // ========== ALL VIEW - Creative Glass Grid ==========
+              // ========== ALL VIEW - Uniform Glass Grid ==========
               if (postViewMode === "all") {
                 return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPosts.map((work, index) => {
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {filteredPosts.map((work) => {
                       const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
                       const hasMedia = work.media && work.media.length > 0;
                       const hasMultipleImages = work.media && work.media.length > 1;
                       const plainContent = work.content
-                        ? work.content.replace(/<[^>]*>/g, '').substring(0, 120)
+                        ? work.content.replace(/<[^>]*>/g, '').substring(0, 100)
                         : '';
                       const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric'
                       });
-
-                      // Determine card size for visual variety
-                      // Every 5th and 6th item span 2 columns on larger screens
-                      const isLarge = (index % 7 === 0 || index % 7 === 4) && hasMedia;
 
                       return (
                         <article
@@ -1733,105 +1729,146 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           ref={observeCard}
                           data-post-id={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
-                          className={`group relative cursor-pointer ${isLarge ? 'sm:col-span-2' : ''} ${revealedCards.has(work.id) ? 'animate-fadeIn' : 'opacity-0'}`}
+                          className={`group relative cursor-pointer ${revealedCards.has(work.id) ? 'animate-fadeIn' : 'opacity-0'}`}
                         >
-                          {/* Glass effect container */}
-                          <div className="relative h-full overflow-hidden rounded-2xl">
-                            {/* Background layers */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-white/70 to-purple-primary/5" />
-                            <div className="absolute inset-0 bg-gradient-to-tr from-purple-primary/[0.02] via-transparent to-pink-vivid/[0.03]" />
-                            <div className="absolute inset-0 backdrop-blur-sm" />
+                          {/* Glass card container */}
+                          <div className="relative h-full overflow-hidden rounded-2xl bg-white/80 backdrop-blur-xl shadow-sm hover:shadow-xl transition-all duration-300">
+                            {/* Gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.02] via-transparent to-pink-vivid/[0.03] pointer-events-none" />
 
-                            {/* Shimmer on hover */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+                            {/* Shimmer effect */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none" />
 
-                            {/* Content */}
-                            <div className="relative h-full flex flex-col">
-                              {/* Media */}
-                              {hasMedia && (
-                                <div className={`relative overflow-hidden ${isLarge ? 'h-48 sm:h-64' : 'h-40'}`}>
+                            {/* Image section - uniform height */}
+                            <div className="relative h-48 overflow-hidden bg-gradient-to-br from-purple-primary/5 to-pink-vivid/5">
+                              {hasMedia ? (
+                                <>
                                   <img
                                     src={work.media[0].media_url}
                                     alt={work.title || ""}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                   />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                                  {/* Gradient overlay on image */}
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
-                                  {/* Multi-image indicator */}
+                                  {/* Multi-image badge */}
                                   {hasMultipleImages && (
-                                    <div className="absolute top-3 right-3 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-ink flex items-center gap-1">
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                      </svg>
-                                      {work.media.length}
+                                    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                                      <span className="text-white text-xs font-medium">{work.media.length}</span>
                                     </div>
                                   )}
 
-                                  {/* Type badge on image */}
-                                  <div className="absolute bottom-3 left-3">
-                                    <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-sm text-purple-primary text-xs font-medium">
-                                      {typeLabels[work.type] || work.type}
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Text content */}
-                              <div className="flex-1 p-4">
-                                {/* Type badge (no media) */}
-                                {!hasMedia && (
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <span className="px-2.5 py-1 rounded-full bg-purple-primary/10 text-purple-primary text-xs font-medium">
+                                  {/* Type badge overlaid on image */}
+                                  <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                                    <span className="px-3 py-1 rounded-full bg-white/95 backdrop-blur-sm text-purple-primary text-xs font-semibold shadow-sm">
                                       {typeLabels[work.type] || work.type}
                                     </span>
                                     {isCollab && (
-                                      <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-pink-vivid/10 text-pink-vivid text-xs font-medium">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                      <span className="px-2 py-1 rounded-full bg-pink-vivid/90 text-white text-xs font-medium flex items-center gap-1">
+                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                          <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                         </svg>
-                                        Collab
                                       </span>
                                     )}
                                   </div>
-                                )}
+                                </>
+                              ) : (
+                                // No image - decorative placeholder
+                                <div className="w-full h-full flex items-center justify-center relative">
+                                  {/* Decorative pattern */}
+                                  <div className="absolute inset-0 opacity-[0.03]" style={{
+                                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%238e44ad' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                                  }} />
 
-                                {/* Title */}
-                                <h3 className="font-display text-base font-semibold text-ink mb-1.5 line-clamp-2 group-hover:text-purple-primary transition-colors">
-                                  {work.title || "Untitled"}
-                                </h3>
-
-                                {/* Excerpt */}
-                                <p className="font-body text-sm text-muted line-clamp-2 mb-3">
-                                  {plainContent || "..."}
-                                </p>
-
-                                {/* Footer */}
-                                <div className="flex items-center justify-between mt-auto pt-3 border-t border-black/[0.04]">
-                                  <span className="text-xs text-muted">{formattedDate}</span>
-                                  <div className="flex items-center gap-3 text-xs text-muted">
-                                    <span className="flex items-center gap-1">
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  {/* Large type icon */}
+                                  <div className="text-purple-primary/20">
+                                    {work.type === 'poem' && (
+                                      <svg className="w-16 h-16" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                       </svg>
-                                      {work.admires_count || 0}
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                    )}
+                                    {work.type === 'journal' && (
+                                      <svg className="w-16 h-16" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                       </svg>
-                                      {work.comments_count || 0}
-                                    </span>
+                                    )}
+                                    {(work.type === 'thought' || work.type === 'blog' || work.type === 'essay') && (
+                                      <svg className="w-16 h-16" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                      </svg>
+                                    )}
+                                    {work.type === 'quote' && (
+                                      <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z"/>
+                                      </svg>
+                                    )}
+                                    {(work.type === 'story' || work.type === 'letter') && (
+                                      <svg className="w-16 h-16" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                      </svg>
+                                    )}
+                                    {!['poem', 'journal', 'thought', 'blog', 'essay', 'quote', 'story', 'letter'].includes(work.type) && (
+                                      <svg className="w-16 h-16" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                    )}
                                   </div>
+
+                                  {/* Type badge */}
+                                  <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                                    <span className="px-3 py-1 rounded-full bg-purple-primary/10 text-purple-primary text-xs font-semibold">
+                                      {typeLabels[work.type] || work.type}
+                                    </span>
+                                    {isCollab && (
+                                      <span className="px-2 py-1 rounded-full bg-pink-vivid/10 text-pink-vivid text-xs font-medium flex items-center gap-1">
+                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                          <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Content section */}
+                            <div className="p-4">
+                              {/* Title */}
+                              <h3 className="font-display text-base font-semibold text-ink mb-2 line-clamp-2 group-hover:text-purple-primary transition-colors">
+                                {work.title || "Untitled"}
+                              </h3>
+
+                              {/* Excerpt */}
+                              <p className="font-body text-sm text-muted line-clamp-2 mb-3">
+                                {plainContent || "..."}
+                              </p>
+
+                              {/* Footer */}
+                              <div className="flex items-center justify-between pt-3 border-t border-black/[0.05]">
+                                <span className="text-xs text-muted">{formattedDate}</span>
+                                <div className="flex items-center gap-3">
+                                  <span className="flex items-center gap-1 text-xs text-muted">
+                                    <svg className="w-4 h-4 text-pink-vivid/70" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                    </svg>
+                                    {work.admires_count || 0}
+                                  </span>
+                                  <span className="flex items-center gap-1 text-xs text-muted">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                    </svg>
+                                    {work.comments_count || 0}
+                                  </span>
                                 </div>
                               </div>
                             </div>
 
                             {/* Glass border */}
-                            <div className="absolute inset-0 rounded-2xl border border-white/60 pointer-events-none" />
+                            <div className="absolute inset-0 rounded-2xl border border-black/[0.05] pointer-events-none" />
                           </div>
 
-                          {/* Hover glow */}
-                          <div className="absolute -inset-1 bg-gradient-to-r from-purple-primary/20 to-pink-vivid/20 rounded-[20px] opacity-0 group-hover:opacity-40 blur-xl transition-opacity duration-500 -z-10" />
+                          {/* Hover glow effect */}
+                          <div className="absolute -inset-1 bg-gradient-to-r from-purple-primary/20 to-pink-vivid/20 rounded-[20px] opacity-0 group-hover:opacity-50 blur-xl transition-opacity duration-300 -z-10" />
                         </article>
                       );
                     })}
