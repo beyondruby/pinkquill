@@ -821,8 +821,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   useTrackProfileView(isOwnProfile ? undefined : profile?.id, "direct");
 
   // Post view modes
-  type PostViewMode = "blog" | "gallery" | "poems" | "journals";
-  const [postViewMode, setPostViewMode] = useState<PostViewMode>("blog");
+  type PostViewMode = "all" | "blog" | "gallery" | "poems" | "journals";
+  const [postViewMode, setPostViewMode] = useState<PostViewMode>("all");
 
   useEffect(() => {
     const checkFollow = async () => {
@@ -1508,10 +1508,23 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
             {/* View Mode Tabs */}
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-1 p-1 bg-black/[0.03] rounded-xl">
+              <div className="flex items-center gap-1 p-1 bg-black/[0.03] rounded-xl overflow-x-auto">
+                <button
+                  onClick={() => setPostViewMode("all")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
+                    postViewMode === "all"
+                      ? "bg-white text-purple-primary shadow-sm"
+                      : "text-muted hover:text-ink"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                  </svg>
+                  All
+                </button>
                 <button
                   onClick={() => setPostViewMode("blog")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
                     postViewMode === "blog"
                       ? "bg-white text-purple-primary shadow-sm"
                       : "text-muted hover:text-ink"
@@ -1524,7 +1537,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </button>
                 <button
                   onClick={() => setPostViewMode("gallery")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
                     postViewMode === "gallery"
                       ? "bg-white text-purple-primary shadow-sm"
                       : "text-muted hover:text-ink"
@@ -1537,7 +1550,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </button>
                 <button
                   onClick={() => setPostViewMode("poems")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
                     postViewMode === "poems"
                       ? "bg-white text-purple-primary shadow-sm"
                       : "text-muted hover:text-ink"
@@ -1550,7 +1563,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </button>
                 <button
                   onClick={() => setPostViewMode("journals")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
                     postViewMode === "journals"
                       ? "bg-white text-purple-primary shadow-sm"
                       : "text-muted hover:text-ink"
@@ -1596,6 +1609,14 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               // Empty state
               if (filteredPosts.length === 0) {
                 const emptyMessages: Record<string, { icon: React.ReactNode; text: string }> = {
+                  all: {
+                    icon: (
+                      <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                      </svg>
+                    ),
+                    text: "No posts yet..."
+                  },
                   blog: {
                     icon: (
                       <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -1685,6 +1706,138 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 audio: "Audio",
                 video: "Video",
               };
+
+              // ========== ALL VIEW - Creative Glass Grid ==========
+              if (postViewMode === "all") {
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredPosts.map((work, index) => {
+                      const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
+                      const hasMedia = work.media && work.media.length > 0;
+                      const hasMultipleImages = work.media && work.media.length > 1;
+                      const plainContent = work.content
+                        ? work.content.replace(/<[^>]*>/g, '').substring(0, 120)
+                        : '';
+                      const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                      });
+
+                      // Determine card size for visual variety
+                      // Every 5th and 6th item span 2 columns on larger screens
+                      const isLarge = (index % 7 === 0 || index % 7 === 4) && hasMedia;
+
+                      return (
+                        <article
+                          key={work.id}
+                          ref={observeCard}
+                          data-post-id={work.id}
+                          onClick={() => openPostModal(createPostForModal(work))}
+                          className={`group relative cursor-pointer ${isLarge ? 'sm:col-span-2' : ''} ${revealedCards.has(work.id) ? 'animate-fadeIn' : 'opacity-0'}`}
+                        >
+                          {/* Glass effect container */}
+                          <div className="relative h-full overflow-hidden rounded-2xl">
+                            {/* Background layers */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-white/70 to-purple-primary/5" />
+                            <div className="absolute inset-0 bg-gradient-to-tr from-purple-primary/[0.02] via-transparent to-pink-vivid/[0.03]" />
+                            <div className="absolute inset-0 backdrop-blur-sm" />
+
+                            {/* Shimmer on hover */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+
+                            {/* Content */}
+                            <div className="relative h-full flex flex-col">
+                              {/* Media */}
+                              {hasMedia && (
+                                <div className={`relative overflow-hidden ${isLarge ? 'h-48 sm:h-64' : 'h-40'}`}>
+                                  <img
+                                    src={work.media[0].media_url}
+                                    alt={work.title || ""}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+
+                                  {/* Multi-image indicator */}
+                                  {hasMultipleImages && (
+                                    <div className="absolute top-3 right-3 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-ink flex items-center gap-1">
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                      {work.media.length}
+                                    </div>
+                                  )}
+
+                                  {/* Type badge on image */}
+                                  <div className="absolute bottom-3 left-3">
+                                    <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-sm text-purple-primary text-xs font-medium">
+                                      {typeLabels[work.type] || work.type}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Text content */}
+                              <div className="flex-1 p-4">
+                                {/* Type badge (no media) */}
+                                {!hasMedia && (
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="px-2.5 py-1 rounded-full bg-purple-primary/10 text-purple-primary text-xs font-medium">
+                                      {typeLabels[work.type] || work.type}
+                                    </span>
+                                    {isCollab && (
+                                      <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-pink-vivid/10 text-pink-vivid text-xs font-medium">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                        Collab
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Title */}
+                                <h3 className="font-display text-base font-semibold text-ink mb-1.5 line-clamp-2 group-hover:text-purple-primary transition-colors">
+                                  {work.title || "Untitled"}
+                                </h3>
+
+                                {/* Excerpt */}
+                                <p className="font-body text-sm text-muted line-clamp-2 mb-3">
+                                  {plainContent || "..."}
+                                </p>
+
+                                {/* Footer */}
+                                <div className="flex items-center justify-between mt-auto pt-3 border-t border-black/[0.04]">
+                                  <span className="text-xs text-muted">{formattedDate}</span>
+                                  <div className="flex items-center gap-3 text-xs text-muted">
+                                    <span className="flex items-center gap-1">
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                      </svg>
+                                      {work.admires_count || 0}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                      </svg>
+                                      {work.comments_count || 0}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Glass border */}
+                            <div className="absolute inset-0 rounded-2xl border border-white/60 pointer-events-none" />
+                          </div>
+
+                          {/* Hover glow */}
+                          <div className="absolute -inset-1 bg-gradient-to-r from-purple-primary/20 to-pink-vivid/20 rounded-[20px] opacity-0 group-hover:opacity-40 blur-xl transition-opacity duration-500 -z-10" />
+                        </article>
+                      );
+                    })}
+                  </div>
+                );
+              }
 
               // ========== BLOG VIEW ==========
               if (postViewMode === "blog") {
