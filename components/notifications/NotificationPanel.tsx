@@ -665,9 +665,22 @@ function NotificationItem({
           <span className="text-muted">{message.action}</span>
         </p>
 
-        {/* Content preview */}
+        {/* Content preview for comments */}
         {(notification.type === 'comment' || notification.type === 'reply' || notification.type === 'comment_like') && notification.content && (
           <p className="font-body text-[0.82rem] text-muted/80 mt-1.5 line-clamp-2 pl-3 border-l-2 border-purple-primary/20 italic">
+            {notification.content}
+          </p>
+        )}
+
+        {/* Content preview for mute/ban/join request notifications */}
+        {(notification.type === 'community_muted' || notification.type === 'community_banned' || notification.type === 'community_join_request') && notification.content && (
+          <p className={`font-body text-[0.82rem] mt-1.5 line-clamp-3 pl-3 border-l-2 ${
+            notification.type === 'community_banned'
+              ? 'text-red-600/80 border-red-400/40'
+              : notification.type === 'community_muted'
+              ? 'text-yellow-600/80 border-yellow-400/40'
+              : 'text-muted/80 border-purple-primary/20'
+          }`}>
             {notification.content}
           </p>
         )}

@@ -156,6 +156,31 @@ export default function CommunityModerationSettingsPage() {
                 </div>
               )}
 
+              {/* Banned Info */}
+              {activeTab === 'banned' && (
+                <div className="text-right max-w-[200px]">
+                  {(member as any).banned_until ? (
+                    <>
+                      <p className="font-ui text-xs text-muted">Banned until</p>
+                      <p className="font-ui text-sm text-red-600">
+                        {new Date((member as any).banned_until).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="font-ui text-sm text-red-600">Permanent</p>
+                  )}
+                  {(member as any).ban_reason && (
+                    <p className="font-ui text-xs text-muted mt-1 truncate" title={(member as any).ban_reason}>
+                      {(member as any).ban_reason}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Actions */}
               <button
                 onClick={() => activeTab === 'muted' ? handleUnmute(member.user_id) : handleUnban(member.user_id)}

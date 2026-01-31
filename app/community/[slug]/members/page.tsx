@@ -9,6 +9,23 @@ import InviteModal from "@/components/communities/InviteModal";
 
 type RoleFilter = 'all' | 'admin' | 'moderator' | 'member';
 
+// Duration options for mute/ban
+const muteDurations = [
+  { label: "1 hour", hours: 1 },
+  { label: "6 hours", hours: 6 },
+  { label: "24 hours", hours: 24 },
+  { label: "3 days", hours: 72 },
+  { label: "7 days", hours: 168 },
+  { label: "30 days", hours: 720 },
+];
+
+const banDurations = [
+  { label: "24 hours", hours: 24 },
+  { label: "7 days", hours: 168 },
+  { label: "30 days", hours: 720 },
+  { label: "Permanent", hours: null },
+];
+
 export default function CommunityMembersPage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -25,6 +42,17 @@ export default function CommunityMembersPage() {
   const { promoteUser, demoteUser, muteUser, banUser } = useCommunityModeration(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+
+  // Mute modal state
+  const [showMuteModal, setShowMuteModal] = useState(false);
+  const [muteTargetUser, setMuteTargetUser] = useState<{ id: string; name: string } | null>(null);
+  const [selectedMuteDuration, setSelectedMuteDuration] = useState(24);
+
+  // Ban modal state
+  const [showBanModal, setShowBanModal] = useState(false);
+  const [banTargetUser, setBanTargetUser] = useState<{ id: string; name: string } | null>(null);
+  const [selectedBanDuration, setSelectedBanDuration] = useState<number | null>(null);
+  const [banReason, setBanReason] = useState("");
 
   if (!community) return null;
 
@@ -53,23 +81,49 @@ export default function CommunityMembersPage() {
     setActionLoading(false);
   };
 
-  const handleMute = async (userId: string, hours: number) => {
-    if (!user?.id) return;
+  const openMuteModal = (userId: string, userName: string) => {
+    setMuteTargetUser({ id: userId, name: userName });
+    setSelectedMuteDuration(24);
+    setShowMuteModal(true);
+  };
+
+  const handleMuteConfirm = async () => {
+    if (!user?.id || !muteTargetUser) return;
     setActionLoading(true);
-    const mutedUntil = new Date(Date.now() + hours * 60 * 60 * 1000);
-    const result = await muteUser(userId, mutedUntil);
-    if (result.success) refetch();
+    const mutedUntil = new Date(Date.now() + selectedMuteDuration * 60 * 60 * 1000);
+    const result = await muteUser(muteTargetUser.id, mutedUntil);
+    if (result.success) {
+      refetch();
+      setShowMuteModal(false);
+      setMuteTargetUser(null);
+    }
     setActionLoading(false);
   };
 
-  const handleBan = async (userId: string) => {
-    if (!user?.id) return;
-    if (confirm('Are you sure you want to ban this user? They will be removed from the community.')) {
-      setActionLoading(true);
-      const result = await banUser(userId);
-      if (result.success) refetch();
-      setActionLoading(false);
+  const openBanModal = (userId: string, userName: string) => {
+    setBanTargetUser({ id: userId, name: userName });
+    setSelectedBanDuration(null);
+    setBanReason("");
+    setShowBanModal(true);
+  };
+
+  const handleBanConfirm = async () => {
+    if (!user?.id || !banTargetUser) return;
+    setActionLoading(true);
+    const bannedUntil = selectedBanDuration
+      ? new Date(Date.now() + selectedBanDuration * 60 * 60 * 1000)
+      : undefined;
+    const result = await banUser(banTargetUser.id, {
+      bannedUntil,
+      reason: banReason.trim() || undefined,
+    });
+    if (result.success) {
+      refetch();
+      setShowBanModal(false);
+      setBanTargetUser(null);
+      setBanReason("");
     }
+    setActionLoading(false);
   };
 
   return (
@@ -239,7 +293,7 @@ export default function CommunityMembersPage() {
                     )}
                     {member.status !== 'muted' && (
                       <button
-                        onClick={() => handleMute(member.user_id, 24)}
+                        onClick={() => openMuteModal(member.user_id, member.profile?.display_name || member.profile?.username || 'User')}
                         disabled={actionLoading}
                         className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
                       >
@@ -247,11 +301,11 @@ export default function CommunityMembersPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
                         </svg>
-                        Mute (24h)
+                        Mute User
                       </button>
                     )}
                     <button
-                      onClick={() => handleBan(member.user_id)}
+                      onClick={() => openBanModal(member.user_id, member.profile?.display_name || member.profile?.username || 'User')}
                       disabled={actionLoading}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
                     >
@@ -292,6 +346,138 @@ export default function CommunityMembersPage() {
           inviterId={user.id}
           existingMemberIds={members.map(m => m.user_id)}
         />
+      )}
+
+      {/* Mute Modal */}
+      {showMuteModal && muteTargetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-black/5">
+              <h3 className="font-display text-lg font-semibold text-ink">
+                Mute {muteTargetUser.name}
+              </h3>
+              <p className="font-body text-sm text-muted mt-1">
+                Muted members cannot post or comment in this community.
+              </p>
+            </div>
+
+            <div className="p-6">
+              <label className="block font-ui text-sm font-medium text-ink mb-3">
+                Mute Duration
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {muteDurations.map((duration) => (
+                  <button
+                    key={duration.hours}
+                    type="button"
+                    onClick={() => setSelectedMuteDuration(duration.hours)}
+                    className={`px-4 py-3 rounded-xl font-ui text-sm font-medium transition-all ${
+                      selectedMuteDuration === duration.hours
+                        ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-400'
+                        : 'bg-black/5 text-ink hover:bg-black/10'
+                    }`}
+                  >
+                    {duration.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-black/5 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowMuteModal(false);
+                  setMuteTargetUser(null);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMuteConfirm}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-yellow-500 text-white font-ui text-sm font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50"
+              >
+                {actionLoading ? 'Muting...' : 'Mute User'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ban Modal */}
+      {showBanModal && banTargetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-black/5">
+              <h3 className="font-display text-lg font-semibold text-red-600">
+                Ban {banTargetUser.name}
+              </h3>
+              <p className="font-body text-sm text-muted mt-1">
+                Banned users will be removed from the community.
+              </p>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Ban Duration */}
+              <div>
+                <label className="block font-ui text-sm font-medium text-ink mb-3">
+                  Ban Duration
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {banDurations.map((duration) => (
+                    <button
+                      key={duration.label}
+                      type="button"
+                      onClick={() => setSelectedBanDuration(duration.hours)}
+                      className={`px-4 py-3 rounded-xl font-ui text-sm font-medium transition-all ${
+                        selectedBanDuration === duration.hours
+                          ? 'bg-red-100 text-red-700 ring-2 ring-red-400'
+                          : 'bg-black/5 text-ink hover:bg-black/10'
+                      }`}
+                    >
+                      {duration.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ban Reason */}
+              <div>
+                <label className="block font-ui text-sm font-medium text-ink mb-2">
+                  Reason <span className="text-muted font-normal">(shown to user)</span>
+                </label>
+                <textarea
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  placeholder="Explain why this user is being banned..."
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-black/10 bg-white font-body text-sm placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-red-400/30 focus:border-red-400 resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-black/5 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowBanModal(false);
+                  setBanTargetUser(null);
+                  setBanReason("");
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBanConfirm}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-ui text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {actionLoading ? 'Banning...' : 'Ban User'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -742,6 +742,33 @@ export function useJoinCommunity() {
         });
 
       if (error) throw error;
+
+      // Notify all admins and moderators of the community about the join request
+      const { data: admins } = await supabase
+        .from("community_members")
+        .select("user_id")
+        .eq("community_id", communityId)
+        .in("role", ["admin", "moderator"]);
+
+      if (admins && admins.length > 0) {
+        const notificationContent = message
+          ? `Join request: "${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`
+          : "Someone wants to join your community";
+
+        await Promise.all(
+          admins.map((admin) =>
+            createNotification(
+              admin.user_id,
+              userId,
+              "community_join_request",
+              undefined,
+              notificationContent,
+              communityId
+            )
+          )
+        );
+      }
+
       return { success: true };
     } catch (err) {
       console.error("[requestJoin] Error:", err);
@@ -1191,14 +1218,37 @@ export function useCommunityModeration(communityId: string) {
     }
   };
 
-  const updateMemberStatus = async (userId: string, status: 'active' | 'muted' | 'banned', actorId: string, mutedUntil?: Date) => {
+  const updateMemberStatus = async (
+    userId: string,
+    status: 'active' | 'muted' | 'banned',
+    actorId: string,
+    options?: {
+      mutedUntil?: Date;
+      bannedUntil?: Date;
+      reason?: string;
+    }
+  ) => {
     setLoading(true);
     try {
-      const updateData: { status: string; muted_until?: string | null } = { status };
-      if (status === 'muted' && mutedUntil) {
-        updateData.muted_until = mutedUntil.toISOString();
+      const updateData: {
+        status: string;
+        muted_until?: string | null;
+        banned_until?: string | null;
+        ban_reason?: string | null;
+      } = { status };
+
+      if (status === 'muted' && options?.mutedUntil) {
+        updateData.muted_until = options.mutedUntil.toISOString();
       } else {
         updateData.muted_until = null;
+      }
+
+      if (status === 'banned') {
+        updateData.banned_until = options?.bannedUntil ? options.bannedUntil.toISOString() : null;
+        updateData.ban_reason = options?.reason || null;
+      } else {
+        updateData.banned_until = null;
+        updateData.ban_reason = null;
       }
 
       const { error } = await supabase
@@ -1209,10 +1259,33 @@ export function useCommunityModeration(communityId: string) {
 
       if (error) throw error;
 
+      // Build notification content with duration/reason info
+      let notificationContent: string | undefined;
+      if (status === 'muted') {
+        if (options?.mutedUntil) {
+          const duration = formatDuration(options.mutedUntil);
+          notificationContent = `You have been muted for ${duration}`;
+        } else {
+          notificationContent = "You have been muted indefinitely";
+        }
+      } else if (status === 'banned') {
+        const parts: string[] = [];
+        if (options?.bannedUntil) {
+          const duration = formatDuration(options.bannedUntil);
+          parts.push(`You have been banned for ${duration}`);
+        } else {
+          parts.push("You have been permanently banned");
+        }
+        if (options?.reason) {
+          parts.push(`Reason: ${options.reason}`);
+        }
+        notificationContent = parts.join(". ");
+      }
+
       // Notify the user
       const notificationType = status === 'muted' ? 'community_muted' : status === 'banned' ? 'community_banned' : undefined;
       if (notificationType) {
-        await createNotification(userId, actorId, notificationType, undefined, undefined, communityId);
+        await createNotification(userId, actorId, notificationType, undefined, notificationContent, communityId);
       }
 
       return { success: true };
@@ -1221,6 +1294,26 @@ export function useCommunityModeration(communityId: string) {
       return { success: false, error: err };
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper to format duration in a human-readable way
+  const formatDuration = (until: Date): string => {
+    const now = new Date();
+    const diffMs = until.getTime() - now.getTime();
+    const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 24) {
+      return `${diffHours} hour${diffHours !== 1 ? 's' : ''}`;
+    } else if (diffDays < 7) {
+      return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+    } else if (diffDays < 30) {
+      const weeks = Math.round(diffDays / 7);
+      return `${weeks} week${weeks !== 1 ? 's' : ''}`;
+    } else {
+      const months = Math.round(diffDays / 30);
+      return `${months} month${months !== 1 ? 's' : ''}`;
     }
   };
 
@@ -1259,13 +1352,16 @@ export function useCommunityModeration(communityId: string) {
   const muteUser = async (userId: string, mutedUntil?: Date) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
-    return updateMemberStatus(userId, 'muted', user.id, mutedUntil);
+    return updateMemberStatus(userId, 'muted', user.id, { mutedUntil });
   };
 
-  const banUser = async (userId: string) => {
+  const banUser = async (userId: string, options?: { bannedUntil?: Date; reason?: string }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
-    return updateMemberStatus(userId, 'banned', user.id);
+    return updateMemberStatus(userId, 'banned', user.id, {
+      bannedUntil: options?.bannedUntil,
+      reason: options?.reason,
+    });
   };
 
   const unmuteUser = async (userId: string) => {
