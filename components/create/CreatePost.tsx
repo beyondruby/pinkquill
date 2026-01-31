@@ -1825,46 +1825,48 @@ export default function CreatePost() {
             {/* Hidden audio for sound preview */}
             <audio ref={takeAudioRef} onEnded={() => setTakeSoundPlaying(false)} />
 
-            {/* Feature Pills */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-              <span className="px-3 py-1.5 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">9 Filters</span>
-              <span className="px-3 py-1.5 rounded-full bg-pink-100 text-pink-700 text-xs font-medium">Add Sounds</span>
-              <span className="px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">5 Aspect Ratios</span>
-              <span className="px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">Custom Covers</span>
-              <span className="px-3 py-1.5 rounded-full bg-orange-100 text-orange-700 text-xs font-medium">Speed Control</span>
-            </div>
+            {/* Upload State - Clean centered upload */}
+            {!takeVideoPreview ? (
+              <div
+                className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all max-w-md mx-auto ${
+                  takeDragActive
+                    ? "border-purple-primary bg-purple-primary/5"
+                    : "border-purple-primary/25 hover:border-purple-primary/50 hover:bg-purple-primary/[0.02]"
+                }`}
+                onDrop={handleTakeDrop}
+                onDragOver={handleTakeDragOver}
+                onDragLeave={handleTakeDragLeave}
+                onClick={() => videoInputRef.current?.click()}
+              >
+                <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white shadow-lg shadow-purple-primary/30">
+                  {icons.video}
+                </div>
+                <p className="font-ui text-[1.1rem] text-ink font-semibold mb-2">Upload your Take</p>
+                <p className="font-body text-[0.9rem] text-muted mb-4">Drag & drop or click to browse</p>
+                <p className="font-body text-[0.8rem] text-muted/70 mb-4">MP4/MOV · Max 90 seconds · Max 100MB</p>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left: Video Upload/Preview */}
-              <div>
-                {!takeVideoPreview ? (
-                  <div
-                    className={`relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all aspect-[9/16] flex flex-col items-center justify-center ${
-                      takeDragActive
-                        ? "border-purple-primary bg-purple-primary/5"
-                        : "border-purple-primary/25 hover:border-purple-primary/50 hover:bg-purple-primary/[0.02]"
-                    }`}
-                    onDrop={handleTakeDrop}
-                    onDragOver={handleTakeDragOver}
-                    onDragLeave={handleTakeDragLeave}
-                    onClick={() => videoInputRef.current?.click()}
-                  >
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white shadow-lg shadow-purple-primary/30">
-                      {icons.video}
-                    </div>
-                    <p className="font-ui text-[1rem] text-ink font-medium mb-2">Upload your Take</p>
-                    <p className="font-body text-[0.85rem] text-muted mb-1">Drag & drop or click to browse</p>
-                    <p className="font-body text-[0.75rem] text-muted/70">MP4/MOV · Max 90s · Max 100MB</p>
-                    <input
-                      ref={videoInputRef}
-                      type="file"
-                      accept="video/mp4,video/quicktime,video/mov"
-                      onChange={handleTakeInputChange}
-                      className="hidden"
-                    />
-                  </div>
-                ) : (
-                  <div className="relative mx-auto" style={{ maxWidth: "280px" }}>
+                {/* Feature hints */}
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-4 border-t border-black/[0.06]">
+                  <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-600 text-[0.7rem] font-medium">Filters</span>
+                  <span className="px-2.5 py-1 rounded-full bg-pink-50 text-pink-600 text-[0.7rem] font-medium">Sounds</span>
+                  <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 text-[0.7rem] font-medium">Resize</span>
+                  <span className="px-2.5 py-1 rounded-full bg-green-50 text-green-600 text-[0.7rem] font-medium">Covers</span>
+                  <span className="px-2.5 py-1 rounded-full bg-orange-50 text-orange-600 text-[0.7rem] font-medium">Speed</span>
+                </div>
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/mov"
+                  onChange={handleTakeInputChange}
+                  className="hidden"
+                />
+              </div>
+            ) : (
+              /* Video Uploaded - Show editor */
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left: Video Preview */}
+                <div>
+                  <div className="relative mx-auto" style={{ maxWidth: "300px" }}>
                     <div
                       className="relative rounded-2xl overflow-hidden bg-black shadow-xl"
                       style={{ aspectRatio: takeAspectRatio.replace(":", "/") }}
@@ -1872,7 +1874,7 @@ export default function CreatePost() {
                       <video
                         ref={videoPreviewRef}
                         src={takeVideoPreview}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         style={TAKE_FILTER_OPTIONS.find(f => f.name === takeSelectedFilter)?.style}
                         loop
                         playsInline
@@ -1894,89 +1896,110 @@ export default function CreatePost() {
                       >
                         {icons.x}
                       </button>
-                      <div className="absolute bottom-3 left-3 px-2 py-1 rounded-full bg-black/60 text-white font-ui text-[0.75rem]">
-                        {takeVideoDuration}s
+                      <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                        <span className="px-2 py-1 rounded-full bg-black/60 text-white font-ui text-[0.75rem]">
+                          {takeVideoDuration}s
+                        </span>
+                        <span className="px-2 py-1 rounded-full bg-black/60 text-white font-ui text-[0.75rem]">
+                          {takeAspectRatio}
+                        </span>
                       </div>
                       {takeSelectedSound && (
-                        <div className="absolute bottom-3 right-3 px-2 py-1 rounded-full bg-black/60 text-white font-ui text-[0.7rem] flex items-center gap-1">
+                        <div className="absolute bottom-3 right-3 px-2 py-1 rounded-full bg-pink-500/90 text-white font-ui text-[0.7rem] flex items-center gap-1">
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                           <span className="truncate max-w-[80px]">{takeSelectedSound.name}</span>
                         </div>
                       )}
+                      {takeSelectedFilter !== "none" && (
+                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-purple-500/90 text-white font-ui text-[0.7rem]">
+                          {TAKE_FILTER_OPTIONS.find(f => f.name === takeSelectedFilter)?.label}
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
 
-                {takeValidationError && (
-                  <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 font-ui text-[0.85rem] flex items-center gap-2">
-                    {icons.warning}
-                    {takeValidationError}
-                  </div>
-                )}
-              </div>
-
-              {/* Right: Editor Tabs */}
-              <div>
-                {/* Tab Navigation */}
-                <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-4">
-                  {[
-                    { id: "details" as const, label: "Details" },
-                    { id: "effects" as const, label: "Effects" },
-                    { id: "sound" as const, label: "Sound" },
-                    { id: "cover" as const, label: "Cover" },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setTakeEditorTab(tab.id)}
-                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                        takeEditorTab === tab.id
-                          ? "bg-white text-purple-primary shadow-sm"
-                          : "text-muted hover:text-ink"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                  {takeValidationError && (
+                    <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 font-ui text-[0.85rem] flex items-center gap-2">
+                      {icons.warning}
+                      {takeValidationError}
+                    </div>
+                  )}
                 </div>
 
-                {/* Details Tab */}
-                {takeEditorTab === "details" && (
-                  <div className="space-y-4">
-                    {/* Caption */}
-                    <div>
-                      <label className="block font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted mb-2">Caption</label>
-                      <textarea
-                        value={takeCaption}
-                        onChange={(e) => setTakeCaption(e.target.value)}
-                        placeholder="Write a caption... (use #hashtags)"
-                        maxLength={500}
-                        rows={3}
-                        className="w-full p-3 rounded-xl border border-black/[0.08] bg-[#fafafa] font-body text-[0.9rem] text-ink resize-none outline-none focus:border-purple-primary focus:bg-white transition-all placeholder:text-muted/50"
-                      />
-                      <div className="text-right font-ui text-[0.7rem] text-muted mt-1">{takeCaption.length}/500</div>
-                    </div>
+                {/* Right: Editor Tabs */}
+                <div>
+                  {/* Tab Navigation */}
+                  <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-4">
+                    {[
+                      { id: "details" as const, label: "Details", icon: "📝" },
+                      { id: "effects" as const, label: "Effects", icon: "✨" },
+                      { id: "sound" as const, label: "Sound", icon: "🎵" },
+                      { id: "cover" as const, label: "Cover", icon: "🖼️" },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setTakeEditorTab(tab.id)}
+                        className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+                          takeEditorTab === tab.id
+                            ? "bg-white text-purple-primary shadow-sm"
+                            : "text-muted hover:text-ink"
+                        }`}
+                      >
+                        <span className="mr-1">{tab.icon}</span>
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
 
-                    {/* Aspect Ratio */}
-                    <div>
-                      <label className="block font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted mb-2">Aspect Ratio</label>
-                      <div className="flex gap-2">
-                        {TAKE_ASPECT_RATIOS.map((ar) => (
-                          <button
-                            key={ar.value}
-                            onClick={() => setTakeAspectRatio(ar.value)}
-                            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                              takeAspectRatio === ar.value
-                                ? "bg-purple-primary text-white"
-                                : "bg-gray-100 text-muted hover:bg-gray-200"
-                            }`}
-                          >
-                            {ar.label}
-                          </button>
-                        ))}
+                  {/* Details Tab */}
+                  {takeEditorTab === "details" && (
+                    <div className="space-y-5">
+                      {/* Caption */}
+                      <div>
+                        <label className="block font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted mb-2">Caption</label>
+                        <textarea
+                          value={takeCaption}
+                          onChange={(e) => setTakeCaption(e.target.value)}
+                          placeholder="Write a caption... (use #hashtags)"
+                          maxLength={500}
+                          rows={3}
+                          className="w-full p-3 rounded-xl border border-black/[0.08] bg-[#fafafa] font-body text-[0.9rem] text-ink resize-none outline-none focus:border-purple-primary focus:bg-white transition-all placeholder:text-muted/50"
+                        />
+                        <div className="text-right font-ui text-[0.7rem] text-muted mt-1">{takeCaption.length}/500</div>
+                      </div>
+
+                      {/* Aspect Ratio with visual preview */}
+                      <div>
+                        <label className="block font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted mb-3">Display Ratio</label>
+                        <div className="grid grid-cols-5 gap-2">
+                          {TAKE_ASPECT_RATIOS.map((ar) => {
+                            const [w, h] = ar.value.split(":").map(Number);
+                            const isVertical = h > w;
+                            const boxW = isVertical ? 24 : 32;
+                            const boxH = isVertical ? 32 : (w === h ? 24 : 20);
+                            return (
+                              <button
+                                key={ar.value}
+                                onClick={() => setTakeAspectRatio(ar.value)}
+                                className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
+                                  takeAspectRatio === ar.value
+                                    ? "bg-purple-primary text-white shadow-lg"
+                                    : "bg-gray-50 text-muted hover:bg-gray-100 border border-black/[0.06]"
+                                }`}
+                              >
+                                <div
+                                  className={`border-2 rounded-sm ${takeAspectRatio === ar.value ? 'border-white' : 'border-current'}`}
+                                  style={{ width: boxW, height: boxH }}
+                                />
+                                <span className="text-[0.7rem] font-semibold">{ar.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[0.7rem] text-muted mt-2">Your video will be letterboxed to fit this ratio</p>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Effects Tab */}
                 {takeEditorTab === "effects" && (
@@ -2221,8 +2244,9 @@ export default function CreatePost() {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
