@@ -413,41 +413,40 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     return (
       <article
         className="take-grid-card"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
         onClick={handleOpenModal}
       >
-        <video
-          ref={videoRef}
-          src={take.video_url}
-          poster={take.thumbnail_url || undefined}
-          muted
-          loop
-          playsInline
-          className="take-grid-video"
-        />
-
-        <div className="take-grid-overlay" />
-
-        {!isHovering && (
-          <div className="take-grid-play">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </div>
+        {/* Thumbnail only - no video playback */}
+        {take.thumbnail_url ? (
+          <img
+            src={take.thumbnail_url}
+            alt=""
+            className="take-grid-thumbnail"
+          />
+        ) : (
+          <video
+            src={take.video_url}
+            className="take-grid-thumbnail"
+          />
         )}
 
-        <div className="take-grid-duration">
-          {Math.floor(take.duration / 60)}:{String(Math.floor(take.duration % 60)).padStart(2, '0')}
-        </div>
-
-        <div className="take-grid-stats">
-          <span>
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-            {formatCount(reactionCounts.total)}
-          </span>
+        {/* Hover overlay with engagement stats */}
+        <div className={`take-grid-hover-overlay ${isHovering ? 'visible' : ''}`}>
+          <div className="take-grid-hover-stats">
+            <span>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              {formatCount(reactionCounts.total)}
+            </span>
+            <span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/>
+              </svg>
+              {formatCount(take.comments_count)}
+            </span>
+          </div>
         </div>
       </article>
     );
