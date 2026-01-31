@@ -22,9 +22,10 @@ import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, M
 // Helper to sanitize and clean HTML for display
 function cleanHtmlForDisplay(html: string): string {
   // First sanitize to prevent XSS attacks
+  // Note: 'style' attribute removed to prevent CSS injection attacks
   const sanitized = DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'span', 'div'],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
     ALLOW_DATA_ATTR: false,
   });
   // Then clean up &nbsp; entities

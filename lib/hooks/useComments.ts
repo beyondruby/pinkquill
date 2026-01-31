@@ -349,16 +349,19 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
       const { error: commentError } = await supabase.from("comments").delete().eq("id", commentId);
       if (commentError) throw commentError;
 
-      // Update local state
+      // Update local state - fixed to avoid calling removeComment twice
       setComments((current) => {
         const removeComment = (comments: Comment[]): Comment[] => {
           return comments
             .filter((c) => c.id !== commentId)
-            .map((c) => ({
-              ...c,
-              replies: c.replies ? removeComment(c.replies) : [],
-              replies_count: c.replies ? removeComment(c.replies).length : 0,
-            }));
+            .map((c) => {
+              const filteredReplies = c.replies ? removeComment(c.replies) : [];
+              return {
+                ...c,
+                replies: filteredReplies,
+                replies_count: filteredReplies.length,
+              };
+            });
         };
         return removeComment(current);
       });

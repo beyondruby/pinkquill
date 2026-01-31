@@ -44,7 +44,11 @@ interface UserInterests {
   admiredAuthors: Set<string>;
   followingIds: Set<string>;
   recentAdmires: Set<string>;
+  fetchedAt: number; // Timestamp for cache invalidation
 }
+
+// Cache user interests for 5 minutes
+const USER_INTERESTS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 // ============================================================================
 // ALGORITHM WEIGHTS
@@ -80,16 +84,20 @@ const DEFAULT_PAGE_SIZE = 20;
 
 /**
  * Calculate engagement score based on interactions
+ * Handles undefined/null values to prevent NaN
  */
 function calculateEngagementScore(
-  admiresCount: number,
-  commentsCount: number,
-  relaysCount: number
+  admiresCount: number | undefined | null,
+  commentsCount: number | undefined | null,
+  relaysCount: number | undefined | null
 ): number {
+  const admires = admiresCount ?? 0;
+  const comments = commentsCount ?? 0;
+  const relays = relaysCount ?? 0;
   return (
-    admiresCount * WEIGHTS.ADMIRES +
-    commentsCount * WEIGHTS.COMMENTS +
-    relaysCount * WEIGHTS.RELAYS
+    admires * WEIGHTS.ADMIRES +
+    comments * WEIGHTS.COMMENTS +
+    relays * WEIGHTS.RELAYS
   );
 }
 
@@ -113,11 +121,12 @@ function calculateTimeDecay(createdAt: string): number {
 
 /**
  * Check if post is trending (high engagement in short time)
+ * Handles undefined/null values to prevent NaN
  */
 function isTrending(
-  admiresCount: number,
-  commentsCount: number,
-  relaysCount: number,
+  admiresCount: number | undefined | null,
+  commentsCount: number | undefined | null,
+  relaysCount: number | undefined | null,
   createdAt: string
 ): boolean {
   const now = Date.now();
@@ -128,7 +137,7 @@ function isTrending(
     return false;
   }
 
-  const totalEngagement = admiresCount + commentsCount + relaysCount;
+  const totalEngagement = (admiresCount ?? 0) + (commentsCount ?? 0) + (relaysCount ?? 0);
   return totalEngagement >= WEIGHTS.TRENDING_THRESHOLD;
 }
 
@@ -211,6 +220,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const userInterestsRef = useRef<UserInterests | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch user interests for personalization
   const fetchUserInterests = useCallback(async (): Promise<UserInterests | null> => {
@@ -262,6 +272,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         admiredAuthors,
         followingIds,
         recentAdmires,
+        fetchedAt: Date.now(),
       };
     } catch (err) {
       console.error("[useExplore] Failed to fetch user interests:", err);
@@ -272,8 +283,16 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
   // Main fetch function
   const fetchPosts = useCallback(
     async (page: number, append: boolean = false) => {
+      // Cancel any in-flight request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
       if (fetchingRef.current) return;
       fetchingRef.current = true;
+
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
 
       try {
         if (!append) {
@@ -281,9 +300,13 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         }
         setError(null);
 
-        // Fetch user interests if not cached
-        if (userId && !userInterestsRef.current) {
-          userInterestsRef.current = await fetchUserInterests();
+        // Fetch user interests if not cached or cache expired
+        if (userId) {
+          const cached = userInterestsRef.current;
+          const cacheExpired = cached && (Date.now() - cached.fetchedAt > USER_INTERESTS_CACHE_TTL_MS);
+          if (!cached || cacheExpired) {
+            userInterestsRef.current = await fetchUserInterests();
+          }
         }
 
         // Build query based on tab
@@ -334,19 +357,23 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         }
 
         // For algorithmic tabs, fetch more posts to score and sort
-        // Using 1.5x multiplier to balance algorithm quality with efficiency
-        const fetchLimit = activeTab === "for-you" || activeTab === "trending" || activeTab === "communities"
-          ? Math.ceil(pageSize * 1.5)
-          : pageSize;
+        // Fetch enough posts to ensure good algorithm coverage for pagination
+        const isAlgorithmicTab = activeTab === "for-you" || activeTab === "trending" || activeTab === "communities";
+        const fetchMultiplier = isAlgorithmicTab ? 3 : 1; // Fetch 3x for algorithmic scoring
+        const fetchLimit = pageSize * fetchMultiplier;
 
         // Exclude user's own posts for discovery
         if (userId) {
           query = query.neq("author_id", userId);
         }
 
-        const { data: postsData, error: queryError } = await query
+        // Use range for pagination - calculate the range based on page
+        const rangeStart = page * pageSize * fetchMultiplier;
+        const rangeEnd = rangeStart + fetchLimit - 1;
+
+        const { data: postsData, count: totalCount, error: queryError } = await query
           .order("created_at", { ascending: false })
-          .limit(fetchLimit);
+          .range(rangeStart, rangeEnd);
 
         if (queryError) throw queryError;
         if (!mountedRef.current) return;
@@ -564,9 +591,9 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
             .map(({ _communityScore, ...post }) => post as Post);
         }
 
-        // Paginate the results
-        const startIndex = page * pageSize;
-        const paginatedPosts = transformedPosts.slice(startIndex, startIndex + pageSize);
+        // Paginate the results - for algorithmic tabs, we've already fetched extra posts for scoring
+        // Take only pageSize posts from the scored/sorted results
+        const paginatedPosts = transformedPosts.slice(0, pageSize);
 
         if (!mountedRef.current) return;
 
@@ -577,11 +604,17 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           setPosts(paginatedPosts);
         }
 
+        // Use database total count for hasMore calculation
+        // This ensures we know if there are more posts to fetch
+        const dbTotal = totalCount ?? 0;
+        const currentOffset = page * pageSize * fetchMultiplier;
+        const hasMoreInDb = currentOffset + transformedPosts.length < dbTotal;
+
         setPagination({
           page,
           pageSize,
-          hasMore: startIndex + pageSize < transformedPosts.length,
-          total: transformedPosts.length,
+          hasMore: hasMoreInDb && paginatedPosts.length === pageSize,
+          total: dbTotal,
         });
       } catch (err) {
         console.error("[useExplore] Error:", err);
@@ -624,6 +657,10 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
 
     return () => {
       mountedRef.current = false;
+      // Cancel any in-flight requests on cleanup
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, [fetchPosts, activeTab]);
 

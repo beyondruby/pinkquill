@@ -44,8 +44,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         .eq("username", username)
         .single();
 
-      if (profileError) {
-        if (profileError.code === "PGRST116") {
+      if (profileError || !profileData) {
+        if (profileError?.code === "PGRST116" || !profileData) {
           setError("User not found");
         } else {
           throw profileError;
@@ -284,11 +284,18 @@ export function useFollow() {
     });
 
     if (error) {
-      // Fallback for old schema
-      await supabase.from("follows").insert({
+      // Fallback for old schema - but validate the fallback succeeds
+      const { error: fallbackError } = await supabase.from("follows").insert({
         follower_id: followerId,
         following_id: followingId,
       });
+
+      if (fallbackError) {
+        console.error("[useFollow] Follow failed:", error.message, "Fallback also failed:", fallbackError.message);
+        throw new Error(`Failed to follow: ${fallbackError.message}`);
+      }
+
+      // Only create notification if fallback succeeded
       await createNotification(followingId, followerId, "follow");
       return "accepted";
     }

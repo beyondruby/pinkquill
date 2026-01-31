@@ -333,13 +333,14 @@ export function usePopularTags(limit: number = 20) {
   useEffect(() => {
     const fetchPopularTags = async () => {
       try {
-        // Get all tags with their post counts
+        // Get all tags with their post counts (limited to prevent memory issues)
         const { data, error } = await supabase
           .from("post_tags")
           .select(`
             tag_id,
             tags!inner (name)
-          `);
+          `)
+          .limit(10000);
 
         if (error) throw error;
 

@@ -201,16 +201,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(validatedUser);
 
         // Step 3: Fetch profile in background
-        if (fetchingProfileRef.current !== validatedUser.id) {
-          fetchingProfileRef.current = validatedUser.id;
+        // Use a local variable to track the user we're fetching for to prevent race conditions
+        const userIdToFetch = validatedUser.id;
+        if (fetchingProfileRef.current !== userIdToFetch) {
+          fetchingProfileRef.current = userIdToFetch;
 
-          let userProfile = await fetchProfile(validatedUser.id);
+          let userProfile = await fetchProfile(userIdToFetch);
+
+          // Check if we're still fetching for the same user (prevents race condition)
+          if (fetchingProfileRef.current !== userIdToFetch) {
+            // User changed during fetch, abort
+            return;
+          }
 
           if (!userProfile && isMounted) {
             userProfile = await createProfile(validatedUser);
           }
 
-          if (isMounted) {
+          // Final check before setting state
+          if (isMounted && fetchingProfileRef.current === userIdToFetch) {
             setProfile(userProfile);
           }
           fetchingProfileRef.current = null;
@@ -245,16 +254,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           completeAuth();
 
           // Fetch profile for newly signed in user
-          if (fetchingProfileRef.current !== session.user.id) {
-            fetchingProfileRef.current = session.user.id;
+          // Use a local variable to track the user we're fetching for to prevent race conditions
+          const userIdToFetch = session.user.id;
+          if (fetchingProfileRef.current !== userIdToFetch) {
+            fetchingProfileRef.current = userIdToFetch;
 
-            let userProfile = await fetchProfile(session.user.id);
+            let userProfile = await fetchProfile(userIdToFetch);
+
+            // Check if we're still fetching for the same user (prevents race condition)
+            if (fetchingProfileRef.current !== userIdToFetch) {
+              // User changed during fetch, abort
+              return;
+            }
 
             if (!userProfile && isMounted) {
               userProfile = await createProfile(session.user);
             }
 
-            if (isMounted) {
+            // Final check before setting state
+            if (isMounted && fetchingProfileRef.current === userIdToFetch) {
               setProfile(userProfile);
             }
             fetchingProfileRef.current = null;

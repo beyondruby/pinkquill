@@ -475,21 +475,38 @@ export function useBlock() {
         return { success: false, error: blockError };
       }
 
-      // Remove mutual follows - handle errors gracefully
-      const [followRemove1, followRemove2] = await Promise.all([
-        supabase.from("follows").delete().eq("follower_id", blockerId).eq("following_id", blockedId),
-        supabase.from("follows").delete().eq("follower_id", blockedId).eq("following_id", blockerId),
-      ]);
+      // Remove mutual follows - retry once if failed
+      const removeFollows = async (attempt: number = 1): Promise<{ success: boolean; errors: string[] }> => {
+        const errors: string[] = [];
+        const [followRemove1, followRemove2] = await Promise.all([
+          supabase.from("follows").delete().eq("follower_id", blockerId).eq("following_id", blockedId),
+          supabase.from("follows").delete().eq("follower_id", blockedId).eq("following_id", blockerId),
+        ]);
 
-      // Log errors but don't fail the block operation - the block is the primary action
-      if (followRemove1.error) {
-        console.error("Failed to remove follow (blocker->blocked):", followRemove1.error);
-      }
-      if (followRemove2.error) {
-        console.error("Failed to remove follow (blocked->blocker):", followRemove2.error);
+        if (followRemove1.error) {
+          errors.push(`blocker->blocked: ${followRemove1.error.message}`);
+        }
+        if (followRemove2.error) {
+          errors.push(`blocked->blocker: ${followRemove2.error.message}`);
+        }
+
+        // Retry once if there were errors
+        if (errors.length > 0 && attempt === 1) {
+          console.warn("Follow removal failed, retrying:", errors);
+          return removeFollows(2);
+        }
+
+        return { success: errors.length === 0, errors };
+      };
+
+      const followResult = await removeFollows();
+      if (!followResult.success) {
+        console.warn("Failed to remove follows after retry:", followResult.errors);
+        // Still return success for block - follows can be cleaned up later
+        // But include warning in result
       }
 
-      return { success: true };
+      return { success: true, followsRemoved: followResult.success };
     } catch (err) {
       console.error("Unexpected error in blockUser:", err);
       return { success: false, error: err };

@@ -71,11 +71,13 @@ interface UseDraftsReturn {
   deleteDraft: (id: string) => void;
   clearAllDrafts: () => void;
   getMostRecentDraft: () => PostDraft | null;
+  quotaExceeded: boolean;
 }
 
 export function useDrafts(): UseDraftsReturn {
   const [drafts, setDrafts] = useState<PostDraft[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   // Load drafts from localStorage on mount
   useEffect(() => {
@@ -98,13 +100,21 @@ export function useDrafts(): UseDraftsReturn {
   const persistDrafts = useCallback((newDrafts: PostDraft[]) => {
     try {
       localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(newDrafts));
+      setQuotaExceeded(false);
     } catch (err) {
       console.error("[useDrafts] Failed to persist drafts:", err);
-      // If storage is full, remove oldest drafts
+      // If storage is full, remove oldest drafts and notify user
       if (err instanceof Error && err.name === "QuotaExceededError") {
+        setQuotaExceeded(true);
         const trimmed = newDrafts.slice(0, Math.floor(newDrafts.length / 2));
-        localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(trimmed));
-        setDrafts(trimmed);
+        try {
+          localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(trimmed));
+          setDrafts(trimmed);
+        } catch {
+          // If still failing, clear all drafts
+          localStorage.removeItem(DRAFTS_STORAGE_KEY);
+          setDrafts([]);
+        }
       }
     }
   }, []);
@@ -189,6 +199,7 @@ export function useDrafts(): UseDraftsReturn {
     deleteDraft,
     clearAllDrafts,
     getMostRecentDraft,
+    quotaExceeded,
   };
 }
 

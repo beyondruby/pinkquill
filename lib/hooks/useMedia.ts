@@ -124,13 +124,21 @@ export function useVoiceRecorder(maxDuration: number = 300) {
       streamRef.current = stream;
 
       // Set up audio context for waveform
-      audioContextRef.current = new (window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 256;
-      analyserRef.current.smoothingTimeConstant = 0.3;
-      source.connect(analyserRef.current);
+      // Wrapped in try-catch to clean up stream if AudioContext fails
+      try {
+        audioContextRef.current = new (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+        const source = audioContextRef.current.createMediaStreamSource(stream);
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        analyserRef.current.fftSize = 256;
+        analyserRef.current.smoothingTimeConstant = 0.3;
+        source.connect(analyserRef.current);
+      } catch (audioContextErr) {
+        // Clean up stream if AudioContext setup fails
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        throw audioContextErr;
+      }
 
       // Create media recorder
       const mimeType = getMimeType();
@@ -449,6 +457,12 @@ export function useSendVoiceNote() {
         .single();
 
       if (insertError) {
+        // Clean up orphaned file if database insert fails
+        try {
+          await supabase.storage.from("voice-notes").remove([uploadData.path]);
+        } catch (cleanupErr) {
+          console.error("[useSendVoiceNote] Failed to cleanup orphaned file:", cleanupErr);
+        }
         throw new Error(`Failed to save message: ${insertError.message}`);
       }
 
@@ -557,6 +571,12 @@ export function useSendMedia(limits: MediaLimits = DEFAULT_MEDIA_LIMITS) {
         .single();
 
       if (insertError) {
+        // Clean up orphaned file if database insert fails
+        try {
+          await supabase.storage.from("message-media").remove([uploadData.path]);
+        } catch (cleanupErr) {
+          console.error("[useSendMedia] Failed to cleanup orphaned file:", cleanupErr);
+        }
         throw new Error(`Failed to create message: ${insertError.message}`);
       }
 
