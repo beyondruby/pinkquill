@@ -2205,167 +2205,126 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 );
               }
 
-              // Communities View - Show community posts with community badge
+              // Communities View - Beautiful grid with community badges
               if (postViewMode === "communities") {
-                // Group by community
-                const postsByCommunity: Record<string, { community: any; posts: typeof filteredPosts }> = {};
-                filteredPosts.forEach(post => {
-                  if (post.community_id && post.community) {
-                    const communityId = post.community_id;
-                    if (!postsByCommunity[communityId]) {
-                      postsByCommunity[communityId] = {
-                        community: post.community,
-                        posts: []
-                      };
-                    }
-                    postsByCommunity[communityId].posts.push(post);
-                  }
-                });
+                const typeLabels: Record<string, string> = {
+                  poem: "Poetry",
+                  journal: "Journal",
+                  thought: "Thought",
+                  essay: "Essay",
+                  story: "Story",
+                  letter: "Letter",
+                  visual: "Visual",
+                  quote: "Quote",
+                  audio: "Audio",
+                  video: "Video",
+                  blog: "Blog",
+                  screenplay: "Screenplay",
+                };
 
                 return (
-                  <div className="space-y-8">
-                    {Object.entries(postsByCommunity).map(([communityId, { community, posts: communityPosts }]) => (
-                      <div key={communityId} className="space-y-4">
-                        {/* Community Header */}
-                        <div className="flex items-center gap-3 px-2">
-                          {community.avatar_url ? (
-                            <img
-                              src={community.avatar_url}
-                              alt={community.name}
-                              className="w-10 h-10 rounded-xl object-cover"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center">
-                              <svg className="w-5 h-5 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                              </svg>
-                            </div>
-                          )}
-                          <div>
-                            <h3 className="font-display font-semibold text-ink">{community.name}</h3>
-                            <p className="text-sm text-muted">{communityPosts.length} post{communityPosts.length !== 1 ? 's' : ''}</p>
-                          </div>
-                        </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {filteredPosts.map((work) => {
+                      const hasMedia = work.media && work.media.length > 0;
+                      const plainContent = work.content
+                        ? work.content.replace(/<[^>]*>/g, '').substring(0, 100)
+                        : '';
+                      const community = work.community;
 
-                        {/* Community Posts Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {communityPosts.map((work) => {
-                            const hasMedia = work.media && work.media.length > 0;
-                            const plainContent = work.content
-                              ? work.content.replace(/<[^>]*>/g, '').substring(0, 120)
-                              : '';
-
-                            const typeLabels: Record<string, string> = {
-                              poem: "Poetry",
-                              journal: "Journal",
-                              thought: "Thought",
-                              essay: "Essay",
-                              story: "Story",
-                              letter: "Letter",
-                              visual: "Visual",
-                              quote: "Quote",
-                              audio: "Audio",
-                              video: "Video",
-                              blog: "Blog",
-                              screenplay: "Screenplay",
-                            };
-
-                            return (
-                              <article
-                                key={work.id}
-                                onClick={() => openPostModal(createPostForModal(work))}
-                                className="group relative bg-white/60 backdrop-blur-sm rounded-xl border border-black/[0.06] overflow-hidden cursor-pointer hover:shadow-lg hover:border-purple-primary/20 transition-all duration-300"
-                              >
-                                {/* Image */}
-                                {hasMedia && (
-                                  <div className="relative h-36 overflow-hidden">
-                                    <img
-                                      src={work.media[0].media_url}
-                                      alt=""
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                    />
-                                    {work.media.length > 1 && (
-                                      <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
-                                        +{work.media.length - 1}
-                                      </span>
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                                  </div>
-                                )}
-
-                                {/* Content */}
-                                <div className="p-4">
-                                  {/* Type Badge */}
-                                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-purple-primary/10 text-purple-primary mb-2">
-                                    {typeLabels[work.type] || work.type}
+                      return (
+                        <article
+                          key={work.id}
+                          onClick={() => openPostModal(createPostForModal(work))}
+                          className="group relative bg-white rounded-2xl border border-black/[0.06] overflow-hidden cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                        >
+                          {/* Image or Gradient Header */}
+                          <div className="relative h-40 overflow-hidden">
+                            {hasMedia ? (
+                              <>
+                                <img
+                                  src={work.media[0].media_url}
+                                  alt=""
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                />
+                                {work.media.length > 1 && (
+                                  <span className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full font-medium">
+                                    +{work.media.length - 1}
                                   </span>
+                                )}
+                              </>
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-purple-primary/20 via-pink-vivid/10 to-orange-warm/20 flex items-center justify-center">
+                                <svg className="w-12 h-12 text-purple-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                </svg>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-                                  {work.title && (
-                                    <h4 className="font-display font-semibold text-ink text-sm mb-1 line-clamp-1 group-hover:text-purple-primary transition-colors">
-                                      {work.title}
-                                    </h4>
-                                  )}
-
-                                  {plainContent && (
-                                    <p className="text-muted text-xs line-clamp-2">{plainContent}</p>
-                                  )}
-
-                                  {/* Footer */}
-                                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/[0.04]">
-                                    <span className="text-xs text-muted">{getTimeAgo(work.created_at)}</span>
-                                    <div className="flex items-center gap-3 text-xs text-muted">
-                                      <span className="flex items-center gap-1">
-                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                          <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
-                                        </svg>
-                                        {work.admires_count || 0}
-                                      </span>
-                                      <span className="flex items-center gap-1">
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                        </svg>
-                                        {work.comments_count || 0}
-                                      </span>
+                            {/* Community Badge - Floating on image */}
+                            {community && (
+                              <div className="absolute bottom-3 left-3 right-3">
+                                <div className="flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg">
+                                  {community.avatar_url ? (
+                                    <img
+                                      src={community.avatar_url}
+                                      alt={community.name}
+                                      className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center flex-shrink-0">
+                                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                      </svg>
                                     </div>
-                                  </div>
+                                  )}
+                                  <span className="font-ui text-sm font-medium text-ink truncate">{community.name}</span>
                                 </div>
-                              </article>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
+                              </div>
+                            )}
 
-                    {/* If no community grouping available, show flat grid */}
-                    {Object.keys(postsByCommunity).length === 0 && filteredPosts.length > 0 && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredPosts.map((work) => {
-                          const hasMedia = work.media && work.media.length > 0;
-                          const plainContent = work.content
-                            ? work.content.replace(/<[^>]*>/g, '').substring(0, 120)
-                            : '';
+                            {/* Type Badge - Top left */}
+                            <div className="absolute top-3 left-3">
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-white/90 backdrop-blur-sm text-purple-primary shadow-sm">
+                                {typeLabels[work.type] || work.type}
+                              </span>
+                            </div>
+                          </div>
 
-                          return (
-                            <article
-                              key={work.id}
-                              onClick={() => openPostModal(createPostForModal(work))}
-                              className="group relative bg-white/60 backdrop-blur-sm rounded-xl border border-black/[0.06] overflow-hidden cursor-pointer hover:shadow-lg hover:border-purple-primary/20 transition-all duration-300 p-4"
-                            >
-                              {hasMedia && (
-                                <div className="relative h-32 rounded-lg overflow-hidden mb-3">
-                                  <img src={work.media[0].media_url} alt="" className="w-full h-full object-cover" />
-                                </div>
-                              )}
-                              {work.title && (
-                                <h4 className="font-display font-semibold text-ink text-sm mb-1 line-clamp-1">{work.title}</h4>
-                              )}
-                              <p className="text-muted text-xs line-clamp-2">{plainContent}</p>
-                              <span className="text-xs text-muted mt-2 block">{getTimeAgo(work.created_at)}</span>
-                            </article>
-                          );
-                        })}
-                      </div>
-                    )}
+                          {/* Content */}
+                          <div className="p-4">
+                            {work.title && (
+                              <h4 className="font-display font-semibold text-ink mb-1.5 line-clamp-1 group-hover:text-purple-primary transition-colors">
+                                {work.title}
+                              </h4>
+                            )}
+
+                            {plainContent && (
+                              <p className="text-muted text-sm line-clamp-2 leading-relaxed">{plainContent}</p>
+                            )}
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-black/[0.04]">
+                              <span className="text-xs text-muted font-medium">{getTimeAgo(work.created_at)}</span>
+                              <div className="flex items-center gap-4 text-muted">
+                                <span className="flex items-center gap-1.5 text-xs">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+                                  </svg>
+                                  <span className="font-medium">{work.admires_count || 0}</span>
+                                </span>
+                                <span className="flex items-center gap-1.5 text-xs">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                  </svg>
+                                  <span className="font-medium">{work.comments_count || 0}</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 );
               }
