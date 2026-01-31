@@ -442,13 +442,37 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
         )}
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Video Preview Section */}
-          <div className="space-y-4">
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        {/* Feature Pills - Always visible at top */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full border border-purple-500/30">
+            <FontAwesomeIcon icon={faMagic} className="w-4 h-4 text-purple-400" />
+            <span className="text-sm text-white/80">9 Filters</span>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500/20 to-orange-500/20 rounded-full border border-pink-500/30">
+            <FontAwesomeIcon icon={faMusic} className="w-4 h-4 text-pink-400" />
+            <span className="text-sm text-white/80">Add Sounds</span>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full border border-blue-500/30">
+            <FontAwesomeIcon icon={faCrop} className="w-4 h-4 text-blue-400" />
+            <span className="text-sm text-white/80">5 Aspect Ratios</span>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-full border border-green-500/30">
+            <FontAwesomeIcon icon={faImage} className="w-4 h-4 text-green-400" />
+            <span className="text-sm text-white/80">Custom Covers</span>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-full border border-orange-500/30">
+            <FontAwesomeIcon icon={faTachometerAlt} className="w-4 h-4 text-orange-400" />
+            <span className="text-sm text-white/80">Speed Control</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Video Preview Section - Takes 2 columns */}
+          <div className="lg:col-span-2 space-y-4">
             {!videoPreview ? (
               <div
-                className={`aspect-[9/16] max-h-[70vh] rounded-2xl border-2 border-dashed transition-colors cursor-pointer flex flex-col items-center justify-center ${
+                className={`aspect-[9/16] max-h-[70vh] rounded-2xl border-2 border-dashed transition-colors cursor-pointer flex flex-col items-center justify-center bg-gradient-to-b from-white/5 to-transparent ${
                   dragActive ? "border-purple-500 bg-purple-500/10" : "border-white/20 hover:border-white/40"
                 }`}
                 onDrop={handleDrop}
@@ -456,11 +480,16 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
                 onDragLeave={handleDragLeave}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <FontAwesomeIcon icon={faCloudUploadAlt} className="w-12 h-12 text-white/40 mb-4" />
-                <p className="text-white/60 text-center px-4">
-                  Drag and drop a video or click to browse
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4">
+                  <FontAwesomeIcon icon={faCloudUploadAlt} className="w-8 h-8 text-white" />
+                </div>
+                <p className="text-white/80 text-center px-4 font-medium">
+                  Upload your video
                 </p>
-                <p className="text-white/40 text-sm mt-2">MP4 or MOV, max 90s, max 100MB</p>
+                <p className="text-white/40 text-sm mt-2 text-center px-4">
+                  Drag & drop or click to browse<br/>
+                  MP4/MOV · Max 90s · Max 100MB
+                </p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -555,26 +584,27 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
             )}
           </div>
 
-          {/* Editor Panel */}
-          <div className="space-y-6">
-            {/* Tab navigation */}
-            <div className="flex gap-1 p-1 bg-white/5 rounded-xl">
+          {/* Editor Panel - Takes 3 columns */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Tab navigation with icons */}
+            <div className="flex gap-1 p-1.5 bg-white/5 rounded-2xl border border-white/10">
               {[
-                { tab: "details" as EditorTab, label: "Details" },
-                { tab: "effects" as EditorTab, label: "Effects" },
-                { tab: "sound" as EditorTab, label: "Sound" },
-                { tab: "thumbnail" as EditorTab, label: "Cover" },
-              ].map(({ tab, label }) => (
+                { tab: "details" as EditorTab, label: "Details", icon: faFont },
+                { tab: "effects" as EditorTab, label: "Effects", icon: faMagic },
+                { tab: "sound" as EditorTab, label: "Sound", icon: faMusic },
+                { tab: "thumbnail" as EditorTab, label: "Cover", icon: faImage },
+              ].map(({ tab, label, icon }) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
                     activeTab === tab
-                      ? "bg-white/10 text-white"
-                      : "text-white/50 hover:text-white/70"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg"
+                      : "text-white/50 hover:text-white/70 hover:bg-white/5"
                   }`}
                 >
-                  {label}
+                  <FontAwesomeIcon icon={icon} className="w-4 h-4" />
+                  <span className="hidden sm:inline">{label}</span>
                 </button>
               ))}
             </div>
@@ -634,23 +664,36 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
                 </div>
 
                 {/* Aspect Ratio */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-white/70">Aspect Ratio</label>
-                  <div className="flex gap-2 flex-wrap">
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FontAwesomeIcon icon={faCrop} className="w-4 h-4 text-blue-400" />
+                    <label className="text-sm font-semibold text-white">Aspect Ratio</label>
+                  </div>
+                  <div className="grid grid-cols-5 gap-2">
                     {ASPECT_RATIOS.map((ar) => (
                       <button
                         key={ar.value}
                         onClick={() => setAspectRatio(ar.value)}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
                           aspectRatio === ar.value
-                            ? "bg-purple-500 text-white"
-                            : "bg-white/5 text-white/60 hover:bg-white/10"
+                            ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg"
+                            : "bg-white/5 text-white/60 hover:bg-white/10 border border-white/10"
                         }`}
                       >
-                        {ar.label}
+                        <div
+                          className={`border-2 ${aspectRatio === ar.value ? 'border-white' : 'border-white/30'} rounded`}
+                          style={{
+                            width: ar.value === '16:9' ? '32px' : ar.value === '9:16' ? '18px' : ar.value === '1:1' ? '24px' : ar.value === '4:5' ? '20px' : '26px',
+                            height: ar.value === '16:9' ? '18px' : ar.value === '9:16' ? '32px' : ar.value === '1:1' ? '24px' : ar.value === '4:5' ? '25px' : '20px',
+                          }}
+                        />
+                        <span className="text-xs font-medium">{ar.icon}</span>
                       </button>
                     ))}
                   </div>
+                  <p className="text-xs text-white/40 mt-3">
+                    Choose how your video will be displayed in the feed
+                  </p>
                 </div>
 
                 {/* Community */}
@@ -724,49 +767,63 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
             {activeTab === "effects" && (
               <div className="space-y-6">
                 {/* Filters */}
-                <div>
-                  <label className="block text-sm font-medium mb-3 text-white/70">Filters</label>
-                  <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FontAwesomeIcon icon={faMagic} className="w-4 h-4 text-purple-400" />
+                    <label className="text-sm font-semibold text-white">Video Filters</label>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                     {FILTER_OPTIONS.map((filter) => (
                       <button
                         key={filter.name}
                         onClick={() => setSelectedFilter(filter.name)}
-                        className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-colors ${
+                        className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
                           selectedFilter === filter.name
-                            ? "border-purple-500"
-                            : "border-transparent hover:border-white/20"
+                            ? "border-purple-500 scale-105 shadow-lg shadow-purple-500/30"
+                            : "border-white/10 hover:border-white/30"
                         }`}
                       >
                         <div
-                          className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500"
+                          className="w-full h-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500"
                           style={filter.style}
                         />
-                        <span className="absolute bottom-1 left-1 right-1 text-[10px] font-medium text-white text-center bg-black/50 rounded px-1 py-0.5">
+                        <span className="absolute bottom-1 left-1 right-1 text-[10px] font-semibold text-white text-center bg-black/60 backdrop-blur-sm rounded px-1 py-0.5">
                           {filter.label}
                         </span>
+                        {selectedFilter === filter.name && (
+                          <div className="absolute top-1 right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                            <FontAwesomeIcon icon={faCheck} className="w-3 h-3 text-white" />
+                          </div>
+                        )}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Speed */}
-                <div>
-                  <label className="block text-sm font-medium mb-3 text-white/70">Playback Speed</label>
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FontAwesomeIcon icon={faTachometerAlt} className="w-4 h-4 text-orange-400" />
+                    <label className="text-sm font-semibold text-white">Playback Speed</label>
+                  </div>
                   <div className="flex gap-2 flex-wrap">
                     {SPEED_OPTIONS.map((speed) => (
                       <button
                         key={speed.value}
                         onClick={() => setPlaybackSpeed(speed.value)}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                           playbackSpeed === speed.value
-                            ? "bg-purple-500 text-white"
-                            : "bg-white/5 text-white/60 hover:bg-white/10"
+                            ? "bg-gradient-to-r from-orange-500 to-yellow-500 text-white shadow-lg"
+                            : "bg-white/5 text-white/60 hover:bg-white/10 border border-white/10"
                         }`}
                       >
                         {speed.label}
                       </button>
                     ))}
                   </div>
+                  <p className="text-xs text-white/40 mt-3">
+                    Slow motion (0.25x-0.75x) or speed up (1.5x-3x) your video
+                  </p>
                 </div>
               </div>
             )}
@@ -775,76 +832,114 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
             {activeTab === "sound" && (
               <div className="space-y-5">
                 {/* Current Sound */}
-                {selectedSound ? (
-                  <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30">
-                    {selectedSound.cover_url && (
-                      <img src={selectedSound.cover_url} alt="" className="w-12 h-12 rounded-lg object-cover" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{selectedSound.name}</p>
-                      <p className="text-sm text-white/50 truncate">{selectedSound.artist || "Original Sound"}</p>
-                    </div>
-                    <button
-                      onClick={handleRemoveSound}
-                      className="p-2 hover:bg-white/10 rounded-full"
-                    >
-                      <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
-                    </button>
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FontAwesomeIcon icon={faMusic} className="w-4 h-4 text-pink-400" />
+                    <label className="text-sm font-semibold text-white">Add Music or Sound</label>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => setShowSoundPicker(true)}
-                    className="w-full flex items-center justify-center gap-2 p-4 bg-white/5 border border-white/10 border-dashed rounded-xl text-white/50 hover:bg-white/10 hover:text-white/70 transition-colors"
-                  >
-                    <FontAwesomeIcon icon={faMusic} className="w-5 h-5" />
-                    Add Sound
-                  </button>
-                )}
+
+                  {selectedSound ? (
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30">
+                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {selectedSound.cover_url ? (
+                          <img src={selectedSound.cover_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <FontAwesomeIcon icon={faMusic} className="w-6 h-6 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{selectedSound.name}</p>
+                        <p className="text-sm text-white/50 truncate">{selectedSound.artist || "Original Sound"}</p>
+                        <p className="text-xs text-pink-400 mt-1">{selectedSound.use_count} uses</p>
+                      </div>
+                      <button
+                        onClick={handleRemoveSound}
+                        className="p-2 hover:bg-white/10 rounded-full"
+                      >
+                        <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowSoundPicker(true)}
+                      className="w-full flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 border-dashed rounded-xl text-white/70 hover:bg-pink-500/20 hover:text-white hover:border-pink-500/40 transition-all"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
+                        <FontAwesomeIcon icon={faMusic} className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-semibold">Add a Sound</p>
+                        <p className="text-sm text-white/50">Browse trending sounds or search</p>
+                      </div>
+                    </button>
+                  )}
+                </div>
 
                 {/* Volume Controls */}
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm text-white/70">Original Audio</label>
-                      <span className="text-sm text-white/50">{originalAudioVolume}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={originalAudioVolume}
-                      onChange={(e) => setOriginalAudioVolume(Number(e.target.value))}
-                      className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500"
-                    />
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FontAwesomeIcon icon={faVolumeUp} className="w-4 h-4 text-cyan-400" />
+                    <label className="text-sm font-semibold text-white">Volume Mixer</label>
                   </div>
-                  {selectedSound && (
+                  <div className="space-y-4">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm text-white/70">Added Sound</label>
-                        <span className="text-sm text-white/50">{addedSoundVolume}%</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-white/70">Original Audio</span>
+                          {originalAudioVolume === 0 && (
+                            <FontAwesomeIcon icon={faVolumeMute} className="w-3 h-3 text-white/40" />
+                          )}
+                        </div>
+                        <span className="text-sm font-medium text-purple-400">{originalAudioVolume}%</span>
                       </div>
                       <input
                         type="range"
                         min="0"
                         max="100"
-                        value={addedSoundVolume}
-                        onChange={(e) => setAddedSoundVolume(Number(e.target.value))}
-                        className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-pink-500"
+                        value={originalAudioVolume}
+                        onChange={(e) => setOriginalAudioVolume(Number(e.target.value))}
+                        className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-purple-500 [&::-webkit-slider-thumb]:to-pink-500 [&::-webkit-slider-thumb]:shadow-lg"
                       />
                     </div>
-                  )}
+                    {selectedSound && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-white/70">Added Sound</span>
+                            {addedSoundVolume === 0 && (
+                              <FontAwesomeIcon icon={faVolumeMute} className="w-3 h-3 text-white/40" />
+                            )}
+                          </div>
+                          <span className="text-sm font-medium text-pink-400">{addedSoundVolume}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={addedSoundVolume}
+                          onChange={(e) => setAddedSoundVolume(Number(e.target.value))}
+                          className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-pink-500 [&::-webkit-slider-thumb]:to-orange-500 [&::-webkit-slider-thumb]:shadow-lg"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Allow Sound Use */}
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={allowSoundUse}
-                    onChange={(e) => setAllowSoundUse(e.target.checked)}
-                    className="w-5 h-5 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-white/70">Allow others to use this sound</span>
-                </label>
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={allowSoundUse}
+                      onChange={(e) => setAllowSoundUse(e.target.checked)}
+                      className="w-5 h-5 rounded-lg border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-white">Allow others to use this sound</span>
+                      <p className="text-xs text-white/50 mt-0.5">Let other creators use your original audio in their takes</p>
+                    </div>
+                  </label>
+                </div>
 
                 {/* Sound Picker */}
                 {showSoundPicker && (
@@ -915,61 +1010,78 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
             {/* Thumbnail Tab */}
             {activeTab === "thumbnail" && (
               <div className="space-y-5">
-                <p className="text-sm text-white/50">Choose a cover image for your take</p>
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FontAwesomeIcon icon={faImage} className="w-4 h-4 text-green-400" />
+                    <label className="text-sm font-semibold text-white">Cover Image</label>
+                  </div>
+                  <p className="text-sm text-white/50 mb-4">Choose a cover image that will be shown before your video plays</p>
 
-                {/* Thumbnail options */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* From video */}
-                  {thumbnailFromVideo && (
-                    <button
-                      onClick={() => {
-                        setThumbnailPreview(null);
-                        setThumbnailFile(null);
-                      }}
-                      className={`relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-colors ${
-                        !thumbnailPreview ? "border-purple-500" : "border-transparent hover:border-white/20"
-                      }`}
-                    >
-                      <img src={thumbnailFromVideo} alt="" className="w-full h-full object-cover" />
-                      <span className="absolute bottom-2 left-2 right-2 text-xs font-medium text-white text-center bg-black/50 rounded px-2 py-1">
-                        From Video
-                      </span>
-                      {!thumbnailPreview && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                          <FontAwesomeIcon icon={faCheck} className="w-3 h-3" />
-                        </div>
-                      )}
-                    </button>
-                  )}
-
-                  {/* Custom upload */}
-                  <button
-                    onClick={() => thumbnailInputRef.current?.click()}
-                    className={`relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-colors ${
-                      thumbnailPreview ? "border-purple-500" : "border-dashed border-white/20 hover:border-white/40"
-                    }`}
-                  >
-                    {thumbnailPreview ? (
-                      <>
-                        <img src={thumbnailPreview} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                          <FontAwesomeIcon icon={faCheck} className="w-3 h-3" />
-                        </div>
-                      </>
+                  {/* Thumbnail options */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* From video */}
+                    {thumbnailFromVideo ? (
+                      <button
+                        onClick={() => {
+                          setThumbnailPreview(null);
+                          setThumbnailFile(null);
+                        }}
+                        className={`relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-all ${
+                          !thumbnailPreview ? "border-green-500 shadow-lg shadow-green-500/20" : "border-white/10 hover:border-white/30"
+                        }`}
+                      >
+                        <img src={thumbnailFromVideo} alt="" className="w-full h-full object-cover" />
+                        <span className="absolute bottom-2 left-2 right-2 text-xs font-semibold text-white text-center bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1.5">
+                          From Video
+                        </span>
+                        {!thumbnailPreview && (
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <FontAwesomeIcon icon={faCheck} className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </button>
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-white/5">
-                        <FontAwesomeIcon icon={faImage} className="w-8 h-8 text-white/30 mb-2" />
-                        <span className="text-xs text-white/40">Upload Custom</span>
+                      <div className="aspect-[9/16] rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center bg-white/5 text-white/30">
+                        <FontAwesomeIcon icon={faPlay} className="w-8 h-8 mb-2" />
+                        <span className="text-xs text-center px-4">Upload a video first to capture a frame</span>
                       </div>
                     )}
-                    <input
-                      ref={thumbnailInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => e.target.files?.[0] && handleThumbnailSelect(e.target.files[0])}
-                      className="hidden"
-                    />
-                  </button>
+
+                    {/* Custom upload */}
+                    <button
+                      onClick={() => thumbnailInputRef.current?.click()}
+                      className={`relative aspect-[9/16] rounded-xl overflow-hidden border-2 transition-all ${
+                        thumbnailPreview ? "border-green-500 shadow-lg shadow-green-500/20" : "border-dashed border-white/20 hover:border-green-500/50 hover:bg-green-500/5"
+                      }`}
+                    >
+                      {thumbnailPreview ? (
+                        <>
+                          <img src={thumbnailPreview} alt="" className="w-full h-full object-cover" />
+                          <span className="absolute bottom-2 left-2 right-2 text-xs font-semibold text-white text-center bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1.5">
+                            Custom Cover
+                          </span>
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <FontAwesomeIcon icon={faCheck} className="w-3 h-3 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-white/5">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500/20 to-teal-500/20 flex items-center justify-center mb-3">
+                            <FontAwesomeIcon icon={faCloudUploadAlt} className="w-5 h-5 text-green-400" />
+                          </div>
+                          <span className="text-sm text-white/60 font-medium">Upload Custom</span>
+                          <span className="text-xs text-white/40 mt-1">JPG, PNG up to 5MB</span>
+                        </div>
+                      )}
+                      <input
+                        ref={thumbnailInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => e.target.files?.[0] && handleThumbnailSelect(e.target.files[0])}
+                        className="hidden"
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

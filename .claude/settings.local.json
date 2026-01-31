@@ -34,7 +34,10 @@
       "Bash(awk:*)",
       "Bash(npm run test:run:*)",
       "mcp__supabase__search_docs",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git add:*)"
     ]
   }
 }
