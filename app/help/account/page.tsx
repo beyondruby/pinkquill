@@ -103,7 +103,7 @@ export default function AccountHelpPage() {
             </ul>
             <p>
               To view your profile, click on your avatar in the sidebar or go to{" "}
-              <code>pinkquill.app/studio/yourusername</code>.
+              <code>pinkquill.com/studio/yourusername</code>.
             </p>
           </section>
 

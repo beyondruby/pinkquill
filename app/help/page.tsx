@@ -233,7 +233,7 @@ export default function HelpCenterPage() {
           Can't find what you're looking for?
         </p>
         <a
-          href="mailto:support@pinkquill.app"
+          href="mailto:support@pinkquill.com"
           className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-medium hover:shadow-lg hover:shadow-pink-vivid/30 transition-all"
         >
           <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" />

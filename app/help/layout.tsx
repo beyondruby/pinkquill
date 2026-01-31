@@ -107,8 +107,8 @@ export default function HelpLayout({
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="font-ui text-xs text-muted/60">
             Need more help? Contact us at{" "}
-            <a href="mailto:support@pinkquill.app" className="text-purple-primary hover:underline">
-              support@pinkquill.app
+            <a href="mailto:support@pinkquill.com" className="text-purple-primary hover:underline">
+              support@pinkquill.com
             </a>
           </p>
           <div className="flex items-center gap-6">

@@ -271,8 +271,8 @@ export default function TermsPage() {
               </p>
               <p>
                 If your work has been infringed, send a notice to{" "}
-                <a href="mailto:dmca@pinkquill.app" className="text-purple-primary hover:underline">
-                  dmca@pinkquill.app
+                <a href="mailto:dmca@pinkquill.com" className="text-purple-primary hover:underline">
+                  dmca@pinkquill.com
                 </a>{" "}
                 containing: identification of the work, location of the infringement,
                 your contact information, a good-faith statement, and your signature.
@@ -416,20 +416,20 @@ export default function TermsPage() {
               <div className="mt-6 space-y-2">
                 <p>
                   <span className="text-muted">General —</span>{" "}
-                  <a href="mailto:hello@pinkquill.app" className="text-purple-primary hover:underline">
-                    hello@pinkquill.app
+                  <a href="mailto:hello@pinkquill.com" className="text-purple-primary hover:underline">
+                    hello@pinkquill.com
                   </a>
                 </p>
                 <p>
                   <span className="text-muted">Legal —</span>{" "}
-                  <a href="mailto:legal@pinkquill.app" className="text-purple-primary hover:underline">
-                    legal@pinkquill.app
+                  <a href="mailto:legal@pinkquill.com" className="text-purple-primary hover:underline">
+                    legal@pinkquill.com
                   </a>
                 </p>
                 <p>
                   <span className="text-muted">Copyright —</span>{" "}
-                  <a href="mailto:dmca@pinkquill.app" className="text-purple-primary hover:underline">
-                    dmca@pinkquill.app
+                  <a href="mailto:dmca@pinkquill.com" className="text-purple-primary hover:underline">
+                    dmca@pinkquill.com
                   </a>
                 </p>
               </div>

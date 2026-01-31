@@ -107,7 +107,7 @@ export default function PrivacySafetyHelpPage() {
             <div className="bg-purple-primary/5 rounded-xl p-4 border border-purple-primary/10 my-6">
               <p className="font-ui text-sm text-ink mb-0">
                 <strong>Need help?</strong> If you're experiencing harassment or feel unsafe,
-                contact us immediately at <a href="mailto:safety@pinkquill.app" className="text-purple-primary hover:underline">safety@pinkquill.app</a>.
+                contact us immediately at <a href="mailto:safety@pinkquill.com" className="text-purple-primary hover:underline">safety@pinkquill.com</a>.
               </p>
             </div>
           </section>

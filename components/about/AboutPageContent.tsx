@@ -404,8 +404,8 @@ export default function AboutPageContent() {
                 <div className="mt-8 space-y-2">
                   <p>
                     <span className="text-muted">Questions —</span>{" "}
-                    <a href="mailto:hello@pinkquill.app" className="text-purple-primary hover:underline">
-                      hello@pinkquill.app
+                    <a href="mailto:hello@pinkquill.com" className="text-purple-primary hover:underline">
+                      hello@pinkquill.com
                     </a>
                   </p>
                 </div>

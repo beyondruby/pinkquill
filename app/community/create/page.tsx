@@ -226,7 +226,7 @@ export default function CreateCommunityPage() {
           <div>
             <label className="block font-ui text-xs tracking-wide text-muted mb-3">URL</label>
             <div className="flex items-baseline gap-0.5 py-2 border-b border-black/10 focus-within:border-purple-primary transition-colors">
-              <span className="font-body text-lg text-muted/30">pinkquill.app/c/</span>
+              <span className="font-body text-lg text-muted/30">pinkquill.com/c/</span>
               <input
                 type="text"
                 value={formData.slug}

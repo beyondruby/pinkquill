@@ -386,7 +386,7 @@ export default function PrivacyPage() {
                 </p>
                 <Highlight>
                   If you discover a security vulnerability, please report it to{" "}
-                  <a href="mailto:security@pinkquill.app">security@pinkquill.app</a>.
+                  <a href="mailto:security@pinkquill.com">security@pinkquill.com</a>.
                   We appreciate responsible disclosure.
                 </Highlight>
               </Section>
@@ -457,7 +457,7 @@ export default function PrivacyPage() {
                 <p>
                   If you're a parent or guardian and believe your child has provided us
                   with personal information, please contact us at{" "}
-                  <a href="mailto:privacy@pinkquill.app">privacy@pinkquill.app</a>. We'll promptly
+                  <a href="mailto:privacy@pinkquill.com">privacy@pinkquill.com</a>. We'll promptly
                   delete such information.
                 </p>
                 <p>
@@ -504,26 +504,26 @@ export default function PrivacyPage() {
                 <div className="mt-6 space-y-2">
                   <p>
                     <span className="text-muted">Privacy inquiries —</span>{" "}
-                    <a href="mailto:privacy@pinkquill.app" className="text-purple-primary hover:underline">
-                      privacy@pinkquill.app
+                    <a href="mailto:privacy@pinkquill.com" className="text-purple-primary hover:underline">
+                      privacy@pinkquill.com
                     </a>
                   </p>
                   <p>
                     <span className="text-muted">Data requests —</span>{" "}
-                    <a href="mailto:data@pinkquill.app" className="text-purple-primary hover:underline">
-                      data@pinkquill.app
+                    <a href="mailto:data@pinkquill.com" className="text-purple-primary hover:underline">
+                      data@pinkquill.com
                     </a>
                   </p>
                   <p>
                     <span className="text-muted">Security issues —</span>{" "}
-                    <a href="mailto:security@pinkquill.app" className="text-purple-primary hover:underline">
-                      security@pinkquill.app
+                    <a href="mailto:security@pinkquill.com" className="text-purple-primary hover:underline">
+                      security@pinkquill.com
                     </a>
                   </p>
                   <p>
                     <span className="text-muted">General —</span>{" "}
-                    <a href="mailto:hello@pinkquill.app" className="text-purple-primary hover:underline">
-                      hello@pinkquill.app
+                    <a href="mailto:hello@pinkquill.com" className="text-purple-primary hover:underline">
+                      hello@pinkquill.com
                     </a>
                   </p>
                 </div>

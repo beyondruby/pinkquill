@@ -127,7 +127,7 @@ export default function GettingStartedPage() {
             <p>Getting started on PinkQuill takes just a minute:</p>
             <ol>
               <li>
-                <strong>Visit the signup page</strong> — Go to <Link href="/login" className="text-purple-primary hover:underline">pinkquill.app/login</Link>
+                <strong>Visit the signup page</strong> — Go to <Link href="/login" className="text-purple-primary hover:underline">pinkquill.com/login</Link>
               </li>
               <li>
                 <strong>Enter your email</strong> — Use an email you have access to for verification
@@ -291,7 +291,7 @@ export default function GettingStartedPage() {
 
             <p>
               Have questions? Browse the other help topics or{" "}
-              <a href="mailto:support@pinkquill.app" className="text-purple-primary hover:underline">contact support</a>.
+              <a href="mailto:support@pinkquill.com" className="text-purple-primary hover:underline">contact support</a>.
             </p>
           </section>
         </article>
