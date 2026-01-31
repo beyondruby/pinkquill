@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useCommunityPosts, Post } from "@/lib/hooks";
+import { useCommunity, useCommunityPosts, useCommunityPinnedPosts, Post } from "@/lib/hooks";
 import { useTrackCommunityView } from "@/lib/hooks/useTracking";
 import PostCard from "@/components/feed/PostCard";
 
@@ -85,9 +85,37 @@ export default function CommunityFeedPage() {
     sortBy
   );
 
+  // Pin/unpin functionality for admins/moderators
+  const {
+    isPinned,
+    canPin,
+    pinPost,
+    unpinPost,
+    refetch: refetchPins
+  } = useCommunityPinnedPosts(community?.id);
+
   if (!community) return null;
 
   const canPost = community.is_member && community.user_status === 'active';
+  const isAdmin = community.user_role === 'admin' || community.user_role === 'moderator';
+
+  // Handle pin/unpin and refresh the posts list
+  const handlePin = async (postId: string) => {
+    if (!user?.id) return;
+    const success = await pinPost(postId, user.id);
+    if (success) {
+      refetch();
+      refetchPins();
+    }
+  };
+
+  const handleUnpin = async (postId: string) => {
+    const success = await unpinPost(postId);
+    if (success) {
+      refetch();
+      refetchPins();
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -148,8 +176,20 @@ export default function CommunityFeedPage() {
             </div>
             <div className="space-y-4">
               {pinnedPosts.map((post) => (
-                <div key={post.id} className="relative">
+                <div key={post.id} className="relative group/pin">
                   <div className="absolute -left-3 top-6 bottom-6 w-1 bg-gradient-to-b from-orange-warm via-pink-vivid to-purple-primary rounded-full" />
+                  {/* Unpin button for admins */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleUnpin(post.id)}
+                      className="absolute -left-1 top-2 z-10 w-6 h-6 rounded-full bg-white shadow-md border border-purple-primary/20 flex items-center justify-center opacity-0 group-hover/pin:opacity-100 transition-opacity hover:bg-purple-primary hover:text-white text-purple-primary"
+                      title="Unpin post"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
                   <PostCard post={transformPost(post)} />
                 </div>
               ))}
@@ -169,7 +209,21 @@ export default function CommunityFeedPage() {
         ) : posts.length > 0 ? (
           <div className="space-y-5">
             {posts.map((post) => (
-              <PostCard key={post.id} post={transformPost(post)} />
+              <div key={post.id} className="relative group/pin">
+                {/* Pin button for admins (only if can pin more) */}
+                {isAdmin && canPin && !isPinned(post.id) && (
+                  <button
+                    onClick={() => handlePin(post.id)}
+                    className="absolute -left-1 top-4 z-10 w-6 h-6 rounded-full bg-white shadow-md border border-purple-primary/20 flex items-center justify-center opacity-0 group-hover/pin:opacity-100 transition-opacity hover:bg-purple-primary hover:text-white text-purple-primary"
+                    title="Pin post"
+                  >
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M16 4h2c.55 0 1.1.22 1.49.59l.01.01c.39.4.61.95.61 1.52v2c0 .55-.22 1.1-.59 1.49l-.01.01c-.4.39-.95.61-1.52.61h-2l-1 6-3-2-3 2-1-6H6c-.55 0-1.1-.22-1.49-.59l-.01-.01A2.1 2.1 0 014 8.12v-2c0-.55.22-1.1.59-1.49l.01-.01C5 4.22 5.55 4 6.12 4H8V3a1 1 0 112 0v1h4V3a1 1 0 112 0v1zM9 20a1 1 0 102 0v-5.5l1 .67 1-.67V20a1 1 0 102 0v-7l-3 2-3-2v7z"/>
+                    </svg>
+                  </button>
+                )}
+                <PostCard post={transformPost(post)} />
+              </div>
             ))}
           </div>
         ) : (

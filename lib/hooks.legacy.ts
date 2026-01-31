@@ -523,11 +523,30 @@ export function useCommunityMembers(communityId: string, options?: { role?: stri
 export function useCommunityPosts(communityId: string, userId?: string, sortBy: 'newest' | 'top' = 'newest') {
   const [posts, setPosts] = useState<Post[]>([]);
   const [pinnedPosts, setPinnedPosts] = useState<Post[]>([]);
+  const [pinnedPostIds, setPinnedPostIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const pageSize = 20;
+
+  // Fetch pinned post IDs
+  const fetchPinnedPostIds = async () => {
+    if (!communityId) return [];
+    try {
+      const { data, error } = await supabase
+        .from("community_pinned_posts")
+        .select("post_id, position")
+        .eq("community_id", communityId)
+        .order("position", { ascending: true });
+
+      if (error) throw error;
+      return (data || []).map(p => p.post_id);
+    } catch (err) {
+      console.error("[useCommunityPosts] Error fetching pinned posts:", err);
+      return [];
+    }
+  };
 
   const fetchPosts = async (pageNum: number = 0, append: boolean = false) => {
     if (!communityId) return;
@@ -535,6 +554,10 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
     try {
       setLoading(true);
       setError(null);
+
+      // First fetch pinned post IDs
+      const currentPinnedIds = await fetchPinnedPostIds();
+      setPinnedPostIds(currentPinnedIds);
 
       let query = supabase
         .from("posts")
@@ -621,10 +644,21 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
         });
       }
 
+      // Separate pinned posts from regular posts
+      const pinned = enrichedPosts
+        .filter(p => currentPinnedIds.includes(p.id))
+        .sort((a, b) => currentPinnedIds.indexOf(a.id) - currentPinnedIds.indexOf(b.id));
+      const regular = enrichedPosts.filter(p => !currentPinnedIds.includes(p.id));
+
+      // Only set pinned posts on initial load (page 0)
+      if (pageNum === 0) {
+        setPinnedPosts(pinned);
+      }
+
       if (append) {
-        setPosts(prev => [...prev, ...enrichedPosts]);
+        setPosts(prev => [...prev, ...regular]);
       } else {
-        setPosts(enrichedPosts);
+        setPosts(regular);
       }
 
       setHasMore(data.length === pageSize);

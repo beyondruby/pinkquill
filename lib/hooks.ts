@@ -75,6 +75,9 @@ export type { PostDraft, DraftMedia, DraftCollaborator, DraftMention } from "./h
 // UI Hooks (action menus, etc.)
 export { useActionMenu, useActionMenuWithModals } from "./hooks/useActionMenu";
 
+// Pinned Posts
+export { usePinnedPosts, useCommunityPinnedPosts } from "./hooks/usePinnedPosts";
+
 // Collections
 export {
   useCollections,

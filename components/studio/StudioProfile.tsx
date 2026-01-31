@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, useDeleteCollection, useDeleteCollectionItem, useUpdateCollection, useUpdateCollectionItem } from "@/lib/hooks";
+import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, useDeleteCollection, useDeleteCollectionItem, useUpdateCollection, useUpdateCollectionItem, usePinnedPosts } from "@/lib/hooks";
 
 // Type for follows table real-time payload
 interface FollowRealtimePayload {
@@ -801,6 +801,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const { communities: userCommunities, loading: communitiesLoading } = useCommunities(profile?.id, 'joined');
   const { collections, loading: collectionsLoading, refetch: refetchCollections } = useCollections(profile?.id);
   const { toggleCollapse } = useToggleCollectionCollapse();
+  const { pinnedPostIds, isPinned, canPin, pinPost, unpinPost } = usePinnedPosts(profile?.id);
   const { revealedCards, observeCard } = useScrollReveal();
   const [pageLoaded, setPageLoaded] = useState(false);
   const [showCommunitiesModal, setShowCommunitiesModal] = useState(false);
@@ -1642,7 +1643,21 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 }
               };
 
-              const filteredPosts = getFilteredPosts();
+              // Sort posts with pinned posts at the top (only for "all" view)
+              const sortWithPinnedPosts = (postsToSort: typeof allPosts) => {
+                if (postViewMode !== "all" || pinnedPostIds.length === 0) {
+                  return postsToSort;
+                }
+
+                const pinned = postsToSort
+                  .filter(p => pinnedPostIds.includes(p.id))
+                  .sort((a, b) => pinnedPostIds.indexOf(a.id) - pinnedPostIds.indexOf(b.id));
+                const unpinned = postsToSort.filter(p => !pinnedPostIds.includes(p.id));
+
+                return [...pinned, ...unpinned];
+              };
+
+              const filteredPosts = sortWithPinnedPosts(getFilteredPosts());
 
               // Empty state
               if (filteredPosts.length === 0) {
@@ -1797,6 +1812,47 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                   {/* Gradient overlay on image */}
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
+                                  {/* Pinned badge */}
+                                  {isPinned(work.id) && (
+                                    <div className="absolute top-3 left-3 w-7 h-7 rounded-full bg-purple-primary/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                                      <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M16 4h2c.55 0 1.1.22 1.49.59l.01.01c.39.4.61.95.61 1.52v2c0 .55-.22 1.1-.59 1.49l-.01.01c-.4.39-.95.61-1.52.61h-2l-1 6-3-2-3 2-1-6H6c-.55 0-1.1-.22-1.49-.59l-.01-.01A2.1 2.1 0 014 8.12v-2c0-.55.22-1.1.59-1.49l.01-.01C5 4.22 5.55 4 6.12 4H8V3a1 1 0 112 0v1h4V3a1 1 0 112 0v1zM9 20a1 1 0 102 0v-5.5l1 .67 1-.67V20a1 1 0 102 0v-7l-3 2-3-2v7z"/>
+                                      </svg>
+                                    </div>
+                                  )}
+
+                                  {/* Pin/Unpin button for profile owner */}
+                                  {isOwnProfile && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isPinned(work.id)) {
+                                          unpinPost(work.id);
+                                        } else if (canPin) {
+                                          pinPost(work.id);
+                                        }
+                                      }}
+                                      className={`absolute top-3 ${isPinned(work.id) ? 'left-12' : 'left-3'} w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 ${
+                                        isPinned(work.id)
+                                          ? 'bg-white/90 hover:bg-white text-purple-primary'
+                                          : canPin
+                                            ? 'bg-black/40 hover:bg-purple-primary/90 text-white'
+                                            : 'bg-black/20 text-white/50 cursor-not-allowed'
+                                      }`}
+                                      title={isPinned(work.id) ? 'Unpin post' : canPin ? 'Pin to profile' : 'Max 6 pinned posts'}
+                                    >
+                                      {isPinned(work.id) ? (
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                      ) : (
+                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                          <path d="M16 4h2c.55 0 1.1.22 1.49.59l.01.01c.39.4.61.95.61 1.52v2c0 .55-.22 1.1-.59 1.49l-.01.01c-.4.39-.95.61-1.52.61h-2l-1 6-3-2-3 2-1-6H6c-.55 0-1.1-.22-1.49-.59l-.01-.01A2.1 2.1 0 014 8.12v-2c0-.55.22-1.1.59-1.49l.01-.01C5 4.22 5.55 4 6.12 4H8V3a1 1 0 112 0v1h4V3a1 1 0 112 0v1zM9 20a1 1 0 102 0v-5.5l1 .67 1-.67V20a1 1 0 102 0v-7l-3 2-3-2v7z"/>
+                                        </svg>
+                                      )}
+                                    </button>
+                                  )}
+
                                   {/* Multi-image badge */}
                                   {hasMultipleImages && (
                                     <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
@@ -1821,6 +1877,47 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                               ) : (
                                 // No image - decorative placeholder
                                 <div className="w-full h-full flex items-center justify-center relative">
+                                  {/* Pinned badge for no-image posts */}
+                                  {isPinned(work.id) && (
+                                    <div className="absolute top-3 left-3 w-7 h-7 rounded-full bg-purple-primary/90 backdrop-blur-sm flex items-center justify-center shadow-lg z-10">
+                                      <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M16 4h2c.55 0 1.1.22 1.49.59l.01.01c.39.4.61.95.61 1.52v2c0 .55-.22 1.1-.59 1.49l-.01.01c-.4.39-.95.61-1.52.61h-2l-1 6-3-2-3 2-1-6H6c-.55 0-1.1-.22-1.49-.59l-.01-.01A2.1 2.1 0 014 8.12v-2c0-.55.22-1.1.59-1.49l.01-.01C5 4.22 5.55 4 6.12 4H8V3a1 1 0 112 0v1h4V3a1 1 0 112 0v1zM9 20a1 1 0 102 0v-5.5l1 .67 1-.67V20a1 1 0 102 0v-7l-3 2-3-2v7z"/>
+                                      </svg>
+                                    </div>
+                                  )}
+
+                                  {/* Pin/Unpin button for profile owner (no-image posts) */}
+                                  {isOwnProfile && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isPinned(work.id)) {
+                                          unpinPost(work.id);
+                                        } else if (canPin) {
+                                          pinPost(work.id);
+                                        }
+                                      }}
+                                      className={`absolute top-3 ${isPinned(work.id) ? 'left-12' : 'left-3'} w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 ${
+                                        isPinned(work.id)
+                                          ? 'bg-white/90 hover:bg-white text-purple-primary'
+                                          : canPin
+                                            ? 'bg-purple-primary/20 hover:bg-purple-primary/80 hover:text-white text-purple-primary'
+                                            : 'bg-black/10 text-muted cursor-not-allowed'
+                                      }`}
+                                      title={isPinned(work.id) ? 'Unpin post' : canPin ? 'Pin to profile' : 'Max 6 pinned posts'}
+                                    >
+                                      {isPinned(work.id) ? (
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                      ) : (
+                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                          <path d="M16 4h2c.55 0 1.1.22 1.49.59l.01.01c.39.4.61.95.61 1.52v2c0 .55-.22 1.1-.59 1.49l-.01.01c-.4.39-.95.61-1.52.61h-2l-1 6-3-2-3 2-1-6H6c-.55 0-1.1-.22-1.49-.59l-.01-.01A2.1 2.1 0 014 8.12v-2c0-.55.22-1.1.59-1.49l.01-.01C5 4.22 5.55 4 6.12 4H8V3a1 1 0 112 0v1h4V3a1 1 0 112 0v1zM9 20a1 1 0 102 0v-5.5l1 .67 1-.67V20a1 1 0 102 0v-7l-3 2-3-2v7z"/>
+                                        </svg>
+                                      )}
+                                    </button>
+                                  )}
+
                                   {/* Decorative pattern */}
                                   <div className="absolute inset-0 opacity-[0.03]" style={{
                                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%238e44ad' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`

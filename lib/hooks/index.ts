@@ -91,6 +91,9 @@ export {
 // UI Hooks (action menus, etc.)
 export { useActionMenu, useActionMenuWithModals } from "./useActionMenu";
 
+// Pinned Posts
+export { usePinnedPosts, useCommunityPinnedPosts } from "./usePinnedPosts";
+
 // Re-export types
 export type {
   Post,
@@ -129,4 +132,6 @@ export type {
   CollectionItemPost,
   CollectionWithItems,
   CollectionItemMetadata,
+  PinnedPost,
+  CommunityPinnedPost,
 } from "../types";

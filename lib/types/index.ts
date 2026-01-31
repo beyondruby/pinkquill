@@ -173,6 +173,27 @@ export interface RelayedPost extends Post {
 }
 
 // ============================================================================
+// PINNED POSTS TYPES
+// ============================================================================
+
+export interface PinnedPost {
+  id: string;
+  user_id: string;
+  post_id: string;
+  position: number;
+  pinned_at: string;
+}
+
+export interface CommunityPinnedPost {
+  id: string;
+  community_id: string;
+  post_id: string;
+  pinned_by: string;
+  position: number;
+  pinned_at: string;
+}
+
+// ============================================================================
 // REACTION TYPES
 // ============================================================================
 
