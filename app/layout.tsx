@@ -17,6 +17,7 @@ import {
   Cormorant_Garamond,
 } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "sonner";
 import { ModalProvider } from "@/components/providers/ModalProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { AuthModalProvider } from "@/components/providers/AuthModalProvider";
@@ -208,6 +209,17 @@ export default function RootLayout({
             <AuthModal />
           </AuthModalProvider>
         </AuthProvider>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: '#1e1e1e',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.1)',
+            },
+            className: 'toast-notification',
+          }}
+        />
       </body>
     </html>
   );

@@ -1,0 +1,536 @@
+# PinkQuill Feature Analysis & Industry Benchmark
+
+## Executive Summary
+
+PinkQuill is a feature-rich creative social platform with **24+ major features**. Below is a detailed comparison against Instagram and TikTok, with ratings and recommendations.
+
+---
+
+## Feature Benchmark Matrix
+
+### 1. FEED & CONTENT DISCOVERY
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Personalized Feed Algorithm** | Yes Custom scoring | Yes ML-based | Yes ML-based | 3/5 | Good but lacks ML. Uses engagement + relationship signals |
+| **Infinite Scroll** | Yes | Yes | Yes | 5/5 | Properly implemented with pagination |
+| **Pull to Refresh** | Not verified | Yes | Yes | 3/5 | Standard feature, should exist |
+| **Content Categories** | Yes 11 post types | Yes Posts/Reels/Stories | Yes Videos only | 5/5 | Excellent variety for creators |
+| **For You Page** | Yes | Yes Explore | Yes FYP | 4/5 | Algorithm scoring present |
+
+**Benchmark Assessment:**
+- STRENGTH: 11 unique post types (poem, journal, essay, etc.) - more variety than competitors
+- GAP: No ML/AI-based recommendation - relies on heuristic scoring
+- GAP: No Stories/ephemeral content feature
+
+---
+
+### 2. REACTIONS & ENGAGEMENT
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Reactions** | Yes 6 types | Yes Like only | Yes Like only | 5/5 | Superior - 6 reaction types |
+| **Comments** | Yes Nested replies | Yes Nested | Yes Nested | 5/5 | Lazy-loaded, optimized |
+| **Comment Likes** | Yes | Yes | Yes | 5/5 | Implemented |
+| **Share/Repost** | Yes Relay | Yes Share/Repost | Yes Share/Duet | 4/5 | Basic relay, no quote-relay |
+| **Save/Bookmark** | Yes | Yes Collections | Yes | 4/5 | Works but no save folders |
+
+**Benchmark Assessment:**
+- STRENGTH: 6 reaction types (admire, snap, ovation, support, inspired, applaud) - unique differentiator
+- GAP: No "Quote Relay" (like Twitter's Quote Tweet)
+- GAP: Save doesn't have folders/collections for organization
+
+---
+
+### 3. MESSAGING
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Direct Messages** | Yes | Yes | Yes | 5/5 | Real-time via Supabase |
+| **Voice Messages** | Yes Waveform | Yes | Yes | 5/5 | Excellent - waveform visualization |
+| **Media Messages** | Yes | Yes | Yes | 5/5 | Images/videos supported |
+| **Message Reactions** | No | Yes | Yes | 2/5 | Missing feature |
+| **Read Receipts** | Yes is_read flag | Yes | Yes | 4/5 | Basic implementation |
+| **Typing Indicators** | No | Yes | No | 2/5 | Not implemented |
+| **Disappearing Messages** | No | Yes Vanish Mode | No | 2/5 | Not implemented |
+| **Group Chats** | No | Yes | Yes | 2/5 | Only 1:1 conversations |
+
+**Benchmark Assessment:**
+- STRENGTH: Voice messages with waveform visualization
+- STRENGTH: Silent blocking (Instagram-style) - excellent privacy
+- GAP: No message reactions (emoji responses)
+- GAP: No typing indicators
+- GAP: No group chats
+- GAP: No disappearing messages
+
+---
+
+### 4. PROFILE & IDENTITY
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Profile Page** | Yes Full studio | Yes | Yes | 5/5 | Rich with collections |
+| **Bio/About** | Yes Extended | Yes Short | Yes Short | 5/5 | More fields (role, education, etc.) |
+| **Verified Badges** | Yes | Yes | Yes | 5/5 | Implemented |
+| **Private Accounts** | Yes | Yes | Yes | 5/5 | Full request system |
+| **Pinned Posts** | Yes | Yes | Yes | 5/5 | Per-user and per-community |
+| **Profile Links** | Yes Single | Yes Single + Linktree | Yes Single | 3/5 | Only 1 website link |
+| **Highlights/Collections** | Yes Collections | Yes Story Highlights | No | 5/5 | Unique collection system |
+
+**Benchmark Assessment:**
+- STRENGTH: Extended profile fields (role, education, location, languages)
+- STRENGTH: Collections system for organizing content
+- GAP: Only single website link (no link tree)
+
+---
+
+### 5. FOLLOWING & SOCIAL GRAPH
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Follow/Unfollow** | Yes | Yes | Yes | 5/5 | Standard |
+| **Follow Requests** | Yes | Yes | Yes | 5/5 | For private accounts |
+| **Followers List** | Yes | Yes | Yes | 5/5 | Modal view |
+| **Following List** | Yes | Yes | Yes | 5/5 | Modal view |
+| **Mutual Followers** | No | Yes | Yes | 2/5 | Not shown |
+| **Suggested Follows** | No | Yes | Yes | 2/5 | Missing |
+| **Close Friends** | No | Yes | No | 2/5 | Not implemented |
+
+**Benchmark Assessment:**
+- STRENGTH: Full private account flow with requests
+- GAP: No "Suggested Follows" feature
+- GAP: No mutual followers display
+- GAP: No Close Friends / favorites list
+
+---
+
+### 6. SEARCH & DISCOVERY
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Unified Search** | Yes | Yes | Yes | 5/5 | Users, posts, communities, tags |
+| **Hashtag Pages** | Yes | Yes | Yes | 5/5 | With trending calculation |
+| **Trending Tags** | Yes Real-time | Yes | Yes | 5/5 | 30-day calculation |
+| **Explore Tab Filters** | Yes 12 tabs | Yes Categories | Yes | 5/5 | For-you, trending, by type |
+| **Search History** | No | Yes | Yes | 2/5 | Not implemented |
+| **Recent Searches** | No | Yes | Yes | 2/5 | Not implemented |
+| **Location Search** | No | Yes | No | 2/5 | Not implemented |
+
+**Benchmark Assessment:**
+- STRENGTH: 12 explore tabs with algorithmic sorting
+- STRENGTH: Real trending tags (not just popular)
+- GAP: No search history persistence
+- GAP: No location-based discovery
+
+---
+
+### 7. NOTIFICATIONS
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Push Notifications** | No | Yes | Yes | 1/5 | Not implemented (web only) |
+| **In-App Notifications** | Yes Real-time | Yes | Yes | 5/5 | Supabase real-time |
+| **Notification Types** | Yes 17+ types | Yes | Yes | 5/5 | Comprehensive |
+| **Notification Grouping** | No | Yes | Yes | 2/5 | No grouping |
+| **Activity Filtering** | No | Yes | Yes | 2/5 | No category filters |
+
+**Benchmark Assessment:**
+- STRENGTH: 17+ notification types, real-time delivery
+- CRITICAL GAP: No push notifications (PWA/mobile)
+- GAP: No notification grouping ("X and 5 others liked your post")
+
+---
+
+### 8. COMMUNITIES
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Community Creation** | Yes | No | No | 5/5 | Unique feature |
+| **Community Roles** | Yes Admin/Mod/Member | N/A | N/A | 5/5 | Full role system |
+| **Moderation Tools** | Yes Mute/Ban | N/A | N/A | 5/5 | With duration/reason |
+| **Community Rules** | Yes | N/A | N/A | 5/5 | Rule management |
+| **Join Requests** | Yes | N/A | N/A | 5/5 | For private communities |
+| **Invitations** | Yes | N/A | N/A | 5/5 | Member invites |
+| **Community Insights** | Yes | N/A | N/A | 4/5 | In insights section |
+
+**Benchmark Assessment:**
+- MAJOR STRENGTH: Full community system - neither Instagram nor TikTok have this
+- This is a Reddit/Discord-like feature that differentiates PinkQuill
+
+---
+
+### 9. CONTENT CREATION
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Post Types** | Yes 11 types | Yes 4 types | Yes 1 type | 5/5 | Superior variety |
+| **Rich Text** | Yes HTML | No Plain text | No | 5/5 | Bold, italic, etc. |
+| **Post Styling** | Yes Backgrounds/fonts | Yes Story only | No | 5/5 | Creative backgrounds |
+| **Drafts** | Yes localStorage | Yes | Yes | 4/5 | Client-side only |
+| **Media Upload** | Yes | Yes | Yes | 5/5 | Images/videos |
+| **Content Warnings** | Yes | No | No | 5/5 | Unique feature |
+| **Collaborators** | Yes Multi-author | Yes Collab posts | No | 5/5 | Unique workflow |
+| **Mentions** | Yes | Yes | Yes | 5/5 | Up to 50 per post |
+| **Spotify Embed** | Yes | Yes Music | Yes Music | 4/5 | Track embedding |
+| **Filters/Effects** | No | Yes | Yes | 1/5 | Not implemented |
+| **Camera Integration** | No | Yes | Yes | 1/5 | Web-only platform |
+| **AR Effects** | No | Yes | Yes | 1/5 | Not implemented |
+| **Video Editing** | No | Yes Basic | Yes Advanced | 1/5 | Not implemented |
+
+**Benchmark Assessment:**
+- MAJOR STRENGTH: 11 post types with creative styling
+- STRENGTH: Collaboration workflow (multi-accept before publish)
+- STRENGTH: Content warnings for sensitive content
+- GAP: No filters/effects for media
+- GAP: No in-app video editing
+
+---
+
+### 10. VIDEO CONTENT (Takes)
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Short Video Feed** | Yes Takes | Yes Reels | Yes FYP | 4/5 | Separate feed |
+| **Video Upload** | Yes | Yes | Yes | 5/5 | Standard |
+| **Video Player** | Yes | Yes | Yes | 4/5 | Custom player |
+| **Video Comments** | Yes | Yes | Yes | 5/5 | Real-time |
+| **Duets/Stitches** | No | No | Yes | 2/5 | Not implemented |
+| **Video Effects** | No | Yes | Yes | 1/5 | Not implemented |
+| **Sound Library** | No | Yes | Yes | 1/5 | Not implemented |
+
+**Benchmark Assessment:**
+- STRENGTH: Takes feature exists as TikTok alternative
+- GAP: No Duet/Stitch equivalent
+- GAP: No sound library or effects
+
+---
+
+### 11. ANALYTICS
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Profile Analytics** | Yes | Yes Professional | Yes Pro | 5/5 | Available to all |
+| **View Tracking** | Yes | Yes | Yes | 5/5 | Session-based |
+| **Engagement Metrics** | Yes | Yes | Yes | 5/5 | Reactions, comments, etc. |
+| **Follower Growth** | Yes | Yes | Yes | 5/5 | Gained/lost tracking |
+| **Traffic Sources** | Yes | Yes | Yes | 5/5 | Source breakdown |
+| **Demographics** | Yes Basic | Yes Age/Location | Yes | 3/5 | Followers vs non |
+| **Best Time to Post** | No | Yes | Yes | 2/5 | Not implemented |
+
+**Benchmark Assessment:**
+- STRENGTH: Analytics available to all users (not just "professional" accounts)
+- GAP: No "Best Time to Post" suggestions
+- GAP: Limited demographics (no age/location breakdown)
+
+---
+
+### 12. PRIVACY & SAFETY
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Blocking** | Yes Silent | Yes | Yes | 5/5 | Instagram-style silent |
+| **Reporting** | Yes | Yes | Yes | 4/5 | Basic implementation |
+| **Private Account** | Yes | Yes | Yes | 5/5 | Full support |
+| **RLS Security** | Yes Server-side | Yes | Yes | 5/5 | Robust DB policies |
+| **Content Moderation** | No | Yes AI | Yes AI | 1/5 | No auto-moderation |
+| **Two-Factor Auth** | Supabase | Yes | Yes | 3/5 | Depends on Supabase config |
+| **Login Alerts** | No | Yes | Yes | 2/5 | Not implemented |
+| **Activity Status** | No | Yes | No | 3/5 | Privacy by default |
+
+**Benchmark Assessment:**
+- STRENGTH: RLS for server-side security enforcement
+- STRENGTH: Silent blocking (excellent UX)
+- CRITICAL GAP: No AI content moderation
+- GAP: No login alerts/security notifications
+
+---
+
+### 13. REAL-TIME FEATURES
+
+| Feature | PinkQuill | Instagram | TikTok | Rating | Notes |
+|---------|-----------|-----------|--------|--------|-------|
+| **Real-time Notifications** | Yes | Yes | Yes | 5/5 | Supabase channels |
+| **Real-time Messages** | Yes | Yes | Yes | 5/5 | Instant delivery |
+| **Real-time Comments** | Yes | Yes | Yes | 5/5 | Subscriptions |
+| **Live Streaming** | No | Yes | Yes | 1/5 | Not implemented |
+| **Live Comments** | No | Yes | Yes | N/A | No live feature |
+
+**Benchmark Assessment:**
+- STRENGTH: Comprehensive real-time via Supabase
+- MAJOR GAP: No live streaming feature
+
+---
+
+## Overall Ratings Summary
+
+| Category | Rating | vs Instagram | vs TikTok |
+|----------|--------|--------------|-----------|
+| Feed & Discovery | 4/5 | Comparable | Comparable |
+| Reactions & Engagement | 5/5 | **Better** | **Better** |
+| Messaging | 4/5 | Missing features | Comparable |
+| Profile & Identity | 5/5 | **Better** | **Better** |
+| Following System | 4/5 | Missing suggestions | Missing suggestions |
+| Search & Discovery | 4/5 | Missing history | Missing history |
+| Notifications | 3/5 | No push | No push |
+| Communities | 5/5 | **Unique** | **Unique** |
+| Content Creation | 5/5 | **Better** for text | Different focus |
+| Video (Takes) | 3/5 | Less features | Less features |
+| Analytics | 4/5 | Comparable | Comparable |
+| Privacy & Safety | 4/5 | No AI moderation | No AI moderation |
+| Real-time | 4/5 | No live | No live |
+
+---
+
+## Critical Gaps (Priority Order)
+
+### CRITICAL (Should implement ASAP)
+
+1. **Push Notifications** - Essential for engagement/retention
+2. **AI Content Moderation** - Required at scale for safety
+3. **Suggested Follows** - Critical for user growth
+4. **Notification Grouping** - UX improvement at scale
+
+### IMPORTANT (Should implement soon)
+
+5. **Message Reactions** - Expected feature
+6. **Group Chats** - Community building
+7. **Typing Indicators** - Real-time messaging UX
+8. **Search History** - User convenience
+9. **Live Streaming** - Engagement feature
+
+### NICE TO HAVE
+
+10. **Duet/Stitch for Takes**
+11. **Quote Relay**
+12. **Save Folders**
+13. **Close Friends List**
+14. **Login Alerts**
+
+---
+
+## Unique Strengths (Competitive Advantages)
+
+1. **11 Post Types** - No competitor offers this variety for creators
+2. **6 Reaction Types** - More expressive than simple likes
+3. **Full Community System** - Reddit-like communities within a social platform
+4. **Collaboration Workflow** - Unique multi-accept publishing flow
+5. **Content Warnings** - Safety-focused feature
+6. **Creative Styling** - Backgrounds, fonts, dividers for posts
+7. **Journal Metadata** - Mood, weather, time tracking
+8. **Collections System** - Unique content organization
+9. **Silent Blocking** - Best-in-class privacy implementation
+10. **Analytics for All** - Not locked behind "professional" tier
+
+---
+
+## Architecture Quality Assessment
+
+| Aspect | Rating | Notes |
+|--------|--------|-------|
+| **Database Design** | 5/5 | Well-normalized, proper indexes, JSONB for flexibility |
+| **Security (RLS)** | 5/5 | Server-side enforcement, proper policies |
+| **Real-time** | 5/5 | Supabase channels, proper cleanup |
+| **API Design** | 4/5 | Batch queries, but no dedicated API layer |
+| **State Management** | 4/5 | React hooks, no global state library |
+| **Performance** | 4/5 | Lazy loading, pagination, but could use more caching |
+| **Code Organization** | 5/5 | Clean hook separation, clear component structure |
+| **Type Safety** | 5/5 | Full TypeScript coverage |
+| **Error Handling** | 4/5 | Good but could add error boundaries |
+| **Testing** | 2/5 | No test files observed |
+
+---
+
+## Recommendations
+
+### Immediate Priority
+1. Add **Push Notifications** via Service Workers (PWA)
+2. Implement **Suggested Follows** algorithm
+3. Add **Notification Grouping** for better UX
+
+### Short-term
+4. Add **Message Reactions**
+5. Implement **Group Chats** (2-8 participants)
+6. Add **Search History** with localStorage
+
+### Medium-term
+7. Build **Live Streaming** infrastructure
+8. Add **AI Content Moderation** (use external service)
+9. Implement **Video Effects/Filters**
+
+### Technical Debt
+10. Add comprehensive **test coverage**
+11. Consider **Redis caching** for hot data
+12. Add **error boundary** components
+13. Implement **service worker** for offline support
+
+---
+
+## Complete Feature List
+
+### Core Features
+- Feed System (infinite scroll, pagination, real-time updates)
+- 11 Post Types (poem, journal, thought, visual, audio, video, essay, blog, story, letter, quote)
+- Authentication (Supabase Auth, email/password, magic links)
+- Profile System (extended fields, private accounts, verified badges)
+
+### Social Features
+- Following System (follow/unfollow, requests for private accounts)
+- 6 Reaction Types (admire, snap, ovation, support, inspired, applaud)
+- Comments (nested replies, lazy-loaded, likes)
+- Relay/Repost functionality
+- Save/Bookmark posts
+- Blocking (silent, Instagram-style)
+- Reporting (users and posts)
+
+### Content Features
+- Rich Text Editor (HTML content)
+- Post Styling (backgrounds, fonts, dividers, drop caps)
+- Media Upload (images, videos)
+- Voice Notes (recording with waveform)
+- Spotify Track Embedding
+- Content Warnings
+- Drafts (localStorage)
+- Journal Metadata (mood, weather, time of day)
+
+### Discovery Features
+- Explore Page (12 tabs, algorithmic sorting)
+- Search (users, posts, communities, tags)
+- Hashtag System (auto-extraction, trending calculation)
+- Trending Tags (30-day calculation)
+
+### Community Features
+- Community Creation
+- Roles (admin, moderator, member)
+- Moderation (mute, ban with duration/reason)
+- Community Rules
+- Join Requests (for private communities)
+- Invitations
+- Community Pinned Posts
+
+### Collaboration Features
+- Post Collaborators (up to 10, multi-accept workflow)
+- Post Mentions (up to 50)
+- Collaboration Invites with notifications
+
+### Messaging Features
+- Direct Messages (1:1)
+- Text Messages
+- Voice Messages (with waveform visualization)
+- Media Messages (images, videos)
+- Read Receipts
+- Real-time delivery
+- Silent blocking integration
+
+### Notification Features
+- 17+ Notification Types
+- Real-time delivery (Supabase channels)
+- Unread count tracking
+- Mark as read functionality
+
+### Profile Features
+- Studio Page (full profile view)
+- Collections (organize posts into themed collections)
+- Pinned Posts
+- Followers/Following modals
+- Extended bio fields (role, education, location, languages, website)
+
+### Analytics Features
+- Insights Dashboard
+- View Tracking (session-based)
+- Engagement Metrics
+- Follower Growth (gained/lost/net)
+- Traffic Source Analysis
+- Reaction Breakdown
+- Time Range Selection (7d, 30d, 90d, 1y, all, custom)
+- Audience Analytics
+- Content Performance
+- Community Statistics
+
+### Video Features (Takes)
+- Takes Feed
+- Video Upload
+- Video Player
+- Video Comments (nested, real-time)
+- Video Reactions (6 types)
+- View Tracking
+
+### Privacy & Safety Features
+- Private Accounts
+- Follow Request System
+- Silent Blocking
+- Reporting System
+- Row-Level Security (RLS)
+- Content Warnings
+
+### Real-time Features
+- Real-time Notifications
+- Real-time Messages
+- Real-time Comments
+- Real-time Reactions
+- Feed Updates (deletes, new content)
+
+---
+
+## Database Schema Overview
+
+### Core Tables
+- profiles (user data, extended fields)
+- posts (11 types, styling, metadata)
+- post_media (images, videos with position)
+
+### Social Tables
+- follows (with status for requests)
+- admires (legacy likes)
+- reactions (6 types)
+- saves (bookmarks)
+- relays (reposts)
+- comments (nested with parent_id)
+- comment_likes
+- blocks
+- reports
+
+### Messaging Tables
+- conversations
+- conversation_participants
+- messages (text, voice, media)
+
+### Community Tables
+- communities
+- community_members (with roles, status)
+- community_rules
+- community_tags
+- community_join_requests
+- community_invitations
+- community_pinned_posts
+
+### Collaboration Tables
+- post_collaborators (with status)
+- post_mentions
+
+### Discovery Tables
+- tags
+- post_tags
+
+### Notification Tables
+- notifications (17+ types)
+
+### Analytics Tables
+- post_views
+- post_impressions
+- take_views
+
+### Collection Tables
+- collections
+- collection_items
+- collection_item_posts
+
+### Other Tables
+- pinned_posts
+- takes
+- take_comments
+
+---
+
+Generated: 2026-01-31
+Platform: PinkQuill - Creative Social Platform
+Tech Stack: Next.js 16 + React 19 + Tailwind CSS v4 + Supabase

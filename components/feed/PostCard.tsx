@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,18 @@ import CommunityBadge from "@/components/communities/CommunityBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { PostStyling, JournalMetadata, PostBackground, SpotifyTrack } from "@/lib/types";
+import { actionToast } from "@/lib/utils/toast";
+import {
+  MentionsDisplay,
+  HashtagsDisplay,
+  SoundBars as SoundBarsComponent,
+  TruncatedContent as TruncatedContentComponent,
+  StyledTypeLabel as StyledTypeLabelComponent,
+  DeleteConfirmModal,
+  BlockConfirmModal,
+  PostMenu as PostMenuComponent,
+  type MentionInfo,
+} from "./PostCard/index";
 import {
   HeartIcon,
   CommentIcon,
@@ -32,147 +44,14 @@ import {
   ArrowRightIcon,
 } from "@/components/ui/Icons";
 
-// Helper to strip HTML tags for excerpts (uses regex for SSR consistency)
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-}
+// Helper functions imported from @/lib/utils/sanitize
+import { stripHtml } from "@/lib/utils/sanitize";
 
-// Helper to clean HTML for display (keeps tags but fixes &nbsp;)
-function cleanHtmlForDisplay(html: string): string {
-  return html.replace(/&nbsp;/g, ' ');
-}
+// TruncatedContent imported from ./PostCard/TruncatedContent
+const TruncatedContent = TruncatedContentComponent;
 
-// Helper to count words in content
-function countWords(text: string): number {
-  return text.trim().split(/\s+/).filter(word => word.length > 0).length;
-}
-
-// Helper to get excerpt by word count
-function getExcerptByWords(content: string, maxWords: number): { text: string; isTruncated: boolean } {
-  const text = stripHtml(content);
-  const words = text.trim().split(/\s+/).filter(word => word.length > 0);
-  if (words.length <= maxWords) {
-    return { text, isTruncated: false };
-  }
-  return { text: words.slice(0, maxWords).join(' ') + '...', isTruncated: true };
-}
-
-// Helper to get excerpt from content (legacy, character-based)
-function getExcerpt(content: string, maxLength: number): string {
-  const text = stripHtml(content);
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + "...";
-}
-
-// Truncated content component with "Continue reading" link (250 character limit for feeds)
-interface TruncatedContentProps {
-  content: string;
-  maxChars?: number;
-  onReadMore: () => void;
-  className?: string;
-  isPoem?: boolean;
-}
-
-function TruncatedContent({ content, maxChars = 250, onReadMore, className = "", isPoem = false }: TruncatedContentProps) {
-  const plainText = stripHtml(content);
-  const isTruncated = plainText.length > maxChars;
-  const truncatedText = getExcerpt(content, maxChars);
-
-  return (
-    <div className="truncated-content-wrapper">
-      <p className={`post-content-text ${isPoem ? 'text-center italic' : ''} ${className}`}>
-        {isTruncated ? truncatedText : plainText}
-      </p>
-      {isTruncated && (
-        <button
-          className="continue-reading-link"
-          onClick={(e) => {
-            e.stopPropagation();
-            onReadMore();
-          }}
-        >
-          Continue reading
-        </button>
-      )}
-    </div>
-  );
-}
-
-interface Author {
-  name: string;
-  handle: string;
-  avatar: string;
-}
-
-interface MediaItem {
-  id: string;
-  media_url: string;
-  media_type: "image" | "video";
-  caption: string | null;
-  position: number;
-}
-
-interface CommunityInfo {
-  slug: string;
-  name: string;
-  avatar_url?: string | null;
-}
-
-interface CollaboratorInfo {
-  status: 'pending' | 'accepted' | 'declined';
-  role?: string | null;
-  user: {
-    id: string;
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
-
-interface MentionInfo {
-  user: {
-    id: string;
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
-
-interface PostProps {
-  id: string;
-  authorId: string;
-  author: Author;
-  type: "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "blog" | "story" | "letter" | "quote";
-  typeLabel: string;
-  timeAgo: string;
-  createdAt?: string;
-  title?: string;
-  content: string;
-  contentWarning?: string;
-  media?: MediaItem[];
-  image?: string;
-  audioDuration?: string;
-  videoDuration?: string;
-  stats: {
-    admires: number;
-    reactions?: number;
-    comments: number;
-    relays: number;
-  };
-  isAdmired?: boolean;
-  reactionType?: ReactionType | null;
-  isSaved?: boolean;
-  isRelayed?: boolean;
-  community?: CommunityInfo;
-  collaborators?: CollaboratorInfo[];
-  mentions?: MentionInfo[];
-  hashtags?: string[];
-  // Creative styling
-  styling?: PostStyling | null;
-  post_location?: string | null;
-  metadata?: JournalMetadata | null;
-  spotify_track?: SpotifyTrack | null;
-}
+// Types imported from ./PostCard/types
+import type { PostProps } from "./PostCard/types";
 
 // Format date as "January 2, 2026"
 function formatDate(dateString: string): string {
@@ -229,120 +108,9 @@ const moodIndicators: Record<string, string> = {
   'contemplative': '💭',
 };
 
-// Post type styling configuration with icons and gradients
-const postTypeStyles: Record<string, { icon: React.ReactNode; gradient: string; label: string; prefix: string }> = {
-  poem: {
-    icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>,
-    gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
-    label: "Poem",
-    prefix: "wrote a"
-  },
-  journal: {
-    icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>,
-    gradient: "from-purple-primary via-pink-vivid to-orange-warm",
-    label: "Journal",
-    prefix: "wrote in their"
-  },
-  thought: {
-    icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
-    gradient: "from-amber-400 via-orange-500 to-red-500",
-    label: "Thought",
-    prefix: "shared a"
-  },
-  essay: {
-    icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-    gradient: "from-emerald-400 via-teal-500 to-cyan-500",
-    label: "Essay",
-    prefix: "wrote an"
-  },
-  story: {
-    icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>,
-    gradient: "from-blue-400 via-indigo-500 to-purple-600",
-    label: "Story",
-    prefix: "shared a"
-  },
-  letter: {
-    icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
-    gradient: "from-rose-400 via-pink-500 to-red-400",
-    label: "Letter",
-    prefix: "wrote a"
-  },
-  screenplay: {
-    icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>,
-    gradient: "from-slate-400 via-zinc-500 to-neutral-600",
-    label: "Screenplay",
-    prefix: "wrote a"
-  },
-  quote: {
-    icon: <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" /></svg>,
-    gradient: "from-yellow-400 via-amber-500 to-orange-500",
-    label: "Quote",
-    prefix: "shared a"
-  },
-  visual: {
-    icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
-    gradient: "from-pink-400 via-rose-500 to-red-500",
-    label: "Visual Story",
-    prefix: "shared a"
-  },
-  audio: {
-    icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>,
-    gradient: "from-green-400 via-emerald-500 to-teal-500",
-    label: "Voice Note",
-    prefix: "recorded a"
-  },
-  video: {
-    icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
-    gradient: "from-red-400 via-rose-500 to-pink-500",
-    label: "Video",
-    prefix: "shared a"
-  }
-};
-
-// Styled post type label component
-function StyledTypeLabel({ type }: { type: string }) {
-  const style = postTypeStyles[type];
-  if (!style) return <span>{type}</span>;
-
-  // Get the first color from gradient for the icon
-  const iconColorMap: Record<string, string> = {
-    poem: "#8b5cf6",
-    journal: "#8e44ad",
-    thought: "#f59e0b",
-    essay: "#10b981",
-    story: "#6366f1",
-    letter: "#f43f5e",
-    screenplay: "#71717a",
-    quote: "#eab308",
-    visual: "#ec4899",
-    audio: "#22c55e",
-    video: "#ef4444"
-  };
-
-  return (
-    <span className="inline-flex items-center gap-1">
-      {style.prefix}{" "}
-      <span className={`inline-flex items-center gap-1 font-medium bg-gradient-to-r ${style.gradient} bg-clip-text text-transparent`}>
-        <span style={{ color: iconColorMap[type] || "#8e44ad" }}>{style.icon}</span>
-        {style.label}
-      </span>
-    </span>
-  );
-}
-
-// Sound Wave Animation Component
-function SoundBars() {
-  return (
-    <div className="sound-bars">
-      <div className="sound-bar"></div>
-      <div className="sound-bar"></div>
-      <div className="sound-bar"></div>
-      <div className="sound-bar"></div>
-      <div className="sound-bar"></div>
-      <div className="sound-bar"></div>
-    </div>
-  );
-}
+// Use imported modular components
+const StyledTypeLabel = StyledTypeLabelComponent;
+const SoundBars = SoundBarsComponent;
 
 function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDeleted?: (postId: string) => void }) {
   const router = useRouter();
@@ -545,11 +313,24 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
       countChange: 0,
     });
 
-    await toggleSave(post.id, user.id, isSaved);
+    try {
+      await toggleSave(post.id, user.id, isSaved);
 
-    // Create notification when saving (not when unsaving)
-    if (newIsSaved && post.authorId !== user.id) {
-      await createNotification(post.authorId, user.id, 'save', post.id);
+      // Show toast feedback
+      if (newIsSaved) {
+        actionToast.postSaved();
+      } else {
+        actionToast.postUnsaved();
+      }
+
+      // Create notification when saving (not when unsaving)
+      if (newIsSaved && post.authorId !== user.id) {
+        await createNotification(post.authorId, user.id, 'save', post.id);
+      }
+    } catch {
+      // Revert on error
+      setIsSaved(!newIsSaved);
+      actionToast.genericError("save post");
     }
   }, [user, openAuthModal, isSaved, post.id, post.authorId, notifyUpdate, toggleSave]);
 
@@ -575,10 +356,24 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
       countChange,
     });
 
-    await toggleRelay(post.id, user.id, isRelayed);
+    try {
+      await toggleRelay(post.id, user.id, isRelayed);
 
-    if (newIsRelayed) {
-      await createNotification(post.authorId, user.id, 'relay', post.id);
+      // Show toast feedback
+      if (newIsRelayed) {
+        actionToast.postRelayed();
+      } else {
+        actionToast.postUnrelayed();
+      }
+
+      if (newIsRelayed) {
+        await createNotification(post.authorId, user.id, 'relay', post.id);
+      }
+    } catch {
+      // Revert on error
+      setIsRelayed(!newIsRelayed);
+      setRelayCount((prev) => Math.max(0, prev - countChange));
+      actionToast.genericError("relay post");
     }
   }, [user, openAuthModal, isRelayed, post.id, post.authorId, notifyUpdate, toggleRelay]);
 
@@ -618,17 +413,20 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
 
       if (error) {
         console.error("Error deleting post:", error);
+        actionToast.postDeleteError();
         setDeleting(false);
         return;
       }
 
       setShowDeleteConfirm(false);
+      actionToast.postDeleted();
       // Notify parent to remove post from list
       if (onPostDeleted) {
         onPostDeleted(post.id);
       }
     } catch (err) {
       console.error("Failed to delete post:", err);
+      actionToast.postDeleteError();
       setDeleting(false);
     }
   }, [post.id, onPostDeleted]);
@@ -651,17 +449,20 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
 
       if (error) {
         console.error("Error submitting report:", error);
+        actionToast.reportError();
         setReportSubmitting(false);
         return;
       }
 
       setReportSubmitted(true);
+      actionToast.reportSubmitted();
       reportTimeoutRef.current = setTimeout(() => {
         setShowReportModal(false);
         setReportSubmitted(false);
       }, 2000);
     } catch (err) {
       console.error("Failed to submit report:", err);
+      actionToast.reportError();
     }
     setReportSubmitting(false);
   }, [user, post.id]);
@@ -673,76 +474,28 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
     const result = await blockUser(user.id, post.authorId);
     if (result.success) {
       setShowBlockConfirm(false);
+      actionToast.userBlocked(post.author.handle);
       // Remove post from view by calling onPostDeleted if available
       if (onPostDeleted) {
         onPostDeleted(post.id);
       }
+    } else {
+      actionToast.blockError();
     }
     setBlockLoading(false);
-  }, [user, blockUser, post.authorId, post.id, onPostDeleted]);
+  }, [user, blockUser, post.authorId, post.author.handle, post.id, onPostDeleted]);
 
-  // Mentions/Tagged People display
-  const hasMentions = post.mentions && post.mentions.length > 0;
-  const MentionsDisplay = () => {
-    if (!hasMentions) return null;
-    const mentions = post.mentions!;
-    const displayCount = 3;
-    const visibleMentions = mentions.slice(0, displayCount);
-    const remainingCount = mentions.length - displayCount;
-
-    return (
-      <div className="mentions-display" onClick={(e) => e.stopPropagation()}>
-        <span className="mentions-label">with</span>
-        {visibleMentions.map((mention, index) => (
-          <span key={mention.user.id}>
-            <Link
-              href={`/studio/${mention.user.username}`}
-              className="mention-link"
-            >
-              @{mention.user.username}
-            </Link>
-            {index < visibleMentions.length - 1 && <span className="mention-separator">, </span>}
-          </span>
-        ))}
-        {remainingCount > 0 && (
-          <span className="mentions-more">+{remainingCount} more</span>
-        )}
-      </div>
-    );
-  };
-
-  // Hashtags display
-  const hasHashtags = post.hashtags && post.hashtags.length > 0;
-  const HashtagsDisplay = () => {
-    if (!hasHashtags) return null;
-    const tags = post.hashtags!;
-    const displayCount = 4;
-    const visibleTags = tags.slice(0, displayCount);
-    const remainingCount = tags.length - displayCount;
-
-    return (
-      <div className="hashtags-display" onClick={(e) => e.stopPropagation()}>
-        {visibleTags.map((tag) => (
-          <Link
-            key={tag}
-            href={`/tag/${encodeURIComponent(tag)}`}
-            className="hashtag-link"
-          >
-            #{tag}
-          </Link>
-        ))}
-        {remainingCount > 0 && (
-          <span className="hashtags-more">+{remainingCount}</span>
-        )}
-      </div>
-    );
-  };
+  // Mentions and hashtags from post data (passed to extracted components)
 
   // Actions component reused across post types (now includes mentions and hashtags display)
   const Actions = () => (
     <div className="actions-wrapper">
-      <MentionsDisplay />
-      <HashtagsDisplay />
+      {post.mentions && post.mentions.length > 0 && (
+        <MentionsDisplay mentions={post.mentions} />
+      )}
+      {post.hashtags && post.hashtags.length > 0 && (
+        <HashtagsDisplay hashtags={post.hashtags} />
+      )}
       <div className="actions" role="toolbar" aria-label="Post actions">
         <div className="actions-left">
         {/* Reaction Picker with real-time counts */}
@@ -786,8 +539,11 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
     </div>
   );
 
-  // Get accepted collaborators
-  const acceptedCollaborators = (post.collaborators || []).filter(c => c.status === 'accepted');
+  // Get accepted collaborators - memoized to prevent recalculation on every render
+  const acceptedCollaborators = useMemo(() =>
+    (post.collaborators || []).filter(c => c.status === 'accepted'),
+    [post.collaborators]
+  );
   const hasCollaborators = acceptedCollaborators.length > 0;
   const hasCommunity = !!post.community;
 
