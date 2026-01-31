@@ -25,6 +25,24 @@ import Loading from "@/components/ui/Loading";
 import type { Collection } from "@/lib/types";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
+// Helper function to decode HTML entities
+function decodeHtmlEntities(text: string): string {
+  const entities: Record<string, string> = {
+    '&lt;': '<',
+    '&gt;': '>',
+    '&amp;': '&',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&nbsp;': ' ',
+    '&#x27;': "'",
+    '&#x2F;': '/',
+    '&#60;': '<',
+    '&#62;': '>',
+  };
+  return text.replace(/&[#\w]+;/g, (match) => entities[match] || match);
+}
+
 // Custom hook for scroll-triggered card reveal
 function useScrollReveal() {
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
@@ -1744,7 +1762,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       const hasMedia = work.media && work.media.length > 0;
                       const hasMultipleImages = work.media && work.media.length > 1;
                       const plainContent = work.content
-                        ? work.content.replace(/<[^>]*>/g, '').substring(0, 100)
+                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 100)
                         : '';
                       const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
                         month: 'short',
@@ -1912,7 +1930,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
                       const hasMedia = work.media && work.media.length > 0;
                       const plainContent = work.content
-                        ? work.content.replace(/<[^>]*>/g, '').substring(0, 300)
+                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 300)
                         : '';
                       const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
                         weekday: 'long',
@@ -2060,7 +2078,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   <div className="space-y-8">
                     {filteredPosts.map((work) => {
                       const plainContent = work.content
-                        ? work.content.replace(/<[^>]*>/g, '').substring(0, 200)
+                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 200)
                         : '';
                       const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
                         month: 'long',
@@ -2164,7 +2182,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           {dayPosts.map((work) => {
                             const hasMedia = work.media && work.media.length > 0;
                             const plainContent = work.content
-                              ? work.content.replace(/<[^>]*>/g, '').substring(0, 120)
+                              ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 120)
                               : '';
 
                             // Get time from created_at
@@ -2227,7 +2245,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     {filteredPosts.map((work) => {
                       const hasMedia = work.media && work.media.length > 0;
                       const plainContent = work.content
-                        ? work.content.replace(/<[^>]*>/g, '').substring(0, 100)
+                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 100)
                         : '';
                       const community = work.community;
 
@@ -2445,7 +2463,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
                       const hasMedia = relay.media && relay.media.length > 0;
                       const plainContent = relay.content
-                        ? relay.content.replace(/<[^>]*>/g, '').substring(0, 200)
+                        ? decodeHtmlEntities(relay.content.replace(/<[^>]*>/g, '')).substring(0, 200)
                         : '';
 
                       const typeLabels: Record<string, string> = {

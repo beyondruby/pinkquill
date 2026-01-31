@@ -143,6 +143,12 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             caption,
             position
           ),
+          community:communities (
+            id,
+            slug,
+            name,
+            avatar_url
+          ),
           admires:admires(count),
           comments:comments(count)
         `
@@ -207,6 +213,9 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         styling: post.styling || null,
         post_location: post.post_location || null,
         metadata: post.metadata || null,
+        // Community data
+        community: post.community || null,
+        community_id: post.community_id || null,
       }));
 
       setPosts(postsWithStats as Post[]);
