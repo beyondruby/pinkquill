@@ -2073,15 +2073,14 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 );
               }
 
-              // ========== JOURNALS VIEW ==========
+              // ========== JOURNALS VIEW (Original) ==========
               if (postViewMode === "journals") {
                 // Group journals by date
                 const journalsByDate: Record<string, typeof filteredPosts> = {};
                 filteredPosts.forEach(post => {
                   const date = new Date(post.created_at);
                   const dateKey = date.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'long',
+                    month: 'short',
                     day: 'numeric',
                     year: 'numeric'
                   });
@@ -2092,28 +2091,18 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 });
 
                 return (
-                  <div className="space-y-8">
+                  <div className="studio-journals-grid">
                     {Object.entries(journalsByDate).map(([dateKey, dayPosts]) => (
-                      <div key={dateKey} className="relative">
-                        {/* Date header */}
-                        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm py-3 mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                            <h3 className="font-display text-lg font-semibold text-ink">{dateKey}</h3>
-                          </div>
-                        </div>
-
-                        {/* Timeline */}
-                        <div className="relative pl-8 border-l-2 border-purple-primary/20 space-y-6">
+                      <div key={dateKey} className="journals-date-section">
+                        <div className="journals-date-label">{dateKey}</div>
+                        <div className="journals-entries">
                           {dayPosts.map((work) => {
                             const hasMedia = work.media && work.media.length > 0;
                             const plainContent = work.content
-                              ? work.content.replace(/<[^>]*>/g, '').substring(0, 150)
+                              ? work.content.replace(/<[^>]*>/g, '').substring(0, 120)
                               : '';
+
+                            // Get time from created_at
                             const entryTime = new Date(work.created_at).toLocaleTimeString('en-US', {
                               hour: 'numeric',
                               minute: '2-digit',
@@ -2124,76 +2113,22 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                               <article
                                 key={work.id}
                                 onClick={() => openPostModal(createPostForModal(work))}
-                                className="group relative cursor-pointer"
+                                className="journal-card"
                               >
-                                {/* Timeline dot */}
-                                <div className="absolute -left-[25px] top-2 w-3 h-3 rounded-full bg-purple-primary/30 group-hover:bg-purple-primary group-hover:scale-125 transition-all" />
-
-                                <div className="bg-white rounded-xl border border-black/[0.06] hover:border-purple-primary/20 hover:shadow-lg transition-all p-5">
-                                  {/* Time */}
-                                  <span className="text-xs font-medium text-purple-primary bg-purple-primary/10 px-2 py-1 rounded-full">
-                                    {entryTime}
-                                  </span>
-
-                                  {/* Title */}
-                                  {work.title && (
-                                    <h4 className="font-display text-lg font-semibold text-ink mt-3 group-hover:text-purple-primary transition-colors">
-                                      {work.title}
-                                    </h4>
-                                  )}
-
-                                  {/* Content preview */}
-                                  <p className="font-body text-sm text-muted mt-2 line-clamp-2">
-                                    {plainContent}
-                                  </p>
-
-                                  {/* Media thumbnail */}
-                                  {hasMedia && (
-                                    <div className="mt-3 flex gap-2">
-                                      {work.media.slice(0, 3).map((m: any, i: number) => (
-                                        <div key={i} className="w-16 h-16 rounded-lg overflow-hidden bg-black/[0.03]">
-                                          <img src={m.media_url} alt="" className="w-full h-full object-cover" />
-                                        </div>
-                                      ))}
-                                      {work.media.length > 3 && (
-                                        <div className="w-16 h-16 rounded-lg bg-black/[0.05] flex items-center justify-center text-sm text-muted">
-                                          +{work.media.length - 3}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Metadata badges */}
-                                  {work.metadata && (
-                                    <div className="flex flex-wrap gap-2 mt-3">
-                                      {work.metadata.mood && (
-                                        <span className="text-xs px-2 py-1 rounded-full bg-pink-vivid/10 text-pink-vivid">
-                                          {work.metadata.mood}
-                                        </span>
-                                      )}
-                                      {work.metadata.weather && (
-                                        <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-600">
-                                          {work.metadata.weather}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Stats */}
-                                  <div className="flex items-center gap-4 mt-4 pt-3 border-t border-black/[0.04] text-xs text-muted">
-                                    <span className="flex items-center gap-1">
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                      </svg>
-                                      {work.admires_count || 0}
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                      </svg>
-                                      {work.comments_count || 0}
-                                    </span>
+                                {hasMedia && (
+                                  <div className="journal-card-image">
+                                    <img src={work.media[0].media_url} alt="" />
+                                    {work.media.length > 1 && (
+                                      <span className="journal-card-image-count">+{work.media.length - 1}</span>
+                                    )}
                                   </div>
+                                )}
+                                <div className="journal-card-body">
+                                  <span className="journal-card-time">{entryTime}</span>
+                                  {work.title && (
+                                    <h3 className="journal-card-title">{work.title}</h3>
+                                  )}
+                                  <p className="journal-card-excerpt">{plainContent}</p>
                                 </div>
                               </article>
                             );
