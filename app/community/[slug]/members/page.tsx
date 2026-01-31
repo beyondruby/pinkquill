@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useCommunityMembers, useCommunityModeration } from "@/lib/hooks";
+import { useCommunity, useCommunityMembers, useCommunityModeration, useJoinRequests } from "@/lib/hooks";
 import InviteModal from "@/components/communities/InviteModal";
 
 type RoleFilter = 'all' | 'admin' | 'moderator' | 'member';
@@ -40,6 +40,7 @@ export default function CommunityMembersPage() {
   );
 
   const { promoteUser, demoteUser, muteUser, banUser } = useCommunityModeration(community?.id || '');
+  const { requests: joinRequests, loading: requestsLoading, approve: approveRequest, reject: rejectRequest, refetch: refetchRequests } = useJoinRequests(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
@@ -126,6 +127,27 @@ export default function CommunityMembersPage() {
     setActionLoading(false);
   };
 
+  const handleApproveRequest = async (requestId: string, userId: string) => {
+    if (!user?.id) return;
+    setActionLoading(true);
+    const result = await approveRequest(requestId, userId, user.id);
+    if (result.success) {
+      refetchRequests();
+      refetch(); // Refetch members list too
+    }
+    setActionLoading(false);
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    if (!user?.id) return;
+    setActionLoading(true);
+    const result = await rejectRequest(requestId, user.id);
+    if (result.success) {
+      refetchRequests();
+    }
+    setActionLoading(false);
+  };
+
   return (
     <div className="max-w-3xl mx-auto">
       {/* Header */}
@@ -163,6 +185,102 @@ export default function CommunityMembersPage() {
           )}
         </div>
       </div>
+
+      {/* Join Requests Section - for private communities */}
+      {community.privacy === 'private' && canManage && joinRequests.length > 0 && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 rounded-2xl border border-purple-primary/10">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-purple-primary/10 flex items-center justify-center">
+                <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+              </div>
+              <h3 className="font-display font-semibold text-ink">
+                Join Requests ({joinRequests.length})
+              </h3>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {joinRequests.map((request) => (
+              <div
+                key={request.id}
+                className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-white rounded-xl border border-black/5"
+              >
+                {/* User Info */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <Link
+                    href={`/studio/${request.profile?.username}`}
+                    className="flex-shrink-0"
+                  >
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
+                      {request.profile?.avatar_url ? (
+                        <img
+                          src={request.profile.avatar_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
+                          {(request.profile?.display_name || request.profile?.username || '?').charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link
+                      href={`/studio/${request.profile?.username}`}
+                      className="font-ui font-medium text-ink hover:text-purple-primary transition-colors"
+                    >
+                      {request.profile?.display_name || request.profile?.username}
+                    </Link>
+                    <p className="font-ui text-sm text-muted">@{request.profile?.username}</p>
+                  </div>
+                </div>
+
+                {/* Message */}
+                {request.message && (
+                  <div className="flex-1 sm:max-w-[300px]">
+                    <p className="font-body text-sm text-ink/80 bg-black/5 rounded-lg px-3 py-2 italic">
+                      "{request.message}"
+                    </p>
+                  </div>
+                )}
+
+                {/* Request Time */}
+                <div className="hidden md:block text-right flex-shrink-0">
+                  <p className="font-ui text-xs text-muted">Requested</p>
+                  <p className="font-ui text-sm text-ink">
+                    {new Date(request.created_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleApproveRequest(request.id, request.user_id)}
+                    disabled={actionLoading}
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium hover:shadow-lg hover:shadow-pink-vivid/20 transition-all disabled:opacity-50"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleRejectRequest(request.id)}
+                    disabled={actionLoading}
+                    className="px-4 py-2 rounded-lg bg-black/5 text-ink font-ui text-sm font-medium hover:bg-black/10 transition-colors disabled:opacity-50"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Role Filters */}
       <div className="flex items-center gap-2 mb-4 border-b border-black/5 pb-4">
