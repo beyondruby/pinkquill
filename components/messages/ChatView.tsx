@@ -831,15 +831,15 @@ export default function ChatView({
                           </div>
                         )}
                         <div
-                          className={`flex items-center justify-end gap-1 mt-1.5 ${
-                            isOwn ? "text-white/70" : "text-muted"
+                          className={`flex items-center gap-1 mt-1.5 ${
+                            isOwn ? "justify-end text-muted" : "justify-start text-muted"
                           }`}
                         >
                           <span className="font-ui text-[0.7rem]">
                             {formatMessageTime(message.created_at)}
                           </span>
                           {isOwn && (
-                            <span className={message.is_read ? "text-white" : "text-white/50"}>
+                            <span className={message.is_read ? "text-purple-primary" : "text-muted"}>
                               {icons.doubleCheck}
                             </span>
                           )}
