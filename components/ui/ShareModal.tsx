@@ -13,6 +13,7 @@ interface ShareModalProps {
   authorUsername?: string;
   authorAvatar?: string;
   imageUrl?: string;
+  onSendToDM?: () => void; // Callback to open Send to DM modal
 }
 
 // Social Icons
@@ -100,6 +101,7 @@ export default function ShareModal({
   authorUsername = "",
   authorAvatar = "",
   imageUrl = "",
+  onSendToDM,
 }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [embedCopied, setEmbedCopied] = useState(false);
@@ -569,6 +571,24 @@ export default function ShareModal({
 
         {activeTab === "share" && (
           <>
+            {/* Send as Message - Primary CTA */}
+            {onSendToDM && (
+              <div className="px-5 pb-4">
+                <button
+                  onClick={() => {
+                    onClose();
+                    onSendToDM();
+                  }}
+                  className="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold text-sm shadow-lg shadow-purple-primary/25 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Send as Message
+                </button>
+              </div>
+            )}
+
             {/* Copy Link */}
             <div className="share-copy-section">
               <div className="share-link-input">

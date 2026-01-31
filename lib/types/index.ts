@@ -365,7 +365,7 @@ export interface ConversationParticipant {
   };
 }
 
-export type MessageType = "text" | "voice" | "media";
+export type MessageType = "text" | "voice" | "media" | "post_share";
 
 // Supported emoji reactions for messages (like Instagram DMs)
 export const MESSAGE_REACTION_EMOJIS = ["❤️", "😂", "😮", "😢", "😠", "👍"] as const;
@@ -400,6 +400,9 @@ export interface Message {
   // Media message fields
   media_url?: string;
   media_type?: "image" | "video";
+  // Shared post fields (for post_share message type)
+  shared_post_id?: string;
+  shared_post?: SharedPostPreview;
   sender?: {
     username: string;
     display_name: string | null;
@@ -407,6 +410,25 @@ export interface Message {
   };
   // Reactions on this message
   reactions?: MessageReaction[];
+}
+
+// Preview data for shared posts in messages
+export interface SharedPostPreview {
+  id: string;
+  type: PostType;
+  title: string | null;
+  content: string;
+  author: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+  media?: {
+    media_url: string;
+    media_type: "image" | "video";
+  } | null;
+  created_at: string;
 }
 
 // Typing indicator state

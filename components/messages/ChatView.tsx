@@ -9,6 +9,7 @@ import VoiceRecorder from "./VoiceRecorder";
 import VoiceNotePlayer from "./VoiceNotePlayer";
 import MessageReactionPicker, { ReactionsDisplay } from "./MessageReactionPicker";
 import TypingIndicator from "./TypingIndicator";
+import SharedPostCard from "./SharedPostCard";
 import Loading from "@/components/ui/Loading";
 import EmojiPicker from "@/components/ui/EmojiPicker";
 import { DEFAULT_AVATAR } from "@/lib/utils/image";
@@ -795,6 +796,42 @@ export default function ChatView({
                         )}
                         <div
                           className={`flex items-center justify-end gap-1 px-3 py-2 ${
+                            isOwn ? "text-white/70" : "text-muted"
+                          }`}
+                        >
+                          <span className="font-ui text-[0.7rem]">
+                            {formatMessageTime(message.created_at)}
+                          </span>
+                          {isOwn && (
+                            <span className={message.is_read ? "text-white" : "text-white/50"}>
+                              {icons.doubleCheck}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : message.message_type === "post_share" && message.shared_post_id ? (
+                      <div className="flex flex-col">
+                        <SharedPostCard
+                          postId={message.shared_post_id}
+                          isOwnMessage={isOwn}
+                          cachedPost={message.shared_post}
+                        />
+                        {/* Optional message content */}
+                        {message.content && (
+                          <div
+                            className={`mt-2 px-4 py-2 rounded-2xl ${
+                              isOwn
+                                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
+                                : "bg-white text-ink shadow-sm rounded-bl-md"
+                            }`}
+                          >
+                            <p className="font-body text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words">
+                              {message.content}
+                            </p>
+                          </div>
+                        )}
+                        <div
+                          className={`flex items-center justify-end gap-1 mt-1.5 ${
                             isOwn ? "text-white/70" : "text-muted"
                           }`}
                         >

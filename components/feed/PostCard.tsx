@@ -11,6 +11,7 @@ import { useToggleAdmire, useToggleSave, useToggleRelay, useToggleReaction, useR
 import { usePostViewTracker, useTrackPostImpression } from "@/lib/hooks/useTracking";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
+import SendToDMModal from "@/components/messages/SendToDMModal";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
@@ -134,6 +135,7 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [showContent, setShowContent] = useState(!post.contentWarning);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showSendToDMModal, setShowSendToDMModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1037,7 +1039,50 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
         authorUsername={post.author.handle}
         authorAvatar={post.author.avatar}
         imageUrl={post.media && post.media.length > 0 ? post.media[0].media_url : ""}
+        onSendToDM={user ? () => setShowSendToDMModal(true) : undefined}
       />
+
+      {/* Send to DM Modal */}
+      {user && (
+        <SendToDMModal
+          isOpen={showSendToDMModal}
+          onClose={() => setShowSendToDMModal(false)}
+          post={{
+            id: post.id,
+            author_id: post.authorId,
+            type: post.type as any,
+            title: post.title || null,
+            content: post.content,
+            visibility: "public",
+            content_warning: post.contentWarning || null,
+            created_at: post.createdAt || new Date().toISOString(),
+            community_id: null,
+            author: {
+              id: post.authorId,
+              username: post.author.handle,
+              display_name: post.author.name,
+              avatar_url: post.author.avatar,
+              is_verified: false,
+            },
+            media: post.media?.map(m => ({
+              id: m.id,
+              media_url: m.media_url,
+              media_type: m.media_type,
+              caption: m.caption,
+              position: m.position,
+            })) || [],
+            admires_count: post.stats.admires,
+            reactions_count: post.stats.reactions || 0,
+            comments_count: post.stats.comments,
+            relays_count: post.stats.relays,
+            user_has_admired: post.isAdmired || false,
+            user_reaction_type: post.reactionType || null,
+            user_has_saved: post.isSaved || false,
+            user_has_relayed: post.isRelayed || false,
+          }}
+          currentUserId={user.id}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
