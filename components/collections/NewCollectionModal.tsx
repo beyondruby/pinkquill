@@ -12,6 +12,57 @@ interface NewCollectionModalProps {
   onCreated: (collection: Collection) => void;
 }
 
+// Branded icons (stored as icon_emoji with "icon:" prefix)
+const brandedIcons = [
+  { id: "icon:quill", label: "Quill", icon: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+      <line x1="16" y1="8" x2="2" y2="22"/>
+    </svg>
+  )},
+  { id: "icon:sparkle", label: "Sparkle", icon: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/>
+      <path d="M5 3l.5 2L7 5.5 5.5 6 5 8l-.5-2L3 5.5 4.5 5 5 3z"/>
+      <path d="M19 17l.5 2 1.5.5-1.5.5-.5 2-.5-2-1.5-.5 1.5-.5.5-2z"/>
+    </svg>
+  )},
+  { id: "icon:heart", label: "Heart", icon: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  )},
+  { id: "icon:book", label: "Book", icon: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+  )},
+  { id: "icon:music", label: "Music", icon: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18V5l12-2v13"/>
+      <circle cx="6" cy="18" r="3"/>
+      <circle cx="18" cy="16" r="3"/>
+    </svg>
+  )},
+  { id: "icon:camera", label: "Camera", icon: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </svg>
+  )},
+  { id: "icon:folder", label: "Folder", icon: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+    </svg>
+  )},
+  { id: "icon:star", label: "Star", icon: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  )},
+];
+
 // Emoji options organized by category
 const emojiCategories = [
   {
@@ -256,6 +307,10 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               >
                 {iconUrl ? (
                   <img src={iconUrl} alt="" className="w-full h-full object-cover rounded-xl" />
+                ) : iconEmoji?.startsWith("icon:") ? (
+                  <div className="w-10 h-10 text-purple-primary">
+                    {brandedIcons.find(i => i.id === iconEmoji)?.icon}
+                  </div>
                 ) : iconEmoji ? (
                   <span className="text-4xl">{String.fromCodePoint(parseInt(iconEmoji, 16))}</span>
                 ) : (
@@ -265,11 +320,44 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                 )}
               </button>
 
-              {/* Emoji Picker Dropdown */}
+              {/* Emoji & Icon Picker Dropdown */}
               {showEmojiPicker && (
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-black/[0.08] z-10 overflow-hidden">
-                  {/* Scrollable emoji grid */}
-                  <div className="max-h-72 overflow-y-auto p-4">
+                  {/* Scrollable content */}
+                  <div className="max-h-80 overflow-y-auto p-4">
+                    {/* Branded Icons Section */}
+                    <div className="mb-4">
+                      <p className="font-ui text-xs font-medium text-purple-primary uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+                        </svg>
+                        PinkQuill Icons
+                      </p>
+                      <div className="grid grid-cols-8 gap-1">
+                        {brandedIcons.map((icon) => (
+                          <button
+                            key={icon.id}
+                            type="button"
+                            onClick={() => {
+                              setIconEmoji(icon.id);
+                              setIconUrl(null);
+                              setShowEmojiPicker(false);
+                            }}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-purple-primary/10 transition-colors text-purple-primary ${
+                              iconEmoji === icon.id ? "bg-purple-primary/20 ring-2 ring-purple-primary/30" : ""
+                            }`}
+                            title={icon.label}
+                          >
+                            {icon.icon}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-gradient-to-r from-transparent via-black/10 to-transparent mb-4" />
+
+                    {/* Emoji Categories */}
                     {emojiCategories.map((category, categoryIndex) => (
                       <div key={category.name} className={categoryIndex > 0 ? "mt-4" : ""}>
                         <p className="font-ui text-xs font-medium text-muted uppercase tracking-wide mb-2">

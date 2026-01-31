@@ -226,10 +226,9 @@ export default function LeftSidebar() {
             onClick={() => setShowCreateMenu(!showCreateMenu)}
             className="w-full h-12 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-xl flex items-center justify-center gap-2 text-white shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300"
           >
-            <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
-              <line x1="16" y1="8" x2="2" y2="22"/>
-              <line x1="17.5" y1="15" x2="9" y2="15"/>
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             <span className="font-ui text-[0.95rem] font-bold">Create</span>
             <svg className={`w-4 h-4 transition-transform duration-200 ${showCreateMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

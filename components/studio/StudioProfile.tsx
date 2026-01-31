@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse } from "@/lib/hooks";
+import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, useDeleteCollection, useDeleteCollectionItem, useUpdateCollection, useUpdateCollectionItem } from "@/lib/hooks";
 
 // Type for follows table real-time payload
 interface FollowRealtimePayload {
@@ -22,6 +22,8 @@ import ShareModal from "@/components/ui/ShareModal";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import TakePostCard from "@/components/takes/TakePostCard";
 import Loading from "@/components/ui/Loading";
+import type { Collection } from "@/lib/types";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 // Custom hook for scroll-triggered card reveal
 function useScrollReveal() {
@@ -416,6 +418,330 @@ const icons = {
     </svg>
   ),
 };
+
+// Branded icons for collections (matching NewCollectionModal)
+const brandedCollectionIcons: Record<string, React.ReactNode> = {
+  quill: (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+      <line x1="16" y1="8" x2="2" y2="22"/>
+    </svg>
+  ),
+  sparkle: (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/>
+      <path d="M5 3l.5 2L7 5.5 5.5 6 5 8l-.5-2L3 5.5 4.5 5 5 3z"/>
+      <path d="M19 17l.5 2 1.5.5-1.5.5-.5 2-.5-2-1.5-.5 1.5-.5.5-2z"/>
+    </svg>
+  ),
+  heart: (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  ),
+  book: (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+  ),
+  music: (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18V5l12-2v13"/>
+      <circle cx="6" cy="18" r="3"/>
+      <circle cx="18" cy="16" r="3"/>
+    </svg>
+  ),
+  camera: (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </svg>
+  ),
+  folder: (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+    </svg>
+  ),
+  star: (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  ),
+};
+
+// Collection Card Component with glass effect
+interface CollectionCardProps {
+  collection: Collection;
+  isOwnProfile: boolean;
+  username: string;
+  onToggleCollapse: () => void;
+  onDelete: () => void;
+  onDeleteItem: (itemId: string) => void;
+  router: AppRouterInstance;
+}
+
+function CollectionCard({
+  collection,
+  isOwnProfile,
+  username,
+  onToggleCollapse,
+  onDelete,
+  onDeleteItem,
+  router
+}: CollectionCardProps) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    if (showMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMenu]);
+
+  // Render collection icon
+  const renderIcon = () => {
+    if (collection.icon_emoji?.startsWith("icon:")) {
+      const iconKey = collection.icon_emoji.replace("icon:", "");
+      const icon = brandedCollectionIcons[iconKey];
+      if (icon) {
+        return <div className="w-8 h-8 text-purple-primary">{icon}</div>;
+      }
+    }
+    if (collection.icon_emoji) {
+      try {
+        return <span className="text-3xl">{String.fromCodePoint(parseInt(collection.icon_emoji, 16))}</span>;
+      } catch {
+        return <span className="text-3xl">{collection.icon_emoji}</span>;
+      }
+    }
+    if (collection.icon_url) {
+      return <img src={collection.icon_url} alt="" className="w-10 h-10 rounded-lg object-cover" />;
+    }
+    // Default icon
+    return (
+      <div className="w-8 h-8 text-purple-primary/60">
+        <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+      </div>
+    );
+  };
+
+  return (
+    <div className="group relative">
+      {/* Glass effect container */}
+      <div className="relative overflow-hidden rounded-3xl">
+        {/* Background gradient layers */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-white/60 to-purple-primary/5" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-purple-primary/[0.03] via-transparent to-pink-vivid/[0.05]" />
+        <div className="absolute inset-0 backdrop-blur-xl" />
+
+        {/* Shimmer effect on hover */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+
+        {/* Content */}
+        <div className="relative p-6">
+          {/* Header */}
+          <div className="flex items-start gap-4">
+            {/* Icon */}
+            <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center shadow-sm">
+              {renderIcon()}
+            </div>
+
+            {/* Title & Description */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-display text-xl font-semibold text-ink truncate">
+                  {collection.name}
+                </h3>
+                {collection.items_count !== undefined && collection.items_count > 0 && (
+                  <span className="shrink-0 px-2 py-0.5 rounded-full bg-purple-primary/10 text-purple-primary text-xs font-medium">
+                    {collection.items_count} {collection.items_count === 1 ? 'item' : 'items'}
+                  </span>
+                )}
+              </div>
+              {collection.description && (
+                <p className="mt-1 font-body text-sm text-muted line-clamp-2">
+                  {collection.description}
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="shrink-0 flex items-center gap-2">
+              {/* Collapse toggle */}
+              <button
+                onClick={onToggleCollapse}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.05] transition-all"
+                title={collection.is_collapsed ? "Expand" : "Collapse"}
+              >
+                <svg
+                  className={`w-5 h-5 transition-transform duration-300 ${collection.is_collapsed ? "" : "rotate-180"}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Owner menu */}
+              {isOwnProfile && (
+                <div className="relative" ref={menuRef}>
+                  <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.05] transition-all"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                  </button>
+
+                  {showMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-xl border border-black/[0.08] overflow-hidden z-20 animate-scaleIn origin-top-right">
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          router.push(`/studio/${username}/collections/${collection.slug}/edit`);
+                        }}
+                        className="w-full px-4 py-2.5 text-left font-ui text-sm text-ink hover:bg-purple-primary/5 flex items-center gap-2 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit Collection
+                      </button>
+                      <div className="h-px bg-black/[0.06]" />
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          onDelete();
+                        }}
+                        className="w-full px-4 py-2.5 text-left font-ui text-sm text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete Collection
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Items Grid */}
+          {!collection.is_collapsed && collection.items && collection.items.length > 0 && (
+            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {collection.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="group/item relative cursor-pointer"
+                  onClick={() => router.push(`/studio/${username}/collections/${collection.slug}/${item.slug}`)}
+                >
+                  {/* Item Card */}
+                  <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-purple-primary/5 to-pink-vivid/5 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                    {item.cover_url ? (
+                      <img
+                        src={item.cover_url}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-12 h-12 text-purple-primary/30">
+                          <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Overlay with name */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300">
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <p className="font-ui text-sm font-medium text-white truncate">
+                          {item.name}
+                        </p>
+                        {item.posts_count !== undefined && item.posts_count > 0 && (
+                          <p className="text-xs text-white/70 mt-0.5">
+                            {item.posts_count} {item.posts_count === 1 ? 'post' : 'posts'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Delete button for owner */}
+                    {isOwnProfile && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteItem(item.id);
+                        }}
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white opacity-0 group-hover/item:opacity-100 hover:bg-red-500 transition-all"
+                        title="Delete item"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Item name below card */}
+                  <p className="mt-2 font-ui text-sm font-medium text-ink truncate text-center">
+                    {item.name}
+                  </p>
+                  {item.description && (
+                    <p className="font-body text-xs text-muted truncate text-center">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty items state */}
+          {!collection.is_collapsed && (!collection.items || collection.items.length === 0) && (
+            <div className="mt-6 py-8 text-center">
+              <div className="w-12 h-12 mx-auto rounded-full bg-purple-primary/10 flex items-center justify-center mb-3">
+                <svg className="w-6 h-6 text-purple-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <p className="font-body text-sm text-muted">
+                {isOwnProfile
+                  ? "No items yet. Add items when creating posts!"
+                  : "No items in this collection yet."
+                }
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Glass border */}
+        <div className="absolute inset-0 rounded-3xl border border-white/60 pointer-events-none" />
+
+        {/* Subtle inner shadow */}
+        <div className="absolute inset-0 rounded-3xl shadow-inner pointer-events-none" style={{ boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5)' }} />
+      </div>
+
+      {/* Decorative gradient glow on hover */}
+      <div className="absolute -inset-1 bg-gradient-to-r from-purple-primary/20 to-pink-vivid/20 rounded-[28px] opacity-0 group-hover:opacity-50 blur-xl transition-opacity duration-500 -z-10" />
+    </div>
+  );
+}
 
 function formatCount(num: number): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}m`;
@@ -1717,133 +2043,63 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 <Loading />
               </div>
             ) : collections.length === 0 ? (
-              <div className="rounded-2xl bg-white p-8 md:p-12 lg:p-16 border border-black/[0.06] text-center">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-purple-primary/10 flex items-center justify-center">
-                  <svg className="w-10 h-10 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
+              /* Empty State - Glass Card */
+              <div className="relative rounded-3xl overflow-hidden">
+                {/* Glass background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/5 via-white/80 to-pink-vivid/5 backdrop-blur-xl" />
+                <div className="absolute inset-0 bg-white/40" />
+
+                {/* Content */}
+                <div className="relative p-10 md:p-16 text-center">
+                  {/* Decorative circles */}
+                  <div className="absolute top-8 left-8 w-24 h-24 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 blur-2xl" />
+                  <div className="absolute bottom-8 right-8 w-32 h-32 rounded-full bg-gradient-to-br from-pink-vivid/10 to-orange-warm/10 blur-2xl" />
+
+                  <div className="relative">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center backdrop-blur-sm border border-white/50">
+                      <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                    </div>
+                    <h3 className="font-display text-2xl md:text-3xl text-ink mb-3">No Collections Yet</h3>
+                    <p className="font-body text-muted max-w-md mx-auto">
+                      {isOwnProfile
+                        ? "Create a collection to organize your works. Go to Create Post and select a collection to get started!"
+                        : `${profile?.display_name || profile?.username} hasn't created any collections yet.`}
+                    </p>
+                  </div>
                 </div>
-                <h3 className="font-display text-2xl text-ink mb-3">No Collections Yet</h3>
-                <p className="font-body text-muted max-w-md mx-auto">
-                  {isOwnProfile
-                    ? "Create a collection to organize your works. Go to Create Post and select a collection to get started!"
-                    : `${profile?.display_name || profile?.username} hasn't created any collections yet.`}
-                </p>
+
+                {/* Border */}
+                <div className="absolute inset-0 rounded-3xl border border-white/60 pointer-events-none" />
               </div>
             ) : (
               <div className="space-y-6">
                 {collections.map((collection) => (
-                  <div
+                  <CollectionCard
                     key={collection.id}
-                    className="bg-white rounded-2xl border border-black/[0.06] overflow-hidden"
-                  >
-                    {/* Collection Header */}
-                    <div
-                      onClick={async () => {
-                        if (isOwnProfile) {
-                          await toggleCollapse(collection.id, collection.is_collapsed);
-                          refetchCollections();
-                        }
-                      }}
-                      className={`flex items-center gap-4 px-6 py-5 ${isOwnProfile ? 'cursor-pointer hover:bg-black/[0.01]' : ''} transition-colors`}
-                    >
-                      {/* Collection Icon */}
-                      <div className="w-14 h-14 rounded-xl bg-purple-primary/10 flex items-center justify-center flex-shrink-0">
-                        {collection.icon_url ? (
-                          <img src={collection.icon_url} alt="" className="w-full h-full object-cover rounded-xl" />
-                        ) : collection.icon_emoji ? (
-                          <span className="text-2xl">{String.fromCodePoint(parseInt(collection.icon_emoji, 16))}</span>
-                        ) : (
-                          <svg className="w-7 h-7 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                          </svg>
-                        )}
-                      </div>
-
-                      {/* Collection Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-display text-lg font-semibold text-ink">
-                          {collection.name}
-                        </h3>
-                        {collection.description && (
-                          <p className="font-body text-sm text-muted line-clamp-1 mt-0.5">
-                            {collection.description}
-                          </p>
-                        )}
-                        <p className="font-ui text-xs text-muted mt-1">
-                          {collection.items?.length || 0} items
-                        </p>
-                      </div>
-
-                      {/* Collapse Arrow (only for owner) */}
-                      {isOwnProfile && (
-                        <div className={`w-9 h-9 rounded-lg bg-black/[0.03] flex items-center justify-center transition-transform duration-200 ${collection.is_collapsed ? '' : 'rotate-180'}`}>
-                          <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Collection Items Grid */}
-                    {!collection.is_collapsed && collection.items && collection.items.length > 0 && (
-                      <div className="px-6 pb-6">
-                        <div className="h-px bg-black/[0.06] mb-5" />
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                          {collection.items.map((item) => (
-                            <button
-                              key={item.id}
-                              onClick={() => router.push(`/studio/${username}/collections/${collection.slug}/${item.slug}`)}
-                              className="group text-left"
-                            >
-                              {/* Item Cover */}
-                              <div className="aspect-square rounded-xl bg-purple-primary/5 border border-black/[0.06] overflow-hidden mb-2 group-hover:border-purple-primary/30 transition-colors">
-                                {item.cover_url ? (
-                                  <img
-                                    src={item.cover_url}
-                                    alt={item.name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <svg className="w-8 h-8 text-purple-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                  </div>
-                                )}
-                              </div>
-                              {/* Item Info */}
-                              <h4 className="font-ui text-sm font-medium text-ink truncate group-hover:text-purple-primary transition-colors">
-                                {item.name}
-                              </h4>
-                              <p className="font-ui text-xs text-muted">
-                                {item.posts_count || 0} posts
-                              </p>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Empty Collection Items */}
-                    {!collection.is_collapsed && (!collection.items || collection.items.length === 0) && (
-                      <div className="px-6 pb-6">
-                        <div className="h-px bg-black/[0.06] mb-5" />
-                        <div className="py-10 text-center bg-black/[0.02] rounded-xl">
-                          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-white flex items-center justify-center border border-black/[0.06]">
-                            <svg className="w-6 h-6 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                          </div>
-                          <p className="font-body text-sm text-muted">
-                            {isOwnProfile
-                              ? "No items yet. Add items when creating posts!"
-                              : "No items in this collection yet."}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    collection={collection}
+                    isOwnProfile={isOwnProfile}
+                    username={username}
+                    onToggleCollapse={async () => {
+                      await toggleCollapse(collection.id, collection.is_collapsed);
+                      refetchCollections();
+                    }}
+                    onDelete={async () => {
+                      if (confirm("Are you sure you want to delete this collection? This cannot be undone.")) {
+                        // Use the hook outside - for now just refetch
+                        const { error } = await supabase.from("collections").delete().eq("id", collection.id);
+                        if (!error) refetchCollections();
+                      }
+                    }}
+                    onDeleteItem={async (itemId: string) => {
+                      if (confirm("Are you sure you want to delete this item?")) {
+                        const { error } = await supabase.from("collection_items").delete().eq("id", itemId);
+                        if (!error) refetchCollections();
+                      }
+                    }}
+                    router={router}
+                  />
                 ))}
               </div>
             )}
