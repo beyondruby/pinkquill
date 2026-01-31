@@ -89,6 +89,37 @@ export {
 // Share to DM
 export { useShareToDM, fetchSharedPostPreview } from "./hooks/useShareToDM";
 
+// Takes & Sounds
+export {
+  useTakes,
+  useCreateTake,
+  useUserTakes,
+  useRelayedTakes,
+  useSavedTakes,
+  useTakeComments,
+  useTakeReactionCounts,
+  useMuted,
+  useVolume,
+  useFollow as useTakeFollow,
+  useSounds,
+  useTrendingSounds,
+  useFavoriteSounds,
+  useSound,
+  useCreateSound,
+} from "./hooks/useTakes";
+export type {
+  Take,
+  TakeComment,
+  TakeReactionType,
+  TakeReactionCounts,
+  TakeAspectRatio,
+  TakePlaybackSpeed,
+  TakeEffect,
+  TakeTextOverlay,
+  Sound,
+  RelayedTake,
+} from "./hooks/useTakes";
+
 // Collections
 export {
   useCollections,

@@ -22,6 +22,51 @@ export interface TakeReactionCounts {
   total: number;
 }
 
+export type TakeAspectRatio = '9:16' | '16:9' | '4:5' | '1:1' | '4:3';
+export type TakePlaybackSpeed = 0.25 | 0.5 | 0.75 | 1.0 | 1.5 | 2.0 | 3.0;
+
+export interface TakeEffect {
+  type: 'filter' | 'speed' | 'brightness' | 'contrast' | 'saturation';
+  name?: string;
+  value?: number;
+}
+
+export interface TakeTextOverlay {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: 'normal' | 'bold';
+  color: string;
+  backgroundColor?: string;
+  startTime: number;
+  endTime: number;
+  animation?: 'none' | 'fadeIn' | 'slideIn' | 'typewriter' | 'bounce';
+}
+
+export interface Sound {
+  id: string;
+  name: string;
+  artist: string | null;
+  audio_url: string;
+  cover_url: string | null;
+  duration: number;
+  genre: string | null;
+  is_original: boolean;
+  original_take_id: string | null;
+  created_by: string | null;
+  use_count: number;
+  is_trending: boolean;
+  created_at: string;
+  creator?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
 export interface Take {
   id: string;
   author_id: string;
@@ -35,16 +80,29 @@ export interface Take {
   view_count: number;
   community_id: string | null;
   created_at: string;
+  // New fields
+  aspect_ratio: TakeAspectRatio;
+  effects: TakeEffect[];
+  text_overlays: TakeTextOverlay[];
+  playback_speed: TakePlaybackSpeed;
+  allow_sound_use: boolean;
+  sound_start_time: number;
+  original_audio_volume: number;
+  added_sound_volume: number;
+  sound?: Sound | null;
+  // Author info
   author: {
     username: string;
     display_name: string | null;
     avatar_url: string | null;
   };
+  // Counts
   admires_count: number;
   reactions_count: number;
   comments_count: number;
   saves_count: number;
   relays_count: number;
+  // User state
   is_admired: boolean;
   is_saved: boolean;
   is_relayed: boolean;
@@ -204,12 +262,25 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       // Build final takes array
       const processedTakes: Take[] = takesData.map(take => ({
         ...take,
+        // New fields with defaults
+        aspect_ratio: take.aspect_ratio || '9:16',
+        effects: take.effects || [],
+        text_overlays: take.text_overlays || [],
+        playback_speed: take.playback_speed || 1.0,
+        allow_sound_use: take.allow_sound_use ?? true,
+        sound_start_time: take.sound_start_time || 0,
+        original_audio_volume: take.original_audio_volume ?? 100,
+        added_sound_volume: take.added_sound_volume ?? 100,
+        sound: null, // TODO: fetch sound data if sound_id exists
+        // Author info
         author: authorMap.get(take.author_id) || { username: "unknown", display_name: null, avatar_url: null },
+        // Counts
         admires_count: reactionsCount[take.id] || 0,
         reactions_count: reactionsCount[take.id] || 0,
         comments_count: commentsCount[take.id] || 0,
         saves_count: savesCount[take.id] || 0,
         relays_count: relaysCount[take.id] || 0,
+        // User state
         is_admired: userReactionMap.has(take.id),
         is_saved: userSaveSet.has(take.id),
         is_relayed: userRelaySet.has(take.id),
@@ -983,12 +1054,21 @@ export function useFollow(userId?: string) {
 
 interface CreateTakeOptions {
   videoFile: File;
+  thumbnailFile?: File;
   caption?: string;
   tags?: string[];
   contentWarning?: string;
   communityId?: string;
   soundId?: string;
   duration: number;
+  aspectRatio?: TakeAspectRatio;
+  effects?: TakeEffect[];
+  textOverlays?: TakeTextOverlay[];
+  playbackSpeed?: TakePlaybackSpeed;
+  allowSoundUse?: boolean;
+  soundStartTime?: number;
+  originalAudioVolume?: number;
+  addedSoundVolume?: number;
 }
 
 export function useCreateTake() {
@@ -1002,27 +1082,63 @@ export function useCreateTake() {
       setProgress(0);
       setError(null);
 
-      const { videoFile, caption, tags, contentWarning, communityId, soundId, duration } = options;
+      const {
+        videoFile,
+        thumbnailFile,
+        caption,
+        tags,
+        contentWarning,
+        communityId,
+        soundId,
+        duration,
+        aspectRatio = '9:16',
+        effects = [],
+        textOverlays = [],
+        playbackSpeed = 1.0,
+        allowSoundUse = true,
+        soundStartTime = 0,
+        originalAudioVolume = 100,
+        addedSoundVolume = 100,
+      } = options;
 
       // Upload video to storage
       const fileExt = videoFile.name.split(".").pop();
-      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+      const videoFileName = `${userId}/${Date.now()}.${fileExt}`;
 
       setProgress(10);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("takes")
-        .upload(fileName, videoFile, {
+        .upload(videoFileName, videoFile, {
           cacheControl: "31536000",
           upsert: false,
         });
 
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-      setProgress(60);
+      setProgress(50);
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage.from("takes").getPublicUrl(uploadData.path);
+      // Get video public URL
+      const { data: { publicUrl: videoUrl } } = supabase.storage.from("takes").getPublicUrl(uploadData.path);
+
+      // Upload thumbnail if provided
+      let thumbnailUrl: string | null = null;
+      if (thumbnailFile) {
+        const thumbExt = thumbnailFile.name.split(".").pop();
+        const thumbFileName = `${userId}/thumbnails/${Date.now()}.${thumbExt}`;
+
+        const { data: thumbData, error: thumbError } = await supabase.storage
+          .from("takes")
+          .upload(thumbFileName, thumbnailFile, {
+            cacheControl: "31536000",
+            upsert: false,
+          });
+
+        if (!thumbError && thumbData) {
+          const { data: { publicUrl } } = supabase.storage.from("takes").getPublicUrl(thumbData.path);
+          thumbnailUrl = publicUrl;
+        }
+      }
 
       setProgress(70);
 
@@ -1031,13 +1147,22 @@ export function useCreateTake() {
         .from("takes")
         .insert({
           author_id: userId,
-          video_url: publicUrl,
+          video_url: videoUrl,
+          thumbnail_url: thumbnailUrl,
           caption: caption || null,
           duration,
           content_warning: contentWarning || null,
           community_id: communityId || null,
           sound_id: soundId || null,
           visibility: "public",
+          aspect_ratio: aspectRatio,
+          effects: effects,
+          text_overlays: textOverlays,
+          playback_speed: playbackSpeed,
+          allow_sound_use: allowSoundUse,
+          sound_start_time: soundStartTime,
+          original_audio_volume: originalAudioVolume,
+          added_sound_volume: addedSoundVolume,
         })
         .select()
         .single();
@@ -1184,6 +1309,16 @@ export function useUserTakes(username: string, viewerId?: string) {
 
         const processedTakes: Take[] = takesData.map(take => ({
           ...take,
+          // New fields with defaults
+          aspect_ratio: take.aspect_ratio || '9:16',
+          effects: take.effects || [],
+          text_overlays: take.text_overlays || [],
+          playback_speed: take.playback_speed || 1.0,
+          allow_sound_use: take.allow_sound_use ?? true,
+          sound_start_time: take.sound_start_time || 0,
+          original_audio_volume: take.original_audio_volume ?? 100,
+          added_sound_volume: take.added_sound_volume ?? 100,
+          sound: null,
           author: {
             username: profileData.username,
             display_name: profileData.display_name,
@@ -1198,6 +1333,7 @@ export function useUserTakes(username: string, viewerId?: string) {
           is_saved: userSaveSet.has(take.id),
           is_relayed: userRelaySet.has(take.id),
           user_reaction_type: userReactionMap.get(take.id) || null,
+          reaction_counts: { admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0 },
         }));
 
         setTakes(processedTakes);
@@ -1436,6 +1572,16 @@ export function useSavedTakes(userId?: string) {
 
       const processedTakes: Take[] = takesData.map(take => ({
         ...take,
+        // New fields with defaults
+        aspect_ratio: take.aspect_ratio || '9:16',
+        effects: take.effects || [],
+        text_overlays: take.text_overlays || [],
+        playback_speed: take.playback_speed || 1.0,
+        allow_sound_use: take.allow_sound_use ?? true,
+        sound_start_time: take.sound_start_time || 0,
+        original_audio_volume: take.original_audio_volume ?? 100,
+        added_sound_volume: take.added_sound_volume ?? 100,
+        sound: null,
         author: authorMap.get(take.author_id) || { username: "unknown", display_name: null, avatar_url: null },
         admires_count: reactionsCount[take.id] || 0,
         reactions_count: reactionsCount[take.id] || 0,
@@ -1446,6 +1592,7 @@ export function useSavedTakes(userId?: string) {
         is_saved: true,
         is_relayed: false,
         user_reaction_type: null,
+        reaction_counts: { admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0 },
       }));
 
       // Sort by save time (most recent first)
@@ -1469,4 +1616,328 @@ export function useSavedTakes(userId?: string) {
   }, [fetchSavedTakes]);
 
   return { takes, loading, error, refetch: fetchSavedTakes };
+}
+
+// ============================================================================
+// SOUNDS HOOKS
+// ============================================================================
+
+interface UseSoundsOptions {
+  limit?: number;
+  genre?: string;
+  trending?: boolean;
+  search?: string;
+}
+
+export function useSounds(userId?: string, options: UseSoundsOptions = {}) {
+  const { limit = 20, genre, trending, search } = options;
+  const [sounds, setSounds] = useState<Sound[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  const fetchSounds = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      let query = supabase
+        .from("sounds")
+        .select("*")
+        .order("use_count", { ascending: false })
+        .limit(limit);
+
+      if (genre) {
+        query = query.eq("genre", genre);
+      }
+
+      if (trending) {
+        query = query.eq("is_trending", true);
+      }
+
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,artist.ilike.%${search}%`);
+      }
+
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) throw fetchError;
+
+      // Fetch creator info
+      const creatorIds = [...new Set((data || []).filter(s => s.created_by).map(s => s.created_by!))];
+
+      let creatorMap = new Map<string, { username: string; display_name: string | null; avatar_url: string | null }>();
+
+      if (creatorIds.length > 0) {
+        const { data: creators } = await supabase
+          .from("profiles")
+          .select("id, username, display_name, avatar_url")
+          .in("id", creatorIds);
+
+        creatorMap = new Map((creators || []).map(c => [c.id, c]));
+      }
+
+      // Fetch user favorites
+      if (userId) {
+        const { data: favData } = await supabase
+          .from("sound_favorites")
+          .select("sound_id")
+          .eq("user_id", userId);
+
+        setFavorites(new Set((favData || []).map(f => f.sound_id)));
+      }
+
+      const processedSounds: Sound[] = (data || []).map(sound => ({
+        ...sound,
+        creator: sound.created_by ? creatorMap.get(sound.created_by) : undefined,
+      }));
+
+      setSounds(processedSounds);
+    } catch (err) {
+      console.error("[useSounds] Error:", err);
+      setError(err instanceof Error ? err.message : "Failed to load sounds");
+    } finally {
+      setLoading(false);
+    }
+  }, [limit, genre, trending, search, userId]);
+
+  useEffect(() => {
+    fetchSounds();
+  }, [fetchSounds]);
+
+  const toggleFavorite = useCallback(async (soundId: string) => {
+    if (!userId) return;
+
+    const isFavorited = favorites.has(soundId);
+
+    // Optimistic update
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (isFavorited) next.delete(soundId);
+      else next.add(soundId);
+      return next;
+    });
+
+    try {
+      if (isFavorited) {
+        await supabase
+          .from("sound_favorites")
+          .delete()
+          .eq("user_id", userId)
+          .eq("sound_id", soundId);
+      } else {
+        await supabase
+          .from("sound_favorites")
+          .insert({ user_id: userId, sound_id: soundId });
+      }
+    } catch (err) {
+      // Revert on error
+      setFavorites(prev => {
+        const next = new Set(prev);
+        if (isFavorited) next.add(soundId);
+        else next.delete(soundId);
+        return next;
+      });
+    }
+  }, [userId, favorites]);
+
+  return { sounds, loading, error, favorites, toggleFavorite, refetch: fetchSounds };
+}
+
+// Trending sounds hook
+export function useTrendingSounds(limit = 10) {
+  return useSounds(undefined, { limit, trending: true });
+}
+
+// Favorite sounds hook
+export function useFavoriteSounds(userId?: string) {
+  const [sounds, setSounds] = useState<Sound[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchFavorites = useCallback(async () => {
+    if (!userId) {
+      setSounds([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data: favData } = await supabase
+        .from("sound_favorites")
+        .select("sound_id, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (!favData || favData.length === 0) {
+        setSounds([]);
+        return;
+      }
+
+      const soundIds = favData.map(f => f.sound_id);
+
+      const { data: soundsData } = await supabase
+        .from("sounds")
+        .select("*")
+        .in("id", soundIds);
+
+      // Preserve favorite order
+      const soundMap = new Map((soundsData || []).map(s => [s.id, s]));
+      const orderedSounds = soundIds
+        .map(id => soundMap.get(id))
+        .filter((s): s is Sound => !!s);
+
+      setSounds(orderedSounds);
+    } catch (err) {
+      console.error("[useFavoriteSounds] Error:", err);
+      setError(err instanceof Error ? err.message : "Failed to load favorite sounds");
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchFavorites();
+  }, [fetchFavorites]);
+
+  return { sounds, loading, error, refetch: fetchFavorites };
+}
+
+// Single sound hook
+export function useSound(soundId?: string) {
+  const [sound, setSound] = useState<Sound | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [takesUsingSound, setTakesUsingSound] = useState<Take[]>([]);
+
+  useEffect(() => {
+    const fetchSound = async () => {
+      if (!soundId) {
+        setSound(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        const { data } = await supabase
+          .from("sounds")
+          .select("*")
+          .eq("id", soundId)
+          .single();
+
+        if (data) {
+          // Get creator info
+          if (data.created_by) {
+            const { data: creator } = await supabase
+              .from("profiles")
+              .select("username, display_name, avatar_url")
+              .eq("id", data.created_by)
+              .single();
+
+            setSound({ ...data, creator: creator || undefined });
+          } else {
+            setSound(data);
+          }
+
+          // Get takes using this sound
+          const { data: takes } = await supabase
+            .from("takes")
+            .select("id, video_url, thumbnail_url, author_id, view_count")
+            .eq("sound_id", soundId)
+            .eq("visibility", "public")
+            .order("view_count", { ascending: false })
+            .limit(20);
+
+          if (takes && takes.length > 0) {
+            const authorIds = [...new Set(takes.map(t => t.author_id))];
+            const { data: authors } = await supabase
+              .from("profiles")
+              .select("id, username, display_name, avatar_url")
+              .in("id", authorIds);
+
+            const authorMap = new Map((authors || []).map(a => [a.id, a]));
+
+            const processedTakes = takes.map(t => ({
+              ...t,
+              author: authorMap.get(t.author_id) || { username: "unknown", display_name: null, avatar_url: null },
+            })) as Take[];
+
+            setTakesUsingSound(processedTakes);
+          }
+        }
+      } catch (err) {
+        console.error("[useSound] Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSound();
+  }, [soundId]);
+
+  return { sound, loading, takesUsingSound };
+}
+
+// Create original sound from take
+export function useCreateSound() {
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createFromTake = useCallback(async (
+    userId: string,
+    takeId: string,
+    audioFile: File,
+    name: string,
+    duration: number
+  ) => {
+    try {
+      setCreating(true);
+      setError(null);
+
+      // Upload audio to storage
+      const fileExt = audioFile.name.split(".").pop() || "mp3";
+      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("sounds")
+        .upload(fileName, audioFile, {
+          cacheControl: "31536000",
+          upsert: false,
+        });
+
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+      const { data: { publicUrl } } = supabase.storage.from("sounds").getPublicUrl(uploadData.path);
+
+      // Create sound record
+      const { data: sound, error: insertError } = await supabase
+        .from("sounds")
+        .insert({
+          name,
+          audio_url: publicUrl,
+          duration,
+          is_original: true,
+          original_take_id: takeId,
+          created_by: userId,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw new Error(`Failed to create sound: ${insertError.message}`);
+
+      return sound;
+    } catch (err) {
+      console.error("[useCreateSound] Error:", err);
+      setError(err instanceof Error ? err.message : "Failed to create sound");
+      return null;
+    } finally {
+      setCreating(false);
+    }
+  }, []);
+
+  return { createFromTake, creating, error };
 }
