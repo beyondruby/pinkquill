@@ -86,51 +86,33 @@ export function getOptimizedImageUrl(
 /**
  * Get optimized avatar URL for a specific size
  *
- * Note: We only specify width (not height) to avoid server-side cropping.
- * The CSS object-fit:cover + border-radius handles the circular display.
- * This preserves the original image composition and avoids "zoomed in" faces.
+ * Returns the original URL without transformation to preserve the original
+ * image composition. CSS object-fit:cover handles the circular display.
+ *
+ * Note: We intentionally skip Supabase image transformations for avatars
+ * because resizing can cause unwanted cropping/zooming when combined with
+ * CSS object-cover in circular containers.
  */
 export function getOptimizedAvatarUrl(
   url: string | null | undefined,
   size: AvatarSize | number = 'md'
 ): string {
-  const pixelSize = typeof size === 'number' ? size : AVATAR_SIZES[size];
-
-  // Request 2x size for retina displays
-  const requestSize = pixelSize * 2;
-
-  return getOptimizedImageUrl(url, {
-    width: requestSize,
-    // Don't set height - let the image scale proportionally
-    // CSS object-fit:cover will handle the circular crop on the client
-    quality: 80,
-  });
+  // Return original URL to preserve image composition
+  // The browser handles display via CSS object-fit
+  return url || '';
 }
 
 /**
  * Generate srcSet for responsive images
- * Returns srcset string for 1x, 2x, and 3x pixel densities
+ * Returns empty string since we're not using transformations for avatars
+ * to preserve original image composition.
  */
 export function getAvatarSrcSet(
   url: string | null | undefined,
   baseSize: number
 ): string {
-  if (!url || !isSupabaseStorageUrl(url)) {
-    return '';
-  }
-
-  const sizes = [1, 2, 3]; // 1x, 2x, 3x
-  return sizes
-    .map(scale => {
-      const scaledSize = baseSize * scale;
-      const optimizedUrl = getOptimizedImageUrl(url, {
-        width: scaledSize,
-        // Don't set height - preserve aspect ratio
-        quality: scale === 1 ? 80 : 70, // Lower quality for larger sizes
-      });
-      return `${optimizedUrl} ${scale}x`;
-    })
-    .join(', ');
+  // Not using srcSet for avatars to preserve original composition
+  return '';
 }
 
 /**

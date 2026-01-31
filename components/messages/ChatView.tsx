@@ -7,7 +7,7 @@ import { useBlock, useSendVoiceNote, useSendMedia, useChatFeatures } from "@/lib
 import type { Message, MessageReactionEmoji } from "@/lib/types";
 import VoiceRecorder from "./VoiceRecorder";
 import VoiceNotePlayer from "./VoiceNotePlayer";
-import MessageReactionPicker from "./MessageReactionPicker";
+import MessageReactionPicker, { ReactionsDisplay } from "./MessageReactionPicker";
 import TypingIndicator from "./TypingIndicator";
 import Loading from "@/components/ui/Loading";
 import EmojiPicker from "@/components/ui/EmojiPicker";
@@ -723,11 +723,11 @@ export default function ChatView({
 
                 {/* Message Bubble with Reactions */}
                 <div
-                  className={`flex items-center ${isOwn ? "justify-end" : "justify-start"} mb-1.5 group`}
+                  className={`flex items-center ${isOwn ? "justify-end" : "justify-start"} mb-1 group`}
                 >
-                  {/* Reaction picker - shown on left for own messages */}
+                  {/* Reaction picker button - shown on left for own messages */}
                   {isOwn && !message.id.startsWith('temp-') && (
-                    <div className="flex items-center mr-2">
+                    <div className="flex items-center mr-1.5">
                       <MessageReactionPicker
                         userReaction={reactions.getUserReaction(message.id)}
                         reactions={reactions.reactionsByMessage.get(message.id) || []}
@@ -738,105 +738,120 @@ export default function ChatView({
                     </div>
                   )}
 
-                  {message.message_type === "voice" && message.voice_url ? (
-                    <div
-                      className={`max-w-[280px] rounded-2xl overflow-hidden ${
-                        isOwn
-                          ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
-                          : "bg-white shadow-sm rounded-bl-md"
-                      }`}
-                    >
-                      <VoiceNotePlayer
-                        audioUrl={message.voice_url}
-                        duration={message.voice_duration || 0}
-                        waveformData={message.waveform_data || []}
-                        isOwn={isOwn}
-                      />
+                  {/* Message bubble wrapper with relative positioning for reactions */}
+                  <div className={`relative ${(reactions.reactionsByMessage.get(message.id) || []).length > 0 ? "mb-3" : ""}`}>
+                    {message.message_type === "voice" && message.voice_url ? (
                       <div
-                        className={`flex items-center justify-end gap-1 px-3 pb-2 ${
-                          isOwn ? "text-white/70" : "text-muted"
+                        className={`max-w-[280px] rounded-2xl overflow-hidden ${
+                          isOwn
+                            ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
+                            : "bg-white shadow-sm rounded-bl-md"
                         }`}
                       >
-                        <span className="font-ui text-[0.7rem]">
-                          {formatMessageTime(message.created_at)}
-                        </span>
-                        {isOwn && (
-                          <span className={message.is_read ? "text-white" : "text-white/50"}>
-                            {icons.doubleCheck}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ) : message.message_type === "media" && message.media_url ? (
-                    <div
-                      className={`max-w-[280px] rounded-2xl overflow-hidden ${
-                        isOwn
-                          ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
-                          : "bg-white shadow-sm rounded-bl-md"
-                      }`}
-                    >
-                      {message.media_type === "image" ? (
-                        <img
-                          src={message.media_url}
-                          alt="Shared image"
-                          className="w-full max-h-[300px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
-                          onClick={() => setLightboxImage(message.media_url!)}
+                        <VoiceNotePlayer
+                          audioUrl={message.voice_url}
+                          duration={message.voice_duration || 0}
+                          waveformData={message.waveform_data || []}
+                          isOwn={isOwn}
                         />
-                      ) : (
-                        <video
-                          src={message.media_url}
-                          className="w-full max-h-[300px] rounded-t-xl"
-                          controls
-                          preload="metadata"
-                          playsInline
-                        />
-                      )}
+                        <div
+                          className={`flex items-center justify-end gap-1 px-3 pb-2 ${
+                            isOwn ? "text-white/70" : "text-muted"
+                          }`}
+                        >
+                          <span className="font-ui text-[0.7rem]">
+                            {formatMessageTime(message.created_at)}
+                          </span>
+                          {isOwn && (
+                            <span className={message.is_read ? "text-white" : "text-white/50"}>
+                              {icons.doubleCheck}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : message.message_type === "media" && message.media_url ? (
                       <div
-                        className={`flex items-center justify-end gap-1 px-3 py-2 ${
-                          isOwn ? "text-white/70" : "text-muted"
+                        className={`max-w-[280px] rounded-2xl overflow-hidden ${
+                          isOwn
+                            ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
+                            : "bg-white shadow-sm rounded-bl-md"
                         }`}
                       >
-                        <span className="font-ui text-[0.7rem]">
-                          {formatMessageTime(message.created_at)}
-                        </span>
-                        {isOwn && (
-                          <span className={message.is_read ? "text-white" : "text-white/50"}>
-                            {icons.doubleCheck}
-                          </span>
+                        {message.media_type === "image" ? (
+                          <img
+                            src={message.media_url}
+                            alt="Shared image"
+                            className="w-full max-h-[300px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                            onClick={() => setLightboxImage(message.media_url!)}
+                          />
+                        ) : (
+                          <video
+                            src={message.media_url}
+                            className="w-full max-h-[300px] rounded-t-xl"
+                            controls
+                            preload="metadata"
+                            playsInline
+                          />
                         )}
+                        <div
+                          className={`flex items-center justify-end gap-1 px-3 py-2 ${
+                            isOwn ? "text-white/70" : "text-muted"
+                          }`}
+                        >
+                          <span className="font-ui text-[0.7rem]">
+                            {formatMessageTime(message.created_at)}
+                          </span>
+                          {isOwn && (
+                            <span className={message.is_read ? "text-white" : "text-white/50"}>
+                              {icons.doubleCheck}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div
-                      className={`max-w-[70%] px-4 py-2.5 rounded-2xl ${
-                        isOwn
-                          ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
-                          : "bg-white text-ink shadow-sm rounded-bl-md"
-                      }`}
-                    >
-                      <p className="font-body text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words">
-                        {message.content}
-                      </p>
+                    ) : (
                       <div
-                        className={`flex items-center justify-end gap-1 mt-1 ${
-                          isOwn ? "text-white/70" : "text-muted"
+                        className={`max-w-[70%] px-4 py-2.5 rounded-2xl ${
+                          isOwn
+                            ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
+                            : "bg-white text-ink shadow-sm rounded-bl-md"
                         }`}
                       >
-                        <span className="font-ui text-[0.7rem]">
-                          {formatMessageTime(message.created_at)}
-                        </span>
-                        {isOwn && (
-                          <span className={message.is_read ? "text-white" : "text-white/50"}>
-                            {icons.doubleCheck}
+                        <p className="font-body text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words">
+                          {message.content}
+                        </p>
+                        <div
+                          className={`flex items-center justify-end gap-1 mt-1 ${
+                            isOwn ? "text-white/70" : "text-muted"
+                          }`}
+                        >
+                          <span className="font-ui text-[0.7rem]">
+                            {formatMessageTime(message.created_at)}
                           </span>
-                        )}
+                          {isOwn && (
+                            <span className={message.is_read ? "text-white" : "text-white/50"}>
+                              {icons.doubleCheck}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Reaction picker - shown on right for other's messages */}
+                    {/* Reactions display - Instagram style at bottom corner */}
+                    {!message.id.startsWith('temp-') && (reactions.reactionsByMessage.get(message.id) || []).length > 0 && (
+                      <div className={`absolute -bottom-2.5 ${isOwn ? "right-2" : "left-2"}`}>
+                        <ReactionsDisplay
+                          reactions={reactions.reactionsByMessage.get(message.id) || []}
+                          userReaction={reactions.getUserReaction(message.id)}
+                          onRemoveReaction={() => handleRemoveReaction(message.id)}
+                          isOwnMessage={isOwn}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Reaction picker button - shown on right for other's messages */}
                   {!isOwn && !message.id.startsWith('temp-') && (
-                    <div className="flex items-center ml-2">
+                    <div className="flex items-center ml-1.5">
                       <MessageReactionPicker
                         userReaction={reactions.getUserReaction(message.id)}
                         reactions={reactions.reactionsByMessage.get(message.id) || []}
