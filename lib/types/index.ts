@@ -587,6 +587,7 @@ export interface Collection {
   description: string | null;
   icon_url: string | null;
   icon_emoji: string | null;
+  cover_url: string | null;
   position: number;
   is_collapsed: boolean;
   created_at: string;

@@ -276,6 +276,7 @@ interface UseCreateCollectionReturn {
       description?: string;
       iconUrl?: string;
       iconEmoji?: string;
+      coverUrl?: string;
     }
   ) => Promise<Collection | null>;
   creating: boolean;
@@ -293,6 +294,7 @@ export function useCreateCollection(userId?: string): UseCreateCollectionReturn 
         description?: string;
         iconUrl?: string;
         iconEmoji?: string;
+        coverUrl?: string;
       }
     ): Promise<Collection | null> => {
       if (!userId) {
@@ -345,6 +347,7 @@ export function useCreateCollection(userId?: string): UseCreateCollectionReturn 
             description: options?.description || null,
             icon_url: options?.iconUrl || null,
             icon_emoji: options?.iconEmoji || null,
+            cover_url: options?.coverUrl || null,
             position: nextPosition,
           })
           .select()
@@ -569,6 +572,7 @@ interface UseUpdateCollectionReturn {
       description: string | null;
       icon_url: string | null;
       icon_emoji: string | null;
+      cover_url: string | null;
       is_collapsed: boolean;
     }>
   ) => Promise<boolean>;
@@ -588,6 +592,7 @@ export function useUpdateCollection(): UseUpdateCollectionReturn {
         description: string | null;
         icon_url: string | null;
         icon_emoji: string | null;
+        cover_url: string | null;
         is_collapsed: boolean;
       }>
     ): Promise<boolean> => {

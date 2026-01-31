@@ -305,10 +305,13 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
   const [description, setDescription] = useState("");
   const [iconEmoji, setIconEmoji] = useState<string | null>(null);
   const [iconUrl, setIconUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Reset form when modal opens/closes
@@ -318,6 +321,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
       setDescription("");
       setIconEmoji(null);
       setIconUrl(null);
+      setCoverUrl(null);
       setShowEmojiPicker(false);
     }
   }, [isOpen]);
@@ -380,6 +384,39 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
     }
   };
 
+  const handleCoverUpload = async (file: File) => {
+    if (!user) return;
+
+    setUploadingCover(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `collection-cover-${user.id}-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("covers")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("covers")
+        .getPublicUrl(fileName);
+
+      setCoverUrl(publicUrl);
+    } catch (err: any) {
+      console.error("Failed to upload cover:", err?.message || err);
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleCoverUpload(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -389,6 +426,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
       description: description.trim() || undefined,
       iconUrl: iconUrl || undefined,
       iconEmoji: iconEmoji || undefined,
+      coverUrl: coverUrl || undefined,
     });
 
     if (collection) {
@@ -542,6 +580,66 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
             <p className="text-[0.75rem] text-muted">Click to choose icon</p>
           </div>
 
+          {/* Cover Image Upload */}
+          <div>
+            <label className="block font-ui text-sm font-medium text-ink mb-1.5">
+              Cover Image <span className="text-muted text-xs">(optional)</span>
+            </label>
+            <div
+              onClick={() => coverInputRef.current?.click()}
+              className={`relative w-full h-32 rounded-xl border-2 border-dashed cursor-pointer overflow-hidden transition-all ${
+                coverUrl
+                  ? "border-purple-primary/30"
+                  : "border-black/[0.12] hover:border-purple-primary/30"
+              }`}
+            >
+              {coverUrl ? (
+                <>
+                  <img
+                    src={coverUrl}
+                    alt="Cover"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-white font-ui text-sm font-medium">Change cover</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCoverUrl(null);
+                    }}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted">
+                  {uploadingCover ? (
+                    <div className="w-6 h-6 border-2 border-purple-primary/30 border-t-purple-primary rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-xs font-ui">Click to upload cover image</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleCoverFileChange}
+              className="hidden"
+            />
+          </div>
+
           {/* Name Input */}
           <div>
             <label className="block font-ui text-sm font-medium text-ink mb-1.5">
@@ -587,7 +685,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
             </button>
             <button
               type="submit"
-              disabled={!name.trim() || creating || uploading}
+              disabled={!name.trim() || creating || uploading || uploadingCover}
               className="flex-1 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.9rem] font-medium text-white shadow-lg shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
               {creating ? "Creating..." : "Create Collection"}

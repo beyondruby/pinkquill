@@ -218,7 +218,7 @@ export default function CommunityFeedPage() {
                     title="Pin post"
                   >
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M16 4h2c.55 0 1.1.22 1.49.59l.01.01c.39.4.61.95.61 1.52v2c0 .55-.22 1.1-.59 1.49l-.01.01c-.4.39-.95.61-1.52.61h-2l-1 6-3-2-3 2-1-6H6c-.55 0-1.1-.22-1.49-.59l-.01-.01A2.1 2.1 0 014 8.12v-2c0-.55.22-1.1.59-1.49l.01-.01C5 4.22 5.55 4 6.12 4H8V3a1 1 0 112 0v1h4V3a1 1 0 112 0v1zM9 20a1 1 0 102 0v-5.5l1 .67 1-.67V20a1 1 0 102 0v-7l-3 2-3-2v7z"/>
+                      <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
                     </svg>
                   </button>
                 )}
