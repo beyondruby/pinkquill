@@ -2261,10 +2261,16 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-                            {/* Community Badge - Floating on image */}
+                            {/* Community Badge - Floating on image, clickable */}
                             {community && (
                               <div className="absolute bottom-3 left-3 right-3">
-                                <div className="flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/community/${community.slug}`);
+                                  }}
+                                  className="flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200 w-full text-left"
+                                >
                                   {community.avatar_url ? (
                                     <img
                                       src={community.avatar_url}
@@ -2278,8 +2284,16 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                       </svg>
                                     </div>
                                   )}
-                                  <span className="font-ui text-sm font-medium text-ink truncate">{community.name}</span>
-                                </div>
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <svg className="w-3.5 h-3.5 text-purple-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    <span className="font-ui text-sm font-medium text-ink truncate">{community.name}</span>
+                                  </div>
+                                  <svg className="w-4 h-4 text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                </button>
                               </div>
                             )}
 
