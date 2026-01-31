@@ -788,7 +788,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const [showCommunitiesModal, setShowCommunitiesModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"posts" | "takes" | "relays" | "store" | "collections">("posts");
   const [relaySubTab, setRelaySubTab] = useState<"posts" | "takes">("posts");
-  const [activeFilter, setActiveFilter] = useState("All");
   const [followStatus, setFollowStatus] = useState<FollowStatus>(null);
   const [followLoading, setFollowLoading] = useState(false);
   const [messageLoading, setMessageLoading] = useState(false);
@@ -821,7 +820,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const isOwnProfile = user?.id === profile?.id;
   useTrackProfileView(isOwnProfile ? undefined : profile?.id, "direct");
 
-  const filters = ["All", "Poetry", "Journals", "Visual"];
+  // Post view modes
+  type PostViewMode = "blog" | "gallery" | "poems" | "journals";
+  const [postViewMode, setPostViewMode] = useState<PostViewMode>("blog");
 
   useEffect(() => {
     const checkFollow = async () => {
@@ -1505,18 +1506,61 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {/* Posts Section */}
         {activeTab === "posts" && (
           <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
-            <div className="studio-works-header">
-              <h2 className="studio-works-title">Posts</h2>
-              <div className="studio-filters">
-                {filters.map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setActiveFilter(filter)}
-                    className={`studio-filter-btn ${activeFilter === filter ? "active" : ""}`}
-                  >
-                    {filter}
-                  </button>
-                ))}
+            {/* View Mode Tabs */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-1 p-1 bg-black/[0.03] rounded-xl">
+                <button
+                  onClick={() => setPostViewMode("blog")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all ${
+                    postViewMode === "blog"
+                      ? "bg-white text-purple-primary shadow-sm"
+                      : "text-muted hover:text-ink"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                  </svg>
+                  Blog
+                </button>
+                <button
+                  onClick={() => setPostViewMode("gallery")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all ${
+                    postViewMode === "gallery"
+                      ? "bg-white text-purple-primary shadow-sm"
+                      : "text-muted hover:text-ink"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                  Gallery
+                </button>
+                <button
+                  onClick={() => setPostViewMode("poems")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all ${
+                    postViewMode === "poems"
+                      ? "bg-white text-purple-primary shadow-sm"
+                      : "text-muted hover:text-ink"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Poems
+                </button>
+                <button
+                  onClick={() => setPostViewMode("journals")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all ${
+                    postViewMode === "journals"
+                      ? "bg-white text-purple-primary shadow-sm"
+                      : "text-muted hover:text-ink"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  Journals
+                </button>
               </div>
             </div>
 
@@ -1530,46 +1574,361 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   .map(p => ({ ...p, isCollaboration: true }))
               ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-              // Filter posts based on activeFilter
-              const filterTypeMap: Record<string, string> = {
-                "Poetry": "poem",
-                "Journals": "journal",
-                "Visual": "visual",
+              // Filter posts based on view mode
+              const getFilteredPosts = () => {
+                switch (postViewMode) {
+                  case "gallery":
+                    // Only posts with media
+                    return allPosts.filter(p => p.media && p.media.length > 0);
+                  case "poems":
+                    return allPosts.filter(p => p.type === "poem");
+                  case "journals":
+                    return allPosts.filter(p => p.type === "journal");
+                  case "blog":
+                  default:
+                    // All text-based posts (exclude pure visual if it has no text content)
+                    return allPosts;
+                }
               };
 
-              const filteredPosts = activeFilter === "All"
-                ? allPosts
-                : allPosts.filter(p => p.type === filterTypeMap[activeFilter]);
+              const filteredPosts = getFilteredPosts();
 
+              // Empty state
               if (filteredPosts.length === 0) {
+                const emptyMessages: Record<string, { icon: React.ReactNode; text: string }> = {
+                  blog: {
+                    icon: (
+                      <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                      </svg>
+                    ),
+                    text: "No posts yet..."
+                  },
+                  gallery: {
+                    icon: (
+                      <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                      </svg>
+                    ),
+                    text: "No visual posts yet..."
+                  },
+                  poems: {
+                    icon: (
+                      <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    ),
+                    text: "No poems yet..."
+                  },
+                  journals: {
+                    icon: (
+                      <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                      </svg>
+                    ),
+                    text: "No journal entries yet..."
+                  }
+                };
+
+                const { icon, text } = emptyMessages[postViewMode];
                 return (
                   <div className="studio-works-empty">
-                    <div className="studio-works-empty-icon">
-                      {activeFilter === "Journals" ? (
-                        <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                        </svg>
-                      ) : (
-                        <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                        </svg>
-                      )}
-                    </div>
-                    <p className="studio-works-empty-text">
-                      {activeFilter === "All" ? "No posts yet..." : `No ${activeFilter.toLowerCase()} yet...`}
-                    </p>
+                    <div className="studio-works-empty-icon">{icon}</div>
+                    <p className="studio-works-empty-text">{text}</p>
                   </div>
                 );
               }
 
-              // Special view for Journals - minimalist grouped by day
-              if (activeFilter === "Journals") {
+              // Helper to create postForModal
+              const createPostForModal = (work: typeof filteredPosts[0]) => {
+                const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
+                const workAuthor = isCollab && work.author ? work.author : profile;
+                return {
+                  id: work.id,
+                  authorId: workAuthor.id || profile.id,
+                  author: {
+                    name: workAuthor.display_name || workAuthor.username || profile.display_name || profile.username,
+                    handle: `@${workAuthor.username || profile.username}`,
+                    avatar: workAuthor.avatar_url || profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80",
+                  },
+                  type: work.type as "poem" | "journal" | "thought" | "visual" | "audio" | "video",
+                  typeLabel: work.type.charAt(0).toUpperCase() + work.type.slice(1),
+                  timeAgo: getTimeAgo(work.created_at),
+                  createdAt: work.created_at,
+                  title: work.title || undefined,
+                  content: work.content,
+                  media: work.media,
+                  styling: work.styling,
+                  post_location: work.post_location,
+                  metadata: work.metadata,
+                  stats: {
+                    admires: work.admires_count,
+                    comments: work.comments_count,
+                    relays: work.relays_count || 0,
+                  },
+                  isAdmired: work.user_has_admired,
+                  isSaved: work.user_has_saved,
+                  isRelayed: work.user_has_relayed,
+                };
+              };
+
+              const typeLabels: Record<string, string> = {
+                poem: "Poetry",
+                journal: "Journal",
+                thought: "Thought",
+                essay: "Essay",
+                blog: "Blog",
+                story: "Story",
+                letter: "Letter",
+                visual: "Visual",
+                quote: "Quote",
+                audio: "Audio",
+                video: "Video",
+              };
+
+              // ========== BLOG VIEW ==========
+              if (postViewMode === "blog") {
+                return (
+                  <div className="space-y-6">
+                    {filteredPosts.map((work) => {
+                      const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
+                      const hasMedia = work.media && work.media.length > 0;
+                      const plainContent = work.content
+                        ? work.content.replace(/<[^>]*>/g, '').substring(0, 300)
+                        : '';
+                      const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      });
+
+                      return (
+                        <article
+                          key={work.id}
+                          onClick={() => openPostModal(createPostForModal(work))}
+                          className="group relative bg-white rounded-2xl border border-black/[0.06] hover:border-purple-primary/20 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
+                        >
+                          {/* Featured image */}
+                          {hasMedia && (
+                            <div className="relative h-48 sm:h-64 overflow-hidden">
+                              <img
+                                src={work.media[0].media_url}
+                                alt={work.title || ""}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                              {work.media.length > 1 && (
+                                <div className="absolute top-3 right-3 px-2 py-1 bg-black/50 backdrop-blur-sm rounded-full text-white text-xs flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  {work.media.length}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="p-6">
+                            {/* Meta row */}
+                            <div className="flex items-center gap-3 mb-3">
+                              <span className="px-2.5 py-1 rounded-full bg-purple-primary/10 text-purple-primary text-xs font-medium">
+                                {typeLabels[work.type] || work.type}
+                              </span>
+                              <span className="text-sm text-muted">{formattedDate}</span>
+                              {isCollab && (
+                                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-pink-vivid/10 text-pink-vivid text-xs font-medium">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                  </svg>
+                                  Collab
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Title */}
+                            <h2 className="font-display text-xl sm:text-2xl font-semibold text-ink mb-3 group-hover:text-purple-primary transition-colors line-clamp-2">
+                              {work.title || "Untitled"}
+                            </h2>
+
+                            {/* Excerpt */}
+                            <p className="font-body text-muted leading-relaxed line-clamp-3 mb-4">
+                              {plainContent || "No preview available..."}
+                            </p>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between pt-4 border-t border-black/[0.04]">
+                              <div className="flex items-center gap-4 text-sm text-muted">
+                                <span className="flex items-center gap-1.5">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  </svg>
+                                  {work.admires_count || 0}
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                  </svg>
+                                  {work.comments_count || 0}
+                                </span>
+                              </div>
+                              <span className="text-purple-primary text-sm font-medium group-hover:underline">
+                                Read more →
+                              </span>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              // ========== GALLERY VIEW ==========
+              if (postViewMode === "gallery") {
+                return (
+                  <div className="grid grid-cols-3 gap-1 sm:gap-2">
+                    {filteredPosts.map((work) => {
+                      const hasMultipleImages = work.media && work.media.length > 1;
+
+                      return (
+                        <div
+                          key={work.id}
+                          onClick={() => openPostModal(createPostForModal(work))}
+                          className="group relative aspect-square cursor-pointer overflow-hidden bg-black/[0.03] rounded-sm sm:rounded-lg"
+                        >
+                          <img
+                            src={work.media[0].media_url}
+                            alt={work.title || ""}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <div className="flex items-center gap-6 text-white">
+                              <span className="flex items-center gap-2">
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                </svg>
+                                {work.admires_count || 0}
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/>
+                                </svg>
+                                {work.comments_count || 0}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Multiple images indicator */}
+                          {hasMultipleImages && (
+                            <div className="absolute top-2 right-2 text-white drop-shadow-lg">
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              // ========== POEMS VIEW ==========
+              if (postViewMode === "poems") {
+                return (
+                  <div className="space-y-8">
+                    {filteredPosts.map((work) => {
+                      const plainContent = work.content
+                        ? work.content.replace(/<[^>]*>/g, '').substring(0, 200)
+                        : '';
+                      const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      });
+
+                      return (
+                        <article
+                          key={work.id}
+                          onClick={() => openPostModal(createPostForModal(work))}
+                          className="group relative max-w-2xl mx-auto cursor-pointer"
+                        >
+                          {/* Decorative quote marks */}
+                          <div className="absolute -left-4 -top-2 text-purple-primary/10 text-6xl font-serif leading-none select-none">
+                            "
+                          </div>
+
+                          <div className="relative bg-gradient-to-br from-white to-purple-primary/[0.02] rounded-2xl p-8 border border-purple-primary/10 hover:border-purple-primary/30 hover:shadow-xl hover:shadow-purple-primary/5 transition-all duration-300">
+                            {/* Title */}
+                            {work.title && (
+                              <h2 className="font-display text-2xl font-semibold text-ink text-center mb-6 group-hover:text-purple-primary transition-colors">
+                                {work.title}
+                              </h2>
+                            )}
+
+                            {/* Poem excerpt - centered, italic */}
+                            <div className="text-center">
+                              <p className="font-body text-lg text-ink/80 italic leading-loose whitespace-pre-line">
+                                {plainContent || "..."}
+                              </p>
+                              {plainContent.length >= 200 && (
+                                <span className="inline-block mt-4 text-purple-primary text-sm font-medium">
+                                  Continue reading...
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Decorative divider */}
+                            <div className="flex items-center justify-center gap-3 my-6">
+                              <div className="h-px w-12 bg-gradient-to-r from-transparent to-purple-primary/30" />
+                              <svg className="w-4 h-4 text-purple-primary/40" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                              </svg>
+                              <div className="h-px w-12 bg-gradient-to-l from-transparent to-purple-primary/30" />
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-center gap-4 text-sm text-muted">
+                              <span>{formattedDate}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                                {work.admires_count || 0}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                                {work.comments_count || 0}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Decorative closing quote */}
+                          <div className="absolute -right-4 -bottom-4 text-purple-primary/10 text-6xl font-serif leading-none select-none rotate-180">
+                            "
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              // ========== JOURNALS VIEW ==========
+              if (postViewMode === "journals") {
                 // Group journals by date
                 const journalsByDate: Record<string, typeof filteredPosts> = {};
                 filteredPosts.forEach(post => {
                   const date = new Date(post.created_at);
                   const dateKey = date.toLocaleDateString('en-US', {
-                    month: 'short',
+                    weekday: 'long',
+                    month: 'long',
                     day: 'numeric',
                     year: 'numeric'
                   });
@@ -1580,48 +1939,28 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 });
 
                 return (
-                  <div className="studio-journals-grid">
+                  <div className="space-y-8">
                     {Object.entries(journalsByDate).map(([dateKey, dayPosts]) => (
-                      <div key={dateKey} className="journals-date-section">
-                        <div className="journals-date-label">{dateKey}</div>
-                        <div className="journals-entries">
-                          {dayPosts.map((work) => {
-                            const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
-                            const workAuthor = isCollab && work.author ? work.author : profile;
-                            const postForModal = {
-                              id: work.id,
-                              authorId: workAuthor.id || profile.id,
-                              author: {
-                                name: workAuthor.display_name || workAuthor.username || profile.display_name || profile.username,
-                                handle: `@${workAuthor.username || profile.username}`,
-                                avatar: workAuthor.avatar_url || profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80",
-                              },
-                              type: work.type as "poem" | "journal" | "thought" | "visual" | "audio" | "video",
-                              typeLabel: "Journal",
-                              timeAgo: getTimeAgo(work.created_at),
-                              createdAt: work.created_at,
-                              title: work.title || undefined,
-                              content: work.content,
-                              media: work.media,
-                              styling: work.styling,
-                              post_location: work.post_location,
-                              metadata: work.metadata,
-                              stats: {
-                                admires: work.admires_count,
-                                comments: work.comments_count,
-                                relays: work.relays_count || 0,
-                              },
-                              isAdmired: work.user_has_admired,
-                              isSaved: work.user_has_saved,
-                              isRelayed: work.user_has_relayed,
-                            };
+                      <div key={dateKey} className="relative">
+                        {/* Date header */}
+                        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm py-3 mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <h3 className="font-display text-lg font-semibold text-ink">{dateKey}</h3>
+                          </div>
+                        </div>
 
+                        {/* Timeline */}
+                        <div className="relative pl-8 border-l-2 border-purple-primary/20 space-y-6">
+                          {dayPosts.map((work) => {
                             const hasMedia = work.media && work.media.length > 0;
                             const plainContent = work.content
-                              ? work.content.replace(/<[^>]*>/g, '').substring(0, 120)
+                              ? work.content.replace(/<[^>]*>/g, '').substring(0, 150)
                               : '';
-
-                            // Get time from created_at
                             const entryTime = new Date(work.created_at).toLocaleTimeString('en-US', {
                               hour: 'numeric',
                               minute: '2-digit',
@@ -1631,23 +1970,77 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             return (
                               <article
                                 key={work.id}
-                                onClick={() => openPostModal(postForModal)}
-                                className="journal-card"
+                                onClick={() => openPostModal(createPostForModal(work))}
+                                className="group relative cursor-pointer"
                               >
-                                {hasMedia && (
-                                  <div className="journal-card-image">
-                                    <img src={work.media[0].media_url} alt="" />
-                                    {work.media.length > 1 && (
-                                      <span className="journal-card-image-count">+{work.media.length - 1}</span>
-                                    )}
-                                  </div>
-                                )}
-                                <div className="journal-card-body">
-                                  <span className="journal-card-time">{entryTime}</span>
+                                {/* Timeline dot */}
+                                <div className="absolute -left-[25px] top-2 w-3 h-3 rounded-full bg-purple-primary/30 group-hover:bg-purple-primary group-hover:scale-125 transition-all" />
+
+                                <div className="bg-white rounded-xl border border-black/[0.06] hover:border-purple-primary/20 hover:shadow-lg transition-all p-5">
+                                  {/* Time */}
+                                  <span className="text-xs font-medium text-purple-primary bg-purple-primary/10 px-2 py-1 rounded-full">
+                                    {entryTime}
+                                  </span>
+
+                                  {/* Title */}
                                   {work.title && (
-                                    <h3 className="journal-card-title">{work.title}</h3>
+                                    <h4 className="font-display text-lg font-semibold text-ink mt-3 group-hover:text-purple-primary transition-colors">
+                                      {work.title}
+                                    </h4>
                                   )}
-                                  <p className="journal-card-excerpt">{plainContent}</p>
+
+                                  {/* Content preview */}
+                                  <p className="font-body text-sm text-muted mt-2 line-clamp-2">
+                                    {plainContent}
+                                  </p>
+
+                                  {/* Media thumbnail */}
+                                  {hasMedia && (
+                                    <div className="mt-3 flex gap-2">
+                                      {work.media.slice(0, 3).map((m: any, i: number) => (
+                                        <div key={i} className="w-16 h-16 rounded-lg overflow-hidden bg-black/[0.03]">
+                                          <img src={m.media_url} alt="" className="w-full h-full object-cover" />
+                                        </div>
+                                      ))}
+                                      {work.media.length > 3 && (
+                                        <div className="w-16 h-16 rounded-lg bg-black/[0.05] flex items-center justify-center text-sm text-muted">
+                                          +{work.media.length - 3}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Metadata badges */}
+                                  {work.metadata && (
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                      {work.metadata.mood && (
+                                        <span className="text-xs px-2 py-1 rounded-full bg-pink-vivid/10 text-pink-vivid">
+                                          {work.metadata.mood}
+                                        </span>
+                                      )}
+                                      {work.metadata.weather && (
+                                        <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-600">
+                                          {work.metadata.weather}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Stats */}
+                                  <div className="flex items-center gap-4 mt-4 pt-3 border-t border-black/[0.04] text-xs text-muted">
+                                    <span className="flex items-center gap-1">
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                      </svg>
+                                      {work.admires_count || 0}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                      </svg>
+                                      {work.comments_count || 0}
+                                    </span>
+                                  </div>
                                 </div>
                               </article>
                             );
@@ -1659,133 +2052,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 );
               }
 
-              return (
-                <div className="studio-works-grid">
-                  {filteredPosts.map((work) => {
-                    const isCollab = work.isCollaboration || collaboratedPostIds.has(work.id);
-                    const workAuthor = isCollab && work.author ? work.author : profile;
-                    const postForModal = {
-                      id: work.id,
-                      authorId: workAuthor.id || profile.id,
-                      author: {
-                        name: workAuthor.display_name || workAuthor.username || profile.display_name || profile.username,
-                        handle: `@${workAuthor.username || profile.username}`,
-                        avatar: workAuthor.avatar_url || profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80",
-                      },
-                      type: work.type as "poem" | "journal" | "thought" | "visual" | "audio" | "video",
-                      typeLabel: work.type.charAt(0).toUpperCase() + work.type.slice(1),
-                      timeAgo: getTimeAgo(work.created_at),
-                      createdAt: work.created_at,
-                      title: work.title || undefined,
-                    content: work.content,
-                    media: work.media,
-                    styling: work.styling,
-                    post_location: work.post_location,
-                    metadata: work.metadata,
-                    stats: {
-                      admires: work.admires_count,
-                      comments: work.comments_count,
-                      relays: work.relays_count || 0,
-                    },
-                    isAdmired: work.user_has_admired,
-                    isSaved: work.user_has_saved,
-                    isRelayed: work.user_has_relayed,
-                  };
-
-                  const hasMedia = work.media && work.media.length > 0;
-                  const hasMultipleImages = work.media && work.media.length > 1;
-
-                  // Strip HTML for preview
-                  const plainContent = work.content
-                    ? work.content.replace(/<[^>]*>/g, '').substring(0, 200)
-                    : '';
-
-                  const typeLabels: Record<string, string> = {
-                    poem: "Poetry",
-                    journal: "Journal",
-                    thought: "Thought",
-                    essay: "Essay",
-                    story: "Story",
-                    letter: "Letter",
-                    visual: "Visual",
-                    quote: "Quote",
-                    audio: "Audio",
-                    video: "Video",
-                  };
-
-                  // Format date
-                  const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric'
-                  });
-
-                  return (
-                    <article
-                      key={work.id}
-                      ref={observeCard}
-                      data-post-id={work.id}
-                      onClick={() => openPostModal(postForModal)}
-                      className={`studio-work-card ${hasMedia ? 'has-image' : ''} ${revealedCards.has(work.id) ? 'revealed' : ''} ${isCollab ? 'is-collaboration' : ''}`}
-                      data-type={work.type}
-                    >
-                      {/* Collaboration Badge */}
-                      {isCollab && (
-                        <div className="studio-collab-badge">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          <span>Collab</span>
-                        </div>
-                      )}
-
-                      {/* Content - Top (type → title → text hierarchy) */}
-                      <div className="studio-work-content">
-                        <span className="studio-work-type-label">
-                          {typeLabels[work.type] || work.type}
-                        </span>
-
-                        <h3 className="studio-work-title-text">
-                          {work.title || "Untitled"}
-                        </h3>
-
-                        <div className="studio-work-preview">
-                          <p className="studio-work-preview-text">
-                            {plainContent}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Media - Bottom */}
-                      {hasMedia && (
-                        <div className="studio-work-image-wrap">
-                          <img
-                            src={work.media[0].media_url}
-                            alt={work.title || "Visual work"}
-                            className="studio-work-image"
-                          />
-                          {hasMultipleImages && (
-                            <div className="studio-work-multi-indicator">
-                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              {work.media.length}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Footer with Reaction Picker */}
-                      <WorkCardFooter
-                        postId={work.id}
-                        commentsCount={work.comments_count}
-                        formattedDate={formattedDate}
-                        userId={user?.id}
-                      />
-                    </article>
-                  );
-                })}
-              </div>
-              );
+              // Fallback
+              return null;
             })()}
           </div>
         )}
