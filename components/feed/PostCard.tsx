@@ -1059,7 +1059,7 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
             community_id: null,
             author: {
               id: post.authorId,
-              username: post.author.handle,
+              username: post.author.handle.replace(/^@/, ''),
               display_name: post.author.name,
               avatar_url: post.author.avatar,
               is_verified: false,
