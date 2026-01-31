@@ -16,6 +16,7 @@ import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import PostTags from "@/components/feed/PostTags";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
 
 // Helper to sanitize and clean HTML for display
@@ -711,7 +712,10 @@ export default function PostPage() {
   const hasMedia = post.media && post.media.length > 0;
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary
+      section="PostDetail"
+      fallback={({ reset }) => <ModalErrorFallback onRetry={reset} />}
+    >
       <MobileHeader />
       <LeftSidebar />
       <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen bg-[#fdfdfd]">

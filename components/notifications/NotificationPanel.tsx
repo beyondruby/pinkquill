@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useNotifications, useMarkAsRead, useCollaborationInvites, useFollowRequests, Notification } from "@/lib/hooks";
 import { useAuth } from "@/components/providers/AuthProvider";
-import Loading from "@/components/ui/Loading";
+import { NotificationSkeleton } from "@/components/ui/Skeleton";
 import CollaborationInviteCard from "./CollaborationInviteCard";
 import FollowRequestCard from "./FollowRequestCard";
 
@@ -824,8 +824,10 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loading text="Loading" size="medium" />
+            <div className="p-3 space-y-1">
+              {[...Array(5)].map((_, i) => (
+                <NotificationSkeleton key={i} />
+              ))}
             </div>
           ) : !hasContent ? (
             <div className="flex flex-col items-center justify-center py-20 px-8 text-center">

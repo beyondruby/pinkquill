@@ -1,4 +1,4 @@
-import StudioProfile from "@/components/studio/StudioProfile";
+import StudioProfileWrapper from "@/components/studio/StudioProfileWrapper";
 
 interface Props {
   params: Promise<{ username: string }>;
@@ -6,5 +6,5 @@ interface Props {
 
 export default async function StudioPage({ params }: Props) {
   const { username } = await params;
-  return <StudioProfile username={username} />;
+  return <StudioProfileWrapper username={username} />;
 }

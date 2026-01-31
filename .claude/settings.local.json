@@ -31,7 +31,8 @@
       "Bash(tree:*)",
       "Bash(echo:*)",
       "Bash(npm run lint:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(npm run test:run:*)"
     ]
   }
 }

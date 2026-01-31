@@ -8,6 +8,8 @@ import { useModal } from "@/components/providers/ModalProvider";
 import { useFeed } from "@/lib/hooks/useFeed";
 import PostCard from "./PostCard";
 import PostSkeleton from "./PostSkeleton";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
 import type { Post } from "@/lib/types";
 
 function getTimeAgo(dateString: string): string {
@@ -135,50 +137,55 @@ export default function Feed() {
   return (
     <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
       {posts.map((post) => (
-        <PostCard
+        <ErrorBoundary
           key={post.id}
-          post={{
-            id: post.id,
-            authorId: post.author_id,
-            author: {
-              name: post.author.display_name || post.author.username,
-              handle: `@${post.author.username}`,
-              avatar: post.author.avatar_url || "/defaultprofile.png",
-            },
-            type: post.type,
-            typeLabel: getTypeLabel(post.type),
-            timeAgo: getTimeAgo(post.created_at),
-            createdAt: post.created_at,
-            title: post.title || undefined,
-            content: post.content,
-            contentWarning: post.content_warning || undefined,
-            media: post.media || [],
-            stats: {
-              admires: post.admires_count,
-              comments: post.comments_count,
-              relays: post.relays_count,
-            },
-            isAdmired: post.user_has_admired,
-            isSaved: post.user_has_saved,
-            isRelayed: post.user_has_relayed,
-            community: post.community ? {
-              slug: post.community.slug,
-              name: post.community.name,
-              avatar_url: post.community.avatar_url,
-            } : undefined,
-            collaborators: (post.collaborators || []).map(c => ({
-              ...c,
-              status: c.status as 'pending' | 'accepted' | 'declined',
-            })),
-            mentions: post.mentions || [],
-            hashtags: post.hashtags || [],
-            styling: post.styling || null,
-            post_location: post.post_location || null,
-            metadata: post.metadata || null,
-            spotify_track: post.spotify_track || null,
-          }}
-          onPostDeleted={handlePostDeleted}
-        />
+          section={`PostCard:${post.id}`}
+          fallback={({ reset }) => <PostCardErrorFallback onRetry={reset} />}
+        >
+          <PostCard
+            post={{
+              id: post.id,
+              authorId: post.author_id,
+              author: {
+                name: post.author.display_name || post.author.username,
+                handle: `@${post.author.username}`,
+                avatar: post.author.avatar_url || "/defaultprofile.png",
+              },
+              type: post.type,
+              typeLabel: getTypeLabel(post.type),
+              timeAgo: getTimeAgo(post.created_at),
+              createdAt: post.created_at,
+              title: post.title || undefined,
+              content: post.content,
+              contentWarning: post.content_warning || undefined,
+              media: post.media || [],
+              stats: {
+                admires: post.admires_count,
+                comments: post.comments_count,
+                relays: post.relays_count,
+              },
+              isAdmired: post.user_has_admired,
+              isSaved: post.user_has_saved,
+              isRelayed: post.user_has_relayed,
+              community: post.community ? {
+                slug: post.community.slug,
+                name: post.community.name,
+                avatar_url: post.community.avatar_url,
+              } : undefined,
+              collaborators: (post.collaborators || []).map(c => ({
+                ...c,
+                status: c.status as 'pending' | 'accepted' | 'declined',
+              })),
+              mentions: post.mentions || [],
+              hashtags: post.hashtags || [],
+              styling: post.styling || null,
+              post_location: post.post_location || null,
+              metadata: post.metadata || null,
+              spotify_track: post.spotify_track || null,
+            }}
+            onPostDeleted={handlePostDeleted}
+          />
+        </ErrorBoundary>
       ))}
 
       {/* Infinite scroll trigger */}

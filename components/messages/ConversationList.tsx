@@ -1,7 +1,7 @@
 "use client";
 
 import { Conversation } from "./MessagesView";
-import Loading from "@/components/ui/Loading";
+import { ConversationSkeleton } from "@/components/ui/Skeleton";
 
 function formatVoiceDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -43,8 +43,10 @@ export default function ConversationList({
 }: ConversationListProps) {
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center py-8">
-        <Loading text="Loading messages" size="medium" />
+      <div className="flex-1 overflow-hidden">
+        {[...Array(6)].map((_, i) => (
+          <ConversationSkeleton key={i} />
+        ))}
       </div>
     );
   }

@@ -4,8 +4,14 @@ import React, { Component, ReactNode } from "react";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
-  fallback?: ReactNode;
+  /** Custom fallback UI - can be a ReactNode or a render function that receives error and reset */
+  fallback?: ReactNode | ((props: { error: Error | null; reset: () => void }) => ReactNode);
+  /** Callback when error is caught */
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  /** Reset key - when this changes, the error boundary resets */
+  resetKey?: string | number;
+  /** Section name for logging */
+  section?: string;
 }
 
 interface ErrorBoundaryState {
@@ -23,8 +29,19 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
+  componentDidUpdate(prevProps: ErrorBoundaryProps): void {
+    // Reset error state when resetKey changes
+    if (
+      this.state.hasError &&
+      prevProps.resetKey !== this.props.resetKey
+    ) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    const section = this.props.section || "Unknown";
+    console.error(`[ErrorBoundary:${section}]`, error, errorInfo);
     this.props.onError?.(error, errorInfo);
   }
 
@@ -34,7 +51,14 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   render(): ReactNode {
     if (this.state.hasError) {
+      // Support both ReactNode and render function fallbacks
       if (this.props.fallback) {
+        if (typeof this.props.fallback === "function") {
+          return this.props.fallback({
+            error: this.state.error,
+            reset: this.handleRetry,
+          });
+        }
         return this.props.fallback;
       }
 

@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import MessagesView from "@/components/messages/MessagesView";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { MessagesErrorFallback } from "@/components/ui/ErrorFallbacks";
 
 function MessagesLoading() {
   return (
@@ -11,8 +13,13 @@ function MessagesLoading() {
 
 export default function MessagesPage() {
   return (
-    <Suspense fallback={<MessagesLoading />}>
-      <MessagesView />
-    </Suspense>
+    <ErrorBoundary
+      section="Messages"
+      fallback={<MessagesErrorFallback />}
+    >
+      <Suspense fallback={<MessagesLoading />}>
+        <MessagesView />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
