@@ -723,11 +723,11 @@ export default function ChatView({
 
                 {/* Message Bubble with Reactions */}
                 <div
-                  className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-1 group`}
+                  className={`flex items-center ${isOwn ? "justify-end" : "justify-start"} mb-1.5 group`}
                 >
                   {/* Reaction picker - shown on left for own messages */}
                   {isOwn && !message.id.startsWith('temp-') && (
-                    <div className="flex items-end mr-1">
+                    <div className="flex items-center mr-2">
                       <MessageReactionPicker
                         userReaction={reactions.getUserReaction(message.id)}
                         reactions={reactions.reactionsByMessage.get(message.id) || []}
@@ -836,7 +836,7 @@ export default function ChatView({
 
                   {/* Reaction picker - shown on right for other's messages */}
                   {!isOwn && !message.id.startsWith('temp-') && (
-                    <div className="flex items-end ml-1">
+                    <div className="flex items-center ml-2">
                       <MessageReactionPicker
                         userReaction={reactions.getUserReaction(message.id)}
                         reactions={reactions.reactionsByMessage.get(message.id) || []}

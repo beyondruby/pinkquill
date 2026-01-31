@@ -87,7 +87,8 @@ describe("getOptimizedAvatarUrl", () => {
     // md = 40px, so should request 80px
     const result = getOptimizedAvatarUrl(supabaseUrl, "md");
     expect(result).toContain("width=80");
-    expect(result).toContain("height=80");
+    // Should NOT include height to avoid server-side cropping
+    expect(result).not.toContain("height=");
   });
 
   it("should work with numeric sizes", () => {
@@ -98,6 +99,12 @@ describe("getOptimizedAvatarUrl", () => {
   it("should use quality of 80 for avatars", () => {
     const result = getOptimizedAvatarUrl(supabaseUrl, "md");
     expect(result).toContain("quality=80");
+  });
+
+  it("should not include height to preserve aspect ratio", () => {
+    const result = getOptimizedAvatarUrl(supabaseUrl, "lg");
+    expect(result).not.toContain("height=");
+    expect(result).not.toContain("resize=");
   });
 });
 
@@ -117,6 +124,11 @@ describe("getAvatarSrcSet", () => {
     expect(result).toContain("width=40"); // 1x
     expect(result).toContain("width=80"); // 2x
     expect(result).toContain("width=120"); // 3x
+  });
+
+  it("should not include height in srcSet URLs", () => {
+    const result = getAvatarSrcSet(supabaseUrl, 40);
+    expect(result).not.toContain("height=");
   });
 
   it("should return empty string for non-Supabase URLs", () => {

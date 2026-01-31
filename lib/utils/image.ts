@@ -85,6 +85,10 @@ export function getOptimizedImageUrl(
 
 /**
  * Get optimized avatar URL for a specific size
+ *
+ * Note: We only specify width (not height) to avoid server-side cropping.
+ * The CSS object-fit:cover + border-radius handles the circular display.
+ * This preserves the original image composition and avoids "zoomed in" faces.
  */
 export function getOptimizedAvatarUrl(
   url: string | null | undefined,
@@ -97,9 +101,9 @@ export function getOptimizedAvatarUrl(
 
   return getOptimizedImageUrl(url, {
     width: requestSize,
-    height: requestSize,
+    // Don't set height - let the image scale proportionally
+    // CSS object-fit:cover will handle the circular crop on the client
     quality: 80,
-    resize: 'cover',
   });
 }
 
@@ -121,9 +125,8 @@ export function getAvatarSrcSet(
       const scaledSize = baseSize * scale;
       const optimizedUrl = getOptimizedImageUrl(url, {
         width: scaledSize,
-        height: scaledSize,
+        // Don't set height - preserve aspect ratio
         quality: scale === 1 ? 80 : 70, // Lower quality for larger sizes
-        resize: 'cover',
       });
       return `${optimizedUrl} ${scale}x`;
     })
