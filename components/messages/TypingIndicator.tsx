@@ -1,7 +1,7 @@
 "use client";
 
 import type { TypingUser } from "@/lib/types";
-import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
 
 interface TypingIndicatorProps {
   typingUsers: TypingUser[];
@@ -19,7 +19,7 @@ export default function TypingIndicator({ typingUsers, typingText }: TypingIndic
       <div className="relative flex-shrink-0">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/30 to-pink-vivid/30 rounded-full blur-md animate-pulse" />
         <img
-          src={getOptimizedAvatarUrl(typingUsers[0]?.avatar_url, 32) || DEFAULT_AVATAR}
+          src={typingUsers[0]?.avatar_url || DEFAULT_AVATAR}
           alt={typingUsers[0]?.display_name || typingUsers[0]?.username}
           className="relative w-8 h-8 rounded-full object-cover border-2 border-white shadow-md"
           loading="lazy"

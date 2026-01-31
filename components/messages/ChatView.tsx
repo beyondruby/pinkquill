@@ -11,7 +11,7 @@ import MessageReactionPicker, { ReactionsDisplay } from "./MessageReactionPicker
 import TypingIndicator from "./TypingIndicator";
 import Loading from "@/components/ui/Loading";
 import EmojiPicker from "@/components/ui/EmojiPicker";
-import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
+import { DEFAULT_AVATAR } from "@/lib/utils/image";
 
 // Local type for chat participants (simplified from ConversationParticipant)
 interface Participant {
@@ -603,7 +603,7 @@ export default function ChatView({
           className="flex items-center gap-3 flex-1 group"
         >
           <img
-            src={getOptimizedAvatarUrl(participant?.avatar_url, 44) || DEFAULT_AVATAR}
+            src={participant?.avatar_url || DEFAULT_AVATAR}
             alt={participant?.display_name || participant?.username}
             className="w-11 h-11 rounded-full object-cover group-hover:ring-2 group-hover:ring-purple-primary/30 transition-all"
             loading="lazy"
@@ -680,7 +680,7 @@ export default function ChatView({
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="text-center">
               <img
-                src={getOptimizedAvatarUrl(participant?.avatar_url, 80) || DEFAULT_AVATAR}
+                src={participant?.avatar_url || DEFAULT_AVATAR}
                 alt={participant?.display_name || participant?.username}
                 className="w-20 h-20 rounded-full object-cover mx-auto mb-4 shadow-lg"
                 loading="lazy"
@@ -739,7 +739,7 @@ export default function ChatView({
                   )}
 
                   {/* Message bubble wrapper with relative positioning for reactions */}
-                  <div className={`relative ${(reactions.reactionsByMessage.get(message.id) || []).length > 0 ? "mb-3" : ""}`}>
+                  <div className={`relative max-w-[70%] ${(reactions.reactionsByMessage.get(message.id) || []).length > 0 ? "mb-3" : ""}`}>
                     {message.message_type === "voice" && message.voice_url ? (
                       <div
                         className={`max-w-[280px] rounded-2xl overflow-hidden ${
@@ -810,7 +810,7 @@ export default function ChatView({
                       </div>
                     ) : (
                       <div
-                        className={`max-w-[70%] px-4 py-2.5 rounded-2xl ${
+                        className={`px-4 py-2.5 rounded-2xl ${
                           isOwn
                             ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
                             : "bg-white text-ink shadow-sm rounded-bl-md"
