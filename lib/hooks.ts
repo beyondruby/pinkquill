@@ -78,6 +78,14 @@ export { useActionMenu, useActionMenuWithModals } from "./hooks/useActionMenu";
 // Pinned Posts
 export { usePinnedPosts, useCommunityPinnedPosts } from "./hooks/usePinnedPosts";
 
+// Messaging (reactions, typing indicators)
+export {
+  useMessageReactions,
+  useTypingIndicator,
+  useChatFeatures,
+  MESSAGE_REACTION_EMOJIS,
+} from "./hooks/useMessaging";
+
 // Collections
 export {
   useCollections,
@@ -123,6 +131,9 @@ export type {
   ConversationParticipant,
   Message,
   MessageType,
+  MessageReaction,
+  MessageReactionEmoji,
+  TypingUser,
   Community,
   CommunityMember,
   CommunityRule,

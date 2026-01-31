@@ -367,6 +367,23 @@ export interface ConversationParticipant {
 
 export type MessageType = "text" | "voice" | "media";
 
+// Supported emoji reactions for messages (like Instagram DMs)
+export const MESSAGE_REACTION_EMOJIS = ["❤️", "😂", "😮", "😢", "😠", "👍"] as const;
+export type MessageReactionEmoji = typeof MESSAGE_REACTION_EMOJIS[number];
+
+export interface MessageReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: MessageReactionEmoji;
+  created_at: string;
+  user?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
 export interface Message {
   id: string;
   conversation_id?: string; // Optional for optimistic updates before server response
@@ -388,6 +405,17 @@ export interface Message {
     display_name: string | null;
     avatar_url: string | null;
   };
+  // Reactions on this message
+  reactions?: MessageReaction[];
+}
+
+// Typing indicator state
+export interface TypingUser {
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  started_at: number;
 }
 
 // ============================================================================

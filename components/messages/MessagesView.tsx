@@ -55,7 +55,7 @@ const icons = {
 export default function MessagesView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -362,6 +362,11 @@ export default function MessagesView() {
           <ChatView
             conversationId={selectedConversation}
             currentUserId={user.id}
+            currentUserProfile={profile ? {
+              username: profile.username,
+              display_name: profile.display_name,
+              avatar_url: profile.avatar_url,
+            } : undefined}
             onBack={() => {
               setSelectedConversation(null);
               router.push("/messages", { scroll: false });

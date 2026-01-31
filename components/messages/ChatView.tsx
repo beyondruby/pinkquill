@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { useBlock, useSendVoiceNote, useSendMedia } from "@/lib/hooks";
-import type { Message } from "@/lib/types";
+import { useBlock, useSendVoiceNote, useSendMedia, useChatFeatures } from "@/lib/hooks";
+import type { Message, MessageReactionEmoji } from "@/lib/types";
 import VoiceRecorder from "./VoiceRecorder";
 import VoiceNotePlayer from "./VoiceNotePlayer";
+import MessageReactionPicker from "./MessageReactionPicker";
+import TypingIndicator from "./TypingIndicator";
 import Loading from "@/components/ui/Loading";
 import EmojiPicker from "@/components/ui/EmojiPicker";
 
@@ -21,6 +23,11 @@ interface Participant {
 interface ChatViewProps {
   conversationId: string;
   currentUserId: string;
+  currentUserProfile?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
   onBack: () => void;
 }
 
@@ -106,6 +113,7 @@ function shouldShowDateDivider(
 export default function ChatView({
   conversationId,
   currentUserId,
+  currentUserProfile,
   onBack,
 }: ChatViewProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -147,6 +155,32 @@ export default function ChatView({
   const { checkIsBlocked, blockUser, unblockUser } = useBlock();
   const { sendVoiceNote, sending: sendingVoice } = useSendVoiceNote();
   const { sendMedia, validateFile, sending: sendingMedia, limits } = useSendMedia();
+
+  // Message reactions and typing indicators
+  const { reactions, typing } = useChatFeatures({
+    conversationId,
+    currentUserId,
+    currentUserProfile,
+  });
+
+  // Handle typing indicator - called when input changes
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    // Notify typing
+    if (e.target.value.length > 0) {
+      typing.setTyping(true);
+    }
+  }, [typing]);
+
+  // Handle reaction on a message
+  const handleReaction = useCallback((messageId: string, emoji: MessageReactionEmoji) => {
+    reactions.toggleReaction(messageId, emoji);
+  }, [reactions]);
+
+  // Handle removing a reaction
+  const handleRemoveReaction = useCallback((messageId: string) => {
+    reactions.removeReaction(messageId);
+  }, [reactions]);
 
   // Scroll to bottom - instant on initial load, smooth for new messages
   const scrollToBottom = (smooth = true) => {
@@ -690,10 +724,23 @@ export default function ChatView({
                   </div>
                 )}
 
-                {/* Message Bubble */}
+                {/* Message Bubble with Reactions */}
                 <div
-                  className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-1`}
+                  className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-1 group`}
                 >
+                  {/* Reaction picker - shown on left for own messages */}
+                  {isOwn && !message.id.startsWith('temp-') && (
+                    <div className="flex items-end mr-1">
+                      <MessageReactionPicker
+                        userReaction={reactions.getUserReaction(message.id)}
+                        reactions={reactions.reactionsByMessage.get(message.id) || []}
+                        onReact={(emoji) => handleReaction(message.id, emoji)}
+                        onRemoveReaction={() => handleRemoveReaction(message.id)}
+                        isOwnMessage={isOwn}
+                      />
+                    </div>
+                  )}
+
                   {message.message_type === "voice" && message.voice_url ? (
                     <div
                       className={`max-w-[280px] rounded-2xl overflow-hidden ${
@@ -789,11 +836,31 @@ export default function ChatView({
                       </div>
                     </div>
                   )}
+
+                  {/* Reaction picker - shown on right for other's messages */}
+                  {!isOwn && !message.id.startsWith('temp-') && (
+                    <div className="flex items-end ml-1">
+                      <MessageReactionPicker
+                        userReaction={reactions.getUserReaction(message.id)}
+                        reactions={reactions.reactionsByMessage.get(message.id) || []}
+                        onReact={(emoji) => handleReaction(message.id, emoji)}
+                        onRemoveReaction={() => handleRemoveReaction(message.id)}
+                        isOwnMessage={isOwn}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })
         )}
+
+        {/* Typing Indicator */}
+        <TypingIndicator
+          typingUsers={typing.typingUsers}
+          typingText={typing.typingText}
+        />
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -882,8 +949,9 @@ export default function ChatView({
                   ref={inputRef}
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
+                  onBlur={() => typing.setTyping(false)}
                   placeholder="Write a message..."
                   aria-label="Message input"
                   className="flex-1 py-3 border-none bg-transparent outline-none font-body text-[0.95rem] text-ink placeholder:text-muted/60"

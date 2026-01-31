@@ -94,6 +94,14 @@ export { useActionMenu, useActionMenuWithModals } from "./useActionMenu";
 // Pinned Posts
 export { usePinnedPosts, useCommunityPinnedPosts } from "./usePinnedPosts";
 
+// Messaging (reactions, typing indicators)
+export {
+  useMessageReactions,
+  useTypingIndicator,
+  useChatFeatures,
+  MESSAGE_REACTION_EMOJIS,
+} from "./useMessaging";
+
 // Re-export types
 export type {
   Post,
@@ -119,6 +127,9 @@ export type {
   ConversationParticipant,
   Message,
   MessageType,
+  MessageReaction,
+  MessageReactionEmoji,
+  TypingUser,
   Community,
   CommunityMember,
   CommunityRule,
