@@ -739,16 +739,16 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
           <div className="collab-avatars group" onClick={(e) => e.stopPropagation()}>
             {/* Author Avatar */}
             <Link href={`/studio/${post.author.handle.replace('@', '')}`}>
-              <Image
-                src={post.author.avatar}
-                alt={post.author.name}
-                width={70}
-                height={70}
-                className="collab-avatar first"
-                sizes="40px"
-                quality={80}
-                style={small ? { width: '36px', height: '36px' } : undefined}
-              />
+              <div className="collab-avatar first" style={small ? { width: '36px', height: '36px' } : undefined}>
+                <Image
+                  src={post.author.avatar}
+                  alt={post.author.name}
+                  fill
+                  className="object-cover rounded-full"
+                  sizes="44px"
+                  quality={80}
+                />
+              </div>
             </Link>
             {/* Collaborator Avatars */}
             {acceptedCollaborators.slice(0, 3).map((collab, index) => (
@@ -759,16 +759,16 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
                 style={{ zIndex: 10 - index }}
               >
                 {collab.user.avatar_url ? (
-                  <Image
-                    src={collab.user.avatar_url}
-                    alt={collab.user.display_name || collab.user.username}
-                    width={70}
-                    height={70}
-                    className="collab-avatar"
-                    sizes="32px"
-                    quality={80}
-                    style={small ? { width: '36px', height: '36px' } : undefined}
-                  />
+                  <div className="collab-avatar" style={small ? { width: '36px', height: '36px' } : undefined}>
+                    <Image
+                      src={collab.user.avatar_url}
+                      alt={collab.user.display_name || collab.user.username}
+                      fill
+                      className="object-cover rounded-full"
+                      sizes="44px"
+                      quality={80}
+                    />
+                  </div>
                 ) : (
                   <div
                     className="collab-avatar collab-avatar-placeholder"
@@ -787,16 +787,16 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
           </div>
         ) : (
           <Link href={`/studio/${post.author.handle.replace('@', '')}`} onClick={(e) => e.stopPropagation()}>
-            <Image
-              src={post.author.avatar}
-              alt={post.author.name}
-              width={70}
-              height={70}
-              className="author-avatar"
-              sizes="(max-width: 640px) 40px, 48px"
-              quality={80}
-              style={small ? { width: '36px', height: '36px' } : undefined}
-            />
+            <div className="author-avatar" style={small ? { width: '36px', height: '36px' } : undefined}>
+              <Image
+                src={post.author.avatar}
+                alt={post.author.name}
+                fill
+                className="object-cover"
+                sizes="48px"
+                quality={80}
+              />
+            </div>
           </Link>
         )}
         <div className="author-info" style={centered ? { textAlign: 'left' } : undefined}>
