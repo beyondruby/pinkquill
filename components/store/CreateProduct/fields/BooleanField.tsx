@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { CategoryField } from "@/lib/store/categories";
 
 interface BooleanFieldProps {
@@ -10,114 +9,72 @@ interface BooleanFieldProps {
 }
 
 export default function BooleanField({ field, value, onChange }: BooleanFieldProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-ui font-medium text-ink mb-3">
         {field.label}
-        {field.required && <span className="text-red-500 ml-1">*</span>}
+        {field.required && <span className="text-pink-vivid ml-1">*</span>}
       </label>
 
-      <div className="relative">
+      {/* Toggle switch style */}
+      <div className="flex items-center gap-4">
         <button
           type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-48 px-4 py-3 border border-orange-200 rounded-xl bg-white
-            focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-            transition-all text-left flex items-center justify-between"
+          onClick={() => onChange(true)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all duration-200
+            ${value === true
+              ? "border-purple-primary bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm"
+              : "border-gray-200 hover:border-purple-primary/30 hover:bg-gray-50"
+            }`}
         >
-          <span className={value !== undefined ? "text-gray-900" : "text-gray-400"}>
-            {value === undefined ? "Select" : value ? "Yes" : "No"}
-          </span>
-          <svg
-            className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          <span
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
+              ${value === true
+                ? "border-purple-primary bg-gradient-to-r from-purple-primary to-pink-vivid"
+                : "border-gray-300"
+              }`}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+            {value === true && (
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </span>
+          <span className={`text-sm font-medium ${value === true ? "text-purple-primary" : "text-gray-600"}`}>
+            Yes
+          </span>
         </button>
 
-        {/* Dropdown */}
-        {isOpen && (
-          <div
-            className="absolute z-20 w-48 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg
-              overflow-hidden"
+        <button
+          type="button"
+          onClick={() => onChange(false)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all duration-200
+            ${value === false
+              ? "border-purple-primary bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm"
+              : "border-gray-200 hover:border-purple-primary/30 hover:bg-gray-50"
+            }`}
+        >
+          <span
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
+              ${value === false
+                ? "border-purple-primary bg-gradient-to-r from-purple-primary to-pink-vivid"
+                : "border-gray-300"
+              }`}
           >
-            <div className="p-2 space-y-1">
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(true);
-                  setIsOpen(false);
-                }}
-                className={`w-full px-3 py-2 rounded-lg text-sm text-left transition-colors
-                  flex items-center gap-2
-                  ${value === true
-                    ? "bg-purple-50 text-purple-primary"
-                    : "hover:bg-gray-50"
-                  }`}
-              >
-                <span
-                  className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center
-                    ${value === true
-                      ? "bg-purple-primary border-purple-primary"
-                      : "border-gray-300"
-                    }`}
-                >
-                  {value === true && (
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </span>
-                Yes
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(false);
-                  setIsOpen(false);
-                }}
-                className={`w-full px-3 py-2 rounded-lg text-sm text-left transition-colors
-                  flex items-center gap-2
-                  ${value === false
-                    ? "bg-purple-50 text-purple-primary"
-                    : "hover:bg-gray-50"
-                  }`}
-              >
-                <span
-                  className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center
-                    ${value === false
-                      ? "bg-purple-primary border-purple-primary"
-                      : "border-gray-300"
-                    }`}
-                >
-                  {value === false && (
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </span>
-                No
-              </button>
-            </div>
-          </div>
-        )}
+            {value === false && (
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </span>
+          <span className={`text-sm font-medium ${value === false ? "text-purple-primary" : "text-gray-600"}`}>
+            No
+          </span>
+        </button>
       </div>
 
       {field.helpText && (
-        <p className="text-xs text-muted mt-1">{field.helpText}</p>
-      )}
-
-      {/* Click outside to close */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-10"
-          onClick={() => setIsOpen(false)}
-        />
+        <p className="text-xs text-muted mt-2 pl-1">{field.helpText}</p>
       )}
     </div>
   );

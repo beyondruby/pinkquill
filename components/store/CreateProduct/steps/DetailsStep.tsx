@@ -156,30 +156,33 @@ export default function DetailsStep({
   return (
     <div className="py-4">
       {/* Header with category icon */}
-      <div className="flex items-center justify-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+      <div className="flex items-center justify-center gap-4 mb-8">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid
+          flex items-center justify-center shadow-lg shadow-purple-primary/20 text-white">
           {getCategoryIcon(categoryConfig.icon)}
         </div>
-        <h2 className="text-xl font-semibold">
-          Describe Your{" "}
-          {subcategory
-            ? getSubcategoryLabel(category, subcategory)
-            : categoryConfig.name}
-        </h2>
+        <div>
+          <p className="text-xs text-muted font-ui uppercase tracking-wide">Describe your</p>
+          <h2 className="text-xl font-display font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+            {subcategory
+              ? getSubcategoryLabel(category, subcategory)
+              : categoryConfig.name}
+          </h2>
+        </div>
       </div>
 
       {/* Basic Info */}
-      <section className="mb-8">
-        <div className="space-y-4">
+      <section className="mb-8 p-5 bg-gradient-to-br from-purple-50/30 to-pink-50/30 rounded-2xl border border-purple-100/30">
+        <div className="space-y-5">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title <span className="text-red-500">*</span>
+            <label className="block text-sm font-ui font-medium text-ink mb-2">
+              Title <span className="text-pink-vivid">*</span>
             </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-primary">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            <div className="relative group">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-primary/60 group-focus-within:text-purple-primary transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </span>
               <input
@@ -187,34 +190,39 @@ export default function DetailsStep({
                 value={wizardState.title}
                 onChange={(e) => updateState({ title: e.target.value })}
                 placeholder={`${subcategory ? getSubcategoryLabel(category, subcategory) : categoryConfig.name} Title`}
-                className="w-full pl-10 pr-4 py-3 border border-orange-200 rounded-xl
+                className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white
                   focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                  transition-all"
+                  transition-all font-body placeholder:text-gray-400"
               />
             </div>
           </div>
 
           {/* Year of creation */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-ui font-medium text-ink mb-2">
               Year of creation
             </label>
-            <select
-              value={wizardState.yearCreated || ""}
-              onChange={(e) =>
-                updateState({ yearCreated: e.target.value ? parseInt(e.target.value) : null })
-              }
-              className="w-48 px-4 py-3 border border-orange-200 rounded-xl bg-white
-                focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                transition-all appearance-none cursor-pointer"
-            >
-              <option value="">Choose the year</option>
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+            <div className="relative w-48">
+              <select
+                value={wizardState.yearCreated || ""}
+                onChange={(e) =>
+                  updateState({ yearCreated: e.target.value ? parseInt(e.target.value) : null })
+                }
+                className="w-full px-4 py-3.5 border border-gray-200 rounded-xl bg-white
+                  focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
+                  transition-all appearance-none cursor-pointer font-body pr-10"
+              >
+                <option value="">Choose the year</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
         </div>
       </section>
@@ -275,26 +283,29 @@ export default function DetailsStep({
       {/* Description */}
       <FieldSection title="Description">
         <div>
-          <div className="relative">
-            <span className="absolute left-3 top-3 text-purple-primary">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+          <div className="relative group">
+            <span className="absolute left-4 top-4 text-purple-primary/60 group-focus-within:text-purple-primary transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h12" />
               </svg>
             </span>
             <textarea
               value={wizardState.description}
               onChange={(e) => updateState({ description: e.target.value })}
-              placeholder={`Describe Your ${subcategory ? getSubcategoryLabel(category, subcategory) : categoryConfig.name}`}
+              placeholder={`Describe Your ${subcategory ? getSubcategoryLabel(category, subcategory) : categoryConfig.name}...`}
               rows={5}
               maxLength={2000}
-              className="w-full pl-10 pr-4 py-3 border border-orange-200 rounded-xl
+              className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white
                 focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                transition-all resize-none"
+                transition-all resize-none font-body placeholder:text-gray-400"
             />
           </div>
-          <p className="text-xs text-muted text-right mt-1">
-            {wizardState.description.length} / 2000
-          </p>
+          <div className="flex justify-between items-center mt-2 px-1">
+            <p className="text-xs text-muted">Tell buyers what makes this special</p>
+            <p className={`text-xs font-medium ${wizardState.description.length > 1800 ? 'text-orange-warm' : 'text-muted'}`}>
+              {wizardState.description.length} / 2000
+            </p>
+          </div>
         </div>
       </FieldSection>
 
@@ -319,8 +330,11 @@ function FieldSection({
 }) {
   return (
     <section className="mb-8">
-      <h3 className="text-base font-semibold text-gray-800 mb-4">{title}</h3>
-      <div className="space-y-4">{children}</div>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-1 h-5 rounded-full bg-gradient-to-b from-purple-primary to-pink-vivid" />
+        <h3 className="text-base font-display font-semibold text-ink">{title}</h3>
+      </div>
+      <div className="space-y-4 pl-4">{children}</div>
     </section>
   );
 }
@@ -614,10 +628,10 @@ function KeywordsInput({
 
   return (
     <div>
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-primary">
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+      <div className="relative group">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-primary/60 group-focus-within:text-purple-primary transition-colors">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
           </svg>
         </span>
         <input
@@ -626,30 +640,39 @@ function KeywordsInput({
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={addKeyword}
-          placeholder="Add keywords that describe your artwork"
+          placeholder="Add keywords that describe your product"
           disabled={keywords.length >= 10}
-          className="w-full pl-10 pr-4 py-3 border border-orange-200 rounded-xl
+          className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white
             focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-            transition-all disabled:bg-gray-50"
+            transition-all disabled:bg-gray-50 font-body placeholder:text-gray-400"
         />
       </div>
-      <p className="text-xs text-muted mt-1">Maximum 10 keywords</p>
+      <div className="flex justify-between items-center mt-2 px-1">
+        <p className="text-xs text-muted">Press Enter or comma to add</p>
+        <p className={`text-xs font-medium ${keywords.length >= 8 ? 'text-orange-warm' : 'text-muted'}`}>
+          {keywords.length} / 10 keywords
+        </p>
+      </div>
 
       {/* Keyword tags */}
       {keywords.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-3">
-          {keywords.map((keyword) => (
+        <div className="flex flex-wrap gap-2 mt-4">
+          {keywords.map((keyword, index) => (
             <span
               key={keyword}
-              className="inline-flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-primary
-                rounded-full text-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5
+                bg-gradient-to-r from-purple-50 to-pink-50
+                border border-purple-100/50 rounded-full text-sm font-medium text-purple-primary
+                hover:shadow-sm transition-all group"
+              style={{ animationDelay: `${index * 50}ms` }}
             >
+              <span className="text-purple-primary/60">#</span>
               {keyword}
               <button
                 onClick={() => removeKeyword(keyword)}
-                className="p-0.5 hover:bg-purple-100 rounded-full transition-colors"
+                className="p-0.5 hover:bg-purple-100 rounded-full transition-colors ml-0.5"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
