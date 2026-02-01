@@ -1,21 +1,6 @@
 /**
- * Image optimization utilities for Supabase Storage
- *
- * Supabase Storage supports image transformations that:
- * - Automatically serve WebP to supported browsers
- * - Resize images on the fly
- * - Control quality/compression
- *
- * URL format: https://{project}.supabase.co/storage/v1/render/image/public/{bucket}/{path}?width={w}&quality={q}
+ * Image utilities for avatar handling
  */
-
-const SUPABASE_PROJECT_ID = process.env.NEXT_PUBLIC_SUPABASE_URL?.match(
-  /https:\/\/([^.]+)\.supabase\.co/
-)?.[1] || '';
-
-const SUPABASE_STORAGE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1`
-  : '';
 
 // Standard avatar sizes used across the app (in pixels)
 export const AVATAR_SIZES = {
@@ -31,13 +16,6 @@ export const AVATAR_SIZES = {
 
 export type AvatarSize = keyof typeof AVATAR_SIZES;
 
-interface TransformOptions {
-  width?: number;
-  height?: number;
-  quality?: number; // 20-100, default 75
-  resize?: 'cover' | 'contain' | 'fill';
-}
-
 /**
  * Check if a URL is a Supabase Storage URL
  */
@@ -47,51 +25,10 @@ export function isSupabaseStorageUrl(url: string): boolean {
 }
 
 /**
- * Transform a Supabase Storage URL to use image optimization
- *
- * Converts: https://xxx.supabase.co/storage/v1/object/public/avatars/...
- * To: https://xxx.supabase.co/storage/v1/render/image/public/avatars/...?width=X&quality=Y
- */
-export function getOptimizedImageUrl(
-  url: string | null | undefined,
-  options: TransformOptions = {}
-): string {
-  if (!url) return '';
-
-  // If not a Supabase URL, return as-is (let Next.js handle it)
-  if (!isSupabaseStorageUrl(url)) {
-    return url;
-  }
-
-  const { width, height, quality = 75, resize = 'cover' } = options;
-
-  // Convert object URL to render URL
-  // From: /storage/v1/object/public/...
-  // To:   /storage/v1/render/image/public/...
-  const renderUrl = url.replace(
-    '/storage/v1/object/public/',
-    '/storage/v1/render/image/public/'
-  );
-
-  // Build query params
-  const params = new URLSearchParams();
-  if (width) params.set('width', String(width));
-  if (height) params.set('height', String(height));
-  params.set('quality', String(quality));
-  if (resize !== 'cover') params.set('resize', resize);
-
-  return `${renderUrl}?${params.toString()}`;
-}
-
-/**
  * Get optimized avatar URL for a specific size
  *
  * Returns the original URL without transformation to preserve the original
  * image composition. CSS object-fit:cover handles the circular display.
- *
- * Note: We intentionally skip Supabase image transformations for avatars
- * because resizing can cause unwanted cropping/zooming when combined with
- * CSS object-cover in circular containers.
  */
 export function getOptimizedAvatarUrl(
   url: string | null | undefined,
@@ -103,20 +40,7 @@ export function getOptimizedAvatarUrl(
 }
 
 /**
- * Generate srcSet for responsive images
- * Returns empty string since we're not using transformations for avatars
- * to preserve original image composition.
- */
-export function getAvatarSrcSet(
-  url: string | null | undefined,
-  baseSize: number
-): string {
-  // Not using srcSet for avatars to preserve original composition
-  return '';
-}
-
-/**
- * Default avatar URL (optimized)
+ * Default avatar URL
  */
 export const DEFAULT_AVATAR = '/defaultprofile.png';
 

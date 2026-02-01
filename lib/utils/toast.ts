@@ -84,45 +84,19 @@ export const actionToast = {
   postRelayed: () => showToast.success("Post relayed to your followers"),
   postUnrelayed: () => showToast.info("Relay removed"),
 
-  // Reaction actions
-  reactionAdded: (type: string) => showToast.success(`You ${type === 'admire' ? 'admired' : type + 'd'} this post`),
-  reactionRemoved: () => showToast.info("Reaction removed"),
-
-  // Follow actions
-  followed: (username: string) => showToast.success(`Following ${username}`),
-  unfollowed: (username: string) => showToast.info(`Unfollowed ${username}`),
-  followRequested: (username: string) => showToast.success(`Follow request sent to ${username}`),
-  followRequestAccepted: () => showToast.success("Follow request accepted"),
-  followRequestDeclined: () => showToast.info("Follow request declined"),
-
   // Block actions
   userBlocked: (username: string) => showToast.success(`Blocked ${username}`),
-  userUnblocked: (username: string) => showToast.info(`Unblocked ${username}`),
   blockError: () => showToast.error("Failed to block user", "Please try again"),
-
-  // Comment actions
-  commentAdded: () => showToast.success("Comment posted"),
-  commentDeleted: () => showToast.success("Comment deleted"),
-  commentError: () => showToast.error("Failed to post comment", "Please try again"),
 
   // Report actions
   reportSubmitted: () => showToast.success("Report submitted", "We'll review this shortly"),
   reportError: () => showToast.error("Failed to submit report", "Please try again"),
 
   // Generic errors
-  networkError: () => showToast.error("Connection error", "Please check your internet connection"),
   genericError: (action?: string) => showToast.error(
     action ? `Failed to ${action}` : "Something went wrong",
     "Please try again"
   ),
-
-  // Auth
-  signedOut: () => showToast.info("Signed out successfully"),
-  sessionExpired: () => showToast.warning("Session expired", "Please sign in again"),
-
-  // Clipboard
-  copied: (item?: string) => showToast.success(item ? `${item} copied to clipboard` : "Copied to clipboard"),
-  copyError: () => showToast.error("Failed to copy to clipboard"),
 };
 
 export default showToast;

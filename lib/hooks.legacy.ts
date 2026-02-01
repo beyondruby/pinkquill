@@ -14,110 +14,25 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
 import { createNotification } from "./hooks/useNotifications";
-import type { Post } from "./types";
+import type {
+  Post,
+  Community,
+  CommunityMember,
+  CommunityRule,
+  CommunityTag,
+  JoinRequest,
+  CommunityInvitation,
+} from "./types";
 
-// ============================================
-// COMMUNITY TYPES
-// ============================================
-
-export interface Community {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  avatar_url: string | null;
-  cover_url: string | null;
-  privacy: 'public' | 'private';
-  topics: string[];
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  member_count?: number;
-  post_count?: number;
-  is_member?: boolean;
-  user_role?: 'admin' | 'moderator' | 'member' | null;
-  user_status?: 'active' | 'muted' | 'banned' | null;
-  has_pending_request?: boolean;
-  has_pending_invitation?: boolean;
-  pending_invitation_id?: string;
-  creator?: {
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
-
-export interface CommunityMember {
-  id: string;
-  community_id: string;
-  user_id: string;
-  role: 'admin' | 'moderator' | 'member';
-  status: 'active' | 'muted' | 'banned';
-  muted_until: string | null;
-  mute_reason: string | null;
-  banned_until: string | null;
-  ban_reason: string | null;
-  joined_at: string;
-  profile: {
-    id: string;
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-    is_verified: boolean;
-  };
-}
-
-export interface CommunityRule {
-  id: string;
-  community_id: string;
-  rule_number: number;
-  title: string;
-  description: string | null;
-}
-
-export interface CommunityTag {
-  id: string;
-  community_id: string;
-  tag: string;
-  tag_type: 'genre' | 'theme' | 'type' | 'custom';
-}
-
-export interface JoinRequest {
-  id: string;
-  community_id: string;
-  user_id: string;
-  message: string | null;
-  status: 'pending' | 'approved' | 'rejected';
-  reviewed_by: string | null;
-  reviewed_at: string | null;
-  created_at: string;
-  profile: {
-    id: string;
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
-
-export interface CommunityInvitation {
-  id: string;
-  community_id: string;
-  inviter_id: string;
-  invitee_id: string;
-  status: 'pending' | 'accepted' | 'declined';
-  created_at: string;
-  responded_at: string | null;
-  community: {
-    name: string;
-    slug: string;
-    avatar_url: string | null;
-  };
-  inviter: {
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
+// Re-export community types for backwards compatibility
+export type {
+  Community,
+  CommunityMember,
+  CommunityRule,
+  CommunityTag,
+  JoinRequest,
+  CommunityInvitation,
+} from "./types";
 
 // ============================================
 // COMMUNITY HOOKS

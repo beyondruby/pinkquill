@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useState } from "react";
 import {
   getOptimizedAvatarUrl,
-  getAvatarSrcSet,
   isSupabaseStorageUrl,
   AVATAR_SIZES,
   AVATAR_BLUR_DATA_URL,
@@ -28,8 +27,6 @@ interface AvatarProps {
  * Optimized Avatar component
  *
  * Features:
- * - Automatic image optimization via Supabase transformations
- * - Proper srcSet for retina displays
  * - Lazy loading by default
  * - Graceful fallback to default avatar
  * - Blur placeholder while loading
@@ -65,11 +62,9 @@ export default function Avatar({
     .filter(Boolean)
     .join(" ");
 
-  // For Supabase images, use standard img with srcSet for best performance
+  // For Supabase images, use standard img for best performance
   // For other images (including default), use Next.js Image
   if (isSupabaseUrl && !error) {
-    const srcSet = getAvatarSrcSet(src, pixelSize);
-
     return (
       <div
         className={containerClasses}
@@ -77,7 +72,6 @@ export default function Avatar({
       >
         <img
           src={optimizedSrc}
-          srcSet={srcSet || undefined}
           alt={alt}
           width={pixelSize}
           height={pixelSize}

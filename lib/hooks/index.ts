@@ -9,7 +9,7 @@
  */
 
 // Feed & Posts
-export { useFeed, usePosts, useSavedPosts, useRelays } from "./useFeed";
+export { useFeed, useSavedPosts, useRelays } from "./useFeed";
 
 // Interactions (likes, saves, relays, reactions, blocks)
 export {
@@ -87,9 +87,6 @@ export {
   useReorderCollectionItems,
   useToggleCollectionCollapse,
 } from "./useCollections";
-
-// UI Hooks (action menus, etc.)
-export { useActionMenu, useActionMenuWithModals } from "./useActionMenu";
 
 // Pinned Posts
 export { usePinnedPosts, useCommunityPinnedPosts } from "./usePinnedPosts";

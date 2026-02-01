@@ -802,15 +802,3 @@ export function useRelays(username: string) {
 
   return { relays, loading };
 }
-
-// ============================================================================
-// LEGACY EXPORT - usePosts (for backwards compatibility)
-// ============================================================================
-
-/**
- * @deprecated Use useFeed instead. This is kept for backwards compatibility.
- */
-export function usePosts(userId?: string) {
-  const { posts, loading, error, refresh } = useFeed(userId);
-  return { posts, loading, error, refetch: refresh };
-}

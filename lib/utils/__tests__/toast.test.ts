@@ -154,14 +154,6 @@ describe("actionToast", () => {
         duration: 5000,
       });
     });
-
-    it("should show info toast for user unblocked with username", () => {
-      actionToast.userUnblocked("testuser");
-      expect(toast.info).toHaveBeenCalledWith("Unblocked testuser", {
-        description: undefined,
-        duration: 4000,
-      });
-    });
   });
 
   describe("report actions", () => {
@@ -182,32 +174,6 @@ describe("actionToast", () => {
     });
   });
 
-  describe("follow actions", () => {
-    it("should show success toast for followed", () => {
-      actionToast.followed("testuser");
-      expect(toast.success).toHaveBeenCalledWith("Following testuser", {
-        description: undefined,
-        duration: 3000,
-      });
-    });
-
-    it("should show info toast for unfollowed", () => {
-      actionToast.unfollowed("testuser");
-      expect(toast.info).toHaveBeenCalledWith("Unfollowed testuser", {
-        description: undefined,
-        duration: 4000,
-      });
-    });
-
-    it("should show success toast for follow requested", () => {
-      actionToast.followRequested("testuser");
-      expect(toast.success).toHaveBeenCalledWith("Follow request sent to testuser", {
-        description: undefined,
-        duration: 3000,
-      });
-    });
-  });
-
   describe("generic error", () => {
     it("should show error toast with action name", () => {
       actionToast.genericError("save post");
@@ -222,40 +188,6 @@ describe("actionToast", () => {
       expect(toast.error).toHaveBeenCalledWith("Something went wrong", {
         description: "Please try again",
         duration: 5000,
-      });
-    });
-  });
-
-  describe("other actions", () => {
-    it("should show success toast for comment added", () => {
-      actionToast.commentAdded();
-      expect(toast.success).toHaveBeenCalledWith("Comment posted", {
-        description: undefined,
-        duration: 3000,
-      });
-    });
-
-    it("should show success toast for copied to clipboard", () => {
-      actionToast.copied();
-      expect(toast.success).toHaveBeenCalledWith("Copied to clipboard", {
-        description: undefined,
-        duration: 3000,
-      });
-    });
-
-    it("should show success toast for copied item to clipboard", () => {
-      actionToast.copied("Link");
-      expect(toast.success).toHaveBeenCalledWith("Link copied to clipboard", {
-        description: undefined,
-        duration: 3000,
-      });
-    });
-
-    it("should show info toast for signed out", () => {
-      actionToast.signedOut();
-      expect(toast.info).toHaveBeenCalledWith("Signed out successfully", {
-        description: undefined,
-        duration: 4000,
       });
     });
   });

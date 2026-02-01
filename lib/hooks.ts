@@ -5,7 +5,7 @@
  * The hooks have been refactored into modular files for better maintainability.
  *
  * MIGRATION STATUS:
- * - useFeed, usePosts, useSavedPosts, useRelays -> lib/hooks/useFeed.ts
+ * - useFeed, useSavedPosts, useRelays -> lib/hooks/useFeed.ts
  * - useToggleAdmire, useToggleSave, useToggleRelay, etc. -> lib/hooks/useInteractions.ts
  * - useComments -> lib/hooks/useComments.ts
  * - useProfile, useFollow, useFollowList, useFollowRequests -> lib/hooks/useProfile.ts
@@ -23,7 +23,7 @@
 // ============================================================================
 
 // Feed & Posts
-export { useFeed, usePosts, useSavedPosts, useRelays } from "./hooks/useFeed";
+export { useFeed, useSavedPosts, useRelays } from "./hooks/useFeed";
 
 // Explore
 export { useExplore } from "./hooks/useExplore";
@@ -71,9 +71,6 @@ export type { VoiceRecorderState, AudioPlayerState, MediaLimits } from "./hooks/
 // Drafts
 export { useDrafts, useAutoSave } from "./hooks/useDrafts";
 export type { PostDraft, DraftMedia, DraftCollaborator, DraftMention } from "./hooks/useDrafts";
-
-// UI Hooks (action menus, etc.)
-export { useActionMenu, useActionMenuWithModals } from "./hooks/useActionMenu";
 
 // Pinned Posts
 export { usePinnedPosts, useCommunityPinnedPosts } from "./hooks/usePinnedPosts";
