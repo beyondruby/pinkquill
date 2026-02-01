@@ -423,7 +423,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                     <div key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
                       <span className="text-sm text-muted font-body">{dim.label}</span>
                       <span className="text-sm text-ink font-ui font-medium">
-                        {dim.value} {dim.unit || product.shipping.dimensions_unit}
+                        {dim.value} {dim.unit || product.shipping?.dimensions_unit}
                       </span>
                     </div>
                   ))}
