@@ -810,36 +810,38 @@ export default function ChatView({
                         </div>
                       </div>
                     ) : message.message_type === "post_share" && message.shared_post_id ? (
-                      <div className="flex flex-col">
-                        <SharedPostCard
-                          postId={message.shared_post_id}
-                          isOwnMessage={isOwn}
-                          cachedPost={message.shared_post}
-                        />
+                      <div
+                        className={`rounded-2xl overflow-hidden ${
+                          isOwn
+                            ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
+                            : "bg-white shadow-sm rounded-bl-md"
+                        }`}
+                      >
+                        <div className={isOwn ? "p-1" : "p-1"}>
+                          <SharedPostCard
+                            postId={message.shared_post_id}
+                            isOwnMessage={isOwn}
+                            cachedPost={message.shared_post}
+                          />
+                        </div>
                         {/* Optional message content */}
                         {message.content && (
-                          <div
-                            className={`mt-2 px-4 py-2 rounded-2xl ${
-                              isOwn
-                                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
-                                : "bg-white text-ink shadow-sm rounded-bl-md"
-                            }`}
-                          >
+                          <div className={`px-4 py-2 ${isOwn ? "text-white" : "text-ink"}`}>
                             <p className="font-body text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words">
                               {message.content}
                             </p>
                           </div>
                         )}
                         <div
-                          className={`flex items-center gap-1 mt-1.5 ${
-                            isOwn ? "justify-end text-muted" : "justify-start text-muted"
+                          className={`flex items-center justify-end gap-1 px-3 pb-2 ${
+                            isOwn ? "text-white/70" : "text-muted"
                           }`}
                         >
                           <span className="font-ui text-[0.7rem]">
                             {formatMessageTime(message.created_at)}
                           </span>
                           {isOwn && (
-                            <span className={message.is_read ? "text-purple-primary" : "text-muted"}>
+                            <span className={message.is_read ? "text-white" : "text-white/50"}>
                               {icons.doubleCheck}
                             </span>
                           )}
