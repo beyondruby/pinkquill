@@ -134,6 +134,16 @@ export {
   useToggleCollectionCollapse,
 } from "./hooks/useCollections";
 
+// Products / Marketplace
+export {
+  useSellerProducts,
+  useProduct,
+  useCreateProduct,
+  useUpdateProduct,
+  useDeleteProduct,
+  useUpdateProductStatus,
+} from "./hooks/useProducts";
+
 // ============================================================================
 // TYPES (from centralized types file)
 // ============================================================================
@@ -179,6 +189,18 @@ export type {
   CollectionItemPost,
   CollectionWithItems,
   CollectionItemMetadata,
+  // Store/Marketplace types
+  Product,
+  ProductMedia,
+  ProductPricing,
+  ProductShipping,
+  ProductFile,
+  ProductSeller,
+  ProductAttributes,
+  ProductDelivery,
+  ProductStatus,
+  ProductPurchase,
+  ProductWizardState,
 } from "./types";
 
 // ============================================================================

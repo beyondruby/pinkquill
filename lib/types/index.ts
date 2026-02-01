@@ -709,3 +709,10 @@ export interface CollectionItemPost {
 export interface CollectionWithItems extends Collection {
   items: CollectionItem[];
 }
+
+// ============================================================================
+// STORE/MARKETPLACE TYPES
+// ============================================================================
+
+// Re-export all store types
+export * from './store';

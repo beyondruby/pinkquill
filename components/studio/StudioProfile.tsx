@@ -22,6 +22,7 @@ import ShareModal from "@/components/ui/ShareModal";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import TakePostCard from "@/components/takes/TakePostCard";
 import Loading from "@/components/ui/Loading";
+import StoreTab from "@/components/store/StoreTab";
 import type { Collection } from "@/lib/types";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
@@ -2693,29 +2694,12 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         )}
 
         {/* Store Section */}
-        {activeTab === "store" && (
-          <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
-            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-purple-50/90 via-white to-pink-50/80 p-8 md:p-12 lg:p-16 border border-purple-200/50 shadow-[0_8px_40px_-12px_rgba(142,68,173,0.15)] text-center">
-              {/* Store Icon */}
-              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center">
-                <svg className="w-10 h-10 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-              </div>
-
-              <h3 className="font-display text-xl md:text-2xl text-ink mb-3">Store Coming Soon</h3>
-              <p className="font-body text-muted text-[0.95rem] max-w-md mx-auto">
-                A place to share and sell your creative work. Stay tuned for updates.
-              </p>
-
-              {/* Subtle decorative element */}
-              <div className="mt-8 flex justify-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-primary/20" />
-                <span className="w-1.5 h-1.5 rounded-full bg-pink-vivid/30" />
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-warm/20" />
-              </div>
-            </div>
-          </div>
+        {activeTab === "store" && profile && (
+          <StoreTab
+            userId={profile.id}
+            isOwnProfile={isOwnProfile}
+            pageLoaded={pageLoaded}
+          />
         )}
 
         {/* Collections Section */}

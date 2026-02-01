@@ -258,8 +258,7 @@ export default function LeftSidebar() {
               <button
                 onClick={() => {
                   setShowCreateMenu(false);
-                  // TODO: Implement store/sell functionality
-                  alert("Store feature coming soon!");
+                  router.push("/sell");
                 }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
               >
@@ -267,7 +266,6 @@ export default function LeftSidebar() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
                 <span className="font-ui text-[0.9rem]">Sell</span>
-                <span className="ml-auto text-[0.7rem] font-medium text-muted bg-black/[0.04] px-1.5 py-0.5 rounded">Soon</span>
               </button>
             </div>
           )}
