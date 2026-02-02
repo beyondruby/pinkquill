@@ -178,7 +178,7 @@ export default function LeftSidebar() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm flex items-center justify-center shadow-lg shadow-purple-primary/20 flex-shrink-0">
             <FontAwesomeIcon icon={faFeatherPointed} className="w-4 h-4 text-white" />
           </div>
-          <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"}`}>
+          <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 absolute"}`}>
             <h1 className="font-display text-lg text-ink leading-tight whitespace-nowrap">PinkQuill</h1>
             <p className="font-body text-[0.6rem] text-muted italic whitespace-nowrap">Show your colors.</p>
           </div>
@@ -285,25 +285,25 @@ export default function LeftSidebar() {
 
         {/* Create Button - Only for authenticated users */}
         {user && (
-          <div className="relative mt-auto" ref={createMenuRef}>
+          <div className={`relative mt-auto ${isExpanded ? "" : "flex justify-center"}`} ref={createMenuRef}>
             <button
-              onClick={() => setShowCreateMenu(!showCreateMenu)}
-              className={`h-12 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-xl flex items-center justify-center text-white shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300 ${
-                isExpanded ? "w-full gap-2" : "w-12"
+              onClick={() => isExpanded ? setShowCreateMenu(!showCreateMenu) : router.push("/create")}
+              className={`bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-white shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300 ${
+                isExpanded ? "w-full h-12 rounded-xl gap-2" : "w-10 h-10 rounded-full"
               }`}
               title={!isExpanded ? "Create" : undefined}
             >
-              <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg className={`flex-shrink-0 ${isExpanded ? "w-5 h-5" : "w-4 h-4"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
               <span className={`font-ui text-[0.95rem] font-bold whitespace-nowrap transition-all duration-300 ${
-                isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
+                isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
               }`}>
                 Create
               </span>
               <svg className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${
-                isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
+                isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
               } ${showCreateMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
               </svg>
@@ -347,31 +347,33 @@ export default function LeftSidebar() {
         {/* Profile & Menu - Authenticated users */}
         {loading ? (
           /* Loading placeholder while auth state is being determined */
-          <div className="mt-3">
-            <div className={`flex items-center ${isExpanded ? "gap-3 p-3" : "justify-center p-2"}`}>
-              <div className="w-[38px] h-[38px] rounded-full bg-gray-200 animate-pulse flex-shrink-0" />
-              <div className={`flex flex-col gap-1.5 transition-all duration-300 ${isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}`}>
+          <div className={`mt-3 ${isExpanded ? "" : "flex justify-center"}`}>
+            <div className={`flex items-center ${isExpanded ? "gap-3 p-3" : "p-1"}`}>
+              <div className={`rounded-full bg-gray-200 animate-pulse flex-shrink-0 ${isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"}`} />
+              <div className={`flex flex-col gap-1.5 transition-all duration-300 ${isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"}`}>
                 <div className="w-24 h-4 bg-gray-200 rounded animate-pulse" />
                 <div className="w-16 h-3 bg-gray-200 rounded animate-pulse" />
               </div>
             </div>
           </div>
         ) : user && profile ? (
-          <div className="mt-3 relative" ref={menuRef}>
+          <div className={`mt-3 relative ${isExpanded ? "" : "flex justify-center"}`} ref={menuRef}>
             <Link
               href={`/studio/${profile.username}`}
               className={`flex items-center cursor-pointer rounded-xl hover:bg-purple-primary/5 transition-all duration-300 ${
-                isExpanded ? "gap-3 p-3" : "justify-center p-2"
+                isExpanded ? "gap-3 p-3" : "p-1"
               }`}
               title={!isExpanded ? profile.display_name || profile.username : undefined}
             >
               <img
-                src={getOptimizedAvatarUrl(profile.avatar_url, 38) || DEFAULT_AVATAR}
+                src={getOptimizedAvatarUrl(profile.avatar_url, isExpanded ? 38 : 36) || DEFAULT_AVATAR}
                 alt="Profile"
-                className="w-[38px] h-[38px] rounded-full object-cover border-2 border-pink-vivid flex-shrink-0"
+                className={`rounded-full object-cover border-2 border-pink-vivid flex-shrink-0 ${
+                  isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"
+                }`}
               />
               <div className={`flex flex-col gap-0.5 transition-all duration-300 overflow-hidden ${
-                isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
+                isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 absolute"
               }`}>
                 <span className="font-ui text-[0.9rem] font-medium text-ink whitespace-nowrap">
                   {profile.display_name || profile.username}
@@ -382,23 +384,18 @@ export default function LeftSidebar() {
               </div>
             </Link>
 
-            {/* More Button */}
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className={`w-full flex items-center mt-1 rounded-xl text-muted hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200 ${
-                isExpanded ? "gap-3.5 px-4 py-3" : "justify-center py-3"
-              }`}
-              title={!isExpanded ? "More" : undefined}
-            >
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              <span className={`font-ui text-[0.95rem] whitespace-nowrap transition-all duration-300 ${
-                isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
-              }`}>
-                More
-              </span>
-            </button>
+            {/* More Button - Only visible when expanded */}
+            {isExpanded && (
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="w-full flex items-center gap-3.5 px-4 py-3 mt-1 rounded-xl text-muted hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+              >
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <span className="font-ui text-[0.95rem]">More</span>
+              </button>
+            )}
 
             {/* Dropdown Menu */}
             {showMenu && isExpanded && (
@@ -467,24 +464,28 @@ export default function LeftSidebar() {
           </div>
         ) : (
           /* Sign In Button - Non-authenticated users */
-          <Link
-            href="/login"
-            className={`flex items-center mt-auto cursor-pointer rounded-xl hover:bg-purple-primary/5 transition-all duration-300 ${
-              isExpanded ? "gap-3 p-3" : "justify-center p-2"
-            }`}
-            title={!isExpanded ? "Sign In" : undefined}
-          >
-            <div className="w-[38px] h-[38px] rounded-full bg-purple-primary/10 flex items-center justify-center text-purple-primary flex-shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <span className={`font-ui text-[0.9rem] font-medium text-purple-primary whitespace-nowrap transition-all duration-300 ${
-              isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
-            }`}>
-              Sign In
-            </span>
-          </Link>
+          <div className={`mt-auto ${isExpanded ? "" : "flex justify-center"}`}>
+            <Link
+              href="/login"
+              className={`flex items-center cursor-pointer rounded-xl hover:bg-purple-primary/5 transition-all duration-300 ${
+                isExpanded ? "gap-3 p-3" : "p-1"
+              }`}
+              title={!isExpanded ? "Sign In" : undefined}
+            >
+              <div className={`rounded-full bg-purple-primary/10 flex items-center justify-center text-purple-primary flex-shrink-0 ${
+                isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"
+              }`}>
+                <svg className={`${isExpanded ? "w-5 h-5" : "w-4 h-4"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <span className={`font-ui text-[0.9rem] font-medium text-purple-primary whitespace-nowrap transition-all duration-300 ${
+                isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
+              }`}>
+                Sign In
+              </span>
+            </Link>
+          </div>
         )}
       </nav>
 
