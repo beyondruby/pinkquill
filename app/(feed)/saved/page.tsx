@@ -606,7 +606,7 @@ export default function SavedPage() {
             {displayedProducts.map((product) => {
               const isRemoving = removingItem === product.id;
               const primaryImage = product.media?.find((m) => m.is_primary)?.media_url || product.media?.[0]?.media_url;
-              const minPrice = product.pricing?.length > 0
+              const minPrice = product.pricing && product.pricing.length > 0
                 ? Math.min(...product.pricing.map((p) => p.price))
                 : null;
 
