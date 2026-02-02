@@ -145,7 +145,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             <ProductGallery
               media={product.media || []}
               title={product.title}
-              likeCount={264}
               isLiked={isLiked}
               onLike={() => setIsLiked(!isLiked)}
             />
@@ -155,8 +154,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
           <div className="space-y-6">
             {/* Custom work notice */}
             {product.delivery_type !== "digital" && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-50 to-pink-50
-                rounded-full border border-pink-100/50">
+              <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                 </svg>
@@ -188,14 +186,12 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
             {/* Price Display */}
             {activePricing && (
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-3">
                 <span className="text-4xl font-display font-bold text-ink">
                   {formatPrice(activePricing.price, activePricing.currency)}
                 </span>
                 {activePricing.pricing_type === "original" && (
-                  <span className="px-3 py-1 text-xs uppercase tracking-wider
-                    bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10
-                    text-orange-warm font-ui font-medium rounded-full">
+                  <span className="text-sm text-orange-warm font-ui font-medium">
                     Original
                   </span>
                 )}
@@ -204,36 +200,30 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
             {/* Pricing Options (if multiple) */}
             {product.pricing && product.pricing.length > 1 && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {product.pricing.map((pricing) => (
                   <button
                     key={pricing.id}
                     onClick={() => setSelectedPricing(pricing)}
-                    className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-200 ${
-                      activePricing?.id === pricing.id
-                        ? "border-pink-vivid bg-gradient-to-r from-pink-50/50 to-orange-50/50"
-                        : "border-gray-100 hover:border-pink-200"
-                    }`}
+                    className="w-full text-left transition-all duration-200 flex items-center justify-between py-2"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          activePricing?.id === pricing.id
-                            ? "border-pink-vivid"
-                            : "border-gray-300"
-                        }`}>
-                          {activePricing?.id === pricing.id && (
-                            <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-orange-warm to-pink-vivid" />
-                          )}
-                        </div>
-                        <span className="font-ui font-medium text-ink">
-                          {pricing.variant_name || getPricingTypeLabel(pricing.pricing_type)}
-                        </span>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        activePricing?.id === pricing.id
+                          ? "border-pink-vivid"
+                          : "border-gray-300"
+                      }`}>
+                        {activePricing?.id === pricing.id && (
+                          <div className="w-2 h-2 rounded-full bg-pink-vivid" />
+                        )}
                       </div>
-                      <span className="font-display font-bold text-ink">
-                        {formatPrice(pricing.price, pricing.currency)}
+                      <span className={`font-ui ${activePricing?.id === pricing.id ? "text-ink font-medium" : "text-muted"}`}>
+                        {pricing.variant_name || getPricingTypeLabel(pricing.pricing_type)}
                       </span>
                     </div>
+                    <span className={`font-display font-semibold ${activePricing?.id === pricing.id ? "text-pink-vivid" : "text-muted"}`}>
+                      {formatPrice(pricing.price, pricing.currency)}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -386,13 +376,13 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   </button>
                   {expandedSections.details && (
                     <div className="pb-6">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                         {displayAttributes.map((attr, i) => (
-                          <div key={i} className="p-3 rounded-xl bg-gray-50">
-                            <dt className="text-xs text-muted uppercase tracking-wider font-ui mb-1">
+                          <div key={i} className="flex justify-between items-baseline py-1">
+                            <dt className="text-sm text-muted font-body">
                               {attr.label}
                             </dt>
-                            <dd className="text-sm text-ink font-body font-medium">{attr.value}</dd>
+                            <dd className="text-sm text-ink font-ui font-medium">{attr.value}</dd>
                           </div>
                         ))}
                       </div>
@@ -404,16 +394,16 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               {/* Dimensions (for physical) */}
               {product.delivery_type !== "digital" && product.shipping && (
                 (product.shipping.height || product.shipping.width || product.shipping.thickness || product.shipping.weight) && (
-                  <div className="pt-4">
-                    <h4 className="font-display font-semibold text-ink mb-4">Dimensions</h4>
-                    <div className="grid grid-cols-2 gap-3">
+                  <div className="pt-4 border-b border-gray-100 pb-4">
+                    <h4 className="font-display font-semibold text-ink mb-3">Dimensions</h4>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-2">
                       {[
                         { label: "Height", value: product.shipping.height, unit: product.shipping.dimensions_unit },
                         { label: "Width", value: product.shipping.width, unit: product.shipping.dimensions_unit },
                         { label: "Thickness", value: product.shipping.thickness, unit: product.shipping.dimensions_unit },
                         { label: "Weight", value: product.shipping.weight, unit: product.shipping.weight_unit },
                       ].filter(d => d.value).map((dim, i) => (
-                        <div key={i} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
+                        <div key={i} className="flex justify-between items-baseline py-1">
                           <span className="text-sm text-muted font-body">{dim.label}</span>
                           <span className="text-sm text-ink font-ui font-medium">
                             {dim.value} {dim.unit}
@@ -427,17 +417,15 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
               {/* Keywords */}
               {product.keywords && product.keywords.length > 0 && (
-                <div className="pt-6">
-                  <h4 className="font-display font-semibold text-ink mb-4">Keywords</h4>
+                <div className="pt-4">
+                  <h4 className="font-display font-semibold text-ink mb-3">Keywords</h4>
                   <div className="flex flex-wrap gap-2">
                     {product.keywords.map((keyword) => (
                       <span
                         key={keyword}
-                        className="px-3 py-1.5 bg-gradient-to-r from-pink-50 to-orange-50
-                          text-pink-vivid/80 text-sm font-ui rounded-lg
-                          border border-pink-100/30"
+                        className="text-sm text-pink-vivid font-ui"
                       >
-                        {keyword}
+                        #{keyword}
                       </span>
                     ))}
                   </div>
@@ -445,7 +433,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               )}
             </div>
           </div>
-        </div>
 
         {/* Seller Card - below on mobile, sticky sidebar concept */}
         {product.seller && (

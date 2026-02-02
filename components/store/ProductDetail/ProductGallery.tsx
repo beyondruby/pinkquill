@@ -6,7 +6,6 @@ import { ProductMedia } from "@/lib/types/store";
 interface ProductGalleryProps {
   media: ProductMedia[];
   title: string;
-  likeCount?: number;
   isLiked?: boolean;
   onLike?: () => void;
 }
@@ -14,7 +13,6 @@ interface ProductGalleryProps {
 export default function ProductGallery({
   media,
   title,
-  likeCount = 0,
   isLiked = false,
   onLike
 }: ProductGalleryProps) {
@@ -235,16 +233,6 @@ export default function ProductGallery({
               </div>
             )}
           </div>
-
-          {/* Like count - below image */}
-          {likeCount > 0 && (
-            <div className="mt-4 flex items-center gap-2 text-muted">
-              <svg className="w-5 h-5 text-pink-vivid" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span className="text-sm font-ui font-medium">Liked: {likeCount.toLocaleString()}</span>
-            </div>
-          )}
 
           {/* Mobile thumbnails - horizontal below image */}
           {sortedMedia.length > 1 && (
