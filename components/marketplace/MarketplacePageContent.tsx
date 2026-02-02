@@ -3,9 +3,8 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMarketplace } from "@/lib/hooks";
-import MarketplaceHero from "./MarketplaceHero";
-import CategoryBrowser from "./CategoryBrowser";
-import MarketplaceFilters from "./MarketplaceFilters";
+import MarketplaceHeader from "./MarketplaceHeader";
+import FeaturedSpotlight from "./FeaturedSpotlight";
 import MarketplaceProductCard from "./MarketplaceProductCard";
 
 export default function MarketplacePageContent() {
@@ -18,12 +17,11 @@ export default function MarketplacePageContent() {
     loadMore,
     filters,
     setCategory,
-    setSubcategory,
     setDeliveryType,
     setSortBy,
     setSearchQuery,
     clearFilters,
-    categoryCounts,
+    featuredProducts,
   } = useMarketplace(user?.id);
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -46,7 +44,7 @@ export default function MarketplacePageContent() {
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
       root: null,
-      rootMargin: "100px",
+      rootMargin: "200px",
       threshold: 0.1,
     });
 
@@ -58,100 +56,72 @@ export default function MarketplacePageContent() {
   }, [handleObserver]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50/50">
-      {/* Hero Section */}
-      <MarketplaceHero onSearch={setSearchQuery} />
-
-      {/* Category Browser */}
-      <CategoryBrowser
-        onCategorySelect={setCategory}
-        selectedCategory={filters.category}
-        categoryCounts={categoryCounts}
-      />
-
-      {/* Filters Bar */}
-      <MarketplaceFilters
+    <div className="min-h-screen bg-white">
+      {/* Clean Header with Search & Filters */}
+      <MarketplaceHeader
         filters={filters}
+        onSearch={setSearchQuery}
         onCategoryChange={setCategory}
-        onSubcategoryChange={setSubcategory}
         onDeliveryTypeChange={setDeliveryType}
         onSortChange={setSortBy}
         onClearFilters={clearFilters}
         totalProducts={pagination.total}
       />
 
+      {/* Featured Creator Spotlight - only show when no filters active */}
+      {!filters.category && !filters.delivery_type && !filters.keywords?.length && (
+        <FeaturedSpotlight products={featuredProducts} />
+      )}
+
       {/* Product Grid */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Initial loading state */}
         {loading && products.length === 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             {Array.from({ length: 8 }).map((_, i) => (
               <ProductSkeleton key={i} />
             ))}
           </div>
         ) : error ? (
           <div className="text-center py-16">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-red-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h3 className="font-display text-lg font-medium text-ink mb-2">
-              Something went wrong
-            </h3>
-            <p className="font-body text-muted text-sm mb-4">{error}</p>
+            <h3 className="font-medium text-ink mb-1">Something went wrong</h3>
+            <p className="text-sm text-gray-500 mb-4">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-pink-vivid text-white rounded-xl font-ui text-sm"
+              className="px-4 py-2 text-sm font-medium text-ink border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              Try Again
+              Try again
             </button>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-16">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-orange-50 to-pink-50 flex items-center justify-center">
-              <svg
-                className="w-10 h-10 text-pink-vivid/60"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                />
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
             </div>
-            <h3 className="font-display text-xl font-semibold text-ink mb-2">
-              No products found
-            </h3>
-            <p className="font-body text-muted mb-6 max-w-md mx-auto">
+            <h3 className="font-medium text-ink mb-1">No products found</h3>
+            <p className="text-sm text-gray-500 mb-4">
               {filters.keywords?.length
-                ? `No products match your search for "${filters.keywords.join(" ")}"`
-                : "No products match your current filters. Try adjusting or clearing them."}
+                ? `No results for "${filters.keywords.join(" ")}"`
+                : "Try adjusting your filters"}
             </p>
             <button
               onClick={clearFilters}
-              className="px-6 py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-xl font-ui text-sm font-medium shadow-lg shadow-pink-vivid/20 hover:shadow-xl hover:shadow-pink-vivid/30 transition-all duration-200"
+              className="px-4 py-2 text-sm font-medium text-white bg-ink rounded-lg hover:bg-gray-800 transition-colors"
             >
-              Clear All Filters
+              Clear filters
             </button>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-6">
+            {/* Product Grid - Gallery layout */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               {products.map((product) => (
                 <MarketplaceProductCard key={product.id} product={product} />
               ))}
@@ -160,14 +130,17 @@ export default function MarketplacePageContent() {
             {/* Load more trigger */}
             <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
               {loading && products.length > 0 && (
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 border-2 border-pink-vivid/30 border-t-pink-vivid rounded-full animate-spin" />
-                  <span className="font-ui text-sm text-muted">Loading more...</span>
+                <div className="flex items-center gap-2 text-gray-400">
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span className="text-sm">Loading...</span>
                 </div>
               )}
               {!loading && !pagination.has_more && products.length > 0 && (
-                <p className="font-body text-sm text-muted">
-                  You've seen all {pagination.total} products
+                <p className="text-sm text-gray-400">
+                  That's everything
                 </p>
               )}
             </div>
@@ -180,18 +153,15 @@ export default function MarketplacePageContent() {
 
 function ProductSkeleton() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-black/[0.04]">
-      <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-50 animate-pulse" />
-      <div className="p-4">
-        <div className="h-3 w-16 bg-gray-100 rounded animate-pulse mb-2" />
-        <div className="h-4 w-3/4 bg-gray-100 rounded animate-pulse mb-3" />
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-6 h-6 bg-gray-100 rounded-full animate-pulse" />
+    <div>
+      <div className="aspect-[4/5] rounded-lg bg-gray-100 animate-pulse mb-4" />
+      <div className="space-y-2">
+        <div className="h-4 w-3/4 bg-gray-100 rounded animate-pulse" />
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-gray-100 rounded-full animate-pulse" />
           <div className="h-3 w-20 bg-gray-100 rounded animate-pulse" />
         </div>
-        <div className="pt-3 border-t border-black/[0.04]">
-          <div className="h-4 w-16 bg-gray-100 rounded animate-pulse" />
-        </div>
+        <div className="h-5 w-16 bg-gray-100 rounded animate-pulse" />
       </div>
     </div>
   );
