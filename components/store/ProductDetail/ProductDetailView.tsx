@@ -263,35 +263,29 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
           {/* Product Details Header - Expandable */}
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="w-full py-4 flex items-center justify-between group"
+            className="w-full py-4 flex items-center justify-between"
           >
-            <div className="flex items-center gap-3">
-              {/* Gradient accent */}
-              <div className="w-1.5 h-8 rounded-full bg-gradient-to-b from-purple-primary via-pink-vivid to-orange-warm" />
-              <span className="font-display font-bold text-xl text-ink">Product Details</span>
-            </div>
-            <div className={`w-8 h-8 rounded-full bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10
-              flex items-center justify-center transition-transform duration-300
-              ${showDetails ? "rotate-180" : ""}`}>
-              <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+            <span className="font-display font-bold text-xl text-ink">Product Details</span>
+            <svg
+              className={`w-5 h-5 text-pink-vivid transition-transform duration-300 ${showDetails ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
 
           {/* Expanded Content */}
           {showDetails && (
-            <div className="pt-4 pb-8 space-y-8 animate-fadeIn">
+            <div className="pt-4 pb-8 space-y-8">
               {/* About this artwork */}
               {product.description && (
                 <div>
-                  <h3 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-primary" />
-                    <span className="bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
-                      About this artwork
-                    </span>
+                  <h3 className="font-display font-semibold text-lg mb-3 text-purple-primary">
+                    About this artwork
                   </h3>
-                  <div className="text-muted font-body leading-relaxed pl-4 border-l-2 border-purple-primary/20">
+                  <div className="text-muted font-body leading-relaxed">
                     {product.description.split("\n").map((paragraph, i) => (
                       <p key={i} className="mb-3 last:mb-0">{paragraph}</p>
                     ))}
@@ -302,21 +296,13 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               {/* Specifications */}
               {displayAttributes.length > 0 && (
                 <div>
-                  <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-pink-vivid" />
-                    <span className="bg-gradient-to-r from-pink-vivid to-orange-warm bg-clip-text text-transparent">
-                      Specifications
-                    </span>
+                  <h3 className="font-display font-semibold text-lg mb-4 text-pink-vivid">
+                    Specifications
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-4">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-2">
                     {displayAttributes.map((attr, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between py-2 px-3 rounded-lg
-                          bg-gradient-to-r from-purple-primary/5 via-pink-vivid/5 to-orange-warm/5
-                          border-l-2 border-pink-vivid/30"
-                      >
-                        <span className="text-sm text-muted font-ui">{attr.label}</span>
+                      <div key={i} className="flex justify-between py-1">
+                        <span className="text-sm text-muted">{attr.label}</span>
                         <span className="text-sm text-ink font-medium">{attr.value}</span>
                       </div>
                     ))}
@@ -328,26 +314,20 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               {product.delivery_type !== "digital" && product.shipping && (
                 (product.shipping.height || product.shipping.width || product.shipping.thickness || product.shipping.weight) && (
                   <div>
-                    <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-orange-warm" />
-                      <span className="bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">
-                        Dimensions
-                      </span>
+                    <h3 className="font-display font-semibold text-lg mb-4 text-orange-warm">
+                      Dimensions
                     </h3>
-                    <div className="flex flex-wrap gap-4 pl-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-2">
                       {[
                         { label: "Height", value: product.shipping.height, unit: product.shipping.dimensions_unit },
                         { label: "Width", value: product.shipping.width, unit: product.shipping.dimensions_unit },
                         { label: "Depth", value: product.shipping.thickness, unit: product.shipping.dimensions_unit },
                         { label: "Weight", value: product.shipping.weight, unit: product.shipping.weight_unit },
                       ].filter(d => d.value).map((dim, i) => (
-                        <div
-                          key={i}
-                          className="flex flex-col items-center px-5 py-3 rounded-xl
-                            bg-gradient-to-br from-orange-warm/10 to-pink-vivid/10"
-                        >
+                        <div key={i} className="py-1">
                           <span className="text-2xl font-display font-bold text-ink">{dim.value}</span>
-                          <span className="text-xs text-muted font-ui uppercase tracking-wider">{dim.unit} {dim.label}</span>
+                          <span className="text-sm text-muted ml-1">{dim.unit}</span>
+                          <p className="text-xs text-muted uppercase tracking-wider">{dim.label}</p>
                         </div>
                       ))}
                     </div>
@@ -358,48 +338,39 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               {/* Shipping Details */}
               {product.delivery_type !== "digital" && product.shipping && (
                 <div>
-                  <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-primary" />
-                    <span className="bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
-                      Shipping & Handling
-                    </span>
+                  <h3 className="font-display font-semibold text-lg mb-4 text-purple-primary">
+                    Shipping & Handling
                   </h3>
-                  <div className="space-y-3 pl-4">
+                  <div className="space-y-3">
                     {product.shipping.shipping_locations?.length > 0 && (
                       <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-purple-primary/10 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
+                        <svg className="w-5 h-5 text-purple-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         <div>
-                          <p className="text-sm font-ui font-medium text-ink">Ships to</p>
+                          <p className="text-sm font-medium text-ink">Ships to</p>
                           <p className="text-sm text-muted">{product.shipping.shipping_locations.join(", ")}</p>
                         </div>
                       </div>
                     )}
                     {product.shipping.processing_days && (
                       <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-pink-vivid/10 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
+                        <svg className="w-5 h-5 text-pink-vivid flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         <div>
-                          <p className="text-sm font-ui font-medium text-ink">Processing time</p>
+                          <p className="text-sm font-medium text-ink">Processing time</p>
                           <p className="text-sm text-muted">{product.shipping.processing_days} business days</p>
                         </div>
                       </div>
                     )}
                     {product.shipping.packaging && (
                       <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-orange-warm/10 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-4 h-4 text-orange-warm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                          </svg>
-                        </div>
+                        <svg className="w-5 h-5 text-orange-warm flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
                         <div>
-                          <p className="text-sm font-ui font-medium text-ink">Packaging</p>
+                          <p className="text-sm font-medium text-ink">Packaging</p>
                           <p className="text-sm text-muted capitalize">{product.shipping.packaging.replace(/_/g, " ")}</p>
                         </div>
                       </div>
@@ -411,18 +382,12 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               {/* Keywords */}
               {product.keywords && product.keywords.length > 0 && (
                 <div>
-                  <h3 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-pink-vivid" />
-                    <span className="text-ink">Tags</span>
+                  <h3 className="font-display font-semibold text-lg mb-3 text-pink-vivid">
+                    Tags
                   </h3>
-                  <div className="flex flex-wrap gap-2 pl-4">
+                  <div className="flex flex-wrap gap-2">
                     {product.keywords.map((keyword) => (
-                      <span
-                        key={keyword}
-                        className="px-3 py-1 text-sm font-ui rounded-full
-                          bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10
-                          text-pink-vivid border border-pink-vivid/20"
-                      >
+                      <span key={keyword} className="text-sm text-pink-vivid">
                         #{keyword}
                       </span>
                     ))}
