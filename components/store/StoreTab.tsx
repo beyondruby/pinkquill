@@ -417,8 +417,8 @@ function ProductCard({
 
       {/* Actions menu button (only for own profile) */}
       {isOwnProfile && (
-        <div ref={menuRef} className="absolute top-3 right-3 z-10">
-          {/* Menu button - horizontal 3 dots */}
+        <div ref={menuRef} className={`absolute top-3 z-10 ${product.delivery_type === "digital" ? "right-14" : "right-3"}`}>
+          {/* Menu button - vertical 3 dots */}
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -426,40 +426,29 @@ function ProductCard({
               setMenuOpen(!menuOpen);
               setConfirmDelete(false);
             }}
-            className={`w-8 h-8 rounded-full backdrop-blur-sm flex items-center justify-center
-              transition-all duration-200
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200
               ${menuOpen
-                ? "bg-white shadow-lg"
-                : "bg-black/30 opacity-0 group-hover:opacity-100 hover:bg-white hover:shadow-lg"
-              }
-              ${product.delivery_type === "digital" ? "translate-x-[-70px]" : ""}`}
+                ? "bg-white shadow-md"
+                : "bg-black/40 opacity-0 group-hover:opacity-100 hover:bg-black/60"
+              }`}
           >
-            {/* Horizontal 3 dots */}
-            <svg className={`w-4 h-4 ${menuOpen ? "text-ink" : "text-white group-hover:text-ink"}`} viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="5" cy="12" r="2" />
-              <circle cx="12" cy="12" r="2" />
-              <circle cx="19" cy="12" r="2" />
+            {/* Vertical 3 dots */}
+            <svg className={`w-4 h-4 ${menuOpen ? "text-muted" : "text-white"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
             </svg>
           </button>
 
-          {/* Dropdown menu - with gradient branding */}
+          {/* Dropdown menu */}
           {menuOpen && (
-            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-pink-100/50 overflow-hidden z-20">
-              {/* Gradient top accent */}
-              <div className="h-1 bg-gradient-to-r from-orange-warm to-pink-vivid" />
-
+            <div className="absolute top-full right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-20">
               {/* Edit */}
               <button
                 onClick={handleEdit}
-                className="w-full px-4 py-3.5 text-left text-sm font-ui text-ink
-                  hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50
-                  flex items-center gap-3 transition-all"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
               >
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-warm/10 to-pink-vivid/10 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </div>
+                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
                 Edit
               </button>
 
@@ -468,15 +457,11 @@ function ProductCard({
                 <button
                   onClick={handleActivate}
                   disabled={updating}
-                  className="w-full px-4 py-3.5 text-left text-sm font-ui text-emerald-600
-                    hover:bg-emerald-50/50
-                    flex items-center gap-3 transition-all disabled:opacity-50"
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                   {updating ? "Activating..." : "Activate"}
                 </button>
               )}
@@ -485,38 +470,25 @@ function ProductCard({
               <button
                 onClick={handleArchive}
                 disabled={updating}
-                className="w-full px-4 py-3.5 text-left text-sm font-ui text-ink
-                  hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50
-                  flex items-center gap-3 transition-all disabled:opacity-50"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors disabled:opacity-50"
               >
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-warm/10 to-pink-vivid/10 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-orange-warm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                  </svg>
-                </div>
+                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
                 {updating ? "Updating..." : product.status === "archived" ? "Unarchive" : "Archive"}
               </button>
-
-              {/* Divider */}
-              <div className="mx-4 border-t border-pink-100/50" />
 
               {/* Delete */}
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className={`w-full px-4 py-3.5 text-left text-sm font-ui
-                  flex items-center gap-3 transition-all disabled:opacity-50
-                  ${confirmDelete
-                    ? "bg-red-50 text-red-600"
-                    : "text-red-500 hover:bg-red-50/50"
-                  }`}
+                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors disabled:opacity-50
+                  ${confirmDelete ? "bg-red-50 text-red-600" : "text-red-500 hover:bg-red-50"}`}
               >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${confirmDelete ? "bg-red-100" : "bg-red-50"}`}>
-                  <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </div>
-                {deleting ? "Deleting..." : confirmDelete ? "Confirm Delete" : "Delete"}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {deleting ? "Deleting..." : confirmDelete ? "Confirm" : "Delete"}
               </button>
             </div>
           )}
