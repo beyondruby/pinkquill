@@ -11,56 +11,34 @@ interface SelectFieldProps {
 
 export default function SelectField({ field, value, onChange }: SelectFieldProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [customValue, setCustomValue] = useState("");
-  const [showCustomInput, setShowCustomInput] = useState(false);
-
   const options = field.options || [];
-
-  const handleSelect = (optionValue: string) => {
-    if (optionValue === "__custom__") {
-      setShowCustomInput(true);
-    } else {
-      onChange(optionValue);
-      setIsOpen(false);
-      setShowCustomInput(false);
-    }
-  };
-
-  const handleCustomSubmit = () => {
-    if (customValue.trim()) {
-      onChange(customValue.trim());
-      setCustomValue("");
-      setShowCustomInput(false);
-      setIsOpen(false);
-    }
-  };
-
-  const selectedLabel = options.find((o) => o.value === value)?.label || value;
+  const selectedLabel = options.find((o) => o.value === value)?.label || "";
 
   return (
     <div>
-      <label className="block text-sm font-ui font-medium text-ink mb-2">
+      <label className="block text-sm font-ui font-medium text-ink mb-3">
         {field.label}
         {field.required && <span className="text-pink-vivid ml-1">*</span>}
       </label>
 
-      <div className="relative">
+      <div className="relative w-64">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full px-5 py-4 rounded-2xl
-            bg-white/60 backdrop-blur-sm border
-            transition-all duration-300 text-left flex items-center justify-between font-body
+          className={`
+            w-full px-5 py-4 rounded-2xl text-left
+            transition-all duration-300 flex items-center justify-between
             ${isOpen
-              ? "border-purple-primary/40 bg-white shadow-lg shadow-purple-primary/5"
-              : "border-gray-200/50 hover:border-purple-primary/30 hover:bg-white/80"
-            }`}
+              ? "bg-white ring-2 ring-purple-primary/30"
+              : "bg-white/50 ring-1 ring-gray-200/50 hover:ring-purple-primary/20"
+            }
+          `}
         >
-          <span className={value ? "text-ink" : "text-gray-400"}>
-            {value ? selectedLabel : `Select ${field.label.toLowerCase()}`}
+          <span className={value ? "text-ink font-body" : "text-gray-400 font-body"}>
+            {selectedLabel || field.placeholder || "Select..."}
           </span>
           <svg
-            className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+            className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -69,108 +47,38 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
           </svg>
         </button>
 
-        {/* Dropdown */}
         {isOpen && (
-          <div
-            className="absolute z-20 w-full mt-2 bg-white/95 backdrop-blur-xl border border-gray-100/50 rounded-2xl shadow-xl
-              max-h-72 overflow-auto"
-          >
-            <div className="p-3 grid grid-cols-2 md:grid-cols-3 gap-2">
-              {options.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleSelect(option.value)}
-                  className={`px-4 py-3 rounded-xl text-sm text-left transition-all duration-300
-                    ${value === option.value
-                      ? "bg-gradient-to-br from-purple-primary/10 to-pink-vivid/5 text-purple-primary border border-purple-primary/20 shadow-sm"
-                      : "hover:bg-gray-50 border border-transparent hover:border-gray-100"
-                    }`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span
-                      className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all
-                        ${value === option.value
-                          ? "border-purple-primary bg-gradient-to-r from-purple-primary to-pink-vivid"
-                          : "border-gray-300"
-                        }`}
-                    >
-                      {value === option.value && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </span>
-                    <span className="font-medium">{option.label}</span>
-                  </span>
-                </button>
-              ))}
-
-              {/* Custom option */}
-              {field.allowCustom && (
-                <button
-                  type="button"
-                  onClick={() => handleSelect("__custom__")}
-                  className="px-4 py-3 rounded-xl text-sm text-left hover:bg-gradient-to-br hover:from-purple-50/50 hover:to-pink-50/50
-                    text-purple-primary flex items-center gap-2 border border-dashed border-purple-200/50 transition-all duration-300"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span className="font-medium">Custom</span>
-                </button>
-              )}
-            </div>
-
-            {/* Custom input */}
-            {showCustomInput && (
-              <div className="p-3 border-t border-gray-100/50 bg-gray-50/30 backdrop-blur-sm">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={customValue}
-                    onChange={(e) => setCustomValue(e.target.value)}
-                    placeholder="Enter custom value"
-                    className="flex-1 px-4 py-3 rounded-xl text-sm
-                      bg-white/80 border border-gray-200/50
-                      focus:border-purple-primary/40 focus:bg-white
-                      outline-none transition-all duration-300"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleCustomSubmit();
-                      }
-                    }}
-                  />
+          <>
+            <div className="absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl ring-1 ring-gray-100 overflow-hidden">
+              <div className="max-h-60 overflow-auto p-2">
+                {options.map((option) => (
                   <button
+                    key={option.value}
                     type="button"
-                    onClick={handleCustomSubmit}
-                    className="px-5 py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white text-sm rounded-xl
-                      hover:shadow-lg hover:shadow-purple-primary/20 transition-all duration-300 font-medium"
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                    className={`
+                      w-full px-4 py-3 rounded-xl text-sm text-left transition-colors
+                      ${value === option.value
+                        ? "bg-purple-primary/10 text-purple-primary font-medium"
+                        : "hover:bg-gray-50 text-ink"
+                      }
+                    `}
                   >
-                    Add
+                    {option.label}
                   </button>
-                </div>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+            <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          </>
         )}
       </div>
 
       {field.helpText && (
         <p className="text-xs text-muted mt-2">{field.helpText}</p>
-      )}
-
-      {/* Click outside to close */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-10"
-          onClick={() => {
-            setIsOpen(false);
-            setShowCustomInput(false);
-          }}
-        />
       )}
     </div>
   );

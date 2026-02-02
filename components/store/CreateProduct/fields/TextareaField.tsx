@@ -24,8 +24,8 @@ export default function TextareaField({ field, value, onChange }: TextareaFieldP
         maxLength={maxLength}
         rows={4}
         className="w-full px-5 py-4 rounded-2xl resize-none
-          bg-white/60 backdrop-blur-sm border border-gray-200/50
-          focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+          bg-white/50 ring-1 ring-gray-200/50
+          focus:ring-2 focus:ring-purple-primary/30 focus:bg-white
           outline-none transition-all duration-300
           font-body text-ink placeholder:text-gray-400"
       />

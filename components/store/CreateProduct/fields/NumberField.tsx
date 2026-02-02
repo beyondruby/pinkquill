@@ -25,9 +25,9 @@ export default function NumberField({ field, value, onChange }: NumberFieldProps
         placeholder={field.placeholder}
         min={field.validation?.min}
         max={field.validation?.max}
-        className="w-56 px-5 py-4 rounded-2xl
-          bg-white/60 backdrop-blur-sm border border-gray-200/50
-          focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+        className="w-48 px-5 py-4 rounded-2xl
+          bg-white/50 ring-1 ring-gray-200/50
+          focus:ring-2 focus:ring-purple-primary/30 focus:bg-white
           outline-none transition-all duration-300
           font-body text-ink placeholder:text-gray-400
           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
