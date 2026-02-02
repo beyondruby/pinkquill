@@ -326,92 +326,103 @@ function ProductCard({
     <div className="relative group">
       <Link
         href={`/product/${product.id}`}
-        className="block bg-white rounded-2xl overflow-hidden border border-gray-100/80
-          hover:border-pink-200/60 hover:shadow-xl hover:shadow-pink-vivid/5
-          transition-all duration-300 hover:-translate-y-1"
+        className="block transition-all duration-500 hover:-translate-y-2"
         style={{ animationDelay: `${index * 50}ms` }}
       >
-        {/* Image Container */}
-        <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-          {product.primary_image_url ? (
-            <img
-              src={product.primary_image_url}
-              alt={product.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-gray-200">
-                {CATEGORY_ICONS[categoryConfig?.icon || 'palette'] || (
-                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                )}
+        {/* Minimalist Card */}
+        <div className="relative">
+          {/* Image Container - Clean rounded square */}
+          <div className="relative aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-pink-50/50 to-orange-50/30">
+            {product.primary_image_url ? (
+              <img
+                src={product.primary_image_url}
+                alt={product.title}
+                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-pink-vivid/20">
+                  {CATEGORY_ICONS[categoryConfig?.icon || 'palette'] || (
+                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Gradient overlay on hover */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            {/* Elegant gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent
+              opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-          {/* Status badge (only for own profile) */}
-          {isOwnProfile && getStatusBadge()}
+            {/* Status badge (only for own profile) - top left */}
+            {isOwnProfile && getStatusBadge()}
 
-          {/* Digital badge */}
-          {product.delivery_type === "digital" && (
-            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-xs font-ui font-medium
-              bg-gradient-to-r from-orange-warm/90 to-pink-vivid/90 text-white backdrop-blur-sm
-              flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Digital
-            </div>
-          )}
+            {/* Digital indicator - subtle top right */}
+            {product.delivery_type === "digital" && (
+              <div className="absolute top-3 right-3 w-8 h-8 rounded-full
+                bg-white/90 backdrop-blur-sm flex items-center justify-center
+                shadow-sm">
+                <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </div>
+            )}
 
-          {/* Price tag on hover */}
-          {priceDisplay && (
-            <div className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg text-sm font-display font-semibold
-              bg-white/95 backdrop-blur-sm text-pink-vivid
-              opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0
-              transition-all duration-300">
-              {priceDisplay}
-            </div>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="p-4">
-          {/* Category pill */}
-          <div className="flex items-center gap-2 mb-2">
-            <span className="px-2 py-0.5 text-[10px] font-ui font-medium uppercase tracking-wider
-              bg-gradient-to-r from-orange-50 to-pink-50 text-pink-vivid/80 rounded-md">
-              {categoryConfig?.name || product.category}
-            </span>
-            {product.year_created && (
-              <span className="text-[10px] text-muted font-ui">{product.year_created}</span>
+            {/* Price - appears on hover at bottom */}
+            {priceDisplay && (
+              <div className="absolute bottom-4 left-4 right-4
+                opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0
+                transition-all duration-500">
+                <div className="inline-block px-4 py-2 rounded-full
+                  bg-white/95 backdrop-blur-sm
+                  text-base font-display font-bold
+                  bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">
+                  {priceDisplay}
+                </div>
+              </div>
             )}
           </div>
 
-          {/* Title */}
-          <h3 className="font-display font-medium text-ink text-sm leading-snug line-clamp-2
-            group-hover:text-pink-vivid transition-colors duration-200">
-            {product.title}
-          </h3>
+          {/* Text content - minimal and clean */}
+          <div className="mt-4 px-1">
+            {/* Title */}
+            <h3 className="font-display font-semibold text-ink text-base leading-snug line-clamp-1
+              group-hover:bg-gradient-to-r group-hover:from-orange-warm group-hover:to-pink-vivid
+              group-hover:bg-clip-text group-hover:text-transparent
+              transition-all duration-300">
+              {product.title}
+            </h3>
 
-          {/* Mobile price (visible on non-hover) */}
-          {priceDisplay && (
-            <p className="mt-2 text-sm font-display font-semibold text-pink-vivid md:hidden">
-              {priceDisplay}
-            </p>
-          )}
+            {/* Subtitle row - category and year */}
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="text-sm text-muted/80 font-body">
+                {categoryConfig?.name || product.category}
+              </span>
+              {product.year_created && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-muted/30" />
+                  <span className="text-sm text-muted/60 font-body">{product.year_created}</span>
+                </>
+              )}
+            </div>
+
+            {/* Price - always visible on mobile */}
+            {priceDisplay && (
+              <p className="mt-2 text-lg font-display font-bold
+                bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent
+                md:opacity-0 group-hover:md:opacity-0">
+                {priceDisplay}
+              </p>
+            )}
+          </div>
         </div>
       </Link>
 
       {/* Actions menu button (only for own profile) */}
       {isOwnProfile && (
         <div ref={menuRef} className="absolute top-3 right-3 z-10">
-          {/* Menu button - always visible on own profile */}
+          {/* Menu button - horizontal 3 dots */}
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -427,23 +438,32 @@ function ProductCard({
               }
               ${product.delivery_type === "digital" ? "translate-x-[-70px]" : ""}`}
           >
-            <svg className={`w-4 h-4 ${menuOpen ? "text-ink" : "text-white group-hover:text-ink"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            {/* Horizontal 3 dots */}
+            <svg className={`w-4 h-4 ${menuOpen ? "text-ink" : "text-white group-hover:text-ink"}`} viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="19" cy="12" r="2" />
             </svg>
           </button>
 
-          {/* Dropdown menu */}
+          {/* Dropdown menu - with gradient branding */}
           {menuOpen && (
-            <div className="absolute top-full right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-20">
+            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-pink-100/50 overflow-hidden z-20">
+              {/* Gradient top accent */}
+              <div className="h-1 bg-gradient-to-r from-orange-warm to-pink-vivid" />
+
               {/* Edit */}
               <button
                 onClick={handleEdit}
-                className="w-full px-4 py-3 text-left text-sm font-ui text-ink hover:bg-gray-50
-                  flex items-center gap-3 transition-colors"
+                className="w-full px-4 py-3.5 text-left text-sm font-ui text-ink
+                  hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50
+                  flex items-center gap-3 transition-all"
               >
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-warm/10 to-pink-vivid/10 flex items-center justify-center">
+                  <svg className="w-3.5 h-3.5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </div>
                 Edit
               </button>
 
@@ -452,12 +472,15 @@ function ProductCard({
                 <button
                   onClick={handleActivate}
                   disabled={updating}
-                  className="w-full px-4 py-3 text-left text-sm font-ui text-emerald-600 hover:bg-emerald-50
-                    flex items-center gap-3 transition-colors disabled:opacity-50"
+                  className="w-full px-4 py-3.5 text-left text-sm font-ui text-emerald-600
+                    hover:bg-emerald-50/50
+                    flex items-center gap-3 transition-all disabled:opacity-50"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
                   {updating ? "Activating..." : "Activate"}
                 </button>
               )}
@@ -466,32 +489,37 @@ function ProductCard({
               <button
                 onClick={handleArchive}
                 disabled={updating}
-                className="w-full px-4 py-3 text-left text-sm font-ui text-ink hover:bg-gray-50
-                  flex items-center gap-3 transition-colors disabled:opacity-50"
+                className="w-full px-4 py-3.5 text-left text-sm font-ui text-ink
+                  hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50
+                  flex items-center gap-3 transition-all disabled:opacity-50"
               >
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-warm/10 to-pink-vivid/10 flex items-center justify-center">
+                  <svg className="w-3.5 h-3.5 text-orange-warm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                </div>
                 {updating ? "Updating..." : product.status === "archived" ? "Unarchive" : "Archive"}
               </button>
 
               {/* Divider */}
-              <div className="border-t border-gray-100" />
+              <div className="mx-4 border-t border-pink-100/50" />
 
               {/* Delete */}
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className={`w-full px-4 py-3 text-left text-sm font-ui
-                  flex items-center gap-3 transition-colors disabled:opacity-50
+                className={`w-full px-4 py-3.5 text-left text-sm font-ui
+                  flex items-center gap-3 transition-all disabled:opacity-50
                   ${confirmDelete
-                    ? "bg-red-50 text-red-600 hover:bg-red-100"
-                    : "text-red-500 hover:bg-red-50"
+                    ? "bg-red-50 text-red-600"
+                    : "text-red-500 hover:bg-red-50/50"
                   }`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${confirmDelete ? "bg-red-100" : "bg-red-50"}`}>
+                  <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
                 {deleting ? "Deleting..." : confirmDelete ? "Confirm Delete" : "Delete"}
               </button>
             </div>

@@ -6,11 +6,21 @@ import { ProductMedia } from "@/lib/types/store";
 interface ProductGalleryProps {
   media: ProductMedia[];
   title: string;
+  likeCount?: number;
+  isLiked?: boolean;
+  onLike?: () => void;
 }
 
-export default function ProductGallery({ media, title }: ProductGalleryProps) {
+export default function ProductGallery({
+  media,
+  title,
+  likeCount = 0,
+  isLiked = false,
+  onLike
+}: ProductGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
 
   // Sort media by position, primary first
@@ -46,13 +56,14 @@ export default function ProductGallery({ media, title }: ProductGalleryProps) {
       handleNext();
     } else if (e.key === "Escape") {
       setIsZoomed(false);
+      setIsFullscreen(false);
     }
   }, [handlePrevious, handleNext]);
 
   if (sortedMedia.length === 0) {
     return (
-      <div className="aspect-square rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center border border-purple-100/30">
-        <div className="text-center text-purple-primary/40">
+      <div className="aspect-square rounded-2xl bg-gradient-to-br from-pink-50 to-orange-50 flex items-center justify-center border border-pink-100/30">
+        <div className="text-center text-pink-vivid/40">
           <svg className="w-20 h-20 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
@@ -63,126 +74,270 @@ export default function ProductGallery({ media, title }: ProductGalleryProps) {
   }
 
   return (
-    <div className="space-y-4" onKeyDown={handleKeyDown} tabIndex={0}>
-      {/* Main Image */}
-      <div
-        className={`relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 group
-          ${isZoomed ? "cursor-zoom-out" : "cursor-zoom-in"}
-          shadow-lg shadow-black/5`}
-        onClick={() => setIsZoomed(!isZoomed)}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setIsZoomed(false)}
-      >
-        {selectedImage && (
-          <>
-            {/* Normal view */}
-            <img
-              src={selectedImage.media_url}
-              alt={`${title} - Image ${selectedIndex + 1}`}
-              className={`w-full h-full object-contain transition-opacity duration-300
-                ${isZoomed ? "opacity-0" : "opacity-100"}`}
-            />
-
-            {/* Zoomed view */}
-            {isZoomed && (
-              <div
-                className="absolute inset-0"
-                style={{
-                  backgroundImage: `url(${selectedImage.media_url})`,
-                  backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
-                  backgroundSize: "200%",
-                  backgroundRepeat: "no-repeat",
-                }}
-              />
-            )}
-          </>
-        )}
-
-        {/* Navigation arrows */}
+    <>
+      <div className="flex gap-4" onKeyDown={handleKeyDown} tabIndex={0}>
+        {/* Vertical Thumbnails - LEFT side */}
         {sortedMedia.length > 1 && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePrevious();
-              }}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full
-                bg-white/95 backdrop-blur-sm shadow-lg flex items-center justify-center
-                opacity-0 group-hover:opacity-100 transition-all duration-200
-                hover:bg-white hover:scale-105 border border-gray-100"
-              aria-label="Previous image"
-            >
-              <svg className="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNext();
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full
-                bg-white/95 backdrop-blur-sm shadow-lg flex items-center justify-center
-                opacity-0 group-hover:opacity-100 transition-all duration-200
-                hover:bg-white hover:scale-105 border border-gray-100"
-              aria-label="Next image"
-            >
-              <svg className="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </>
-        )}
-
-        {/* Image counter badge */}
-        {sortedMedia.length > 1 && (
-          <div className="absolute bottom-3 right-3 px-3 py-1.5 rounded-full
-            bg-black/60 backdrop-blur-sm text-white text-sm font-ui font-medium">
-            {selectedIndex + 1} / {sortedMedia.length}
+          <div className="hidden md:flex flex-col gap-3 w-20 flex-shrink-0">
+            {sortedMedia.map((item, index) => (
+              <button
+                key={item.id}
+                onClick={() => setSelectedIndex(index)}
+                className={`relative w-20 h-20 rounded-xl overflow-hidden
+                  transition-all duration-300 flex-shrink-0
+                  ${index === selectedIndex
+                    ? "ring-2 ring-pink-vivid ring-offset-2 shadow-lg shadow-pink-vivid/20"
+                    : "opacity-50 hover:opacity-100 border border-gray-100"
+                  }`}
+                aria-label={`View image ${index + 1}`}
+                aria-current={index === selectedIndex}
+              >
+                <img
+                  src={item.media_url}
+                  alt={`${title} thumbnail ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
           </div>
         )}
 
-        {/* Zoom hint */}
-        <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full
-          bg-black/60 backdrop-blur-sm text-white text-xs font-ui
-          opacity-0 group-hover:opacity-100 transition-opacity duration-200
-          flex items-center gap-1.5">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-          </svg>
-          {isZoomed ? "Click to zoom out" : "Click to zoom"}
+        {/* Main Image */}
+        <div className="flex-1">
+          <div
+            className={`relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 group
+              ${isZoomed ? "cursor-zoom-out" : "cursor-zoom-in"}
+              shadow-lg shadow-black/5`}
+            onClick={() => setIsZoomed(!isZoomed)}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => setIsZoomed(false)}
+          >
+            {selectedImage && (
+              <>
+                {/* Normal view */}
+                <img
+                  src={selectedImage.media_url}
+                  alt={`${title} - Image ${selectedIndex + 1}`}
+                  className={`w-full h-full object-contain transition-opacity duration-300
+                    ${isZoomed ? "opacity-0" : "opacity-100"}`}
+                />
+
+                {/* Zoomed view */}
+                {isZoomed && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage: `url(${selectedImage.media_url})`,
+                      backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                      backgroundSize: "200%",
+                      backgroundRepeat: "no-repeat",
+                    }}
+                  />
+                )}
+              </>
+            )}
+
+            {/* Like button - top right */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onLike?.();
+              }}
+              className={`absolute top-4 right-4 w-12 h-12 rounded-full
+                backdrop-blur-sm flex items-center justify-center
+                transition-all duration-300 z-10
+                ${isLiked
+                  ? "bg-pink-vivid text-white shadow-lg shadow-pink-vivid/30"
+                  : "bg-white/90 text-gray-600 hover:bg-white hover:text-pink-vivid hover:shadow-lg"
+                }`}
+            >
+              <svg
+                className="w-6 h-6"
+                fill={isLiked ? "currentColor" : "none"}
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </button>
+
+            {/* Expand button - top right, below like */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFullscreen(true);
+              }}
+              className="absolute top-20 right-4 w-10 h-10 rounded-full
+                bg-white/90 backdrop-blur-sm text-gray-600
+                flex items-center justify-center
+                hover:bg-white hover:text-pink-vivid hover:shadow-lg
+                transition-all duration-300 z-10"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+            </button>
+
+            {/* Navigation arrows */}
+            {sortedMedia.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrevious();
+                  }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full
+                    bg-white/95 backdrop-blur-sm shadow-lg flex items-center justify-center
+                    opacity-0 group-hover:opacity-100 transition-all duration-200
+                    hover:bg-white hover:scale-105 border border-gray-100"
+                  aria-label="Previous image"
+                >
+                  <svg className="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNext();
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full
+                    bg-white/95 backdrop-blur-sm shadow-lg flex items-center justify-center
+                    opacity-0 group-hover:opacity-100 transition-all duration-200
+                    hover:bg-white hover:scale-105 border border-gray-100"
+                  aria-label="Next image"
+                >
+                  <svg className="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+
+            {/* Dot indicators - bottom center */}
+            {sortedMedia.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+                {sortedMedia.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedIndex(index);
+                    }}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      index === selectedIndex
+                        ? "bg-pink-vivid w-6"
+                        : "bg-white/60 hover:bg-white"
+                    }`}
+                    aria-label={`Go to image ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Like count - below image */}
+          {likeCount > 0 && (
+            <div className="mt-4 flex items-center gap-2 text-muted">
+              <svg className="w-5 h-5 text-pink-vivid" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span className="text-sm font-ui font-medium">Liked: {likeCount.toLocaleString()}</span>
+            </div>
+          )}
+
+          {/* Mobile thumbnails - horizontal below image */}
+          {sortedMedia.length > 1 && (
+            <div className="flex md:hidden gap-3 mt-4 overflow-x-auto pb-2 scrollbar-hide">
+              {sortedMedia.map((item, index) => (
+                <button
+                  key={item.id}
+                  onClick={() => setSelectedIndex(index)}
+                  className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden
+                    transition-all duration-200
+                    ${index === selectedIndex
+                      ? "ring-2 ring-pink-vivid ring-offset-2"
+                      : "opacity-60 hover:opacity-100"
+                    }`}
+                  aria-label={`View image ${index + 1}`}
+                >
+                  <img
+                    src={item.media_url}
+                    alt={`${title} thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Thumbnails */}
-      {sortedMedia.length > 1 && (
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {sortedMedia.map((item, index) => (
-            <button
-              key={item.id}
-              onClick={() => setSelectedIndex(index)}
-              className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden
-                transition-all duration-200
-                ${index === selectedIndex
-                  ? "ring-2 ring-purple-primary ring-offset-2 shadow-lg shadow-purple-primary/20"
-                  : "opacity-60 hover:opacity-100 hover:ring-1 hover:ring-purple-200"
-                }`}
-              aria-label={`View image ${index + 1}`}
-              aria-current={index === selectedIndex}
-            >
-              <img
-                src={item.media_url}
-                alt={`${title} thumbnail ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-              {/* Gradient overlay for unselected */}
-              {index !== selectedIndex && (
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-              )}
-            </button>
-          ))}
+      {/* Fullscreen modal */}
+      {isFullscreen && selectedImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={() => setIsFullscreen(false)}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10
+              text-white flex items-center justify-center
+              hover:bg-white/20 transition-colors z-10"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Navigation */}
+          {sortedMedia.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrevious();
+                }}
+                className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full
+                  bg-white/10 text-white flex items-center justify-center
+                  hover:bg-white/20 transition-colors"
+              >
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
+                className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full
+                  bg-white/10 text-white flex items-center justify-center
+                  hover:bg-white/20 transition-colors"
+              >
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </>
+          )}
+
+          {/* Image */}
+          <img
+            src={selectedImage.media_url}
+            alt={title}
+            className="max-w-[90vw] max-h-[90vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Counter */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full
+            bg-white/10 text-white text-sm font-ui">
+            {selectedIndex + 1} / {sortedMedia.length}
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
