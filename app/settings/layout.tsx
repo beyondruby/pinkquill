@@ -39,7 +39,7 @@ export default function SettingsLayout({
     <>
       <MobileHeader />
       <LeftSidebar />
-      <div className="pt-16 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen flex flex-col md:flex-row">
+      <div className="pt-16 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen flex flex-col md:flex-row">
         <div className="relative hidden md:block">
           <SettingsSidebar />
         </div>

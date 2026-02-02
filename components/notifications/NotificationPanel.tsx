@@ -779,12 +779,12 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
     <>
       {/* Backdrop - full screen on mobile, starts after sidebar on desktop */}
       <div
-        className="fixed inset-0 md:left-[220px] bg-black/30 backdrop-blur-sm z-[9998] animate-fadeIn"
+        className="fixed inset-0 md:left-[72px] bg-black/30 backdrop-blur-sm z-[9998] animate-fadeIn"
         onClick={onClose}
       />
 
       {/* Panel - full width on mobile, fixed width on desktop */}
-      <div className="fixed top-0 left-0 md:left-[220px] bottom-0 w-full md:w-[400px] bg-white shadow-2xl z-[9999] animate-slideInLeft flex flex-col border-r border-purple-primary/[0.08]">
+      <div className="fixed top-0 left-0 md:left-[72px] bottom-0 w-full md:w-[400px] bg-white shadow-2xl z-[9999] animate-slideInLeft flex flex-col border-r border-purple-primary/[0.08]">
         {/* Header */}
         <div className="relative px-6 py-5 border-b border-black/[0.04]">
           {/* Decorative gradient line */}

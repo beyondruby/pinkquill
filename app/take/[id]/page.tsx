@@ -554,7 +554,7 @@ export default function SingleTakePage({ params }: PageProps) {
     return (
       <>
         <LeftSidebar />
-        <main className="ml-[220px] min-h-screen bg-[#fdfdfd]">
+        <main className="ml-[72px] min-h-screen bg-[#fdfdfd]">
           <div className="max-w-[680px] mx-auto py-12 px-6">
             <div className="text-center py-20">
               <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -571,7 +571,7 @@ export default function SingleTakePage({ params }: PageProps) {
     return (
       <>
         <LeftSidebar />
-        <main className="ml-[220px] min-h-screen bg-[#fdfdfd]">
+        <main className="ml-[72px] min-h-screen bg-[#fdfdfd]">
           <div className="max-w-[680px] mx-auto py-12 px-6">
             <div className="text-center py-20">
               <h1 className="font-display text-2xl text-ink mb-4">Take not found</h1>
@@ -589,7 +589,7 @@ export default function SingleTakePage({ params }: PageProps) {
   return (
     <ErrorBoundary>
       <LeftSidebar />
-      <main className="ml-[220px] min-h-screen bg-[#fdfdfd]">
+      <main className="ml-[72px] min-h-screen bg-[#fdfdfd]">
         <div className="max-w-[1100px] mx-auto py-8 px-6 flex gap-6">
           {/* Left Column - Take */}
           <div className="flex-1 min-w-0">

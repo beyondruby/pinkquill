@@ -14,7 +14,7 @@ export default function MainContent({ children }: { children: React.ReactNode })
 
   return (
     <main
-      className={`min-h-screen ${mobileClasses} md:pt-0 md:pb-0 md:ml-[220px] ${
+      className={`min-h-screen ${mobileClasses} md:pt-0 md:pb-0 md:ml-[72px] ${
         isHomepage ? "lg:mr-[280px]" : "mr-0"
       }`}
     >

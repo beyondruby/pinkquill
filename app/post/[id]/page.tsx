@@ -674,7 +674,7 @@ export default function PostPage() {
       <>
         <MobileHeader />
         <LeftSidebar />
-        <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen bg-[#fdfdfd]">
+        <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-[#fdfdfd]">
           <div className="max-w-[680px] mx-auto py-12 px-4 md:px-6">
             <div className="text-center py-20">
               <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -693,7 +693,7 @@ export default function PostPage() {
       <>
         <MobileHeader />
         <LeftSidebar />
-        <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen bg-[#fdfdfd]">
+        <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-[#fdfdfd]">
           <div className="max-w-[680px] mx-auto py-12 px-4 md:px-6">
             <div className="text-center py-20">
               <h1 className="font-display text-2xl text-ink mb-4">Post not found</h1>
@@ -718,7 +718,7 @@ export default function PostPage() {
     >
       <MobileHeader />
       <LeftSidebar />
-      <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen bg-[#fdfdfd]">
+      <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-[#fdfdfd]">
         <div className="max-w-[1100px] mx-auto py-6 px-4 md:py-8 md:px-6 flex flex-col lg:flex-row gap-6">
           {/* Left Column - Post */}
           <div className="flex-1 min-w-0">

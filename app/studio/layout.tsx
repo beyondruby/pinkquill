@@ -11,7 +11,7 @@ export default function StudioLayout({
     <>
       <MobileHeader />
       <LeftSidebar />
-      <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[220px] min-h-screen">{children}</main>
+      <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen">{children}</main>
       <MobileBottomNav />
     </>
   );

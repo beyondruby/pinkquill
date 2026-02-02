@@ -186,8 +186,9 @@ export default function CreateProductWizard() {
   const stepNumber = getStepNumber(currentStep);
   const stepTitle = getStepTitle(currentStep);
 
-  // Calculate progress percentage
-  const progressPercent = stepNumber === 1 ? 33 : stepNumber === 2 ? 66 : 100;
+  // Calculate progress percentage (aligns with step indicators)
+  // Step 1 = 16%, Step 2 = 50%, Step 3 = 100%
+  const progressPercent = stepNumber === 1 ? 16 : stepNumber === 2 ? 50 : 100;
 
   return (
     <div className="min-h-screen bg-white">

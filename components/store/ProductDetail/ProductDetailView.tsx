@@ -131,11 +131,16 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             <div className="flex items-center justify-between">
               {product.delivery_type !== "digital" ? (
                 <div className="flex items-center gap-2">
-                  {/* Canvas with brush icon */}
-                  <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={1.5} />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8l4 4-6 6H7v-3l5-5z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.5 10.5l2-2a1.5 1.5 0 00-2.12-2.12l-2 2" />
+                  {/* Canvas/Easel icon */}
+                  <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    {/* Easel legs */}
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 21l4-6m4 6l-4-6" />
+                    {/* Canvas frame */}
+                    <rect x="4" y="3" width="16" height="12" rx="1" />
+                    {/* Inner canvas */}
+                    <rect x="6" y="5" width="12" height="8" rx="0.5" />
+                    {/* Easel stand/shelf */}
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 15h16" />
                   </svg>
                   <span className="text-sm font-ui text-pink-vivid font-medium">
                     Custom work available
