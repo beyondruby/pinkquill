@@ -126,20 +126,15 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
           </div>
 
           {/* Right: Product Info */}
-          <div className="space-y-5">
+          <div className="space-y-4">
             {/* Row 1: Custom work available + 3-dots menu */}
             <div className="flex items-center justify-between">
               {product.delivery_type !== "digital" ? (
                 <div className="flex items-center gap-2">
-                  {/* Canvas/Easel icon */}
                   <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                    {/* Easel legs */}
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 21l4-6m4 6l-4-6" />
-                    {/* Canvas frame */}
                     <rect x="4" y="3" width="16" height="12" rx="1" />
-                    {/* Inner canvas */}
                     <rect x="6" y="5" width="12" height="8" rx="0.5" />
-                    {/* Easel stand/shelf */}
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 15h16" />
                   </svg>
                   <span className="text-sm font-ui text-pink-vivid font-medium">
@@ -152,28 +147,28 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               <MoreMenu onShare={() => setShowShareModal(true)} />
             </div>
 
-            {/* Title */}
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-ink leading-tight">
-              {product.title}
-            </h1>
-
-            {/* By Artist Name */}
-            {product.seller && (
-              <p className="text-lg text-muted font-body">
-                by{" "}
-                <Link
-                  href={`/studio/${product.seller.username}`}
-                  className="text-pink-vivid hover:text-orange-warm transition-colors font-medium"
-                >
-                  {product.seller.display_name || product.seller.username}
-                </Link>
-              </p>
-            )}
+            {/* Title & Artist */}
+            <div>
+              <h1 className="text-2xl md:text-3xl font-display font-bold text-ink leading-tight mb-1">
+                {product.title}
+              </h1>
+              {product.seller && (
+                <p className="text-base text-muted font-body">
+                  by{" "}
+                  <Link
+                    href={`/studio/${product.seller.username}`}
+                    className="text-pink-vivid hover:text-orange-warm transition-colors font-medium"
+                  >
+                    {product.seller.display_name || product.seller.username}
+                  </Link>
+                </p>
+              )}
+            </div>
 
             {/* Price */}
             {activePricing && (
-              <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-display font-bold text-ink">
+              <div className="flex items-baseline gap-3 pt-2">
+                <span className="text-3xl font-display font-bold text-ink">
                   {formatPrice(activePricing.price, activePricing.currency)}
                 </span>
                 {activePricing.pricing_type === "original" && (
@@ -186,7 +181,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
             {/* Pricing Options (if multiple) */}
             {product.pricing && product.pricing.length > 1 && (
-              <div className="space-y-2 pt-2">
+              <div className="space-y-1">
                 {product.pricing.map((pricing) => (
                   <button
                     key={pricing.id}
@@ -213,36 +208,12 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               </div>
             )}
 
-            {/* Ask the artist */}
-            <button className="flex items-center gap-2 text-pink-vivid hover:text-orange-warm transition-colors pt-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span className="text-sm font-ui font-medium">
-                Ask the artist a question about this artwork
-              </span>
-            </button>
-
-            {/* Description */}
-            {product.description && (
-              <div className="pt-4">
-                <h3 className="font-display font-semibold text-lg mb-3 text-purple-primary">
-                  Description
-                </h3>
-                <div className="text-muted font-body leading-relaxed">
-                  {product.description.split("\n").map((paragraph, i) => (
-                    <p key={i} className="mb-3 last:mb-0">{paragraph}</p>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Shipping info (inline, not expandable) */}
+            {/* Shipping info (inline) */}
             {product.delivery_type !== "digital" && product.shipping && (
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted pt-2">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted">
                 {product.shipping.shipping_locations?.length > 0 && (
                   <div className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span>Ships to {product.shipping.shipping_locations.slice(0, 2).join(", ")}{product.shipping.shipping_locations.length > 2 ? "..." : ""}</span>
@@ -250,7 +221,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 )}
                 {product.shipping.processing_days && (
                   <div className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span>{product.shipping.processing_days} days processing</span>
@@ -259,13 +230,39 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               </div>
             )}
 
+            {/* Description */}
+            {product.description && (
+              <div className="pt-2">
+                <p className="text-muted font-body leading-relaxed text-sm line-clamp-3">
+                  {product.description}
+                </p>
+              </div>
+            )}
+
+            {/* Ask the artist */}
+            {product.seller && (
+              <Link
+                href="/messages"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-pink-vivid hover:text-orange-warm transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span className="text-sm font-ui font-medium">
+                  Ask the artist a question
+                </span>
+              </Link>
+            )}
+
             {/* Add to Cart */}
             <button
               disabled={!activePricing || activePricing.stock === 0}
-              className="w-full py-4 bg-gradient-to-r from-orange-warm to-pink-vivid
+              className="w-full py-4 bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm
                 text-white font-display font-bold text-lg rounded-xl
-                hover:shadow-xl hover:shadow-orange-warm/25 hover:scale-[1.02]
-                transition-all duration-300 mt-4
+                hover:shadow-xl hover:shadow-pink-vivid/25 hover:scale-[1.02]
+                transition-all duration-300 mt-6
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none
                 flex items-center justify-center gap-3"
             >
@@ -278,15 +275,15 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
         </div>
 
         {/* Product Details Section - Below the photo */}
-        <div className="mt-16 max-w-3xl">
+        <div className="mt-12 max-w-3xl">
           {/* Product Details Header - Expandable */}
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="w-full py-4 flex items-center justify-between"
+            className="w-full py-3 flex items-center justify-between border-t border-gray-100"
           >
-            <span className="font-display font-bold text-xl text-ink">Product Details</span>
+            <span className="font-display font-semibold text-lg text-ink">Product Details</span>
             <svg
-              className={`w-5 h-5 text-pink-vivid transition-transform duration-300 ${showDetails ? "rotate-180" : ""}`}
+              className={`w-5 h-5 text-muted transition-transform duration-300 ${showDetails ? "rotate-180" : ""}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -297,18 +294,18 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
           {/* Expanded Content */}
           {showDetails && (
-            <div className="pt-4 pb-8 space-y-8">
+            <div className="pt-4 pb-8 space-y-6">
               {/* Specifications */}
               {displayAttributes.length > 0 && (
                 <div>
-                  <h3 className="font-display font-semibold text-lg mb-4 text-pink-vivid">
+                  <h3 className="font-ui font-medium text-sm uppercase tracking-wider text-muted mb-3">
                     Specifications
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
                     {displayAttributes.map((attr, i) => (
                       <div key={i}>
-                        <p className="text-xs text-muted uppercase tracking-wider mb-1">{attr.label}</p>
-                        <p className="text-sm text-ink font-medium">{attr.value}</p>
+                        <p className="text-xs text-muted mb-0.5">{attr.label}</p>
+                        <p className="text-sm text-ink">{attr.value}</p>
                       </div>
                     ))}
                   </div>
@@ -319,20 +316,20 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               {product.delivery_type !== "digital" && product.shipping && (
                 (product.shipping.height || product.shipping.width || product.shipping.thickness || product.shipping.weight) && (
                   <div>
-                    <h3 className="font-display font-semibold text-lg mb-4 text-orange-warm">
+                    <h3 className="font-ui font-medium text-sm uppercase tracking-wider text-muted mb-3">
                       Dimensions
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
                       {[
                         { label: "Height", value: product.shipping.height, unit: product.shipping.dimensions_unit },
                         { label: "Width", value: product.shipping.width, unit: product.shipping.dimensions_unit },
                         { label: "Depth", value: product.shipping.thickness, unit: product.shipping.dimensions_unit },
                         { label: "Weight", value: product.shipping.weight, unit: product.shipping.weight_unit },
                       ].filter(d => d.value).map((dim, i) => (
-                        <div key={i} className="py-1">
-                          <span className="text-2xl font-display font-bold text-ink">{dim.value}</span>
+                        <div key={i}>
+                          <span className="text-lg font-display font-semibold text-ink">{dim.value}</span>
                           <span className="text-sm text-muted ml-1">{dim.unit}</span>
-                          <p className="text-xs text-muted uppercase tracking-wider">{dim.label}</p>
+                          <p className="text-xs text-muted">{dim.label}</p>
                         </div>
                       ))}
                     </div>
@@ -343,41 +340,26 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               {/* Shipping Details */}
               {product.delivery_type !== "digital" && product.shipping && (
                 <div>
-                  <h3 className="font-display font-semibold text-lg mb-4 text-purple-primary">
+                  <h3 className="font-ui font-medium text-sm uppercase tracking-wider text-muted mb-3">
                     Shipping & Handling
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {product.shipping.shipping_locations?.length > 0 && (
-                      <div className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-purple-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div>
-                          <p className="text-sm font-medium text-ink">Ships to</p>
-                          <p className="text-sm text-muted">{product.shipping.shipping_locations.join(", ")}</p>
-                        </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted">Ships to:</span>
+                        <span className="text-ink">{product.shipping.shipping_locations.join(", ")}</span>
                       </div>
                     )}
                     {product.shipping.processing_days && (
-                      <div className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-pink-vivid flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div>
-                          <p className="text-sm font-medium text-ink">Processing time</p>
-                          <p className="text-sm text-muted">{product.shipping.processing_days} business days</p>
-                        </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted">Processing:</span>
+                        <span className="text-ink">{product.shipping.processing_days} business days</span>
                       </div>
                     )}
                     {product.shipping.packaging && (
-                      <div className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-orange-warm flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
-                        <div>
-                          <p className="text-sm font-medium text-ink">Packaging</p>
-                          <p className="text-sm text-muted capitalize">{product.shipping.packaging.replace(/_/g, " ")}</p>
-                        </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted">Packaging:</span>
+                        <span className="text-ink capitalize">{product.shipping.packaging.replace(/_/g, " ")}</span>
                       </div>
                     )}
                   </div>
@@ -387,12 +369,12 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               {/* Keywords */}
               {product.keywords && product.keywords.length > 0 && (
                 <div>
-                  <h3 className="font-display font-semibold text-lg mb-3 text-pink-vivid">
+                  <h3 className="font-ui font-medium text-sm uppercase tracking-wider text-muted mb-3">
                     Tags
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {product.keywords.map((keyword) => (
-                      <span key={keyword} className="text-sm text-pink-vivid">
+                      <span key={keyword} className="text-sm text-muted">
                         #{keyword}
                       </span>
                     ))}
