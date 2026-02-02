@@ -218,6 +218,20 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               </span>
             </button>
 
+            {/* Description */}
+            {product.description && (
+              <div className="pt-4">
+                <h3 className="font-display font-semibold text-lg mb-3 text-purple-primary">
+                  Description
+                </h3>
+                <div className="text-muted font-body leading-relaxed">
+                  {product.description.split("\n").map((paragraph, i) => (
+                    <p key={i} className="mb-3 last:mb-0">{paragraph}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Shipping info (inline, not expandable) */}
             {product.delivery_type !== "digital" && product.shipping && (
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted pt-2">
@@ -237,20 +251,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                     <span>{product.shipping.processing_days} days processing</span>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Description */}
-            {product.description && (
-              <div className="pt-4">
-                <h3 className="font-display font-semibold text-lg mb-3 text-purple-primary">
-                  Description
-                </h3>
-                <div className="text-muted font-body leading-relaxed">
-                  {product.description.split("\n").map((paragraph, i) => (
-                    <p key={i} className="mb-3 last:mb-0">{paragraph}</p>
-                  ))}
-                </div>
               </div>
             )}
 
@@ -299,11 +299,11 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   <h3 className="font-display font-semibold text-lg mb-4 text-pink-vivid">
                     Specifications
                   </h3>
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4">
                     {displayAttributes.map((attr, i) => (
-                      <div key={i} className="flex justify-between py-1">
-                        <span className="text-sm text-muted">{attr.label}</span>
-                        <span className="text-sm text-ink font-medium">{attr.value}</span>
+                      <div key={i}>
+                        <p className="text-xs text-muted uppercase tracking-wider mb-1">{attr.label}</p>
+                        <p className="text-sm text-ink font-medium">{attr.value}</p>
                       </div>
                     ))}
                   </div>
