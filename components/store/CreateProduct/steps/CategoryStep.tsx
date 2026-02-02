@@ -41,7 +41,7 @@ export default function CategoryStep({
     <div className="py-4">
       {!showSubcategories ? (
         // Main categories
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
           {availableCategories.map((cat) => (
             <CategoryCard
               key={cat.id}
@@ -66,7 +66,7 @@ export default function CategoryStep({
             </div>
             {selectedCategoryConfig && (
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20 flex items-center justify-center text-pink-vivid">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary/20 via-pink-vivid/20 to-orange-warm/20 flex items-center justify-center text-pink-vivid">
                   <div className="scale-90">{getCategoryIcon(selectedCategoryConfig.icon)}</div>
                 </div>
                 <span className="text-sm font-medium text-ink">{selectedCategoryConfig.name}</span>
@@ -91,20 +91,30 @@ export default function CategoryStep({
                     onClick={() => onSubcategoryChange(sub.value)}
                     className={`
                       relative px-5 py-4 rounded-xl text-left
-                      transition-all duration-300 border-2 flex items-center gap-3
+                      transition-all duration-300 flex items-center gap-3
                       ${isSelected
-                        ? "border-pink-vivid bg-pink-vivid/5"
-                        : "border-gray-200 bg-white hover:border-pink-vivid/30"
+                        ? "bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10"
+                        : "bg-white hover:bg-pink-vivid/5"
                       }
                     `}
+                    style={{
+                      border: isSelected
+                        ? "1px solid transparent"
+                        : "1px solid rgba(255, 0, 127, 0.2)",
+                      backgroundImage: isSelected
+                        ? "linear-gradient(to right, rgba(142, 68, 173, 0.1), rgba(255, 0, 127, 0.1), rgba(255, 159, 67, 0.1)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+                        : undefined,
+                      backgroundOrigin: "border-box",
+                      backgroundClip: isSelected ? "padding-box, border-box" : undefined,
+                    }}
                   >
                     {/* Checkbox indicator */}
                     <div
                       className={`
                         w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all
                         ${isSelected
-                          ? "bg-gradient-to-r from-orange-warm to-pink-vivid"
-                          : "border-2 border-gray-300"
+                          ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm"
+                          : "border border-pink-vivid/30"
                         }
                       `}
                     >
@@ -143,7 +153,7 @@ export default function CategoryStep({
   );
 }
 
-// Category card with circular icon
+// Category card with glass circle
 function CategoryCard({
   category,
   isSelected,
@@ -158,47 +168,37 @@ function CategoryCard({
       onClick={onClick}
       className="group flex flex-col items-center text-center"
     >
-      {/* Circular icon container */}
+      {/* Glass circular icon container */}
       <div
         className={`
           relative w-24 h-24 rounded-full flex items-center justify-center
           transition-all duration-300 mb-4
+          backdrop-blur-sm
           ${isSelected
-            ? "bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20"
-            : "bg-pink-vivid/5 group-hover:bg-pink-vivid/10"
+            ? "bg-gradient-to-br from-purple-primary/20 via-pink-vivid/20 to-orange-warm/20 shadow-xl shadow-pink-vivid/30"
+            : "bg-white/80 shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/20"
           }
         `}
+        style={{
+          border: isSelected
+            ? "2px solid transparent"
+            : "1px solid rgba(255, 255, 255, 0.5)",
+          backgroundImage: isSelected
+            ? "linear-gradient(to bottom right, rgba(142, 68, 173, 0.2), rgba(255, 0, 127, 0.2), rgba(255, 159, 67, 0.2)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+            : undefined,
+          backgroundOrigin: "border-box",
+          backgroundClip: isSelected ? "padding-box, border-box" : undefined,
+        }}
       >
-        {/* Inner circle with icon */}
-        <div
-          className={`
-            w-16 h-16 rounded-full flex items-center justify-center
-            transition-all duration-300
-            ${isSelected
-              ? "bg-gradient-to-br from-orange-warm/30 to-pink-vivid/30"
-              : "bg-pink-vivid/10 group-hover:bg-pink-vivid/15"
-            }
-          `}
-        >
-          <span className={`
-            transition-colors duration-300 scale-110
-            ${isSelected
-              ? "text-pink-vivid"
-              : "text-pink-vivid/60 group-hover:text-pink-vivid/80"
-            }
-          `}>
-            {getCategoryIcon(category.icon)}
-          </span>
-        </div>
-
-        {/* Selection indicator */}
-        {isSelected && (
-          <div className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-gradient-to-br from-orange-warm to-pink-vivid flex items-center justify-center shadow-lg">
-            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-        )}
+        <span className={`
+          transition-colors duration-300 scale-110
+          ${isSelected
+            ? "text-pink-vivid"
+            : "text-pink-vivid/50 group-hover:text-pink-vivid/80"
+          }
+        `}>
+          {getCategoryIcon(category.icon)}
+        </span>
       </div>
 
       {/* Name */}
@@ -207,7 +207,7 @@ function CategoryCard({
           font-semibold font-ui text-sm
           transition-colors duration-300
           ${isSelected
-            ? "bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent"
+            ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent"
             : "text-ink group-hover:text-pink-vivid"
           }
         `}

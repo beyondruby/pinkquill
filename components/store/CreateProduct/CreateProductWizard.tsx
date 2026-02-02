@@ -14,16 +14,16 @@ import DetailsStep from "./steps/DetailsStep";
 export type WizardStep = "delivery" | "category" | "media" | "details";
 
 const STEPS = [
-  { id: "delivery", number: 1, label: "Choose the Type" },
-  { id: "category", number: 1, label: "Choose the Type" },
-  { id: "media", number: 2, label: "Upload Your Product" },
-  { id: "details", number: 3, label: "Fill the Details" },
+  { id: "delivery", number: 1, label: "Choose Type" },
+  { id: "category", number: 1, label: "Choose Type" },
+  { id: "media", number: 2, label: "Upload Media" },
+  { id: "details", number: 3, label: "Fill Details" },
 ];
 
 const STEP_LABELS = [
-  { number: 1, label: "Choose the Type of the Product" },
-  { number: 2, label: "Upload Your Product" },
-  { number: 3, label: "Fill the Details" },
+  { number: 1, label: "Choose Type" },
+  { number: 2, label: "Upload Media" },
+  { number: 3, label: "Fill Details" },
 ];
 
 export default function CreateProductWizard() {
@@ -59,11 +59,11 @@ export default function CreateProductWizard() {
       case "delivery":
         return { prefix: "Let's", highlight1: "create", highlight2: "your product" };
       case "category":
-        return { prefix: "Let's", highlight1: "create", highlight2: "your product" };
+        return { prefix: "Choose a", highlight1: "category", highlight2: "for your product" };
       case "media":
-        return { prefix: "Let's start to", highlight1: "create", highlight2: "your product" };
+        return { prefix: "Upload", highlight1: "media", highlight2: "for your product" };
       case "details":
-        return { prefix: "We're almost", highlight1: "create", highlight2: "your product" };
+        return { prefix: "Add the", highlight1: "final", highlight2: "details" };
       default:
         return { prefix: "Let's", highlight1: "create", highlight2: "your product" };
     }

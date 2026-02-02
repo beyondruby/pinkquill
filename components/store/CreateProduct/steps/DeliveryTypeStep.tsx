@@ -37,9 +37,9 @@ const DELIVERY_OPTIONS: {
 
 export default function DeliveryTypeStep({ value, onChange }: DeliveryTypeStepProps) {
   return (
-    <div className="py-8">
-      {/* Large icon cards */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-12">
+    <div className="py-12">
+      {/* Large icon cards with proper spacing */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-12 sm:gap-20 mb-16">
         {DELIVERY_OPTIONS.map((option) => {
           const isSelected = value === option.value;
 
@@ -49,47 +49,37 @@ export default function DeliveryTypeStep({ value, onChange }: DeliveryTypeStepPr
               onClick={() => onChange(option.value)}
               className="group flex flex-col items-center text-center"
             >
-              {/* Large circular icon container */}
+              {/* Glass circle with shadow - no inner circle */}
               <div
                 className={`
-                  relative w-32 h-32 rounded-full flex items-center justify-center
-                  transition-all duration-300 mb-5
+                  relative w-36 h-36 rounded-full flex items-center justify-center
+                  transition-all duration-300 mb-6
+                  backdrop-blur-sm
                   ${isSelected
-                    ? "bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20"
-                    : "bg-pink-vivid/5 group-hover:bg-pink-vivid/10"
+                    ? "bg-gradient-to-br from-purple-primary/20 via-pink-vivid/20 to-orange-warm/20 shadow-xl shadow-pink-vivid/30"
+                    : "bg-white/80 shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/20"
                   }
                 `}
+                style={{
+                  border: isSelected
+                    ? "2px solid transparent"
+                    : "1px solid rgba(255, 255, 255, 0.5)",
+                  backgroundImage: isSelected
+                    ? "linear-gradient(to bottom right, rgba(142, 68, 173, 0.2), rgba(255, 0, 127, 0.2), rgba(255, 159, 67, 0.2)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+                    : undefined,
+                  backgroundOrigin: "border-box",
+                  backgroundClip: isSelected ? "padding-box, border-box" : undefined,
+                }}
               >
-                {/* Inner circle with icon */}
-                <div
-                  className={`
-                    w-24 h-24 rounded-full flex items-center justify-center
-                    transition-all duration-300
-                    ${isSelected
-                      ? "bg-gradient-to-br from-orange-warm/30 to-pink-vivid/30"
-                      : "bg-pink-vivid/10 group-hover:bg-pink-vivid/15"
-                    }
-                  `}
-                >
-                  <span className={`
-                    transition-colors duration-300
-                    ${isSelected
-                      ? "text-pink-vivid"
-                      : "text-pink-vivid/60 group-hover:text-pink-vivid/80"
-                    }
-                  `}>
-                    {option.icon}
-                  </span>
-                </div>
-
-                {/* Selection indicator */}
-                {isSelected && (
-                  <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-orange-warm to-pink-vivid flex items-center justify-center shadow-lg">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                )}
+                <span className={`
+                  transition-colors duration-300
+                  ${isSelected
+                    ? "text-pink-vivid"
+                    : "text-pink-vivid/50 group-hover:text-pink-vivid/80"
+                  }
+                `}>
+                  {option.icon}
+                </span>
               </div>
 
               {/* Label */}
@@ -98,7 +88,7 @@ export default function DeliveryTypeStep({ value, onChange }: DeliveryTypeStepPr
                   text-xl font-display font-bold mb-1
                   transition-colors duration-300
                   ${isSelected
-                    ? "bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent"
+                    ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent"
                     : "text-ink group-hover:text-pink-vivid"
                   }
                 `}

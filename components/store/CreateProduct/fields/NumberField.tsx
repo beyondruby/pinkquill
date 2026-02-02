@@ -18,7 +18,7 @@ export default function NumberField({ field, value, onChange }: NumberFieldProps
 
       {/* Gradient border wrapper */}
       <div className="relative w-48">
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
           <div className="w-full h-full rounded-xl bg-white" />
         </div>
         <div className="relative flex items-center">
@@ -35,7 +35,7 @@ export default function NumberField({ field, value, onChange }: NumberFieldProps
             className="w-full px-4 py-3.5 pr-12 rounded-xl
               bg-transparent
               outline-none transition-all duration-300
-              font-body text-ink placeholder:text-gray-400
+              font-body text-ink placeholder:text-muted/60
               [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
           {/* Number icon */}

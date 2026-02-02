@@ -23,7 +23,7 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
 
       {/* Gradient border wrapper */}
       <div className="relative">
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
           <div className="w-full h-full rounded-xl bg-white" />
         </div>
 
@@ -34,11 +34,11 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
             bg-transparent flex items-center justify-between
             outline-none transition-all duration-300"
         >
-          <span className={value ? "text-ink font-body" : "text-gray-400 font-body"}>
+          <span className={value ? "text-ink font-body" : "text-muted/60 font-body"}>
             {selectedLabel || field.placeholder || "Select..."}
           </span>
           <svg
-            className={`w-5 h-5 text-orange-warm transition-transform ${isOpen ? "rotate-180" : ""}`}
+            className={`w-5 h-5 text-pink-vivid transition-transform ${isOpen ? "rotate-180" : ""}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -50,7 +50,7 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
 
       {/* Expandable options grid */}
       {isOpen && (
-        <div className="mt-4 p-4 bg-gray-50/50 rounded-xl">
+        <div className="mt-4 p-4 rounded-xl bg-white/50 backdrop-blur-sm">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {options.map((option) => {
               const isSelected = value === option.value;
@@ -64,20 +64,30 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
                   }}
                   className={`
                     flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm text-left
-                    transition-all duration-200 border-2
+                    transition-all duration-200
                     ${isSelected
-                      ? "border-pink-vivid bg-pink-vivid/5"
-                      : "border-gray-200 bg-white hover:border-pink-vivid/30"
+                      ? "bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10"
+                      : "bg-white hover:bg-pink-vivid/5"
                     }
                   `}
+                  style={{
+                    border: isSelected
+                      ? "1px solid transparent"
+                      : "1px solid rgba(255, 0, 127, 0.2)",
+                    backgroundImage: isSelected
+                      ? "linear-gradient(to right, rgba(142, 68, 173, 0.1), rgba(255, 0, 127, 0.1), rgba(255, 159, 67, 0.1)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+                      : undefined,
+                    backgroundOrigin: "border-box",
+                    backgroundClip: isSelected ? "padding-box, border-box" : undefined,
+                  }}
                 >
                   {/* Checkbox indicator */}
                   <div
                     className={`
                       w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all
                       ${isSelected
-                        ? "bg-gradient-to-r from-orange-warm to-pink-vivid"
-                        : "border-2 border-gray-300"
+                        ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm"
+                        : "border border-pink-vivid/30"
                       }
                     `}
                   >

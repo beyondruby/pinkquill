@@ -1,6 +1,6 @@
 "use client";
 
-import { CreateShippingData, DimensionsUnit, WeightUnit } from "@/lib/types/store";
+import { CreateShippingData, DimensionsUnit } from "@/lib/types/store";
 
 interface DimensionsFieldProps {
   shipping: CreateShippingData;
@@ -29,12 +29,17 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
               type="button"
               onClick={() => updateField("dimensions_unit", unit.value)}
               className={`
-                px-4 py-2 rounded-xl text-sm font-ui transition-all duration-200 border-2
+                px-4 py-2 rounded-xl text-sm font-ui transition-all duration-200
                 ${shipping.dimensions_unit === unit.value
-                  ? "bg-gradient-to-r from-orange-warm to-pink-vivid text-white border-transparent"
-                  : "bg-white text-muted border-gray-200 hover:border-pink-vivid/30"
+                  ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm text-white"
+                  : "bg-white text-muted hover:bg-pink-vivid/5"
                 }
               `}
+              style={{
+                border: shipping.dimensions_unit === unit.value
+                  ? "none"
+                  : "1px solid rgba(255, 0, 127, 0.2)",
+              }}
             >
               {unit.label}
             </button>
@@ -67,7 +72,7 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
         <div>
           <label className="block text-sm font-ui text-muted mb-2">Weight</label>
           <div className="relative">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
               <div className="w-full h-full rounded-xl bg-white" />
             </div>
             <div className="relative flex items-center">
@@ -83,7 +88,7 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
                   outline-none transition-all duration-300 font-body
                   [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
-              <span className="absolute right-4 text-orange-warm text-sm font-ui">
+              <span className="absolute right-4 text-pink-vivid text-sm font-ui">
                 {shipping.weight_unit || "kg"}
               </span>
             </div>
@@ -109,7 +114,7 @@ function DimensionInput({
     <div>
       <label className="block text-sm font-ui text-muted mb-2">{label}</label>
       <div className="relative">
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
           <div className="w-full h-full rounded-xl bg-white" />
         </div>
         <div className="relative flex items-center">
@@ -125,7 +130,7 @@ function DimensionInput({
               outline-none transition-all duration-300 font-body
               [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
-          <span className="absolute right-4 text-orange-warm text-sm font-ui">
+          <span className="absolute right-4 text-pink-vivid text-sm font-ui">
             {unit}
           </span>
         </div>

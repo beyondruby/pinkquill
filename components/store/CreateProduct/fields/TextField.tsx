@@ -18,7 +18,7 @@ export default function TextField({ field, value, onChange }: TextFieldProps) {
 
       {/* Gradient border wrapper */}
       <div className="relative">
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
           <div className="w-full h-full rounded-xl bg-white" />
         </div>
         <div className="relative flex items-center">
@@ -31,7 +31,7 @@ export default function TextField({ field, value, onChange }: TextFieldProps) {
             className="w-full px-4 py-3.5 pr-12 rounded-xl
               bg-transparent
               outline-none transition-all duration-300
-              font-body text-ink placeholder:text-gray-400"
+              font-body text-ink placeholder:text-muted/60"
           />
           {/* Pencil icon */}
           <div className="absolute right-4 text-orange-warm">
