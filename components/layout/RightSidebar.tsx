@@ -15,61 +15,85 @@ interface SuggestedUser {
   followers_count: number;
 }
 
+function SectionCard({
+  title,
+  children,
+  showMoreHref,
+  showMoreLabel = "Show more"
+}: {
+  title: string;
+  children: React.ReactNode;
+  showMoreHref?: string;
+  showMoreLabel?: string;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-black/[0.06] shadow-sm overflow-hidden">
+      <div className="px-4 py-3">
+        <h2 className="font-display text-base font-bold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+          {title}
+        </h2>
+      </div>
+      <div className="border-t border-black/[0.04]">
+        {children}
+      </div>
+      {showMoreHref && (
+        <Link
+          href={showMoreHref}
+          className="block px-4 py-2.5 text-sm font-ui font-medium text-purple-primary hover:bg-purple-primary/5 transition-colors border-t border-black/[0.04]"
+        >
+          {showMoreLabel}
+        </Link>
+      )}
+    </div>
+  );
+}
+
 function TrendingSection() {
   const { tags, loading } = useTrendingTags(5);
 
   if (loading) {
     return (
-      <div className="bg-gray-50/80 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-black/[0.04]">
-          <h2 className="font-display text-lg font-bold text-ink">Trends for you</h2>
-        </div>
+      <SectionCard title="Trending">
         <div className="divide-y divide-black/[0.04]">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="px-4 py-3 animate-pulse">
-              <div className="h-3 bg-gray-200 rounded w-16 mb-2" />
-              <div className="h-4 bg-gray-200 rounded w-24 mb-1" />
-              <div className="h-3 bg-gray-200 rounded w-20" />
+              <div className="h-3 bg-gray-100 rounded w-20 mb-2" />
+              <div className="h-4 bg-gray-100 rounded w-28" />
             </div>
           ))}
         </div>
-      </div>
+      </SectionCard>
     );
   }
 
   if (tags.length === 0) return null;
 
   return (
-    <div className="bg-gray-50/80 rounded-2xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-black/[0.04]">
-        <h2 className="font-display text-lg font-bold text-ink">Trends for you</h2>
-      </div>
+    <SectionCard title="Trending" showMoreHref="/explore">
       <div className="divide-y divide-black/[0.04]">
         {tags.map((tag, index) => (
           <Link
             key={tag.name}
             href={`/tag/${encodeURIComponent(tag.name)}`}
-            className="block px-4 py-3 hover:bg-black/[0.03] transition-colors"
+            className="block px-4 py-3 hover:bg-gradient-to-r hover:from-purple-primary/5 hover:to-pink-vivid/5 transition-colors group"
           >
-            <p className="text-xs text-muted font-body">
-              {index + 1} · Trending
-            </p>
-            <p className="font-ui font-semibold text-ink text-[0.95rem] mt-0.5">
-              #{tag.name}
-            </p>
-            <p className="text-xs text-muted font-body mt-0.5">
-              {tag.post_count.toLocaleString()} posts
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-ui font-semibold text-ink text-[0.9rem] group-hover:text-purple-primary transition-colors">
+                  #{tag.name}
+                </p>
+                <p className="text-xs text-muted font-body mt-0.5">
+                  {tag.post_count.toLocaleString()} posts
+                </p>
+              </div>
+              <span className="text-xs font-ui text-muted/60">
+                #{index + 1}
+              </span>
+            </div>
           </Link>
         ))}
       </div>
-      <Link
-        href="/explore"
-        className="block px-4 py-3 text-pink-vivid font-ui text-[0.9rem] hover:bg-black/[0.03] transition-colors"
-      >
-        Show more
-      </Link>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -90,7 +114,7 @@ function WhoToFollowSection() {
         let query = supabase
           .from("profiles")
           .select("id, username, display_name, avatar_url, tagline")
-          .limit(4);
+          .limit(3);
 
         if (user) {
           const { data: followingData } = await supabase
@@ -136,7 +160,6 @@ function WhoToFollowSection() {
 
     const isFollowing = followingIds.has(userId);
 
-    // Optimistic update
     setFollowingIds((prev) => {
       const newSet = new Set(prev);
       if (isFollowing) {
@@ -161,7 +184,6 @@ function WhoToFollowSection() {
         });
       }
     } catch (err) {
-      // Revert on error
       setFollowingIds((prev) => {
         const newSet = new Set(prev);
         if (isFollowing) {
@@ -176,54 +198,51 @@ function WhoToFollowSection() {
 
   if (loading) {
     return (
-      <div className="bg-gray-50/80 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-black/[0.04]">
-          <h2 className="font-display text-lg font-bold text-ink">Who to follow</h2>
-        </div>
+      <SectionCard title="Creators to follow">
         <div className="divide-y divide-black/[0.04]">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="px-4 py-3 flex items-center gap-3 animate-pulse">
-              <div className="w-10 h-10 rounded-full bg-gray-200" />
+              <div className="w-10 h-10 rounded-full bg-gray-100" />
               <div className="flex-1">
-                <div className="h-4 bg-gray-200 rounded w-24 mb-1" />
-                <div className="h-3 bg-gray-200 rounded w-16" />
+                <div className="h-4 bg-gray-100 rounded w-24 mb-1" />
+                <div className="h-3 bg-gray-100 rounded w-16" />
               </div>
-              <div className="h-8 w-20 bg-gray-200 rounded-full" />
+              <div className="h-8 w-16 bg-gray-100 rounded-full" />
             </div>
           ))}
         </div>
-      </div>
+      </SectionCard>
     );
   }
 
   if (suggestedUsers.length === 0) return null;
 
   return (
-    <div className="bg-gray-50/80 rounded-2xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-black/[0.04]">
-        <h2 className="font-display text-lg font-bold text-ink">Who to follow</h2>
-      </div>
+    <SectionCard title="Creators to follow" showMoreHref="/explore" showMoreLabel="Discover more">
       <div className="divide-y divide-black/[0.04]">
         {suggestedUsers.map((suggestedUser) => {
           const isFollowing = followingIds.has(suggestedUser.id);
           return (
             <div
               key={suggestedUser.id}
-              className="px-4 py-3 flex items-center gap-3 hover:bg-black/[0.03] transition-colors"
+              className="px-4 py-3 flex items-center gap-3"
             >
               <Link href={`/studio/${suggestedUser.username}`} className="flex-shrink-0">
-                <img
-                  src={suggestedUser.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80"}
-                  alt=""
-                  className="w-10 h-10 rounded-full object-cover"
-                />
+                <div className="relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-br from-orange-warm via-pink-vivid to-purple-primary rounded-full opacity-0 hover:opacity-100 transition-opacity" />
+                  <img
+                    src={suggestedUser.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80"}
+                    alt=""
+                    className="relative w-10 h-10 rounded-full object-cover border-2 border-white"
+                  />
+                </div>
               </Link>
               <div className="flex-1 min-w-0">
                 <Link href={`/studio/${suggestedUser.username}`}>
-                  <p className="font-ui font-semibold text-ink text-[0.9rem] truncate hover:underline">
+                  <p className="font-ui font-semibold text-ink text-sm truncate hover:text-purple-primary transition-colors">
                     {suggestedUser.display_name || suggestedUser.username}
                   </p>
-                  <p className="text-muted text-[0.8rem] font-body truncate">
+                  <p className="text-muted text-xs font-body truncate">
                     @{suggestedUser.username}
                   </p>
                 </Link>
@@ -231,10 +250,10 @@ function WhoToFollowSection() {
               {user && user.id !== suggestedUser.id && (
                 <button
                   onClick={() => handleFollow(suggestedUser.id)}
-                  className={`px-4 py-1.5 rounded-full font-ui text-sm font-bold transition-colors ${
+                  className={`px-3 py-1.5 rounded-full font-ui text-xs font-semibold transition-all ${
                     isFollowing
-                      ? "bg-transparent border border-gray-300 text-ink hover:border-red-300 hover:text-red-500"
-                      : "bg-ink text-white hover:bg-ink/90"
+                      ? "bg-white border border-black/10 text-ink hover:border-red-300 hover:text-red-500"
+                      : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white hover:shadow-md hover:shadow-pink-vivid/20"
                   }`}
                 >
                   {isFollowing ? "Following" : "Follow"}
@@ -244,13 +263,7 @@ function WhoToFollowSection() {
           );
         })}
       </div>
-      <Link
-        href="/explore"
-        className="block px-4 py-3 text-pink-vivid font-ui text-[0.9rem] hover:bg-black/[0.03] transition-colors"
-      >
-        Show more
-      </Link>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -259,76 +272,64 @@ function CommunitiesSection() {
 
   if (loading) {
     return (
-      <div className="bg-gray-50/80 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-black/[0.04]">
-          <h2 className="font-display text-lg font-bold text-ink">Communities</h2>
-        </div>
+      <SectionCard title="Communities">
         <div className="divide-y divide-black/[0.04]">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="px-4 py-3 flex items-center gap-3 animate-pulse">
-              <div className="w-10 h-10 rounded-full bg-gray-200" />
+              <div className="w-10 h-10 rounded-xl bg-gray-100" />
               <div className="flex-1">
-                <div className="h-4 bg-gray-200 rounded w-24 mb-1" />
-                <div className="h-3 bg-gray-200 rounded w-16" />
+                <div className="h-4 bg-gray-100 rounded w-24 mb-1" />
+                <div className="h-3 bg-gray-100 rounded w-16" />
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </SectionCard>
     );
   }
 
   if (trending.length === 0) return null;
 
   return (
-    <div className="bg-gray-50/80 rounded-2xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-black/[0.04]">
-        <h2 className="font-display text-lg font-bold text-ink">Communities</h2>
-      </div>
+    <SectionCard title="Communities" showMoreHref="/community" showMoreLabel="Explore communities">
       <div className="divide-y divide-black/[0.04]">
         {trending.map((community) => (
           <Link
             key={community.id}
             href={`/community/${community.slug}`}
-            className="px-4 py-3 flex items-center gap-3 hover:bg-black/[0.03] transition-colors"
+            className="px-4 py-3 flex items-center gap-3 hover:bg-gradient-to-r hover:from-purple-primary/5 hover:to-pink-vivid/5 transition-colors group"
           >
             {community.avatar_url ? (
               <img
                 src={community.avatar_url}
                 alt=""
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-10 h-10 rounded-xl object-cover"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
                 <span className="font-ui text-sm font-bold text-white">
                   {community.name.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="font-ui font-semibold text-ink text-[0.9rem] truncate">
+              <p className="font-ui font-semibold text-ink text-sm truncate group-hover:text-purple-primary transition-colors">
                 {community.name}
               </p>
-              <p className="text-muted text-[0.8rem] font-body">
+              <p className="text-muted text-xs font-body">
                 {(community.member_count || 0).toLocaleString()} members
               </p>
             </div>
           </Link>
         ))}
       </div>
-      <Link
-        href="/community"
-        className="block px-4 py-3 text-pink-vivid font-ui text-[0.9rem] hover:bg-black/[0.03] transition-colors"
-      >
-        Show more
-      </Link>
-    </div>
+    </SectionCard>
   );
 }
 
 export default function RightSidebar() {
   return (
-    <aside className="hidden lg:block fixed right-0 top-0 bottom-0 w-[300px] border-l border-black/[0.04] overflow-y-auto z-[90]">
+    <aside className="hidden lg:block fixed right-0 top-0 bottom-0 w-[280px] border-l border-black/[0.04] overflow-y-auto bg-gray-50/50">
       <div className="p-4 space-y-4">
         {/* Trending */}
         <TrendingSection />
@@ -340,14 +341,17 @@ export default function RightSidebar() {
         <CommunitiesSection />
 
         {/* Footer */}
-        <nav className="px-2 pt-2">
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.75rem] text-muted font-body">
-            <Link href="/terms" className="hover:underline">Terms of Service</Link>
-            <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
-            <Link href="/about" className="hover:underline">About</Link>
-            <Link href="/help" className="hover:underline">Help</Link>
+        <nav className="px-1 pt-2">
+          <div className="flex flex-wrap gap-x-2 gap-y-1 text-[0.7rem] text-muted/70 font-body">
+            <Link href="/terms" className="hover:text-purple-primary transition-colors">Terms</Link>
+            <span>·</span>
+            <Link href="/privacy" className="hover:text-purple-primary transition-colors">Privacy</Link>
+            <span>·</span>
+            <Link href="/about" className="hover:text-purple-primary transition-colors">About</Link>
+            <span>·</span>
+            <Link href="/help" className="hover:text-purple-primary transition-colors">Help</Link>
           </div>
-          <p className="text-[0.7rem] text-muted/60 font-body mt-2">
+          <p className="text-[0.65rem] text-muted/50 font-body mt-2">
             © 2025 PinkQuill
           </p>
         </nav>
