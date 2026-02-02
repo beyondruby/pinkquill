@@ -347,6 +347,8 @@ export default function RightSidebar() {
             <span>·</span>
             <Link href="/privacy" className="hover:text-purple-primary transition-colors">Privacy</Link>
             <span>·</span>
+            <Link href="/marketplace-guidelines" className="hover:text-purple-primary transition-colors">Marketplace</Link>
+            <span>·</span>
             <Link href="/about" className="hover:text-purple-primary transition-colors">About</Link>
             <span>·</span>
             <Link href="/help" className="hover:text-purple-primary transition-colors">Help</Link>
