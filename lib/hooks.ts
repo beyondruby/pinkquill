@@ -144,6 +144,16 @@ export {
   useUpdateProductStatus,
 } from "./hooks/useProducts";
 
+// Marketplace Browser
+export { useMarketplace, useFeaturedProducts } from "./hooks/useMarketplace";
+export type {
+  MarketplaceSortOption,
+  MarketplaceFilters,
+  MarketplacePagination,
+  UseMarketplaceOptions,
+  UseMarketplaceReturn,
+} from "./hooks/useMarketplace";
+
 // ============================================================================
 // TYPES (from centralized types file)
 // ============================================================================

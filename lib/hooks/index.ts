@@ -91,6 +91,16 @@ export {
 // Pinned Posts
 export { usePinnedPosts, useCommunityPinnedPosts } from "./usePinnedPosts";
 
+// Marketplace
+export { useMarketplace, useFeaturedProducts } from "./useMarketplace";
+export type {
+  MarketplaceSortOption,
+  MarketplaceFilters,
+  MarketplacePagination,
+  UseMarketplaceOptions,
+  UseMarketplaceReturn,
+} from "./useMarketplace";
+
 // Messaging (reactions, typing indicators, sharing)
 export {
   useMessageReactions,
