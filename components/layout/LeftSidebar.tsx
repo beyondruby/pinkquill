@@ -372,11 +372,11 @@ export default function LeftSidebar() {
             </div>
           </div>
         ) : user && profile ? (
-          <div className={`mt-3 relative ${isExpanded ? "" : "flex justify-center"}`} ref={menuRef}>
+          <div className={`mt-3 relative ${isExpanded ? "" : "flex flex-col items-center"}`} ref={menuRef}>
             <Link
               href={`/studio/${profile.username}`}
               className={`flex items-center cursor-pointer rounded-xl hover:bg-purple-primary/5 transition-all duration-300 ${
-                isExpanded ? "gap-3 p-3" : "p-1"
+                isExpanded ? "gap-3 p-3" : "p-1 justify-center"
               }`}
               title={!isExpanded ? profile.display_name || profile.username : undefined}
             >
@@ -402,8 +402,8 @@ export default function LeftSidebar() {
             {/* More Button */}
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className={`flex items-center mt-1 rounded-xl text-muted hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200 ${
-                isExpanded ? "w-full gap-3.5 px-4 py-3" : "w-9 h-9 justify-center mx-auto"
+              className={`flex items-center rounded-xl text-muted hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200 ${
+                isExpanded ? "w-full gap-3.5 px-4 py-3 mt-1" : "w-9 h-9 justify-center mt-2"
               }`}
               title={!isExpanded ? "More" : undefined}
             >

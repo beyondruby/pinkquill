@@ -1579,13 +1579,13 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {activeTab === "posts" && (
           <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
             {/* View Mode Tabs */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-1 p-1 bg-black/[0.03] rounded-xl overflow-x-auto">
+            <div className="flex items-center justify-start mb-8">
+              <div className="flex items-center gap-1 p-1.5 bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl overflow-x-auto">
                 <button
                   onClick={() => setPostViewMode("all")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "all"
-                      ? "bg-white text-purple-primary shadow-sm"
+                      ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -1596,9 +1596,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </button>
                 <button
                   onClick={() => setPostViewMode("blog")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "blog"
-                      ? "bg-white text-purple-primary shadow-sm"
+                      ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -1609,9 +1609,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </button>
                 <button
                   onClick={() => setPostViewMode("gallery")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "gallery"
-                      ? "bg-white text-purple-primary shadow-sm"
+                      ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -1622,9 +1622,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </button>
                 <button
                   onClick={() => setPostViewMode("poems")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "poems"
-                      ? "bg-white text-purple-primary shadow-sm"
+                      ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -1635,9 +1635,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </button>
                 <button
                   onClick={() => setPostViewMode("journals")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "journals"
-                      ? "bg-white text-purple-primary shadow-sm"
+                      ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -1648,9 +1648,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </button>
                 <button
                   onClick={() => setPostViewMode("communities")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "communities"
-                      ? "bg-white text-purple-primary shadow-sm"
+                      ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
@@ -2505,19 +2505,36 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {/* Relays Section */}
         {activeTab === "relays" && (
           <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
-            <div className="studio-works-header">
-              <h2 className="studio-works-title">Relays</h2>
-              <div className="studio-filters">
+            {/* Relay Type Tabs */}
+            <div className="flex items-center justify-start mb-8">
+              <div className="flex items-center gap-1 p-1.5 bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl">
                 <button
                   onClick={() => setRelaySubTab("posts")}
-                  className={`studio-filter-btn ${relaySubTab === "posts" ? "active" : ""}`}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 ${
+                    relaySubTab === "posts"
+                      ? "bg-white text-pink-vivid shadow-sm font-medium"
+                      : "text-muted hover:text-ink"
+                  }`}
                 >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                  </svg>
                   Posts
                 </button>
                 <button
                   onClick={() => setRelaySubTab("takes")}
-                  className={`studio-filter-btn ${relaySubTab === "takes" ? "active" : ""}`}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 ${
+                    relaySubTab === "takes"
+                      ? "bg-white text-pink-vivid shadow-sm font-medium"
+                      : "text-muted hover:text-ink"
+                  }`}
                 >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="8" width="18" height="13" rx="2" />
+                    <path d="M3 8l3-5h12l3 5" />
+                    <path d="M7 3l2 5M11 3l2 5M15 3l2 5" />
+                    <path d="M10 14l4 2.5-4 2.5v-5" fill="currentColor" stroke="none" />
+                  </svg>
                   Takes
                 </button>
               </div>
