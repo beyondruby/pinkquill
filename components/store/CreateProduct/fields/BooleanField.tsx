@@ -17,18 +17,18 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
       </label>
 
       {/* Toggle switch style */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => onChange(true)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all duration-200
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl transition-all duration-300
             ${value === true
-              ? "border-purple-primary bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm"
-              : "border-gray-200 hover:border-purple-primary/30 hover:bg-gray-50"
+              ? "bg-gradient-to-br from-purple-primary/10 via-pink-vivid/5 to-transparent border-2 border-purple-primary/30 shadow-md shadow-purple-primary/5"
+              : "bg-white/50 backdrop-blur-sm border border-gray-200/50 hover:border-purple-primary/20 hover:bg-white/70"
             }`}
         >
           <span
-            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300
               ${value === true
                 ? "border-purple-primary bg-gradient-to-r from-purple-primary to-pink-vivid"
                 : "border-gray-300"
@@ -40,7 +40,7 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
               </svg>
             )}
           </span>
-          <span className={`text-sm font-medium ${value === true ? "text-purple-primary" : "text-gray-600"}`}>
+          <span className={`text-sm font-ui font-medium ${value === true ? "text-purple-primary" : "text-gray-500"}`}>
             Yes
           </span>
         </button>
@@ -48,14 +48,14 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
         <button
           type="button"
           onClick={() => onChange(false)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all duration-200
+          className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl transition-all duration-300
             ${value === false
-              ? "border-purple-primary bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm"
-              : "border-gray-200 hover:border-purple-primary/30 hover:bg-gray-50"
+              ? "bg-gradient-to-br from-purple-primary/10 via-pink-vivid/5 to-transparent border-2 border-purple-primary/30 shadow-md shadow-purple-primary/5"
+              : "bg-white/50 backdrop-blur-sm border border-gray-200/50 hover:border-purple-primary/20 hover:bg-white/70"
             }`}
         >
           <span
-            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300
               ${value === false
                 ? "border-purple-primary bg-gradient-to-r from-purple-primary to-pink-vivid"
                 : "border-gray-300"
@@ -67,14 +67,14 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
               </svg>
             )}
           </span>
-          <span className={`text-sm font-medium ${value === false ? "text-purple-primary" : "text-gray-600"}`}>
+          <span className={`text-sm font-ui font-medium ${value === false ? "text-purple-primary" : "text-gray-500"}`}>
             No
           </span>
         </button>
       </div>
 
       {field.helpText && (
-        <p className="text-xs text-muted mt-2 pl-1">{field.helpText}</p>
+        <p className="text-xs text-muted mt-3">{field.helpText}</p>
       )}
     </div>
   );

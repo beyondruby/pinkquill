@@ -26,25 +26,29 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Length unit selector */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-ui font-medium text-ink mb-2">
           Length unit
         </label>
         <div className="relative">
           <button
             type="button"
             onClick={() => setUnitOpen(!unitOpen)}
-            className="w-48 px-4 py-3 border border-orange-200 rounded-xl bg-white
-              focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-              transition-all text-left flex items-center justify-between"
+            className={`w-56 px-5 py-4 rounded-2xl
+              bg-white/60 backdrop-blur-sm border
+              transition-all duration-300 text-left flex items-center justify-between
+              ${unitOpen
+                ? "border-purple-primary/40 bg-white shadow-lg shadow-purple-primary/5"
+                : "border-gray-200/50 hover:border-purple-primary/30 hover:bg-white/80"
+              }`}
           >
-            <span className="text-gray-900">
+            <span className="text-ink font-body">
               {DIMENSION_UNITS.find((u) => u.value === shipping.dimensions_unit)?.label || "Select"}
             </span>
             <svg
-              className={`w-5 h-5 text-gray-400 transition-transform ${unitOpen ? "rotate-180" : ""}`}
+              className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${unitOpen ? "rotate-180" : ""}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -54,7 +58,7 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
           </button>
 
           {unitOpen && (
-            <div className="absolute z-20 w-48 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg">
+            <div className="absolute z-20 w-56 mt-2 bg-white/95 backdrop-blur-xl border border-gray-100/50 rounded-2xl shadow-xl">
               <div className="p-2 space-y-1">
                 {DIMENSION_UNITS.map((unit) => (
                   <button
@@ -64,27 +68,27 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
                       updateField("dimensions_unit", unit.value);
                       setUnitOpen(false);
                     }}
-                    className={`w-full px-3 py-2 rounded-lg text-sm text-left transition-colors
-                      flex items-center gap-2
+                    className={`w-full px-4 py-3 rounded-xl text-sm text-left transition-all duration-300
+                      flex items-center gap-3
                       ${shipping.dimensions_unit === unit.value
-                        ? "bg-purple-50 text-purple-primary"
+                        ? "bg-gradient-to-br from-purple-primary/10 to-pink-vivid/5 text-purple-primary"
                         : "hover:bg-gray-50"
                       }`}
                   >
                     <span
-                      className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center
+                      className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all
                         ${shipping.dimensions_unit === unit.value
-                          ? "bg-purple-primary border-purple-primary"
+                          ? "bg-gradient-to-r from-purple-primary to-pink-vivid border-purple-primary"
                           : "border-gray-300"
                         }`}
                     >
                       {shipping.dimensions_unit === unit.value && (
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
                       )}
                     </span>
-                    {unit.label}
+                    <span className="font-medium">{unit.label}</span>
                   </button>
                 ))}
               </div>
@@ -101,96 +105,73 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
       <div className="grid grid-cols-2 gap-4">
         {/* Height */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-ui font-medium text-ink mb-2">
             Height
           </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-primary">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-            </span>
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              value={shipping.height || ""}
-              onChange={(e) =>
-                updateField("height", e.target.value ? parseFloat(e.target.value) : undefined)
-              }
-              placeholder="0"
-              className="w-full pl-10 pr-4 py-3 border border-orange-200 rounded-xl
-                focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                transition-all"
-            />
-          </div>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            value={shipping.height || ""}
+            onChange={(e) =>
+              updateField("height", e.target.value ? parseFloat(e.target.value) : undefined)
+            }
+            placeholder="0"
+            className="w-full px-5 py-4 rounded-2xl
+              bg-white/60 backdrop-blur-sm border border-gray-200/50
+              focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+              outline-none transition-all duration-300 font-body"
+          />
         </div>
 
         {/* Width */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-ui font-medium text-ink mb-2">
             Width
           </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-primary">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-            </span>
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              value={shipping.width || ""}
-              onChange={(e) =>
-                updateField("width", e.target.value ? parseFloat(e.target.value) : undefined)
-              }
-              placeholder="0"
-              className="w-full pl-10 pr-4 py-3 border border-orange-200 rounded-xl
-                focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                transition-all"
-            />
-          </div>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            value={shipping.width || ""}
+            onChange={(e) =>
+              updateField("width", e.target.value ? parseFloat(e.target.value) : undefined)
+            }
+            placeholder="0"
+            className="w-full px-5 py-4 rounded-2xl
+              bg-white/60 backdrop-blur-sm border border-gray-200/50
+              focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+              outline-none transition-all duration-300 font-body"
+          />
         </div>
 
         {/* Thickness */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-ui font-medium text-ink mb-2">
             Thickness
           </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-primary">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-            </span>
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              value={shipping.thickness || ""}
-              onChange={(e) =>
-                updateField("thickness", e.target.value ? parseFloat(e.target.value) : undefined)
-              }
-              placeholder="0"
-              className="w-full pl-10 pr-4 py-3 border border-orange-200 rounded-xl
-                focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                transition-all"
-            />
-          </div>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            value={shipping.thickness || ""}
+            onChange={(e) =>
+              updateField("thickness", e.target.value ? parseFloat(e.target.value) : undefined)
+            }
+            placeholder="0"
+            className="w-full px-5 py-4 rounded-2xl
+              bg-white/60 backdrop-blur-sm border border-gray-200/50
+              focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+              outline-none transition-all duration-300 font-body"
+          />
         </div>
 
         {/* Weight */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-ui font-medium text-ink mb-2">
             Weight
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-primary">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-            </span>
             <input
               type="number"
               min="0"
@@ -200,11 +181,12 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
                 updateField("weight", e.target.value ? parseFloat(e.target.value) : undefined)
               }
               placeholder="0"
-              className="w-full pl-10 pr-12 py-3 border border-orange-200 rounded-xl
-                focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                transition-all"
+              className="w-full px-5 py-4 pr-14 rounded-2xl
+                bg-white/60 backdrop-blur-sm border border-gray-200/50
+                focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+                outline-none transition-all duration-300 font-body"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted text-sm font-ui">
               {shipping.weight_unit || "kg"}
             </span>
           </div>

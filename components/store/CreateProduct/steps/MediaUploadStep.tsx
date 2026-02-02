@@ -144,14 +144,11 @@ export default function MediaUploadStep({
   );
 
   return (
-    <div className="py-4">
+    <div className="py-6">
       {/* Product Images Section */}
-      <div className="mb-8">
-        <h2 className="text-xl font-display font-semibold text-center mb-2 text-ink">
-          Upload your product images
-        </h2>
-        <p className="text-muted text-center mb-6 font-body">
-          Drag and drop the images or choose them from your device
+      <div className="mb-10">
+        <p className="text-center text-muted font-body mb-8 max-w-md mx-auto">
+          Drag and drop images or click to browse from your device
         </p>
 
         {/* Upload Area */}
@@ -161,34 +158,39 @@ export default function MediaUploadStep({
           onDragOver={handleDrag}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`relative flex flex-col items-center justify-center py-16 px-6
-            border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300
+          className={`
+            relative flex flex-col items-center justify-center py-16 px-6
+            rounded-3xl cursor-pointer
+            transition-all duration-500
             ${dragActive
-              ? "border-purple-primary bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg shadow-purple-primary/10"
-              : "border-gray-200 hover:border-purple-primary/50 hover:bg-gradient-to-br hover:from-purple-50/30 hover:to-pink-50/30"
+              ? "bg-gradient-to-br from-purple-primary/10 via-pink-vivid/5 to-orange-warm/5 border-2 border-purple-primary/40 shadow-2xl shadow-purple-primary/10"
+              : "bg-white/40 backdrop-blur-sm border-2 border-dashed border-gray-200/60 hover:border-purple-primary/30 hover:bg-white/60 hover:shadow-lg"
             }
-            ${mediaPreviews.length >= MAX_IMAGES ? "opacity-50 pointer-events-none" : ""}`}
+            ${mediaPreviews.length >= MAX_IMAGES ? "opacity-50 pointer-events-none" : ""}
+          `}
         >
-          {/* Decorative elements */}
+          {/* Decorative orbs */}
           {dragActive && (
             <>
-              <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-pink-vivid/40 animate-pulse" />
-              <div className="absolute bottom-6 left-6 w-3 h-3 rounded-full bg-purple-primary/30 animate-pulse" style={{ animationDelay: '0.5s' }} />
+              <div className="absolute top-6 right-8 w-3 h-3 rounded-full bg-pink-vivid/30 animate-pulse" />
+              <div className="absolute bottom-8 left-10 w-4 h-4 rounded-full bg-purple-primary/20 animate-pulse" style={{ animationDelay: '0.3s' }} />
+              <div className="absolute top-1/3 left-6 w-2 h-2 rounded-full bg-orange-warm/25 animate-pulse" style={{ animationDelay: '0.6s' }} />
             </>
           )}
 
           {/* Upload Icon */}
           <div
-            className={`w-24 h-24 rounded-2xl flex items-center justify-center mb-4
-              transition-all duration-300 ${dragActive
-                ? "bg-gradient-to-br from-purple-primary to-pink-vivid shadow-lg"
-                : "bg-gradient-to-br from-gray-100 to-gray-50"
-              }`}
+            className={`
+              w-24 h-24 rounded-3xl flex items-center justify-center mb-6
+              transition-all duration-500
+              ${dragActive
+                ? "bg-gradient-to-br from-purple-primary to-pink-vivid shadow-xl shadow-purple-primary/25 scale-110"
+                : "bg-gray-50"
+              }
+            `}
           >
             <svg
-              className={`w-12 h-12 transition-colors ${
-                dragActive ? "text-white" : "text-gray-400"
-              }`}
+              className={`w-10 h-10 transition-all duration-300 ${dragActive ? "text-white" : "text-gray-400"}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -202,12 +204,10 @@ export default function MediaUploadStep({
             </svg>
           </div>
 
-          <p className={`text-base font-medium transition-colors ${
-            dragActive ? "text-purple-primary" : "text-gray-600"
-          }`}>
+          <p className={`text-lg font-display font-medium mb-2 transition-colors ${dragActive ? "text-purple-primary" : "text-ink"}`}>
             {dragActive ? "Drop your images here" : "Click or drag to upload"}
           </p>
-          <p className="text-sm text-muted mt-1">
+          <p className="text-sm text-muted font-body">
             PNG, JPG, GIF or WebP up to 10MB
           </p>
 
@@ -221,25 +221,37 @@ export default function MediaUploadStep({
           />
         </div>
 
-        {/* Upload count hint */}
-        <p className="text-xs text-center text-muted mt-3 font-body">
-          {mediaPreviews.length} of {MAX_IMAGES} images uploaded
-        </p>
+        {/* Upload count */}
+        <div className="mt-4 text-center">
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 backdrop-blur-sm border border-gray-200/50 text-sm text-muted font-body">
+            <span className={mediaPreviews.length > 0 ? "text-purple-primary font-medium" : ""}>
+              {mediaPreviews.length}
+            </span>
+            <span>/</span>
+            <span>{MAX_IMAGES} images</span>
+          </span>
+        </div>
 
         {/* Error message */}
         {error && (
-          <div className="mt-4 p-3 bg-gradient-to-r from-red-50 to-pink-50 border border-red-100 rounded-xl text-red-600 text-sm font-body flex items-center gap-2 justify-center">
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            {error}
+          <div className="mt-6 max-w-md mx-auto">
+            <div className="p-4 bg-white/60 backdrop-blur-md border border-red-200/50 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
+                  </svg>
+                </div>
+                <p className="text-sm text-red-600 font-body">{error}</p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Preview Grid */}
         {mediaPreviews.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-lg font-display font-semibold text-center mb-4 text-ink">
+          <div className="mt-10">
+            <h3 className="text-center text-sm font-ui font-medium text-muted mb-6 uppercase tracking-wide">
               Preview
             </h3>
 
@@ -248,12 +260,14 @@ export default function MediaUploadStep({
                 <div key={preview.url} className="relative group">
                   {/* Image */}
                   <div
-                    className={`aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200
-                      shadow-sm hover:shadow-md
+                    className={`
+                      aspect-square rounded-2xl overflow-hidden
+                      transition-all duration-300
                       ${preview.isPrimary
-                        ? "border-purple-primary ring-2 ring-purple-primary/20 shadow-lg shadow-purple-primary/10"
-                        : "border-gray-200 hover:border-purple-primary/30"
-                      }`}
+                        ? "ring-2 ring-purple-primary ring-offset-2 shadow-lg shadow-purple-primary/10"
+                        : "hover:shadow-lg"
+                      }
+                    `}
                   >
                     <img
                       src={preview.url}
@@ -263,17 +277,17 @@ export default function MediaUploadStep({
 
                     {/* Primary badge */}
                     {preview.isPrimary && (
-                      <div className="absolute top-2 left-2 px-2 py-0.5 bg-gradient-to-r from-purple-primary to-pink-vivid
-                        text-white text-xs font-medium rounded-full shadow-sm">
+                      <div className="absolute top-2 left-2 px-2.5 py-1 bg-gradient-to-r from-purple-primary to-pink-vivid
+                        text-white text-xs font-ui font-medium rounded-full shadow-sm">
                         Main
                       </div>
                     )}
 
                     {/* Overlay on hover */}
                     <div
-                      className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent
-                        opacity-0 group-hover:opacity-100 transition-opacity duration-200
-                        flex items-end justify-center pb-3 gap-2"
+                      className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent
+                        opacity-0 group-hover:opacity-100 transition-opacity duration-300
+                        flex items-end justify-center pb-4 gap-2"
                     >
                       {/* Set as main button */}
                       {!preview.isPrimary && (
@@ -282,9 +296,9 @@ export default function MediaUploadStep({
                             e.stopPropagation();
                             handleSetPrimary(index);
                           }}
-                          className="px-2 py-1 rounded-lg bg-white/90 hover:bg-white text-purple-primary text-xs font-medium
-                            transition-colors"
-                          title="Set as main"
+                          className="px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm
+                            text-purple-primary text-xs font-ui font-medium
+                            hover:bg-white transition-colors"
                         >
                           Set as main
                         </button>
@@ -295,9 +309,8 @@ export default function MediaUploadStep({
                           e.stopPropagation();
                           handleRemove(index);
                         }}
-                        className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-red-500
-                          transition-colors"
-                        title="Remove"
+                        className="p-2 rounded-full bg-white/90 backdrop-blur-sm
+                          text-red-500 hover:bg-white transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -312,17 +325,19 @@ export default function MediaUploadStep({
               {mediaPreviews.length < MAX_IMAGES && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="aspect-square rounded-xl border-2 border-dashed border-gray-200
-                    hover:border-purple-primary/50 hover:bg-gradient-to-br hover:from-purple-50/30 hover:to-pink-50/30
-                    transition-all duration-200 flex flex-col items-center justify-center gap-2 group"
+                  className="aspect-square rounded-2xl
+                    bg-white/40 backdrop-blur-sm border-2 border-dashed border-gray-200/60
+                    hover:border-purple-primary/30 hover:bg-white/60
+                    transition-all duration-300 group
+                    flex flex-col items-center justify-center gap-2"
                 >
-                  <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-gradient-to-br group-hover:from-purple-100 group-hover:to-pink-100
+                  <div className="w-10 h-10 rounded-xl bg-gray-50 group-hover:bg-gradient-to-br group-hover:from-purple-50 group-hover:to-pink-50
                     flex items-center justify-center transition-colors">
                     <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                   </div>
-                  <span className="text-xs text-gray-400 group-hover:text-purple-primary transition-colors">Add more</span>
+                  <span className="text-xs text-gray-400 group-hover:text-purple-primary transition-colors font-ui">Add more</span>
                 </button>
               )}
             </div>
@@ -330,34 +345,35 @@ export default function MediaUploadStep({
         )}
       </div>
 
-      {/* Digital Files Section (for digital products) */}
+      {/* Digital Files Section */}
       {(deliveryType === "digital" || deliveryType === "both") && (
-        <div className="mt-8 pt-8 border-t border-gray-100">
-          <h2 className="text-xl font-display font-semibold text-center mb-2 text-ink">
-            Upload your digital files
-          </h2>
-          <p className="text-muted text-center mb-6 font-body">
-            These are the files buyers will download after purchase
-          </p>
+        <div className="pt-10 border-t border-gray-100/50">
+          <div className="text-center mb-8">
+            <h3 className="text-lg font-display font-semibold text-ink mb-2">Digital Files</h3>
+            <p className="text-muted font-body text-sm">
+              These are the files buyers will download after purchase
+            </p>
+          </div>
 
           {/* Digital file upload area */}
           <div
             onClick={() => digitalFileInputRef.current?.click()}
-            className="flex flex-col items-center justify-center py-10 px-6
-              border-2 border-dashed border-gray-200 rounded-2xl cursor-pointer
-              hover:border-purple-primary/50 hover:bg-gradient-to-br hover:from-purple-50/30 hover:to-pink-50/30
+            className="flex flex-col items-center justify-center py-12 px-6
+              rounded-3xl cursor-pointer
+              bg-white/40 backdrop-blur-sm border-2 border-dashed border-gray-200/60
+              hover:border-purple-primary/30 hover:bg-white/60 hover:shadow-lg
               transition-all duration-300 group"
           >
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50
-              group-hover:from-purple-100 group-hover:to-pink-100 flex items-center justify-center mb-4 transition-colors">
+            <div className="w-16 h-16 rounded-2xl bg-gray-50 group-hover:bg-gradient-to-br group-hover:from-purple-50 group-hover:to-pink-50
+              flex items-center justify-center mb-4 transition-colors">
               <svg className="w-8 h-8 text-gray-400 group-hover:text-purple-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-600 group-hover:text-purple-primary transition-colors">
+            <p className="text-sm font-display font-medium text-ink group-hover:text-purple-primary transition-colors">
               Click to upload digital files
             </p>
-            <p className="text-xs text-muted mt-1">ZIP, PDF, MP3, WAV, PSD, etc.</p>
+            <p className="text-xs text-muted mt-1 font-body">ZIP, PDF, MP3, WAV, PSD, etc.</p>
 
             <input
               ref={digitalFileInputRef}
@@ -370,30 +386,32 @@ export default function MediaUploadStep({
 
           {/* Digital files list */}
           {digitalFiles.length > 0 && (
-            <div className="mt-4 space-y-2">
+            <div className="mt-6 space-y-3">
               {digitalFiles.map((file, index) => (
                 <div
                   key={`${file.name}-${index}`}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50/50 to-pink-50/50
-                    border border-purple-100/50 rounded-xl transition-all hover:shadow-sm"
+                  className="flex items-center justify-between p-4
+                    bg-white/50 backdrop-blur-sm border border-gray-200/50 rounded-2xl
+                    hover:bg-white/70 hover:shadow-md
+                    transition-all duration-300 group"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid
-                      flex items-center justify-center">
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid
+                      flex items-center justify-center shadow-md">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-ink truncate max-w-[200px]">{file.name}</p>
-                      <p className="text-xs text-muted">
+                      <p className="text-sm font-ui font-medium text-ink truncate max-w-[200px]">{file.name}</p>
+                      <p className="text-xs text-muted font-body">
                         {(file.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => removeDigitalFile(index)}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    className="p-2.5 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

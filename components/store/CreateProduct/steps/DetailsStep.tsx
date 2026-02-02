@@ -36,7 +36,6 @@ export default function DetailsStep({
   updateState,
 }: DetailsStepProps) {
   // Get fields for current delivery type
-  // 'both' products show all fields (treat as physical for field filtering)
   const effectiveDeliveryType = deliveryType === 'both' ? 'physical' : deliveryType;
   const fields = useMemo(
     () => getFieldsForDelivery(category, effectiveDeliveryType),
@@ -154,16 +153,16 @@ export default function DetailsStep({
   const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
 
   return (
-    <div className="py-4">
-      {/* Header with category icon */}
-      <div className="flex items-center justify-center gap-4 mb-8">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid
+    <div className="py-6">
+      {/* Header with category */}
+      <div className="flex items-center justify-center gap-4 mb-10">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-primary to-pink-vivid
           flex items-center justify-center shadow-lg shadow-purple-primary/20 text-white">
           {getCategoryIcon(categoryConfig.icon)}
         </div>
         <div>
-          <p className="text-xs text-muted font-ui uppercase tracking-wide">Describe your</p>
-          <h2 className="text-xl font-display font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+          <p className="text-xs text-muted font-ui uppercase tracking-wider">Describe your</p>
+          <h2 className="text-2xl font-display font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
             {subcategory
               ? getSubcategoryLabel(category, subcategory)
               : categoryConfig.name}
@@ -172,29 +171,24 @@ export default function DetailsStep({
       </div>
 
       {/* Basic Info */}
-      <section className="mb-8 p-5 bg-gradient-to-br from-purple-50/30 to-pink-50/30 rounded-2xl border border-purple-100/30">
-        <div className="space-y-5">
+      <GlassSection>
+        <div className="space-y-6">
           {/* Title */}
           <div>
             <label className="block text-sm font-ui font-medium text-ink mb-2">
               Title <span className="text-pink-vivid">*</span>
             </label>
-            <div className="relative group">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-primary/60 group-focus-within:text-purple-primary transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </span>
-              <input
-                type="text"
-                value={wizardState.title}
-                onChange={(e) => updateState({ title: e.target.value })}
-                placeholder={`${subcategory ? getSubcategoryLabel(category, subcategory) : categoryConfig.name} Title`}
-                className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white
-                  focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                  transition-all font-body placeholder:text-gray-400"
-              />
-            </div>
+            <input
+              type="text"
+              value={wizardState.title}
+              onChange={(e) => updateState({ title: e.target.value })}
+              placeholder={`${subcategory ? getSubcategoryLabel(category, subcategory) : categoryConfig.name} Title`}
+              className="w-full px-5 py-4 rounded-2xl
+                bg-white/60 backdrop-blur-sm border border-gray-200/50
+                focus:border-purple-primary/40 focus:bg-white focus:shadow-lg focus:shadow-purple-primary/5
+                outline-none transition-all duration-300
+                font-body text-ink placeholder:text-gray-400"
+            />
           </div>
 
           {/* Year of creation */}
@@ -202,15 +196,17 @@ export default function DetailsStep({
             <label className="block text-sm font-ui font-medium text-ink mb-2">
               Year of creation
             </label>
-            <div className="relative w-48">
+            <div className="relative w-56">
               <select
                 value={wizardState.yearCreated || ""}
                 onChange={(e) =>
                   updateState({ yearCreated: e.target.value ? parseInt(e.target.value) : null })
                 }
-                className="w-full px-4 py-3.5 border border-gray-200 rounded-xl bg-white
-                  focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                  transition-all appearance-none cursor-pointer font-body pr-10"
+                className="w-full px-5 py-4 rounded-2xl appearance-none cursor-pointer
+                  bg-white/60 backdrop-blur-sm border border-gray-200/50
+                  focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+                  outline-none transition-all duration-300
+                  font-body text-ink pr-12"
               >
                 <option value="">Choose the year</option>
                 {years.map((year) => (
@@ -219,31 +215,31 @@ export default function DetailsStep({
                   </option>
                 ))}
               </select>
-              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
           </div>
         </div>
-      </section>
+      </GlassSection>
 
       {/* Classification */}
       {fieldsByGroup.classification.length > 0 && (
-        <FieldSection title="Classification:">
+        <FieldSection title="Classification" icon="tag">
           {fieldsByGroup.classification.map(renderField)}
         </FieldSection>
       )}
 
       {/* Presentation (physical only) */}
       {deliveryType !== "digital" && fieldsByGroup.presentation.length > 0 && (
-        <FieldSection title="Presentation:">
+        <FieldSection title="Presentation" icon="sparkles">
           {fieldsByGroup.presentation.map(renderField)}
         </FieldSection>
       )}
 
       {/* Dimensions (physical only) */}
       {deliveryType !== "digital" && (
-        <FieldSection title="Dimensions (without framing):">
+        <FieldSection title="Dimensions" icon="ruler" subtitle="Without framing">
           <DimensionsField
             shipping={wizardState.shipping}
             onChange={(shipping) => updateState({ shipping })}
@@ -252,7 +248,7 @@ export default function DetailsStep({
       )}
 
       {/* Pricing Section */}
-      <FieldSection title="Price:">
+      <FieldSection title="Pricing" icon="currency">
         <PricingSection
           deliveryType={deliveryType}
           categoryConfig={categoryConfig}
@@ -263,7 +259,7 @@ export default function DetailsStep({
 
       {/* Shipping (physical only) */}
       {deliveryType !== "digital" && (
-        <FieldSection title="Shipping:">
+        <FieldSection title="Shipping" icon="truck">
           <ShippingSection
             wizardState={wizardState}
             updateState={updateState}
@@ -275,34 +271,29 @@ export default function DetailsStep({
 
       {/* Details (styles, themes, etc.) */}
       {fieldsByGroup.details.length > 0 && (
-        <FieldSection title="Details:">
+        <FieldSection title="Additional Details" icon="info">
           {fieldsByGroup.details.map(renderField)}
         </FieldSection>
       )}
 
       {/* Description */}
-      <FieldSection title="Description">
+      <FieldSection title="Description" icon="text">
         <div>
-          <div className="relative group">
-            <span className="absolute left-4 top-4 text-purple-primary/60 group-focus-within:text-purple-primary transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h12" />
-              </svg>
-            </span>
-            <textarea
-              value={wizardState.description}
-              onChange={(e) => updateState({ description: e.target.value })}
-              placeholder={`Describe Your ${subcategory ? getSubcategoryLabel(category, subcategory) : categoryConfig.name}...`}
-              rows={5}
-              maxLength={2000}
-              className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white
-                focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                transition-all resize-none font-body placeholder:text-gray-400"
-            />
-          </div>
-          <div className="flex justify-between items-center mt-2 px-1">
-            <p className="text-xs text-muted">Tell buyers what makes this special</p>
-            <p className={`text-xs font-medium ${wizardState.description.length > 1800 ? 'text-orange-warm' : 'text-muted'}`}>
+          <textarea
+            value={wizardState.description}
+            onChange={(e) => updateState({ description: e.target.value })}
+            placeholder={`Describe your ${subcategory ? getSubcategoryLabel(category, subcategory) : categoryConfig.name}...`}
+            rows={5}
+            maxLength={2000}
+            className="w-full px-5 py-4 rounded-2xl resize-none
+              bg-white/60 backdrop-blur-sm border border-gray-200/50
+              focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+              outline-none transition-all duration-300
+              font-body text-ink placeholder:text-gray-400"
+          />
+          <div className="flex justify-between items-center mt-3 px-1">
+            <p className="text-xs text-muted font-body">Tell buyers what makes this special</p>
+            <p className={`text-xs font-ui font-medium ${wizardState.description.length > 1800 ? 'text-orange-warm' : 'text-muted'}`}>
               {wizardState.description.length} / 2000
             </p>
           </div>
@@ -310,7 +301,7 @@ export default function DetailsStep({
       </FieldSection>
 
       {/* Keywords */}
-      <FieldSection title="Keywords">
+      <FieldSection title="Keywords" icon="hashtag">
         <KeywordsInput
           keywords={wizardState.keywords}
           onChange={(keywords) => updateState({ keywords })}
@@ -320,21 +311,97 @@ export default function DetailsStep({
   );
 }
 
+// Glass Section (for basic info)
+function GlassSection({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-8 p-6 rounded-3xl bg-gradient-to-br from-purple-primary/5 via-pink-vivid/3 to-transparent border border-purple-primary/10">
+      {children}
+    </div>
+  );
+}
+
+// Section Icon Component
+function SectionIcon({ icon }: { icon: string }) {
+  const className = "w-4 h-4";
+
+  switch (icon) {
+    case "tag":
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+        </svg>
+      );
+    case "sparkles":
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      );
+    case "ruler":
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+        </svg>
+      );
+    case "currency":
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    case "truck":
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+        </svg>
+      );
+    case "info":
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    case "text":
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h12" />
+        </svg>
+      );
+    case "hashtag":
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 // Field Section Component
 function FieldSection({
   title,
+  icon,
+  subtitle,
   children,
 }: {
   title: string;
+  icon: string;
+  subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="mb-8">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-1 h-5 rounded-full bg-gradient-to-b from-purple-primary to-pink-vivid" />
-        <h3 className="text-base font-display font-semibold text-ink">{title}</h3>
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center text-purple-primary">
+          <SectionIcon icon={icon} />
+        </div>
+        <div>
+          <h3 className="text-base font-display font-semibold text-ink">{title}</h3>
+          {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+        </div>
       </div>
-      <div className="space-y-4 pl-4">{children}</div>
+      <div className="space-y-5 pl-11">{children}</div>
     </section>
   );
 }
@@ -357,7 +424,7 @@ function PricingSection({
     <div className="space-y-6">
       {/* Original piece option (for physical with original support) */}
       {deliveryType !== "digital" && pricingOptions.original && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <BooleanField
             field={{
               key: "sellOriginal",
@@ -371,16 +438,12 @@ function PricingSection({
           />
 
           {wizardState.sellOriginal && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Original piece Price without shipping
+            <div className="pl-6 border-l-2 border-purple-primary/20">
+              <label className="block text-sm font-ui font-medium text-ink mb-2">
+                Original piece price
               </label>
-              <div className="relative w-48">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-primary">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                  </svg>
-                </span>
+              <div className="relative w-56">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-primary font-medium">$</span>
                 <input
                   type="number"
                   min="0"
@@ -392,11 +455,13 @@ function PricingSection({
                     })
                   }
                   placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 border border-orange-200 rounded-xl
-                    focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                    transition-all"
+                  className="w-full pl-10 pr-4 py-3.5 rounded-2xl
+                    bg-white/60 backdrop-blur-sm border border-gray-200/50
+                    focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+                    outline-none transition-all duration-300 font-body"
                 />
               </div>
+              <p className="text-xs text-muted mt-2">Without shipping</p>
             </div>
           )}
         </div>
@@ -404,7 +469,7 @@ function PricingSection({
 
       {/* Reproduction option */}
       {pricingOptions.reproduction && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <BooleanField
             field={{
               key: "hasReproductions",
@@ -417,7 +482,7 @@ function PricingSection({
           />
 
           {wizardState.hasReproductions && (
-            <div className="space-y-4 pl-4 border-l-2 border-purple-100">
+            <div className="space-y-4 pl-6 border-l-2 border-purple-primary/20">
               {/* Reproduction type selection */}
               <MultiSelectField
                 field={{
@@ -440,17 +505,13 @@ function PricingSection({
               {/* Prices for each reproduction type */}
               {wizardState.reproductions.map((reproduction, index) => (
                 <div key={reproduction.type}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-ui font-medium text-ink mb-2">
                     {pricingOptions.reproduction!.types.find((t) => t.value === reproduction.type)
                       ?.label || reproduction.type}{" "}
-                    Price
+                    price
                   </label>
-                  <div className="relative w-48">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-primary">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                      </svg>
-                    </span>
+                  <div className="relative w-56">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-primary font-medium">$</span>
                     <input
                       type="number"
                       min="0"
@@ -465,9 +526,10 @@ function PricingSection({
                         updateState({ reproductions: newReproductions });
                       }}
                       placeholder="0.00"
-                      className="w-full pl-10 pr-4 py-3 border border-orange-200 rounded-xl
-                        focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                        transition-all"
+                      className="w-full pl-10 pr-4 py-3.5 rounded-2xl
+                        bg-white/60 backdrop-blur-sm border border-gray-200/50
+                        focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+                        outline-none transition-all duration-300 font-body"
                     />
                   </div>
                 </div>
@@ -479,7 +541,7 @@ function PricingSection({
 
       {/* Digital download option */}
       {pricingOptions.digital && (deliveryType === "digital" || deliveryType === "both") && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <BooleanField
             field={{
               key: "hasDigitalDownload",
@@ -492,7 +554,7 @@ function PricingSection({
           />
 
           {wizardState.hasDigitalDownload && (
-            <div className="space-y-4 pl-4 border-l-2 border-purple-100">
+            <div className="space-y-4 pl-6 border-l-2 border-purple-primary/20">
               <SelectField
                 field={{
                   key: "digitalFormat",
@@ -506,15 +568,11 @@ function PricingSection({
               />
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Digital download Price
+                <label className="block text-sm font-ui font-medium text-ink mb-2">
+                  Digital download price
                 </label>
-                <div className="relative w-48">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-primary">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                    </svg>
-                  </span>
+                <div className="relative w-56">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-primary font-medium">$</span>
                   <input
                     type="number"
                     min="0"
@@ -526,9 +584,10 @@ function PricingSection({
                       })
                     }
                     placeholder="0.00"
-                    className="w-full pl-10 pr-4 py-3 border border-orange-200 rounded-xl
-                      focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-                      transition-all"
+                    className="w-full pl-10 pr-4 py-3.5 rounded-2xl
+                      bg-white/60 backdrop-blur-sm border border-gray-200/50
+                      focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+                      outline-none transition-all duration-300 font-body"
                   />
                 </div>
               </div>
@@ -562,33 +621,29 @@ function ShippingSection({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Shipping services */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Shipping services (ex: DHL, FedEx)
+        <label className="block text-sm font-ui font-medium text-ink mb-2">
+          Shipping services
         </label>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-primary">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-            </svg>
-          </span>
-          <input
-            type="text"
-            value={wizardState.shipping.shipping_services?.join(", ") || ""}
-            onChange={(e) =>
-              updateShipping(
-                "shipping_services",
-                e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
-              )
-            }
-            placeholder="DHL, FedEx, UPS"
-            className="w-full pl-10 pr-4 py-3 border border-orange-200 rounded-xl
-              focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-              transition-all"
-          />
-        </div>
+        <input
+          type="text"
+          value={wizardState.shipping.shipping_services?.join(", ") || ""}
+          onChange={(e) =>
+            updateShipping(
+              "shipping_services",
+              e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+            )
+          }
+          placeholder="DHL, FedEx, UPS"
+          className="w-full px-5 py-4 rounded-2xl
+            bg-white/60 backdrop-blur-sm border border-gray-200/50
+            focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+            outline-none transition-all duration-300
+            font-body text-ink placeholder:text-gray-400"
+        />
+        <p className="text-xs text-muted mt-2">Separate multiple services with commas</p>
       </div>
 
       {/* Render other shipping fields from config */}
@@ -628,29 +683,25 @@ function KeywordsInput({
 
   return (
     <div>
-      <div className="relative group">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-primary/60 group-focus-within:text-purple-primary transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-          </svg>
-        </span>
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={addKeyword}
-          placeholder="Add keywords that describe your product"
-          disabled={keywords.length >= 10}
-          className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white
-            focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none
-            transition-all disabled:bg-gray-50 font-body placeholder:text-gray-400"
-        />
-      </div>
-      <div className="flex justify-between items-center mt-2 px-1">
+      <input
+        type="text"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={addKeyword}
+        placeholder="Add keywords that describe your product"
+        disabled={keywords.length >= 10}
+        className="w-full px-5 py-4 rounded-2xl
+          bg-white/60 backdrop-blur-sm border border-gray-200/50
+          focus:border-purple-primary/40 focus:bg-white focus:shadow-lg
+          outline-none transition-all duration-300
+          font-body text-ink placeholder:text-gray-400
+          disabled:bg-gray-50 disabled:opacity-60"
+      />
+      <div className="flex justify-between items-center mt-3 px-1">
         <p className="text-xs text-muted">Press Enter or comma to add</p>
-        <p className={`text-xs font-medium ${keywords.length >= 8 ? 'text-orange-warm' : 'text-muted'}`}>
-          {keywords.length} / 10 keywords
+        <p className={`text-xs font-ui font-medium ${keywords.length >= 8 ? 'text-orange-warm' : 'text-muted'}`}>
+          {keywords.length} / 10
         </p>
       </div>
 
@@ -660,17 +711,19 @@ function KeywordsInput({
           {keywords.map((keyword, index) => (
             <span
               key={keyword}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5
-                bg-gradient-to-r from-purple-50 to-pink-50
-                border border-purple-100/50 rounded-full text-sm font-medium text-purple-primary
-                hover:shadow-sm transition-all group"
+              className="inline-flex items-center gap-2 px-4 py-2
+                bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5
+                border border-purple-primary/15 rounded-full
+                text-sm font-ui font-medium text-purple-primary
+                hover:shadow-md hover:border-purple-primary/25
+                transition-all duration-300 group"
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <span className="text-purple-primary/60">#</span>
+              <span className="text-purple-primary/50">#</span>
               {keyword}
               <button
                 onClick={() => removeKeyword(keyword)}
-                className="p-0.5 hover:bg-purple-100 rounded-full transition-colors ml-0.5"
+                className="p-0.5 hover:bg-purple-primary/10 rounded-full transition-colors"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -48,18 +48,19 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full px-4 py-3.5 border rounded-xl bg-white
-            transition-all text-left flex items-center justify-between font-body
+          className={`w-full px-5 py-4 rounded-2xl
+            bg-white/60 backdrop-blur-sm border
+            transition-all duration-300 text-left flex items-center justify-between font-body
             ${isOpen
-              ? "border-purple-primary ring-2 ring-purple-primary/10"
-              : "border-gray-200 hover:border-purple-primary/30"
+              ? "border-purple-primary/40 bg-white shadow-lg shadow-purple-primary/5"
+              : "border-gray-200/50 hover:border-purple-primary/30 hover:bg-white/80"
             }`}
         >
           <span className={value ? "text-ink" : "text-gray-400"}>
             {value ? selectedLabel : `Select ${field.label.toLowerCase()}`}
           </span>
           <svg
-            className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+            className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -71,7 +72,7 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
         {/* Dropdown */}
         {isOpen && (
           <div
-            className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl
+            className="absolute z-20 w-full mt-2 bg-white/95 backdrop-blur-xl border border-gray-100/50 rounded-2xl shadow-xl
               max-h-72 overflow-auto"
           >
             <div className="p-3 grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -80,13 +81,13 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
                   key={option.value}
                   type="button"
                   onClick={() => handleSelect(option.value)}
-                  className={`px-3 py-2.5 rounded-xl text-sm text-left transition-all duration-200
+                  className={`px-4 py-3 rounded-xl text-sm text-left transition-all duration-300
                     ${value === option.value
-                      ? "bg-gradient-to-r from-purple-50 to-pink-50 text-purple-primary border border-purple-200 shadow-sm"
+                      ? "bg-gradient-to-br from-purple-primary/10 to-pink-vivid/5 text-purple-primary border border-purple-primary/20 shadow-sm"
                       : "hover:bg-gray-50 border border-transparent hover:border-gray-100"
                     }`}
                 >
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2.5">
                     <span
                       className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all
                         ${value === option.value
@@ -110,8 +111,8 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
                 <button
                   type="button"
                   onClick={() => handleSelect("__custom__")}
-                  className="px-3 py-2.5 rounded-xl text-sm text-left hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50
-                    text-purple-primary flex items-center gap-2 border border-dashed border-purple-200 transition-all"
+                  className="px-4 py-3 rounded-xl text-sm text-left hover:bg-gradient-to-br hover:from-purple-50/50 hover:to-pink-50/50
+                    text-purple-primary flex items-center gap-2 border border-dashed border-purple-200/50 transition-all duration-300"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -123,15 +124,17 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
 
             {/* Custom input */}
             {showCustomInput && (
-              <div className="p-3 border-t border-gray-100 bg-gray-50/50">
+              <div className="p-3 border-t border-gray-100/50 bg-gray-50/30 backdrop-blur-sm">
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={customValue}
                     onChange={(e) => setCustomValue(e.target.value)}
                     placeholder="Enter custom value"
-                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                      focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 outline-none bg-white"
+                    className="flex-1 px-4 py-3 rounded-xl text-sm
+                      bg-white/80 border border-gray-200/50
+                      focus:border-purple-primary/40 focus:bg-white
+                      outline-none transition-all duration-300"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -143,8 +146,8 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
                   <button
                     type="button"
                     onClick={handleCustomSubmit}
-                    className="px-5 py-2.5 bg-gradient-to-r from-purple-primary to-pink-vivid text-white text-sm rounded-xl
-                      hover:shadow-lg hover:shadow-purple-primary/20 transition-all font-medium"
+                    className="px-5 py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white text-sm rounded-xl
+                      hover:shadow-lg hover:shadow-purple-primary/20 transition-all duration-300 font-medium"
                   >
                     Add
                   </button>
@@ -156,7 +159,7 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
       </div>
 
       {field.helpText && (
-        <p className="text-xs text-muted mt-1.5 pl-1">{field.helpText}</p>
+        <p className="text-xs text-muted mt-2">{field.helpText}</p>
       )}
 
       {/* Click outside to close */}
