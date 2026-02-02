@@ -78,7 +78,7 @@ export default function Avatar({
           loading={priority ? "eager" : "lazy"}
           decoding="async"
           onError={() => setError(true)}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           style={{ backgroundColor: "#e2d8f3" }} // Fallback color while loading
         />
       </div>
@@ -100,7 +100,7 @@ export default function Avatar({
         placeholder="blur"
         blurDataURL={AVATAR_BLUR_DATA_URL}
         onError={() => setError(true)}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
         sizes={`${pixelSize}px`}
       />
     </div>
