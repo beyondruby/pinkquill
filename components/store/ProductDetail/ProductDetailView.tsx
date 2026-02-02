@@ -240,6 +240,20 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               </div>
             )}
 
+            {/* Description */}
+            {product.description && (
+              <div className="pt-4">
+                <h3 className="font-display font-semibold text-lg mb-3 text-purple-primary">
+                  Description
+                </h3>
+                <div className="text-muted font-body leading-relaxed">
+                  {product.description.split("\n").map((paragraph, i) => (
+                    <p key={i} className="mb-3 last:mb-0">{paragraph}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Add to Cart */}
             <button
               disabled={!activePricing || activePricing.stock === 0}
@@ -279,20 +293,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
           {/* Expanded Content */}
           {showDetails && (
             <div className="pt-4 pb-8 space-y-8">
-              {/* About this artwork */}
-              {product.description && (
-                <div>
-                  <h3 className="font-display font-semibold text-lg mb-3 text-purple-primary">
-                    About this artwork
-                  </h3>
-                  <div className="text-muted font-body leading-relaxed">
-                    {product.description.split("\n").map((paragraph, i) => (
-                      <p key={i} className="mb-3 last:mb-0">{paragraph}</p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Specifications */}
               {displayAttributes.length > 0 && (
                 <div>
