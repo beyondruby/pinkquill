@@ -136,11 +136,6 @@ export default function MarketplacePageContent() {
                   <span className="text-sm font-body">Loading more products...</span>
                 </div>
               )}
-              {!loading && !pagination.has_more && products.length > 0 && (
-                <p className="text-sm font-body text-muted">
-                  You've seen all {pagination.total} products
-                </p>
-              )}
             </div>
           </>
         )}

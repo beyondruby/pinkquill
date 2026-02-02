@@ -21,7 +21,7 @@ const authNavItems = [
   { icon: "takes", label: "Takes", href: "/takes" },
   { icon: "compass", label: "Explore", href: "/explore" },
   { icon: "users", label: "Communities", href: "/community" },
-  { icon: "shop", label: "Shop", href: "/shop" },
+  { icon: "shop", label: "Marketplace", href: "/shop" },
 ];
 
 const icons: Record<string, React.ReactElement> = {

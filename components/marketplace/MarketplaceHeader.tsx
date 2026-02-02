@@ -88,13 +88,6 @@ export default function MarketplaceHeader({
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Main Bar */}
         <div className="flex items-center justify-between gap-4 h-16">
-          {/* Left: Results count */}
-          <div className="hidden sm:block">
-            <span className="text-sm font-body text-muted">
-              {totalProducts.toLocaleString()} products
-            </span>
-          </div>
-
           {/* Center: Search */}
           <div className="flex-1 max-w-xl">
             <div className="relative">
