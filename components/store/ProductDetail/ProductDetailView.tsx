@@ -6,7 +6,6 @@ import { useProduct } from "@/lib/hooks/useProducts";
 import { ProductPricing } from "@/lib/types/store";
 import {
   getCategoryConfig,
-  getSubcategoryLabel,
   formatAttributeValue,
   getFieldsForDelivery,
 } from "@/lib/store/categories";
@@ -23,26 +22,14 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   const [selectedPricing, setSelectedPricing] = useState<ProductPricing | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    about: true,
-    shipping: false,
-    details: false,
-  });
+  const [showDetails, setShowDetails] = useState(false);
 
-  // Loading state - elegant skeleton
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-background py-8 px-4">
         <div className="max-w-6xl mx-auto">
-          {/* Breadcrumb skeleton */}
-          <div className="flex gap-2 mb-8">
-            <div className="w-24 h-5 bg-gray-100 rounded animate-pulse" />
-            <div className="w-4 h-5 bg-gray-100 rounded animate-pulse" />
-            <div className="w-32 h-5 bg-gray-100 rounded animate-pulse" />
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            {/* Gallery skeleton */}
             <div className="flex gap-4">
               <div className="hidden md:flex flex-col gap-3 w-20">
                 {[1, 2, 3].map((i) => (
@@ -51,12 +38,9 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               </div>
               <div className="flex-1 aspect-square rounded-2xl bg-gradient-to-br from-pink-50 to-orange-50 animate-pulse" />
             </div>
-
-            {/* Info skeleton */}
             <div className="space-y-6">
               <div className="w-3/4 h-8 bg-gray-100 rounded-lg animate-pulse" />
               <div className="w-1/2 h-6 bg-gray-100 rounded-lg animate-pulse" />
-              <div className="w-full h-16 bg-gray-50 rounded-xl animate-pulse" />
               <div className="w-full h-14 bg-gradient-to-r from-orange-100 to-pink-100 rounded-xl animate-pulse" />
             </div>
           </div>
@@ -99,7 +83,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   const categoryConfig = getCategoryConfig(product.category);
   const activePricing = selectedPricing || product.pricing?.[0];
 
-  // Format price
   const formatPrice = (price: number, currency = "USD") => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -109,13 +92,10 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
     }).format(price);
   };
 
-  // Get displayable attributes
   const getDisplayAttributes = () => {
     if (!categoryConfig || !product.attributes) return [];
-
     const effectiveDelivery = product.delivery_type === "both" ? "physical" : product.delivery_type;
     const fields = getFieldsForDelivery(product.category, effectiveDelivery);
-
     return fields
       .filter((field) => {
         const value = product.attributes[field.key];
@@ -131,16 +111,11 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
   const displayAttributes = getDisplayAttributes();
 
-  const toggleSection = (section: string) => {
-    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
-
   return (
     <div className="min-h-screen bg-background pt-8">
-      {/* Main content */}
       <div className="max-w-6xl mx-auto px-4 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Left: Gallery with vertical thumbnails */}
+          {/* Left: Gallery */}
           <div className="lg:sticky lg:top-8 lg:self-start">
             <ProductGallery
               media={product.media || []}
@@ -151,40 +126,46 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
           </div>
 
           {/* Right: Product Info */}
-          <div className="space-y-6">
-            {/* Custom work notice */}
-            {product.delivery_type !== "digital" && (
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                </svg>
-                <span className="text-sm font-ui text-pink-vivid font-medium">
-                  Custom work available
-                </span>
-              </div>
-            )}
-
-            {/* Title */}
-            <div>
-              <h1 className="text-3xl md:text-4xl font-display font-bold text-ink leading-tight">
-                {product.title}
-              </h1>
-
-              {/* Artist attribution */}
-              {product.seller && (
-                <p className="mt-3 text-lg text-muted font-body">
-                  by{" "}
-                  <Link
-                    href={`/studio/${product.seller.username}`}
-                    className="text-pink-vivid hover:underline font-medium"
-                  >
-                    {product.seller.display_name || product.seller.username}
-                  </Link>
-                </p>
+          <div className="space-y-5">
+            {/* Row 1: Custom work available + 3-dots menu */}
+            <div className="flex items-center justify-between">
+              {product.delivery_type !== "digital" ? (
+                <div className="flex items-center gap-2">
+                  {/* Canvas with brush icon */}
+                  <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={1.5} />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8l4 4-6 6H7v-3l5-5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.5 10.5l2-2a1.5 1.5 0 00-2.12-2.12l-2 2" />
+                  </svg>
+                  <span className="text-sm font-ui text-pink-vivid font-medium">
+                    Custom work available
+                  </span>
+                </div>
+              ) : (
+                <div />
               )}
+              <MoreMenu onShare={() => setShowShareModal(true)} />
             </div>
 
-            {/* Price Display */}
+            {/* Title */}
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-ink leading-tight">
+              {product.title}
+            </h1>
+
+            {/* By Artist Name */}
+            {product.seller && (
+              <p className="text-lg text-muted font-body">
+                by{" "}
+                <Link
+                  href={`/studio/${product.seller.username}`}
+                  className="text-pink-vivid hover:text-orange-warm transition-colors font-medium"
+                >
+                  {product.seller.display_name || product.seller.username}
+                </Link>
+              </p>
+            )}
+
+            {/* Price */}
             {activePricing && (
               <div className="flex items-baseline gap-3">
                 <span className="text-4xl font-display font-bold text-ink">
@@ -200,18 +181,16 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
             {/* Pricing Options (if multiple) */}
             {product.pricing && product.pricing.length > 1 && (
-              <div className="space-y-3">
+              <div className="space-y-2 pt-2">
                 {product.pricing.map((pricing) => (
                   <button
                     key={pricing.id}
                     onClick={() => setSelectedPricing(pricing)}
-                    className="w-full text-left transition-all duration-200 flex items-center justify-between py-2"
+                    className="w-full text-left flex items-center justify-between py-2"
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                        activePricing?.id === pricing.id
-                          ? "border-pink-vivid"
-                          : "border-gray-300"
+                        activePricing?.id === pricing.id ? "border-pink-vivid" : "border-gray-300"
                       }`}>
                         {activePricing?.id === pricing.id && (
                           <div className="w-2 h-2 rounded-full bg-pink-vivid" />
@@ -229,30 +208,45 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               </div>
             )}
 
-            {/* Ask the artist link + More menu */}
-            <div className="flex items-center justify-between">
-              <button className="flex items-center gap-2 text-pink-vivid hover:text-orange-warm transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <span className="text-sm font-ui font-medium underline">
-                  Ask the artist a question
-                </span>
-              </button>
+            {/* Ask the artist */}
+            <button className="flex items-center gap-2 text-pink-vivid hover:text-orange-warm transition-colors pt-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span className="text-sm font-ui font-medium">
+                Ask the artist a question about this artwork
+              </span>
+            </button>
 
-              {/* Horizontal 3-dots menu */}
-              <MoreMenu
-                onShare={() => setShowShareModal(true)}
-              />
-            </div>
+            {/* Shipping info (inline, not expandable) */}
+            {product.delivery_type !== "digital" && product.shipping && (
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted pt-2">
+                {product.shipping.shipping_locations?.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Ships to {product.shipping.shipping_locations.slice(0, 2).join(", ")}{product.shipping.shipping_locations.length > 2 ? "..." : ""}</span>
+                  </div>
+                )}
+                {product.shipping.processing_days && (
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{product.shipping.processing_days} days processing</span>
+                  </div>
+                )}
+              </div>
+            )}
 
-            {/* Add to Cart Button - Orange Gradient */}
+            {/* Add to Cart */}
             <button
               disabled={!activePricing || activePricing.stock === 0}
               className="w-full py-4 bg-gradient-to-r from-orange-warm to-pink-vivid
                 text-white font-display font-bold text-lg rounded-xl
                 hover:shadow-xl hover:shadow-orange-warm/25 hover:scale-[1.02]
-                transition-all duration-300
+                transition-all duration-300 mt-4
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none
                 flex items-center justify-center gap-3"
             >
@@ -264,150 +258,96 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
           </div>
         </div>
 
-        {/* Learn More Section - Below the photo/info grid */}
-        <div className="mt-12 max-w-3xl">
-          <div className="space-y-4">
+        {/* Product Details Section - Below the photo */}
+        <div className="mt-16 max-w-3xl">
+          {/* Product Details Header - Expandable */}
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="w-full py-4 flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3">
+              {/* Gradient accent */}
+              <div className="w-1.5 h-8 rounded-full bg-gradient-to-b from-purple-primary via-pink-vivid to-orange-warm" />
+              <span className="font-display font-bold text-xl text-ink">Product Details</span>
+            </div>
+            <div className={`w-8 h-8 rounded-full bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10
+              flex items-center justify-center transition-transform duration-300
+              ${showDetails ? "rotate-180" : ""}`}>
+              <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </button>
+
+          {/* Expanded Content */}
+          {showDetails && (
+            <div className="pt-4 pb-8 space-y-8 animate-fadeIn">
               {/* About this artwork */}
               {product.description && (
-                <div className="border-b border-gray-100">
-                  <button
-                    onClick={() => toggleSection("about")}
-                    className="w-full py-4 flex items-center justify-between"
-                  >
-                    <span className="font-display font-semibold text-ink">About this artwork</span>
-                    <svg
-                      className={`w-5 h-5 text-muted transition-transform duration-300 ${
-                        expandedSections.about ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {expandedSections.about && (
-                    <div className="pb-6 text-muted font-body leading-relaxed">
-                      {product.description.split("\n").map((paragraph, i) => (
-                        <p key={i} className="mb-3 last:mb-0">{paragraph}</p>
-                      ))}
-                    </div>
-                  )}
+                <div>
+                  <h3 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-primary" />
+                    <span className="bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+                      About this artwork
+                    </span>
+                  </h3>
+                  <div className="text-muted font-body leading-relaxed pl-4 border-l-2 border-purple-primary/20">
+                    {product.description.split("\n").map((paragraph, i) => (
+                      <p key={i} className="mb-3 last:mb-0">{paragraph}</p>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Shipping */}
-              {product.delivery_type !== "digital" && product.shipping && (
-                <div className="border-b border-gray-100">
-                  <button
-                    onClick={() => toggleSection("shipping")}
-                    className="w-full py-4 flex items-center justify-between"
-                  >
-                    <span className="font-display font-semibold text-ink">Shipping</span>
-                    <svg
-                      className={`w-5 h-5 text-muted transition-transform duration-300 ${
-                        expandedSections.shipping ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {expandedSections.shipping && (
-                    <div className="pb-6 space-y-3 text-sm">
-                      {product.shipping.shipping_locations?.length > 0 && (
-                        <div className="flex items-start gap-3">
-                          <svg className="w-5 h-5 text-pink-vivid/60 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <div>
-                            <p className="text-muted/60 font-ui text-xs uppercase tracking-wider mb-1">Ships to</p>
-                            <p className="text-ink font-body">{product.shipping.shipping_locations.join(", ")}</p>
-                          </div>
-                        </div>
-                      )}
-                      {product.shipping.processing_days && (
-                        <div className="flex items-start gap-3">
-                          <svg className="w-5 h-5 text-pink-vivid/60 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <div>
-                            <p className="text-muted/60 font-ui text-xs uppercase tracking-wider mb-1">Processing time</p>
-                            <p className="text-ink font-body">{product.shipping.processing_days} business days</p>
-                          </div>
-                        </div>
-                      )}
-                      {product.shipping.packaging && (
-                        <div className="flex items-start gap-3">
-                          <svg className="w-5 h-5 text-pink-vivid/60 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                          </svg>
-                          <div>
-                            <p className="text-muted/60 font-ui text-xs uppercase tracking-wider mb-1">Packaging</p>
-                            <p className="text-ink font-body capitalize">{product.shipping.packaging.replace(/_/g, " ")}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Details & Specifications */}
+              {/* Specifications */}
               {displayAttributes.length > 0 && (
-                <div className="border-b border-gray-100">
-                  <button
-                    onClick={() => toggleSection("details")}
-                    className="w-full py-4 flex items-center justify-between"
-                  >
-                    <span className="font-display font-semibold text-ink">Details</span>
-                    <svg
-                      className={`w-5 h-5 text-muted transition-transform duration-300 ${
-                        expandedSections.details ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {expandedSections.details && (
-                    <div className="pb-6">
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                        {displayAttributes.map((attr, i) => (
-                          <div key={i} className="flex justify-between items-baseline py-1">
-                            <dt className="text-sm text-muted font-body">
-                              {attr.label}
-                            </dt>
-                            <dd className="text-sm text-ink font-ui font-medium">{attr.value}</dd>
-                          </div>
-                        ))}
+                <div>
+                  <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-pink-vivid" />
+                    <span className="bg-gradient-to-r from-pink-vivid to-orange-warm bg-clip-text text-transparent">
+                      Specifications
+                    </span>
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-4">
+                    {displayAttributes.map((attr, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between py-2 px-3 rounded-lg
+                          bg-gradient-to-r from-purple-primary/5 via-pink-vivid/5 to-orange-warm/5
+                          border-l-2 border-pink-vivid/30"
+                      >
+                        <span className="text-sm text-muted font-ui">{attr.label}</span>
+                        <span className="text-sm text-ink font-medium">{attr.value}</span>
                       </div>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Dimensions (for physical) */}
+              {/* Dimensions */}
               {product.delivery_type !== "digital" && product.shipping && (
                 (product.shipping.height || product.shipping.width || product.shipping.thickness || product.shipping.weight) && (
-                  <div className="pt-4 border-b border-gray-100 pb-4">
-                    <h4 className="font-display font-semibold text-ink mb-3">Dimensions</h4>
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                  <div>
+                    <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-orange-warm" />
+                      <span className="bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">
+                        Dimensions
+                      </span>
+                    </h3>
+                    <div className="flex flex-wrap gap-4 pl-4">
                       {[
                         { label: "Height", value: product.shipping.height, unit: product.shipping.dimensions_unit },
                         { label: "Width", value: product.shipping.width, unit: product.shipping.dimensions_unit },
-                        { label: "Thickness", value: product.shipping.thickness, unit: product.shipping.dimensions_unit },
+                        { label: "Depth", value: product.shipping.thickness, unit: product.shipping.dimensions_unit },
                         { label: "Weight", value: product.shipping.weight, unit: product.shipping.weight_unit },
                       ].filter(d => d.value).map((dim, i) => (
-                        <div key={i} className="flex justify-between items-baseline py-1">
-                          <span className="text-sm text-muted font-body">{dim.label}</span>
-                          <span className="text-sm text-ink font-ui font-medium">
-                            {dim.value} {dim.unit}
-                          </span>
+                        <div
+                          key={i}
+                          className="flex flex-col items-center px-5 py-3 rounded-xl
+                            bg-gradient-to-br from-orange-warm/10 to-pink-vivid/10"
+                        >
+                          <span className="text-2xl font-display font-bold text-ink">{dim.value}</span>
+                          <span className="text-xs text-muted font-ui uppercase tracking-wider">{dim.unit} {dim.label}</span>
                         </div>
                       ))}
                     </div>
@@ -415,15 +355,73 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 )
               )}
 
+              {/* Shipping Details */}
+              {product.delivery_type !== "digital" && product.shipping && (
+                <div>
+                  <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-primary" />
+                    <span className="bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+                      Shipping & Handling
+                    </span>
+                  </h3>
+                  <div className="space-y-3 pl-4">
+                    {product.shipping.shipping_locations?.length > 0 && (
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-purple-primary/10 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-ui font-medium text-ink">Ships to</p>
+                          <p className="text-sm text-muted">{product.shipping.shipping_locations.join(", ")}</p>
+                        </div>
+                      </div>
+                    )}
+                    {product.shipping.processing_days && (
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-pink-vivid/10 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-ui font-medium text-ink">Processing time</p>
+                          <p className="text-sm text-muted">{product.shipping.processing_days} business days</p>
+                        </div>
+                      </div>
+                    )}
+                    {product.shipping.packaging && (
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-orange-warm/10 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 text-orange-warm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-ui font-medium text-ink">Packaging</p>
+                          <p className="text-sm text-muted capitalize">{product.shipping.packaging.replace(/_/g, " ")}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Keywords */}
               {product.keywords && product.keywords.length > 0 && (
-                <div className="pt-4">
-                  <h4 className="font-display font-semibold text-ink mb-3">Keywords</h4>
-                  <div className="flex flex-wrap gap-2">
+                <div>
+                  <h3 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-pink-vivid" />
+                    <span className="text-ink">Tags</span>
+                  </h3>
+                  <div className="flex flex-wrap gap-2 pl-4">
                     {product.keywords.map((keyword) => (
                       <span
                         key={keyword}
-                        className="text-sm text-pink-vivid font-ui"
+                        className="px-3 py-1 text-sm font-ui rounded-full
+                          bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10
+                          text-pink-vivid border border-pink-vivid/20"
                       >
                         #{keyword}
                       </span>
@@ -432,9 +430,10 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 </div>
               )}
             </div>
-          </div>
+          )}
+        </div>
 
-        {/* Seller Card - below on mobile, sticky sidebar concept */}
+        {/* Seller Card - mobile only */}
         {product.seller && (
           <div className="mt-12 lg:hidden">
             <SellerCard seller={product.seller} />
@@ -442,7 +441,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
         )}
       </div>
 
-      {/* Share Modal */}
       <ShareModal
         isOpen={showShareModal}
         url={typeof window !== "undefined" ? window.location.href : ""}
@@ -453,21 +451,15 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   );
 }
 
-// Helper function to get pricing type label
 function getPricingTypeLabel(type: string): string {
   switch (type) {
-    case "original":
-      return "Original Piece";
-    case "reproduction":
-      return "Reproduction";
-    case "digital_download":
-      return "Digital Download";
-    default:
-      return type;
+    case "original": return "Original Piece";
+    case "reproduction": return "Reproduction";
+    case "digital_download": return "Digital Download";
+    default: return type;
   }
 }
 
-// More menu component with horizontal dots
 function MoreMenu({ onShare }: { onShare: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -477,7 +469,6 @@ function MoreMenu({ onShare }: { onShare: () => void }) {
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 text-muted hover:text-ink transition-colors"
       >
-        {/* Horizontal 3 dots - no circle */}
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="5" cy="12" r="2" />
           <circle cx="12" cy="12" r="2" />
@@ -487,24 +478,15 @@ function MoreMenu({ onShare }: { onShare: () => void }) {
 
       {isOpen && (
         <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-
-          {/* Dropdown */}
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-20">
             <button
-              onClick={() => {
-                onShare();
-                setIsOpen(false);
-              }}
+              onClick={() => { onShare(); setIsOpen(false); }}
               className="w-full px-4 py-3 text-left text-sm font-ui text-ink
-                hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50
+                hover:bg-gradient-to-r hover:from-purple-primary/5 hover:via-pink-vivid/5 hover:to-orange-warm/5
                 flex items-center gap-3 transition-colors"
             >
-              <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
               </svg>
               Share
@@ -512,8 +494,7 @@ function MoreMenu({ onShare }: { onShare: () => void }) {
             <button
               onClick={() => setIsOpen(false)}
               className="w-full px-4 py-3 text-left text-sm font-ui text-red-500
-                hover:bg-red-50
-                flex items-center gap-3 transition-colors"
+                hover:bg-red-50 flex items-center gap-3 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
