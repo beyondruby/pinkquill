@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useProduct } from "@/lib/hooks/useProducts";
+import { useProduct, useToggleSaveProduct } from "@/lib/hooks/useProducts";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { ProductPricing } from "@/lib/types/store";
 import {
   getCategoryConfig,
@@ -18,11 +19,31 @@ interface ProductDetailViewProps {
 }
 
 export default function ProductDetailView({ productId }: ProductDetailViewProps) {
+  const { user } = useAuth();
   const { product, loading, error } = useProduct(productId);
+  const { toggle: toggleSave, checkIsSaved } = useToggleSaveProduct();
   const [selectedPricing, setSelectedPricing] = useState<ProductPricing | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Check if product is saved
+  useEffect(() => {
+    if (user && productId) {
+      checkIsSaved(productId, user.id).then(setIsSaved);
+    }
+  }, [user, productId, checkIsSaved]);
+
+  const handleToggleSave = async () => {
+    if (!user) return;
+    const newSavedState = !isSaved;
+    setIsSaved(newSavedState); // Optimistic update
+    const success = await toggleSave(productId, user.id, isSaved);
+    if (!success) {
+      setIsSaved(isSaved); // Revert on error
+    }
+  };
 
   // Loading state
   if (loading) {
@@ -144,7 +165,12 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               ) : (
                 <div />
               )}
-              <MoreMenu onShare={() => setShowShareModal(true)} />
+              <MoreMenu
+                onShare={() => setShowShareModal(true)}
+                onSave={handleToggleSave}
+                isSaved={isSaved}
+                isLoggedIn={!!user}
+              />
             </div>
 
             {/* Title & Artist */}
@@ -412,7 +438,17 @@ function getPricingTypeLabel(type: string): string {
   }
 }
 
-function MoreMenu({ onShare }: { onShare: () => void }) {
+function MoreMenu({
+  onShare,
+  onSave,
+  isSaved,
+  isLoggedIn
+}: {
+  onShare: () => void;
+  onSave: () => void;
+  isSaved: boolean;
+  isLoggedIn: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -432,6 +468,19 @@ function MoreMenu({ onShare }: { onShare: () => void }) {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-20">
+            {isLoggedIn && (
+              <button
+                onClick={() => { onSave(); setIsOpen(false); }}
+                className="w-full px-4 py-3 text-left text-sm font-ui text-ink
+                  hover:bg-gradient-to-r hover:from-purple-primary/5 hover:via-pink-vivid/5 hover:to-orange-warm/5
+                  flex items-center gap-3 transition-colors"
+              >
+                <svg className="w-4 h-4 text-purple-primary" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                {isSaved ? "Saved" : "Save"}
+              </button>
+            )}
             <button
               onClick={() => { onShare(); setIsOpen(false); }}
               className="w-full px-4 py-3 text-left text-sm font-ui text-ink

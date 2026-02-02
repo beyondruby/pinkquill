@@ -1532,7 +1532,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 {/* Joined */}
                 <div className="flex items-center gap-2 text-ink/30">
                   <span className="text-pink-vivid/40">{icons.calendar}</span>
-                  <span className="font-ui text-xs tracking-wider uppercase">Since {formatDate(profile.created_at)}</span>
+                  <span className="font-ui text-xs tracking-wider uppercase">Joined {formatDate(profile.created_at)}</span>
                 </div>
               </div>
 

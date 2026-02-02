@@ -539,3 +539,153 @@ export function useUpdateProductStatus(): UseUpdateProductStatusReturn {
 
   return { updateStatus, updating, error };
 }
+
+// ============================================================================
+// useToggleSaveProduct - Save/unsave a product
+// ============================================================================
+
+interface UseToggleSaveProductReturn {
+  toggle: (productId: string, userId: string, isSaved: boolean) => Promise<boolean>;
+  checkIsSaved: (productId: string, userId: string) => Promise<boolean>;
+}
+
+export function useToggleSaveProduct(): UseToggleSaveProductReturn {
+  const toggle = useCallback(async (productId: string, userId: string, isSaved: boolean): Promise<boolean> => {
+    try {
+      if (isSaved) {
+        // Unsave
+        const { error } = await supabase
+          .from("product_saves")
+          .delete()
+          .eq("product_id", productId)
+          .eq("user_id", userId);
+
+        if (error) throw error;
+      } else {
+        // Save
+        const { error } = await supabase
+          .from("product_saves")
+          .insert({ product_id: productId, user_id: userId });
+
+        if (error) throw error;
+      }
+      return true;
+    } catch (err: any) {
+      console.error("[useToggleSaveProduct] Error:", err?.message || err);
+      return false;
+    }
+  }, []);
+
+  const checkIsSaved = useCallback(async (productId: string, userId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from("product_saves")
+        .select("id")
+        .eq("product_id", productId)
+        .eq("user_id", userId)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error;
+      return !!data;
+    } catch (err) {
+      return false;
+    }
+  }, []);
+
+  return { toggle, checkIsSaved };
+}
+
+// ============================================================================
+// useSavedProducts - Fetch saved products for a user
+// ============================================================================
+
+interface UseSavedProductsReturn {
+  products: Product[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+export function useSavedProducts(userId?: string): UseSavedProductsReturn {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSavedProducts = useCallback(async () => {
+    if (!userId) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // First get the saved product IDs
+      const { data: saves, error: savesError } = await supabase
+        .from("product_saves")
+        .select("product_id, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (savesError) throw savesError;
+
+      if (!saves || saves.length === 0) {
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
+
+      const productIds = saves.map((s) => s.product_id);
+
+      // Fetch the products
+      const { data, error: fetchError } = await supabase
+        .from("products")
+        .select(`
+          *,
+          seller:profiles!products_seller_id_fkey (
+            id, username, display_name, avatar_url, is_verified
+          ),
+          media:product_media (*),
+          pricing:product_pricing (*)
+        `)
+        .in("id", productIds)
+        .eq("status", "active");
+
+      if (fetchError) throw fetchError;
+
+      // Transform and sort by save order
+      const transformedProducts: Product[] = (data || []).map((product: any) => ({
+        ...product,
+        media: product.media || [],
+        pricing: product.pricing || [],
+        primary_image_url: product.media?.find((m: ProductMedia) => m.is_primary)?.media_url
+          || product.media?.[0]?.media_url,
+        min_price: product.pricing?.length > 0
+          ? Math.min(...product.pricing.map((p: ProductPricing) => p.price))
+          : undefined,
+      }));
+
+      // Sort by save order
+      const sortedProducts = transformedProducts.sort((a, b) => {
+        const aIndex = productIds.indexOf(a.id);
+        const bIndex = productIds.indexOf(b.id);
+        return aIndex - bIndex;
+      });
+
+      setProducts(sortedProducts);
+    } catch (err: any) {
+      console.error("[useSavedProducts] Error:", err?.message || err);
+      setError(err?.message || "Failed to fetch saved products");
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchSavedProducts();
+  }, [fetchSavedProducts]);
+
+  return { products, loading, error, refetch: fetchSavedProducts };
+}

@@ -4,10 +4,12 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useSavedPosts, useToggleSave } from "@/lib/hooks";
 import { useSavedTakes, Take } from "@/lib/hooks/useTakes";
+import { useSavedProducts, useToggleSaveProduct } from "@/lib/hooks/useProducts";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
 import { supabase } from "@/lib/supabase";
 import Loading, { FullPageLoading } from "@/components/ui/Loading";
+import type { Product } from "@/lib/types/store";
 
 function getTimeAgo(dateString: string): string {
   const now = new Date();
@@ -99,7 +101,7 @@ function stripHtml(html: string): string {
 }
 
 type PostType = "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "blog" | "story" | "letter" | "quote";
-type TabType = "all" | "posts" | "takes";
+type TabType = "all" | "posts" | "takes" | "products";
 
 interface SavedPost {
   id: string;
@@ -130,14 +132,16 @@ export default function SavedPage() {
   const { user, loading: authLoading } = useAuth();
   const { posts, loading: postsLoading, error: postsError, refetch: refetchPosts } = useSavedPosts(user?.id);
   const { takes, loading: takesLoading, error: takesError, refetch: refetchTakes } = useSavedTakes(user?.id);
+  const { products, loading: productsLoading, error: productsError, refetch: refetchProducts } = useSavedProducts(user?.id);
   const { openPostModal } = useModal();
   const { toggle: toggleSave } = useToggleSave();
+  const { toggle: toggleSaveProduct } = useToggleSaveProduct();
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [removedItems, setRemovedItems] = useState<Set<string>>(new Set());
   const [removingItem, setRemovingItem] = useState<string | null>(null);
 
-  const loading = postsLoading || takesLoading;
-  const error = postsError || takesError;
+  const loading = postsLoading || takesLoading || productsLoading;
+  const error = postsError || takesError || productsError;
 
   const handleUnsavePost = useCallback(async (e: React.MouseEvent, postId: string) => {
     e.preventDefault();
@@ -166,6 +170,20 @@ export default function SavedPage() {
       setRemovingItem(null);
     }, 300);
   }, [user]);
+
+  const handleUnsaveProduct = useCallback(async (e: React.MouseEvent, productId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) return;
+
+    setRemovingItem(productId);
+    await toggleSaveProduct(productId, user.id, true);
+
+    setTimeout(() => {
+      setRemovedItems(prev => new Set([...prev, productId]));
+      setRemovingItem(null);
+    }, 300);
+  }, [user, toggleSaveProduct]);
 
   const handleOpenPost = useCallback((post: SavedPost) => {
     openPostModal({
@@ -203,10 +221,12 @@ export default function SavedPage() {
 
   const visiblePosts = posts.filter(post => !removedItems.has(post.id));
   const visibleTakes = takes.filter(take => !removedItems.has(take.id));
+  const visibleProducts = products.filter(product => !removedItems.has(product.id));
 
-  const totalCount = visiblePosts.length + visibleTakes.length;
-  const displayedPosts = activeTab === "takes" ? [] : visiblePosts;
-  const displayedTakes = activeTab === "posts" ? [] : visibleTakes;
+  const totalCount = visiblePosts.length + visibleTakes.length + visibleProducts.length;
+  const displayedPosts = activeTab === "takes" || activeTab === "products" ? [] : visiblePosts;
+  const displayedTakes = activeTab === "posts" || activeTab === "products" ? [] : visibleTakes;
+  const displayedProducts = activeTab === "posts" || activeTab === "takes" ? [] : visibleProducts;
 
   if (authLoading) {
     return <FullPageLoading text="Loading" />;
@@ -261,7 +281,7 @@ export default function SavedPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setActiveTab("all")}
               className={`px-4 py-2 rounded-full font-ui text-sm transition-all ${
@@ -292,6 +312,16 @@ export default function SavedPage() {
             >
               Takes ({visibleTakes.length})
             </button>
+            <button
+              onClick={() => setActiveTab("products")}
+              className={`px-4 py-2 rounded-full font-ui text-sm transition-all ${
+                activeTab === "products"
+                  ? "bg-purple-primary text-white shadow-md"
+                  : "bg-gray-100 text-muted hover:bg-gray-200"
+              }`}
+            >
+              Products ({visibleProducts.length})
+            </button>
           </div>
         </div>
       </div>
@@ -311,13 +341,13 @@ export default function SavedPage() {
             </div>
             <p className="font-body text-red-500 mb-6 text-lg">{error}</p>
             <button
-              onClick={() => { refetchPosts(); refetchTakes(); }}
+              onClick={() => { refetchPosts(); refetchTakes(); refetchProducts(); }}
               className="px-6 py-3 rounded-xl bg-purple-primary/10 text-purple-primary font-ui font-medium hover:bg-purple-primary/20 transition-all"
             >
               Try Again
             </button>
           </div>
-        ) : displayedPosts.length === 0 && displayedTakes.length === 0 ? (
+        ) : displayedPosts.length === 0 && displayedTakes.length === 0 && displayedProducts.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-32 h-32 mx-auto mb-8 relative">
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 blur-2xl" />
@@ -333,17 +363,19 @@ export default function SavedPage() {
             <p className="font-body text-muted mb-8 max-w-md mx-auto text-lg">
               {activeTab === "takes"
                 ? "Save takes you love by tapping the bookmark icon. They'll appear here."
+                : activeTab === "products"
+                ? "Save products you love from the marketplace. They'll appear here for easy access."
                 : "Save posts you love by tapping the bookmark icon. They'll appear here for you to revisit anytime."
               }
             </p>
             <Link
-              href={activeTab === "takes" ? "/takes" : "/"}
+              href={activeTab === "takes" ? "/takes" : activeTab === "products" ? "/shop" : "/"}
               className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold shadow-xl shadow-purple-primary/30 hover:shadow-2xl hover:scale-[1.02] transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
               </svg>
-              {activeTab === "takes" ? "Explore Takes" : "Explore Feed"}
+              {activeTab === "takes" ? "Explore Takes" : activeTab === "products" ? "Browse Marketplace" : "Explore Feed"}
             </Link>
           </div>
         ) : (
@@ -566,6 +598,81 @@ export default function SavedPage() {
                       </span>
                     </div>
                   )}
+                </Link>
+              );
+            })}
+
+            {/* Render Products */}
+            {displayedProducts.map((product) => {
+              const isRemoving = removingItem === product.id;
+              const primaryImage = product.media?.find((m) => m.is_primary)?.media_url || product.media?.[0]?.media_url;
+              const minPrice = product.pricing?.length > 0
+                ? Math.min(...product.pricing.map((p) => p.price))
+                : null;
+
+              return (
+                <Link
+                  key={`product-${product.id}`}
+                  href={`/shop/product/${product.id}`}
+                  className={`group relative aspect-[4/5] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${
+                    isRemoving ? 'opacity-0 scale-95' : 'hover:scale-[1.02] hover:shadow-xl'
+                  }`}
+                >
+                  {/* Product image */}
+                  {primaryImage ? (
+                    <img
+                      src={primaryImage}
+                      alt={product.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-pink-50" />
+                  )}
+
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                  {/* Type badge */}
+                  <div className="absolute top-3 left-3">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/90 backdrop-blur-sm">
+                      <svg className="w-3.5 h-3.5 text-orange-warm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                      </svg>
+                      <span className="font-ui text-[0.7rem] font-medium text-ink/80">Product</span>
+                    </div>
+                  </div>
+
+                  {/* Unsave button */}
+                  <button
+                    onClick={(e) => handleUnsaveProduct(e, product.id)}
+                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white hover:scale-110 z-10"
+                  >
+                    <svg className="w-4 h-4 text-purple-primary" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                  </button>
+
+                  {/* Bottom info */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <img
+                        src={product.seller?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+                        alt=""
+                        className="w-6 h-6 rounded-full object-cover border border-white/30"
+                      />
+                      <span className="font-ui text-xs text-white/90 truncate">
+                        {product.seller?.display_name || product.seller?.username || "Unknown"}
+                      </span>
+                    </div>
+                    <p className="font-display text-sm text-white line-clamp-2 mb-1">
+                      {product.title}
+                    </p>
+                    {minPrice !== null && (
+                      <p className="font-display font-semibold text-white">
+                        ${minPrice.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
                 </Link>
               );
             })}
