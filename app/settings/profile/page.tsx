@@ -299,7 +299,7 @@ export default function EditProfilePage() {
               <img
                 src={form.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200"}
                 alt="Avatar"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 {avatarUploading ? (

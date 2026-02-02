@@ -39,6 +39,8 @@ export default function supabaseImageLoader({
   const params = new URLSearchParams();
   params.set('width', String(width));
   params.set('quality', String(quality || 75));
+  // Use contain mode to preserve full image without cropping
+  params.set('resize', 'contain');
 
   return `${renderUrl}?${params.toString()}`;
 }
