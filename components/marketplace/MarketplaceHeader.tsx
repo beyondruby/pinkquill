@@ -17,18 +17,18 @@ interface MarketplaceHeaderProps {
 }
 
 const sortOptions: { value: MarketplaceSortOption; label: string }[] = [
-  { value: "newest", label: "New Arrivals" },
-  { value: "popular", label: "Most Popular" },
+  { value: "newest", label: "Newest" },
+  { value: "popular", label: "Popular" },
   { value: "price_low", label: "Price: Low to High" },
   { value: "price_high", label: "Price: High to Low" },
 ];
 
 const priceRanges = [
-  { label: "Under $50", min: 0, max: 50 },
-  { label: "$50 - $150", min: 50, max: 150 },
-  { label: "$150 - $500", min: 150, max: 500 },
-  { label: "$500 - $1,000", min: 500, max: 1000 },
-  { label: "$1,000+", min: 1000, max: undefined },
+  { label: "Under $25", min: 0, max: 25 },
+  { label: "$25 - $50", min: 25, max: 50 },
+  { label: "$50 - $100", min: 50, max: 100 },
+  { label: "$100 - $250", min: 100, max: 250 },
+  { label: "$250+", min: 250, max: undefined },
 ];
 
 const categories = Object.values(PRODUCT_CATEGORIES);
@@ -46,7 +46,7 @@ export default function MarketplaceHeader({
 }: MarketplaceHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -75,7 +75,6 @@ export default function MarketplaceHeader({
     };
   }, []);
 
-  // Get active price range label
   const getActivePriceLabel = () => {
     if (filters.min_price === undefined && filters.max_price === undefined) return null;
     const range = priceRanges.find(
@@ -85,175 +84,178 @@ export default function MarketplaceHeader({
   };
 
   return (
-    <>
-      {/* Top Bar - Minimal */}
-      <div className="bg-white border-b border-black/[0.03]">
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
-          {/* Title Row */}
-          <div className="flex items-center justify-between py-8 lg:py-12">
-            <div>
-              <h1 className="text-3xl lg:text-4xl font-display font-light tracking-tight text-ink">
-                Gallery
-              </h1>
-              <p className="mt-1 text-sm text-muted font-body">
-                {totalProducts.toLocaleString()} works available
-              </p>
-            </div>
+    <div className="sticky top-0 z-40 bg-white border-b border-black/[0.06] shadow-sm">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
+        {/* Main Bar */}
+        <div className="flex items-center justify-between gap-4 h-16">
+          {/* Left: Results count */}
+          <div className="hidden sm:block">
+            <span className="text-sm font-body text-muted">
+              {totalProducts.toLocaleString()} products
+            </span>
+          </div>
 
-            {/* Search */}
-            <div className="hidden md:block w-full max-w-sm">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search the gallery..."
-                  className="w-full h-11 pl-11 pr-4 bg-transparent rounded-none border-b border-black/10 text-sm font-body text-ink placeholder:text-muted/50 focus:outline-none focus:border-ink transition-colors"
-                />
-                <svg
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
+          {/* Center: Search */}
+          <div className="flex-1 max-w-xl">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder="Search products..."
+                className="w-full h-10 pl-10 pr-4 bg-gray-50 rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-transparent focus:border-pink-vivid/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 transition-all"
+              />
+              <svg
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
           </div>
 
-          {/* Filter Bar */}
-          <div className="flex items-center justify-between pb-6 gap-4 overflow-x-auto scrollbar-hide">
-            {/* Left: Category Navigation */}
-            <div className="flex items-center gap-1">
+          {/* Right: Filter & Sort */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui transition-all ${
+                showFilters
+                  ? "bg-pink-vivid text-white"
+                  : hasActiveFilters
+                  ? "bg-pink-50 text-pink-vivid border border-pink-vivid/20"
+                  : "bg-gray-50 text-ink hover:bg-gray-100"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <span className="hidden sm:inline">Filters</span>
+              {hasActiveFilters && !showFilters && (
+                <span className="w-5 h-5 flex items-center justify-center bg-pink-vivid text-white text-xs rounded-full">
+                  {[filters.category, filters.subcategory, filters.delivery_type, filters.min_price !== undefined].filter(Boolean).length}
+                </span>
+              )}
+            </button>
+
+            <select
+              value={filters.sort_by}
+              onChange={(e) => onSortChange(e.target.value as MarketplaceSortOption)}
+              className="h-10 px-4 bg-gray-50 rounded-full text-sm font-ui text-ink border-0 focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 cursor-pointer"
+            >
+              {sortOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Category Pills */}
+        <div className="flex items-center gap-2 py-3 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <button
+            onClick={() => {
+              onCategoryChange(undefined);
+              onSubcategoryChange(undefined);
+            }}
+            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-ui transition-all ${
+              !filters.category
+                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md shadow-pink-vivid/20"
+                : "bg-gray-50 text-muted hover:text-ink hover:bg-gray-100"
+            }`}
+          >
+            All
+          </button>
+
+          {categories.map((cat) => (
+            <div key={cat.id} className="relative flex-shrink-0">
               <button
                 onClick={() => {
-                  onCategoryChange(undefined);
-                  onSubcategoryChange(undefined);
+                  if (filters.category === cat.id) {
+                    onCategoryChange(undefined);
+                    onSubcategoryChange(undefined);
+                  } else {
+                    onCategoryChange(cat.id);
+                    onSubcategoryChange(undefined);
+                  }
+                  setActiveDropdown(null);
                 }}
-                className={`px-4 py-2 text-sm font-ui tracking-wide transition-all ${
-                  !filters.category
-                    ? "text-ink border-b-2 border-ink"
-                    : "text-muted hover:text-ink"
+                onMouseEnter={() => setActiveDropdown(cat.id)}
+                onMouseLeave={() => setActiveDropdown(null)}
+                className={`px-4 py-2 rounded-full text-sm font-ui transition-all ${
+                  filters.category === cat.id
+                    ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md shadow-pink-vivid/20"
+                    : "bg-gray-50 text-muted hover:text-ink hover:bg-gray-100"
                 }`}
               >
-                All Works
+                {cat.name}
               </button>
 
-              {categories.map((cat) => (
-                <div key={cat.id} className="relative group">
-                  <button
-                    onClick={() => {
-                      if (filters.category === cat.id) {
-                        onCategoryChange(undefined);
-                        onSubcategoryChange(undefined);
-                      } else {
+              {/* Subcategory Dropdown */}
+              {activeDropdown === cat.id && cat.subcategories.length > 0 && (
+                <div
+                  onMouseEnter={() => setActiveDropdown(cat.id)}
+                  onMouseLeave={() => setActiveDropdown(null)}
+                  className="absolute top-full left-0 mt-2 py-2 bg-white rounded-xl border border-black/[0.06] shadow-xl min-w-[180px] z-50 animate-fadeIn"
+                >
+                  {cat.subcategories.map((sub) => (
+                    <button
+                      key={sub.value}
+                      onClick={() => {
                         onCategoryChange(cat.id);
-                        onSubcategoryChange(undefined);
-                      }
-                    }}
-                    onMouseEnter={() => setExpandedCategory(cat.id)}
-                    onMouseLeave={() => setExpandedCategory(null)}
-                    className={`px-4 py-2 text-sm font-ui tracking-wide transition-all whitespace-nowrap ${
-                      filters.category === cat.id
-                        ? "text-ink border-b-2 border-ink"
-                        : "text-muted hover:text-ink"
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-
-                  {/* Subcategory Dropdown */}
-                  {expandedCategory === cat.id && cat.subcategories.length > 0 && (
-                    <div
-                      onMouseEnter={() => setExpandedCategory(cat.id)}
-                      onMouseLeave={() => setExpandedCategory(null)}
-                      className="absolute top-full left-0 mt-1 py-2 bg-white border border-black/[0.06] shadow-xl min-w-[200px] z-50"
+                        onSubcategoryChange(sub.value);
+                        setActiveDropdown(null);
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-sm font-body transition-colors ${
+                        filters.subcategory === sub.value
+                          ? "bg-pink-50 text-pink-vivid"
+                          : "text-ink hover:bg-gray-50"
+                      }`}
                     >
-                      {cat.subcategories.map((sub) => (
-                        <button
-                          key={sub.value}
-                          onClick={() => {
-                            onCategoryChange(cat.id);
-                            onSubcategoryChange(sub.value);
-                            setExpandedCategory(null);
-                          }}
-                          className={`w-full px-4 py-2 text-left text-sm font-body hover:bg-pink-50/50 transition-colors ${
-                            filters.subcategory === sub.value
-                              ? "text-pink-vivid"
-                              : "text-ink/80"
-                          }`}
-                        >
-                          {sub.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                      {sub.label}
+                    </button>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-
-            {/* Right: Filter Toggle & Sort */}
-            <div className="flex items-center gap-4 flex-shrink-0">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-ui transition-all ${
-                  showFilters || hasActiveFilters
-                    ? "text-ink"
-                    : "text-muted hover:text-ink"
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-                Filters
-                {hasActiveFilters && (
-                  <span className="w-1.5 h-1.5 bg-pink-vivid rounded-full" />
-                )}
-              </button>
-
-              <div className="h-4 w-px bg-black/10" />
-
-              <select
-                value={filters.sort_by}
-                onChange={(e) => onSortChange(e.target.value as MarketplaceSortOption)}
-                className="text-sm font-ui text-muted hover:text-ink bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer pr-6 appearance-none"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23777'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right center', backgroundSize: '16px' }}
-              >
-                {sortOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Expanded Filters Panel */}
+      {/* Expanded Filter Panel */}
       {showFilters && (
-        <div className="bg-white border-b border-black/[0.03] animate-fadeIn">
-          <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              {/* Type */}
+        <div className="border-t border-black/[0.04] bg-gradient-to-b from-gray-50/50 to-white animate-fadeIn">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              {/* Delivery Type */}
               <div>
-                <h4 className="text-xs font-ui uppercase tracking-widest text-muted mb-4">Type</h4>
-                <div className="space-y-2">
+                <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Type</h4>
+                <div className="space-y-1">
                   {[
-                    { value: undefined, label: "All Types" },
-                    { value: "physical" as const, label: "Physical Works" },
-                    { value: "digital" as const, label: "Digital Works" },
+                    { value: undefined, label: "All" },
+                    { value: "physical" as const, label: "Physical" },
+                    { value: "digital" as const, label: "Digital" },
                   ].map((type) => (
                     <button
                       key={type.label}
                       onClick={() => onDeliveryTypeChange(type.value)}
-                      className={`block w-full text-left px-3 py-2 text-sm font-body transition-colors ${
+                      className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         filters.delivery_type === type.value
-                          ? "text-ink bg-pink-50/50"
-                          : "text-muted hover:text-ink hover:bg-black/[0.02]"
+                          ? "bg-purple-50 text-purple-primary"
+                          : "text-ink hover:bg-gray-50"
                       }`}
                     >
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        filters.delivery_type === type.value
+                          ? "border-purple-primary"
+                          : "border-gray-300"
+                      }`}>
+                        {filters.delivery_type === type.value && (
+                          <span className="w-2 h-2 rounded-full bg-purple-primary" />
+                        )}
+                      </span>
                       {type.label}
                     </button>
                   ))}
@@ -262,28 +264,46 @@ export default function MarketplaceHeader({
 
               {/* Price Range */}
               <div>
-                <h4 className="text-xs font-ui uppercase tracking-widest text-muted mb-4">Price</h4>
-                <div className="space-y-2">
+                <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Price</h4>
+                <div className="space-y-1">
                   <button
                     onClick={() => onPriceRangeChange(undefined, undefined)}
-                    className={`block w-full text-left px-3 py-2 text-sm font-body transition-colors ${
+                    className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                       filters.min_price === undefined && filters.max_price === undefined
-                        ? "text-ink bg-pink-50/50"
-                        : "text-muted hover:text-ink hover:bg-black/[0.02]"
+                        ? "bg-orange-50 text-orange-warm"
+                        : "text-ink hover:bg-gray-50"
                     }`}
                   >
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                      filters.min_price === undefined && filters.max_price === undefined
+                        ? "border-orange-warm"
+                        : "border-gray-300"
+                    }`}>
+                      {filters.min_price === undefined && filters.max_price === undefined && (
+                        <span className="w-2 h-2 rounded-full bg-orange-warm" />
+                      )}
+                    </span>
                     Any Price
                   </button>
                   {priceRanges.map((range) => (
                     <button
                       key={range.label}
                       onClick={() => onPriceRangeChange(range.min, range.max)}
-                      className={`block w-full text-left px-3 py-2 text-sm font-body transition-colors ${
+                      className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         filters.min_price === range.min && filters.max_price === range.max
-                          ? "text-ink bg-pink-50/50"
-                          : "text-muted hover:text-ink hover:bg-black/[0.02]"
+                          ? "bg-orange-50 text-orange-warm"
+                          : "text-ink hover:bg-gray-50"
                       }`}
                     >
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        filters.min_price === range.min && filters.max_price === range.max
+                          ? "border-orange-warm"
+                          : "border-gray-300"
+                      }`}>
+                        {filters.min_price === range.min && filters.max_price === range.max && (
+                          <span className="w-2 h-2 rounded-full bg-orange-warm" />
+                        )}
+                      </span>
                       {range.label}
                     </button>
                   ))}
@@ -293,30 +313,44 @@ export default function MarketplaceHeader({
               {/* Subcategories (if category selected) */}
               {selectedCategory && (
                 <div>
-                  <h4 className="text-xs font-ui uppercase tracking-widest text-muted mb-4">
+                  <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">
                     {selectedCategory.name}
                   </h4>
-                  <div className="space-y-2">
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
                     <button
                       onClick={() => onSubcategoryChange(undefined)}
-                      className={`block w-full text-left px-3 py-2 text-sm font-body transition-colors ${
+                      className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         !filters.subcategory
-                          ? "text-ink bg-pink-50/50"
-                          : "text-muted hover:text-ink hover:bg-black/[0.02]"
+                          ? "bg-pink-50 text-pink-vivid"
+                          : "text-ink hover:bg-gray-50"
                       }`}
                     >
-                      All {selectedCategory.name}
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        !filters.subcategory ? "border-pink-vivid" : "border-gray-300"
+                      }`}>
+                        {!filters.subcategory && (
+                          <span className="w-2 h-2 rounded-full bg-pink-vivid" />
+                        )}
+                      </span>
+                      All
                     </button>
-                    {selectedCategory.subcategories.slice(0, 8).map((sub) => (
+                    {selectedCategory.subcategories.map((sub) => (
                       <button
                         key={sub.value}
                         onClick={() => onSubcategoryChange(sub.value)}
-                        className={`block w-full text-left px-3 py-2 text-sm font-body transition-colors ${
+                        className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.subcategory === sub.value
-                            ? "text-ink bg-pink-50/50"
-                            : "text-muted hover:text-ink hover:bg-black/[0.02]"
+                            ? "bg-pink-50 text-pink-vivid"
+                            : "text-ink hover:bg-gray-50"
                         }`}
                       >
+                        <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          filters.subcategory === sub.value ? "border-pink-vivid" : "border-gray-300"
+                        }`}>
+                          {filters.subcategory === sub.value && (
+                            <span className="w-2 h-2 rounded-full bg-pink-vivid" />
+                          )}
+                        </span>
                         {sub.label}
                       </button>
                     ))}
@@ -324,92 +358,68 @@ export default function MarketplaceHeader({
                 </div>
               )}
 
-              {/* Quick Filters */}
-              <div>
-                <h4 className="text-xs font-ui uppercase tracking-widest text-muted mb-4">Quick Filters</h4>
-                <div className="space-y-2">
+              {/* Actions */}
+              <div className="flex flex-col justify-end">
+                {hasActiveFilters && (
                   <button
-                    onClick={() => onSortChange("newest")}
-                    className={`block w-full text-left px-3 py-2 text-sm font-body transition-colors ${
-                      filters.sort_by === "newest"
-                        ? "text-ink bg-pink-50/50"
-                        : "text-muted hover:text-ink hover:bg-black/[0.02]"
-                    }`}
+                    onClick={onClearFilters}
+                    className="px-4 py-2.5 text-sm font-ui font-medium text-pink-vivid hover:bg-pink-50 rounded-lg transition-colors"
                   >
-                    New Arrivals
+                    Clear all filters
                   </button>
-                  <button
-                    onClick={() => onSortChange("popular")}
-                    className={`block w-full text-left px-3 py-2 text-sm font-body transition-colors ${
-                      filters.sort_by === "popular"
-                        ? "text-ink bg-pink-50/50"
-                        : "text-muted hover:text-ink hover:bg-black/[0.02]"
-                    }`}
-                  >
-                    Trending
-                  </button>
-                </div>
+                )}
               </div>
             </div>
 
-            {/* Active Filters & Clear */}
+            {/* Active Filters Tags */}
             {hasActiveFilters && (
-              <div className="mt-8 pt-6 border-t border-black/[0.04] flex items-center justify-between">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-ui uppercase tracking-widest text-muted mr-2">Active:</span>
-                  {filters.category && (
-                    <span className="px-3 py-1 bg-ink text-white text-xs font-ui">
-                      {selectedCategory?.name}
-                    </span>
-                  )}
-                  {filters.subcategory && (
-                    <span className="px-3 py-1 bg-pink-vivid/10 text-pink-vivid text-xs font-ui">
-                      {selectedCategory?.subcategories.find(s => s.value === filters.subcategory)?.label}
-                    </span>
-                  )}
-                  {filters.delivery_type && (
-                    <span className="px-3 py-1 bg-purple-50 text-purple-primary text-xs font-ui capitalize">
-                      {filters.delivery_type}
-                    </span>
-                  )}
-                  {getActivePriceLabel() && (
-                    <span className="px-3 py-1 bg-orange-50 text-orange-warm text-xs font-ui">
-                      {getActivePriceLabel()}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={onClearFilters}
-                  className="text-sm font-ui text-muted hover:text-pink-vivid transition-colors"
-                >
-                  Clear All
-                </button>
+              <div className="flex items-center gap-2 flex-wrap mt-6 pt-4 border-t border-black/[0.04]">
+                <span className="text-xs font-ui text-muted">Active:</span>
+                {filters.category && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-primary text-white text-xs font-ui rounded-full">
+                    {selectedCategory?.name}
+                    <button onClick={() => { onCategoryChange(undefined); onSubcategoryChange(undefined); }} className="hover:bg-white/20 rounded-full p-0.5">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                {filters.subcategory && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-pink-vivid text-white text-xs font-ui rounded-full">
+                    {selectedCategory?.subcategories.find(s => s.value === filters.subcategory)?.label}
+                    <button onClick={() => onSubcategoryChange(undefined)} className="hover:bg-white/20 rounded-full p-0.5">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                {filters.delivery_type && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-primary/80 text-white text-xs font-ui rounded-full capitalize">
+                    {filters.delivery_type}
+                    <button onClick={() => onDeliveryTypeChange(undefined)} className="hover:bg-white/20 rounded-full p-0.5">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                {getActivePriceLabel() && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-warm text-white text-xs font-ui rounded-full">
+                    {getActivePriceLabel()}
+                    <button onClick={() => onPriceRangeChange(undefined, undefined)} className="hover:bg-white/20 rounded-full p-0.5">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
               </div>
             )}
           </div>
         </div>
       )}
-
-      {/* Mobile Search */}
-      <div className="md:hidden bg-white border-b border-black/[0.03] px-6 py-4">
-        <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search..."
-            className="w-full h-10 pl-10 pr-4 bg-black/[0.02] rounded-lg text-sm font-body text-ink placeholder:text-muted/50 border-0 focus:outline-none focus:ring-1 focus:ring-pink-vivid/20"
-          />
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
