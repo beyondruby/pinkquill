@@ -1583,80 +1583,62 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               <div className="flex items-center gap-1 p-1.5 bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl overflow-x-auto">
                 <button
                   onClick={() => setPostViewMode("all")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
+                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "all"
                       ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                  </svg>
                   All
                 </button>
                 <button
                   onClick={() => setPostViewMode("blog")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
+                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "blog"
                       ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                  </svg>
                   Blog
                 </button>
                 <button
                   onClick={() => setPostViewMode("gallery")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
+                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "gallery"
                       ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
                   Gallery
                 </button>
                 <button
                   onClick={() => setPostViewMode("poems")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
+                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "poems"
                       ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
                   Poems
                 </button>
                 <button
                   onClick={() => setPostViewMode("journals")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
+                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "journals"
                       ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
                   Journals
                 </button>
                 <button
                   onClick={() => setPostViewMode("communities")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
+                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
                     postViewMode === "communities"
                       ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
                   Communities
                 </button>
               </div>
@@ -2510,31 +2492,22 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               <div className="flex items-center gap-1 p-1.5 bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl">
                 <button
                   onClick={() => setRelaySubTab("posts")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 ${
+                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 ${
                     relaySubTab === "posts"
                       ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                  </svg>
                   Posts
                 </button>
                 <button
                   onClick={() => setRelaySubTab("takes")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 ${
+                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 ${
                     relaySubTab === "takes"
                       ? "bg-white text-pink-vivid shadow-sm font-medium"
                       : "text-muted hover:text-ink"
                   }`}
                 >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="8" width="18" height="13" rx="2" />
-                    <path d="M3 8l3-5h12l3 5" />
-                    <path d="M7 3l2 5M11 3l2 5M15 3l2 5" />
-                    <path d="M10 14l4 2.5-4 2.5v-5" fill="currentColor" stroke="none" />
-                  </svg>
                   Takes
                 </button>
               </div>
