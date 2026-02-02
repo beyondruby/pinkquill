@@ -133,63 +133,75 @@ export default function MediaUploadStep({
 
   return (
     <div className="py-4">
-      {/* Upload Area */}
-      <div
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        className={`
-          relative flex flex-col items-center justify-center py-16 px-6
-          rounded-3xl cursor-pointer transition-all duration-300
-          ${dragActive
-            ? "bg-purple-primary/5 ring-2 ring-purple-primary/30"
-            : "bg-white/40 ring-1 ring-gray-200/50 hover:ring-purple-primary/20 hover:bg-white/60"
-          }
-          ${mediaPreviews.length >= MAX_IMAGES ? "opacity-50 pointer-events-none" : ""}
-        `}
-      >
+      {/* Circular Upload Area */}
+      <div className="flex flex-col items-center">
         <div
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
           className={`
-            w-16 h-16 rounded-2xl flex items-center justify-center mb-5
-            transition-all duration-300
+            relative w-48 h-48 rounded-full cursor-pointer
+            transition-all duration-300 flex items-center justify-center
             ${dragActive
-              ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white"
-              : "bg-gray-100/80 text-gray-400"
+              ? "bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20"
+              : "bg-pink-vivid/5 hover:bg-pink-vivid/10"
             }
+            ${mediaPreviews.length >= MAX_IMAGES ? "opacity-50 pointer-events-none" : ""}
           `}
         >
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+          {/* Inner circle */}
+          <div
+            className={`
+              w-36 h-36 rounded-full flex flex-col items-center justify-center
+              transition-all duration-300
+              ${dragActive
+                ? "bg-gradient-to-br from-orange-warm/30 to-pink-vivid/30"
+                : "bg-pink-vivid/10"
+              }
+            `}
+          >
+            <svg
+              className={`w-12 h-12 mb-2 transition-colors ${dragActive ? "text-pink-vivid" : "text-pink-vivid/50"}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className={`text-sm font-ui font-medium ${dragActive ? "text-pink-vivid" : "text-pink-vivid/60"}`}>
+              {dragActive ? "Drop here" : "Upload"}
+            </span>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPTED_IMAGE_TYPES.join(",")}
+            multiple
+            onChange={(e) => handleFiles(e.target.files)}
+            className="hidden"
+          />
         </div>
 
-        <p className={`font-display font-medium mb-1 ${dragActive ? "text-purple-primary" : "text-ink"}`}>
-          {dragActive ? "Drop here" : "Click or drag to upload"}
+        {/* Helper text */}
+        <p className="text-sm text-muted font-body mt-4">
+          Click or drag to upload
         </p>
-        <p className="text-sm text-muted font-body">
+        <p className="text-xs text-muted/70 font-body mt-1">
           PNG, JPG, GIF or WebP • Max 10MB
         </p>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPTED_IMAGE_TYPES.join(",")}
-          multiple
-          onChange={(e) => handleFiles(e.target.files)}
-          className="hidden"
-        />
-      </div>
-
-      {/* Count */}
-      <div className="mt-4 text-center">
-        <span className="text-sm text-muted font-body">
-          <span className={mediaPreviews.length > 0 ? "text-purple-primary font-medium" : ""}>
-            {mediaPreviews.length}
+        {/* Count */}
+        <div className="mt-3">
+          <span className="text-sm text-muted font-body">
+            <span className={mediaPreviews.length > 0 ? "text-pink-vivid font-medium" : ""}>
+              {mediaPreviews.length}
+            </span>
+            {" / "}{MAX_IMAGES} images
           </span>
-          {" / "}{MAX_IMAGES} images
-        </span>
+        </div>
       </div>
 
       {/* Error */}
@@ -199,86 +211,90 @@ export default function MediaUploadStep({
         </div>
       )}
 
-      {/* Preview Grid */}
-      {mediaPreviews.length > 0 && (
-        <div className="mt-8 grid grid-cols-4 gap-3">
-          {mediaPreviews.map((preview, index) => (
-            <div key={preview.url} className="relative group">
-              <div
-                className={`
-                  aspect-square rounded-2xl overflow-hidden transition-all duration-300
-                  ${preview.isPrimary ? "ring-2 ring-purple-primary ring-offset-2" : ""}
-                `}
-              >
-                <img
-                  src={preview.url}
-                  alt={`Preview ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
+      {/* Preview Grid - 8 slots */}
+      <div className="mt-8 grid grid-cols-4 gap-3">
+        {/* Filled slots */}
+        {mediaPreviews.map((preview, index) => (
+          <div key={preview.url} className="relative group">
+            <div
+              className={`
+                aspect-square rounded-xl overflow-hidden transition-all duration-300
+                border-2
+                ${preview.isPrimary ? "border-pink-vivid" : "border-transparent"}
+              `}
+            >
+              <img
+                src={preview.url}
+                alt={`Preview ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
 
-                {preview.isPrimary && (
-                  <div className="absolute top-2 left-2 px-2 py-0.5 bg-gradient-to-r from-purple-primary to-pink-vivid text-white text-xs font-ui rounded-full">
-                    Main
-                  </div>
-                )}
-
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  {!preview.isPrimary && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleSetPrimary(index); }}
-                      className="px-2 py-1 bg-white/90 rounded-lg text-xs font-ui text-purple-primary"
-                    >
-                      Set main
-                    </button>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleRemove(index); }}
-                    className="p-1.5 bg-white/90 rounded-lg text-red-500"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+              {preview.isPrimary && (
+                <div className="absolute top-2 left-2 px-2 py-0.5 bg-gradient-to-r from-orange-warm to-pink-vivid text-white text-xs font-ui rounded-full">
+                  Main
                 </div>
+              )}
+
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                {!preview.isPrimary && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleSetPrimary(index); }}
+                    className="px-2 py-1 bg-white/90 rounded-lg text-xs font-ui text-pink-vivid"
+                  >
+                    Set main
+                  </button>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleRemove(index); }}
+                  className="p-1.5 bg-white/90 rounded-lg text-red-500"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             </div>
-          ))}
+          </div>
+        ))}
 
-          {/* Add more */}
-          {mediaPreviews.length < MAX_IMAGES && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="aspect-square rounded-2xl bg-white/40 ring-1 ring-gray-200/50
-                hover:ring-purple-primary/20 hover:bg-white/60 transition-all
-                flex flex-col items-center justify-center gap-1"
-            >
-              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="text-xs text-gray-400 font-ui">Add</span>
-            </button>
-          )}
-        </div>
-      )}
+        {/* Empty slots */}
+        {Array.from({ length: MAX_IMAGES - mediaPreviews.length }).map((_, index) => (
+          <button
+            key={`empty-${index}`}
+            onClick={() => fileInputRef.current?.click()}
+            className="aspect-square rounded-xl border-2 border-dashed border-gray-200
+              hover:border-pink-vivid/30 hover:bg-pink-vivid/5 transition-all
+              flex flex-col items-center justify-center gap-1"
+          >
+            <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        ))}
+      </div>
 
       {/* Digital Files Section */}
       {(deliveryType === "digital" || deliveryType === "both") && (
-        <div className="mt-10 pt-10 border-t border-gray-100/80">
-          <h3 className="text-sm font-ui font-medium text-ink mb-4">Digital Files</h3>
+        <div className="mt-12 pt-10 border-t border-gray-100">
+          <h3 className="text-sm font-ui font-semibold text-ink mb-2">Digital Files</h3>
           <p className="text-sm text-muted font-body mb-6">
             Files buyers will download after purchase
           </p>
 
+          {/* Digital upload zone */}
           <div
             onClick={() => digitalFileInputRef.current?.click()}
-            className="flex items-center justify-center py-10 px-6 rounded-2xl cursor-pointer
-              bg-white/40 ring-1 ring-gray-200/50 hover:ring-purple-primary/20 hover:bg-white/60 transition-all"
+            className="flex items-center justify-center py-10 px-6 rounded-xl cursor-pointer
+              border-2 border-dashed border-gray-200 bg-gray-50/50
+              hover:border-pink-vivid/30 hover:bg-pink-vivid/5 transition-all"
           >
             <div className="text-center">
-              <svg className="w-8 h-8 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-pink-vivid/10 flex items-center justify-center">
+                <svg className="w-8 h-8 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
               <p className="text-sm font-body text-muted">Click to upload files</p>
             </div>
 
@@ -297,16 +313,16 @@ export default function MediaUploadStep({
               {digitalFiles.map((file, index) => (
                 <div
                   key={`${file.name}-${index}`}
-                  className="flex items-center justify-between p-3 bg-white/50 rounded-xl"
+                  className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-warm to-pink-vivid flex items-center justify-center">
                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-ui text-ink truncate max-w-[180px]">{file.name}</p>
+                      <p className="text-sm font-ui text-ink truncate max-w-[200px]">{file.name}</p>
                       <p className="text-xs text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                   </div>

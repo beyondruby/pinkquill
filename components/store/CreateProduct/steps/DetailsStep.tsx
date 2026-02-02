@@ -26,6 +26,15 @@ interface DetailsStepProps {
   updateState: (updates: Partial<ProductWizardState>) => void;
 }
 
+// Section header component
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-base font-display font-bold text-ink mb-6">
+      {children}
+    </h3>
+  );
+}
+
 export default function DetailsStep({
   deliveryType,
   category,
@@ -107,34 +116,48 @@ export default function DetailsStep({
     <div className="space-y-10">
       {/* Title Section */}
       <div>
-        <label className="block text-sm font-ui font-medium text-ink mb-3">
+        <label className="block text-sm font-ui font-semibold text-ink mb-3">
           Title <span className="text-pink-vivid">*</span>
         </label>
-        <input
-          type="text"
-          value={wizardState.title}
-          onChange={(e) => updateState({ title: e.target.value })}
-          placeholder={`Name your ${subcategory ? getSubcategoryLabel(category, subcategory) : categoryConfig.name.toLowerCase()}`}
-          className="w-full px-5 py-4 rounded-2xl
-            bg-white/50 ring-1 ring-gray-200/50
-            focus:ring-2 focus:ring-purple-primary/30 focus:bg-white
-            outline-none transition-all duration-300
-            font-body text-ink placeholder:text-gray-400"
-        />
+        {/* Gradient border wrapper */}
+        <div className="relative">
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+            <div className="w-full h-full rounded-xl bg-white" />
+          </div>
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              value={wizardState.title}
+              onChange={(e) => updateState({ title: e.target.value })}
+              placeholder={`Name your ${subcategory ? getSubcategoryLabel(category, subcategory) : categoryConfig.name.toLowerCase()}`}
+              className="w-full px-4 py-3.5 pr-12 rounded-xl
+                bg-transparent
+                outline-none transition-all duration-300
+                font-body text-ink placeholder:text-gray-400"
+            />
+            <div className="absolute right-4 text-orange-warm">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Year */}
       <div>
-        <label className="block text-sm font-ui font-medium text-ink mb-3">
+        <label className="block text-sm font-ui font-semibold text-ink mb-3">
           Year created
         </label>
         <div className="relative w-48">
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+            <div className="w-full h-full rounded-xl bg-white" />
+          </div>
           <select
             value={wizardState.yearCreated || ""}
             onChange={(e) => updateState({ yearCreated: e.target.value ? parseInt(e.target.value) : null })}
-            className="w-full px-5 py-4 rounded-2xl appearance-none cursor-pointer
-              bg-white/50 ring-1 ring-gray-200/50
-              focus:ring-2 focus:ring-purple-primary/30 focus:bg-white
+            className="relative w-full px-4 py-3.5 pr-10 rounded-xl appearance-none cursor-pointer
+              bg-transparent
               outline-none transition-all duration-300
               font-body text-ink"
           >
@@ -143,30 +166,36 @@ export default function DetailsStep({
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
-          <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-warm pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
       </div>
 
-      {/* Classification fields */}
+      {/* Classification Section */}
       {fieldsByGroup.classification.length > 0 && (
-        <div className="space-y-6">
-          {fieldsByGroup.classification.map(renderField)}
+        <div>
+          <SectionHeader>Classification:</SectionHeader>
+          <div className="space-y-6">
+            {fieldsByGroup.classification.map(renderField)}
+          </div>
         </div>
       )}
 
-      {/* Presentation fields (physical only) */}
+      {/* Presentation Section (physical only) */}
       {deliveryType !== "digital" && fieldsByGroup.presentation.length > 0 && (
-        <div className="space-y-6">
-          {fieldsByGroup.presentation.map(renderField)}
+        <div>
+          <SectionHeader>Presentation:</SectionHeader>
+          <div className="space-y-6">
+            {fieldsByGroup.presentation.map(renderField)}
+          </div>
         </div>
       )}
 
-      {/* Dimensions (physical only) */}
+      {/* Dimensions Section (physical only) */}
       {deliveryType !== "digital" && (
         <div>
-          <h3 className="text-sm font-ui font-medium text-ink mb-4">Dimensions</h3>
+          <SectionHeader>Dimensions:</SectionHeader>
           <DimensionsField
             shipping={wizardState.shipping}
             onChange={(shipping) => updateState({ shipping })}
@@ -174,12 +203,9 @@ export default function DetailsStep({
         </div>
       )}
 
-      {/* Divider */}
-      <div className="border-t border-gray-100/80" />
-
-      {/* Pricing */}
-      <div>
-        <h3 className="text-sm font-ui font-medium text-ink mb-6">Pricing</h3>
+      {/* Pricing Section */}
+      <div className="pt-6 border-t border-gray-100">
+        <SectionHeader>Pricing:</SectionHeader>
         <PricingSection
           deliveryType={deliveryType}
           categoryConfig={categoryConfig}
@@ -188,67 +214,84 @@ export default function DetailsStep({
         />
       </div>
 
-      {/* Shipping (physical only) */}
+      {/* Shipping Section (physical only) */}
       {deliveryType !== "digital" && (
-        <>
-          <div className="border-t border-gray-100/80" />
+        <div className="pt-6 border-t border-gray-100">
+          <SectionHeader>Shipping:</SectionHeader>
           <div>
-            <h3 className="text-sm font-ui font-medium text-ink mb-6">Shipping</h3>
-            <div>
-              <label className="block text-sm font-ui font-medium text-ink mb-3">
-                Shipping services
-              </label>
-              <input
-                type="text"
-                value={wizardState.shipping.shipping_services?.join(", ") || ""}
-                onChange={(e) =>
-                  updateState({
-                    shipping: {
-                      ...wizardState.shipping,
-                      shipping_services: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                    },
-                  })
-                }
-                placeholder="DHL, FedEx, UPS"
-                className="w-full px-5 py-4 rounded-2xl
-                  bg-white/50 ring-1 ring-gray-200/50
-                  focus:ring-2 focus:ring-purple-primary/30 focus:bg-white
-                  outline-none transition-all duration-300
-                  font-body text-ink placeholder:text-gray-400"
-              />
-              <p className="text-xs text-muted mt-2">Separate with commas</p>
+            <label className="block text-sm font-ui font-semibold text-ink mb-3">
+              Shipping services
+            </label>
+            <div className="relative">
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+                <div className="w-full h-full rounded-xl bg-white" />
+              </div>
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  value={wizardState.shipping.shipping_services?.join(", ") || ""}
+                  onChange={(e) =>
+                    updateState({
+                      shipping: {
+                        ...wizardState.shipping,
+                        shipping_services: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                      },
+                    })
+                  }
+                  placeholder="DHL, FedEx, UPS"
+                  className="w-full px-4 py-3.5 pr-12 rounded-xl
+                    bg-transparent
+                    outline-none transition-all duration-300
+                    font-body text-ink placeholder:text-gray-400"
+                />
+                <div className="absolute right-4 text-orange-warm">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </div>
+              </div>
             </div>
+            <p className="text-xs text-muted mt-2">Separate with commas</p>
           </div>
-        </>
+        </div>
       )}
 
-      {/* Details fields */}
+      {/* Details Section */}
       {fieldsByGroup.details.length > 0 && (
-        <>
-          <div className="border-t border-gray-100/80" />
+        <div className="pt-6 border-t border-gray-100">
+          <SectionHeader>Additional Details:</SectionHeader>
           <div className="space-y-6">
             {fieldsByGroup.details.map(renderField)}
           </div>
-        </>
+        </div>
       )}
 
-      {/* Description */}
-      <div className="border-t border-gray-100/80 pt-10">
-        <label className="block text-sm font-ui font-medium text-ink mb-3">
-          Description
-        </label>
-        <textarea
-          value={wizardState.description}
-          onChange={(e) => updateState({ description: e.target.value })}
-          placeholder="Tell buyers about your work..."
-          rows={4}
-          maxLength={2000}
-          className="w-full px-5 py-4 rounded-2xl resize-none
-            bg-white/50 ring-1 ring-gray-200/50
-            focus:ring-2 focus:ring-purple-primary/30 focus:bg-white
-            outline-none transition-all duration-300
-            font-body text-ink placeholder:text-gray-400"
-        />
+      {/* Description Section */}
+      <div className="pt-6 border-t border-gray-100">
+        <SectionHeader>Description:</SectionHeader>
+        <div className="relative">
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+            <div className="w-full h-full rounded-xl bg-white" />
+          </div>
+          <div className="relative">
+            <textarea
+              value={wizardState.description}
+              onChange={(e) => updateState({ description: e.target.value })}
+              placeholder="Tell buyers about your work..."
+              rows={4}
+              maxLength={2000}
+              className="w-full px-4 py-3.5 rounded-xl resize-none
+                bg-transparent
+                outline-none transition-all duration-300
+                font-body text-ink placeholder:text-gray-400"
+            />
+            <div className="absolute right-4 top-4 text-orange-warm">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
+          </div>
+        </div>
         <div className="flex justify-end mt-2">
           <p className={`text-xs font-ui ${wizardState.description.length > 1800 ? 'text-orange-warm' : 'text-muted'}`}>
             {wizardState.description.length} / 2000
@@ -256,11 +299,9 @@ export default function DetailsStep({
         </div>
       </div>
 
-      {/* Keywords */}
+      {/* Keywords Section */}
       <div>
-        <label className="block text-sm font-ui font-medium text-ink mb-3">
-          Keywords
-        </label>
+        <SectionHeader>Keywords:</SectionHeader>
         <KeywordsInput
           keywords={wizardState.keywords}
           onChange={(keywords) => updateState({ keywords })}
@@ -297,10 +338,10 @@ function PricingSection({
               className="sr-only"
             />
             <div className={`
-              w-5 h-5 rounded-md flex items-center justify-center transition-all
+              w-5 h-5 rounded flex items-center justify-center transition-all border-2
               ${wizardState.sellOriginal
-                ? "bg-gradient-to-br from-purple-primary to-pink-vivid"
-                : "ring-2 ring-gray-300 group-hover:ring-purple-primary/50"
+                ? "bg-gradient-to-r from-orange-warm to-pink-vivid border-transparent"
+                : "border-gray-300 group-hover:border-pink-vivid/50"
               }
             `}>
               {wizardState.sellOriginal && (
@@ -315,19 +356,24 @@ function PricingSection({
           {wizardState.sellOriginal && (
             <div className="pl-8">
               <div className="relative w-48">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-primary font-medium">$</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={wizardState.originalPrice || ""}
-                  onChange={(e) => updateState({ originalPrice: e.target.value ? parseFloat(e.target.value) : null })}
-                  placeholder="0.00"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl
-                    bg-white/50 ring-1 ring-gray-200/50
-                    focus:ring-2 focus:ring-purple-primary/30 focus:bg-white
-                    outline-none transition-all duration-300 font-body"
-                />
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+                  <div className="w-full h-full rounded-xl bg-white" />
+                </div>
+                <div className="relative flex items-center">
+                  <span className="absolute left-4 text-pink-vivid font-medium">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={wizardState.originalPrice || ""}
+                    onChange={(e) => updateState({ originalPrice: e.target.value ? parseFloat(e.target.value) : null })}
+                    placeholder="0.00"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl
+                      bg-transparent
+                      outline-none transition-all duration-300 font-body
+                      [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -345,10 +391,10 @@ function PricingSection({
               className="sr-only"
             />
             <div className={`
-              w-5 h-5 rounded-md flex items-center justify-center transition-all
+              w-5 h-5 rounded flex items-center justify-center transition-all border-2
               ${wizardState.hasReproductions
-                ? "bg-gradient-to-br from-purple-primary to-pink-vivid"
-                : "ring-2 ring-gray-300 group-hover:ring-purple-primary/50"
+                ? "bg-gradient-to-r from-orange-warm to-pink-vivid border-transparent"
+                : "border-gray-300 group-hover:border-pink-vivid/50"
               }
             `}>
               {wizardState.hasReproductions && (
@@ -386,23 +432,28 @@ function PricingSection({
                     {pricingOptions.reproduction!.types.find((t) => t.value === reproduction.type)?.label} price
                   </label>
                   <div className="relative w-48">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-primary font-medium">$</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={reproduction.price || ""}
-                      onChange={(e) => {
-                        const newReproductions = [...wizardState.reproductions];
-                        newReproductions[index] = { ...reproduction, price: parseFloat(e.target.value) || 0 };
-                        updateState({ reproductions: newReproductions });
-                      }}
-                      placeholder="0.00"
-                      className="w-full pl-10 pr-4 py-3 rounded-xl
-                        bg-white/50 ring-1 ring-gray-200/50
-                        focus:ring-2 focus:ring-purple-primary/30 focus:bg-white
-                        outline-none transition-all duration-300 font-body"
-                    />
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+                      <div className="w-full h-full rounded-xl bg-white" />
+                    </div>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-4 text-pink-vivid font-medium">$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={reproduction.price || ""}
+                        onChange={(e) => {
+                          const newReproductions = [...wizardState.reproductions];
+                          newReproductions[index] = { ...reproduction, price: parseFloat(e.target.value) || 0 };
+                          updateState({ reproductions: newReproductions });
+                        }}
+                        placeholder="0.00"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl
+                          bg-transparent
+                          outline-none transition-all duration-300 font-body
+                          [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -422,10 +473,10 @@ function PricingSection({
               className="sr-only"
             />
             <div className={`
-              w-5 h-5 rounded-md flex items-center justify-center transition-all
+              w-5 h-5 rounded flex items-center justify-center transition-all border-2
               ${wizardState.hasDigitalDownload
-                ? "bg-gradient-to-br from-purple-primary to-pink-vivid"
-                : "ring-2 ring-gray-300 group-hover:ring-purple-primary/50"
+                ? "bg-gradient-to-r from-orange-warm to-pink-vivid border-transparent"
+                : "border-gray-300 group-hover:border-pink-vivid/50"
               }
             `}>
               {wizardState.hasDigitalDownload && (
@@ -454,19 +505,24 @@ function PricingSection({
               <div>
                 <label className="block text-sm font-ui text-muted mb-2">Price</label>
                 <div className="relative w-48">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-primary font-medium">$</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={wizardState.digitalPrice || ""}
-                    onChange={(e) => updateState({ digitalPrice: e.target.value ? parseFloat(e.target.value) : null })}
-                    placeholder="0.00"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl
-                      bg-white/50 ring-1 ring-gray-200/50
-                      focus:ring-2 focus:ring-purple-primary/30 focus:bg-white
-                      outline-none transition-all duration-300 font-body"
-                  />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+                    <div className="w-full h-full rounded-xl bg-white" />
+                  </div>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-4 text-pink-vivid font-medium">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={wizardState.digitalPrice || ""}
+                      onChange={(e) => updateState({ digitalPrice: e.target.value ? parseFloat(e.target.value) : null })}
+                      placeholder="0.00"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl
+                        bg-transparent
+                        outline-none transition-all duration-300 font-body
+                        [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -508,21 +564,32 @@ function KeywordsInput({
 
   return (
     <div>
-      <input
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={addKeyword}
-        placeholder="Add keywords..."
-        disabled={keywords.length >= 10}
-        className="w-full px-5 py-4 rounded-2xl
-          bg-white/50 ring-1 ring-gray-200/50
-          focus:ring-2 focus:ring-purple-primary/30 focus:bg-white
-          outline-none transition-all duration-300
-          font-body text-ink placeholder:text-gray-400
-          disabled:bg-gray-50 disabled:opacity-60"
-      />
+      <div className="relative">
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+          <div className="w-full h-full rounded-xl bg-white" />
+        </div>
+        <div className="relative flex items-center">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={addKeyword}
+            placeholder="Add keywords..."
+            disabled={keywords.length >= 10}
+            className="w-full px-4 py-3.5 pr-12 rounded-xl
+              bg-transparent
+              outline-none transition-all duration-300
+              font-body text-ink placeholder:text-gray-400
+              disabled:opacity-60"
+          />
+          <div className="absolute right-4 text-orange-warm">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+          </div>
+        </div>
+      </div>
       <div className="flex justify-between items-center mt-2">
         <p className="text-xs text-muted">Press Enter to add</p>
         <p className={`text-xs font-ui ${keywords.length >= 8 ? 'text-orange-warm' : 'text-muted'}`}>
@@ -536,13 +603,13 @@ function KeywordsInput({
             <span
               key={keyword}
               className="inline-flex items-center gap-2 px-3 py-1.5
-                bg-purple-primary/5 rounded-full
-                text-sm font-ui text-purple-primary"
+                bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 rounded-full
+                text-sm font-ui text-pink-vivid"
             >
               #{keyword}
               <button
                 onClick={() => removeKeyword(keyword)}
-                className="p-0.5 hover:bg-purple-primary/10 rounded-full transition-colors"
+                className="p-0.5 hover:bg-pink-vivid/20 rounded-full transition-colors"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -11,7 +11,7 @@ interface BooleanFieldProps {
 export default function BooleanField({ field, value, onChange }: BooleanFieldProps) {
   return (
     <div>
-      <label className="block text-sm font-ui font-medium text-ink mb-3">
+      <label className="block text-sm font-ui font-semibold text-ink mb-3">
         {field.label}
         {field.required && <span className="text-pink-vivid ml-1">*</span>}
       </label>
@@ -22,28 +22,27 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
           onClick={() => onChange(true)}
           className={`
             flex items-center gap-2.5 px-5 py-3 rounded-xl transition-all duration-200
+            border-2
             ${value === true
-              ? "bg-purple-primary/10 ring-2 ring-purple-primary/30"
-              : "bg-white/50 ring-1 ring-gray-200/50 hover:ring-purple-primary/20"
+              ? "border-pink-vivid bg-pink-vivid/5"
+              : "border-gray-200 bg-white hover:border-pink-vivid/30"
             }
           `}
         >
           <div
             className={`
-              w-4 h-4 rounded-full flex items-center justify-center transition-all
+              w-5 h-5 rounded-full flex items-center justify-center transition-all
               ${value === true
-                ? "bg-gradient-to-r from-purple-primary to-pink-vivid"
-                : "ring-2 ring-gray-300"
+                ? "bg-gradient-to-r from-orange-warm to-pink-vivid"
+                : "border-2 border-gray-300"
               }
             `}
           >
             {value === true && (
-              <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
+              <div className="w-2 h-2 rounded-full bg-white" />
             )}
           </div>
-          <span className={`text-sm font-ui ${value === true ? "text-purple-primary font-medium" : "text-muted"}`}>
+          <span className={`text-sm font-ui ${value === true ? "text-pink-vivid font-medium" : "text-muted"}`}>
             Yes
           </span>
         </button>
@@ -53,28 +52,27 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
           onClick={() => onChange(false)}
           className={`
             flex items-center gap-2.5 px-5 py-3 rounded-xl transition-all duration-200
+            border-2
             ${value === false
-              ? "bg-purple-primary/10 ring-2 ring-purple-primary/30"
-              : "bg-white/50 ring-1 ring-gray-200/50 hover:ring-purple-primary/20"
+              ? "border-pink-vivid bg-pink-vivid/5"
+              : "border-gray-200 bg-white hover:border-pink-vivid/30"
             }
           `}
         >
           <div
             className={`
-              w-4 h-4 rounded-full flex items-center justify-center transition-all
+              w-5 h-5 rounded-full flex items-center justify-center transition-all
               ${value === false
-                ? "bg-gradient-to-r from-purple-primary to-pink-vivid"
-                : "ring-2 ring-gray-300"
+                ? "bg-gradient-to-r from-orange-warm to-pink-vivid"
+                : "border-2 border-gray-300"
               }
             `}
           >
             {value === false && (
-              <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
+              <div className="w-2 h-2 rounded-full bg-white" />
             )}
           </div>
-          <span className={`text-sm font-ui ${value === false ? "text-purple-primary font-medium" : "text-muted"}`}>
+          <span className={`text-sm font-ui ${value === false ? "text-pink-vivid font-medium" : "text-muted"}`}>
             No
           </span>
         </button>
