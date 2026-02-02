@@ -375,10 +375,10 @@ function ProductCard({
                 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0
                 transition-all duration-500">
                 <div className="inline-block px-4 py-2 rounded-full
-                  bg-white/95 backdrop-blur-sm
-                  text-base font-display font-bold
-                  bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">
-                  {priceDisplay}
+                  bg-white/95 backdrop-blur-sm shadow-sm">
+                  <span className="text-base font-display font-bold text-pink-vivid">
+                    {priceDisplay}
+                  </span>
                 </div>
               </div>
             )}
@@ -388,9 +388,7 @@ function ProductCard({
           <div className="mt-4 px-1">
             {/* Title */}
             <h3 className="font-display font-semibold text-ink text-base leading-snug line-clamp-1
-              group-hover:bg-gradient-to-r group-hover:from-orange-warm group-hover:to-pink-vivid
-              group-hover:bg-clip-text group-hover:text-transparent
-              transition-all duration-300">
+              group-hover:text-pink-vivid transition-colors duration-300">
               {product.title}
             </h3>
 
@@ -409,9 +407,7 @@ function ProductCard({
 
             {/* Price - always visible on mobile */}
             {priceDisplay && (
-              <p className="mt-2 text-lg font-display font-bold
-                bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent
-                md:opacity-0 group-hover:md:opacity-0">
+              <p className="mt-2 text-lg font-display font-bold text-pink-vivid md:hidden">
                 {priceDisplay}
               </p>
             )}

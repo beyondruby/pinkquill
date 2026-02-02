@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useProduct } from "@/lib/hooks/useProducts";
-import { useAuth } from "@/components/providers/AuthProvider";
 import { ProductPricing } from "@/lib/types/store";
 import {
   getCategoryConfig,
@@ -21,8 +19,6 @@ interface ProductDetailViewProps {
 }
 
 export default function ProductDetailView({ productId }: ProductDetailViewProps) {
-  const router = useRouter();
-  const { user } = useAuth();
   const { product, loading, error } = useProduct(productId);
   const [selectedPricing, setSelectedPricing] = useState<ProductPricing | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -101,7 +97,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   }
 
   const categoryConfig = getCategoryConfig(product.category);
-  const isOwnProduct = user?.id === product.seller_id;
   const activePricing = selectedPricing || product.pricing?.[0];
 
   // Format price
@@ -141,22 +136,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Breadcrumb Navigation */}
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <nav className="flex items-center gap-2 text-sm font-body">
-          <Link href="/" className="text-muted hover:text-pink-vivid transition-colors">
-            Homepage
-          </Link>
-          <svg className="w-4 h-4 text-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-ink">
-            {product.delivery_type === "digital" ? "Digital Product" : "Physical Product"} Page
-          </span>
-        </nav>
-      </div>
-
+    <div className="min-h-screen bg-background pt-8">
       {/* Main content */}
       <div className="max-w-6xl mx-auto px-4 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -259,34 +239,21 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               </div>
             )}
 
-            {/* Ask the artist link */}
-            <button className="flex items-center gap-2 text-pink-vivid hover:text-orange-warm transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span className="text-sm font-ui font-medium underline">
-                Ask the artist a question
-              </span>
-            </button>
+            {/* Ask the artist link + More menu */}
+            <div className="flex items-center justify-between">
+              <button className="flex items-center gap-2 text-pink-vivid hover:text-orange-warm transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span className="text-sm font-ui font-medium underline">
+                  Ask the artist a question
+                </span>
+              </button>
 
-            {/* Share & Report Row */}
-            <div className="flex items-center gap-4 pt-2">
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="flex items-center gap-2 text-muted hover:text-pink-vivid transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                <span className="text-sm font-ui">Share</span>
-              </button>
-              <span className="w-1 h-1 rounded-full bg-muted/30" />
-              <button className="flex items-center gap-2 text-muted hover:text-red-500 transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                </svg>
-                <span className="text-sm font-ui">Report</span>
-              </button>
+              {/* Horizontal 3-dots menu */}
+              <MoreMenu
+                onShare={() => setShowShareModal(true)}
+              />
             </div>
 
             {/* Add to Cart Button - Orange Gradient */}
@@ -304,22 +271,12 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               </svg>
               Add to Cart
             </button>
+          </div>
+        </div>
 
-            {/* Edit button for owner */}
-            {isOwnProduct && (
-              <Link
-                href={`/sell/edit/${product.id}`}
-                className="block w-full py-3 text-center border-2 border-gray-200
-                  text-muted font-ui font-medium rounded-xl
-                  hover:border-pink-200 hover:text-pink-vivid hover:bg-pink-50/30
-                  transition-all duration-200"
-              >
-                Edit Product
-              </Link>
-            )}
-
-            {/* Expandable Sections */}
-            <div className="pt-6 space-y-4">
+        {/* Learn More Section - Below the photo/info grid */}
+        <div className="mt-12 max-w-3xl">
+          <div className="space-y-4">
               {/* About this artwork */}
               {product.description && (
                 <div className="border-b border-gray-100">
@@ -521,4 +478,64 @@ function getPricingTypeLabel(type: string): string {
     default:
       return type;
   }
+}
+
+// More menu component with horizontal dots
+function MoreMenu({ onShare }: { onShare: () => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 text-muted hover:text-ink transition-colors"
+      >
+        {/* Horizontal 3 dots - no circle */}
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="5" cy="12" r="2" />
+          <circle cx="12" cy="12" r="2" />
+          <circle cx="19" cy="12" r="2" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setIsOpen(false)}
+          />
+
+          {/* Dropdown */}
+          <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-20">
+            <button
+              onClick={() => {
+                onShare();
+                setIsOpen(false);
+              }}
+              className="w-full px-4 py-3 text-left text-sm font-ui text-ink
+                hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50
+                flex items-center gap-3 transition-colors"
+            >
+              <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              Share
+            </button>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="w-full px-4 py-3 text-left text-sm font-ui text-red-500
+                hover:bg-red-50
+                flex items-center gap-3 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+              </svg>
+              Report
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
