@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
-  // Simply pass through - the main purpose of this middleware
+export function proxy(request: NextRequest) {
+  // Simply pass through - the main purpose of this proxy
   // is to use the matcher config below to exclude static files
   // from any processing. Auth is handled client-side.
   return NextResponse.next();
