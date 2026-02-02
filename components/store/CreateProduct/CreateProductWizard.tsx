@@ -294,13 +294,11 @@ export default function CreateProductWizard() {
         </div>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           {currentStep !== "delivery" ? (
             <button
               onClick={goToPreviousStep}
-              className="flex items-center gap-2 px-6 py-3 rounded-full
-                bg-purple-primary text-white font-ui font-semibold
-                hover:bg-purple-primary/90 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-purple-primary text-white font-ui font-semibold hover:bg-purple-primary/90 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -314,9 +312,7 @@ export default function CreateProductWizard() {
           {currentStep !== "details" ? (
             <button
               onClick={handleNext}
-              className="flex items-center gap-2 px-8 py-3 rounded-full
-                bg-purple-primary text-white font-ui font-semibold
-                hover:bg-purple-primary/90 transition-colors"
+              className="flex items-center gap-2 px-8 py-3 rounded-full bg-purple-primary text-white font-ui font-semibold hover:bg-purple-primary/90 transition-colors"
             >
               Next Step
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,16 +323,9 @@ export default function CreateProductWizard() {
             <button
               onClick={handleSubmit}
               disabled={creating}
-              className="px-10 py-3 rounded-full
-                border-2 border-transparent bg-gradient-to-r from-orange-warm to-pink-vivid
-                bg-clip-padding
-                font-ui font-semibold text-orange-warm
-                hover:opacity-90 transition-opacity
-                disabled:opacity-50 disabled:cursor-not-allowed
-                relative overflow-hidden"
+              className="flex items-center gap-2 px-10 py-3 rounded-full border-2 border-transparent font-ui font-semibold text-orange-warm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: "linear-gradient(white, white) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box",
-                borderColor: "transparent",
               }}
             >
               {creating ? "Submitting..." : "Submit"}
