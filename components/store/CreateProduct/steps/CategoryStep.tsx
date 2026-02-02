@@ -59,14 +59,14 @@ export default function CategoryStep({
             onClick={() => setShowSubcategories(false)}
             className="flex items-center gap-3 mb-8 group"
           >
-            <div className="w-10 h-10 rounded-full bg-pink-vivid/10 flex items-center justify-center group-hover:bg-pink-vivid/20 transition-colors">
+            <div className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center group-hover:shadow-lg transition-shadow">
               <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </div>
             {selectedCategoryConfig && (
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary/20 via-pink-vivid/20 to-orange-warm/20 flex items-center justify-center text-pink-vivid">
+                <div className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-pink-vivid">
                   <div className="scale-90">{getCategoryIcon(selectedCategoryConfig.icon)}</div>
                 </div>
                 <span className="text-sm font-medium text-ink">{selectedCategoryConfig.name}</span>
@@ -92,17 +92,18 @@ export default function CategoryStep({
                     className={`
                       relative px-5 py-4 rounded-xl text-left
                       transition-all duration-300 flex items-center gap-3
+                      bg-white
                       ${isSelected
-                        ? "bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10"
-                        : "bg-white hover:bg-pink-vivid/5"
+                        ? "shadow-lg shadow-pink-vivid/10"
+                        : "shadow-sm hover:shadow-md"
                       }
                     `}
                     style={{
                       border: isSelected
                         ? "1px solid transparent"
-                        : "1px solid rgba(255, 0, 127, 0.2)",
+                        : "1px solid rgba(0, 0, 0, 0.05)",
                       backgroundImage: isSelected
-                        ? "linear-gradient(to right, rgba(142, 68, 173, 0.1), rgba(255, 0, 127, 0.1), rgba(255, 159, 67, 0.1)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+                        ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
                         : undefined,
                       backgroundOrigin: "border-box",
                       backgroundClip: isSelected ? "padding-box, border-box" : undefined,
@@ -114,7 +115,7 @@ export default function CategoryStep({
                         w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all
                         ${isSelected
                           ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm"
-                          : "border border-pink-vivid/30"
+                          : "border border-muted/30"
                         }
                       `}
                     >
@@ -168,23 +169,23 @@ function CategoryCard({
       onClick={onClick}
       className="group flex flex-col items-center text-center"
     >
-      {/* Glass circular icon container */}
+      {/* Glass circular icon container - subtle selection */}
       <div
         className={`
           relative w-24 h-24 rounded-full flex items-center justify-center
           transition-all duration-300 mb-4
-          backdrop-blur-sm
+          backdrop-blur-sm bg-white/80
           ${isSelected
-            ? "bg-gradient-to-br from-purple-primary/20 via-pink-vivid/20 to-orange-warm/20 shadow-xl shadow-pink-vivid/30"
-            : "bg-white/80 shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/20"
+            ? "shadow-xl shadow-pink-vivid/20"
+            : "shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/10"
           }
         `}
         style={{
           border: isSelected
             ? "2px solid transparent"
-            : "1px solid rgba(255, 255, 255, 0.5)",
+            : "1px solid rgba(0, 0, 0, 0.05)",
           backgroundImage: isSelected
-            ? "linear-gradient(to bottom right, rgba(142, 68, 173, 0.2), rgba(255, 0, 127, 0.2), rgba(255, 159, 67, 0.2)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+            ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
             : undefined,
           backgroundOrigin: "border-box",
           backgroundClip: isSelected ? "padding-box, border-box" : undefined,
@@ -194,7 +195,7 @@ function CategoryCard({
           transition-colors duration-300 scale-110
           ${isSelected
             ? "text-pink-vivid"
-            : "text-pink-vivid/50 group-hover:text-pink-vivid/80"
+            : "text-pink-vivid/40 group-hover:text-pink-vivid/70"
           }
         `}>
           {getCategoryIcon(category.icon)}
@@ -207,8 +208,8 @@ function CategoryCard({
           font-semibold font-ui text-sm
           transition-colors duration-300
           ${isSelected
-            ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent"
-            : "text-ink group-hover:text-pink-vivid"
+            ? "text-pink-vivid"
+            : "text-ink group-hover:text-pink-vivid/80"
           }
         `}
       >

@@ -17,9 +17,7 @@ export default function ProductGallery({
   onLike
 }: ProductGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isZoomed, setIsZoomed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
 
   // Sort media by position, primary first
   const sortedMedia = [...media].sort((a, b) => {
@@ -38,22 +36,12 @@ export default function ProductGallery({
     setSelectedIndex((prev) => (prev < sortedMedia.length - 1 ? prev + 1 : 0));
   }, [sortedMedia.length]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isZoomed) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setZoomPosition({ x, y });
-  }, [isZoomed]);
-
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "ArrowLeft") {
       handlePrevious();
     } else if (e.key === "ArrowRight") {
       handleNext();
     } else if (e.key === "Escape") {
-      setIsZoomed(false);
       setIsFullscreen(false);
     }
   }, [handlePrevious, handleNext]);
@@ -85,7 +73,7 @@ export default function ProductGallery({
                   transition-all duration-300 flex-shrink-0
                   ${index === selectedIndex
                     ? "ring-2 ring-pink-vivid ring-offset-2 shadow-lg shadow-pink-vivid/20"
-                    : "opacity-50 hover:opacity-100 border border-gray-100"
+                    : "opacity-50 hover:opacity-100 border border-pink-vivid/10"
                   }`}
                 aria-label={`View image ${index + 1}`}
                 aria-current={index === selectedIndex}
@@ -103,36 +91,16 @@ export default function ProductGallery({
         {/* Main Image */}
         <div className="flex-1">
           <div
-            className={`relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 group
-              ${isZoomed ? "cursor-zoom-out" : "cursor-zoom-in"}
-              shadow-lg shadow-black/5`}
-            onClick={() => setIsZoomed(!isZoomed)}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => setIsZoomed(false)}
+            className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-pink-50/50 to-orange-50/50 group
+              cursor-pointer shadow-lg shadow-black/5"
+            onClick={() => setIsFullscreen(true)}
           >
             {selectedImage && (
-              <>
-                {/* Normal view */}
-                <img
-                  src={selectedImage.media_url}
-                  alt={`${title} - Image ${selectedIndex + 1}`}
-                  className={`w-full h-full object-contain transition-opacity duration-300
-                    ${isZoomed ? "opacity-0" : "opacity-100"}`}
-                />
-
-                {/* Zoomed view */}
-                {isZoomed && (
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backgroundImage: `url(${selectedImage.media_url})`,
-                      backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
-                      backgroundSize: "200%",
-                      backgroundRepeat: "no-repeat",
-                    }}
-                  />
-                )}
-              </>
+              <img
+                src={selectedImage.media_url}
+                alt={`${title} - Image ${selectedIndex + 1}`}
+                className="w-full h-full object-contain"
+              />
             )}
 
             {/* Like button - top right */}
@@ -146,7 +114,7 @@ export default function ProductGallery({
                 transition-all duration-300 z-10
                 ${isLiked
                   ? "bg-pink-vivid text-white shadow-lg shadow-pink-vivid/30"
-                  : "bg-white/90 text-gray-600 hover:bg-white hover:text-pink-vivid hover:shadow-lg"
+                  : "bg-white/90 text-muted hover:bg-white hover:text-pink-vivid hover:shadow-lg"
                 }`}
             >
               <svg
@@ -156,23 +124,6 @@ export default function ProductGallery({
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </button>
-
-            {/* Expand button - top right, below like */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsFullscreen(true);
-              }}
-              className="absolute top-20 right-4 w-10 h-10 rounded-full
-                bg-white/90 backdrop-blur-sm text-gray-600
-                flex items-center justify-center
-                hover:bg-white hover:text-pink-vivid hover:shadow-lg
-                transition-all duration-300 z-10"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
               </svg>
             </button>
 
@@ -187,10 +138,10 @@ export default function ProductGallery({
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full
                     bg-white/95 backdrop-blur-sm shadow-lg flex items-center justify-center
                     opacity-0 group-hover:opacity-100 transition-all duration-200
-                    hover:bg-white hover:scale-105 border border-gray-100"
+                    hover:bg-white hover:scale-105 border border-pink-vivid/10"
                   aria-label="Previous image"
                 >
-                  <svg className="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
@@ -202,10 +153,10 @@ export default function ProductGallery({
                   className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full
                     bg-white/95 backdrop-blur-sm shadow-lg flex items-center justify-center
                     opacity-0 group-hover:opacity-100 transition-all duration-200
-                    hover:bg-white hover:scale-105 border border-gray-100"
+                    hover:bg-white hover:scale-105 border border-pink-vivid/10"
                   aria-label="Next image"
                 >
-                  <svg className="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
@@ -222,9 +173,9 @@ export default function ProductGallery({
                       e.stopPropagation();
                       setSelectedIndex(index);
                     }}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${
                       index === selectedIndex
-                        ? "bg-pink-vivid w-6"
+                        ? "bg-pink-vivid"
                         : "bg-white/60 hover:bg-white"
                     }`}
                     aria-label={`Go to image ${index + 1}`}

@@ -22,17 +22,18 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
           onClick={() => onChange(true)}
           className={`
             flex items-center gap-2.5 px-5 py-3 rounded-xl transition-all duration-200
+            bg-white
             ${value === true
-              ? "bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10"
-              : "bg-white hover:bg-pink-vivid/5"
+              ? "shadow-md shadow-pink-vivid/10"
+              : "shadow-sm hover:shadow-md"
             }
           `}
           style={{
             border: value === true
               ? "1px solid transparent"
-              : "1px solid rgba(255, 0, 127, 0.2)",
+              : "1px solid rgba(0, 0, 0, 0.05)",
             backgroundImage: value === true
-              ? "linear-gradient(to right, rgba(142, 68, 173, 0.1), rgba(255, 0, 127, 0.1), rgba(255, 159, 67, 0.1)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+              ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
               : undefined,
             backgroundOrigin: "border-box",
             backgroundClip: value === true ? "padding-box, border-box" : undefined,
@@ -43,7 +44,7 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
               w-5 h-5 rounded-full flex items-center justify-center transition-all
               ${value === true
                 ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm"
-                : "border border-pink-vivid/30"
+                : "border border-muted/30"
               }
             `}
           >
@@ -61,17 +62,18 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
           onClick={() => onChange(false)}
           className={`
             flex items-center gap-2.5 px-5 py-3 rounded-xl transition-all duration-200
+            bg-white
             ${value === false
-              ? "bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10"
-              : "bg-white hover:bg-pink-vivid/5"
+              ? "shadow-md shadow-pink-vivid/10"
+              : "shadow-sm hover:shadow-md"
             }
           `}
           style={{
             border: value === false
               ? "1px solid transparent"
-              : "1px solid rgba(255, 0, 127, 0.2)",
+              : "1px solid rgba(0, 0, 0, 0.05)",
             backgroundImage: value === false
-              ? "linear-gradient(to right, rgba(142, 68, 173, 0.1), rgba(255, 0, 127, 0.1), rgba(255, 159, 67, 0.1)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+              ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
               : undefined,
             backgroundOrigin: "border-box",
             backgroundClip: value === false ? "padding-box, border-box" : undefined,
@@ -82,7 +84,7 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
               w-5 h-5 rounded-full flex items-center justify-center transition-all
               ${value === false
                 ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm"
-                : "border border-pink-vivid/30"
+                : "border border-muted/30"
               }
             `}
           >

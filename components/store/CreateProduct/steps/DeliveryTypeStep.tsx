@@ -49,23 +49,23 @@ export default function DeliveryTypeStep({ value, onChange }: DeliveryTypeStepPr
               onClick={() => onChange(option.value)}
               className="group flex flex-col items-center text-center"
             >
-              {/* Glass circle with shadow - no inner circle */}
+              {/* Glass circle with subtle selection */}
               <div
                 className={`
                   relative w-36 h-36 rounded-full flex items-center justify-center
                   transition-all duration-300 mb-6
-                  backdrop-blur-sm
+                  backdrop-blur-sm bg-white/80
                   ${isSelected
-                    ? "bg-gradient-to-br from-purple-primary/20 via-pink-vivid/20 to-orange-warm/20 shadow-xl shadow-pink-vivid/30"
-                    : "bg-white/80 shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/20"
+                    ? "shadow-xl shadow-pink-vivid/20"
+                    : "shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/10"
                   }
                 `}
                 style={{
                   border: isSelected
                     ? "2px solid transparent"
-                    : "1px solid rgba(255, 255, 255, 0.5)",
+                    : "1px solid rgba(0, 0, 0, 0.05)",
                   backgroundImage: isSelected
-                    ? "linear-gradient(to bottom right, rgba(142, 68, 173, 0.2), rgba(255, 0, 127, 0.2), rgba(255, 159, 67, 0.2)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+                    ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
                     : undefined,
                   backgroundOrigin: "border-box",
                   backgroundClip: isSelected ? "padding-box, border-box" : undefined,
@@ -75,7 +75,7 @@ export default function DeliveryTypeStep({ value, onChange }: DeliveryTypeStepPr
                   transition-colors duration-300
                   ${isSelected
                     ? "text-pink-vivid"
-                    : "text-pink-vivid/50 group-hover:text-pink-vivid/80"
+                    : "text-pink-vivid/40 group-hover:text-pink-vivid/70"
                   }
                 `}>
                   {option.icon}
@@ -88,8 +88,8 @@ export default function DeliveryTypeStep({ value, onChange }: DeliveryTypeStepPr
                   text-xl font-display font-bold mb-1
                   transition-colors duration-300
                   ${isSelected
-                    ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent"
-                    : "text-ink group-hover:text-pink-vivid"
+                    ? "text-pink-vivid"
+                    : "text-ink group-hover:text-pink-vivid/80"
                   }
                 `}
               >
@@ -99,7 +99,7 @@ export default function DeliveryTypeStep({ value, onChange }: DeliveryTypeStepPr
               {/* Description */}
               <p className={`
                 text-sm font-body transition-colors duration-300
-                ${isSelected ? "text-pink-vivid/70" : "text-muted"}
+                ${isSelected ? "text-pink-vivid/60" : "text-muted"}
               `}>
                 {option.description}
               </p>
