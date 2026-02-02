@@ -24,33 +24,33 @@ export default function FeaturedSpotlight({ products }: FeaturedSpotlightProps) 
     .slice(0, 4);
 
   return (
-    <div className="bg-gray-50 border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+    <div className="bg-gradient-to-r from-orange-50/60 via-white to-pink-50/40 border-b border-black/[0.04]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6">
           {/* Creator Info */}
           <div className="flex items-center gap-4 flex-shrink-0">
             <Link href={`/studio/${seller.username}`}>
               <img
                 src={getOptimizedAvatarUrl(seller.avatar_url, 56) || DEFAULT_AVATAR}
                 alt={seller.display_name || seller.username}
-                className="w-14 h-14 rounded-full object-cover"
+                className="w-14 h-14 rounded-full object-cover ring-2 ring-pink-vivid/20"
               />
             </Link>
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 mb-0.5">
                 <Link
                   href={`/studio/${seller.username}`}
-                  className="font-semibold text-ink hover:underline"
+                  className="font-display font-semibold text-ink hover:text-pink-vivid transition-colors"
                 >
                   {seller.display_name || seller.username}
                 </Link>
                 {seller.is_verified && (
-                  <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 text-pink-vivid" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 )}
               </div>
-              <p className="text-sm text-gray-500">Featured creator</p>
+              <p className="text-sm font-body text-muted">Featured creator</p>
             </div>
           </div>
 
@@ -63,11 +63,11 @@ export default function FeaturedSpotlight({ products }: FeaturedSpotlightProps) 
                   href={`/product/${product.id}`}
                   className="flex-shrink-0 group"
                 >
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-gray-100">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gradient-to-br from-orange-50 to-pink-50 ring-1 ring-black/[0.04]">
                     <img
                       src={product.primary_image_url || "/placeholder-product.jpg"}
                       alt={product.title}
-                      className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                 </Link>
@@ -78,7 +78,7 @@ export default function FeaturedSpotlight({ products }: FeaturedSpotlightProps) 
           {/* View store link */}
           <Link
             href={`/studio/${seller.username}?tab=store`}
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-ink hover:bg-white rounded-lg transition-colors"
+            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 text-sm font-ui font-medium text-pink-vivid hover:bg-pink-50 rounded-xl transition-colors"
           >
             View store
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

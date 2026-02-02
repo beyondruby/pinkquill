@@ -83,14 +83,14 @@ export default function MarketplaceHeader({
 
   return (
     <>
-      <div className="sticky top-0 z-40 bg-white border-b border-gray-100">
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-lg border-b border-black/[0.04]">
         {/* Main Header Row */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
             {/* Left: Title & Count */}
             <div className="flex items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-semibold text-ink">Shop</h1>
-              <span className="hidden sm:block text-sm text-gray-400">
+              <h1 className="text-xl sm:text-2xl font-display font-semibold text-ink">Shop</h1>
+              <span className="hidden sm:block text-sm text-muted font-body">
                 {totalProducts.toLocaleString()} products
               </span>
             </div>
@@ -103,10 +103,10 @@ export default function MarketplaceHeader({
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full h-10 pl-10 pr-4 bg-gray-50 rounded-full text-sm text-ink placeholder:text-gray-400 border-0 focus:outline-none focus:ring-1 focus:ring-gray-200 transition-all"
+                  className="w-full h-10 pl-10 pr-4 bg-orange-50/50 rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-black/[0.04] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid/30 transition-all"
                 />
                 <svg
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -121,7 +121,7 @@ export default function MarketplaceHeader({
                 {searchQuery && (
                   <button
                     onClick={() => handleSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-pink-vivid transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -136,7 +136,7 @@ export default function MarketplaceHeader({
               {/* Mobile search toggle */}
               <button
                 onClick={() => setSearchExpanded(!searchExpanded)}
-                className="md:hidden p-2 text-gray-500 hover:text-ink rounded-lg"
+                className="md:hidden p-2 text-muted hover:text-pink-vivid rounded-xl hover:bg-pink-50 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -147,7 +147,7 @@ export default function MarketplaceHeader({
               <div className="relative hidden sm:block" ref={sortRef}>
                 <button
                   onClick={() => setShowSortDropdown(!showSortDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-ink rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-ui text-muted hover:text-pink-vivid rounded-xl hover:bg-pink-50 transition-colors"
                 >
                   <span>{sortOptions.find((o) => o.value === filters.sort_by)?.label}</span>
                   <svg
@@ -161,7 +161,7 @@ export default function MarketplaceHeader({
                 </button>
 
                 {showSortDropdown && (
-                  <div className="absolute top-full right-0 mt-1 w-44 bg-white rounded-xl border border-gray-100 shadow-lg py-1 z-50">
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-white/95 backdrop-blur-xl rounded-2xl border border-black/[0.06] shadow-xl shadow-black/[0.08] py-1.5 z-50 animate-fadeIn">
                     {sortOptions.map((option) => (
                       <button
                         key={option.value}
@@ -169,8 +169,8 @@ export default function MarketplaceHeader({
                           onSortChange(option.value);
                           setShowSortDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${
-                          filters.sort_by === option.value ? "text-ink font-medium" : "text-gray-600"
+                        className={`w-full px-4 py-2.5 text-left text-sm font-ui hover:bg-pink-50 transition-colors ${
+                          filters.sort_by === option.value ? "text-pink-vivid font-medium" : "text-ink"
                         }`}
                       >
                         {option.label}
@@ -183,13 +183,13 @@ export default function MarketplaceHeader({
               {/* Mobile filter button */}
               <button
                 onClick={() => setShowMobileFilters(true)}
-                className="sm:hidden flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-50"
+                className="sm:hidden flex items-center gap-1.5 px-3 py-2 text-sm font-ui text-muted rounded-xl hover:bg-pink-50 hover:text-pink-vivid transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 Filters
-                {hasActiveFilters && <span className="w-1.5 h-1.5 bg-ink rounded-full" />}
+                {hasActiveFilters && <span className="w-1.5 h-1.5 bg-pink-vivid rounded-full" />}
               </button>
             </div>
           </div>
@@ -204,10 +204,10 @@ export default function MarketplaceHeader({
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full h-10 pl-10 pr-4 bg-gray-50 rounded-full text-sm text-ink placeholder:text-gray-400 border-0 focus:outline-none focus:ring-1 focus:ring-gray-200"
+                  className="w-full h-10 pl-10 pr-4 bg-orange-50/50 rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-black/[0.04] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid/30"
                 />
                 <svg
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -220,16 +220,16 @@ export default function MarketplaceHeader({
         </div>
 
         {/* Category Pills Row */}
-        <div className="border-t border-gray-50">
+        <div className="border-t border-black/[0.03]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-1 py-3 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex items-center gap-1.5 py-3 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
               {/* All */}
               <button
                 onClick={() => onCategoryChange(undefined)}
-                className={`flex-shrink-0 px-4 py-1.5 text-sm rounded-full transition-colors ${
+                className={`flex-shrink-0 px-4 py-2 text-sm font-ui rounded-xl transition-all duration-200 ${
                   !filters.category
-                    ? "bg-ink text-white"
-                    : "text-gray-600 hover:text-ink hover:bg-gray-50"
+                    ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-sm"
+                    : "text-muted hover:text-pink-vivid hover:bg-pink-50"
                 }`}
               >
                 All
@@ -240,10 +240,10 @@ export default function MarketplaceHeader({
                 <button
                   key={cat.id}
                   onClick={() => onCategoryChange(filters.category === cat.id ? undefined : cat.id)}
-                  className={`flex-shrink-0 px-4 py-1.5 text-sm rounded-full transition-colors ${
+                  className={`flex-shrink-0 px-4 py-2 text-sm font-ui rounded-xl transition-all duration-200 ${
                     filters.category === cat.id
-                      ? "bg-ink text-white"
-                      : "text-gray-600 hover:text-ink hover:bg-gray-50"
+                      ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-sm"
+                      : "text-muted hover:text-pink-vivid hover:bg-pink-50"
                   }`}
                 >
                   {cat.name}
@@ -251,23 +251,23 @@ export default function MarketplaceHeader({
               ))}
 
               {/* Delivery type filters - desktop */}
-              <div className="hidden sm:flex items-center gap-1 ml-4 pl-4 border-l border-gray-200">
+              <div className="hidden sm:flex items-center gap-1.5 ml-3 pl-3 border-l border-black/[0.06]">
                 <button
                   onClick={() => onDeliveryTypeChange(filters.delivery_type === "physical" ? undefined : "physical")}
-                  className={`flex-shrink-0 px-3 py-1.5 text-sm rounded-full transition-colors ${
+                  className={`flex-shrink-0 px-3 py-2 text-sm font-ui rounded-xl transition-all duration-200 ${
                     filters.delivery_type === "physical"
-                      ? "bg-gray-100 text-ink"
-                      : "text-gray-500 hover:text-ink"
+                      ? "bg-orange-100 text-orange-warm"
+                      : "text-muted hover:text-orange-warm hover:bg-orange-50"
                   }`}
                 >
                   Physical
                 </button>
                 <button
                   onClick={() => onDeliveryTypeChange(filters.delivery_type === "digital" ? undefined : "digital")}
-                  className={`flex-shrink-0 px-3 py-1.5 text-sm rounded-full transition-colors ${
+                  className={`flex-shrink-0 px-3 py-2 text-sm font-ui rounded-xl transition-all duration-200 ${
                     filters.delivery_type === "digital"
-                      ? "bg-gray-100 text-ink"
-                      : "text-gray-500 hover:text-ink"
+                      ? "bg-purple-100 text-purple-primary"
+                      : "text-muted hover:text-purple-primary hover:bg-purple-50"
                   }`}
                 >
                   Digital
@@ -278,7 +278,7 @@ export default function MarketplaceHeader({
               {hasActiveFilters && (
                 <button
                   onClick={onClearFilters}
-                  className="flex-shrink-0 ml-2 px-3 py-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                  className="flex-shrink-0 ml-2 px-3 py-2 text-sm font-ui text-muted hover:text-pink-vivid transition-colors"
                 >
                   Clear
                 </button>
@@ -291,12 +291,12 @@ export default function MarketplaceHeader({
       {/* Mobile Filter Sheet */}
       {showMobileFilters && (
         <div className="fixed inset-0 z-50 sm:hidden">
-          <div className="absolute inset-0 bg-black/20" onClick={() => setShowMobileFilters(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[70vh] overflow-y-auto animate-slideUp">
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setShowMobileFilters(false)} />
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[70vh] overflow-y-auto animate-slideUp">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-ink">Filters</h3>
-                <button onClick={() => setShowMobileFilters(false)} className="p-1 text-gray-400">
+                <h3 className="text-lg font-display font-semibold text-ink">Filters</h3>
+                <button onClick={() => setShowMobileFilters(false)} className="p-1 text-muted hover:text-pink-vivid">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -305,16 +305,16 @@ export default function MarketplaceHeader({
 
               {/* Sort */}
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-500 mb-3">Sort by</h4>
+                <h4 className="text-sm font-ui font-medium text-muted mb-3">Sort by</h4>
                 <div className="space-y-2">
                   {sortOptions.map((option) => (
                     <button
                       key={option.value}
                       onClick={() => onSortChange(option.value)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-colors ${
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-ui transition-colors ${
                         filters.sort_by === option.value
-                          ? "bg-gray-100 text-ink font-medium"
-                          : "text-gray-600 hover:bg-gray-50"
+                          ? "bg-pink-50 text-pink-vivid font-medium"
+                          : "text-ink hover:bg-pink-50/50"
                       }`}
                     >
                       {option.label}
@@ -330,28 +330,28 @@ export default function MarketplaceHeader({
 
               {/* Delivery Type */}
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-500 mb-3">Type</h4>
+                <h4 className="text-sm font-ui font-medium text-muted mb-3">Type</h4>
                 <div className="flex gap-2">
                   <button
                     onClick={() => onDeliveryTypeChange(undefined)}
-                    className={`flex-1 px-4 py-3 rounded-xl text-sm transition-colors ${
-                      !filters.delivery_type ? "bg-gray-100 text-ink font-medium" : "text-gray-600 hover:bg-gray-50"
+                    className={`flex-1 px-4 py-3 rounded-xl text-sm font-ui transition-colors ${
+                      !filters.delivery_type ? "bg-pink-vivid text-white" : "bg-pink-50 text-ink hover:bg-pink-100"
                     }`}
                   >
                     All
                   </button>
                   <button
                     onClick={() => onDeliveryTypeChange("physical")}
-                    className={`flex-1 px-4 py-3 rounded-xl text-sm transition-colors ${
-                      filters.delivery_type === "physical" ? "bg-gray-100 text-ink font-medium" : "text-gray-600 hover:bg-gray-50"
+                    className={`flex-1 px-4 py-3 rounded-xl text-sm font-ui transition-colors ${
+                      filters.delivery_type === "physical" ? "bg-orange-warm text-white" : "bg-orange-50 text-ink hover:bg-orange-100"
                     }`}
                   >
                     Physical
                   </button>
                   <button
                     onClick={() => onDeliveryTypeChange("digital")}
-                    className={`flex-1 px-4 py-3 rounded-xl text-sm transition-colors ${
-                      filters.delivery_type === "digital" ? "bg-gray-100 text-ink font-medium" : "text-gray-600 hover:bg-gray-50"
+                    className={`flex-1 px-4 py-3 rounded-xl text-sm font-ui transition-colors ${
+                      filters.delivery_type === "digital" ? "bg-purple-primary text-white" : "bg-purple-50 text-ink hover:bg-purple-100"
                     }`}
                   >
                     Digital
@@ -360,21 +360,21 @@ export default function MarketplaceHeader({
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-4 border-t border-gray-100">
+              <div className="flex gap-3 pt-4 border-t border-black/[0.04]">
                 {hasActiveFilters && (
                   <button
                     onClick={() => {
                       onClearFilters();
                       setShowMobileFilters(false);
                     }}
-                    className="flex-1 px-4 py-3 rounded-xl text-sm text-gray-600 border border-gray-200"
+                    className="flex-1 px-4 py-3 rounded-xl text-sm font-ui text-muted border border-black/[0.08]"
                   >
                     Clear All
                   </button>
                 )}
                 <button
                   onClick={() => setShowMobileFilters(false)}
-                  className="flex-1 px-4 py-3 rounded-xl text-sm text-white bg-ink font-medium"
+                  className="flex-1 px-4 py-3 rounded-xl text-sm font-ui text-white bg-gradient-to-r from-purple-primary to-pink-vivid font-medium shadow-lg shadow-pink-vivid/20"
                 >
                   Show Results
                 </button>
