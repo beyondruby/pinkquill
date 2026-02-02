@@ -116,12 +116,13 @@ export default function LeftSidebar() {
   };
 
   const handleMouseLeave = () => {
+    // Don't collapse if a menu is open (user might be clicking on menu items)
+    if (showMenu || showCreateMenu) {
+      return;
+    }
     // Small delay before collapsing to prevent accidental collapse
     hoverTimeoutRef.current = setTimeout(() => {
       setIsExpanded(false);
-      // Close any open menus when collapsing
-      setShowMenu(false);
-      setShowCreateMenu(false);
     }, 150);
   };
 
@@ -137,11 +138,21 @@ export default function LeftSidebar() {
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const clickedInsideSidebar = sidebarRef.current?.contains(event.target as Node);
+
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowMenu(false);
+        // Collapse sidebar if click was outside
+        if (!clickedInsideSidebar) {
+          setIsExpanded(false);
+        }
       }
       if (createMenuRef.current && !createMenuRef.current.contains(event.target as Node)) {
         setShowCreateMenu(false);
+        // Collapse sidebar if click was outside
+        if (!clickedInsideSidebar) {
+          setIsExpanded(false);
+        }
       }
     };
 
@@ -287,7 +298,7 @@ export default function LeftSidebar() {
         {user && (
           <div className={`relative mt-auto ${isExpanded ? "" : "flex justify-center"}`} ref={createMenuRef}>
             <button
-              onClick={() => isExpanded ? setShowCreateMenu(!showCreateMenu) : router.push("/create")}
+              onClick={() => setShowCreateMenu(!showCreateMenu)}
               className={`bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-white shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300 ${
                 isExpanded ? "w-full h-12 rounded-xl gap-2" : "w-10 h-10 rounded-full"
               }`}
@@ -310,8 +321,12 @@ export default function LeftSidebar() {
             </button>
 
             {/* Create Menu Dropdown */}
-            {showCreateMenu && isExpanded && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 p-1.5 rounded-2xl bg-white/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-black/[0.06] z-50 animate-fadeIn">
+            {showCreateMenu && (
+              <div className={`absolute p-1.5 rounded-2xl bg-white/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-black/[0.06] z-50 animate-fadeIn ${
+                isExpanded
+                  ? "bottom-full left-0 right-0 mb-2"
+                  : "left-full bottom-0 ml-2 w-48"
+              }`}>
                 <button
                   onClick={() => {
                     setShowCreateMenu(false);
@@ -384,22 +399,31 @@ export default function LeftSidebar() {
               </div>
             </Link>
 
-            {/* More Button - Only visible when expanded */}
-            {isExpanded && (
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="w-full flex items-center gap-3.5 px-4 py-3 mt-1 rounded-xl text-muted hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
-              >
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-                <span className="font-ui text-[0.95rem]">More</span>
-              </button>
-            )}
+            {/* More Button */}
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className={`flex items-center mt-1 rounded-xl text-muted hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200 ${
+                isExpanded ? "w-full gap-3.5 px-4 py-3" : "w-9 h-9 justify-center mx-auto"
+              }`}
+              title={!isExpanded ? "More" : undefined}
+            >
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <span className={`font-ui text-[0.95rem] whitespace-nowrap transition-all duration-300 ${
+                isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
+              }`}>
+                More
+              </span>
+            </button>
 
             {/* Dropdown Menu */}
-            {showMenu && isExpanded && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 p-1.5 rounded-2xl bg-white/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-black/[0.06] z-50 animate-fadeIn">
+            {showMenu && (
+              <div className={`absolute p-1.5 rounded-2xl bg-white/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-black/[0.06] z-50 animate-fadeIn ${
+                isExpanded
+                  ? "bottom-full left-0 right-0 mb-2"
+                  : "left-full bottom-0 ml-2 w-48"
+              }`}>
                 <Link
                   href="/saved"
                   onClick={() => setShowMenu(false)}
