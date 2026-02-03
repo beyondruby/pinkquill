@@ -166,31 +166,43 @@ export default function CommunityFeedPage() {
         {/* Pinned Posts - Enhanced */}
         {pinnedPosts.length > 0 && (
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20 flex items-center justify-center">
-                <svg className="w-4 h-4 text-orange-warm" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.616a1 1 0 01.894-1.79l1.599.8L9 4.323V3a1 1 0 011-1z" />
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10 border border-purple-primary/10">
+                <svg className="w-4 h-4 text-purple-primary" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
                 </svg>
+                <span className="font-ui text-xs font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent uppercase tracking-wider">
+                  Pinned
+                </span>
               </div>
-              <h3 className="font-ui text-sm font-semibold text-ink uppercase tracking-wide">Pinned</h3>
+              <div className="flex-1 h-px bg-gradient-to-r from-purple-primary/20 via-pink-vivid/10 to-transparent" />
             </div>
             <div className="space-y-4">
               {pinnedPosts.map((post) => (
                 <div key={post.id} className="relative group/pin">
-                  <div className="absolute -left-3 top-6 bottom-6 w-1 bg-gradient-to-b from-orange-warm via-pink-vivid to-purple-primary rounded-full" />
+                  {/* Pin indicator badge */}
+                  <div className="absolute -top-2 left-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
+                    </svg>
+                    <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pinned</span>
+                  </div>
                   {/* Unpin button for admins */}
                   {isAdmin && (
                     <button
                       onClick={() => handleUnpin(post.id)}
-                      className="absolute -left-1 top-2 z-10 w-6 h-6 rounded-full bg-white shadow-md border border-purple-primary/20 flex items-center justify-center opacity-0 group-hover/pin:opacity-100 transition-opacity hover:bg-purple-primary hover:text-white text-purple-primary"
+                      className="absolute -top-2 right-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-md border border-red-200 text-red-500 opacity-0 group-hover/pin:opacity-100 transition-all hover:bg-red-50 hover:border-red-300"
                       title="Unpin post"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
+                      <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Unpin</span>
                     </button>
                   )}
-                  <PostCard post={transformPost(post)} />
+                  <div className="pt-2">
+                    <PostCard post={transformPost(post)} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -214,15 +226,18 @@ export default function CommunityFeedPage() {
                 {isAdmin && canPin && !isPinned(post.id) && (
                   <button
                     onClick={() => handlePin(post.id)}
-                    className="absolute -left-1 top-4 z-10 w-6 h-6 rounded-full bg-white shadow-md border border-purple-primary/20 flex items-center justify-center opacity-0 group-hover/pin:opacity-100 transition-opacity hover:bg-purple-primary hover:text-white text-purple-primary"
+                    className="absolute -top-2 left-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-md border border-purple-primary/20 text-purple-primary opacity-0 group-hover/pin:opacity-100 transition-all hover:bg-gradient-to-r hover:from-purple-primary hover:to-pink-vivid hover:text-white hover:border-transparent"
                     title="Pin post"
                   >
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
                     </svg>
+                    <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pin</span>
                   </button>
                 )}
-                <PostCard post={transformPost(post)} />
+                <div className={isAdmin && canPin && !isPinned(post.id) ? "pt-2" : ""}>
+                  <PostCard post={transformPost(post)} />
+                </div>
               </div>
             ))}
           </div>
