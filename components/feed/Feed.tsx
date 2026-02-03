@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useInView } from "react-intersection-observer";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -11,6 +11,21 @@ import PostSkeleton from "./PostSkeleton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
 import type { Post } from "@/lib/types";
+
+// PERFORMANCE: Moved outside component to prevent recreation on every render
+const TYPE_LABELS: Record<string, string> = {
+  poem: "wrote a poem",
+  journal: "wrote in their journal",
+  thought: "shared a thought",
+  visual: "shared a visual story",
+  audio: "recorded a voice note",
+  video: "shared a video",
+  essay: "wrote an essay",
+  blog: "published a blog post",
+  story: "shared a story",
+  letter: "wrote a letter",
+  quote: "shared a quote",
+};
 
 function getTimeAgo(dateString: string): string {
   const now = new Date();
@@ -25,20 +40,51 @@ function getTimeAgo(dateString: string): string {
 }
 
 function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    poem: "wrote a poem",
-    journal: "wrote in their journal",
-    thought: "shared a thought",
-    visual: "shared a visual story",
-    audio: "recorded a voice note",
-    video: "shared a video",
-    essay: "wrote an essay",
-    blog: "published a blog post",
-    story: "shared a story",
-    letter: "wrote a letter",
-    quote: "shared a quote",
+  return TYPE_LABELS[type] || "shared something";
+}
+
+// PERFORMANCE: Transform post data once, memoized by post ID
+function transformPostForCard(post: Post) {
+  return {
+    id: post.id,
+    authorId: post.author_id,
+    author: {
+      name: post.author.display_name || post.author.username,
+      handle: `@${post.author.username}`,
+      avatar: post.author.avatar_url || "/defaultprofile.png",
+    },
+    type: post.type,
+    typeLabel: getTypeLabel(post.type),
+    timeAgo: getTimeAgo(post.created_at),
+    createdAt: post.created_at,
+    title: post.title || undefined,
+    content: post.content,
+    contentWarning: post.content_warning || undefined,
+    media: post.media || [],
+    stats: {
+      admires: post.admires_count,
+      comments: post.comments_count,
+      relays: post.relays_count,
+    },
+    isAdmired: post.user_has_admired,
+    isSaved: post.user_has_saved,
+    isRelayed: post.user_has_relayed,
+    community: post.community ? {
+      slug: post.community.slug,
+      name: post.community.name,
+      avatar_url: post.community.avatar_url,
+    } : undefined,
+    collaborators: (post.collaborators || []).map(c => ({
+      ...c,
+      status: c.status as 'pending' | 'accepted' | 'declined',
+    })),
+    mentions: post.mentions || [],
+    hashtags: post.hashtags || [],
+    styling: post.styling || null,
+    post_location: post.post_location || null,
+    metadata: post.metadata || null,
+    spotify_track: post.spotify_track || null,
   };
-  return labels[type] || "shared something";
 }
 
 export default function Feed() {
@@ -79,12 +125,24 @@ export default function Feed() {
     return () => { unsubPosts(); };
   }, [subscribeToDeletes]);
 
-  // Filter out deleted posts
-  const posts = feedPosts.filter(p => !deletedIds.has(p.id));
+  // PERFORMANCE: Memoize filtered posts - only recalculate when feedPosts or deletedIds change
+  const posts = useMemo(
+    () => feedPosts.filter(p => !deletedIds.has(p.id)),
+    [feedPosts, deletedIds]
+  );
 
-  const handlePostDeleted = (postId: string) => {
+  // PERFORMANCE: Memoize transformed posts - prevents object recreation on every render
+  const transformedPosts = useMemo(
+    () => posts.map(post => ({
+      original: post,
+      transformed: transformPostForCard(post),
+    })),
+    [posts]
+  );
+
+  const handlePostDeleted = useCallback((postId: string) => {
     setDeletedIds(prev => new Set(prev).add(postId));
-  };
+  }, []);
 
   // Show skeletons while loading (only on initial load)
   if (authLoading || (postsLoading && posts.length === 0)) {
@@ -136,54 +194,17 @@ export default function Feed() {
 
   return (
     <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
-      {posts.map((post) => (
+      {/* PERFORMANCE: Using memoized transformed posts */}
+      {transformedPosts.map(({ original, transformed }) => (
         <ErrorBoundary
-          key={post.id}
-          section={`PostCard:${post.id}`}
+          key={original.id}
+          section={`PostCard:${original.id}`}
           fallback={({ reset }) => <PostCardErrorFallback onRetry={reset} />}
         >
           <PostCard
-            post={{
-              id: post.id,
-              authorId: post.author_id,
-              author: {
-                name: post.author.display_name || post.author.username,
-                handle: `@${post.author.username}`,
-                avatar: post.author.avatar_url || "/defaultprofile.png",
-              },
-              type: post.type,
-              typeLabel: getTypeLabel(post.type),
-              timeAgo: getTimeAgo(post.created_at),
-              createdAt: post.created_at,
-              title: post.title || undefined,
-              content: post.content,
-              contentWarning: post.content_warning || undefined,
-              media: post.media || [],
-              stats: {
-                admires: post.admires_count,
-                comments: post.comments_count,
-                relays: post.relays_count,
-              },
-              isAdmired: post.user_has_admired,
-              isSaved: post.user_has_saved,
-              isRelayed: post.user_has_relayed,
-              community: post.community ? {
-                slug: post.community.slug,
-                name: post.community.name,
-                avatar_url: post.community.avatar_url,
-              } : undefined,
-              collaborators: (post.collaborators || []).map(c => ({
-                ...c,
-                status: c.status as 'pending' | 'accepted' | 'declined',
-              })),
-              mentions: post.mentions || [],
-              hashtags: post.hashtags || [],
-              styling: post.styling || null,
-              post_location: post.post_location || null,
-              metadata: post.metadata || null,
-              spotify_track: post.spotify_track || null,
-            }}
+            post={transformed}
             onPostDeleted={handlePostDeleted}
+            disableRealtimeSubscriptions={true} // PERFORMANCE: Disable per-card subscriptions in feed
           />
         </ErrorBoundary>
       ))}

@@ -245,7 +245,13 @@ export function useToggleReaction() {
 // useReactionCounts - Get reaction counts for a post
 // ============================================================================
 
-export function useReactionCounts(postId: string) {
+interface UseReactionCountsOptions {
+  /** Disable real-time subscription (useful when parent already manages updates) */
+  disableRealtime?: boolean;
+}
+
+export function useReactionCounts(postId: string, options?: UseReactionCountsOptions) {
+  const { disableRealtime = false } = options || {};
   const [counts, setCounts] = useState<ReactionCounts>({
     admire: 0,
     snap: 0,
@@ -337,8 +343,16 @@ export function useReactionCounts(postId: string) {
   }, [fetchCounts]);
 
   // Real-time subscription - only depends on postId to prevent recreation
+  // PERFORMANCE: Skip subscription when disableRealtime is true (e.g., in feed context)
   useEffect(() => {
     mountedRef.current = true;
+
+    // Skip subscription if disabled (parent manages updates)
+    if (disableRealtime) {
+      return () => {
+        mountedRef.current = false;
+      };
+    }
 
     // Clean up previous channel if exists
     if (channelRef.current) {
@@ -370,7 +384,7 @@ export function useReactionCounts(postId: string) {
         channelRef.current = null;
       }
     };
-  }, [postId]);
+  }, [postId, disableRealtime]);
 
   return { counts, loading, refetch: fetchCounts };
 }
@@ -379,7 +393,13 @@ export function useReactionCounts(postId: string) {
 // useUserReaction - Get user's reaction for a post with real-time updates
 // ============================================================================
 
-export function useUserReaction(postId: string, userId?: string) {
+interface UseUserReactionOptions {
+  /** Disable real-time subscription (useful when parent already manages updates) */
+  disableRealtime?: boolean;
+}
+
+export function useUserReaction(postId: string, userId?: string, options?: UseUserReactionOptions) {
+  const { disableRealtime = false } = options || {};
   const [reaction, setReaction] = useState<ReactionType | null>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
@@ -436,10 +456,18 @@ export function useUserReaction(postId: string, userId?: string) {
   }, [fetchReaction]);
 
   // Real-time subscription - only depends on postId and userId to prevent recreation
+  // PERFORMANCE: Skip subscription when disableRealtime is true (e.g., in feed context)
   useEffect(() => {
     mountedRef.current = true;
 
     if (!userId) return;
+
+    // Skip subscription if disabled (parent manages updates)
+    if (disableRealtime) {
+      return () => {
+        mountedRef.current = false;
+      };
+    }
 
     // Clean up previous channel if exists
     if (channelRef.current) {
@@ -483,7 +511,7 @@ export function useUserReaction(postId: string, userId?: string) {
         channelRef.current = null;
       }
     };
-  }, [postId, userId]);
+  }, [postId, userId, disableRealtime]);
 
   return { reaction, loading, setReaction, refetch: fetchReaction };
 }

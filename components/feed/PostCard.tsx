@@ -118,11 +118,14 @@ function PostCardComponent({
   onPostDeleted,
   canModerateDelete,
   onModeratorDelete,
+  disableRealtimeSubscriptions = false,
 }: {
   post: PostProps;
   onPostDeleted?: (postId: string) => void;
   canModerateDelete?: boolean;
   onModeratorDelete?: (postId: string, reason?: string) => Promise<void>;
+  /** PERFORMANCE: Disable per-card real-time subscriptions when used in feed context */
+  disableRealtimeSubscriptions?: boolean;
 }) {
   const router = useRouter();
   const { openPostModal, subscribeToUpdates, notifyUpdate } = useModal();
@@ -133,9 +136,9 @@ function PostCardComponent({
   const { toggle: toggleRelay } = useToggleRelay();
   const { react: toggleReaction, removeReaction } = useToggleReaction();
 
-  // Real-time reaction hooks
-  const { counts: reactionCounts, refetch: refetchReactionCounts } = useReactionCounts(post.id);
-  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post.id, user?.id);
+  // Real-time reaction hooks - disabled in feed context to reduce subscription count
+  const { counts: reactionCounts, refetch: refetchReactionCounts } = useReactionCounts(post.id, { disableRealtime: disableRealtimeSubscriptions });
+  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post.id, user?.id, { disableRealtime: disableRealtimeSubscriptions });
 
   const [isAdmired, setIsAdmired] = useState(post.isAdmired || false);
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
