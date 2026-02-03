@@ -458,7 +458,13 @@ export function useUpdateProduct(): UseUpdateProductReturn {
     setError(null);
 
     try {
-      const { error: updateError } = await supabase
+      // SECURITY: Verify current user owns this product
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
+
+      const { error: updateError, count } = await supabase
         .from("products")
         .update({
           title: updates.title,
@@ -469,7 +475,8 @@ export function useUpdateProduct(): UseUpdateProductReturn {
           year_created: updates.year_created,
           status: updates.status,
         })
-        .eq("id", productId);
+        .eq("id", productId)
+        .eq("seller_id", user.id); // SECURITY: Only update if user owns this product
 
       if (updateError) throw updateError;
       return true;
@@ -504,11 +511,18 @@ export function useDeleteProduct(): UseDeleteProductReturn {
     setError(null);
 
     try {
+      // SECURITY: Verify current user owns this product
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
+
       // Delete will cascade to media, pricing, shipping, files, keywords
       const { error: deleteError } = await supabase
         .from("products")
         .delete()
-        .eq("id", productId);
+        .eq("id", productId)
+        .eq("seller_id", user.id); // SECURITY: Only delete if user owns this product
 
       if (deleteError) throw deleteError;
       return true;
@@ -543,10 +557,17 @@ export function useUpdateProductStatus(): UseUpdateProductStatusReturn {
     setError(null);
 
     try {
+      // SECURITY: Verify current user owns this product
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
+
       const { error: updateError } = await supabase
         .from("products")
         .update({ status })
-        .eq("id", productId);
+        .eq("id", productId)
+        .eq("seller_id", user.id); // SECURITY: Only update if user owns this product
 
       if (updateError) throw updateError;
       return true;

@@ -1178,6 +1178,28 @@ export function useUpdateCommunity() {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // SECURITY: Helper to verify user has admin/moderator permissions
+  const verifyPermission = async (communityId: string): Promise<{ userId: string } | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    // Check if user is admin or moderator of this community
+    const { data: membership } = await supabase
+      .from("community_members")
+      .select("role")
+      .eq("community_id", communityId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!membership || !["admin", "moderator"].includes(membership.role)) {
+      throw new Error("You don't have permission to modify this community");
+    }
+
+    return { userId: user.id };
+  };
+
   const update = async (communityId: string, data: Partial<{
     name: string;
     description: string;
@@ -1190,6 +1212,9 @@ export function useUpdateCommunity() {
     setError(null);
 
     try {
+      // SECURITY: Verify user has permission to update this community
+      await verifyPermission(communityId);
+
       const { error: updateError } = await supabase
         .from("communities")
         .update({
@@ -1216,6 +1241,9 @@ export function useUpdateCommunity() {
     setError(null);
 
     try {
+      // SECURITY: Verify user has permission to update rules
+      await verifyPermission(communityId);
+
       // Delete existing rules
       await supabase
         .from("community_rules")
@@ -1262,6 +1290,23 @@ export function useDeleteCommunity() {
     setError(null);
 
     try {
+      // SECURITY: Verify user is admin of this community (only admins can delete)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
+
+      const { data: membership } = await supabase
+        .from("community_members")
+        .select("role")
+        .eq("community_id", communityId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (!membership || membership.role !== "admin") {
+        throw new Error("Only community admins can delete communities");
+      }
+
       // Delete in order: rules, tags, members, join requests, invitations, posts (set community_id to null), then community
       await Promise.all([
         supabase.from("community_rules").delete().eq("community_id", communityId),

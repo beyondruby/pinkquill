@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import DOMPurify from "dompurify";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useToggleSave, useToggleRelay, useComments, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, ReactionType } from "@/lib/hooks";
+import { cleanHtmlForDisplay } from "@/lib/utils/sanitize";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import CommentItem from "@/components/feed/CommentItem";
@@ -18,18 +18,6 @@ import PostTags from "@/components/feed/PostTags";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
-
-// Helper to sanitize and clean HTML for display
-function cleanHtmlForDisplay(html: string): string {
-  // First sanitize to prevent XSS attacks
-  const sanitized = DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'span', 'div'],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style'],
-    ALLOW_DATA_ATTR: false,
-  });
-  // Then clean up &nbsp; entities
-  return sanitized.replace(/&nbsp;/g, ' ');
-}
 
 interface TaggedUser {
   id: string;
