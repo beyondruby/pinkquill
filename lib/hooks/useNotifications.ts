@@ -158,13 +158,77 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        () => {
-          fetchNotifications();
+        async (payload) => {
+          // Incremental update: Add new notification without refetching all
+          const newNotif = payload.new as any;
+
+          // Fetch the actor, post, and community data for the new notification
+          const { data: fullNotif } = await supabase
+            .from("notifications")
+            .select(`
+              *,
+              actor:profiles!notifications_actor_id_fkey (
+                username,
+                display_name,
+                avatar_url
+              ),
+              post:posts (
+                title,
+                content,
+                type
+              ),
+              community:communities (
+                name,
+                slug,
+                avatar_url
+              )
+            `)
+            .eq("id", newNotif.id)
+            .single();
+
+          if (fullNotif) {
+            setNotifications((prev) => {
+              // Avoid duplicates
+              if (prev.some((n) => n.id === fullNotif.id)) return prev;
+              // Add to beginning (most recent first), cap at 50
+              return [fullNotif, ...prev].slice(0, 50);
+            });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          // Incremental update: Update specific notification
+          const updated = payload.new as any;
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === updated.id ? { ...n, ...updated } : n))
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          // Incremental update: Remove deleted notification
+          const deleted = payload.old as any;
+          setNotifications((prev) => prev.filter((n) => n.id !== deleted.id));
         }
       )
       .subscribe();
@@ -306,6 +370,7 @@ export function useMarkAsRead() {
 
 // ============================================================================
 // useUnreadMessagesCount - Unread messages count (filtered for blocks)
+// Optimized: Caches blocked users, uses longer debounce, more efficient queries
 // ============================================================================
 
 interface UseUnreadMessagesCountReturn {
@@ -313,19 +378,35 @@ interface UseUnreadMessagesCountReturn {
   refetch: () => Promise<void>;
 }
 
+// Cache blocked users for 5 minutes to avoid refetching on every message
+const BLOCKED_USERS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+interface BlockedUsersCache {
+  userIds: Set<string>;
+  fetchedAt: number;
+}
+
+// Module-level cache for blocked users (persists across hook instances)
+const blockedUsersCacheByUser = new Map<string, BlockedUsersCache>();
+
 export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountReturn {
   const [count, setCount] = useState(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const fetchedRef = useRef(false);
+  const mountedRef = useRef(true);
 
-  const fetchCount = useCallback(async () => {
-    if (!userId) {
-      setCount(0);
-      return;
+  // Fetch blocked users with caching
+  const getBlockedUsers = useCallback(async (): Promise<Set<string>> => {
+    if (!userId) return new Set();
+
+    // Check cache
+    const cached = blockedUsersCacheByUser.get(userId);
+    if (cached && (Date.now() - cached.fetchedAt < BLOCKED_USERS_CACHE_TTL_MS)) {
+      return cached.userIds;
     }
 
     try {
-      // Get blocked users (both directions)
+      // Fetch both directions in parallel
       const [blockedByResult, iBlockedResult] = await Promise.all([
         supabase.from("blocks").select("blocker_id").eq("blocked_id", userId),
         supabase.from("blocks").select("blocked_id").eq("blocker_id", userId),
@@ -335,11 +416,37 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
       (blockedByResult.data || []).forEach((b) => blockedUserIds.add(b.blocker_id));
       (iBlockedResult.data || []).forEach((b) => blockedUserIds.add(b.blocked_id));
 
-      // Get conversations
+      // Update cache
+      blockedUsersCacheByUser.set(userId, {
+        userIds: blockedUserIds,
+        fetchedAt: Date.now(),
+      });
+
+      return blockedUserIds;
+    } catch (err) {
+      console.error("[useUnreadMessagesCount] Error fetching blocked users:", err);
+      return cached?.userIds || new Set();
+    }
+  }, [userId]);
+
+  const fetchCount = useCallback(async () => {
+    if (!userId) {
+      setCount(0);
+      return;
+    }
+
+    try {
+      // Get blocked users (uses cache)
+      const blockedUserIds = await getBlockedUsers();
+
+      // Optimized: Single query to get unread count by joining tables
+      // Get conversations where user is participant
       const { data: participations } = await supabase
         .from("conversation_participants")
         .select("conversation_id")
         .eq("user_id", userId);
+
+      if (!mountedRef.current) return;
 
       if (!participations || participations.length === 0) {
         setCount(0);
@@ -349,23 +456,32 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
 
       const conversationIds = participations.map((p) => p.conversation_id);
 
-      // Get unread messages
-      const { data: unreadMessages } = await supabase
+      // Get unread count - only fetch sender_id for filtering (minimal data)
+      const { data: unreadMessages, error } = await supabase
         .from("messages")
         .select("sender_id")
         .in("conversation_id", conversationIds)
         .eq("is_read", false)
         .neq("sender_id", userId);
 
-      // Filter out blocked users
-      const filteredCount = (unreadMessages || []).filter((m) => !blockedUserIds.has(m.sender_id)).length;
+      if (!mountedRef.current) return;
+      if (error) throw error;
+
+      // Filter out blocked users (this is fast since blockedUserIds is a Set)
+      let filteredCount = 0;
+      const messages = unreadMessages || [];
+      for (let i = 0; i < messages.length; i++) {
+        if (!blockedUserIds.has(messages[i].sender_id)) {
+          filteredCount++;
+        }
+      }
 
       setCount(filteredCount);
       fetchedRef.current = true;
     } catch (err: any) {
       console.error("[useUnreadMessagesCount] Error:", err?.message || err);
     }
-  }, [userId]);
+  }, [userId, getBlockedUsers]);
 
   // Use ref to access latest fetchCount in subscription callback
   const fetchCountRef = useRef(fetchCount);
@@ -375,9 +491,13 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
 
   // Initial fetch - separate from subscription
   useEffect(() => {
+    mountedRef.current = true;
     if (userId && !fetchedRef.current) {
       fetchCount();
     }
+    return () => {
+      mountedRef.current = false;
+    };
   }, [userId, fetchCount]);
 
   // Real-time subscription - only depends on userId
@@ -395,13 +515,15 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
       supabase.removeChannel(channelRef.current);
     }
 
-    // Debounce rapid message updates
+    // Debounce rapid message updates - increased to 1000ms to reduce database load
     let debounceTimer: NodeJS.Timeout | null = null;
     const debouncedFetch = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        fetchCountRef.current();
-      }, 300);
+        if (mountedRef.current) {
+          fetchCountRef.current();
+        }
+      }, 1000); // Increased from 300ms to 1000ms
     };
 
     const channelName = `unread-messages-count-${userId}`;

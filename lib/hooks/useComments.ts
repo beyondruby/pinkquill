@@ -9,9 +9,14 @@ import type { Comment } from "../types";
 // useComments - Optimized with lazy-loaded replies
 // ============================================================================
 
+// Pagination constants
+const COMMENTS_PAGE_SIZE = 30;
+
 interface UseCommentsReturn {
   comments: Comment[];
   loading: boolean;
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
   addComment: (
     currentUserId: string,
     content: string,
@@ -34,14 +39,28 @@ interface UseCommentsReturn {
 export function useComments(postId: string, userId?: string): UseCommentsReturn {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
   const mountedRef = useRef(true);
+  const pageRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Fetch only top-level comments initially
-  const fetchComments = useCallback(async () => {
+  // Fetch only top-level comments with pagination
+  const fetchComments = useCallback(async (page: number = 0, append: boolean = false) => {
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
-      setLoading(true);
+      if (!append) {
+        setLoading(true);
+      }
 
-      // Only fetch top-level comments (no parent)
+      const from = page * COMMENTS_PAGE_SIZE;
+      const to = from + COMMENTS_PAGE_SIZE - 1;
+
+      // Only fetch top-level comments (no parent) with pagination
       const { data, error } = await supabase
         .from("comments")
         .select(
@@ -56,7 +75,8 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         )
         .eq("post_id", postId)
         .is("parent_id", null) // Only top-level
-        .order("created_at", { ascending: false }); // Newest first
+        .order("created_at", { ascending: false }) // Newest first
+        .range(from, to);
 
       // Check if still mounted before updating state
       if (!mountedRef.current) return;
@@ -64,7 +84,10 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        setComments([]);
+        if (!append) {
+          setComments([]);
+        }
+        setHasMore(false);
         setLoading(false);
         return;
       }
@@ -112,8 +135,16 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         replies: [], // Empty initially - load on demand
       }));
 
-      setComments(transformedComments);
-    } catch (err) {
+      if (append) {
+        setComments((prev) => [...prev, ...transformedComments]);
+      } else {
+        setComments(transformedComments);
+      }
+
+      pageRef.current = page;
+      setHasMore(data.length === COMMENTS_PAGE_SIZE);
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("[useComments] Error:", err);
     } finally {
       if (mountedRef.current) {
@@ -121,6 +152,12 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
       }
     }
   }, [postId, userId]);
+
+  // Load more comments
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loading) return;
+    await fetchComments(pageRef.current + 1, true);
+  }, [fetchComments, hasMore, loading]);
 
   // Lazy-load replies for a specific comment
   const fetchReplies = useCallback(
@@ -332,7 +369,7 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
     } catch (err) {
       console.error("[useComments] toggleLike Error:", err);
       // Revert on error
-      fetchComments();
+      fetchComments(0, false);
     }
   };
 
@@ -376,23 +413,29 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
   // Initial fetch and cleanup
   useEffect(() => {
     mountedRef.current = true;
+    pageRef.current = 0;
 
     if (postId) {
-      fetchComments();
+      fetchComments(0, false);
     }
 
     return () => {
       mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, [postId, fetchComments]);
 
   return {
     comments,
     loading,
+    hasMore,
+    loadMore,
     addComment,
     toggleLike,
     deleteComment,
     fetchReplies,
-    refetch: fetchComments,
+    refetch: () => fetchComments(0, false),
   };
 }

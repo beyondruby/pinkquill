@@ -657,7 +657,8 @@ export function useRelays(username: string) {
           return;
         }
 
-        // Fetch relays with post data
+        // Fetch relays with post data INCLUDING aggregate counts
+        // This eliminates the need for separate count queries
         const { data: relaysData, error: relaysError } = await supabase
           .from("relays")
           .select(
@@ -682,7 +683,10 @@ export function useRelays(username: string) {
                 media_type,
                 caption,
                 position
-              )
+              ),
+              admires:admires(count),
+              comments:comments(count),
+              relays:relays(count)
             )
           `
           )
@@ -716,6 +720,9 @@ export function useRelays(username: string) {
             caption: string | null;
             position: number;
           }[];
+          admires: { count: number }[] | null;
+          comments: { count: number }[] | null;
+          relays: { count: number }[] | null;
         }
 
         // Helper to extract post data - handles both object and array return types from Supabase
@@ -725,61 +732,48 @@ export function useRelays(username: string) {
           return post as RelayPostData;
         };
 
-        const postIds = relaysData
-          .map((r) => getPostData(r.post)?.id)
-          .filter((id): id is string => !!id);
-
-        if (postIds.length === 0) {
-          setRelays([]);
-          return;
-        }
-
-        // Batch fetch counts concurrently
-        const [admiresResult, commentsResult, relaysCountResult] = await Promise.all([
-          supabase.from("admires").select("post_id").in("post_id", postIds),
-          supabase.from("comments").select("post_id").in("post_id", postIds),
-          supabase.from("relays").select("post_id").in("post_id", postIds),
-        ]);
-
-        if (abortController.signal.aborted || !mountedRef.current) return;
-
-        const admiresCounts: Record<string, number> = {};
-        const commentsCounts: Record<string, number> = {};
-        const relaysCounts: Record<string, number> = {};
-
-        (admiresResult.data || []).forEach((a) => {
-          admiresCounts[a.post_id] = (admiresCounts[a.post_id] || 0) + 1;
-        });
-        (commentsResult.data || []).forEach((c) => {
-          commentsCounts[c.post_id] = (commentsCounts[c.post_id] || 0) + 1;
-        });
-        (relaysCountResult.data || []).forEach((r) => {
-          relaysCounts[r.post_id] = (relaysCounts[r.post_id] || 0) + 1;
-        });
+        // Helper to extract count from Supabase aggregate response
+        const getCount = (countData: { count: number }[] | null | undefined): number => {
+          if (!countData || countData.length === 0) return 0;
+          return countData[0]?.count ?? 0;
+        };
 
         const processedRelays = relaysData
           .map((relay) => {
             const post = getPostData(relay.post);
             if (!post) return null;
-            return {
-              ...post,
+
+            // Extract only the fields we need, excluding the aggregate data
+            const relayedPost: RelayedPost = {
+              id: post.id,
+              author_id: post.author_id,
+              type: post.type as any,
+              title: post.title,
+              content: post.content,
+              visibility: post.visibility as any,
+              created_at: post.created_at,
+              content_warning: null,
+              community_id: null,
+              author: post.author as PostAuthor,
               media: (post.media || []).sort((a, b) => a.position - b.position) as PostMedia[],
               relayed_at: relay.created_at,
               original_author: post.author as PostAuthor,
-              admires_count: admiresCounts[post.id] || 0,
-              comments_count: commentsCounts[post.id] || 0,
-              relays_count: relaysCounts[post.id] || 0,
+              // Use counts from the aggregate query - no separate queries needed!
+              admires_count: getCount(post.admires),
+              comments_count: getCount(post.comments),
+              relays_count: getCount(post.relays),
               reactions_count: 0,
               user_has_admired: false,
               user_has_saved: false,
               user_has_relayed: false,
               user_reaction_type: null,
             };
+            return relayedPost;
           })
-          .filter((relay): relay is NonNullable<typeof relay> => relay !== null);
+          .filter((relay): relay is RelayedPost => relay !== null);
 
         if (abortController.signal.aborted || !mountedRef.current) return;
-        setRelays(processedRelays as RelayedPost[]);
+        setRelays(processedRelays);
       } catch (err: any) {
         if (err?.name === "AbortError" || abortControllerRef.current?.signal.aborted) return;
         console.error("[useRelays] Error:", err);

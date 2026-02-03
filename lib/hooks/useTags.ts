@@ -42,8 +42,23 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
   const [tags, setTags] = useState<TrendingTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const fetchedRef = useRef(false);
 
   const fetchTrendingTags = useCallback(async () => {
+    // Prevent duplicate fetches on initial load
+    if (fetchedRef.current && tags.length > 0) {
+      setLoading(false);
+      return;
+    }
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       setLoading(true);
       setError(null);
@@ -55,7 +70,7 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      // Fetch tags with post counts
+      // Fetch tags with post counts - limit to prevent excessive data transfer
       const { data: tagData, error: tagError } = await supabase
         .from("post_tags")
         .select(`
@@ -73,18 +88,27 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
         `)
         .eq("posts.status", "published")
         .eq("posts.visibility", "public")
-        .gte("posts.created_at", thirtyDaysAgo.toISOString());
+        .gte("posts.created_at", thirtyDaysAgo.toISOString())
+        .limit(500); // Add reasonable limit
 
+      if (!mountedRef.current) return;
       if (tagError) throw tagError;
 
-      // Count posts per tag
+      // Count posts per tag efficiently
       const tagCounts = new Map<string, { name: string; total: number; recent: number }>();
+      const dataArray = tagData || [];
 
-      (tagData || []).forEach((item: any) => {
+      for (let i = 0; i < dataArray.length; i++) {
+        const item = dataArray[i] as any;
         const tagName = item.tags?.name;
-        if (!tagName) return;
+        if (!tagName) continue;
 
-        const existing = tagCounts.get(tagName) || { name: tagName, total: 0, recent: 0 };
+        let existing = tagCounts.get(tagName);
+        if (!existing) {
+          existing = { name: tagName, total: 0, recent: 0 };
+          tagCounts.set(tagName, existing);
+        }
+
         existing.total += 1;
 
         // Check if post is from last 7 days
@@ -92,9 +116,7 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
         if (postDate >= sevenDaysAgo) {
           existing.recent += 1;
         }
-
-        tagCounts.set(tagName, existing);
-      });
+      }
 
       // Convert to array and sort by recent posts first, then total
       const sortedTags = Array.from(tagCounts.values())
@@ -112,17 +134,32 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
         })
         .slice(0, limit);
 
+      if (!mountedRef.current) return;
       setTags(sortedTags);
-    } catch (err) {
+      fetchedRef.current = true;
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("[useTrendingTags] Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch trending tags");
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : "Failed to fetch trending tags");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [limit]);
+  }, [limit, tags.length]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchTrendingTags();
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchTrendingTags]);
 
   return { tags, loading, error, refetch: fetchTrendingTags };
@@ -329,29 +366,58 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
 export function usePopularTags(limit: number = 20) {
   const [tags, setTags] = useState<TrendingTag[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     const fetchPopularTags = async () => {
+      // Prevent duplicate fetches
+      if (fetchedRef.current) return;
+
+      // Abort any in-flight request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+
       try {
-        // Get all tags with their post counts (limited to prevent memory issues)
+        // Optimized approach: Fetch tags with their usage counts using a more efficient query
+        // Instead of fetching 10,000 rows and counting client-side, we:
+        // 1. Get the most recently used tags (which are likely most popular)
+        // 2. Use a reasonable limit to prevent memory issues
+        // 3. Filter to only published, public posts for accurate counts
+
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
         const { data, error } = await supabase
           .from("post_tags")
           .select(`
             tag_id,
-            tags!inner (name)
+            tags!inner (name),
+            posts!inner (id, status, visibility)
           `)
-          .limit(10000);
+          .eq("posts.status", "published")
+          .eq("posts.visibility", "public")
+          .gte("created_at", ninetyDaysAgo.toISOString())
+          .limit(500); // Reasonable limit - enough to get popular tags without memory issues
 
+        if (!mountedRef.current) return;
         if (error) throw error;
 
-        // Count occurrences
+        // Count occurrences efficiently
         const tagCounts = new Map<string, number>();
-        (data || []).forEach((item: any) => {
-          const tagName = item.tags?.name;
+        const dataArray = data || [];
+
+        for (let i = 0; i < dataArray.length; i++) {
+          const tagName = (dataArray[i] as any).tags?.name;
           if (tagName) {
             tagCounts.set(tagName, (tagCounts.get(tagName) || 0) + 1);
           }
-        });
+        }
 
         // Sort and limit
         const sortedTags = Array.from(tagCounts.entries())
@@ -359,15 +425,27 @@ export function usePopularTags(limit: number = 20) {
           .sort((a, b) => b.post_count - a.post_count)
           .slice(0, limit);
 
+        if (!mountedRef.current) return;
         setTags(sortedTags);
-      } catch (err) {
+        fetchedRef.current = true;
+      } catch (err: any) {
+        if (err?.name === "AbortError") return;
         console.error("[usePopularTags] Error:", err);
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
     fetchPopularTags();
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [limit]);
 
   return { tags, loading };

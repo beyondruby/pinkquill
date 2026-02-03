@@ -47,8 +47,8 @@ interface UserInterests {
   fetchedAt: number; // Timestamp for cache invalidation
 }
 
-// Cache user interests for 5 minutes
-const USER_INTERESTS_CACHE_TTL_MS = 5 * 60 * 1000;
+// Cache user interests for 15 minutes (reduced from 5 to prevent frequent refetches)
+const USER_INTERESTS_CACHE_TTL_MS = 15 * 60 * 1000;
 
 // ============================================================================
 // ALGORITHM WEIGHTS
@@ -194,8 +194,14 @@ function calculatePostScore(
     }
   }
 
-  // Add some randomness to prevent stale feeds (shuffle factor)
-  score *= 0.9 + Math.random() * 0.2;
+  // Add deterministic variety based on post ID to prevent re-sorting on every render
+  // This creates consistent ordering within a session while still providing variety
+  let hash = 0;
+  for (let i = 0; i < post.id.length; i++) {
+    hash = ((hash << 5) - hash) + post.id.charCodeAt(i);
+    hash |= 0;
+  }
+  score *= 0.9 + (Math.abs(hash % 20) / 100);
 
   return score;
 }
@@ -300,13 +306,29 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         }
         setError(null);
 
-        // Fetch user interests if not cached or cache expired
+        // Fetch user interests with stale-while-revalidate pattern
+        // This prevents blocking the main post fetch while refreshing cache
         if (userId) {
           const cached = userInterestsRef.current;
           const cacheExpired = cached && (Date.now() - cached.fetchedAt > USER_INTERESTS_CACHE_TTL_MS);
-          if (!cached || cacheExpired) {
-            userInterestsRef.current = await fetchUserInterests();
+
+          if (!cached) {
+            // No cache - fetch in parallel with posts query (below)
+            // Will be used for scoring if it completes in time
+            fetchUserInterests().then((interests) => {
+              if (mountedRef.current) {
+                userInterestsRef.current = interests;
+              }
+            });
+          } else if (cacheExpired) {
+            // Stale cache - use existing value, refresh in background
+            fetchUserInterests().then((interests) => {
+              if (mountedRef.current) {
+                userInterestsRef.current = interests;
+              }
+            });
           }
+          // Otherwise use the valid cached value (no await needed)
         }
 
         // Build query based on tab
@@ -356,11 +378,11 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           query = query.eq("type", activeTab);
         }
 
-        // For algorithmic tabs, fetch more posts to score and sort
-        // Fetch enough posts to ensure good algorithm coverage for pagination
+        // For algorithmic tabs, fetch slightly more posts to score and sort
+        // Reduced from 3x to 1.5x to prevent excessive database load and memory usage
         const isAlgorithmicTab = activeTab === "for-you" || activeTab === "trending" || activeTab === "communities";
-        const fetchMultiplier = isAlgorithmicTab ? 3 : 1; // Fetch 3x for algorithmic scoring
-        const fetchLimit = pageSize * fetchMultiplier;
+        const fetchMultiplier = isAlgorithmicTab ? 1.5 : 1; // Fetch 1.5x for algorithmic scoring (was 3x)
+        const fetchLimit = Math.ceil(pageSize * fetchMultiplier);
 
         // Exclude user's own posts for discovery
         if (userId) {
@@ -368,7 +390,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         }
 
         // Use range for pagination - calculate the range based on page
-        const rangeStart = page * pageSize * fetchMultiplier;
+        const rangeStart = page * pageSize;
         const rangeEnd = rangeStart + fetchLimit - 1;
 
         const { data: postsData, count: totalCount, error: queryError } = await query
@@ -508,87 +530,96 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         }));
 
         // Apply algorithm scoring and sorting
+        // Optimized: Use Map for scores to avoid object spread overhead
         if (activeTab === "for-you") {
           // Score and sort by personalized algorithm
-          transformedPosts = transformedPosts
-            .map((post) => ({
-              ...post,
-              _score: calculatePostScore(
-                {
-                  id: post.id,
-                  author_id: post.author_id,
-                  type: post.type,
-                  created_at: post.created_at,
-                  admires_count: post.admires_count,
-                  comments_count: post.comments_count,
-                  relays_count: post.relays_count,
-                },
-                userInterestsRef.current
-              ),
-            }))
-            .sort((a, b) => (b._score ?? 0) - (a._score ?? 0))
-            .map(({ _score, ...post }) => post as Post);
+          const scores = new Map<string, number>();
+          const interests = userInterestsRef.current;
+
+          for (const post of transformedPosts) {
+            scores.set(post.id, calculatePostScore(
+              {
+                id: post.id,
+                author_id: post.author_id,
+                type: post.type,
+                created_at: post.created_at,
+                admires_count: post.admires_count,
+                comments_count: post.comments_count,
+                relays_count: post.relays_count,
+              },
+              interests
+            ));
+          }
+
+          transformedPosts.sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
         } else if (activeTab === "trending") {
           // Filter and sort by trending score (high engagement + recency)
           const now = Date.now();
-          transformedPosts = transformedPosts
-            .filter((post) => {
-              const hoursOld = (now - new Date(post.created_at).getTime()) / (1000 * 60 * 60);
-              return hoursOld < 72; // Only posts from last 72 hours
-            })
-            .map((post) => ({
-              ...post,
-              _trendingScore: calculateEngagementScore(
-                post.admires_count,
-                post.comments_count,
-                post.relays_count
-              ) / Math.max(1, (now - new Date(post.created_at).getTime()) / (1000 * 60 * 60)),
-            }))
-            .sort((a, b) => (b._trendingScore ?? 0) - (a._trendingScore ?? 0))
-            .map(({ _trendingScore, ...post }) => post as Post);
+          const hoursInMs = 1000 * 60 * 60;
+          const maxAgeMs = 72 * hoursInMs;
+
+          // Filter first to reduce array size
+          transformedPosts = transformedPosts.filter((post) => {
+            return (now - new Date(post.created_at).getTime()) < maxAgeMs;
+          });
+
+          // Calculate scores using Map
+          const scores = new Map<string, number>();
+          for (const post of transformedPosts) {
+            const ageHours = Math.max(1, (now - new Date(post.created_at).getTime()) / hoursInMs);
+            const engagement = calculateEngagementScore(
+              post.admires_count,
+              post.comments_count,
+              post.relays_count
+            );
+            scores.set(post.id, engagement / ageHours);
+          }
+
+          transformedPosts.sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
         } else if (activeTab === "communities") {
           // Algorithm for community posts discovery
-          // Prioritizes: engagement, user interests, recency, variety
-          transformedPosts = transformedPosts
-            .map((post) => {
-              let score = 0;
+          const scores = new Map<string, number>();
+          const interests = userInterestsRef.current;
+          // Use a seeded-style random based on post ID for consistency within session
+          const getVariety = (id: string) => {
+            let hash = 0;
+            for (let i = 0; i < id.length; i++) {
+              hash = ((hash << 5) - hash) + id.charCodeAt(i);
+              hash |= 0;
+            }
+            return 0.85 + (Math.abs(hash % 30) / 100);
+          };
 
-              // Base engagement score
-              score += calculateEngagementScore(
-                post.admires_count,
-                post.comments_count,
-                post.relays_count
-              );
+          for (const post of transformedPosts) {
+            let score = calculateEngagementScore(
+              post.admires_count,
+              post.comments_count,
+              post.relays_count
+            );
 
-              // Time decay for freshness
-              score *= calculateTimeDecay(post.created_at);
+            score *= calculateTimeDecay(post.created_at);
 
-              // Trending boost for viral community posts
-              if (isTrending(post.admires_count, post.comments_count, post.relays_count, post.created_at)) {
-                score *= WEIGHTS.TRENDING_BOOST;
+            if (isTrending(post.admires_count, post.comments_count, post.relays_count, post.created_at)) {
+              score *= WEIGHTS.TRENDING_BOOST;
+            }
+
+            if (interests) {
+              if (interests.admiredAuthors.has(post.author_id)) {
+                score *= 1.5;
               }
-
-              // User interest signals
-              if (userInterestsRef.current) {
-                // Boost posts from authors user has engaged with
-                if (userInterestsRef.current.admiredAuthors.has(post.author_id)) {
-                  score *= 1.5;
-                }
-
-                // Boost posts of types user prefers
-                const typePreference = userInterestsRef.current.admiredPostTypes.get(post.type) || 0;
-                if (typePreference > 0) {
-                  score *= 1 + (typePreference / 20);
-                }
+              const typePreference = interests.admiredPostTypes.get(post.type) || 0;
+              if (typePreference > 0) {
+                score *= 1 + (typePreference / 20);
               }
+            }
 
-              // Add randomness for variety
-              score *= 0.85 + Math.random() * 0.3;
+            // Deterministic variety based on post ID (avoids random on every render)
+            score *= getVariety(post.id);
 
-              return { ...post, _communityScore: score };
-            })
-            .sort((a, b) => (b._communityScore ?? 0) - (a._communityScore ?? 0))
-            .map(({ _communityScore, ...post }) => post as Post);
+            scores.set(post.id, score);
+          }
+
+          transformedPosts.sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
         }
 
         // Paginate the results - for algorithmic tabs, we've already fetched extra posts for scoring

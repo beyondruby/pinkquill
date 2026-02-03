@@ -40,7 +40,8 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(git show:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(while read file)"
     ]
   }
 }

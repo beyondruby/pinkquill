@@ -36,26 +36,26 @@ export function useMessageReactions({
 }: UseMessageReactionsOptions): UseMessageReactionsReturn {
   const [reactionsByMessage, setReactionsByMessage] = useState<Map<string, MessageReaction[]>>(new Map());
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Fetch all reactions for messages in this conversation
+  // Optimized: Single query using inner join through messages table
   const fetchReactions = useCallback(async () => {
-    if (!conversationId) return;
+    if (!conversationId) {
+      setLoading(false);
+      return;
+    }
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
-      // First get all message IDs in the conversation
-      const { data: messages } = await supabase
-        .from("messages")
-        .select("id")
-        .eq("conversation_id", conversationId);
-
-      if (!messages || messages.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      const messageIds = messages.map(m => m.id);
-
-      // Then get all reactions for these messages
+      // Optimized: Use a single query that joins through messages
+      // This fetches reactions only for messages in this conversation
       const { data: reactions, error } = await supabase
         .from("message_reactions")
         .select(`
@@ -68,9 +68,15 @@ export function useMessageReactions({
             username,
             display_name,
             avatar_url
+          ),
+          message:messages!inner (
+            id,
+            conversation_id
           )
         `)
-        .in("message_id", messageIds);
+        .eq("message.conversation_id", conversationId);
+
+      if (!mountedRef.current) return;
 
       if (error) {
         console.error("Failed to fetch message reactions:", error);
@@ -78,14 +84,21 @@ export function useMessageReactions({
         return;
       }
 
-      // Group reactions by message_id
+      // Group reactions by message_id (efficient single pass)
       const reactionsMap = new Map<string, MessageReaction[]>();
-      (reactions || []).forEach((reaction: any) => {
+      const reactionsArray = reactions || [];
+
+      for (let i = 0; i < reactionsArray.length; i++) {
+        const reaction = reactionsArray[i] as any;
         const messageId = reaction.message_id;
-        if (!reactionsMap.has(messageId)) {
-          reactionsMap.set(messageId, []);
+
+        let messageReactions = reactionsMap.get(messageId);
+        if (!messageReactions) {
+          messageReactions = [];
+          reactionsMap.set(messageId, messageReactions);
         }
-        reactionsMap.get(messageId)!.push({
+
+        messageReactions.push({
           id: reaction.id,
           message_id: reaction.message_id,
           user_id: reaction.user_id,
@@ -93,24 +106,51 @@ export function useMessageReactions({
           created_at: reaction.created_at,
           user: reaction.user,
         });
-      });
+      }
 
-      setReactionsByMessage(reactionsMap);
-    } catch (err) {
+      if (mountedRef.current) {
+        setReactionsByMessage(reactionsMap);
+      }
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("Error fetching reactions:", err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [conversationId]);
 
-  // Initial fetch
+  // Initial fetch with cleanup
   useEffect(() => {
+    mountedRef.current = true;
     fetchReactions();
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchReactions]);
 
-  // Real-time subscription for reactions
+  // Real-time subscription for reactions with proper cleanup
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId) {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      return;
+    }
+
+    // Clean up previous channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    // Cache for user profiles to avoid repeated fetches
+    const userProfileCache = new Map<string, any>();
 
     const channel = supabase
       .channel(`message-reactions-${conversationId}`)
@@ -122,15 +162,29 @@ export function useMessageReactions({
           table: "message_reactions",
         },
         async (payload) => {
+          if (!mountedRef.current) return;
+
           if (payload.eventType === "INSERT") {
             const newReaction = payload.new as any;
 
-            // Fetch user info for the new reaction
-            const { data: userData } = await supabase
-              .from("profiles")
-              .select("username, display_name, avatar_url")
-              .eq("id", newReaction.user_id)
-              .single();
+            // Check cache first for user info
+            let userData = userProfileCache.get(newReaction.user_id);
+
+            if (!userData) {
+              // Fetch user info only if not in cache
+              const { data } = await supabase
+                .from("profiles")
+                .select("username, display_name, avatar_url")
+                .eq("id", newReaction.user_id)
+                .single();
+
+              userData = data;
+              if (data) {
+                userProfileCache.set(newReaction.user_id, data);
+              }
+            }
+
+            if (!mountedRef.current) return;
 
             const reaction: MessageReaction = {
               id: newReaction.id,
@@ -180,8 +234,13 @@ export function useMessageReactions({
       )
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [conversationId]);
 
