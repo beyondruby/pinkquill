@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useCommunityPosts, useCommunityPinnedPosts, Post } from "@/lib/hooks";
+import { useCommunity, useCommunityPosts, useCommunityPinnedPosts, useCommunityModeration, Post } from "@/lib/hooks";
 import { useTrackCommunityView } from "@/lib/hooks/useTracking";
 import PostCard from "@/components/feed/PostCard";
 
@@ -93,6 +93,38 @@ export default function CommunityFeedPage() {
     unpinPost,
     refetch: refetchPins
   } = useCommunityPinnedPosts(community?.id);
+
+  // Moderation functionality
+  const {
+    deletePost,
+    hasPermission,
+  } = useCommunityModeration(community?.id || '');
+
+  // State for delete permission
+  const [canDeletePosts, setCanDeletePosts] = useState(false);
+
+  // Check delete permission on mount and when user/community changes
+  useEffect(() => {
+    const checkPermission = async () => {
+      if (user?.id && community?.id) {
+        const canDelete = await hasPermission(user.id, 'can_delete_posts');
+        setCanDeletePosts(canDelete);
+      } else {
+        setCanDeletePosts(false);
+      }
+    };
+    checkPermission();
+  }, [user?.id, community?.id, hasPermission]);
+
+  // Handler for moderator post deletion
+  const handleModeratorDeletePost = useCallback(async (postId: string, reason?: string) => {
+    const result = await deletePost(postId, reason);
+    if (result.success) {
+      refetch();
+    } else {
+      throw new Error(result.error as string);
+    }
+  }, [deletePost, refetch]);
 
   if (!community) return null;
 
@@ -201,7 +233,11 @@ export default function CommunityFeedPage() {
                     </button>
                   )}
                   <div className="pt-2">
-                    <PostCard post={transformPost(post)} />
+                    <PostCard
+                      post={transformPost(post)}
+                      canModerateDelete={canDeletePosts}
+                      onModeratorDelete={handleModeratorDeletePost}
+                    />
                   </div>
                 </div>
               ))}
@@ -236,7 +272,11 @@ export default function CommunityFeedPage() {
                   </button>
                 )}
                 <div className={isAdmin && canPin && !isPinned(post.id) ? "pt-2" : ""}>
-                  <PostCard post={transformPost(post)} />
+                  <PostCard
+                    post={transformPost(post)}
+                    canModerateDelete={canDeletePosts}
+                    onModeratorDelete={handleModeratorDeletePost}
+                  />
                 </div>
               </div>
             ))}

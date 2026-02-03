@@ -1109,27 +1109,224 @@ export function useDeleteCommunity() {
   return { delete: deleteCommunity, deleting, error };
 }
 
+// Import moderator permissions types
+import type { ModeratorPermissions } from './types';
+import { DEFAULT_MODERATOR_PERMISSIONS, FULL_MODERATOR_PERMISSIONS } from './types';
+
 // Community moderation actions
 export function useCommunityModeration(communityId: string) {
   const [loading, setLoading] = useState(false);
 
-  const updateMemberRole = async (userId: string, role: 'admin' | 'moderator' | 'member', actorId: string) => {
+  const updateMemberRole = async (
+    userId: string,
+    role: 'admin' | 'moderator' | 'member',
+    actorId: string,
+    permissions?: ModeratorPermissions
+  ) => {
     setLoading(true);
     try {
+      const updateData: { role: string; permissions?: ModeratorPermissions | null } = { role };
+
+      // Set permissions based on role
+      if (role === 'moderator') {
+        updateData.permissions = permissions || DEFAULT_MODERATOR_PERMISSIONS;
+      } else if (role === 'member') {
+        // Clear permissions when demoting to member
+        updateData.permissions = null;
+      }
+      // Admins don't need permissions stored - they have all permissions implicitly
+
       const { error } = await supabase
         .from("community_members")
-        .update({ role })
+        .update(updateData)
         .eq("community_id", communityId)
         .eq("user_id", userId);
 
       if (error) throw error;
 
+      // Build notification content
+      let notificationContent = `Your role has been changed to ${role}`;
+      if (role === 'moderator' && permissions) {
+        const enabledPermissions = Object.entries(permissions)
+          .filter(([_, enabled]) => enabled)
+          .map(([key]) => key.replace('can_', '').replace(/_/g, ' '));
+        if (enabledPermissions.length > 0) {
+          notificationContent += `. You can: ${enabledPermissions.join(', ')}`;
+        }
+      }
+
       // Notify the user of role change
-      await createNotification(userId, actorId, 'community_role_change', undefined, `Your role has been changed to ${role}`, communityId);
+      await createNotification(userId, actorId, 'community_role_change', undefined, notificationContent, communityId);
 
       return { success: true };
     } catch (err) {
       console.error("[updateMemberRole] Error:", err);
+      return { success: false, error: err };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update moderator permissions without changing role
+  const updateModeratorPermissions = async (userId: string, permissions: ModeratorPermissions) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("community_members")
+        .update({ permissions })
+        .eq("community_id", communityId)
+        .eq("user_id", userId)
+        .eq("role", "moderator");
+
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      console.error("[updateModeratorPermissions] Error:", err);
+      return { success: false, error: err };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get moderator permissions for a user
+  const getModeratorPermissions = async (userId: string): Promise<ModeratorPermissions | null> => {
+    try {
+      const { data, error } = await supabase
+        .from("community_members")
+        .select("role, permissions")
+        .eq("community_id", communityId)
+        .eq("user_id", userId)
+        .single();
+
+      if (error || !data) return null;
+
+      // Admins have full permissions
+      if (data.role === 'admin') {
+        return FULL_MODERATOR_PERMISSIONS;
+      }
+
+      // Moderators have stored permissions
+      if (data.role === 'moderator') {
+        return data.permissions || DEFAULT_MODERATOR_PERMISSIONS;
+      }
+
+      // Members have no permissions
+      return null;
+    } catch (err) {
+      console.error("[getModeratorPermissions] Error:", err);
+      return null;
+    }
+  };
+
+  // Check if a user has a specific permission
+  const hasPermission = async (userId: string, permission: keyof ModeratorPermissions): Promise<boolean> => {
+    const permissions = await getModeratorPermissions(userId);
+    if (!permissions) return false;
+    return permissions[permission] === true;
+  };
+
+  // Delete a post from the community
+  const deletePost = async (postId: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'Not authenticated' };
+
+      // Check if user has permission
+      const canDelete = await hasPermission(user.id, 'can_delete_posts');
+      if (!canDelete) {
+        return { success: false, error: 'You do not have permission to delete posts' };
+      }
+
+      // Get post info for audit log
+      const { data: post } = await supabase
+        .from("posts")
+        .select("author_id")
+        .eq("id", postId)
+        .single();
+
+      // Log the deletion
+      await supabase.from("community_content_deletions").insert({
+        community_id: communityId,
+        content_type: 'post',
+        content_id: postId,
+        content_author_id: post?.author_id,
+        deleted_by: user.id,
+        reason: reason || null,
+      });
+
+      // Delete the post
+      const { error } = await supabase
+        .from("posts")
+        .delete()
+        .eq("id", postId)
+        .eq("community_id", communityId);
+
+      if (error) throw error;
+
+      return { success: true };
+    } catch (err) {
+      console.error("[deletePost] Error:", err);
+      return { success: false, error: err };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete a comment from a community post
+  const deleteComment = async (commentId: string, postId: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'Not authenticated' };
+
+      // Check if user has permission
+      const canDelete = await hasPermission(user.id, 'can_delete_comments');
+      if (!canDelete) {
+        return { success: false, error: 'You do not have permission to delete comments' };
+      }
+
+      // Verify the post belongs to this community
+      const { data: post } = await supabase
+        .from("posts")
+        .select("id")
+        .eq("id", postId)
+        .eq("community_id", communityId)
+        .single();
+
+      if (!post) {
+        return { success: false, error: 'Post not found in this community' };
+      }
+
+      // Get comment info for audit log
+      const { data: comment } = await supabase
+        .from("comments")
+        .select("user_id")
+        .eq("id", commentId)
+        .single();
+
+      // Log the deletion
+      await supabase.from("community_content_deletions").insert({
+        community_id: communityId,
+        content_type: 'comment',
+        content_id: commentId,
+        content_author_id: comment?.user_id,
+        deleted_by: user.id,
+        reason: reason || null,
+      });
+
+      // Delete the comment
+      const { error } = await supabase
+        .from("comments")
+        .delete()
+        .eq("id", commentId)
+        .eq("post_id", postId);
+
+      if (error) throw error;
+
+      return { success: true };
+    } catch (err) {
+      console.error("[deleteComment] Error:", err);
       return { success: false, error: err };
     } finally {
       setLoading(false);
@@ -1264,10 +1461,10 @@ export function useCommunityModeration(communityId: string) {
   };
 
   // Helper functions that auto-fetch actorId from auth
-  const promoteUser = async (userId: string, role: 'moderator' | 'admin') => {
+  const promoteUser = async (userId: string, role: 'moderator' | 'admin', permissions?: ModeratorPermissions) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Not authenticated' };
-    return updateMemberRole(userId, role, user.id);
+    return updateMemberRole(userId, role, user.id, permissions);
   };
 
   const demoteUser = async (userId: string) => {
@@ -1346,7 +1543,25 @@ export function useCommunityModeration(communityId: string) {
     }
   };
 
-  return { updateMemberRole, updateMemberStatus, removeMember, promoteUser, demoteUser, muteUser, banUser, unmuteUser, unbanUser, checkExpiredMutes, inviteUser, loading };
+  return {
+    updateMemberRole,
+    updateMemberStatus,
+    removeMember,
+    promoteUser,
+    demoteUser,
+    muteUser,
+    banUser,
+    unmuteUser,
+    unbanUser,
+    checkExpiredMutes,
+    inviteUser,
+    updateModeratorPermissions,
+    getModeratorPermissions,
+    hasPermission,
+    deletePost,
+    deleteComment,
+    loading,
+  };
 }
 
 // ============================================

@@ -471,6 +471,36 @@ export interface Community {
   };
 }
 
+// Moderator permissions - granular control over what moderators can do
+export interface ModeratorPermissions {
+  can_mute: boolean;
+  can_ban: boolean;
+  can_delete_posts: boolean;
+  can_delete_comments: boolean;
+  can_pin_posts: boolean;
+  can_manage_rules: boolean;
+}
+
+// Default permissions for new moderators
+export const DEFAULT_MODERATOR_PERMISSIONS: ModeratorPermissions = {
+  can_mute: true,
+  can_ban: false,
+  can_delete_posts: true,
+  can_delete_comments: true,
+  can_pin_posts: true,
+  can_manage_rules: false,
+};
+
+// Full permissions (for admins or full moderators)
+export const FULL_MODERATOR_PERMISSIONS: ModeratorPermissions = {
+  can_mute: true,
+  can_ban: true,
+  can_delete_posts: true,
+  can_delete_comments: true,
+  can_pin_posts: true,
+  can_manage_rules: true,
+};
+
 export interface CommunityMember {
   id: string;
   community_id: string;
@@ -482,6 +512,7 @@ export interface CommunityMember {
   banned_until: string | null;
   ban_reason: string | null;
   joined_at: string;
+  permissions: ModeratorPermissions | null; // null for members, set for moderators
   profile: {
     id: string;
     username: string;

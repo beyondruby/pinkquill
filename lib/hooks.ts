@@ -192,6 +192,7 @@ export type {
   CommunityTag,
   JoinRequest,
   CommunityInvitation,
+  ModeratorPermissions,
   PaginationState,
   PaginatedResult,
   Collection,
@@ -211,6 +212,12 @@ export type {
   ProductStatus,
   ProductPurchase,
   ProductWizardState,
+} from "./types";
+
+// Export constants (values, not types)
+export {
+  DEFAULT_MODERATOR_PERMISSIONS,
+  FULL_MODERATOR_PERMISSIONS,
 } from "./types";
 
 // ============================================================================

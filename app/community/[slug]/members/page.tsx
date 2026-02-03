@@ -4,8 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useCommunityMembers, useCommunityModeration, useJoinRequests } from "@/lib/hooks";
+import { useCommunity, useCommunityMembers, useCommunityModeration, useJoinRequests, ModeratorPermissions } from "@/lib/hooks";
 import InviteModal from "@/components/communities/InviteModal";
+import ModeratorPermissionsModal from "@/components/communities/ModeratorPermissionsModal";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
 type RoleFilter = 'all' | 'admin' | 'moderator' | 'member';
@@ -55,10 +56,16 @@ export default function CommunityMembersPage() {
     { status: 'banned' }
   );
 
-  const { promoteUser, demoteUser, muteUser, banUser, unmuteUser, unbanUser, checkExpiredMutes } = useCommunityModeration(community?.id || '');
+  const { promoteUser, demoteUser, muteUser, banUser, unmuteUser, unbanUser, checkExpiredMutes, updateModeratorPermissions } = useCommunityModeration(community?.id || '');
   const { requests: joinRequests, loading: requestsLoading, approve: approveRequest, reject: rejectRequest, refetch: refetchRequests } = useJoinRequests(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+
+  // Moderator permissions modal state
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [permissionsTargetUser, setPermissionsTargetUser] = useState<{ id: string; name: string } | null>(null);
+  const [editingPermissions, setEditingPermissions] = useState(false);
+  const [existingPermissions, setExistingPermissions] = useState<ModeratorPermissions | undefined>(undefined);
 
   // Check and auto-unmute expired mutes on page load
   useEffect(() => {
@@ -96,9 +103,42 @@ export default function CommunityMembersPage() {
       )
     : members;
 
-  const handlePromote = async (userId: string, newRole: 'moderator' | 'admin') => {
+  // Open permissions modal to set moderator permissions before promoting
+  const openPermissionsModal = (userId: string, userName: string, currentPermissions?: ModeratorPermissions) => {
+    setPermissionsTargetUser({ id: userId, name: userName });
+    setExistingPermissions(currentPermissions);
+    setEditingPermissions(!!currentPermissions);
+    setShowPermissionsModal(true);
+  };
+
+  // Handle promoting with selected permissions
+  const handlePromoteWithPermissions = async (permissions: ModeratorPermissions) => {
+    if (!permissionsTargetUser) return;
     setActionLoading(true);
-    const result = await promoteUser(userId, newRole);
+
+    let result;
+    if (editingPermissions) {
+      // Just updating permissions for existing moderator
+      result = await updateModeratorPermissions(permissionsTargetUser.id, permissions);
+    } else {
+      // Promoting to moderator with permissions
+      result = await promoteUser(permissionsTargetUser.id, 'moderator', permissions);
+    }
+
+    if (result.success) {
+      refetch();
+      setShowPermissionsModal(false);
+      setPermissionsTargetUser(null);
+      setExistingPermissions(undefined);
+      setEditingPermissions(false);
+    }
+    setActionLoading(false);
+  };
+
+  // Promote directly to admin (no permissions modal needed - admins have all permissions)
+  const handlePromoteToAdmin = async (userId: string) => {
+    setActionLoading(true);
+    const result = await promoteUser(userId, 'admin');
     if (result.success) refetch();
     setActionLoading(false);
   };
@@ -508,7 +548,10 @@ export default function CommunityMembersPage() {
                       <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-black/5 overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                         {isAdmin && member.role === 'member' && (
                           <button
-                            onClick={() => handlePromote(member.user_id, 'moderator')}
+                            onClick={() => openPermissionsModal(
+                              member.user_id,
+                              member.profile?.display_name || member.profile?.username || 'User'
+                            )}
                             disabled={actionLoading}
                             className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
                           >
@@ -519,16 +562,33 @@ export default function CommunityMembersPage() {
                           </button>
                         )}
                         {isAdmin && member.role === 'moderator' && (
-                          <button
-                            onClick={() => handleDemote(member.user_id)}
-                            disabled={actionLoading}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
-                          >
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                            Remove Mod Role
-                          </button>
+                          <>
+                            <button
+                              onClick={() => openPermissionsModal(
+                                member.user_id,
+                                member.profile?.display_name || member.profile?.username || 'User',
+                                member.permissions || undefined
+                              )}
+                              disabled={actionLoading}
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
+                            >
+                              <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              Edit Permissions
+                            </button>
+                            <button
+                              onClick={() => handleDemote(member.user_id)}
+                              disabled={actionLoading}
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
+                            >
+                              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                              </svg>
+                              Remove Mod Role
+                            </button>
+                          </>
                         )}
                         {member.status !== 'muted' && (
                           <button
@@ -948,6 +1008,22 @@ export default function CommunityMembersPage() {
           </div>
         </div>
       )}
+
+      {/* Moderator Permissions Modal */}
+      <ModeratorPermissionsModal
+        isOpen={showPermissionsModal}
+        onClose={() => {
+          setShowPermissionsModal(false);
+          setPermissionsTargetUser(null);
+          setExistingPermissions(undefined);
+          setEditingPermissions(false);
+        }}
+        onConfirm={handlePromoteWithPermissions}
+        userName={permissionsTargetUser?.name || ''}
+        initialPermissions={existingPermissions}
+        loading={actionLoading}
+        isEditing={editingPermissions}
+      />
     </div>
   );
 }

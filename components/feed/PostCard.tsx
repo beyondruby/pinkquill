@@ -113,7 +113,17 @@ const moodIndicators: Record<string, string> = {
 const StyledTypeLabel = StyledTypeLabelComponent;
 const SoundBars = SoundBarsComponent;
 
-function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDeleted?: (postId: string) => void }) {
+function PostCardComponent({
+  post,
+  onPostDeleted,
+  canModerateDelete,
+  onModeratorDelete,
+}: {
+  post: PostProps;
+  onPostDeleted?: (postId: string) => void;
+  canModerateDelete?: boolean;
+  onModeratorDelete?: (postId: string, reason?: string) => Promise<void>;
+}) {
   const router = useRouter();
   const { openPostModal, subscribeToUpdates, notifyUpdate } = useModal();
   const { user } = useAuth();
@@ -139,6 +149,9 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showModeratorDeleteConfirm, setShowModeratorDeleteConfirm] = useState(false);
+  const [moderatorDeleting, setModeratorDeleting] = useState(false);
+  const [moderatorDeleteReason, setModeratorDeleteReason] = useState("");
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
@@ -433,6 +446,26 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
     }
   }, [post.id, onPostDeleted]);
 
+  // Moderator delete handler - uses the community moderation system
+  const handleModeratorDelete = useCallback(async () => {
+    if (!onModeratorDelete) return;
+    setModeratorDeleting(true);
+    try {
+      await onModeratorDelete(post.id, moderatorDeleteReason.trim() || undefined);
+      setShowModeratorDeleteConfirm(false);
+      setModeratorDeleteReason("");
+      actionToast.postDeleted();
+      if (onPostDeleted) {
+        onPostDeleted(post.id);
+      }
+    } catch (err) {
+      console.error("Failed to delete post as moderator:", err);
+      actionToast.postDeleteError();
+    } finally {
+      setModeratorDeleting(false);
+    }
+  }, [post.id, moderatorDeleteReason, onModeratorDelete, onPostDeleted]);
+
   const handleEdit = useCallback(() => {
     router.push(`/create?edit=${post.id}`);
   }, [router, post.id]);
@@ -630,6 +663,23 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
                 <BlockIcon aria-hidden="true" />
                 Block @{post.author.handle.replace('@', '')}
               </button>
+              {/* Moderator delete option - only shown if user can moderate */}
+              {canModerateDelete && onModeratorDelete && (
+                <>
+                  <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowModeratorDeleteConfirm(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 transition-colors"
+                    role="menuitem"
+                  >
+                    <TrashIcon aria-hidden="true" />
+                    Delete (Mod)
+                  </button>
+                </>
+              )}
               <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
               <button
                 onClick={() => {
@@ -1123,6 +1173,72 @@ function PostCardComponent({ post, onPostDeleted }: { post: PostProps; onPostDel
         </>
       )}
 
+      {/* Moderator Delete Confirmation Modal */}
+      {showModeratorDeleteConfirm && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
+            onClick={() => !moderatorDeleting && setShowModeratorDeleteConfirm(false)}
+          />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden">
+            <div className="px-6 py-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 border-b border-orange-200/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                  <TrashIcon className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-semibold text-ink">Delete Post (Moderator)</h3>
+                  <p className="font-ui text-xs text-muted">This action will be logged</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
+              <p className="font-body text-sm text-muted mb-4">
+                You are about to delete this post as a community moderator. This action cannot be undone and will be recorded in the moderation log.
+              </p>
+              <div className="mb-4">
+                <label className="block font-ui text-sm font-medium text-ink mb-2">
+                  Reason for deletion <span className="text-muted font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={moderatorDeleteReason}
+                  onChange={(e) => setModeratorDeleteReason(e.target.value)}
+                  placeholder="e.g., Violates community guidelines..."
+                  rows={2}
+                  className="w-full px-4 py-3 rounded-xl border border-black/10 bg-white font-body text-sm placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-400 resize-none"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowModeratorDeleteConfirm(false);
+                    setModeratorDeleteReason("");
+                  }}
+                  disabled={moderatorDeleting}
+                  className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleModeratorDelete}
+                  disabled={moderatorDeleting}
+                  className="px-5 py-2.5 rounded-full font-ui text-sm text-white bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {moderatorDeleting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete Post"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Report Modal */}
       {showReportModal && (
         <ReportModal
@@ -1189,7 +1305,9 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
     prevProps.post.isAdmired === nextProps.post.isAdmired &&
     prevProps.post.isSaved === nextProps.post.isSaved &&
     prevProps.post.isRelayed === nextProps.post.isRelayed &&
-    prevProps.post.reactionType === nextProps.post.reactionType
+    prevProps.post.reactionType === nextProps.post.reactionType &&
+    prevProps.canModerateDelete === nextProps.canModerateDelete &&
+    prevProps.onModeratorDelete === nextProps.onModeratorDelete
   );
 });
 

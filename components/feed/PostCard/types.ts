@@ -94,6 +94,9 @@ export interface PostProps {
 export interface PostCardProps {
   post: PostProps;
   onPostDeleted?: (postId: string) => void;
+  // Community moderation props
+  canModerateDelete?: boolean; // If true, shows delete option for moderators
+  onModeratorDelete?: (postId: string, reason?: string) => Promise<void>; // Moderator delete handler
 }
 
 // Action handler types

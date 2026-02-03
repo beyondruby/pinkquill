@@ -8,6 +8,8 @@ interface ReportModalProps {
   onSubmit: (reason: string, details?: string) => Promise<void>;
   submitting: boolean;
   submitted: boolean;
+  title?: string;
+  placeholder?: string;
 }
 
 const reportReasons = [
@@ -20,7 +22,7 @@ const reportReasons = [
   { value: "other", label: "Something else" },
 ];
 
-export default function ReportModal({ isOpen, onClose, onSubmit, submitting, submitted }: ReportModalProps) {
+export default function ReportModal({ isOpen, onClose, onSubmit, submitting, submitted, title = "Report this post", placeholder = "What's wrong with this post..." }: ReportModalProps) {
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [details, setDetails] = useState("");
   const [step, setStep] = useState<"select" | "details">("select");
@@ -73,7 +75,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
           <>
             {/* Header */}
             <div className="px-6 pt-7 pb-5">
-              <h3 className="font-display text-[1.4rem] text-ink mb-1">Report this post</h3>
+              <h3 className="font-display text-[1.4rem] text-ink mb-1">{title}</h3>
               <p className="font-body text-[0.9rem] text-muted italic">Your report is anonymous</p>
             </div>
 
@@ -134,7 +136,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
                 <textarea
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
-                  placeholder="What's wrong with this post..."
+                  placeholder={placeholder}
                   maxLength={500}
                   rows={4}
                   className="w-full px-4 py-4 rounded-xl border border-black/[0.08] bg-black/[0.015] font-body text-[0.95rem] text-ink placeholder:text-muted/40 placeholder:italic resize-none focus:outline-none focus:border-purple-primary/40 focus:bg-white transition-all"

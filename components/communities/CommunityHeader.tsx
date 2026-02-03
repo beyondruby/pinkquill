@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Community, CommunityTag } from "@/lib/hooks";
 import JoinButton from "./JoinButton";
+import ReportModal from "@/components/ui/ReportModal";
+import { supabase } from "@/lib/supabase";
 
 interface CommunityHeaderProps {
   community: Community;
@@ -27,7 +29,39 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
   const pathname = usePathname();
   const [showMenu, setShowMenu] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportSubmitted, setReportSubmitted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleReportSubmit = async (reason: string, details?: string) => {
+    if (!userId) return;
+    setReportSubmitting(true);
+    try {
+      // Store community report with community info in reason since there's no reported_community_id column
+      const fullReason = `[Community: ${community.name} (${community.id})] ${reason}${details ? ` - ${details}` : ""}`;
+      await supabase.from("reports").insert({
+        reporter_id: userId,
+        reason: fullReason,
+        type: "community",
+        status: "pending",
+      });
+      setReportSubmitted(true);
+      setTimeout(() => {
+        setShowReportModal(false);
+        setReportSubmitted(false);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to submit report:", err);
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
+  const handleReportClose = () => {
+    setShowReportModal(false);
+    setReportSubmitted(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -86,8 +120,10 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
             onClick={() => setShowMenu(!showMenu)}
             className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center text-white transition-all border border-white/20"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="19" cy="12" r="2" />
             </svg>
           </button>
 
@@ -111,34 +147,42 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
                   <span className="font-ui text-xs font-medium">{copied ? 'Copied!' : 'Share'}</span>
                 </button>
 
-                <div className="w-px h-10 bg-ink/10" />
-
-                {/* Settings - always visible for admins/mods */}
+                {/* Settings - for admins/mods only */}
                 {(isAdmin || isMod) && (
-                  <Link
-                    href={`/community/${community.slug}/settings`}
-                    onClick={() => setShowMenu(false)}
-                    className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-purple-primary/5 hover:text-purple-primary transition-all min-w-[72px]"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span className="font-ui text-xs font-medium">Settings</span>
-                  </Link>
+                  <>
+                    <div className="w-px h-10 bg-ink/10" />
+                    <Link
+                      href={`/community/${community.slug}/settings`}
+                      onClick={() => setShowMenu(false)}
+                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-purple-primary/5 hover:text-purple-primary transition-all min-w-[72px]"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="font-ui text-xs font-medium">Settings</span>
+                    </Link>
+                  </>
                 )}
 
-                {/* About link for all users */}
-                <Link
-                  href={`/community/${community.slug}/about`}
-                  onClick={() => setShowMenu(false)}
-                  className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-pink-vivid/5 hover:text-pink-vivid transition-all min-w-[72px]"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="font-ui text-xs font-medium">About</span>
-                </Link>
+                {/* Report - for logged in users who are not admin */}
+                {userId && !isAdmin && (
+                  <>
+                    <div className="w-px h-10 bg-ink/10" />
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowReportModal(true);
+                      }}
+                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-red-50 hover:text-red-500 transition-all min-w-[72px]"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                      </svg>
+                      <span className="font-ui text-xs font-medium">Report</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -343,6 +387,17 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
           </div>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={handleReportClose}
+        onSubmit={handleReportSubmit}
+        submitting={reportSubmitting}
+        submitted={reportSubmitted}
+        title="Report this community"
+        placeholder="What's wrong with this community..."
+      />
     </div>
   );
 }
