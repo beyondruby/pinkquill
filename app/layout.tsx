@@ -24,12 +24,13 @@ import { AuthModalProvider } from "@/components/providers/AuthModalProvider";
 import { LightboxProvider } from "@/components/ui/Lightbox";
 import AuthModal from "@/components/auth/AuthModal";
 
+// Creative fonts - deferred loading (used for post styling)
 const libreBaskerville = Libre_Baskerville({
   weight: ["400", "700"],
   subsets: ["latin"],
   variable: "--font-libre-baskerville",
   display: "swap",
-  preload: true,
+  preload: false, // Deferred - only used for creative posts
 });
 
 const crimsonPro = Crimson_Pro({
@@ -38,7 +39,7 @@ const crimsonPro = Crimson_Pro({
   subsets: ["latin"],
   variable: "--font-crimson-pro",
   display: "swap",
-  preload: true,
+  preload: false, // Deferred - only used for creative posts
 });
 
 const josefinSans = Josefin_Sans({
@@ -46,15 +47,16 @@ const josefinSans = Josefin_Sans({
   subsets: ["latin"],
   variable: "--font-josefin-sans",
   display: "swap",
-  preload: true,
+  preload: false, // Deferred - only used for creative posts
 });
 
+// Core UI fonts - preloaded for fast initial render
 const poppins = Poppins({
   weight: ["400", "600"],
   subsets: ["latin"],
   variable: "--font-poppins",
   display: "swap",
-  preload: false,
+  preload: true, // Core UI font - preload
 });
 
 const openSans = Open_Sans({
@@ -62,7 +64,7 @@ const openSans = Open_Sans({
   subsets: ["latin"],
   variable: "--font-open-sans",
   display: "swap",
-  preload: false,
+  preload: true, // Core body font - preload
 });
 
 const playfairDisplay = Playfair_Display({

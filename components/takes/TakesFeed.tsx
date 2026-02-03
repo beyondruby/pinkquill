@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import TakeCard from "./TakeCard";
 import TakeCommentsPanel from "./TakeCommentsPanel";
-import { useTakes, useMuted, useFollow, useVolume } from "@/lib/hooks/useTakes";
+import { useTakes, useMuted, useTakesFollowing, useVolume } from "@/lib/hooks/useTakes";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTrackTakeView, useTrackTakeImpression, getSessionId } from "@/lib/hooks/useTracking";
 import { supabase } from "@/lib/supabase";
@@ -47,7 +47,7 @@ export default function TakesFeed({
 
   const { isMuted, toggle: toggleMute } = useMuted();
   const { volume, setVolume } = useVolume();
-  const { following, checkFollowing, toggle: toggleFollow } = useFollow(user?.id);
+  const { following, checkFollowing, toggle: toggleFollow } = useTakesFollowing(user?.id);
 
   useEffect(() => {
     if (takes.length > 0 && user?.id) {

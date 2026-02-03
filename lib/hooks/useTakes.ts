@@ -150,6 +150,8 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
   const fetchedRef = useRef(false);
   const takesRef = useRef<Take[]>(takes);
   const lastUserIdRef = useRef<string | undefined>(userId);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -167,6 +169,12 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
   }, [userId]);
 
   const fetchTakes = useCallback(async (reset = true) => {
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       if (reset) {
         setLoading(true);
@@ -188,6 +196,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
 
       const { data: takesData, error: takesError } = await query;
 
+      if (!mountedRef.current) return;
       if (takesError) throw takesError;
       if (!takesData || takesData.length === 0) {
         if (reset) setTakes([]);
@@ -259,6 +268,9 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       (savesRes.data || []).forEach(s => { savesCount[s.take_id] = (savesCount[s.take_id] || 0) + 1; });
       (relaysRes.data || []).forEach(r => { relaysCount[r.take_id] = (relaysCount[r.take_id] || 0) + 1; });
 
+      // Check if still mounted before building final array
+      if (!mountedRef.current) return;
+
       // Build final takes array
       const processedTakes: Take[] = takesData.map(take => ({
         ...take,
@@ -298,13 +310,21 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
 
       setHasMore(takesData.length === limit);
       offsetRef.current += takesData.length;
-    } catch (err) {
+    } catch (err: any) {
+      // Ignore abort errors - they're expected when cancelling requests
+      if (err?.name === "AbortError" || abortControllerRef.current?.signal.aborted) {
+        return;
+      }
       console.error("[useTakes] Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to load takes");
-      // Don't block the UI - just show empty state gracefully
-      if (reset) setTakes([]);
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : "Failed to load takes");
+        // Don't block the UI - just show empty state gracefully
+        if (reset) setTakes([]);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [limit, communityId, soundId, authorId, userId]);
 
@@ -314,12 +334,21 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     }
   }, [fetchTakes, loading, hasMore]);
 
-  // Initial fetch
+  // Initial fetch and cleanup
   useEffect(() => {
+    mountedRef.current = true;
+
     if (!fetchedRef.current) {
       fetchedRef.current = true;
       fetchTakes();
     }
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchTakes]);
 
   // Loading timeout safeguard - prevents stuck loading state (10 seconds max)
@@ -997,10 +1026,11 @@ export function useVolume() {
 }
 
 // ============================================================================
-// FOLLOW HOOK
+// TAKES FOLLOWING HOOK
+// Tracks follow state for take authors (renamed from useFollow to avoid conflict)
 // ============================================================================
 
-export function useFollow(userId?: string) {
+export function useTakesFollowing(userId?: string) {
   const [following, setFollowing] = useState<Set<string>>(new Set());
 
   const checkFollowing = useCallback(async (authorIds: string[]) => {

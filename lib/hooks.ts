@@ -97,7 +97,7 @@ export {
   useTakeReactionCounts,
   useMuted,
   useVolume,
-  useFollow as useTakeFollow,
+  useTakesFollowing,
   useSounds,
   useTrendingSounds,
   useFavoriteSounds,

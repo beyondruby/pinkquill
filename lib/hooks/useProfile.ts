@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 import type { Profile, Post, PostMedia, FollowUser, FollowStatus, FollowRequest, AggregateCount } from "../types";
 import { getAggregateCount } from "../types";
@@ -28,8 +28,17 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
   const [isBlockedByUser, setIsBlockedByUser] = useState(false);
   const [isPrivateAccount, setIsPrivateAccount] = useState(false);
 
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const fetchProfile = useCallback(async () => {
     if (!username) return;
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       setLoading(true);
@@ -43,6 +52,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         .select("*")
         .eq("username", username)
         .single();
+
+      if (!mountedRef.current) return;
 
       if (profileError || !profileData) {
         if (profileError?.code === "PGRST116" || !profileData) {
@@ -64,6 +75,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           .eq("blocked_id", viewerId)
           .maybeSingle();
 
+        if (!mountedRef.current) return;
+
         if (blockData) {
           setIsBlockedByUser(true);
           setError("blocked");
@@ -71,6 +84,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           return;
         }
       }
+
+      if (!mountedRef.current) return;
 
       // Check follow status
       let viewerFollowsProfile = false;
@@ -218,17 +233,31 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         community_id: post.community_id || null,
       }));
 
+      if (!mountedRef.current) return;
       setPosts(postsWithStats as Post[]);
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("[useProfile] Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch profile");
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : "Failed to fetch profile");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [username, viewerId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchProfile();
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchProfile]);
 
   return { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, refetch: fetchProfile };
@@ -388,9 +417,17 @@ export function useFollow() {
 export function useFollowList(userId: string, type: "followers" | "following") {
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchList = useCallback(async () => {
     if (!userId) return;
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       setLoading(true);
@@ -413,6 +450,7 @@ export function useFollowList(userId: string, type: "followers" | "following") {
           .eq("following_id", userId)
           .eq("status", "accepted");
 
+        if (!mountedRef.current) return;
         if (error) throw error;
         setUsers((data?.map((d) => d.follower) as unknown as FollowUser[]) || []);
       } else {
@@ -433,18 +471,30 @@ export function useFollowList(userId: string, type: "followers" | "following") {
           .eq("follower_id", userId)
           .eq("status", "accepted");
 
+        if (!mountedRef.current) return;
         if (error) throw error;
         setUsers((data?.map((d) => d.following) as unknown as FollowUser[]) || []);
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("[useFollowList] Error:", err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [userId, type]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchList();
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchList]);
 
   return { users, loading, refetch: fetchList };
@@ -458,6 +508,8 @@ export function useFollowRequests(userId?: string) {
   const [requests, setRequests] = useState<FollowRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [count, setCount] = useState(0);
+  const mountedRef = useRef(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchRequests = useCallback(async () => {
     if (!userId) {
@@ -494,16 +546,27 @@ export function useFollowRequests(userId?: string) {
         throw error;
       }
 
+      if (!mountedRef.current) return;
       setRequests((data as unknown as FollowRequest[]) || []);
       setCount(data?.length || 0);
     } catch (err) {
       console.error("[useFollowRequests] Error:", err);
-      setRequests([]);
-      setCount(0);
+      if (mountedRef.current) {
+        setRequests([]);
+        setCount(0);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [userId]);
+
+  // Use ref to access latest fetchRequests in subscription callback
+  const fetchRequestsRef = useRef(fetchRequests);
+  useEffect(() => {
+    fetchRequestsRef.current = fetchRequests;
+  }, [fetchRequests]);
 
   const accept = async (requesterId: string) => {
     if (!userId) return;
@@ -552,13 +615,30 @@ export function useFollowRequests(userId?: string) {
     }
   };
 
+  // Initial fetch with cleanup
   useEffect(() => {
+    mountedRef.current = true;
     fetchRequests();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchRequests]);
 
-  // Real-time subscription
+  // Real-time subscription - only depends on userId to prevent recreation
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      return;
+    }
+
+    // Clean up previous channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
 
     const channel = supabase
       .channel(`follow-requests-${userId}`)
@@ -573,18 +653,24 @@ export function useFollowRequests(userId?: string) {
         (payload) => {
           const newData = payload.new as { status?: string } | null;
           if (payload.eventType === "INSERT" && newData?.status === "pending") {
-            fetchRequests();
+            // Use ref to get latest fetchRequests
+            fetchRequestsRef.current();
           } else if (payload.eventType === "DELETE") {
-            fetchRequests();
+            fetchRequestsRef.current();
           }
         }
       )
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [userId, fetchRequests]);
+  }, [userId]); // Only userId - prevents channel recreation when fetchRequests changes
 
   return { requests, loading, count, accept, decline, refetch: fetchRequests };
 }

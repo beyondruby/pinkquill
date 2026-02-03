@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 import type { ReactionType, ReactionCounts } from "../types";
 
@@ -256,14 +256,20 @@ export function useReactionCounts(postId: string) {
     total: 0,
   });
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchCounts = useCallback(async () => {
+    if (!mountedRef.current) return;
+
     try {
       // Try reactions table first
       const { data, error } = await supabase
         .from("reactions")
         .select("reaction_type")
         .eq("post_id", postId);
+
+      if (!mountedRef.current) return;
 
       if (error) {
         // Fallback to admires table
@@ -272,6 +278,8 @@ export function useReactionCounts(postId: string) {
             .from("admires")
             .select("*", { count: "exact", head: true })
             .eq("post_id", postId);
+
+          if (!mountedRef.current) return;
 
           setCounts({
             admire: count || 0,
@@ -311,14 +319,32 @@ export function useReactionCounts(postId: string) {
     } catch (err) {
       console.warn("[useReactionCounts] Error:", err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [postId]);
 
+  // Keep ref updated with latest fetchCounts
+  const fetchCountsRef = useRef(fetchCounts);
+  useEffect(() => {
+    fetchCountsRef.current = fetchCounts;
+  }, [fetchCounts]);
+
+  // Initial fetch
   useEffect(() => {
     fetchCounts();
+  }, [fetchCounts]);
 
-    // Real-time subscription
+  // Real-time subscription - only depends on postId to prevent recreation
+  useEffect(() => {
+    mountedRef.current = true;
+
+    // Clean up previous channel if exists
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
     const channel = supabase
       .channel(`reactions:${postId}`)
       .on(
@@ -330,15 +356,21 @@ export function useReactionCounts(postId: string) {
           filter: `post_id=eq.${postId}`,
         },
         () => {
-          fetchCounts();
+          fetchCountsRef.current();
         }
       )
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
-      supabase.removeChannel(channel);
+      mountedRef.current = false;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [postId, fetchCounts]);
+  }, [postId]);
 
   return { counts, loading, refetch: fetchCounts };
 }
@@ -350,12 +382,16 @@ export function useReactionCounts(postId: string) {
 export function useUserReaction(postId: string, userId?: string) {
   const [reaction, setReaction] = useState<ReactionType | null>(null);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchReaction = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       return;
     }
+
+    if (!mountedRef.current) return;
 
     try {
       const { data, error } = await supabase
@@ -365,6 +401,8 @@ export function useUserReaction(postId: string, userId?: string) {
         .eq("user_id", userId)
         .maybeSingle();
 
+      if (!mountedRef.current) return;
+
       if (error) {
         if (error.code === "42P01" || error.message?.includes("does not exist")) {
           const { data: admireData } = await supabase
@@ -373,6 +411,8 @@ export function useUserReaction(postId: string, userId?: string) {
             .eq("post_id", postId)
             .eq("user_id", userId)
             .maybeSingle();
+
+          if (!mountedRef.current) return;
 
           setReaction(admireData ? "admire" : null);
           return;
@@ -384,16 +424,28 @@ export function useUserReaction(postId: string, userId?: string) {
     } catch (err) {
       console.warn("[useUserReaction] Error:", err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [postId, userId]);
 
+  // Initial fetch
   useEffect(() => {
     fetchReaction();
+  }, [fetchReaction]);
+
+  // Real-time subscription - only depends on postId and userId to prevent recreation
+  useEffect(() => {
+    mountedRef.current = true;
 
     if (!userId) return;
 
-    // Real-time subscription
+    // Clean up previous channel if exists
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
     const channel = supabase
       .channel(`user_reaction:${postId}:${userId}`)
       .on(
@@ -405,6 +457,8 @@ export function useUserReaction(postId: string, userId?: string) {
           filter: `post_id=eq.${postId}`,
         },
         (payload) => {
+          if (!mountedRef.current) return;
+
           if (payload.eventType === "DELETE") {
             const old = payload.old as { user_id?: string };
             if (old.user_id === userId) {
@@ -420,10 +474,16 @@ export function useUserReaction(postId: string, userId?: string) {
       )
       .subscribe();
 
+    channelRef.current = channel;
+
     return () => {
-      supabase.removeChannel(channel);
+      mountedRef.current = false;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [postId, userId, fetchReaction]);
+  }, [postId, userId]);
 
   return { reaction, loading, setReaction, refetch: fetchReaction };
 }
