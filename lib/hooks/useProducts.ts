@@ -43,6 +43,7 @@ export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetchedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   const fetchProducts = useCallback(async () => {
     if (!sellerId) {
@@ -72,6 +73,7 @@ export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
         .eq("seller_id", sellerId)
         .order("created_at", { ascending: false });
 
+      if (!mountedRef.current) return;
       if (fetchError) throw fetchError;
 
       // Transform data
@@ -95,14 +97,23 @@ export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
       fetchedRef.current = true;
     } catch (err: any) {
       console.error("[useSellerProducts] Error:", err?.message || err);
-      setError(err?.message || "Failed to fetch products");
+      if (mountedRef.current) {
+        setError(err?.message || "Failed to fetch products");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [sellerId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchProducts();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchProducts]);
 
   return { products, loading, error, refetch: fetchProducts };
@@ -123,6 +134,7 @@ export function useProduct(productId?: string): UseProductReturn {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   const fetchProduct = useCallback(async () => {
     if (!productId) {
@@ -151,6 +163,7 @@ export function useProduct(productId?: string): UseProductReturn {
         .eq("id", productId)
         .single();
 
+      if (!mountedRef.current) return;
       if (fetchError) throw fetchError;
 
       const transformedProduct: Product = {
@@ -173,14 +186,23 @@ export function useProduct(productId?: string): UseProductReturn {
       setProduct(transformedProduct);
     } catch (err: any) {
       console.error("[useProduct] Error:", err?.message || err);
-      setError(err?.message || "Failed to fetch product");
+      if (mountedRef.current) {
+        setError(err?.message || "Failed to fetch product");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [productId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchProduct();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchProduct]);
 
   return { product, loading, error, refetch: fetchProduct };

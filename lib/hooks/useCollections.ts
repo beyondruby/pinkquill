@@ -40,6 +40,7 @@ export function useCollections(userId?: string): UseCollectionsReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetchedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   const fetchCollections = useCallback(async () => {
     if (!userId) {
@@ -67,6 +68,7 @@ export function useCollections(userId?: string): UseCollectionsReturn {
         .eq("user_id", userId)
         .order("position", { ascending: true });
 
+      if (!mountedRef.current) return;
       if (collectionsError) throw collectionsError;
 
       // Transform data
@@ -85,14 +87,23 @@ export function useCollections(userId?: string): UseCollectionsReturn {
       fetchedRef.current = true;
     } catch (err: any) {
       console.error("[useCollections] Error:", err?.message || err);
-      setError(err?.message || "Failed to fetch collections");
+      if (mountedRef.current) {
+        setError(err?.message || "Failed to fetch collections");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [userId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchCollections();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchCollections]);
 
   return { collections, loading, error, refetch: fetchCollections };
@@ -113,6 +124,7 @@ export function useCollection(userId?: string, slug?: string): UseCollectionRetu
   const [collection, setCollection] = useState<CollectionWithItems | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   const fetchCollection = useCallback(async () => {
     if (!userId || !slug) {
@@ -145,6 +157,7 @@ export function useCollection(userId?: string, slug?: string): UseCollectionRetu
         .eq("slug", slug)
         .single();
 
+      if (!mountedRef.current) return;
       if (fetchError) throw fetchError;
 
       // Transform data
@@ -165,14 +178,23 @@ export function useCollection(userId?: string, slug?: string): UseCollectionRetu
       setCollection(transformedCollection);
     } catch (err: any) {
       console.error("[useCollection] Error:", err?.message || err);
-      setError(err?.message || "Failed to fetch collection");
+      if (mountedRef.current) {
+        setError(err?.message || "Failed to fetch collection");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [userId, slug]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchCollection();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchCollection]);
 
   return { collection, loading, error, refetch: fetchCollection };
@@ -197,6 +219,7 @@ export function useCollectionItem(
   const [item, setItem] = useState<CollectionItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   const fetchItem = useCallback(async () => {
     if (!userId || !collectionSlug || !itemSlug) {
@@ -217,6 +240,7 @@ export function useCollectionItem(
         .eq("slug", collectionSlug)
         .single();
 
+      if (!mountedRef.current) return;
       if (collectionError) throw collectionError;
 
       // Then get the item with posts
@@ -238,6 +262,7 @@ export function useCollectionItem(
         .eq("slug", itemSlug)
         .single();
 
+      if (!mountedRef.current) return;
       if (itemError) throw itemError;
 
       const transformedItem: CollectionItem = {
@@ -252,14 +277,23 @@ export function useCollectionItem(
       setItem(transformedItem);
     } catch (err: any) {
       console.error("[useCollectionItem] Error:", err?.message || err);
-      setError(err?.message || "Failed to fetch collection item");
+      if (mountedRef.current) {
+        setError(err?.message || "Failed to fetch collection item");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [userId, collectionSlug, itemSlug]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchItem();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchItem]);
 
   return { item, loading, error, refetch: fetchItem };

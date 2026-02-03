@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 import type { PinnedPost, CommunityPinnedPost } from "../types";
 
@@ -24,6 +24,7 @@ interface UsePinnedPostsReturn {
 export function usePinnedPosts(userId?: string): UsePinnedPostsReturn {
   const [pinnedPosts, setPinnedPosts] = useState<PinnedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   const fetchPinnedPosts = useCallback(async () => {
     if (!userId) {
@@ -40,18 +41,28 @@ export function usePinnedPosts(userId?: string): UsePinnedPostsReturn {
         .eq("user_id", userId)
         .order("position", { ascending: true });
 
+      if (!mountedRef.current) return;
       if (error) throw error;
       setPinnedPosts(data || []);
     } catch (err) {
       console.error("[usePinnedPosts] Error fetching:", err);
-      setPinnedPosts([]);
+      if (mountedRef.current) {
+        setPinnedPosts([]);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [userId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchPinnedPosts();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchPinnedPosts]);
 
   const pinnedPostIds = pinnedPosts.map((p) => p.post_id);
@@ -196,6 +207,7 @@ export function useCommunityPinnedPosts(
 ): UseCommunityPinnedPostsReturn {
   const [pinnedPosts, setPinnedPosts] = useState<CommunityPinnedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   const fetchPinnedPosts = useCallback(async () => {
     if (!communityId) {
@@ -212,18 +224,28 @@ export function useCommunityPinnedPosts(
         .eq("community_id", communityId)
         .order("position", { ascending: true });
 
+      if (!mountedRef.current) return;
       if (error) throw error;
       setPinnedPosts(data || []);
     } catch (err) {
       console.error("[useCommunityPinnedPosts] Error fetching:", err);
-      setPinnedPosts([]);
+      if (mountedRef.current) {
+        setPinnedPosts([]);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [communityId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchPinnedPosts();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchPinnedPosts]);
 
   const pinnedPostIds = pinnedPosts.map((p) => p.post_id);

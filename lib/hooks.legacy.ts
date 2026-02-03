@@ -45,9 +45,17 @@ export function useCommunity(slug: string, userId?: string) {
   const [tags, setTags] = useState<CommunityTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchCommunity = async () => {
+  const fetchCommunity = useCallback(async () => {
     if (!slug) return;
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       setLoading(true);
@@ -66,6 +74,8 @@ export function useCommunity(slug: string, userId?: string) {
         `)
         .eq("slug", slug)
         .single();
+
+      if (!mountedRef.current) return;
 
       if (communityError) {
         if (communityError.code === 'PGRST116') {
@@ -87,6 +97,8 @@ export function useCommunity(slug: string, userId?: string) {
         supabase.from("community_tags").select("*").eq("community_id", communityData.id),
       ]);
 
+      if (!mountedRef.current) return;
+
       setCommunity({
         ...communityData,
         member_count: membersResult.count || 0,
@@ -101,17 +113,30 @@ export function useCommunity(slug: string, userId?: string) {
 
       setRules(rulesResult.data || []);
       setTags(tagsResult.data || []);
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("[useCommunity] Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch community");
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : "Failed to fetch community");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [slug, userId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchCommunity();
-  }, [slug, userId]);
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchCommunity]);
 
   return { community, rules, tags, loading, error, refetch: fetchCommunity };
 }
@@ -121,8 +146,16 @@ export function useCommunities(userId?: string, filter?: 'all' | 'joined' | 'cre
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchCommunities = async () => {
+  const fetchCommunities = useCallback(async () => {
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       setLoading(true);
       setError(null);
@@ -146,6 +179,7 @@ export function useCommunities(userId?: string, filter?: 'all' | 'joined' | 'cre
 
       const { data: communitiesData, error: communitiesError } = await query;
 
+      if (!mountedRef.current) return;
       if (communitiesError) throw communitiesError;
 
       if (!communitiesData || communitiesData.length === 0) {
@@ -162,6 +196,8 @@ export function useCommunities(userId?: string, filter?: 'all' | 'joined' | 'cre
           .eq("user_id", userId)
           .eq("status", "active");
 
+        if (!mountedRef.current) return;
+
         const joinedIds = new Set((memberships || []).map(m => m.community_id));
         filteredCommunities = communitiesData.filter(c => joinedIds.has(c.id));
       }
@@ -174,6 +210,8 @@ export function useCommunities(userId?: string, filter?: 'all' | 'joined' | 'cre
         supabase.from("posts").select("community_id").in("community_id", communityIds),
         userId ? supabase.from("community_members").select("community_id, role, status").eq("user_id", userId).in("community_id", communityIds) : Promise.resolve({ data: [] }),
       ]);
+
+      if (!mountedRef.current) return;
 
       // Count members and posts per community
       const memberCounts: Record<string, number> = {};
@@ -202,17 +240,30 @@ export function useCommunities(userId?: string, filter?: 'all' | 'joined' | 'cre
       }));
 
       setCommunities(enrichedCommunities);
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("[useCommunities] Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch communities");
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : "Failed to fetch communities");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [userId, filter]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchCommunities();
-  }, [userId, filter]);
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchCommunities]);
 
   return { communities, loading, error, refetch: fetchCommunities };
 }
@@ -223,10 +274,20 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
   const [trending, setTrending] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const limit = options?.limit ?? 20;
 
   useEffect(() => {
+    mountedRef.current = true;
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     const fetchCommunities = async () => {
       try {
         setLoading(true);
@@ -252,6 +313,8 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
             .select("community_id")
             .ilike("tag", `%${options.tag}%`);
 
+          if (!mountedRef.current) return;
+
           if (taggedCommunities && taggedCommunities.length > 0) {
             const communityIds = taggedCommunities.map(t => t.community_id);
             query = query.in("id", communityIds);
@@ -264,6 +327,7 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
 
         const { data, error: fetchError } = await query;
 
+        if (!mountedRef.current) return;
         if (fetchError) throw fetchError;
 
         if (!data || data.length === 0) {
@@ -278,6 +342,8 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
           .select("community_id")
           .in("community_id", communityIds)
           .eq("status", "active");
+
+        if (!mountedRef.current) return;
 
         const memberCounts: Record<string, number> = {};
         (membersData || []).forEach(m => {
@@ -295,15 +361,27 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
         setCommunities(enrichedCommunities);
         // Set trending as top 6 by member count
         setTrending(enrichedCommunities.slice(0, 6));
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.name === "AbortError") return;
         console.error("[useDiscoverCommunities] Error:", err);
-        setError(err instanceof Error ? err.message : "Failed to discover communities");
+        if (mountedRef.current) {
+          setError(err instanceof Error ? err.message : "Failed to discover communities");
+        }
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
     fetchCommunities();
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [options?.category, options?.tag, limit]);
 
   return { communities, trending, loading, error };
@@ -313,8 +391,18 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
 export function useSuggestedCommunities(userId?: string, limit: number = 10) {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    mountedRef.current = true;
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     const fetchSuggestions = async () => {
       try {
         setLoading(true);
@@ -326,6 +414,8 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
             .from("community_members")
             .select("community_id")
             .eq("user_id", userId);
+
+          if (!mountedRef.current) return;
           joinedIds = new Set((memberships || []).map(m => m.community_id));
         }
 
@@ -343,6 +433,7 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
           .eq("privacy", "public")
           .limit(limit * 2); // Fetch more to account for filtering
 
+        if (!mountedRef.current) return;
         if (error) throw error;
 
         // Filter out joined communities
@@ -356,6 +447,8 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
             .select("community_id")
             .in("community_id", communityIds)
             .eq("status", "active");
+
+          if (!mountedRef.current) return;
 
           const memberCounts: Record<string, number> = {};
           (membersData || []).forEach(m => {
@@ -373,14 +466,24 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
         } else {
           setCommunities([]);
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.name === "AbortError") return;
         console.error("[useSuggestedCommunities] Error:", err);
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
     fetchSuggestions();
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [userId, limit]);
 
   return { communities, loading };
@@ -390,9 +493,17 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
 export function useCommunityMembers(communityId: string, options?: { role?: string; status?: string }) {
   const [members, setMembers] = useState<CommunityMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     if (!communityId) return;
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       setLoading(true);
@@ -421,18 +532,30 @@ export function useCommunityMembers(communityId: string, options?: { role?: stri
 
       const { data, error } = await query;
 
+      if (!mountedRef.current) return;
       if (error) throw error;
       setMembers(data || []);
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("[useCommunityMembers] Error:", err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [communityId, options?.role, options?.status]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchMembers();
-  }, [communityId, options?.role, options?.status]);
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchMembers]);
 
   return { members, loading, refetch: fetchMembers };
 }
@@ -447,6 +570,8 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const pageSize = 20;
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch pinned post IDs
   const fetchPinnedPostIds = async () => {
@@ -466,8 +591,14 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
     }
   };
 
-  const fetchPosts = async (pageNum: number = 0, append: boolean = false) => {
+  const fetchPosts = useCallback(async (pageNum: number = 0, append: boolean = false) => {
     if (!communityId) return;
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       setLoading(true);
@@ -475,6 +606,7 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
 
       // First fetch pinned post IDs
       const currentPinnedIds = await fetchPinnedPostIds();
+      if (!mountedRef.current) return;
       setPinnedPostIds(currentPinnedIds);
 
       let query = supabase
@@ -504,6 +636,7 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
 
       const { data, error: fetchError } = await query;
 
+      if (!mountedRef.current) return;
       if (fetchError) throw fetchError;
 
       if (!data || data.length === 0) {
@@ -518,6 +651,8 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
         supabase.from("admires").select("post_id").in("post_id", postIds),
         supabase.from("comments").select("post_id").in("post_id", postIds),
       ]);
+
+      if (!mountedRef.current) return;
 
       const admiresCounts: Record<string, number> = {};
       const commentsCounts: Record<string, number> = {};
@@ -538,6 +673,8 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
           supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
           supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
         ]);
+
+        if (!mountedRef.current) return;
 
         userAdmires = new Set((userAdmiresResult.data || []).map(a => a.post_id));
         userSaves = new Set((userSavesResult.data || []).map(s => s.post_id));
@@ -581,23 +718,36 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
 
       setHasMore(data.length === pageSize);
       setPage(pageNum);
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("[useCommunityPosts] Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch posts");
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : "Failed to fetch posts");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
-
-  useEffect(() => {
-    fetchPosts(0, false);
   }, [communityId, sortBy, userId]);
 
-  const loadMore = () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchPosts(0, false);
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchPosts]);
+
+  const loadMore = useCallback(() => {
     if (!loading && hasMore) {
       fetchPosts(page + 1, true);
     }
-  };
+  }, [fetchPosts, loading, hasMore, page]);
 
   return { posts, pinnedPosts, loading, error, loadMore, hasMore, refetch: () => fetchPosts(0, false) };
 }
@@ -723,13 +873,21 @@ export function useJoinCommunity() {
 export function useCommunityInvitations(userId?: string) {
   const [invitations, setInvitations] = useState<CommunityInvitation[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchInvitations = async () => {
+  const fetchInvitations = useCallback(async () => {
     if (!userId) {
       setInvitations([]);
       setLoading(false);
       return;
     }
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       setLoading(true);
@@ -752,18 +910,30 @@ export function useCommunityInvitations(userId?: string) {
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
+      if (!mountedRef.current) return;
       if (error) throw error;
       setInvitations(data || []);
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("[useCommunityInvitations] Error:", err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchInvitations();
-  }, [userId]);
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchInvitations]);
 
   const accept = async (invitationId: string, communityId: string) => {
     if (!userId) return { success: false };
@@ -813,9 +983,17 @@ export function useCommunityInvitations(userId?: string) {
 export function useJoinRequests(communityId: string) {
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     if (!communityId) return;
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       setLoading(true);
@@ -834,18 +1012,30 @@ export function useJoinRequests(communityId: string) {
         .eq("status", "pending")
         .order("created_at", { ascending: true });
 
+      if (!mountedRef.current) return;
       if (error) throw error;
       setRequests(data || []);
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error("[useJoinRequests] Error:", err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [communityId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchRequests();
-  }, [communityId]);
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchRequests]);
 
   const approve = async (requestId: string, visitorUserId: string, reviewerId: string) => {
     try {
@@ -1605,11 +1795,15 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
   const [results, setResults] = useState<SearchResults>({ profiles: [], communities: [], tags: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const debounceMs = options?.debounceMs ?? 300;
   const limit = options?.limit ?? 5;
 
   useEffect(() => {
+    mountedRef.current = true;
+
     // Don't search if query is too short
     if (!query || query.trim().length < 2) {
       setResults({ profiles: [], communities: [], tags: [] });
@@ -1619,6 +1813,12 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
 
     setLoading(true);
     setError(null);
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     const timeoutId = setTimeout(async () => {
       try {
@@ -1644,6 +1844,8 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
             .limit(limit * 2),
         ]);
 
+        if (!mountedRef.current) return;
+
         const profiles = (profilesResult.data || []) as SearchResultProfile[];
 
         const communities = communitiesResult.data || [];
@@ -1656,6 +1858,8 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
             .select("community_id")
             .in("community_id", communityIds)
             .eq("status", "active");
+
+          if (!mountedRef.current) return;
 
           const memberCounts: Record<string, number> = {};
           (membersData || []).forEach(m => {
@@ -1677,16 +1881,29 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
           .map(([tag, count]) => ({ tag, community_count: count }))
           .slice(0, limit);
 
-        setResults({ profiles, communities: enrichedCommunities, tags });
-      } catch (err) {
+        if (mountedRef.current) {
+          setResults({ profiles, communities: enrichedCommunities, tags });
+        }
+      } catch (err: any) {
+        if (err?.name === "AbortError") return;
         console.error("[useSearch] Error:", err);
-        setError(err instanceof Error ? err.message : "Search failed");
+        if (mountedRef.current) {
+          setError(err instanceof Error ? err.message : "Search failed");
+        }
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     }, debounceMs);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(timeoutId);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [query, debounceMs, limit]);
 
   return { results, loading, error };
@@ -1754,6 +1971,8 @@ export interface CollaborationInvite {
 export function useCollaborators(postId?: string) {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchCollaborators = useCallback(async () => {
     if (!postId) {
@@ -1778,31 +1997,57 @@ export function useCollaborators(postId?: string) {
         .eq('post_id', postId)
         .order('invited_at', { ascending: true });
 
+      if (!mountedRef.current) return;
       if (error) throw error;
       setCollaborators(data || []);
     } catch (err) {
       console.error('[useCollaborators] Error:', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [postId]);
 
+  // Keep ref updated for subscription callback
+  const fetchCollaboratorsRef = useRef(fetchCollaborators);
   useEffect(() => {
-    fetchCollaborators();
+    fetchCollaboratorsRef.current = fetchCollaborators;
   }, [fetchCollaborators]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    fetchCollaborators();
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [fetchCollaborators]);
+
+  // Subscription - only depends on postId
+  useEffect(() => {
     if (!postId) return;
+
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
 
     const channel = supabase
       .channel(`collaborators-${postId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'post_collaborators', filter: `post_id=eq.${postId}` }, () => {
-        fetchCollaborators();
+        fetchCollaboratorsRef.current();
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [postId, fetchCollaborators]);
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [postId]);
 
   const inviteCollaborator = async (userId: string, authorId: string) => {
     if (!postId) return { success: false, error: 'No post ID' };
@@ -1852,6 +2097,8 @@ export function useCollaborators(postId?: string) {
 export function useCollaborationInvites(userId?: string) {
   const [invites, setInvites] = useState<CollaborationInvite[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchInvites = useCallback(async () => {
     if (!userId) { setInvites([]); setLoading(false); return; }
@@ -1863,6 +2110,8 @@ export function useCollaborationInvites(userId?: string) {
         .eq('user_id', userId)
         .eq('status', 'pending')
         .order('invited_at', { ascending: false });
+
+      if (!mountedRef.current) return;
       if (error) {
         if (error.code === '42P01' || error.message?.includes('does not exist')) { setInvites([]); return; }
         throw error;
@@ -1870,22 +2119,46 @@ export function useCollaborationInvites(userId?: string) {
       setInvites(data || []);
     } catch (err) {
       console.error('[useCollaborationInvites] Error:', err);
-      setInvites([]);
+      if (mountedRef.current) setInvites([]);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [userId]);
 
-  useEffect(() => { fetchInvites(); }, [fetchInvites]);
+  // Keep ref updated for subscription callback
+  const fetchInvitesRef = useRef(fetchInvites);
+  useEffect(() => {
+    fetchInvitesRef.current = fetchInvites;
+  }, [fetchInvites]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    fetchInvites();
+    return () => { mountedRef.current = false; };
+  }, [fetchInvites]);
+
+  // Subscription - only depends on userId
+  useEffect(() => {
     if (!userId) return;
+
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
     const channel = supabase
       .channel(`collab-invites-${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'post_collaborators', filter: `user_id=eq.${userId}` }, () => { fetchInvites(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'post_collaborators', filter: `user_id=eq.${userId}` }, () => { fetchInvitesRef.current(); })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [userId, fetchInvites]);
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [userId]);
 
   const accept = async (postId: string, authorId: string) => {
     if (!userId) return { success: false };
@@ -1919,6 +2192,7 @@ export function useCollaborationInvites(userId?: string) {
 export function usePendingCollaborations(userId?: string) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   const fetchPending = useCallback(async () => {
     if (!userId) { setPosts([]); setLoading(false); return; }
@@ -1930,16 +2204,22 @@ export function usePendingCollaborations(userId?: string) {
         .eq('author_id', userId)
         .eq('status', 'draft')
         .order('created_at', { ascending: false });
+
+      if (!mountedRef.current) return;
       if (error) throw error;
       setPosts(data || []);
     } catch (err) {
       console.error('[usePendingCollaborations] Error:', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [userId]);
 
-  useEffect(() => { fetchPending(); }, [fetchPending]);
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchPending();
+    return () => { mountedRef.current = false; };
+  }, [fetchPending]);
 
   return { posts, loading, refetch: fetchPending };
 }
@@ -1951,6 +2231,7 @@ export function usePendingCollaborations(userId?: string) {
 export function useMentions(postId?: string) {
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   const fetchMentions = useCallback(async () => {
     if (!postId) { setMentions([]); setLoading(false); return; }
@@ -1961,16 +2242,22 @@ export function useMentions(postId?: string) {
         .select(`*, user:profiles!post_mentions_user_id_fkey (id, username, display_name, avatar_url)`)
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
+
+      if (!mountedRef.current) return;
       if (error) throw error;
       setMentions(data || []);
     } catch (err) {
       console.error('[useMentions] Error:', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [postId]);
 
-  useEffect(() => { fetchMentions(); }, [fetchMentions]);
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchMentions();
+    return () => { mountedRef.current = false; };
+  }, [fetchMentions]);
 
   const addMention = async (userId: string, authorId: string) => {
     if (!postId) return { success: false, error: 'No post ID' };
@@ -2003,14 +2290,18 @@ export function useMentions(postId?: string) {
 export function useMentionedPosts(userId?: string) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   const fetchMentioned = useCallback(async () => {
     if (!userId) { setPosts([]); setLoading(false); return; }
     try {
       setLoading(true);
       const { data: mentionData, error: mentionError } = await supabase.from('post_mentions').select('post_id').eq('user_id', userId);
+
+      if (!mountedRef.current) return;
       if (mentionError) throw mentionError;
       if (!mentionData || mentionData.length === 0) { setPosts([]); setLoading(false); return; }
+
       const postIds = mentionData.map(m => m.post_id);
       const { data, error } = await supabase
         .from('posts')
@@ -2018,16 +2309,22 @@ export function useMentionedPosts(userId?: string) {
         .in('id', postIds)
         .eq('status', 'published')
         .order('created_at', { ascending: false });
+
+      if (!mountedRef.current) return;
       if (error) throw error;
       setPosts(data || []);
     } catch (err) {
       console.error('[useMentionedPosts] Error:', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [userId]);
 
-  useEffect(() => { fetchMentioned(); }, [fetchMentioned]);
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchMentioned();
+    return () => { mountedRef.current = false; };
+  }, [fetchMentioned]);
 
   return { posts, loading, refetch: fetchMentioned };
 }
@@ -2049,11 +2346,13 @@ export function useUserSearch(currentUserId?: string) {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchableUser[]>([]);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
   const fetchSuggestions = useCallback(async () => {
     if (!currentUserId) return;
     try {
       const { data, error } = await supabase.from('follows').select(`following:profiles!follows_following_id_fkey (id, username, display_name, avatar_url, is_verified)`).eq('follower_id', currentUserId).limit(20);
+      if (!mountedRef.current) return;
       if (error) throw error;
       setSuggestions(data?.map(d => d.following as unknown as SearchableUser) || []);
     } catch (err) {
@@ -2061,7 +2360,11 @@ export function useUserSearch(currentUserId?: string) {
     }
   }, [currentUserId]);
 
-  useEffect(() => { fetchSuggestions(); }, [fetchSuggestions]);
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchSuggestions();
+    return () => { mountedRef.current = false; };
+  }, [fetchSuggestions]);
 
   const search = useCallback(async (query: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -2075,17 +2378,19 @@ export function useUserSearch(currentUserId?: string) {
             supabase.from('blocks').select('blocker_id').eq('blocked_id', currentUserId),
             supabase.from('blocks').select('blocked_id').eq('blocker_id', currentUserId),
           ]);
+          if (!mountedRef.current) return;
           (blockedBy.data || []).forEach(b => blockedUsers.add(b.blocker_id));
           (iBlocked.data || []).forEach(b => blockedUsers.add(b.blocked_id));
         }
         const { data, error } = await supabase.from('profiles').select('id, username, display_name, avatar_url, is_verified').or(`username.ilike.%${query.toLowerCase()}%,display_name.ilike.%${query.toLowerCase()}%`).limit(20);
+        if (!mountedRef.current) return;
         if (error) throw error;
         setResults((data || []).filter(u => u.id !== currentUserId && !blockedUsers.has(u.id)));
       } catch (err) {
         console.error('[useUserSearch] Error:', err);
-        setResults([]);
+        if (mountedRef.current) setResults([]);
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     }, 300);
   }, [currentUserId]);
