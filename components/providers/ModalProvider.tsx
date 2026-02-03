@@ -81,6 +81,12 @@ type TakeUpdateCallback = (update: TakeUpdate) => void;
 
 type TakeDeleteCallback = (takeId: string) => void;
 
+// Moderation context for community comment deletion
+interface ModerationContext {
+  canModerateDeleteComments: boolean;
+  onModeratorDeleteComment?: (commentId: string, reason?: string) => Promise<void>;
+}
+
 interface ModalContextType {
   openPostModal: (post: Post) => void;
   closePostModal: () => void;
@@ -95,6 +101,8 @@ interface ModalContextType {
   notifyTakeUpdate: (update: TakeUpdate) => void;
   subscribeToTakeDeletes: (callback: TakeDeleteCallback) => () => void;
   notifyTakeDelete: (takeId: string) => void;
+  // Moderation context methods
+  setModerationContext: (context: ModerationContext | null) => void;
 }
 
 const ModalContext = createContext<ModalContextType | undefined>(undefined);
@@ -121,6 +129,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   const [takeSubscribers, setTakeSubscribers] = useState<TakeUpdateCallback[]>([]);
   const [takeDeleteSubscribers, setTakeDeleteSubscribers] = useState<TakeDeleteCallback[]>([]);
   const takeOriginalUrlRef = useRef<string | null>(null);
+
+  // Moderation context state
+  const [moderationContext, setModerationContext] = useState<ModerationContext | null>(null);
 
   const openPostModal = (post: Post) => {
     // Store the original URL before changing
@@ -306,6 +317,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
       notifyTakeUpdate,
       subscribeToTakeDeletes,
       notifyTakeDelete,
+      setModerationContext,
     }}>
       {children}
       {selectedPost && (
@@ -315,6 +327,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
           onClose={closePostModal}
           onPostUpdate={notifyUpdate}
           onPostDeleted={handlePostDeleted}
+          canModerateDeleteComments={moderationContext?.canModerateDeleteComments}
+          onModeratorDeleteComment={moderationContext?.onModeratorDeleteComment}
         />
       )}
       {selectedTake && (

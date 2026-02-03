@@ -1274,7 +1274,7 @@ export function useCommunityModeration(communityId: string) {
   };
 
   // Delete a comment from a community post
-  const deleteComment = async (commentId: string, postId: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
+  const deleteComment = async (commentId: string, postId?: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -1286,11 +1286,25 @@ export function useCommunityModeration(communityId: string) {
         return { success: false, error: 'You do not have permission to delete comments' };
       }
 
+      // Get comment info (including post_id if not provided)
+      const { data: comment } = await supabase
+        .from("comments")
+        .select("user_id, post_id")
+        .eq("id", commentId)
+        .single();
+
+      if (!comment) {
+        return { success: false, error: 'Comment not found' };
+      }
+
+      // Use the post_id from comment if not explicitly provided
+      const effectivePostId = postId || comment.post_id;
+
       // Verify the post belongs to this community
       const { data: post } = await supabase
         .from("posts")
         .select("id")
-        .eq("id", postId)
+        .eq("id", effectivePostId)
         .eq("community_id", communityId)
         .single();
 
@@ -1298,19 +1312,12 @@ export function useCommunityModeration(communityId: string) {
         return { success: false, error: 'Post not found in this community' };
       }
 
-      // Get comment info for audit log
-      const { data: comment } = await supabase
-        .from("comments")
-        .select("user_id")
-        .eq("id", commentId)
-        .single();
-
       // Log the deletion
       await supabase.from("community_content_deletions").insert({
         community_id: communityId,
         content_type: 'comment',
         content_id: commentId,
-        content_author_id: comment?.user_id,
+        content_author_id: comment.user_id,
         deleted_by: user.id,
         reason: reason || null,
       });
@@ -1320,7 +1327,7 @@ export function useCommunityModeration(communityId: string) {
         .from("comments")
         .delete()
         .eq("id", commentId)
-        .eq("post_id", postId);
+        .eq("post_id", effectivePostId);
 
       if (error) throw error;
 

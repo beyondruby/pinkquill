@@ -410,6 +410,9 @@ interface PostDetailModalProps {
   onClose: () => void;
   onPostUpdate?: (update: PostUpdate) => void;
   onPostDeleted?: (postId: string) => void;
+  // Community moderation props for comments
+  canModerateDeleteComments?: boolean;
+  onModeratorDeleteComment?: (commentId: string, reason?: string) => Promise<void>;
 }
 
 export default function PostDetailModal({
@@ -418,6 +421,8 @@ export default function PostDetailModal({
   onClose,
   onPostUpdate,
   onPostDeleted,
+  canModerateDeleteComments,
+  onModeratorDeleteComment,
 }: PostDetailModalProps) {
   const router = useRouter();
   const { user, profile } = useAuth();
@@ -1337,6 +1342,8 @@ export default function PostDetailModal({
                       onLike={handleCommentLike}
                       onReply={handleCommentReply}
                       onDelete={handleCommentDelete}
+                      canModerateDelete={canModerateDeleteComments}
+                      onModeratorDelete={onModeratorDeleteComment}
                     />
                   ))}
                 </div>

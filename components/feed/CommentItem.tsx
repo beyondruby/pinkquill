@@ -17,6 +17,9 @@ interface CommentItemProps {
   onBlock?: (userId: string) => void;
   isReply?: boolean;
   topLevelParentId?: string; // The top-level comment ID for flat threading
+  // Community moderation props
+  canModerateDelete?: boolean;
+  onModeratorDelete?: (commentId: string, reason?: string) => Promise<void>;
 }
 
 // Parse @mentions in comment content and render as clickable links
@@ -76,11 +79,16 @@ function CommentItemComponent({
   onBlock,
   isReply = false,
   topLevelParentId,
+  canModerateDelete,
+  onModeratorDelete,
 }: CommentItemProps) {
   const [showReplies, setShowReplies] = useState(false);
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showModDeleteModal, setShowModDeleteModal] = useState(false);
+  const [modDeleteReason, setModDeleteReason] = useState("");
+  const [isModDeleting, setIsModDeleting] = useState(false);
 
   // For flat threading: when replying to a reply, use the top-level parent ID
   // When replying to a top-level comment, use the comment's own ID
@@ -199,6 +207,24 @@ function CommentItemComponent({
     }
   };
 
+  const handleModeratorDelete = async () => {
+    if (!onModeratorDelete) return;
+    setIsModDeleting(true);
+    try {
+      await onModeratorDelete(comment.id, modDeleteReason.trim() || undefined);
+      setShowModDeleteModal(false);
+      setModDeleteReason("");
+      // Also update local state by calling onDelete if available
+      if (onDelete) {
+        onDelete(comment.id);
+      }
+    } catch (err) {
+      console.error("Failed to delete comment as moderator:", err);
+    } finally {
+      setIsModDeleting(false);
+    }
+  };
+
   return (
     <div id={`comment-${comment.id}`} className={`${isReply ? "ml-11 mt-3" : ""} transition-colors duration-500`}>
       <div className="flex gap-3 group">
@@ -253,6 +279,21 @@ function CommentItemComponent({
                         </button>
                       ) : (
                         <>
+                          {/* Moderator Delete Option */}
+                          {canModerateDelete && onModeratorDelete && (
+                            <button
+                              onClick={() => {
+                                setShowMenu(false);
+                                setShowModDeleteModal(true);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-orange-500 hover:bg-orange-50 transition-colors"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete (Mod)
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               setShowMenu(false);
@@ -382,6 +423,8 @@ function CommentItemComponent({
                   onBlock={onBlock}
                   isReply
                   topLevelParentId={comment.id} // Pass the top-level comment ID for flat threading
+                  canModerateDelete={canModerateDelete}
+                  onModeratorDelete={onModeratorDelete}
                 />
               ))}
             </div>
@@ -431,6 +474,58 @@ function CommentItemComponent({
           submitted={reportSubmitted}
         />
       )}
+
+      {/* Moderator Delete Confirmation Modal */}
+      {showModDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
+            <h3 className="font-display text-lg font-semibold text-ink mb-2">
+              Delete Comment (Moderator)
+            </h3>
+            <p className="font-body text-sm text-muted mb-4">
+              You are deleting this comment as a community moderator. This action will be logged.
+            </p>
+            <div className="mb-4">
+              <label className="block font-ui text-sm text-ink mb-2">
+                Reason (optional)
+              </label>
+              <input
+                type="text"
+                value={modDeleteReason}
+                onChange={(e) => setModDeleteReason(e.target.value)}
+                placeholder="e.g., Violates community guidelines"
+                className="w-full px-3 py-2 rounded-lg border border-black/10 font-body text-sm text-ink placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/50"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowModDeleteModal(false);
+                  setModDeleteReason("");
+                }}
+                disabled={isModDeleting}
+                className="flex-1 py-2.5 rounded-full border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/[0.03] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleModeratorDelete}
+                disabled={isModDeleting}
+                className="flex-1 py-2.5 rounded-full bg-orange-500 text-white font-ui text-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isModDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -442,7 +537,8 @@ const CommentItem = memo(CommentItemComponent, (prevProps, nextProps) => {
     prevProps.comment.user_has_liked === nextProps.comment.user_has_liked &&
     prevProps.comment.likes_count === nextProps.comment.likes_count &&
     prevProps.comment.replies_count === nextProps.comment.replies_count &&
-    prevProps.currentUserId === nextProps.currentUserId
+    prevProps.currentUserId === nextProps.currentUserId &&
+    prevProps.canModerateDelete === nextProps.canModerateDelete
   );
 });
 

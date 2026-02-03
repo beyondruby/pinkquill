@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useModal } from "@/components/providers/ModalProvider";
 import { useCommunity, useCommunityPosts, useCommunityPinnedPosts, useCommunityModeration, Post } from "@/lib/hooks";
 import { useTrackCommunityView } from "@/lib/hooks/useTracking";
 import PostCard from "@/components/feed/PostCard";
@@ -73,6 +74,7 @@ export default function CommunityFeedPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { user } = useAuth();
+  const { setModerationContext } = useModal();
   const { community, tags } = useCommunity(slug, user?.id);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
 
@@ -97,24 +99,56 @@ export default function CommunityFeedPage() {
   // Moderation functionality
   const {
     deletePost,
+    deleteComment,
     hasPermission,
   } = useCommunityModeration(community?.id || '');
 
-  // State for delete permission
+  // State for delete permissions
   const [canDeletePosts, setCanDeletePosts] = useState(false);
+  const [canDeleteComments, setCanDeleteComments] = useState(false);
 
-  // Check delete permission on mount and when user/community changes
+  // Check delete permissions on mount and when user/community changes
   useEffect(() => {
-    const checkPermission = async () => {
+    const checkPermissions = async () => {
       if (user?.id && community?.id) {
-        const canDelete = await hasPermission(user.id, 'can_delete_posts');
-        setCanDeletePosts(canDelete);
+        const [canDeletePostsPerm, canDeleteCommentsPerm] = await Promise.all([
+          hasPermission(user.id, 'can_delete_posts'),
+          hasPermission(user.id, 'can_delete_comments'),
+        ]);
+        setCanDeletePosts(canDeletePostsPerm);
+        setCanDeleteComments(canDeleteCommentsPerm);
       } else {
         setCanDeletePosts(false);
+        setCanDeleteComments(false);
       }
     };
-    checkPermission();
+    checkPermissions();
   }, [user?.id, community?.id, hasPermission]);
+
+  // Handler for moderator comment deletion
+  const handleModeratorDeleteComment = useCallback(async (commentId: string, reason?: string) => {
+    const result = await deleteComment(commentId, undefined, reason);
+    if (!result.success) {
+      throw new Error(result.error as string);
+    }
+  }, [deleteComment]);
+
+  // Set moderation context for the modal when permissions are available
+  useEffect(() => {
+    if (canDeleteComments) {
+      setModerationContext({
+        canModerateDeleteComments: true,
+        onModeratorDeleteComment: handleModeratorDeleteComment,
+      });
+    } else {
+      setModerationContext(null);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      setModerationContext(null);
+    };
+  }, [canDeleteComments, handleModeratorDeleteComment, setModerationContext]);
 
   // Handler for moderator post deletion
   const handleModeratorDeletePost = useCallback(async (postId: string, reason?: string) => {
