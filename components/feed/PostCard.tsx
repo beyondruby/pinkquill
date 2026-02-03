@@ -238,6 +238,7 @@ function PostCardComponent({
     const newIsAdmired = !isAdmired;
     const countChange = newIsAdmired ? 1 : -1;
 
+    // Optimistic update
     setIsAdmired(newIsAdmired);
     setAdmireCount((prev) => Math.max(0, prev + countChange));
 
@@ -248,10 +249,17 @@ function PostCardComponent({
       countChange,
     });
 
-    await toggleAdmire(post.id, user.id, isAdmired);
+    try {
+      await toggleAdmire(post.id, user.id, isAdmired);
 
-    if (newIsAdmired) {
-      await createNotification(post.authorId, user.id, 'admire', post.id);
+      if (newIsAdmired) {
+        await createNotification(post.authorId, user.id, 'admire', post.id);
+      }
+    } catch {
+      // Revert on error
+      setIsAdmired(!newIsAdmired);
+      setAdmireCount((prev) => Math.max(0, prev - countChange));
+      actionToast.reactionError();
     }
   }, [user, openAuthModal, isAdmired, post.id, post.authorId, notifyUpdate, toggleAdmire]);
 
@@ -264,6 +272,7 @@ function PostCardComponent({
 
     const wasReacted = userReaction !== null;
     const isSameReaction = userReaction === reactionType;
+    const previousReaction = userReaction;
 
     // Optimistic update for immediate feedback
     if (isSameReaction) {
@@ -272,10 +281,7 @@ function PostCardComponent({
       setUserReaction(reactionType);
     }
 
-    // Perform database update (real-time subscription will update counts)
-    await toggleReaction(post.id, user.id, reactionType, userReaction);
-
-    // Notify modal of changes
+    // Notify modal of changes (before try-catch for immediate feedback)
     notifyUpdate({
       postId: post.id,
       field: "reactions",
@@ -284,10 +290,18 @@ function PostCardComponent({
       reactionType: isSameReaction ? null : reactionType,
     });
 
-    // Send notification for new reactions (not removals or changes)
-    // Use the actual reaction type (admire, snap, ovation, support, inspired, applaud)
-    if (!wasReacted && !isSameReaction) {
-      await createNotification(post.authorId, user.id, reactionType, post.id);
+    try {
+      // Perform database update (real-time subscription will update counts)
+      await toggleReaction(post.id, user.id, reactionType, userReaction);
+
+      // Send notification for new reactions (not removals or changes)
+      if (!wasReacted && !isSameReaction) {
+        await createNotification(post.authorId, user.id, reactionType, post.id);
+      }
+    } catch {
+      // Revert on error
+      setUserReaction(previousReaction);
+      actionToast.reactionError();
     }
   }, [user, openAuthModal, userReaction, post.id, post.authorId, notifyUpdate, toggleReaction, setUserReaction]);
 
@@ -298,11 +312,10 @@ function PostCardComponent({
     }
     if (!userReaction) return;
 
+    const previousReaction = userReaction;
+
     // Optimistic update
     setUserReaction(null);
-
-    // Perform database update (real-time subscription will update counts)
-    await removeReaction(post.id, user.id);
 
     // Notify modal
     notifyUpdate({
@@ -312,6 +325,15 @@ function PostCardComponent({
       countChange: -1,
       reactionType: null,
     });
+
+    try {
+      // Perform database update (real-time subscription will update counts)
+      await removeReaction(post.id, user.id);
+    } catch {
+      // Revert on error
+      setUserReaction(previousReaction);
+      actionToast.reactionError();
+    }
   }, [user, openAuthModal, userReaction, post.id, notifyUpdate, removeReaction, setUserReaction]);
 
   const handleSave = useCallback(async (e: React.MouseEvent) => {

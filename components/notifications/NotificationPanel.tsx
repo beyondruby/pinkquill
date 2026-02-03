@@ -715,7 +715,7 @@ function NotificationItem({
         )}
 
         {/* Timestamp */}
-        <span className="font-ui text-[0.72rem] text-muted/50 mt-1.5 block">
+        <span className="font-ui text-[0.72rem] text-muted mt-1.5 block">
           {getTimeAgo(notification.created_at)}
         </span>
       </div>

@@ -81,22 +81,44 @@ export const actionToast = {
   postDeleteError: () => showToast.error("Failed to delete post", "Please try again"),
   postSaved: () => showToast.success("Post saved to bookmarks"),
   postUnsaved: () => showToast.info("Removed from bookmarks"),
+  postSaveError: () => showToast.error("Failed to save post", "Please try again"),
   postRelayed: () => showToast.success("Post relayed to your followers"),
   postUnrelayed: () => showToast.info("Relay removed"),
+  postRelayError: () => showToast.error("Failed to relay post", "Please try again"),
+
+  // Reaction actions
+  reactionError: () => showToast.error("Failed to react", "Please try again"),
+
+  // Follow actions
+  followed: (username: string) => showToast.success(`Following ${username}`),
+  unfollowed: (username: string) => showToast.info(`Unfollowed ${username}`),
+  followRequestSent: () => showToast.success("Follow request sent"),
+  followError: () => showToast.error("Failed to follow", "Please try again"),
+  unfollowError: () => showToast.error("Failed to unfollow", "Please try again"),
 
   // Block actions
   userBlocked: (username: string) => showToast.success(`Blocked ${username}`),
+  userUnblocked: (username: string) => showToast.info(`Unblocked ${username}`),
   blockError: () => showToast.error("Failed to block user", "Please try again"),
+  unblockError: () => showToast.error("Failed to unblock user", "Please try again"),
 
   // Report actions
   reportSubmitted: () => showToast.success("Report submitted", "We'll review this shortly"),
   reportError: () => showToast.error("Failed to submit report", "Please try again"),
+
+  // Comment actions
+  commentAdded: () => showToast.success("Comment added"),
+  commentDeleted: () => showToast.success("Comment deleted"),
+  commentError: () => showToast.error("Failed to add comment", "Please try again"),
 
   // Generic errors
   genericError: (action?: string) => showToast.error(
     action ? `Failed to ${action}` : "Something went wrong",
     "Please try again"
   ),
+
+  // Network errors
+  networkError: () => showToast.error("Connection failed", "Check your internet and try again"),
 };
 
 export default showToast;

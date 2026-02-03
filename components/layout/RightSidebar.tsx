@@ -355,7 +355,7 @@ export default function RightSidebar() {
             <span>·</span>
             <Link href="/help" className="hover:text-purple-primary transition-colors">Help</Link>
           </div>
-          <p className="text-[0.65rem] text-muted/50 font-body mt-2">
+          <p className="text-[0.65rem] text-muted font-body mt-2">
             © 2025 PinkQuill
           </p>
         </nav>

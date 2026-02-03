@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 interface ModalProps {
   isOpen: boolean;
@@ -9,27 +9,86 @@ interface ModalProps {
   ariaLabel?: string;
 }
 
+// Focusable element selectors for focus trap
+const FOCUSABLE_SELECTORS = [
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'a[href]',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ');
+
 export default function Modal({ isOpen, onClose, children, ariaLabel = "Modal dialog" }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
 
-  // Close on escape key and trap focus
+  // Get all focusable elements inside the modal
+  const getFocusableElements = useCallback(() => {
+    if (!modalRef.current) return [];
+    return Array.from(modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS));
+  }, []);
+
+  // Close on escape key and implement focus trap
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      // Focus trap - only handle Tab key
+      if (e.key === "Tab") {
+        const focusableElements = getFocusableElements();
+        if (focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        // Shift + Tab: move to previous element
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement || !modalRef.current?.contains(document.activeElement)) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          // Tab: move to next element
+          if (document.activeElement === lastElement || !modalRef.current?.contains(document.activeElement)) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
     };
 
     if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
+      // Store the previously focused element to restore later
+      previousActiveElement.current = document.activeElement as HTMLElement;
+
+      document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
-      // Focus the modal when it opens
-      modalRef.current?.focus();
+
+      // Focus the first focusable element or the modal itself
+      requestAnimationFrame(() => {
+        const focusableElements = getFocusableElements();
+        if (focusableElements.length > 0) {
+          focusableElements[0].focus();
+        } else {
+          modalRef.current?.focus();
+        }
+      });
     }
 
     return () => {
-      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "auto";
+
+      // Restore focus to the previously focused element
+      if (previousActiveElement.current && typeof previousActiveElement.current.focus === 'function') {
+        previousActiveElement.current.focus();
+      }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, getFocusableElements]);
 
   if (!isOpen) return null;
 

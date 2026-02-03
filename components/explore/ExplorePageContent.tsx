@@ -82,12 +82,12 @@ function TrendingSidebar() {
             className="flex items-center justify-between group py-2 px-2.5 -mx-2.5 rounded-lg hover:bg-purple-primary/[0.04] transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="font-ui text-[11px] text-muted/50 w-3 tabular-nums">{index + 1}</span>
+              <span className="font-ui text-[11px] text-muted w-3 tabular-nums">{index + 1}</span>
               <span className="font-body text-sm text-ink group-hover:text-purple-primary transition-colors">
                 {tag.name}
               </span>
             </div>
-            <span className="font-ui text-[11px] text-muted/60">{tag.post_count}</span>
+            <span className="font-ui text-[11px] text-muted">{tag.post_count}</span>
           </Link>
         ))}
       </div>

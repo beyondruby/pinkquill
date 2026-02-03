@@ -597,8 +597,8 @@ export default function AuthForm() {
             )}
 
             <div className="mt-8 flex justify-center gap-6">
-              <Link href="/terms" className="text-xs text-muted/50 hover:text-purple-primary transition-colors">Terms</Link>
-              <Link href="/privacy" className="text-xs text-muted/50 hover:text-purple-primary transition-colors">Privacy</Link>
+              <Link href="/terms" className="text-xs text-muted hover:text-purple-primary transition-colors">Terms</Link>
+              <Link href="/privacy" className="text-xs text-muted hover:text-purple-primary transition-colors">Privacy</Link>
             </div>
           </div>
         </div>

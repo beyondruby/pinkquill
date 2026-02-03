@@ -269,59 +269,75 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
     if (!mountedRef.current) return;
 
     try {
-      // Try reactions table first
-      const { data, error } = await supabase
-        .from("reactions")
-        .select("reaction_type")
-        .eq("post_id", postId);
+      // Use server-side aggregation for efficiency
+      const { data, error } = await supabase.rpc("get_reaction_counts", {
+        p_post_id: postId,
+      });
 
       if (!mountedRef.current) return;
 
       if (error) {
-        // Fallback to admires table
-        if (error.code === "42P01" || error.message?.includes("does not exist")) {
-          const { count } = await supabase
-            .from("admires")
-            .select("*", { count: "exact", head: true })
+        // Fallback to client-side counting if RPC not available
+        if (error.code === "42883" || error.message?.includes("does not exist")) {
+          const { data: reactions, error: selectError } = await supabase
+            .from("reactions")
+            .select("reaction_type")
             .eq("post_id", postId);
 
           if (!mountedRef.current) return;
 
-          setCounts({
-            admire: count || 0,
-            snap: 0,
-            ovation: 0,
-            support: 0,
-            inspired: 0,
-            applaud: 0,
-            total: count || 0,
+          if (selectError) {
+            // Final fallback to admires table
+            if (selectError.code === "42P01" || selectError.message?.includes("does not exist")) {
+              const { count } = await supabase
+                .from("admires")
+                .select("*", { count: "exact", head: true })
+                .eq("post_id", postId);
+
+              if (!mountedRef.current) return;
+
+              setCounts({
+                admire: count || 0,
+                snap: 0,
+                ovation: 0,
+                support: 0,
+                inspired: 0,
+                applaud: 0,
+                total: count || 0,
+              });
+              return;
+            }
+            throw selectError;
+          }
+
+          // Client-side counting fallback
+          const fallbackCounts: ReactionCounts = {
+            admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0,
+          };
+          reactions?.forEach((r) => {
+            const type = r.reaction_type as ReactionType;
+            if (type in fallbackCounts) {
+              fallbackCounts[type]++;
+              fallbackCounts.total++;
+            }
           });
+          setCounts(fallbackCounts);
           return;
         }
         throw error;
       }
 
-      const newCounts: ReactionCounts = {
-        admire: 0,
-        snap: 0,
-        ovation: 0,
-        support: 0,
-        inspired: 0,
-        applaud: 0,
-        total: 0,
-      };
-
-      if (data) {
-        data.forEach((r) => {
-          const type = r.reaction_type as ReactionType;
-          if (type in newCounts) {
-            newCounts[type]++;
-            newCounts.total++;
-          }
-        });
-      }
-
-      setCounts(newCounts);
+      // Use aggregated data from RPC
+      const row = data?.[0];
+      setCounts({
+        admire: Number(row?.admire_count) || 0,
+        snap: Number(row?.snap_count) || 0,
+        ovation: Number(row?.ovation_count) || 0,
+        support: Number(row?.support_count) || 0,
+        inspired: Number(row?.inspired_count) || 0,
+        applaud: Number(row?.applaud_count) || 0,
+        total: Number(row?.total_count) || 0,
+      });
     } catch (err) {
       console.warn("[useReactionCounts] Error:", err);
     } finally {
@@ -522,32 +538,53 @@ export function useUserReaction(postId: string, userId?: string, options?: UseUs
 
 export function useBlock() {
   const checkIsBlocked = async (blockerId: string, blockedId: string): Promise<boolean> => {
-    const { data } = await supabase
-      .from("blocks")
-      .select("id")
-      .eq("blocker_id", blockerId)
-      .eq("blocked_id", blockedId)
-      .maybeSingle();
-    return !!data;
+    try {
+      const { data, error } = await supabase
+        .from("blocks")
+        .select("id")
+        .eq("blocker_id", blockerId)
+        .eq("blocked_id", blockedId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("[useBlock.checkIsBlocked] Error:", error.message);
+        return false; // Fail safe - assume not blocked on error
+      }
+      return !!data;
+    } catch (err) {
+      console.error("[useBlock.checkIsBlocked] Unexpected error:", err);
+      return false;
+    }
   };
 
   const checkIsBlockedEitherWay = async (userId1: string, userId2: string): Promise<boolean> => {
-    // Check both directions separately to avoid SQL injection from string interpolation
-    const [{ data: block1 }, { data: block2 }] = await Promise.all([
-      supabase
-        .from("blocks")
-        .select("id")
-        .eq("blocker_id", userId1)
-        .eq("blocked_id", userId2)
-        .maybeSingle(),
-      supabase
-        .from("blocks")
-        .select("id")
-        .eq("blocker_id", userId2)
-        .eq("blocked_id", userId1)
-        .maybeSingle(),
-    ]);
-    return !!(block1 || block2);
+    try {
+      // Check both directions separately to avoid SQL injection from string interpolation
+      const [result1, result2] = await Promise.all([
+        supabase
+          .from("blocks")
+          .select("id")
+          .eq("blocker_id", userId1)
+          .eq("blocked_id", userId2)
+          .maybeSingle(),
+        supabase
+          .from("blocks")
+          .select("id")
+          .eq("blocker_id", userId2)
+          .eq("blocked_id", userId1)
+          .maybeSingle(),
+      ]);
+
+      if (result1.error || result2.error) {
+        console.error("[useBlock.checkIsBlockedEitherWay] Error:", result1.error?.message || result2.error?.message);
+        return false; // Fail safe - assume not blocked on error
+      }
+
+      return !!(result1.data || result2.data);
+    } catch (err) {
+      console.error("[useBlock.checkIsBlockedEitherWay] Unexpected error:", err);
+      return false;
+    }
   };
 
   const blockUser = async (blockerId: string, blockedId: string) => {

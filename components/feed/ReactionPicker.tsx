@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { ReactionType, ReactionCounts } from "@/lib/hooks";
 
@@ -149,8 +149,10 @@ export default function ReactionPicker({
   const [showMainTooltip, setShowMainTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [reactionTooltipPosition, setReactionTooltipPosition] = useState({ top: 0, left: 0 });
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const reactionButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -222,6 +224,110 @@ export default function ReactionPicker({
     };
   }, []);
 
+  // Focus the first reaction when picker opens (for keyboard users)
+  useEffect(() => {
+    if (isOpen && focusedIndex === -1) {
+      // Find the current reaction index, or default to 0
+      const currentIndex = currentReaction
+        ? reactions.findIndex(r => r.type === currentReaction)
+        : 0;
+      setFocusedIndex(currentIndex >= 0 ? currentIndex : 0);
+      // Focus the button after a brief delay to allow render
+      requestAnimationFrame(() => {
+        reactionButtonsRef.current[currentIndex >= 0 ? currentIndex : 0]?.focus();
+      });
+    } else if (!isOpen) {
+      setFocusedIndex(-1);
+    }
+  }, [isOpen, currentReaction, focusedIndex]);
+
+  // Handle keyboard navigation within the picker
+  const handlePickerKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!isOpen) return;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedIndex(prev => {
+          const nextIndex = prev < reactions.length - 1 ? prev + 1 : 0;
+          reactionButtonsRef.current[nextIndex]?.focus();
+          return nextIndex;
+        });
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedIndex(prev => {
+          const nextIndex = prev > 0 ? prev - 1 : reactions.length - 1;
+          reactionButtonsRef.current[nextIndex]?.focus();
+          return nextIndex;
+        });
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (focusedIndex >= 0 && focusedIndex < reactions.length) {
+          const reaction = reactions[focusedIndex];
+          if (currentReaction === reaction.type) {
+            onRemoveReaction();
+          } else {
+            onReact(reaction.type);
+          }
+          setIsOpen(false);
+          buttonRef.current?.focus();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsOpen(false);
+        setFocusedIndex(-1);
+        buttonRef.current?.focus();
+        break;
+      case 'Tab':
+        // Close picker and allow natural tab navigation
+        setIsOpen(false);
+        setFocusedIndex(-1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        setFocusedIndex(0);
+        reactionButtonsRef.current[0]?.focus();
+        break;
+      case 'End':
+        e.preventDefault();
+        const lastIndex = reactions.length - 1;
+        setFocusedIndex(lastIndex);
+        reactionButtonsRef.current[lastIndex]?.focus();
+        break;
+    }
+  }, [isOpen, focusedIndex, currentReaction, onReact, onRemoveReaction]);
+
+  // Handle keyboard on main button to open picker
+  const handleMainButtonKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (disabled) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'ArrowUp':
+        // Open picker with arrow keys
+        e.preventDefault();
+        setShowMainTooltip(false);
+        setIsOpen(true);
+        break;
+      case 'Enter':
+      case ' ':
+        // Default click behavior - toggle admire or remove current reaction
+        e.preventDefault();
+        if (currentReaction) {
+          onRemoveReaction();
+        } else {
+          onReact('admire');
+        }
+        break;
+    }
+  }, [disabled, currentReaction, onReact, onRemoveReaction]);
+
   // Handle click on main button
   const handleMainClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -267,7 +373,11 @@ export default function ReactionPicker({
         ref={buttonRef}
         className={`action-btn reaction-picker-trigger group/reaction ${currentReaction ? 'active' : ''}`}
         onClick={handleMainClick}
+        onKeyDown={handleMainButtonKeyDown}
         disabled={disabled}
+        aria-label={currentReaction ? `Remove ${getReactionLabel(currentReaction)} reaction` : 'Add reaction'}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
       >
         <span className={`w-[1.1rem] h-[1.1rem] transition-transform duration-200 ${currentReaction ? 'scale-110' : 'group-hover/reaction:scale-110'}`}>
           {displayIcon}
@@ -301,19 +411,26 @@ export default function ReactionPicker({
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
           }}
           onMouseLeave={handleMouseLeave}
+          onKeyDown={handlePickerKeyDown}
+          role="listbox"
+          aria-label="Choose a reaction"
+          aria-activedescendant={focusedIndex >= 0 ? `reaction-option-${reactions[focusedIndex].type}` : undefined}
         >
           {/* Picker Container */}
           <div className="bg-white rounded-2xl shadow-xl border border-black/[0.08] backdrop-blur-xl overflow-hidden">
             {/* Reaction buttons row */}
             <div className="flex items-center gap-0.5 px-2 py-2">
-              {reactions.map((reaction) => {
+              {reactions.map((reaction, index) => {
                 const count = reactionCounts[reaction.type];
                 const isSelected = currentReaction === reaction.type;
                 const isHovered = hoveredReaction === reaction.type;
+                const isFocused = focusedIndex === index;
 
                 return (
                   <button
                     key={reaction.type}
+                    ref={(el) => { reactionButtonsRef.current[index] = el; }}
+                    id={`reaction-option-${reaction.type}`}
                     onClick={(e) => handleSelectReaction(reaction.type, e)}
                     onMouseEnter={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
@@ -322,22 +439,32 @@ export default function ReactionPicker({
                         left: rect.left + rect.width / 2,
                       });
                       setHoveredReaction(reaction.type);
+                      setFocusedIndex(index);
                     }}
                     onMouseLeave={() => setHoveredReaction(null)}
-                    className={`relative flex flex-col items-center justify-center w-12 h-14 rounded-xl transition-all duration-200 ${
+                    onFocus={() => {
+                      setFocusedIndex(index);
+                      setHoveredReaction(reaction.type);
+                    }}
+                    onBlur={() => setHoveredReaction(null)}
+                    className={`relative flex flex-col items-center justify-center w-12 h-14 rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-primary focus-visible:ring-offset-1 ${
                       isSelected
                         ? 'bg-gradient-to-b from-purple-primary/15 to-pink-vivid/10 scale-105'
                         : 'hover:bg-black/[0.04]'
-                    } ${isHovered ? 'scale-110' : ''}`}
+                    } ${isHovered || isFocused ? 'scale-110' : ''}`}
+                    role="option"
+                    aria-selected={isSelected}
+                    aria-label={`${reaction.label} (${count} reactions)`}
+                    tabIndex={isFocused ? 0 : -1}
                   >
                     {/* Icon */}
-                    <span className={`w-6 h-6 transition-transform duration-150 ${isHovered ? 'scale-110' : ''}`}>
+                    <span className={`w-6 h-6 transition-transform duration-150 ${isHovered || isFocused ? 'scale-110' : ''}`}>
                       {reaction.icon}
                     </span>
 
                     {/* Count */}
                     <span className={`text-[0.65rem] font-ui font-semibold mt-0.5 ${
-                      isSelected ? 'text-purple-primary' : count > 0 ? 'text-ink' : 'text-muted/50'
+                      isSelected ? 'text-purple-primary' : count > 0 ? 'text-ink' : 'text-muted'
                     }`}>
                       {count}
                     </span>
