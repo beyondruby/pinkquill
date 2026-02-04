@@ -1,3 +1,9 @@
+// Sentry edge configuration - DISABLED
+// @sentry/nextjs does not yet support Next.js 16
+// Re-enable when Sentry releases Next.js 16 support
+// See: https://github.com/getsentry/sentry-javascript/issues
+
+/*
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
@@ -9,3 +15,6 @@ Sentry.init({
   // Only enable in production
   enabled: process.env.NODE_ENV === "production",
 });
+*/
+
+export {};
