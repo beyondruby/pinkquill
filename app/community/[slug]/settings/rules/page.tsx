@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useUpdateCommunity, CommunityRule } from "@/lib/hooks";
+import { useCommunity, useUpdateCommunity } from "@/lib/hooks";
 
 export default function CommunityRulesSettingsPage() {
   const params = useParams();
@@ -13,16 +13,26 @@ export default function CommunityRulesSettingsPage() {
   const { community, rules: existingRules, refetch } = useCommunity(slug, user?.id);
   const { updateRules, updating: loading, error } = useUpdateCommunity();
 
-  const [rules, setRules] = useState<{ title: string; description: string }[]>([]);
+  const [rules, setRules] = useState<{ title: string; description: string }[]>(() => {
+    // Initialize from existingRules if available
+    if (existingRules) {
+      return existingRules.map(r => ({ title: r.title, description: r.description || '' }));
+    }
+    return [];
+  });
   const [newRule, setNewRule] = useState({ title: '', description: '' });
   const [success, setSuccess] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [rulesInitialized, setRulesInitialized] = useState(false);
 
+  // Sync external data to local form state - this is a legitimate use case
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    if (existingRules) {
+    if (existingRules && !rulesInitialized) {
       setRules(existingRules.map(r => ({ title: r.title, description: r.description || '' })));
+      setRulesInitialized(true);
     }
-  }, [existingRules]);
+  }, [existingRules, rulesInitialized]);
 
   if (!community) return null;
 

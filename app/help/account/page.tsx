@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUser, faCamera, faLink, faKey, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faUser } from "@fortawesome/free-solid-svg-icons";
 
 const tocItems = [
   { id: "profile-overview", label: "Profile Overview" },
@@ -91,10 +91,10 @@ export default function AccountHelpPage() {
           <section id="profile-overview" className="scroll-mt-24 mb-16">
             <h2>Profile Overview</h2>
             <p>
-              Your profile (called your "Studio" on PinkQuill) is your creative identity. It's where
+              Your profile (called your &quot;Studio&quot; on PinkQuill) is your creative identity. It&apos;s where
               others can learn about you, see your work, and decide whether to follow you.
             </p>
-            <h3>What's on your profile</h3>
+            <h3>What&apos;s on your profile</h3>
             <ul>
               <li><strong>Header area</strong> — Cover image, avatar, name, username, tagline</li>
               <li><strong>About section</strong> — Bio, role, location, social links</li>
@@ -131,14 +131,14 @@ export default function AccountHelpPage() {
                 brief and memorable.
               </li>
               <li>
-                <strong>Role/Occupation</strong> — What you do (e.g., "Poet", "Visual Artist",
-                "Writer & Designer").
+                <strong>Role/Occupation</strong> — What you do (e.g., &quot;Poet&quot;, &quot;Visual Artist&quot;,
+                &quot;Writer &amp; Designer&quot;).
               </li>
               <li>
                 <strong>Education</strong> — Your educational background if you want to share it.
               </li>
               <li>
-                <strong>Location</strong> — Where you're based (city, country, or region).
+                <strong>Location</strong> — Where you&apos;re based (city, country, or region).
               </li>
               <li>
                 <strong>Website</strong> — A link to your personal website or portfolio.
@@ -152,7 +152,7 @@ export default function AccountHelpPage() {
             <h3>Avatar</h3>
             <p>
               Your avatar is the profile picture that appears next to your name throughout PinkQuill.
-              It's shown on your posts, comments, and in search results.
+              It&apos;s shown on your posts, comments, and in search results.
             </p>
             <ul>
               <li><strong>Recommended size:</strong> 400x400 pixels or larger</li>
@@ -169,7 +169,7 @@ export default function AccountHelpPage() {
 
             <h3>Cover image</h3>
             <p>
-              The cover image is the banner at the top of your profile page. It's a great way to
+              The cover image is the banner at the top of your profile page. It&apos;s a great way to
               showcase your style or featured work.
             </p>
             <ul>
@@ -197,8 +197,8 @@ export default function AccountHelpPage() {
             <h3>Adding social links</h3>
             <ol>
               <li>Go to Settings → Edit Profile</li>
-              <li>Scroll to the "Social Links" section</li>
-              <li>Click "Add link"</li>
+              <li>Scroll to the &quot;Social Links&quot; section</li>
+              <li>Click &quot;Add link&quot;</li>
               <li>Paste your profile URL — the platform is auto-detected</li>
               <li>Save your changes</li>
             </ol>
@@ -217,7 +217,7 @@ export default function AccountHelpPage() {
             <div className="bg-orange-50 rounded-xl p-4 border border-orange-200/50 my-6">
               <p className="font-ui text-sm text-orange-800 mb-0">
                 <strong>Important:</strong> Changing your username will break any existing links
-                to your profile. Old mentions of your username won't redirect to your new one.
+                to your profile. Old mentions of your username won&apos;t redirect to your new one.
               </p>
             </div>
             <h3>Username rules</h3>
@@ -239,7 +239,7 @@ export default function AccountHelpPage() {
             <ol>
               <li>Go to <Link href="/settings/account" className="text-purple-primary hover:underline">Settings → Account</Link></li>
               <li>Enter your new email address</li>
-              <li>Click "Update email"</li>
+              <li>Click &quot;Update email&quot;</li>
               <li>Verify your new email by clicking the link sent to it</li>
             </ol>
 
@@ -248,13 +248,13 @@ export default function AccountHelpPage() {
               <li>Go to <Link href="/settings/account" className="text-purple-primary hover:underline">Settings → Account</Link></li>
               <li>Enter your new password</li>
               <li>Confirm your new password</li>
-              <li>Click "Update password"</li>
+              <li>Click &quot;Update password&quot;</li>
             </ol>
             <p>Password requirements:</p>
             <ul>
               <li>Minimum 6 characters</li>
               <li>We recommend using a mix of letters, numbers, and symbols</li>
-              <li>Don't reuse passwords from other sites</li>
+              <li>Don&apos;t reuse passwords from other sites</li>
             </ul>
 
             <h3>Forgot your password?</h3>

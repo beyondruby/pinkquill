@@ -57,7 +57,7 @@ export default function CommunityMembersPage() {
   );
 
   const { promoteUser, demoteUser, muteUser, banUser, unmuteUser, unbanUser, checkExpiredMutes, updateModeratorPermissions } = useCommunityModeration(community?.id || '');
-  const { requests: joinRequests, loading: requestsLoading, approve: approveRequest, reject: rejectRequest, refetch: refetchRequests } = useJoinRequests(community?.id || '');
+  const { requests: joinRequests, approve: approveRequest, reject: rejectRequest, refetch: refetchRequests } = useJoinRequests(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
@@ -74,6 +74,7 @@ export default function CommunityMembersPage() {
         refetchMuted();
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [community?.id]);
 
   // Mute modal state
@@ -361,7 +362,7 @@ export default function CommunityMembersPage() {
                 {request.message && (
                   <div className="flex-1 sm:max-w-[300px]">
                     <p className="font-body text-sm text-ink/80 bg-black/5 rounded-lg px-3 py-2 italic">
-                      "{request.message}"
+                      &quot;{request.message}&quot;
                     </p>
                   </div>
                 )}

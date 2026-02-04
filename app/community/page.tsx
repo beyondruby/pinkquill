@@ -557,7 +557,7 @@ export default function CommunitiesPage() {
           null
         ) : (
           <div className="text-center py-12">
-            <p className="font-body text-muted">No results found for "{searchQuery}"</p>
+            <p className="font-body text-muted">No results found for &quot;{searchQuery}&quot;</p>
           </div>
         )
       ) : (

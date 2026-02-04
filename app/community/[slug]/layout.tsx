@@ -51,7 +51,7 @@ export default function CommunityLayout({
             </div>
             <h1 className="font-display text-2xl font-bold text-ink mb-3">Community Not Found</h1>
             <p className="font-body text-muted mb-8 max-w-sm mx-auto">
-              This community doesn't exist or you don't have permission to view it.
+              This community doesn&apos;t exist or you don&apos;t have permission to view it.
             </p>
             <Link
               href="/community"

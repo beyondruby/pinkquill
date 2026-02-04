@@ -36,6 +36,7 @@ export default function CommunityModerationSettingsPage() {
         refetchMuted();
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [community?.id]);
 
   if (!community) return null;
@@ -159,11 +160,11 @@ export default function CommunityModerationSettingsPage() {
               {/* Banned Info */}
               {activeTab === 'banned' && (
                 <div className="text-right max-w-[200px]">
-                  {(member as any).banned_until ? (
+                  {member.banned_until ? (
                     <>
                       <p className="font-ui text-xs text-muted">Banned until</p>
                       <p className="font-ui text-sm text-red-600">
-                        {new Date((member as any).banned_until).toLocaleDateString('en-US', {
+                        {new Date(member.banned_until).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric'
@@ -173,9 +174,9 @@ export default function CommunityModerationSettingsPage() {
                   ) : (
                     <p className="font-ui text-sm text-red-600">Permanent</p>
                   )}
-                  {(member as any).ban_reason && (
-                    <p className="font-ui text-xs text-muted mt-1 truncate" title={(member as any).ban_reason}>
-                      {(member as any).ban_reason}
+                  {member.ban_reason && (
+                    <p className="font-ui text-xs text-muted mt-1 truncate" title={member.ban_reason}>
+                      {member.ban_reason}
                     </p>
                   )}
                 </div>
