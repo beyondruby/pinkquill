@@ -113,8 +113,8 @@ export function useCommunity(slug: string, userId?: string) {
 
       setRules(rulesResult.data || []);
       setTags(tagsResult.data || []);
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useCommunity] Error:", err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to fetch community");
@@ -240,8 +240,8 @@ export function useCommunities(userId?: string, filter?: 'all' | 'joined' | 'cre
       }));
 
       setCommunities(enrichedCommunities);
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useCommunities] Error:", err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to fetch communities");
@@ -361,8 +361,8 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
         setCommunities(enrichedCommunities);
         // Set trending as top 6 by member count
         setTrending(enrichedCommunities.slice(0, 6));
-      } catch (err: any) {
-        if (err?.name === "AbortError") return;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
         console.error("[useDiscoverCommunities] Error:", err);
         if (mountedRef.current) {
           setError(err instanceof Error ? err.message : "Failed to discover communities");
@@ -466,8 +466,8 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
         } else {
           setCommunities([]);
         }
-      } catch (err: any) {
-        if (err?.name === "AbortError") return;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
         console.error("[useSuggestedCommunities] Error:", err);
       } finally {
         if (mountedRef.current) {
@@ -535,8 +535,8 @@ export function useCommunityMembers(communityId: string, options?: { role?: stri
       if (!mountedRef.current) return;
       if (error) throw error;
       setMembers(data || []);
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useCommunityMembers] Error:", err);
     } finally {
       if (mountedRef.current) {
@@ -680,7 +680,7 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
         userSaves = new Set((userSavesResult.data || []).map(s => s.post_id));
       }
 
-      let enrichedPosts = data.map(post => ({
+      const enrichedPosts = data.map(post => ({
         ...post,
         admires_count: admiresCounts[post.id] || 0,
         comments_count: commentsCounts[post.id] || 0,
@@ -718,8 +718,8 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
 
       setHasMore(data.length === pageSize);
       setPage(pageNum);
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useCommunityPosts] Error:", err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to fetch posts");
@@ -913,8 +913,8 @@ export function useCommunityInvitations(userId?: string) {
       if (!mountedRef.current) return;
       if (error) throw error;
       setInvitations(data || []);
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useCommunityInvitations] Error:", err);
     } finally {
       if (mountedRef.current) {
@@ -1015,8 +1015,8 @@ export function useJoinRequests(communityId: string) {
       if (!mountedRef.current) return;
       if (error) throw error;
       setRequests(data || []);
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useJoinRequests] Error:", err);
     } finally {
       if (mountedRef.current) {
@@ -1929,8 +1929,8 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
         if (mountedRef.current) {
           setResults({ profiles, communities: enrichedCommunities, tags });
         }
-      } catch (err: any) {
-        if (err?.name === "AbortError") return;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
         console.error("[useSearch] Error:", err);
         if (mountedRef.current) {
           setError(err instanceof Error ? err.message : "Search failed");
@@ -2417,7 +2417,7 @@ export function useUserSearch(currentUserId?: string) {
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        let blockedUsers: Set<string> = new Set();
+        const blockedUsers: Set<string> = new Set();
         if (currentUserId) {
           const [blockedBy, iBlocked] = await Promise.all([
             supabase.from('blocks').select('blocker_id').eq('blocked_id', currentUserId),

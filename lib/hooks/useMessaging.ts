@@ -88,8 +88,9 @@ export function useMessageReactions({
       const reactionsMap = new Map<string, MessageReaction[]>();
       const reactionsArray = reactions || [];
 
+      type ReactionRow = { id: string; message_id: string; user_id: string; emoji: string; created_at: string; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } };
       for (let i = 0; i < reactionsArray.length; i++) {
-        const reaction = reactionsArray[i] as any;
+        const reaction = reactionsArray[i] as ReactionRow;
         const messageId = reaction.message_id;
 
         let messageReactions = reactionsMap.get(messageId);
@@ -111,8 +112,8 @@ export function useMessageReactions({
       if (mountedRef.current) {
         setReactionsByMessage(reactionsMap);
       }
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("Error fetching reactions:", err);
     } finally {
       if (mountedRef.current) {
@@ -150,7 +151,8 @@ export function useMessageReactions({
     }
 
     // Cache for user profiles to avoid repeated fetches
-    const userProfileCache = new Map<string, any>();
+    type UserProfile = { username: string; display_name: string | null; avatar_url: string | null };
+    const userProfileCache = new Map<string, UserProfile>();
 
     const channel = supabase
       .channel(`message-reactions-${conversationId}`)
@@ -165,7 +167,7 @@ export function useMessageReactions({
           if (!mountedRef.current) return;
 
           if (payload.eventType === "INSERT") {
-            const newReaction = payload.new as any;
+            const newReaction = payload.new as { id: string; message_id: string; user_id: string; emoji: string; created_at: string };
 
             // Check cache first for user info
             let userData = userProfileCache.get(newReaction.user_id);
@@ -204,7 +206,7 @@ export function useMessageReactions({
               return newMap;
             });
           } else if (payload.eventType === "DELETE") {
-            const oldReaction = payload.old as any;
+            const oldReaction = payload.old as { id: string; message_id: string };
             setReactionsByMessage(prev => {
               const newMap = new Map(prev);
               const messageReactions = newMap.get(oldReaction.message_id) || [];
@@ -215,7 +217,7 @@ export function useMessageReactions({
               return newMap;
             });
           } else if (payload.eventType === "UPDATE") {
-            const updatedReaction = payload.new as any;
+            const updatedReaction = payload.new as { id: string; message_id: string; emoji: string };
             setReactionsByMessage(prev => {
               const newMap = new Map(prev);
               const messageReactions = newMap.get(updatedReaction.message_id) || [];

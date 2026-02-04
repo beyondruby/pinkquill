@@ -179,9 +179,10 @@ export default function NewMessageModal({
       }
 
       onConversationCreated(newConversation.id);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to create conversation:", err);
-      setError(err?.message || "Failed to create conversation. Please try again.");
+      const message = err instanceof Error ? err.message : "Failed to create conversation. Please try again.";
+      setError(message);
       setCreating(false);
       setSelectedUserId(null);
     }

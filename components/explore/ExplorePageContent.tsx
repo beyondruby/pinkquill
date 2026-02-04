@@ -246,7 +246,28 @@ function EmptyState({ tab }: { tab: ExploreTab }) {
 }
 
 // Helper function to transform post data for PostCard
-function transformPostForCard(post: any) {
+function transformPostForCard(post: {
+  id: string;
+  author_id: string;
+  type: string;
+  title: string | null;
+  content: string | null;
+  content_warning: string | null;
+  created_at: string;
+  media: { id: string; media_url: string; media_type: "image" | "video"; caption: string | null; position: number }[];
+  admires_count: number;
+  comments_count: number;
+  relays_count: number;
+  user_has_admired: boolean;
+  user_has_saved: boolean;
+  user_has_relayed: boolean;
+  user_reaction_type: string | null;
+  hashtags?: string[];
+  author?: { username?: string; display_name?: string | null; avatar_url?: string | null };
+  community?: { slug: string; name: string; avatar_url: string | null } | null;
+  collaborators?: { status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } }[];
+  mentions?: { user: { id: string; username: string; display_name: string | null; avatar_url: string | null } }[];
+}) {
   const typeLabels: Record<string, string> = {
     poem: "wrote a poem",
     journal: "wrote in their journal",
@@ -654,7 +675,7 @@ export default function ExplorePageContent() {
             {!pagination.hasMore && posts.length > 0 && (
               <div className="text-center py-10">
                 <div className="inline-block w-8 h-px bg-black/10 mb-3" />
-                <p className="font-body text-[13px] text-muted/70">You're all caught up</p>
+                <p className="font-body text-[13px] text-muted/70">You&apos;re all caught up</p>
               </div>
             )}
           </div>

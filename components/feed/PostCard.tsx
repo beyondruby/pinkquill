@@ -15,7 +15,7 @@ import SendToDMModal from "@/components/messages/SendToDMModal";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
-import { PostStyling, JournalMetadata, PostBackground, SpotifyTrack } from "@/lib/types";
+import { PostStyling, JournalMetadata, PostBackground, SpotifyTrack, PostType } from "@/lib/types";
 import { actionToast } from "@/lib/utils/toast";
 import {
   MentionsDisplay,
@@ -964,7 +964,7 @@ function PostCardComponent({
             <AuthorHeader small />
             <ContentSection>
               <div className="audio-title">Voice Note</div>
-              <div className="audio-author">"{post.title}"</div>
+              <div className="audio-author">&quot;{post.title}&quot;</div>
             </ContentSection>
             <Actions />
           </div>
@@ -1125,7 +1125,7 @@ function PostCardComponent({
           post={{
             id: post.id,
             author_id: post.authorId,
-            type: post.type as any,
+            type: post.type as PostType,
             title: post.title || null,
             content: post.content,
             visibility: "public",
@@ -1287,7 +1287,7 @@ function PostCardComponent({
               Block @{post.author.handle.replace('@', '')}?
             </h3>
             <p className="font-body text-sm text-muted mb-6">
-              You won't see their posts anymore. They won't be able to see your posts, follow you, or message you.
+              You won&apos;t see their posts anymore. They won&apos;t be able to see your posts, follow you, or message you.
             </p>
             <div className="flex justify-end gap-3">
               <button

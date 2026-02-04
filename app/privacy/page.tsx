@@ -157,13 +157,13 @@ export default function PrivacyPage() {
 
               <Section id="introduction" number="01" title="Introduction">
                 <p>
-                  PinkQuill ("we," "our," or "us") is committed to protecting your privacy.
+                  PinkQuill (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy.
                   This Privacy Policy explains how we collect, use, disclose, and
                   safeguard your information when you use our platform.
                 </p>
                 <p>
                   By using PinkQuill, you consent to the practices described in this policy.
-                  If you don't agree, please don't use our service.
+                  If you don&apos;t agree, please don&apos;t use our service.
                 </p>
                 <p>
                   This policy applies to all users of PinkQuill, including creators who
@@ -195,7 +195,7 @@ export default function PrivacyPage() {
                   <li><strong>Device information</strong> — Browser type, operating system, device identifiers</li>
                   <li><strong>Location data</strong> — General location based on IP address</li>
                   <li><strong>Log data</strong> — IP address, access times, referring URLs, error logs</li>
-                  <li><strong>Cookies</strong> — Small files stored on your device (see Cookies section)</li>
+                  <li><strong>Cookies</strong> - Small files stored on your device (see Cookies section)</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -255,7 +255,7 @@ export default function PrivacyPage() {
 
               <Section id="sharing" number="04" title="Sharing Your Information">
                 <p>
-                  We don't sell your personal information. We share data only in these circumstances:
+                  We don&apos;t sell your personal information. We share data only in these circumstances:
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -296,14 +296,14 @@ export default function PrivacyPage() {
                 </p>
                 <p>
                   If PinkQuill is involved in a merger, acquisition, or sale of assets, your
-                  information may be transferred. We'll notify you of any change in ownership
+                  information may be transferred. We&apos;ll notify you of any change in ownership
                   or use of your data.
                 </p>
               </Section>
 
               <Section id="your-choices" number="05" title="Your Choices & Rights">
                 <p>
-                  You have control over your information. Here's how to exercise your rights:
+                  You have control over your information. Here&apos;s how to exercise your rights:
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -328,7 +328,7 @@ export default function PrivacyPage() {
                 </p>
                 <ul>
                   <li>Control who can see your posts (public or private)</li>
-                  <li>Block users you don't want interacting with you</li>
+                  <li>Block users you don&apos;t want interacting with you</li>
                   <li>Manage notification preferences</li>
                 </ul>
 
@@ -336,8 +336,8 @@ export default function PrivacyPage() {
                   Marketing communications
                 </p>
                 <p>
-                  Opt out of promotional emails by clicking "unsubscribe" or adjusting
-                  your notification settings. You'll still receive essential service communications.
+                  Opt out of promotional emails by clicking &quot;unsubscribe&quot; or adjusting
+                  your notification settings. You&apos;ll still receive essential service communications.
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -380,7 +380,7 @@ export default function PrivacyPage() {
                   <li>Incident response procedures</li>
                 </ul>
                 <p>
-                  However, no system is completely secure. We can't guarantee absolute
+                  However, no system is completely secure. We can&apos;t guarantee absolute
                   security, and you use PinkQuill at your own risk. Please use a strong,
                   unique password and protect your account credentials.
                 </p>
@@ -401,7 +401,7 @@ export default function PrivacyPage() {
                 </p>
                 <p>
                   Required for basic functionality—authentication, security, preferences.
-                  You can't opt out of these.
+                  You can&apos;t opt out of these.
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -424,8 +424,8 @@ export default function PrivacyPage() {
                 </p>
                 <p>
                   Most browsers let you block or delete cookies. Note that disabling
-                  cookies may affect functionality. You can also use browser "Do Not Track"
-                  settings, though we currently don't respond to DNT signals.
+                  cookies may affect functionality. You can also use browser &quot;Do Not Track&quot;
+                  settings, though we currently don&apos;t respond to DNT signals.
                 </p>
               </Section>
 
@@ -440,24 +440,24 @@ export default function PrivacyPage() {
                   <li><strong>Payment processors</strong> — Secure payment handling</li>
                 </ul>
                 <p>
-                  We encourage you to review their privacy policies. We're not responsible
+                  We encourage you to review their privacy policies. We&apos;re not responsible
                   for the practices of third-party services.
                 </p>
                 <p>
                   When you click links to external sites, you leave PinkQuill and are subject
-                  to those sites' privacy policies.
+                  to those sites&apos; privacy policies.
                 </p>
               </Section>
 
-              <Section id="children" number="10" title="Children's Privacy">
+              <Section id="children" number="10" title="Children&apos;s Privacy">
                 <p>
-                  PinkQuill is not intended for children under 13. We don't knowingly collect
+                  PinkQuill is not intended for children under 13. We don&apos;t knowingly collect
                   personal information from children under 13.
                 </p>
                 <p>
-                  If you're a parent or guardian and believe your child has provided us
+                  If you&apos;re a parent or guardian and believe your child has provided us
                   with personal information, please contact us at{" "}
-                  <a href="mailto:privacy@pinkquill.com">privacy@pinkquill.com</a>. We'll promptly
+                  <a href="mailto:privacy@pinkquill.com">privacy@pinkquill.com</a>. We&apos;ll promptly
                   delete such information.
                 </p>
                 <p>
@@ -484,10 +484,10 @@ export default function PrivacyPage() {
               <Section id="changes" number="12" title="Changes to This Policy">
                 <p>
                   We may update this Privacy Policy from time to time. When we make
-                  material changes, we'll:
+                  material changes, we&apos;ll:
                 </p>
                 <ul>
-                  <li>Update the "Last updated" date at the top</li>
+                  <li>Update the &quot;Last updated&quot; date at the top</li>
                   <li>Notify you through the service, email, or other means</li>
                   <li>Give you an opportunity to review changes before they take effect</li>
                 </ul>
@@ -499,7 +499,7 @@ export default function PrivacyPage() {
 
               <Section id="contact" number="13" title="Contact Us">
                 <p>
-                  Questions, concerns, or requests regarding your privacy? We're here to help.
+                  Questions, concerns, or requests regarding your privacy? We&apos;re here to help.
                 </p>
                 <div className="mt-6 space-y-2">
                   <p>

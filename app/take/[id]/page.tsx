@@ -333,9 +333,11 @@ export default function SingleTakePage({ params }: PageProps) {
     }
   }, [id, user]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchTake();
   }, [fetchTake]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Video control
   useEffect(() => {

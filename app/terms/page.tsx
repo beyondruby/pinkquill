@@ -160,7 +160,7 @@ export default function TermsPage() {
             <Section id="acceptance" number="01" title="Acceptance of Terms">
               <p>
                 By accessing PinkQuill, you agree to these Terms and our Privacy Policy.
-                If you disagree with any part, please don't use our platform.
+                If you disagree with any part, please don&apos;t use our platform.
               </p>
               <p>
                 These terms form a binding agreement between you and PinkQuill. Continued
@@ -170,8 +170,8 @@ export default function TermsPage() {
 
             <Section id="eligibility" number="02" title="Eligibility">
               <p>
-                You must be at least <strong>13 years old</strong> to use PinkQuill. If you're
-                under 18, you need permission from a parent or guardian who agrees to
+                You must be at least <strong>13 years old</strong> to use PinkQuill. If you&apos;re
+                under 18, you need permission from a parent or legal guardian who agrees to
                 these terms on your behalf.
               </p>
               <p>
@@ -183,13 +183,13 @@ export default function TermsPage() {
             <Section id="your-account" number="03" title="Your Account">
               <p>
                 When creating an account, provide accurate information and keep it
-                current. Choose a username that doesn't infringe others' rights or
+                current. Choose a username that doesn&apos;t infringe others&apos; rights or
                 impersonate anyone.
               </p>
               <p>
-                You're responsible for your account's security. Keep your password
+                You&apos;re responsible for your account&apos;s security. Keep your password
                 confidential, never share access, and notify us immediately of any
-                unauthorized use. You're responsible for all activity under your account.
+                unauthorized use. You&apos;re responsible for all activity under your account.
               </p>
               <Highlight>
                 PinkQuill will never ask for your password via email or message.
@@ -199,19 +199,19 @@ export default function TermsPage() {
 
             <Section id="your-content" number="04" title="Your Content">
               <p>
-                <strong>You own your work.</strong> PinkQuill doesn't claim ownership of
+                <strong>You own your work.</strong> PinkQuill doesn&apos;t claim ownership of
                 anything you create—your art, music, writing, photos, videos, and creative
                 work remain yours.
               </p>
               <p>
                 By posting, you grant us a license to host, display, and distribute
                 your content on the platform according to your privacy settings. This
-                license ends when you delete your content, except where it's been
+                license ends when you delete your content, except where it&apos;s been
                 shared by others or retention is legally required.
               </p>
               <p>
                 You represent that you own or have rights to everything you post, that
-                it doesn't infringe anyone's rights, and that you've obtained necessary
+                it doesn&apos;t infringe anyone&apos;s rights, and that you&apos;ve obtained necessary
                 consents from anyone appearing in your content.
               </p>
             </Section>
@@ -223,7 +223,7 @@ export default function TermsPage() {
               </p>
 
               <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
-                Please don't post content that:
+                Please don&apos;t post content that:
               </p>
               <ul>
                 <li>Violates any law or promotes illegal activity</li>
@@ -237,7 +237,7 @@ export default function TermsPage() {
               </ul>
 
               <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
-                Please don't:
+                Please don&apos;t:
               </p>
               <ul>
                 <li>Create multiple accounts to evade restrictions</li>
@@ -249,19 +249,19 @@ export default function TermsPage() {
               </ul>
 
               <p>
-                For sensitive content that doesn't violate these terms, please use
+                For sensitive content that doesn&apos;t violate these terms, please use
                 content warnings to help others make informed viewing choices.
               </p>
             </Section>
 
             <Section id="intellectual-property" number="06" title="Intellectual Property">
               <p>
-                PinkQuill's design, features, and branding are protected by intellectual
-                property laws. Please don't copy, modify, or distribute our platform
+                PinkQuill&apos;s design, features, and branding are protected by intellectual
+                property laws. Please don&apos;t copy, modify, or distribute our platform
                 without permission.
               </p>
               <p>
-                Respect others' creative rights. Don't post content that infringes
+                Respect others&apos; creative rights. Don&apos;t post content that infringes
                 copyrights or trademarks unless you have permission or a legal basis
                 like fair use.
               </p>
@@ -305,11 +305,11 @@ export default function TermsPage() {
             <Section id="interactions" number="08" title="Interactions">
               <p>
                 <strong>Following</strong> — You can follow creators to see their work
-                in your feed. Following is one-directional and doesn't create any
+                in your feed. Following is one-directional and doesn&apos;t create any
                 obligation.
               </p>
               <p>
-                <strong>Blocking</strong> — You can block anyone. Blocked users can't
+                <strong>Blocking</strong> - You can block anyone. Blocked users can&apos;t
                 see your profile or content, and mutual follows are removed. Evading
                 blocks through alternate accounts violates these terms.
               </p>
@@ -319,7 +319,7 @@ export default function TermsPage() {
                 may result in action against the reporting account.
               </p>
               <p>
-                <strong>Messaging</strong> — Use direct messages respectfully. Don't
+                <strong>Messaging</strong> - Use direct messages respectfully. Don&apos;t
                 send spam or unsolicited commercial messages.
               </p>
             </Section>
@@ -327,19 +327,19 @@ export default function TermsPage() {
             <Section id="third-parties" number="09" title="Third-Party Services">
               <p>
                 PinkQuill may contain links to external sites or integrate with third-party
-                services. We're not responsible for their content, policies, or practices.
+                services. We&apos;re not responsible for their content, policies, or practices.
                 Your use of external services is subject to their own terms.
               </p>
             </Section>
 
             <Section id="disclaimers" number="10" title="Disclaimers">
               <p>
-                PinkQuill is provided "as is" without warranties of any kind. We don't
+                PinkQuill is provided &quot;as is&quot; without warranties of any kind. We don&apos;t
                 guarantee the service will be uninterrupted, secure, or error-free,
                 or that any errors will be corrected.
               </p>
               <p>
-                We don't control or endorse user content. Views expressed by users
+                We don&apos;t control or endorse user content. Views expressed by users
                 are their own. Content on PinkQuill is for creative and informational
                 purposes—not professional advice.
               </p>
@@ -347,16 +347,16 @@ export default function TermsPage() {
 
             <Section id="liability" number="11" title="Limitation of Liability">
               <p>
-                To the maximum extent permitted by law, PinkQuill isn't liable for any
+                To the maximum extent permitted by law, PinkQuill isn&apos;t liable for any
                 indirect, incidental, special, or consequential damages—including
                 loss of profits, data, or goodwill—arising from your use of the service.
               </p>
               <p>
-                Our total liability is limited to the greater of amounts you've paid
+                Our total liability is limited to the greater of amounts you&apos;ve paid
                 us in the past twelve months or one hundred dollars ($100).
               </p>
               <p>
-                Some jurisdictions don't allow certain limitations. In those cases,
+                Some jurisdictions don&apos;t allow certain limitations. In those cases,
                 our liability is limited to the maximum extent permitted by law.
               </p>
             </Section>
@@ -369,7 +369,7 @@ export default function TermsPage() {
               </p>
               <p>
                 We may suspend or terminate accounts that violate these terms, harm
-                the community, or for legal requirements—with or without notice.
+                the community, or for legal requirements - with or without notice.
               </p>
               <p>
                 Upon termination, your right to use PinkQuill ends immediately. Provisions
@@ -381,7 +381,7 @@ export default function TermsPage() {
             <Section id="disputes" number="13" title="Dispute Resolution">
               <p>
                 Before formal proceedings, please contact us to attempt informal
-                resolution. We'll try to address your concern within 30 days.
+                resolution. We&apos;ll try to address your concern within 30 days.
               </p>
               <p>
                 If informal resolution fails, disputes will be resolved through
@@ -400,7 +400,7 @@ export default function TermsPage() {
 
             <Section id="changes" number="14" title="Changes to Terms">
               <p>
-                We may update these terms. When we make material changes, we'll
+                We may update these terms. When we make material changes, we&apos;ll
                 update the date above and notify you through the service or email.
               </p>
               <p>
@@ -411,7 +411,7 @@ export default function TermsPage() {
 
             <Section id="contact" number="15" title="Contact">
               <p>
-                Questions about these terms? We're here to help.
+                Questions about these terms? We&apos;re here to help.
               </p>
               <div className="mt-6 space-y-2">
                 <p>

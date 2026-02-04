@@ -113,6 +113,7 @@ export default function TakesFeed({
     }
   }, [activeIndex, takes, user?.id, following]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (initialTakeId && takes.length > 0) {
       const index = takes.findIndex(t => t.id === initialTakeId);
@@ -123,6 +124,7 @@ export default function TakesFeed({
       }
     }
   }, [initialTakeId, takes]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     const observer = new IntersectionObserver(

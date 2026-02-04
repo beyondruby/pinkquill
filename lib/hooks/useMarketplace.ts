@@ -90,7 +90,8 @@ export function useMarketplace(
   const mountedRef = useRef(true);
 
   // Transform raw product data
-  const transformProduct = useCallback((product: any): Product => {
+  type RawProduct = Omit<Product, 'keywords'> & { keywords?: { keyword: string }[] };
+  const transformProduct = useCallback((product: RawProduct): Product => {
     const media = (product.media || []).sort(
       (a: ProductMedia, b: ProductMedia) => a.position - b.position
     );
@@ -100,7 +101,7 @@ export function useMarketplace(
       ...product,
       media,
       pricing,
-      keywords: (product.keywords || []).map((k: any) => k.keyword),
+      keywords: (product.keywords || []).map((k: { keyword: string }) => k.keyword),
       primary_image_url:
         media.find((m: ProductMedia) => m.is_primary)?.media_url || media[0]?.media_url,
       min_price:
@@ -223,10 +224,10 @@ export function useMarketplace(
           total: count ?? 0,
           has_more: rangeEnd + 1 < (count ?? 0),
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("[useMarketplace] Error:", err);
         if (mountedRef.current) {
-          setError(err.message || "Failed to fetch products");
+          setError(err instanceof Error ? err.message : "Failed to fetch products");
         }
       } finally {
         fetchingRef.current = false;
@@ -273,7 +274,7 @@ export function useMarketplace(
 
       if (data && mountedRef.current) {
         const counts: Record<string, number> = {};
-        data.forEach((p: any) => {
+        data.forEach((p: { category: string }) => {
           counts[p.category] = (counts[p.category] || 0) + 1;
         });
         setCategoryCounts(counts);
@@ -399,7 +400,8 @@ export function useFeaturedProducts(limit: number = 6) {
           .limit(limit);
 
         if (data) {
-          const transformed = data.map((p: any) => {
+          type RawProductData = Omit<Product, 'media' | 'pricing'> & { media?: ProductMedia[]; pricing?: ProductPricing[] };
+          const transformed = data.map((p: RawProductData) => {
             const media = (p.media || []).sort(
               (a: ProductMedia, b: ProductMedia) => a.position - b.position
             );

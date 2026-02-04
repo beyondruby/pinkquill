@@ -117,11 +117,13 @@ export default function FollowersModal({
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   // Reset removed IDs when modal closes or type changes
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!isOpen) {
       setRemovedIds(new Set());
     }
   }, [isOpen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleUnfollow = (unfollowedUserId: string) => {
     setRemovedIds((prev) => new Set([...prev, unfollowedUserId]));

@@ -26,13 +26,14 @@ export default function CommunityRulesSettingsPage() {
   const [rulesInitialized, setRulesInitialized] = useState(false);
 
   // Sync external data to local form state - this is a legitimate use case
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (existingRules && !rulesInitialized) {
       setRules(existingRules.map(r => ({ title: r.title, description: r.description || '' })));
       setRulesInitialized(true);
     }
   }, [existingRules, rulesInitialized]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!community) return null;
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabase";
-import type { Post, PostMedia, PaginationState, RelayedPost, ReactionType, AggregateCount, PostAuthor } from "../types";
+import type { Post, PostMedia, PaginationState, RelayedPost, ReactionType, AggregateCount, PostAuthor, PostType, PostVisibility } from "../types";
 import { getAggregateCount } from "../types";
 import { categorizeError } from "../utils/retry";
 
@@ -146,10 +146,10 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         let userAdmires = new Set<string>();
         let userSaves = new Set<string>();
         let userRelays = new Set<string>();
-        let userReactions = new Map<string, string>();
-        let collaboratorsByPost = new Map<string, any[]>();
-        let mentionsByPost = new Map<string, any[]>();
-        let hashtagsByPost = new Map<string, string[]>();
+        const userReactions = new Map<string, string>();
+        const collaboratorsByPost = new Map<string, { status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null }[]>();
+        const mentionsByPost = new Map<string, { user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null }[]>();
+        const hashtagsByPost = new Map<string, string[]>();
 
         if (postIds.length > 0) {
           // Build all queries - executed concurrently for efficiency
@@ -225,7 +225,8 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           const tagsResult = results[2];
 
           // Process collaborators
-          (collaboratorsResult.data || []).forEach((c: any) => {
+          type CollaboratorRow = { post_id: string; status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null };
+          (collaboratorsResult.data || []).forEach((c: CollaboratorRow) => {
             if (!collaboratorsByPost.has(c.post_id)) {
               collaboratorsByPost.set(c.post_id, []);
             }
@@ -237,7 +238,8 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           });
 
           // Process mentions
-          (mentionsResult.data || []).forEach((m: any) => {
+          type MentionRow = { post_id: string; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null };
+          (mentionsResult.data || []).forEach((m: MentionRow) => {
             if (!mentionsByPost.has(m.post_id)) {
               mentionsByPost.set(m.post_id, []);
             }
@@ -245,7 +247,8 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           });
 
           // Process tags
-          (tagsResult.data || []).forEach((t: any) => {
+          type TagRow = { post_id: string; tag?: { name: string } | null };
+          (tagsResult.data || []).forEach((t: TagRow) => {
             const tagName = t.tag?.name;
             if (tagName) {
               if (!hashtagsByPost.has(t.post_id)) {
@@ -261,10 +264,10 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
             const savesResult = results[4];
             const relaysResult = results[5];
             const reactionsResult = results[6];
-            userAdmires = new Set((admiresResult.data || []).map((a: any) => a.post_id));
-            userSaves = new Set((savesResult.data || []).map((s: any) => s.post_id));
-            userRelays = new Set((relaysResult.data || []).map((r: any) => r.post_id));
-            (reactionsResult.data || []).forEach((r: any) => {
+            userAdmires = new Set((admiresResult.data || []).map((a: { post_id: string }) => a.post_id));
+            userSaves = new Set((savesResult.data || []).map((s: { post_id: string }) => s.post_id));
+            userRelays = new Set((relaysResult.data || []).map((r: { post_id: string }) => r.post_id));
+            (reactionsResult.data || []).forEach((r: { post_id: string; reaction_type: string }) => {
               userReactions.set(r.post_id, r.reaction_type);
             });
           }
@@ -322,13 +325,13 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           hasMore: transformedPosts.length === pageSize,
           total: totalCount || undefined,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Ignore abort errors - they're expected when cancelling requests
-        if (err?.name === "AbortError" || abortController.signal.aborted) {
+        if ((err instanceof Error && err.name === "AbortError") || abortController.signal.aborted) {
           return;
         }
 
-        const categorized = categorizeError(err);
+        const categorized = categorizeError(err as Error);
         console.error("[useFeed] Error:", categorized.message);
         if (mountedRef.current) {
           setError(categorized.userMessage);
@@ -584,8 +587,8 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
 
       if (abortController.signal.aborted || !mountedRef.current) return;
       setPosts(postsWithStats as Post[]);
-    } catch (err: any) {
-      if (err?.name === "AbortError" || abortController.signal.aborted) return;
+    } catch (err: unknown) {
+      if ((err instanceof Error && err.name === "AbortError") || abortController.signal.aborted) return;
       console.error("[useSavedPosts] Error:", err);
       if (mountedRef.current) {
         setError("Failed to load saved posts");
@@ -747,10 +750,10 @@ export function useRelays(username: string) {
             const relayedPost: RelayedPost = {
               id: post.id,
               author_id: post.author_id,
-              type: post.type as any,
+              type: post.type as PostType,
               title: post.title,
               content: post.content,
-              visibility: post.visibility as any,
+              visibility: post.visibility as PostVisibility,
               created_at: post.created_at,
               content_warning: null,
               community_id: null,
@@ -774,8 +777,8 @@ export function useRelays(username: string) {
 
         if (abortController.signal.aborted || !mountedRef.current) return;
         setRelays(processedRelays);
-      } catch (err: any) {
-        if (err?.name === "AbortError" || abortControllerRef.current?.signal.aborted) return;
+      } catch (err: unknown) {
+        if ((err instanceof Error && err.name === "AbortError") || abortControllerRef.current?.signal.aborted) return;
         console.error("[useRelays] Error:", err);
       } finally {
         if (!abortControllerRef.current?.signal.aborted && mountedRef.current) {

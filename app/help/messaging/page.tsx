@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope, faPaperPlane, faTrash, faShield } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
 
 const tocItems = [
   { id: "overview", label: "Messaging Overview" },
@@ -96,14 +96,14 @@ export default function MessagingHelpPage() {
 
             <h3>Accessing messages</h3>
             <p>
-              Click "Messages" in the left sidebar to open your messaging inbox. You'll see
+              Click &quot;Messages&quot; in the left sidebar to open your messaging inbox. You&apos;ll see
               all your conversations listed on the left, with the chat view on the right.
             </p>
 
             <h3>Message layout</h3>
             <ul>
               <li><strong>Conversation list</strong> — All your chats, sorted by most recent</li>
-              <li><strong>Chat view</strong> — The selected conversation's message history</li>
+              <li><strong>Chat view</strong> — The selected conversation&apos;s message history</li>
               <li><strong>New message button</strong> — Start a new conversation</li>
               <li><strong>Info button</strong> — Access conversation options</li>
             </ul>
@@ -116,7 +116,7 @@ export default function MessagingHelpPage() {
             <h3>From the messages page</h3>
             <ol>
               <li>Go to Messages</li>
-              <li>Click the "New Message" button (✏️ icon)</li>
+              <li>Click the &quot;New Message&quot; button (✏️ icon)</li>
               <li>Search for the user you want to message</li>
               <li>Select them to start a conversation</li>
               <li>Type your message and send</li>
@@ -124,14 +124,14 @@ export default function MessagingHelpPage() {
 
             <h3>From a profile</h3>
             <ol>
-              <li>Visit the user's profile (Studio)</li>
-              <li>Click the "Message" button</li>
+              <li>Visit the user&apos;s profile (Studio)</li>
+              <li>Click the &quot;Message&quot; button</li>
               <li>This opens a new conversation with them</li>
             </ol>
 
             <div className="bg-purple-primary/5 rounded-xl p-4 border border-purple-primary/10 my-6">
               <p className="font-ui text-sm text-ink mb-0">
-                <strong>Note:</strong> You can message anyone on PinkQuill, even if you don't
+                <strong>Note:</strong> You can message anyone on PinkQuill, even if you don&apos;t
                 follow each other. However, users can block others to prevent messages.
               </p>
             </div>
@@ -156,7 +156,7 @@ export default function MessagingHelpPage() {
 
             <h3>Read receipts</h3>
             <p>
-              Messages show when they've been read by the recipient. You'll see a visual
+              Messages show when they&apos;ve been read by the recipient. You&apos;ll see a visual
               indicator when your message has been seen.
             </p>
 
@@ -175,7 +175,7 @@ export default function MessagingHelpPage() {
               Click the info button (ⓘ) in the chat header to access conversation options:
             </p>
             <ul>
-              <li>View the user's profile</li>
+              <li>View the user&apos;s profile</li>
               <li>Block the user</li>
               <li>Report the user</li>
               <li>Delete the conversation</li>
@@ -185,7 +185,7 @@ export default function MessagingHelpPage() {
             <ol>
               <li>Open the conversation</li>
               <li>Click the info button (ⓘ)</li>
-              <li>Select "Delete conversation"</li>
+              <li>Select &quot;Delete conversation&quot;</li>
               <li>Confirm deletion</li>
             </ol>
             <div className="bg-orange-50 rounded-xl p-4 border border-orange-200/50 my-6">
@@ -207,13 +207,13 @@ export default function MessagingHelpPage() {
 
             <h3>Unread indicator</h3>
             <p>
-              When you have unread messages, you'll see a badge on the Messages icon in
+              When you have unread messages, you&apos;ll see a badge on the Messages icon in
               the sidebar showing the number of unread conversations.
             </p>
 
             <h3>In-app notifications</h3>
             <p>
-              New messages trigger real-time updates. If you're on the messages page,
+              New messages trigger real-time updates. If you&apos;re on the messages page,
               new messages appear instantly. Otherwise, the unread count updates.
             </p>
 
@@ -233,18 +233,18 @@ export default function MessagingHelpPage() {
               someone:
             </p>
             <ul>
-              <li>They can still send messages, but you won't receive them</li>
+              <li>They can still send messages, but you won&apos;t receive them</li>
               <li>Messages they send appear to go through on their end</li>
-              <li>They won't know they've been blocked</li>
+              <li>They won&apos;t know they&apos;ve been blocked</li>
               <li>Existing conversation history remains visible to both parties</li>
-              <li>Their messages won't count toward your unread badge</li>
+              <li>Their messages won&apos;t count toward your unread badge</li>
             </ul>
 
             <h3>Blocking from messages</h3>
             <ol>
               <li>Open the conversation</li>
               <li>Click the info button (ⓘ)</li>
-              <li>Select "Block"</li>
+              <li>Select &quot;Block&quot;</li>
               <li>Confirm the block</li>
             </ol>
 
@@ -255,7 +255,7 @@ export default function MessagingHelpPage() {
             <ol>
               <li>Open the conversation</li>
               <li>Click the info button (ⓘ)</li>
-              <li>Select "Report"</li>
+              <li>Select &quot;Report&quot;</li>
               <li>Choose a reason and submit</li>
             </ol>
             <p>
@@ -266,7 +266,7 @@ export default function MessagingHelpPage() {
             <h3>Message privacy</h3>
             <ul>
               <li>Messages are private between participants</li>
-              <li>We don't read your messages except when reviewing reports</li>
+              <li>We don&apos;t read your messages except when reviewing reports</li>
               <li>Messages are encrypted in transit</li>
               <li>See our <Link href="/privacy" className="text-purple-primary hover:underline">Privacy Policy</Link> for more details</li>
             </ul>

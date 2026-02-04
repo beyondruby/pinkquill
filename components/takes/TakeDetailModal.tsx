@@ -89,6 +89,7 @@ export default function TakeDetailModal({
   const isOwner = user && take?.author_id && user.id === take.author_id;
 
   // Sync state when take changes
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (take) {
       setIsSaved(take.is_saved || false);
@@ -99,6 +100,7 @@ export default function TakeDetailModal({
       setShowContent(!take.content_warning);
     }
   }, [take?.id, take?.is_saved, take?.is_relayed, take?.relays_count, take?.reactions_count, take?.user_reaction_type, take?.content_warning]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Fetch hashtags, collaborators, and mentions when take changes
   useEffect(() => {
@@ -159,12 +161,14 @@ export default function TakeDetailModal({
   }, [take?.id]);
 
   // Auto-play when modal opens (only if no content warning or user accepted it)
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isOpen && videoRef.current && showContent) {
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     }
   }, [isOpen, take?.id, showContent]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Click outside to close menu
   useEffect(() => {

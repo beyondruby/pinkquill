@@ -734,7 +734,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
               Block @{take.author.username}?
             </h3>
             <p className="font-body text-sm text-muted mb-6">
-              You won't see their posts anymore. They won't be able to see your posts, follow you, or message you.
+              You won&apos;t see their posts anymore. They won&apos;t be able to see your posts, follow you, or message you.
             </p>
             <div className="flex justify-end gap-3">
               <button

@@ -125,6 +125,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
   const [soundSearch, setSoundSearch] = useState("");
   const [showSoundPicker, setShowSoundPicker] = useState(false);
   const [isSoundPlaying, setIsSoundPlaying] = useState(false);
+  const [playingSoundUrl, setPlayingSoundUrl] = useState<string | null>(null);
 
   // Collaborators & Tagged People
   const [collaborators, setCollaborators] = useState<CollaboratorWithRole[]>([]);
@@ -148,6 +149,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
   const displaySounds = soundSearch ? searchedSounds : trendingSounds;
 
   // Extract tags from caption (hashtags)
+  /* eslint-disable react-hooks/set-state-in-effect -- Intentional: updating tags when caption changes with hashtags */
   useEffect(() => {
     const hashtags = caption.match(/#[\w]+/g);
     if (hashtags) {
@@ -155,6 +157,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
       setTags((prev) => [...new Set([...prev, ...newTags])]);
     }
   }, [caption]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Cleanup preview URLs on unmount
   useEffect(() => {
@@ -166,6 +169,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
   }, [videoPreview, thumbnailPreview, thumbnailFromVideo]);
 
   // Update effects when filter changes
+  /* eslint-disable react-hooks/set-state-in-effect -- Intentional: syncing effects state with filter selection */
   useEffect(() => {
     if (selectedFilter && selectedFilter !== "none") {
       setEffects([{ type: "filter", name: selectedFilter }]);
@@ -173,6 +177,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
       setEffects([]);
     }
   }, [selectedFilter]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Generate thumbnail from video
   const generateThumbnailFromVideo = useCallback(() => {
@@ -301,6 +306,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
     setSelectedSound(null);
     setSoundStartTime(0);
     setIsSoundPlaying(false);
+    setPlayingSoundUrl(null);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -309,17 +315,20 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
 
   const handlePreviewSound = useCallback((sound: Sound) => {
     if (audioRef.current) {
-      if (isSoundPlaying && audioRef.current.src === sound.audio_url) {
+      if (isSoundPlaying && playingSoundUrl === sound.audio_url) {
         audioRef.current.pause();
         setIsSoundPlaying(false);
+        setPlayingSoundUrl(null);
       } else {
         audioRef.current.src = sound.audio_url;
         audioRef.current.play();
         setIsSoundPlaying(true);
+        setPlayingSoundUrl(sound.audio_url);
       }
     }
-  }, [isSoundPlaying]);
+  }, [isSoundPlaying, playingSoundUrl]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- Complex async handler with many dependencies
   const handleSubmit = useCallback(async () => {
     if (!user?.id || !videoFile || uploading) return;
 
@@ -412,7 +421,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       {/* Hidden audio element for sound preview */}
-      <audio ref={audioRef} onEnded={() => setIsSoundPlaying(false)} />
+      <audio ref={audioRef} onEnded={() => { setIsSoundPlaying(false); setPlayingSoundUrl(null); }} />
 
       {/* Header */}
       <div className="sticky top-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-white/10">
@@ -994,7 +1003,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
                               className="p-2 hover:bg-white/10 rounded-full"
                             >
                               <FontAwesomeIcon
-                                icon={isSoundPlaying && audioRef.current?.src === sound.audio_url ? faPause : faPlay}
+                                icon={isSoundPlaying && playingSoundUrl === sound.audio_url ? faPause : faPlay}
                                 className="w-3 h-3"
                               />
                             </button>

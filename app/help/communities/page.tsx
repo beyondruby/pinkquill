@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUsers, faPlus, faCog, faGavel, faUserShield } from "@fortawesome/free-solid-svg-icons";
+import { faUsers } from "@fortawesome/free-solid-svg-icons";
 
 const tocItems = [
   { id: "what-are-communities", label: "What Are Communities" },
@@ -94,7 +93,7 @@ export default function CommunitiesHelpPage() {
             <h2>What Are Communities</h2>
             <p>
               Communities are spaces on PinkQuill organized around shared interests, genres, themes,
-              or creative goals. They're where creators with similar passions come together to
+              or creative goals. They&apos;re where creators with similar passions come together to
               share work, give feedback, and inspire each other.
             </p>
 
@@ -112,8 +111,8 @@ export default function CommunitiesHelpPage() {
 
             <h3>What you can do in communities</h3>
             <ul>
-              <li>Post content relevant to the community's focus</li>
-              <li>Comment on and react to members' posts</li>
+              <li>Post content relevant to the community&apos;s focus</li>
+              <li>Comment on and react to members&apos; posts</li>
               <li>Connect with like-minded creators</li>
               <li>Participate in community discussions</li>
             </ul>
@@ -125,7 +124,7 @@ export default function CommunitiesHelpPage() {
 
             <h3>Browse communities</h3>
             <ol>
-              <li>Click "Communities" in the left sidebar</li>
+              <li>Click &quot;Communities&quot; in the left sidebar</li>
               <li>Browse the Discover tab for popular and trending communities</li>
               <li>Use the search bar to find specific topics</li>
               <li>Filter by topics (Poetry, Fiction, Visual Arts, etc.)</li>
@@ -154,31 +153,31 @@ export default function CommunitiesHelpPage() {
             <h3>Joining a public community</h3>
             <ol>
               <li>Find the community you want to join</li>
-              <li>Click the "Join" button</li>
-              <li>You're now a member!</li>
+              <li>Click the &quot;Join&quot; button</li>
+              <li>You&apos;re now a member!</li>
             </ol>
 
             <h3>Joining a private community</h3>
             <ol>
               <li>Find the private community</li>
-              <li>Click "Request to Join"</li>
+              <li>Click &quot;Request to Join&quot;</li>
               <li>Wait for an admin or moderator to approve your request</li>
-              <li>You'll be notified when accepted</li>
+              <li>You&apos;ll be notified when accepted</li>
             </ol>
 
             <h3>Accepting invitations</h3>
             <p>
-              If you receive an invitation to a community, you'll see it in your notifications.
+              If you receive an invitation to a community, you&apos;ll see it in your notifications.
               Click to accept or decline the invitation.
             </p>
           </section>
 
           <section id="creating" className="scroll-mt-24 mb-16">
             <h2>Creating a Community</h2>
-            <p>Ready to start your own space? Here's how:</p>
+            <p>Ready to start your own space? Here&apos;s how:</p>
 
             <ol>
-              <li>Go to Communities → click "Create Community"</li>
+              <li>Go to Communities → click &quot;Create Community&quot;</li>
               <li>
                 <strong>Basic info:</strong>
                 <ul>
@@ -202,7 +201,7 @@ export default function CommunitiesHelpPage() {
                   <li>These help members understand expectations</li>
                 </ul>
               </li>
-              <li>Click "Create Community" to finish</li>
+              <li>Click &quot;Create Community&quot; to finish</li>
             </ol>
 
             <div className="bg-purple-primary/5 rounded-xl p-4 border border-purple-primary/10 my-6">
@@ -220,7 +219,7 @@ export default function CommunitiesHelpPage() {
             <h3>Creating a community post</h3>
             <ol>
               <li>Go to the community page</li>
-              <li>Click "Create Post" in the header</li>
+              <li>Click &quot;Create Post&quot; in the header</li>
               <li>Create your post as usual</li>
               <li>The post will automatically be associated with the community</li>
             </ol>
@@ -232,8 +231,8 @@ export default function CommunitiesHelpPage() {
 
             <h3>Community post guidelines</h3>
             <ul>
-              <li>Follow the community's specific rules</li>
-              <li>Keep content relevant to the community's theme</li>
+              <li>Follow the community&apos;s specific rules</li>
+              <li>Keep content relevant to the community&apos;s theme</li>
               <li>Respect other members and their work</li>
               <li>Use content warnings when appropriate</li>
             </ul>
@@ -274,7 +273,7 @@ export default function CommunitiesHelpPage() {
 
           <section id="moderation" className="scroll-mt-24 mb-16">
             <h2>Moderation</h2>
-            <p>If you're an admin or moderator, you have tools to keep your community healthy:</p>
+            <p>If you&apos;re an admin or moderator, you have tools to keep your community healthy:</p>
 
             <h3>Moderation actions</h3>
             <ul>
@@ -293,7 +292,7 @@ export default function CommunitiesHelpPage() {
             <h3>Community rules</h3>
             <p>
               Clear rules help set expectations. Go to Community Settings → Rules to add,
-              edit, or reorder your community's guidelines.
+              edit, or reorder your community&apos;s guidelines.
             </p>
           </section>
 
@@ -341,22 +340,22 @@ export default function CommunitiesHelpPage() {
             <p>If you want to leave a community:</p>
             <ol>
               <li>Go to the community page</li>
-              <li>Click the "Joined" button (or the settings menu)</li>
-              <li>Select "Leave community"</li>
+              <li>Click the &quot;Joined&quot; button (or the settings menu)</li>
+              <li>Select &quot;Leave community&quot;</li>
               <li>Confirm your choice</li>
             </ol>
 
             <h3>What happens when you leave</h3>
             <ul>
-              <li>You'll no longer see the community in your "Joined" tab</li>
+              <li>You&apos;ll no longer see the community in your &quot;Joined&quot; tab</li>
               <li>Your posts in the community remain (unless you delete them)</li>
               <li>You can rejoin public communities anytime</li>
-              <li>For private communities, you'll need to request to join again</li>
+              <li>For private communities, you&apos;ll need to request to join again</li>
             </ul>
 
             <div className="bg-orange-50 rounded-xl p-4 border border-orange-200/50 my-6">
               <p className="font-ui text-sm text-orange-800 mb-0">
-                <strong>Note:</strong> If you're the only admin of a community, you should
+                <strong>Note:</strong> If you&apos;re the only admin of a community, you should
                 assign another admin before leaving, or the community will become unmoderated.
               </p>
             </div>

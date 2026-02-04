@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faShield, faBan, faFlag, faEyeSlash, faUserSlash } from "@fortawesome/free-solid-svg-icons";
+import { faShield } from "@fortawesome/free-solid-svg-icons";
 
 const tocItems = [
   { id: "overview", label: "Safety Overview" },
@@ -106,7 +106,7 @@ export default function PrivacySafetyHelpPage() {
 
             <div className="bg-purple-primary/5 rounded-xl p-4 border border-purple-primary/10 my-6">
               <p className="font-ui text-sm text-ink mb-0">
-                <strong>Need help?</strong> If you're experiencing harassment or feel unsafe,
+                <strong>Need help?</strong> If you&apos;re experiencing harassment or feel unsafe,
                 contact us immediately at <a href="mailto:safety@pinkquill.com" className="text-purple-primary hover:underline">safety@pinkquill.com</a>.
               </p>
             </div>
@@ -126,14 +126,14 @@ export default function PrivacySafetyHelpPage() {
             <ol>
               <li>Visit their Studio (profile)</li>
               <li>Click the three-dot menu (⋯)</li>
-              <li>Select "Block"</li>
+              <li>Select &quot;Block&quot;</li>
               <li>Confirm</li>
             </ol>
 
             <p><strong>From a post:</strong></p>
             <ol>
               <li>Click the three-dot menu (⋯) on their post</li>
-              <li>Select "Block"</li>
+              <li>Select &quot;Block&quot;</li>
               <li>Confirm</li>
             </ol>
 
@@ -141,25 +141,25 @@ export default function PrivacySafetyHelpPage() {
             <ol>
               <li>Open the conversation</li>
               <li>Click the info button (ⓘ)</li>
-              <li>Select "Block"</li>
+              <li>Select &quot;Block&quot;</li>
               <li>Confirm</li>
             </ol>
 
             <h3>What happens when you block someone</h3>
             <ul>
-              <li>They can't see your profile — it shows "User not found"</li>
+              <li>They can&apos;t see your profile — it shows &quot;User not found&quot;</li>
               <li>Your posts disappear from their feed</li>
               <li>Their posts disappear from your feed</li>
-              <li>They can't follow you (existing follows are removed)</li>
-              <li>Messages are silently blocked (they can send, but you won't receive)</li>
-              <li>They aren't notified that they've been blocked</li>
+              <li>They can&apos;t follow you (existing follows are removed)</li>
+              <li>Messages are silently blocked (they can send, but you won&apos;t receive)</li>
+              <li>They aren&apos;t notified that they&apos;ve been blocked</li>
             </ul>
 
             <h3>Viewing and managing blocks</h3>
             <ol>
               <li>Go to <Link href="/settings/privacy" className="text-purple-primary hover:underline">Settings → Privacy</Link></li>
               <li>See your list of blocked users</li>
-              <li>Click "Unblock" next to any user to remove the block</li>
+              <li>Click &quot;Unblock&quot; to remove the block</li>
             </ol>
 
             <h3>Unblocking someone</h3>
@@ -168,8 +168,8 @@ export default function PrivacySafetyHelpPage() {
             </p>
             <ul>
               <li>They can see your profile again</li>
-              <li>They can follow you (they won't automatically re-follow)</li>
-              <li>You'll need to follow them again if you want to</li>
+              <li>They can follow you (they won&apos;t automatically re-follow)</li>
+              <li>You&apos;ll need to follow them again if you want to</li>
             </ul>
           </section>
 
@@ -191,7 +191,7 @@ export default function PrivacySafetyHelpPage() {
             <h3>How to report</h3>
             <ol>
               <li>Click the three-dot menu (⋯) on the content or profile</li>
-              <li>Select "Report"</li>
+              <li>Select &quot;Report&quot;</li>
               <li>Choose a reason:
                 <ul>
                   <li>Spam</li>
@@ -210,13 +210,13 @@ export default function PrivacySafetyHelpPage() {
               <li>Our team reviews all reports</li>
               <li>We may remove content that violates guidelines</li>
               <li>Repeat offenders may be suspended or banned</li>
-              <li>We don't tell the reported person who reported them</li>
+              <li>We don&apos;t tell the reported person who reported them</li>
             </ul>
 
             <div className="bg-orange-50 rounded-xl p-4 border border-orange-200/50 my-6">
               <p className="font-ui text-sm text-orange-800 mb-0">
-                <strong>Note:</strong> Reporting doesn't automatically block the user.
-                If you don't want to see their content, block them separately.
+                <strong>Note:</strong> Reporting doesn&apos;t automatically block the user.
+                If you don&apos;t want to see their content, block them separately.
               </p>
             </div>
           </section>
@@ -224,7 +224,7 @@ export default function PrivacySafetyHelpPage() {
           <section id="content-warnings" className="scroll-mt-24 mb-16">
             <h2>Content Warnings</h2>
             <p>
-              Content warnings help you avoid content you'd rather not see, while still
+              Content warnings help you avoid content you&apos;d rather not see, while still
               allowing creators to share sensitive topics.
             </p>
 
@@ -293,8 +293,8 @@ export default function PrivacySafetyHelpPage() {
             <ul>
               <li>Use at least 6 characters (longer is better)</li>
               <li>Mix letters, numbers, and symbols</li>
-              <li>Don't reuse passwords from other sites</li>
-              <li>Change your password if you suspect it's compromised</li>
+              <li>Don&apos;t reuse passwords from other sites</li>
+              <li>Change your password if you suspect it&apos;s compromised</li>
             </ul>
 
             <h3>Secure your email</h3>
@@ -305,7 +305,7 @@ export default function PrivacySafetyHelpPage() {
 
             <h3>Watch for phishing</h3>
             <ul>
-              <li>We'll never ask for your password via email or DM</li>
+              <li>We&apos;ll never ask for your password via email or DM</li>
               <li>Check URLs carefully before entering credentials</li>
               <li>Report suspicious messages claiming to be from PinkQuill</li>
             </ul>
@@ -324,14 +324,14 @@ export default function PrivacySafetyHelpPage() {
               we have guidelines that all users must follow.
             </p>
 
-            <h3>What's not allowed</h3>
+            <h3>What&apos;s not allowed</h3>
             <ul>
               <li><strong>Harassment</strong> — Targeting, bullying, or intimidating others</li>
               <li><strong>Hate speech</strong> — Content that attacks people based on identity</li>
               <li><strong>Spam</strong> — Repetitive, unwanted, or misleading content</li>
               <li><strong>Impersonation</strong> — Pretending to be someone else</li>
               <li><strong>Illegal content</strong> — Content that violates laws</li>
-              <li><strong>Privacy violations</strong> — Sharing others' private information</li>
+              <li><strong>Privacy violations</strong> — Sharing others&apos; private information</li>
             </ul>
 
             <h3>Consequences</h3>

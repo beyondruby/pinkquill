@@ -41,7 +41,7 @@ export default function CollectionItemPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="font-display text-2xl text-ink mb-2">Item Not Found</h1>
-          <p className="font-body text-muted mb-4">This collection item doesn't exist or has been removed.</p>
+          <p className="font-body text-muted mb-4">This collection item doesn&apos;t exist or has been removed.</p>
           <Link
             href={`/studio/${username}`}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium hover:-translate-y-0.5 transition-transform"
@@ -157,7 +157,7 @@ export default function CollectionItemPage() {
           </svg>
           <h3 className="font-display text-lg text-ink mb-2">No Posts Yet</h3>
           <p className="font-body text-sm text-muted">
-            This collection item doesn't have any posts yet.
+            This collection item doesn&apos;t have any posts yet.
           </p>
         </div>
       ) : (

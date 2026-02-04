@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPenNib, faImage, faVideo, faFont, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { faPenNib } from "@fortawesome/free-solid-svg-icons";
 
 const tocItems = [
   { id: "creating-a-post", label: "Creating a Post" },
@@ -106,11 +105,11 @@ export default function PostingHelpPage() {
           <section id="creating-a-post" className="scroll-mt-24 mb-16">
             <h2>Creating a Post</h2>
             <p>
-              Sharing your creative work on PinkQuill is simple. Here's how to create your first post:
+              Sharing your creative work on PinkQuill is simple. Here&apos;s how to create your first post:
             </p>
             <ol>
               <li>
-                <strong>Open the creator</strong> — Click "Create" in the left sidebar or press the
+                <strong>Open the creator</strong> — Click &quot;Create&quot; in the left sidebar or press the
                 + button
               </li>
               <li>
@@ -129,7 +128,7 @@ export default function PostingHelpPage() {
                 <strong>Set visibility</strong> — Choose who can see your post
               </li>
               <li>
-                <strong>Publish</strong> — Click "Post" to share with the world
+                <strong>Publish</strong> — Click &quot;Post&quot; to share with the world
               </li>
             </ol>
             <div className="bg-purple-primary/5 rounded-xl p-4 border border-purple-primary/10 my-6">
@@ -152,7 +151,7 @@ export default function PostingHelpPage() {
                 <div key={type.name} className="p-4 bg-white rounded-xl border border-black/5">
                   <div className="flex items-baseline gap-2 mb-1">
                     <h4 className="font-ui font-semibold text-ink">{type.name}</h4>
-                    <span className="text-xs text-muted italic">"{type.label}"</span>
+                    <span className="text-xs text-muted italic">&quot;{type.label}&quot;</span>
                   </div>
                   <p className="font-body text-sm text-muted mb-0">{type.description}</p>
                 </div>
@@ -161,11 +160,11 @@ export default function PostingHelpPage() {
 
             <h3>Choosing the right type</h3>
             <ul>
-              <li><strong>Short form:</strong> Use "Thought" for brief reflections or manifestos</li>
-              <li><strong>Poetry:</strong> Use "Poem" — content is centered and italicized</li>
-              <li><strong>Personal:</strong> Use "Journal" for diary-style entries</li>
-              <li><strong>Long form:</strong> Use "Essay" or "Story" for in-depth pieces</li>
-              <li><strong>Visual-first:</strong> Use "Visual" when images are the focus</li>
+              <li><strong>Short form:</strong> Use &quot;Thought&quot; for brief reflections or manifestos</li>
+              <li><strong>Poetry:</strong> Use &quot;Poem&quot; — content is centered and italicized</li>
+              <li><strong>Personal:</strong> Use &quot;Journal&quot; for diary-style entries</li>
+              <li><strong>Long form:</strong> Use &quot;Essay&quot; or &quot;Story&quot; for in-depth pieces</li>
+              <li><strong>Visual-first:</strong> Use &quot;Visual&quot; when images are the focus</li>
             </ul>
           </section>
 
@@ -265,13 +264,13 @@ export default function PostingHelpPage() {
 
             <h3>Private</h3>
             <p>
-              Only you can see the post. Use this for drafts or personal content you don't
+              Only you can see the post. Use this for drafts or personal content you don&apos;t
               want to share.
             </p>
 
             <h3>Community posts</h3>
             <p>
-              When posting to a community, your post follows the community's visibility settings.
+              When posting to a community, your post follows the community&apos;s visibility settings.
               Public communities show posts to everyone; private communities only show to members.
             </p>
           </section>
@@ -281,17 +280,17 @@ export default function PostingHelpPage() {
 
             <h3>Editing posts</h3>
             <p>
-              To edit a post you've published:
+              To edit a post you&apos;ve published:
             </p>
             <ol>
               <li>Go to your post</li>
               <li>Click the three-dot menu (⋯)</li>
-              <li>Select "Edit"</li>
+              <li>Select &quot;Edit&quot;</li>
               <li>Make your changes</li>
               <li>Save</li>
             </ol>
             <p>
-              Note: Edited posts may show an "edited" indicator so readers know the content
+              Note: Edited posts may show an &quot;edited&quot; indicator so readers know the content
               was changed.
             </p>
 
@@ -299,7 +298,7 @@ export default function PostingHelpPage() {
             <ol>
               <li>Go to your post</li>
               <li>Click the three-dot menu (⋯)</li>
-              <li>Select "Delete"</li>
+              <li>Select &quot;Delete&quot;</li>
               <li>Confirm deletion</li>
             </ol>
             <div className="bg-red-50 rounded-xl p-4 border border-red-200/50 my-6">
@@ -313,14 +312,14 @@ export default function PostingHelpPage() {
           <section id="takes" className="scroll-mt-24 mb-16">
             <h2>Takes (Short Videos)</h2>
             <p>
-              Takes are short-form video content, similar to TikTok or Reels. They're a great
+              Takes are short-form video content, similar to TikTok or Reels. They&apos;re a great
               way to share quick creative moments.
             </p>
 
             <h3>Creating a take</h3>
             <ol>
               <li>Go to Takes in the sidebar</li>
-              <li>Click "Create Take"</li>
+              <li>Click &quot;Create Take&quot;</li>
               <li>Upload a video (max 90 seconds, 100MB)</li>
               <li>Add a caption with hashtags</li>
               <li>Add content warning if needed</li>

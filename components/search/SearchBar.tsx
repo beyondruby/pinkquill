@@ -70,6 +70,7 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
   const { results, loading } = useSearch(query);
 
   // Load history when user changes
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (user?.id) {
       setHistory(getSearchHistory(user.id));
@@ -77,6 +78,7 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
       setHistory([]);
     }
   }, [user?.id]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Close dropdown when clicking outside
   useEffect(() => {

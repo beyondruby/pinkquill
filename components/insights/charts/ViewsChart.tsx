@@ -31,6 +31,24 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
+// Moved outside component to avoid "Cannot create components during render" error
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white px-4 py-3 rounded-xl shadow-lg border border-black/10">
+        <p className="font-ui text-sm text-ink font-medium mb-1">{label}</p>
+        <p className="font-body text-sm text-muted">
+          <span className="text-purple-primary font-medium">
+            {formatNumber(payload[0].value)}
+          </span>{" "}
+          views
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function ViewsChart({
   data,
   title = "Views Over Time",
@@ -41,23 +59,6 @@ export default function ViewsChart({
     ...d,
     dateLabel: formatDate(d.date),
   }));
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white px-4 py-3 rounded-xl shadow-lg border border-black/10">
-          <p className="font-ui text-sm text-ink font-medium mb-1">{label}</p>
-          <p className="font-body text-sm text-muted">
-            <span className="text-purple-primary font-medium">
-              {formatNumber(payload[0].value)}
-            </span>{" "}
-            views
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (data.length === 0) {
     return (

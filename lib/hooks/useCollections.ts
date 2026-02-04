@@ -72,11 +72,11 @@ export function useCollections(userId?: string): UseCollectionsReturn {
       if (collectionsError) throw collectionsError;
 
       // Transform data
-      const transformedCollections: CollectionWithItems[] = (collectionsData || []).map((col: any) => ({
+      const transformedCollections: CollectionWithItems[] = (collectionsData || []).map((col: CollectionWithItems & { items?: CollectionItem[] }) => ({
         ...col,
         items_count: col.items?.length || 0,
         items: (col.items || [])
-          .map((item: any) => ({
+          .map((item: CollectionItem & { posts?: { count: number }[] }) => ({
             ...item,
             posts_count: item.posts?.[0]?.count || 0,
           }))
@@ -85,10 +85,11 @@ export function useCollections(userId?: string): UseCollectionsReturn {
 
       setCollections(transformedCollections);
       fetchedRef.current = true;
-    } catch (err: any) {
-      console.error("[useCollections] Error:", err?.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useCollections] Error:", message);
       if (mountedRef.current) {
-        setError(err?.message || "Failed to fetch collections");
+        setError(message || "Failed to fetch collections");
       }
     } finally {
       if (mountedRef.current) {
@@ -165,7 +166,7 @@ export function useCollection(userId?: string, slug?: string): UseCollectionRetu
         ...data,
         items_count: data.items?.length || 0,
         items: (data.items || [])
-          .map((item: any) => ({
+          .map((item: CollectionItem & { posts?: CollectionItemPost[] }) => ({
             ...item,
             posts_count: item.posts?.length || 0,
             posts: (item.posts || []).sort(
@@ -176,10 +177,11 @@ export function useCollection(userId?: string, slug?: string): UseCollectionRetu
       };
 
       setCollection(transformedCollection);
-    } catch (err: any) {
-      console.error("[useCollection] Error:", err?.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useCollection] Error:", message);
       if (mountedRef.current) {
-        setError(err?.message || "Failed to fetch collection");
+        setError(message || "Failed to fetch collection");
       }
     } finally {
       if (mountedRef.current) {
@@ -275,10 +277,11 @@ export function useCollectionItem(
       };
 
       setItem(transformedItem);
-    } catch (err: any) {
-      console.error("[useCollectionItem] Error:", err?.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useCollectionItem] Error:", message);
       if (mountedRef.current) {
-        setError(err?.message || "Failed to fetch collection item");
+        setError(message || "Failed to fetch collection item");
       }
     } finally {
       if (mountedRef.current) {
@@ -390,9 +393,10 @@ export function useCreateCollection(userId?: string): UseCreateCollectionReturn 
         if (insertError) throw insertError;
 
         return data;
-      } catch (err: any) {
-        console.error("[useCreateCollection] Error:", err?.message || err);
-        setError(err?.message || "Failed to create collection");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[useCreateCollection] Error:", message);
+        setError(message || "Failed to create collection");
         return null;
       } finally {
         setCreating(false);
@@ -498,9 +502,10 @@ export function useCreateCollectionItem(userId?: string): UseCreateCollectionIte
         if (insertError) throw insertError;
 
         return data;
-      } catch (err: any) {
-        console.error("[useCreateCollectionItem] Error:", err?.message || err);
-        setError(err?.message || "Failed to create collection item");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[useCreateCollectionItem] Error:", message);
+        setError(message || "Failed to create collection item");
         return null;
       } finally {
         setCreating(false);
@@ -554,9 +559,10 @@ export function useAddPostToCollectionItem(): UseAddPostToCollectionItemReturn {
         if (insertError) throw insertError;
 
         return true;
-      } catch (err: any) {
-        console.error("[useAddPostToCollectionItem] Error:", err?.message || err);
-        setError(err?.message || "Failed to add post to collection");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[useAddPostToCollectionItem] Error:", message);
+        setError(message || "Failed to add post to collection");
         return false;
       } finally {
         setLoading(false);
@@ -580,9 +586,10 @@ export function useAddPostToCollectionItem(): UseAddPostToCollectionItemReturn {
         if (deleteError) throw deleteError;
 
         return true;
-      } catch (err: any) {
-        console.error("[useAddPostToCollectionItem] Remove error:", err?.message || err);
-        setError(err?.message || "Failed to remove post from collection");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[useAddPostToCollectionItem] Remove error:", message);
+        setError(message || "Failed to remove post from collection");
         return false;
       } finally {
         setLoading(false);
@@ -645,9 +652,10 @@ export function useUpdateCollection(): UseUpdateCollectionReturn {
         if (updateError) throw updateError;
 
         return true;
-      } catch (err: any) {
-        console.error("[useUpdateCollection] Error:", err?.message || err);
-        setError(err?.message || "Failed to update collection");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[useUpdateCollection] Error:", message);
+        setError(message || "Failed to update collection");
         return false;
       } finally {
         setUpdating(false);
@@ -708,9 +716,10 @@ export function useUpdateCollectionItem(): UseUpdateCollectionItemReturn {
         if (updateError) throw updateError;
 
         return true;
-      } catch (err: any) {
-        console.error("[useUpdateCollectionItem] Error:", err?.message || err);
-        setError(err?.message || "Failed to update collection item");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[useUpdateCollectionItem] Error:", message);
+        setError(message || "Failed to update collection item");
         return false;
       } finally {
         setUpdating(false);
@@ -749,9 +758,10 @@ export function useDeleteCollection(): UseDeleteCollectionReturn {
       if (deleteError) throw deleteError;
 
       return true;
-    } catch (err: any) {
-      console.error("[useDeleteCollection] Error:", err?.message || err);
-      setError(err?.message || "Failed to delete collection");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useDeleteCollection] Error:", message);
+      setError(message || "Failed to delete collection");
       return false;
     } finally {
       setDeleting(false);
@@ -788,9 +798,10 @@ export function useDeleteCollectionItem(): UseDeleteCollectionItemReturn {
       if (deleteError) throw deleteError;
 
       return true;
-    } catch (err: any) {
-      console.error("[useDeleteCollectionItem] Error:", err?.message || err);
-      setError(err?.message || "Failed to delete collection item");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useDeleteCollectionItem] Error:", message);
+      setError(message || "Failed to delete collection item");
       return false;
     } finally {
       setDeleting(false);
@@ -830,9 +841,10 @@ export function useReorderCollections(): UseReorderCollectionsReturn {
       await Promise.all(updates);
 
       return true;
-    } catch (err: any) {
-      console.error("[useReorderCollections] Error:", err?.message || err);
-      setError(err?.message || "Failed to reorder collections");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useReorderCollections] Error:", message);
+      setError(message || "Failed to reorder collections");
       return false;
     } finally {
       setReordering(false);
@@ -872,9 +884,10 @@ export function useReorderCollectionItems(): UseReorderCollectionItemsReturn {
       await Promise.all(updates);
 
       return true;
-    } catch (err: any) {
-      console.error("[useReorderCollectionItems] Error:", err?.message || err);
-      setError(err?.message || "Failed to reorder items");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useReorderCollectionItems] Error:", message);
+      setError(message || "Failed to reorder items");
       return false;
     } finally {
       setReordering(false);

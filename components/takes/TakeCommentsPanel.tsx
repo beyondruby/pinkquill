@@ -43,7 +43,7 @@ function CommentItem({
   isReply = false,
 }: {
   comment: TakeComment;
-  user: any;
+  user: { id: string } | null;
   onToggleLike: (id: string) => void;
   onDelete: (id: string) => void;
   onReply: (parentId: string, content: string) => void;

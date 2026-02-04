@@ -84,7 +84,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             </div>
           </div>
           <h2 className="text-2xl font-display text-ink mb-3">Product Not Found</h2>
-          <p className="text-muted font-body mb-8">This product may have been removed or doesn't exist.</p>
+          <p className="text-muted font-body mb-8">This product may have been removed or doesn&apos;t exist.</p>
           <Link
             href="/"
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-warm to-pink-vivid

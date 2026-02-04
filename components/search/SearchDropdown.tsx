@@ -219,7 +219,7 @@ export default function SearchDropdown({
                 </svg>
               </div>
               <span className="font-ui text-[0.85rem] text-ink mb-1">
-                No results for "<span className="text-purple-primary">{query}</span>"
+                No results for &quot;<span className="text-purple-primary">{query}</span>&quot;
               </span>
               <span className="font-body text-[0.78rem] text-muted italic">
                 Try a different search term

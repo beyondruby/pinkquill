@@ -124,6 +124,7 @@ export function useTrackPostView(
   const readStartTime = useRef<number | null>(null);
   const elementRef = useRef<HTMLElement | null>(null);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const recordView = useCallback(async () => {
     if (!postId || !authorId || viewRecorded.current) return;
 
@@ -306,6 +307,7 @@ export function useTrackTakeView(
   const hasCompleted = useRef(false);
   const isWatching = useRef(false);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const recordView = useCallback(async () => {
     if (!takeId || !authorId || viewRecorded.current) return;
 

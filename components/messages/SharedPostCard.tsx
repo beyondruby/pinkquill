@@ -41,6 +41,7 @@ export default function SharedPostCard({
   const [loading, setLoading] = useState(!cachedPost);
   const [error, setError] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (cachedPost) {
       setPost(cachedPost);
@@ -60,6 +61,7 @@ export default function SharedPostCard({
 
     fetchPost();
   }, [postId, cachedPost]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Loading skeleton
   if (loading) {
@@ -128,7 +130,7 @@ export default function SharedPostCard({
           /* No media - show styled content preview */
           <div className="h-[120px] bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
             <p className="font-body text-sm text-gray-600 text-center line-clamp-4 italic">
-              "{getExcerpt(post.content, 100)}"
+              &quot;{getExcerpt(post.content, 100)}&quot;
             </p>
           </div>
         )}

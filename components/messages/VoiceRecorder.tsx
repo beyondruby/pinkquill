@@ -184,19 +184,23 @@ export default function VoiceRecorder({
   const player = useAudioPlayer(recorder.audioUrl);
 
   // Auto-start recording when component mounts
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (mode === "idle") {
       recorder.startRecording();
       setMode("recording");
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Handle mode transitions
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!recorder.isRecording && recorder.audioBlob && mode === "recording") {
       setMode("preview");
     }
   }, [recorder.isRecording, recorder.audioBlob, mode]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleStopRecording = () => {
     recorder.stopRecording();

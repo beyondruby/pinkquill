@@ -23,7 +23,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 import TakePostCard from "@/components/takes/TakePostCard";
 import Loading from "@/components/ui/Loading";
 import StoreTab from "@/components/store/StoreTab";
-import type { Collection } from "@/lib/types";
+import type { Collection, Post } from "@/lib/types";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 // Helper function to decode HTML entities
@@ -876,7 +876,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const [reportReason, setReportReason] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
-  const [collaboratedPosts, setCollaboratedPosts] = useState<any[]>([]);
+  const [collaboratedPosts, setCollaboratedPosts] = useState<Post[]>([]);
   const [collabPostsLoading, setCollabPostsLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -1093,7 +1093,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
       <div className="min-h-screen bg-[#f8f7fc] flex items-center justify-center">
         <div className="text-center">
           <h1 className="font-display text-2xl text-ink mb-4">User not found</h1>
-          <p className="font-body text-muted">This user doesn't exist or is unavailable.</p>
+          <p className="font-body text-muted">This user doesn&apos;t exist or is unavailable.</p>
         </div>
       </div>
     );
@@ -2228,7 +2228,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         >
                           {/* Decorative quote marks */}
                           <div className="absolute -left-4 -top-2 text-purple-primary/10 text-6xl font-serif leading-none select-none">
-                            "
+                            &quot;
                           </div>
 
                           <div className="relative bg-gradient-to-br from-white to-purple-primary/[0.02] rounded-2xl p-8 border border-purple-primary/10 hover:border-purple-primary/30 hover:shadow-xl hover:shadow-purple-primary/5 transition-all duration-300">
@@ -2281,7 +2281,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
                           {/* Decorative closing quote */}
                           <div className="absolute -right-4 -bottom-4 text-purple-primary/10 text-6xl font-serif leading-none select-none rotate-180">
-                            "
+                            &quot;
                           </div>
                         </article>
                       );
@@ -2817,7 +2817,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               Block @{profile.username}?
             </h3>
             <p className="font-body text-sm text-muted mb-6">
-              They won't be able to see your posts, follow you, or message you. They won't be notified that you blocked them.
+              They won&apos;t be able to see your posts, follow you, or message you. They won&apos;t be notified that you blocked them.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -2863,7 +2863,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </div>
                 <h3 className="font-display text-xl text-ink mb-2">Report Submitted</h3>
                 <p className="font-body text-sm text-muted">
-                  Thank you for helping keep PinkQuill safe. We'll review this report.
+                  Thank you for helping keep PinkQuill safe. We&apos;ll review this report.
                 </p>
               </div>
             ) : (
@@ -2873,7 +2873,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     Report @{profile.username}
                   </h3>
                   <p className="font-body text-sm text-muted mt-1">
-                    Help us understand what's happening with this account.
+                    Help us understand what&apos;s happening with this account.
                   </p>
                 </div>
 

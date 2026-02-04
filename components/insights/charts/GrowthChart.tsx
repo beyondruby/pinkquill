@@ -30,6 +30,42 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
+// Moved outside component to avoid "Cannot create components during render" error
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { payload: { count?: number; netChange?: number } }[]; label?: string }) {
+  if (active && payload && payload.length) {
+    const point = payload[0].payload;
+    return (
+      <div className="bg-white px-4 py-3 rounded-xl shadow-lg border border-black/10">
+        <p className="font-ui text-sm text-ink font-medium mb-1">{label}</p>
+        <div className="space-y-1">
+          <p className="font-body text-sm text-muted">
+            Count:{" "}
+            <span className="text-purple-primary font-medium">
+              {formatNumber(point.count || 0)}
+            </span>
+          </p>
+          <p className="font-body text-sm text-muted">
+            Change:{" "}
+            <span
+              className={`font-medium ${
+                point.netChange && point.netChange > 0
+                  ? "text-green-500"
+                  : point.netChange && point.netChange < 0
+                  ? "text-red-500"
+                  : "text-muted"
+              }`}
+            >
+              {point.netChange && point.netChange > 0 ? "+" : ""}
+              {point.netChange || 0}
+            </span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function GrowthChart({
   data,
   title = "Growth",
@@ -43,41 +79,6 @@ export default function GrowthChart({
 
   const hasPositiveGrowth = data.netChange > 0;
   const hasNegativeGrowth = data.netChange < 0;
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const point = payload[0].payload;
-      return (
-        <div className="bg-white px-4 py-3 rounded-xl shadow-lg border border-black/10">
-          <p className="font-ui text-sm text-ink font-medium mb-1">{label}</p>
-          <div className="space-y-1">
-            <p className="font-body text-sm text-muted">
-              Count:{" "}
-              <span className="text-purple-primary font-medium">
-                {formatNumber(point.count || 0)}
-              </span>
-            </p>
-            <p className="font-body text-sm text-muted">
-              Change:{" "}
-              <span
-                className={`font-medium ${
-                  point.netChange > 0
-                    ? "text-green-500"
-                    : point.netChange < 0
-                    ? "text-red-500"
-                    : "text-muted"
-                }`}
-              >
-                {point.netChange > 0 ? "+" : ""}
-                {point.netChange || 0}
-              </span>
-            </p>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (data.history.length === 0) {
     return (

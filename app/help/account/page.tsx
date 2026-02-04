@@ -259,8 +259,8 @@ export default function AccountHelpPage() {
 
             <h3>Forgot your password?</h3>
             <p>
-              If you're logged out and can't remember your password, go to the login page and
-              click "Forgot password?" to receive a reset link via email.
+              If you&apos;re logged out and can&apos;t remember your password, go to the login page and
+              click &quot;Forgot password?&quot; to receive a reset link via email.
             </p>
           </section>
 
@@ -275,8 +275,8 @@ export default function AccountHelpPage() {
             <p>If you decide to delete your account:</p>
             <ol>
               <li>Go to Settings → Account</li>
-              <li>Scroll to the "Danger Zone" section</li>
-              <li>Click "Delete Account"</li>
+              <li>Scroll to the &quot;Danger Zone&quot; section</li>
+              <li>Click &quot;Delete Account&quot;</li>
               <li>Confirm your decision</li>
             </ol>
             <h3>What happens when you delete</h3>

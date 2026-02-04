@@ -123,7 +123,7 @@ export function useDrafts(): UseDraftsReturn {
   const saveDraft = useCallback(
     (draft: Omit<PostDraft, "id" | "createdAt" | "updatedAt">, existingId?: string): string => {
       const now = new Date().toISOString();
-      let draftId = existingId || `draft_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const draftId = existingId || `draft_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
       setDrafts((current) => {
         let updated: PostDraft[];

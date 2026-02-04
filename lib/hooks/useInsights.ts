@@ -124,6 +124,7 @@ export function useInsightsDashboard(
     return getDateRanges(timeRange, customRange);
   }, [timeRange, customRange]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchInsights = useCallback(async () => {
     if (!user?.id) return;
 
@@ -364,9 +365,11 @@ export function useInsightsDashboard(
     setLoading(false);
   }, [user?.id, startDate, endDate, prevStartDate, prevEndDate]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchInsights();
   }, [fetchInsights]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { insights, loading, error, refetch: fetchInsights };
 }
@@ -413,6 +416,7 @@ export function usePostInsights(
     return getDateRanges(timeRange, customRange);
   }, [timeRange, customRange]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchInsights = useCallback(async () => {
     if (!user?.id || !postId) return;
 
@@ -563,9 +567,11 @@ export function usePostInsights(
     setLoading(false);
   }, [user?.id, postId, startDate, endDate]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchInsights();
   }, [fetchInsights]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { insights, post, loading, error, refetch: fetchInsights };
 }
@@ -603,6 +609,7 @@ export function useTakeInsights(
     return getDateRanges(timeRange, customRange);
   }, [timeRange, customRange]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchInsights = useCallback(async () => {
     if (!user?.id || !takeId) return;
 
@@ -765,9 +772,11 @@ export function useTakeInsights(
     setLoading(false);
   }, [user?.id, takeId, startDate, endDate]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchInsights();
   }, [fetchInsights]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { insights, take, loading, error, refetch: fetchInsights };
 }
@@ -803,6 +812,7 @@ export function useProfileInsights(
     return getDateRanges(timeRange, customRange);
   }, [timeRange, customRange]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchInsights = useCallback(async () => {
     if (!user?.id) return;
 
@@ -954,9 +964,11 @@ export function useProfileInsights(
     setLoading(false);
   }, [user?.id, startDate, endDate]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchInsights();
   }, [fetchInsights]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { insights, loading, error, refetch: fetchInsights };
 }
@@ -991,6 +1003,7 @@ export function useCommunityInsights(
     return getDateRanges(timeRange, customRange);
   }, [timeRange, customRange]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchInsights = useCallback(async () => {
     if (!user?.id || !communityId) return;
 
@@ -1114,9 +1127,11 @@ export function useCommunityInsights(
     setLoading(false);
   }, [user?.id, communityId, startDate, endDate]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchInsights();
   }, [fetchInsights]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { insights, loading, error, refetch: fetchInsights };
 }
@@ -1154,6 +1169,7 @@ export function useContentInsights(
     return getDateRanges(timeRange, customRange);
   }, [timeRange, customRange]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchContent = useCallback(async () => {
     if (!user?.id) return;
 
@@ -1220,23 +1236,25 @@ export function useContentInsights(
       });
 
       const admireCounts = new Map<string, number>();
-      (admiresResult.data || []).forEach((a) => {
+      (admiresResult.data || []).forEach((a: { post_id: string }) => {
         admireCounts.set(a.post_id, (admireCounts.get(a.post_id) || 0) + 1);
       });
 
       const commentCounts = new Map<string, number>();
-      (commentsResult.data || []).forEach((c) => {
+      (commentsResult.data || []).forEach((c: { post_id: string }) => {
         commentCounts.set(c.post_id, (commentCounts.get(c.post_id) || 0) + 1);
       });
 
       // Build content list
+      type PostData = { id: string; title: string | null; type: string; created_at: string; media?: { media_type: string; media_url: string; position?: number }[] };
+      type MediaItem = { media_type: string; media_url: string; position?: number };
       const contentItems: ContentItem[] = [
-        ...posts.map((p: any) => {
+        ...posts.map((p: PostData) => {
           // Get first image from media array
           const media = p.media || [];
           const firstImage = media
-            .filter((m: any) => m.media_type === "image")
-            .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))[0];
+            .filter((m: MediaItem) => m.media_type === "image")
+            .sort((a: MediaItem, b: MediaItem) => (a.position || 0) - (b.position || 0))[0];
           return {
             id: p.id,
             type: "post" as const,
@@ -1253,7 +1271,7 @@ export function useContentInsights(
             engagementRate: 0,
           };
         }),
-        ...takes.map((t: any) => ({
+        ...takes.map((t: { id: string; caption: string | null; thumbnail_url: string | null; created_at: string }) => ({
           id: t.id,
           type: "take" as const,
           title: t.caption,
@@ -1281,9 +1299,11 @@ export function useContentInsights(
     setLoading(false);
   }, [user?.id, startDate, endDate]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchContent();
   }, [fetchContent]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { content, loading, error, refetch: fetchContent };
 }

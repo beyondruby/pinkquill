@@ -223,7 +223,7 @@ export default function Feed() {
       {!pagination.hasMore && posts.length > 0 && (
         <div className="text-center py-8">
           <p className="font-body text-muted text-sm italic">
-            You've reached the end of the feed
+            You&apos;ve reached the end of the feed
           </p>
         </div>
       )}

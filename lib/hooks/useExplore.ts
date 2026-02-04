@@ -258,7 +258,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
       const admiredAuthors = new Set<string>();
       const recentAdmires = new Set<string>();
 
-      (admiresResult.data || []).forEach((admire: any) => {
+      (admiresResult.data || []).forEach((admire: { post_id: string; post?: { type: string; author_id: string } }) => {
         recentAdmires.add(admire.post_id);
         if (admire.post) {
           const postType = admire.post.type;
@@ -407,7 +407,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         let userAdmires = new Set<string>();
         let userSaves = new Set<string>();
         let userRelays = new Set<string>();
-        let userReactions = new Map<string, string>();
+        const userReactions = new Map<string, string>();
 
         if (userId && postIds.length > 0) {
           const [admiresResult, savesResult, relaysResult, reactionsResult] = await Promise.all([
@@ -426,9 +426,11 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         }
 
         // Batch fetch collaborators and mentions
-        let collaboratorsByPost = new Map<string, any[]>();
-        let mentionsByPost = new Map<string, any[]>();
-        let hashtagsByPost = new Map<string, string[]>();
+        type CollabData = { status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null };
+        type MentionData = { user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null };
+        const collaboratorsByPost = new Map<string, CollabData[]>();
+        const mentionsByPost = new Map<string, MentionData[]>();
+        const hashtagsByPost = new Map<string, string[]>();
 
         if (postIds.length > 0) {
           const [collaboratorsResult, mentionsResult, tagsResult] = await Promise.all([
@@ -486,7 +488,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
             mentionsByPost.get(m.post_id)!.push({ user: m.user });
           });
 
-          (tagsResult.data || []).forEach((t: any) => {
+          (tagsResult.data || []).forEach((t: { post_id: string; tag?: { name: string } | null }) => {
             const tagName = t.tag?.name;
             if (tagName) {
               if (!hashtagsByPost.has(t.post_id)) {

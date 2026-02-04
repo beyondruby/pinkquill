@@ -29,7 +29,24 @@ function PostSkeleton() {
 }
 
 // Helper function to transform post data for PostCard
-function transformPostForCard(post: any) {
+function transformPostForCard(post: {
+  id: string;
+  author_id: string;
+  type: string;
+  title: string | null;
+  content: string | null;
+  content_warning: string | null;
+  created_at: string;
+  media: { id: string; media_url: string; media_type: "image" | "video"; caption: string | null; position: number }[];
+  admires_count: number;
+  comments_count: number;
+  relays_count: number;
+  user_has_admired: boolean;
+  user_has_saved: boolean;
+  user_has_relayed: boolean;
+  hashtags?: string[];
+  author?: { username?: string; display_name?: string | null; avatar_url?: string | null };
+}) {
   const typeLabels: Record<string, string> = {
     poem: "wrote a poem",
     journal: "wrote in their journal",

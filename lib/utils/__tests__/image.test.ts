@@ -21,8 +21,8 @@ describe("isSupabaseStorageUrl", () => {
   });
 
   it("should return false for null/undefined", () => {
-    expect(isSupabaseStorageUrl(null as any)).toBe(false);
-    expect(isSupabaseStorageUrl(undefined as any)).toBe(false);
+    expect(isSupabaseStorageUrl(null as unknown as string)).toBe(false);
+    expect(isSupabaseStorageUrl(undefined as unknown as string)).toBe(false);
   });
 });
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -16,8 +15,6 @@ import {
   faShield,
   faGear,
   faChartLine,
-  faSearch,
-  faChevronRight
 } from "@fortawesome/free-solid-svg-icons";
 
 const helpCategories = [
@@ -39,7 +36,6 @@ export default function HelpLayout({
 }) {
   const pathname = usePathname();
   const isIndex = pathname === "/help";
-  const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <div className="min-h-screen bg-[#FDFCFB]">

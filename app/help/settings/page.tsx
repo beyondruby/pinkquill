@@ -153,7 +153,7 @@ export default function SettingsHelpPage() {
             <ul>
               <li><strong>Role/Occupation</strong> — What you do</li>
               <li><strong>Education</strong> — Your educational background</li>
-              <li><strong>Location</strong> — Where you're based</li>
+              <li><strong>Location</strong> — Where you&apos;re based</li>
               <li><strong>Languages</strong> — Languages you speak</li>
               <li><strong>Website</strong> — Link to your site</li>
             </ul>
@@ -186,12 +186,12 @@ export default function SettingsHelpPage() {
 
             <h3>Email address</h3>
             <p>
-              Change the email associated with your account. You'll need to verify
+              Change the email associated with your account. You&apos;ll need to verify
               the new email address before the change takes effect.
             </p>
             <ol>
               <li>Enter your new email</li>
-              <li>Click "Update email"</li>
+              <li>Click &quot;Update email&quot;</li>
               <li>Check your new email for a verification link</li>
               <li>Click the link to confirm</li>
             </ol>
@@ -201,7 +201,7 @@ export default function SettingsHelpPage() {
             <ol>
               <li>Enter your new password</li>
               <li>Confirm by typing it again</li>
-              <li>Click "Update password"</li>
+              <li>Click &quot;Update password&quot;</li>
             </ol>
             <p>Password requirements:</p>
             <ul>
@@ -221,7 +221,7 @@ export default function SettingsHelpPage() {
             </ul>
             <div className="bg-red-50 rounded-xl p-4 border border-red-200/50 my-6">
               <p className="font-ui text-sm text-red-800 mb-0">
-                <strong>Warning:</strong> Account deletion is permanent. Make sure you've
+                <strong>Warning:</strong> Account deletion is permanent. Make sure you&apos;ve
                 downloaded any content you want to keep before deleting.
               </p>
             </div>
@@ -262,23 +262,23 @@ export default function SettingsHelpPage() {
 
             <h3>Blocked users</h3>
             <p>
-              View and manage your block list. This page shows everyone you've blocked
+              View and manage your block list. This page shows everyone you&apos;ve blocked
               and lets you unblock them if you change your mind.
             </p>
             <p>To unblock someone:</p>
             <ol>
               <li>Find them in your blocked list</li>
-              <li>Click "Unblock"</li>
+              <li>Click &quot;Unblock&quot;</li>
               <li>They can now see your profile and interact with you again</li>
             </ol>
 
-            <h3>Who you've blocked</h3>
+            <h3>Who you&apos;ve blocked</h3>
             <p>Blocked users cannot:</p>
             <ul>
               <li>See your profile</li>
               <li>See your posts in their feed</li>
               <li>Follow you</li>
-              <li>Send you messages (messages appear to send but aren't delivered)</li>
+              <li>Send you messages (messages appear to send but aren&apos;t delivered)</li>
             </ul>
 
             <p>

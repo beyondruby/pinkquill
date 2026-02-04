@@ -223,7 +223,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       ]);
 
       // User interactions (only if logged in)
-      let userReactionMap = new Map<string, TakeReactionType>();
+      const userReactionMap = new Map<string, TakeReactionType>();
       let userSaveSet = new Set<string>();
       let userRelaySet = new Set<string>();
 
@@ -310,9 +310,9 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
 
       setHasMore(takesData.length === limit);
       offsetRef.current += takesData.length;
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Ignore abort errors - they're expected when cancelling requests
-      if (err?.name === "AbortError" || abortControllerRef.current?.signal.aborted) {
+      if ((err instanceof Error && err.name === "AbortError") || abortControllerRef.current?.signal.aborted) {
         return;
       }
       console.error("[useTakes] Error:", err);
@@ -981,10 +981,12 @@ const MUTE_KEY = "takes-muted";
 export function useMuted() {
   const [isMuted, setIsMuted] = useState(true);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const stored = localStorage.getItem(MUTE_KEY);
     if (stored === "false") setIsMuted(false);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggle = useCallback(() => {
     setIsMuted(prev => {
@@ -1006,6 +1008,7 @@ const VOLUME_KEY = "takes-volume";
 export function useVolume() {
   const [volume, setVolumeState] = useState(0.8);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const stored = localStorage.getItem(VOLUME_KEY);
     if (stored) {
@@ -1015,6 +1018,7 @@ export function useVolume() {
       }
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const setVolume = useCallback((newVolume: number) => {
     const clamped = Math.max(0, Math.min(1, newVolume));

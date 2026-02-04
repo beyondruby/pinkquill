@@ -170,7 +170,7 @@ export default function MarketplaceGuidelinesPage() {
                 </p>
                 <p>
                   Our marketplace is built on trust, authenticity, and respect for creative work.
-                  Whether you're selling original paintings, limited edition prints, handcrafted
+                  Whether you&apos;re selling original paintings, limited edition prints, handcrafted
                   goods, or digital downloads, these guidelines help maintain the integrity and
                   quality our community deserves.
                 </p>
@@ -225,7 +225,7 @@ export default function MarketplaceGuidelinesPage() {
                   Business sellers
                 </p>
                 <p>
-                  If you're selling as a business entity, you must provide valid business
+                  If you&apos;re selling as a business entity, you must provide valid business
                   registration information and ensure compliance with business regulations
                   in your jurisdiction.
                 </p>
@@ -234,7 +234,7 @@ export default function MarketplaceGuidelinesPage() {
               <Section id="allowed-products" number="03" title="Allowed Products">
                 <p>
                   The PinkQuill Marketplace is designed for creative and artistic products.
-                  Here's what you can sell:
+                  Here&apos;s what you can sell:
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -333,7 +333,7 @@ export default function MarketplaceGuidelinesPage() {
                 </p>
                 <ul>
                   <li>Counterfeit or knockoff products</li>
-                  <li>Unauthorized reproductions of others' artwork</li>
+                  <li>Unauthorized reproductions of others&apos; artwork</li>
                   <li>Items using copyrighted characters, logos, or imagery without permission</li>
                   <li>Fan art sold without proper licensing (where required)</li>
                   <li>Plagiarized or stolen designs</li>
@@ -367,7 +367,7 @@ export default function MarketplaceGuidelinesPage() {
                 </ul>
 
                 <Highlight>
-                  If you're unsure whether your product is allowed, contact us at{" "}
+                  If you&apos;re unsure whether your product is allowed, contact us at{" "}
                   <a href="mailto:marketplace@pinkquill.com">marketplace@pinkquill.com</a>{" "}
                   before listing.
                 </Highlight>
@@ -408,7 +408,7 @@ export default function MarketplaceGuidelinesPage() {
                   <li>Only list items you currently have in stock or can produce within stated timeframes</li>
                   <li>Update listings promptly when items sell out</li>
                   <li>For made-to-order items, clearly state production time</li>
-                  <li>Don't create listings for items you don't intend to sell</li>
+                  <li>Don&apos;t create listings for items you don&apos;t intend to sell</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -436,9 +436,9 @@ export default function MarketplaceGuidelinesPage() {
                   <li>Show the product from multiple angles when relevant</li>
                   <li>Include scale references or measurements in images when helpful</li>
                   <li>For prints/reproductions, show both the artwork and how it looks framed or displayed</li>
-                  <li>Don't use heavily filtered or misleading images</li>
-                  <li>Don't use stock photos or images from the internet</li>
-                  <li>Don't include watermarks that obscure the product</li>
+                  <li>Don&apos;t use heavily filtered or misleading images</li>
+                  <li>Don&apos;t use stock photos or images from the internet</li>
+                  <li>Don&apos;t include watermarks that obscure the product</li>
                   <li>Minimum resolution: 1000x1000 pixels for main image</li>
                 </ul>
 
@@ -452,9 +452,9 @@ export default function MarketplaceGuidelinesPage() {
                   <li>Mention any flaws, imperfections, or wear</li>
                   <li>Explain your creative process or inspiration (buyers love this!)</li>
                   <li>Include care instructions when relevant</li>
-                  <li>Don't include misleading claims or false information</li>
-                  <li>Don't use excessive keywords or spam</li>
-                  <li>Don't include external links or contact information for off-platform sales</li>
+                  <li>Don&apos;t include misleading claims or false information</li>
+                  <li>Don&apos;t use excessive keywords or spam</li>
+                  <li>Don&apos;t include external links or contact information for off-platform sales</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -463,7 +463,7 @@ export default function MarketplaceGuidelinesPage() {
                 <ul>
                   <li>Clearly state file formats included</li>
                   <li>Specify resolution and dimensions</li>
-                  <li>List what's included in the download</li>
+                  <li>List what&apos;s included in the download</li>
                   <li>Explain any software requirements</li>
                   <li>Include preview images that represent the final product</li>
                 </ul>
@@ -482,7 +482,7 @@ export default function MarketplaceGuidelinesPage() {
                   <li>You have full control over your product prices</li>
                   <li>Prices must be listed in your selected currency</li>
                   <li>Include all applicable costs in the listed price (except shipping)</li>
-                  <li>Don't inflate prices to deceive buyers about discounts</li>
+                  <li>Don&apos;t inflate prices to deceive buyers about discounts</li>
                   <li>Prices should reflect the actual value of your work</li>
                 </ul>
 
@@ -518,7 +518,7 @@ export default function MarketplaceGuidelinesPage() {
                 </p>
                 <p>
                   You may offer sales, discounts, or promotional pricing at your discretion.
-                  All discounts must be genuine—don't inflate original prices to create
+                  All discounts must be genuine - don&apos;t inflate original prices to create
                   false discount impressions.
                 </p>
               </Section>
@@ -577,7 +577,7 @@ export default function MarketplaceGuidelinesPage() {
 
               <Section id="digital-products" number="09" title="Digital Products">
                 <p>
-                  Digital products offer instant delivery and global reach. Here's how to
+                  Digital products offer instant delivery and global reach. Here&apos;s how to
                   sell them effectively on PinkQuill.
                 </p>
 
@@ -627,7 +627,7 @@ export default function MarketplaceGuidelinesPage() {
                   may be issued if:
                 </p>
                 <ul>
-                  <li>Files are corrupted or won't download</li>
+                  <li>Files are corrupted or won&apos;t download</li>
                   <li>Product significantly differs from the description</li>
                   <li>Technical issues prevent the buyer from accessing the product</li>
                 </ul>
@@ -684,7 +684,7 @@ export default function MarketplaceGuidelinesPage() {
 
               <Section id="taxes-compliance" number="11" title="Taxes & Compliance">
                 <p>
-                  As a seller, you're responsible for understanding and complying with
+                  As a seller, you&apos;re responsible for understanding and complying with
                   tax obligations in your jurisdiction.
                 </p>
 
@@ -711,7 +711,7 @@ export default function MarketplaceGuidelinesPage() {
                   Tax forms (US sellers)
                 </p>
                 <p>
-                  If you're a US-based seller and meet IRS thresholds, you'll receive a
+                  If you&apos;re a US-based seller and meet IRS thresholds, you&apos;ll receive a
                   1099-K form for your tax records. Ensure your tax information on file
                   is accurate and up to date.
                 </p>
@@ -738,22 +738,22 @@ export default function MarketplaceGuidelinesPage() {
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
-                  What's covered
+                  What&apos;s covered
                 </p>
                 <ul>
-                  <li>Items that don't match the listing description</li>
+                  <li>Items that don&apos;t match the listing description</li>
                   <li>Items that arrive damaged due to inadequate packaging</li>
                   <li>Items that never arrive (lost in transit)</li>
-                  <li>Unauthorized transactions on the buyer's account</li>
-                  <li>Digital products that can't be accessed or downloaded</li>
+                  <li>Unauthorized transactions on the buyer&apos;s account</li>
+                  <li>Digital products that can&apos;t be accessed or downloaded</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
-                  What's not covered
+                  What&apos;s not covered
                 </p>
                 <ul>
-                  <li>Buyer's remorse or change of mind</li>
-                  <li>Items accurately described that buyer simply doesn't like</li>
+                  <li>Buyer&apos;s remorse or change of mind</li>
+                  <li>Items accurately described that buyer simply doesn&apos;t like</li>
                   <li>Damage caused by buyer after delivery</li>
                   <li>Issues arising from buyer providing incorrect shipping information</li>
                   <li>Custom orders made to buyer specifications</li>
@@ -764,7 +764,7 @@ export default function MarketplaceGuidelinesPage() {
                 </p>
                 <p>
                   If a buyer has an issue with an order, they should first contact the
-                  seller to resolve it. If resolution isn't possible, buyers can file
+                  seller to resolve it. If resolution isn&apos;t possible, buyers can file
                   a claim within 30 days of delivery (or expected delivery date).
                 </p>
               </Section>
@@ -775,7 +775,7 @@ export default function MarketplaceGuidelinesPage() {
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
-                  What's covered
+                  What&apos;s covered
                 </p>
                 <ul>
                   <li>Fraudulent chargebacks with proof of delivery</li>
@@ -792,7 +792,7 @@ export default function MarketplaceGuidelinesPage() {
                   <li>Keep records of all communication with buyers</li>
                   <li>Document items before shipping (photos of packaging)</li>
                   <li>Ship to the address provided through PinkQuill only</li>
-                  <li>Don't conduct transactions outside the platform</li>
+                  <li>Don&apos;t conduct transactions outside the platform</li>
                   <li>Respond to buyer inquiries promptly and professionally</li>
                 </ul>
 
@@ -800,7 +800,7 @@ export default function MarketplaceGuidelinesPage() {
                   Chargeback protection
                 </p>
                 <p>
-                  If a buyer files a chargeback with their bank, we'll represent you in
+                  If a buyer files a chargeback with their bank, we&apos;ll represent you in
                   the dispute if you have valid tracking showing delivery. Provide all
                   requested documentation promptly to support your case.
                 </p>
@@ -808,8 +808,8 @@ export default function MarketplaceGuidelinesPage() {
 
               <Section id="disputes-refunds" number="14" title="Disputes & Refunds">
                 <p>
-                  We encourage buyers and sellers to resolve issues directly. When that's
-                  not possible, we're here to help.
+                  We encourage buyers and sellers to resolve issues directly. When that&apos;s
+                  not possible, we&apos;re here to help.
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -913,12 +913,12 @@ export default function MarketplaceGuidelinesPage() {
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
-                  Respecting others' rights
+                  Respecting others&apos; rights
                 </p>
                 <ul>
                   <li>Only sell work you created or have rights to sell</li>
-                  <li>Don't copy or reproduce others' artwork without permission</li>
-                  <li>Understand fair use limitations—commercial sale often doesn't qualify</li>
+                  <li>Don&apos;t copy or reproduce others&apos; artwork without permission</li>
+                  <li>Understand fair use limitations—commercial sale often doesn&apos;t qualify</li>
                   <li>Get proper licenses for fan art featuring copyrighted characters</li>
                   <li>Credit collaborators and contributors appropriately</li>
                 </ul>
@@ -948,7 +948,7 @@ export default function MarketplaceGuidelinesPage() {
                 </p>
                 <p>
                   If you believe your content was wrongly removed, you may submit a
-                  counter-notice. We'll reinstate the content after 10-14 business days
+                  counter-notice. We&apos;ll reinstate the content after 10-14 business days
                   unless the claimant files legal action.
                 </p>
               </Section>
@@ -1056,9 +1056,9 @@ export default function MarketplaceGuidelinesPage() {
                 </p>
               </Section>
 
-              <Section id="contact" number="20" title="Contact & Support">
+              <Section id="contact" number="20" title="Contact &amp; Support">
                 <p>
-                  We're here to help you succeed on the PinkQuill Marketplace. Reach out
+                  We&apos;re here to help you succeed on the PinkQuill Marketplace. Reach out
                   with questions, concerns, or feedback.
                 </p>
                 <div className="mt-6 space-y-2">

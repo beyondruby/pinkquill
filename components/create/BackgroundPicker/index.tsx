@@ -194,7 +194,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
       );
     }
 
-    let style: React.CSSProperties = {};
+    const style: React.CSSProperties = {};
 
     if (value.type === "solid") {
       style.backgroundColor = value.value;

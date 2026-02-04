@@ -370,8 +370,9 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
 
       setIconUrl(publicUrl);
       setIconEmoji(null);
-    } catch (err: any) {
-      console.error("Failed to upload icon:", err?.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("Failed to upload icon:", message);
     } finally {
       setUploading(false);
     }
@@ -403,8 +404,9 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
         .getPublicUrl(fileName);
 
       setCoverUrl(publicUrl);
-    } catch (err: any) {
-      console.error("Failed to upload cover:", err?.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("Failed to upload cover:", message);
     } finally {
       setUploadingCover(false);
     }

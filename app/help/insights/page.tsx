@@ -98,11 +98,11 @@ export default function InsightsHelpPage() {
             <h3>Accessing insights</h3>
             <p>
               Go to <Link href="/insights" className="text-purple-primary hover:underline">Insights</Link>{" "}
-              from your sidebar or profile menu. You'll see a dashboard with your key metrics
+              from your sidebar or profile menu. You&apos;ll see a dashboard with your key metrics
               and detailed breakdowns.
             </p>
 
-            <h3>What you'll learn</h3>
+            <h3>What you&apos;ll learn</h3>
             <ul>
               <li>How many people view your content</li>
               <li>Which posts perform best</li>
@@ -207,7 +207,7 @@ export default function InsightsHelpPage() {
             <h3>Content overview</h3>
             <p>
               At <Link href="/insights/content" className="text-purple-primary hover:underline">Insights → Content</Link>,
-              you'll see:
+              you&apos;ll see:
             </p>
             <ul>
               <li>List of all your posts and takes</li>
@@ -278,7 +278,7 @@ export default function InsightsHelpPage() {
           <section id="using-insights" className="scroll-mt-24 mb-16">
             <h2>Using Your Insights</h2>
             <p>
-              Data is only valuable if you use it to improve. Here's how to act on
+              Data is only valuable if you use it to improve. Here&apos;s how to act on
               your insights:
             </p>
 
@@ -291,7 +291,7 @@ export default function InsightsHelpPage() {
 
             <h3>Experiment and iterate</h3>
             <ul>
-              <li>Try new content types based on what's working</li>
+              <li>Try new content types based on what&apos;s working</li>
               <li>Test different posting times</li>
               <li>Vary your content mix and measure results</li>
             </ul>
@@ -303,9 +303,9 @@ export default function InsightsHelpPage() {
               <li>Track progress over time</li>
             </ul>
 
-            <h3>Don't obsess over numbers</h3>
+            <h3>Don&apos;t obsess over numbers</h3>
             <p>
-              While insights are useful, remember that creative expression shouldn't
+              While insights are useful, remember that creative expression shouldn&apos;t
               be solely driven by metrics. Create what matters to you, and use insights
               to understand how to share it more effectively.
             </p>

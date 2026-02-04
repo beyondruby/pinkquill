@@ -1060,7 +1060,7 @@ export default function ChatView({
               Block @{participant?.username}?
             </h3>
             <p className="font-body text-sm text-muted mb-6">
-              They won't be able to see your posts, follow you, or message you. They won't be notified that you blocked them.
+              They won&apos;t be able to see your posts, follow you, or message you. They won&apos;t be notified that you blocked them.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -1106,7 +1106,7 @@ export default function ChatView({
                 </div>
                 <h3 className="font-display text-xl text-ink mb-2">Report Submitted</h3>
                 <p className="font-body text-sm text-muted">
-                  Thank you for helping keep PinkQuill safe. We'll review this report.
+                  Thank you for helping keep PinkQuill safe. We&apos;ll review this report.
                 </p>
               </div>
             ) : (
@@ -1116,7 +1116,7 @@ export default function ChatView({
                     Report @{participant?.username}
                   </h3>
                   <p className="font-body text-sm text-muted mt-1">
-                    Help us understand what's happening with this account.
+                    Help us understand what&apos;s happening with this account.
                   </p>
                 </div>
 

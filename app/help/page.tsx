@@ -230,7 +230,7 @@ export default function HelpCenterPage() {
       {/* Contact Support */}
       <section className="px-6 max-w-3xl mx-auto mt-16 text-center">
         <p className="font-body text-muted mb-4">
-          Can't find what you're looking for?
+          Can&apos;t find what you&apos;re looking for?
         </p>
         <a
           href="mailto:support@pinkquill.com"

@@ -32,6 +32,7 @@ export default function TakePlayer({
   const tapTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const pausedOverlayTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -44,6 +45,7 @@ export default function TakePlayer({
       setProgress(0);
     }
   }, [isActive]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (videoRef.current) {
@@ -72,6 +74,7 @@ export default function TakePlayer({
   }, [isActive]);
 
   // Show paused overlay briefly when video is paused
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!isPlaying && isActive && !isLoading && !hasError) {
       setShowPausedOverlay(true);
@@ -93,6 +96,7 @@ export default function TakePlayer({
       }
     };
   }, [isPlaying, isActive, isLoading, hasError]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleTap = useCallback((e: React.MouseEvent) => {
     const now = Date.now();

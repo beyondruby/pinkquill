@@ -713,14 +713,15 @@ export default function CreatePost() {
             .eq("post_id", editPostId);
 
           if (collabData && Array.isArray(collabData)) {
-            const loadedCollaborators: CollaboratorWithRole[] = collabData
-              .filter((c: any) => c.user && c.status === 'accepted')
-              .map((c: any) => ({
-                id: c.user.id,
-                username: c.user.username,
-                display_name: c.user.display_name,
-                avatar_url: c.user.avatar_url,
-                is_verified: c.user.is_verified,
+            type CollabRow = { status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null; is_verified: boolean } | null };
+            const loadedCollaborators: CollaboratorWithRole[] = (collabData as CollabRow[])
+              .filter((c) => c.user && c.status === 'accepted')
+              .map((c) => ({
+                id: c.user!.id,
+                username: c.user!.username,
+                display_name: c.user!.display_name,
+                avatar_url: c.user!.avatar_url,
+                is_verified: c.user!.is_verified,
                 role: c.role || undefined,
               }));
             setCollaborators(loadedCollaborators);
@@ -745,14 +746,15 @@ export default function CreatePost() {
             .eq("post_id", editPostId);
 
           if (mentionData && Array.isArray(mentionData)) {
-            const loadedMentions: SearchableUser[] = mentionData
-              .filter((m: any) => m.user)
-              .map((m: any) => ({
-                id: m.user.id,
-                username: m.user.username,
-                display_name: m.user.display_name,
-                avatar_url: m.user.avatar_url,
-                is_verified: m.user.is_verified,
+            type MentionRow = { user: { id: string; username: string; display_name: string | null; avatar_url: string | null; is_verified: boolean } | null };
+            const loadedMentions: SearchableUser[] = (mentionData as MentionRow[])
+              .filter((m) => m.user)
+              .map((m) => ({
+                id: m.user!.id,
+                username: m.user!.username,
+                display_name: m.user!.display_name,
+                avatar_url: m.user!.avatar_url,
+                is_verified: m.user!.is_verified,
               }));
             setTaggedPeople(loadedMentions);
           }
@@ -1564,12 +1566,13 @@ export default function CreatePost() {
               .eq("post_id", postId);
 
             const currentCollabIds = new Set(collaborators.map(c => c.id));
-            const existingCollabIds = new Set((existingCollabs || []).map((c: any) => c.user_id));
+            type ExistingCollab = { user_id: string; status: string };
+            const existingCollabIds = new Set((existingCollabs || []).map((c: ExistingCollab) => c.user_id));
 
             // Delete removed collaborators
             const collabsToRemove = (existingCollabs || [])
-              .filter((c: any) => !currentCollabIds.has(c.user_id))
-              .map((c: any) => c.user_id);
+              .filter((c: ExistingCollab) => !currentCollabIds.has(c.user_id))
+              .map((c: ExistingCollab) => c.user_id);
 
             if (collabsToRemove.length > 0) {
               await supabase
@@ -1614,12 +1617,13 @@ export default function CreatePost() {
               .eq("post_id", postId);
 
             const currentMentionIds = new Set(taggedPeople.map(t => t.id));
-            const existingMentionIds = new Set((existingMentions || []).map((m: any) => m.user_id));
+            type ExistingMention = { user_id: string };
+            const existingMentionIds = new Set((existingMentions || []).map((m: ExistingMention) => m.user_id));
 
             // Delete removed mentions
             const mentionsToRemove = (existingMentions || [])
-              .filter((m: any) => !currentMentionIds.has(m.user_id))
-              .map((m: any) => m.user_id);
+              .filter((m: ExistingMention) => !currentMentionIds.has(m.user_id))
+              .map((m: ExistingMention) => m.user_id);
 
             if (mentionsToRemove.length > 0) {
               await supabase

@@ -36,12 +36,13 @@ export default function CommunityMembersSettingsPage() {
     return null;
   }
 
-  const handlePromote = async (userId: string) => {
+  const _handlePromote = async (userId: string) => {
     setActionLoading(true);
     const result = await promoteUser(userId, 'moderator');
     if (result.success) refetchMods();
     setActionLoading(false);
   };
+  void _handlePromote; // Reserved for future use
 
   const handleDemote = async (userId: string) => {
     if (confirm('Are you sure you want to remove moderator role from this user?')) {

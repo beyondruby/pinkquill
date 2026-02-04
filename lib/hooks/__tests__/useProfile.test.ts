@@ -2,10 +2,26 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useProfile, useFollow, useFollowList, useFollowRequests } from "../useProfile";
 
+// Define types for the mock chain
+interface MockChain {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  is: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  range: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  single: ReturnType<typeof vi.fn>;
+  maybeSingle: ReturnType<typeof vi.fn>;
+  insert: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+}
+
 // Create chainable mock factory
-const createChainableMock = (finalResult: any = { data: null, error: null }) => {
-  const chain: any = {};
-  const methods = ['select', 'eq', 'is', 'order', 'range', 'limit', 'in'];
+const createChainableMock = (finalResult: { data: unknown; error: unknown } = { data: null, error: null }): MockChain => {
+  const chain = {} as MockChain;
+  const methods: (keyof MockChain)[] = ['select', 'eq', 'is', 'order', 'range', 'limit', 'in'];
 
   methods.forEach(method => {
     chain[method] = vi.fn().mockReturnValue(chain);
@@ -30,7 +46,7 @@ const createChainableMock = (finalResult: any = { data: null, error: null }) => 
 };
 
 // Mock variables
-let mockFromImplementation: (table: string) => any;
+let mockFromImplementation: (table: string) => MockChain;
 const mockChannel = vi.fn();
 const mockOn = vi.fn();
 const mockSubscribe = vi.fn();

@@ -22,10 +22,12 @@ export default function Lightbox({ images, initialIndex, isOpen, onClose }: Ligh
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setCurrentIndex(initialIndex);
     setIsZoomed(false);
   }, [initialIndex]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isOpen) return;

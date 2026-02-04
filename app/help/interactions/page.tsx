@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHeart, faUserPlus, faComment, faRetweet, faBookmark } from "@fortawesome/free-solid-svg-icons";
+import { faHeart } from "@fortawesome/free-solid-svg-icons";
 
 const tocItems = [
   { id: "overview", label: "Interactions Overview" },
@@ -106,7 +105,7 @@ export default function InteractionsHelpPage() {
 
             <h3>Ways to interact</h3>
             <ul>
-              <li><strong>Follow</strong> — Subscribe to a creator's content</li>
+              <li><strong>Follow</strong> — Subscribe to a creator&apos;s content</li>
               <li><strong>React</strong> — Show appreciation with different reaction types</li>
               <li><strong>Comment</strong> — Join the discussion</li>
               <li><strong>Relay</strong> — Share content with your followers</li>
@@ -123,14 +122,14 @@ export default function InteractionsHelpPage() {
             </p>
             <ol>
               <li>Visit their profile (Studio)</li>
-              <li>Click the "Follow" button</li>
-              <li>You'll now see their posts in your feed</li>
+              <li>Click the &quot;Follow&quot; button</li>
+              <li>You&apos;ll now see their posts in your feed</li>
             </ol>
 
             <h3>Unfollowing</h3>
             <ol>
               <li>Visit their profile</li>
-              <li>Click the "Following" button</li>
+              <li>Click the &quot;Following&quot; button</li>
               <li>This will unfollow them</li>
             </ol>
 
@@ -145,14 +144,14 @@ export default function InteractionsHelpPage() {
             <h3>Your followers</h3>
             <p>
               To see who follows you, go to your profile and click on your follower count.
-              You can view each follower's profile and choose to follow them back.
+              You can view each follower&apos;s profile and choose to follow them back.
             </p>
           </section>
 
           <section id="reactions" className="scroll-mt-24 mb-16">
             <h2>Reactions</h2>
             <p>
-              Unlike simple "likes," PinkQuill offers multiple reaction types to express
+              Unlike simple &quot;likes,&quot; PinkQuill offers multiple reaction types to express
               different kinds of appreciation:
             </p>
 
@@ -201,7 +200,7 @@ export default function InteractionsHelpPage() {
 
             <h3>Replying to comments</h3>
             <p>
-              Comments support nested replies. Click "Reply" on any comment to respond
+              Comments support nested replies. Click &quot;Reply&quot; on any comment to respond
               directly to it. Replies are indented under the parent comment.
             </p>
 
@@ -216,7 +215,7 @@ export default function InteractionsHelpPage() {
             <ol>
               <li>Find your comment</li>
               <li>Click the menu (⋯) on your comment</li>
-              <li>Select "Delete"</li>
+              <li>Select &quot;Delete&quot;</li>
             </ol>
             <p>
               Post authors can also delete any comments on their posts.
@@ -234,8 +233,8 @@ export default function InteractionsHelpPage() {
           <section id="relays" className="scroll-mt-24 mb-16">
             <h2>Relays (Reposts)</h2>
             <p>
-              Relaying (also known as reposting) shares someone else's content with your
-              followers. It's a way to amplify work you appreciate.
+              Relaying (also known as reposting) shares someone else&apos;s content with your
+              followers. It&apos;s a way to amplify work you appreciate.
             </p>
 
             <h3>How to relay</h3>
@@ -247,13 +246,13 @@ export default function InteractionsHelpPage() {
 
             <h3>Viewing relays</h3>
             <p>
-              Relayed posts appear on your profile in a separate "Relays" tab. They show
-              the original author's information so credit is maintained.
+              Relayed posts appear on your profile in a separate &quot;Relays&quot; tab. They show
+              the original author&apos;s information so credit is maintained.
             </p>
 
             <h3>Undoing a relay</h3>
             <p>
-              Click the relay icon again on a post you've relayed to un-relay it.
+              Click the relay icon again on a post you&apos;ve relayed to un-relay it.
               It will be removed from your relays.
             </p>
           </section>
@@ -262,7 +261,7 @@ export default function InteractionsHelpPage() {
             <h2>Saves (Bookmarks)</h2>
             <p>
               Save posts you want to revisit later. Saved posts are private — only you
-              can see what you've saved.
+              can see what you&apos;ve saved.
             </p>
 
             <h3>Saving a post</h3>
@@ -270,7 +269,7 @@ export default function InteractionsHelpPage() {
 
             <h3>Viewing saved posts</h3>
             <ol>
-              <li>Click "Saved" in the left sidebar</li>
+              <li>Click &quot;Saved&quot; in the left sidebar</li>
               <li>Browse all your bookmarked posts</li>
             </ol>
 
@@ -283,7 +282,7 @@ export default function InteractionsHelpPage() {
             <div className="bg-purple-primary/5 rounded-xl p-4 border border-purple-primary/10 my-6">
               <p className="font-ui text-sm text-ink mb-0">
                 <strong>Privacy:</strong> Your saved posts are completely private. Authors
-                are notified when you save their post, but they can't see your full saved list.
+                are notified when you save their post, but they can&apos;t see your full saved list.
               </p>
             </div>
           </section>
@@ -291,7 +290,7 @@ export default function InteractionsHelpPage() {
           <section id="notifications" className="scroll-mt-24 mb-16">
             <h2>Interaction Notifications</h2>
             <p>
-              When people interact with your content, you'll receive notifications:
+              When people interact with your content, you&apos;ll receive notifications:
             </p>
 
             <h3>Notification types</h3>
@@ -315,7 +314,7 @@ export default function InteractionsHelpPage() {
             <ul>
               <li>Click a notification to go to the relevant content</li>
               <li>Notifications are automatically marked as read when viewed</li>
-              <li>Use "Mark all as read" to clear all unread notifications</li>
+              <li>Use &quot;Mark all as read&quot; to clear all unread notifications</li>
             </ul>
           </section>
         </article>

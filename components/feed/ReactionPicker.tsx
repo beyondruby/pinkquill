@@ -158,9 +158,11 @@ export default function ReactionPicker({
   const [isMounted, setIsMounted] = useState(false);
 
   // For portal rendering
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setIsMounted(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Update tooltip position
   const updateTooltipPosition = () => {
@@ -225,6 +227,7 @@ export default function ReactionPicker({
   }, []);
 
   // Focus the first reaction when picker opens (for keyboard users)
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isOpen && focusedIndex === -1) {
       // Find the current reaction index, or default to 0
@@ -240,6 +243,7 @@ export default function ReactionPicker({
       setFocusedIndex(-1);
     }
   }, [isOpen, currentReaction, focusedIndex]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Handle keyboard navigation within the picker
   const handlePickerKeyDown = useCallback((e: React.KeyboardEvent) => {

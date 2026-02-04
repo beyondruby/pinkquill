@@ -137,7 +137,8 @@ export async function fetchPostMetadata(postIds: string[]): Promise<PostMetadata
   const hashtagsByPost = new Map<string, string[]>();
 
   // Process collaborators
-  (collaboratorsResult.data || []).forEach((c: any) => {
+  type CollaboratorRow = { post_id: string; status: string; role: string | null; user: PostCollaboratorData['user'] };
+  (collaboratorsResult.data || []).forEach((c: CollaboratorRow) => {
     if (!collaboratorsByPost.has(c.post_id)) {
       collaboratorsByPost.set(c.post_id, []);
     }
@@ -149,7 +150,8 @@ export async function fetchPostMetadata(postIds: string[]): Promise<PostMetadata
   });
 
   // Process mentions
-  (mentionsResult.data || []).forEach((m: any) => {
+  type MentionRow = { post_id: string; user: PostMentionData['user'] };
+  (mentionsResult.data || []).forEach((m: MentionRow) => {
     if (!mentionsByPost.has(m.post_id)) {
       mentionsByPost.set(m.post_id, []);
     }
@@ -157,7 +159,8 @@ export async function fetchPostMetadata(postIds: string[]): Promise<PostMetadata
   });
 
   // Process hashtags
-  (tagsResult.data || []).forEach((t: any) => {
+  type TagRow = { post_id: string; tag?: { name: string } | null };
+  (tagsResult.data || []).forEach((t: TagRow) => {
     const tagName = t.tag?.name;
     if (tagName) {
       if (!hashtagsByPost.has(t.post_id)) {

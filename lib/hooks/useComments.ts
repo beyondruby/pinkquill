@@ -143,8 +143,8 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
 
       pageRef.current = page;
       setHasMore(data.length === COMMENTS_PAGE_SIZE);
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useComments] Error:", err);
     } finally {
       if (mountedRef.current) {

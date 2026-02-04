@@ -43,9 +43,10 @@ export async function createNotification(
     }
 
     return true;
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Catch network errors etc.
-    console.error("[createNotification] Unexpected error:", err?.message || err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[createNotification] Unexpected error:", message);
     return false;
   }
 }
@@ -108,8 +109,8 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
 
       setNotifications(data || []);
       fetchedRef.current = true;
-    } catch (err: any) {
-      const errMsg = err?.message || "";
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "";
       if (!errMsg.includes("Failed to fetch") && !errMsg.includes("NetworkError")) {
         console.error("[useNotifications] Error:", err);
       }
@@ -165,7 +166,7 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
         },
         async (payload) => {
           // Incremental update: Add new notification without refetching all
-          const newNotif = payload.new as any;
+          const newNotif = payload.new as { id: string };
 
           // Fetch the actor, post, and community data for the new notification
           const { data: fullNotif } = await supabase
@@ -211,7 +212,7 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
         },
         (payload) => {
           // Incremental update: Update specific notification
-          const updated = payload.new as any;
+          const updated = payload.new as { id: string; read?: boolean };
           setNotifications((prev) =>
             prev.map((n) => (n.id === updated.id ? { ...n, ...updated } : n))
           );
@@ -227,7 +228,7 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
         },
         (payload) => {
           // Incremental update: Remove deleted notification
-          const deleted = payload.old as any;
+          const deleted = payload.old as { id: string };
           setNotifications((prev) => prev.filter((n) => n.id !== deleted.id));
         }
       )
@@ -280,8 +281,9 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
       }
 
       setCount(unreadCount || 0);
-    } catch (err: any) {
-      console.error("[useUnreadCount] Unexpected error:", err?.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useUnreadCount] Unexpected error:", message);
     }
   }, [userId]);
 
@@ -293,11 +295,13 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
   }, [fetchCount]);
 
   // Initial fetch
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (userId) {
       fetchCount();
     }
   }, [userId, fetchCount]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Real-time subscription - only depends on userId to prevent channel recreation
   useEffect(() => {
@@ -478,8 +482,9 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
 
       setCount(filteredCount);
       fetchedRef.current = true;
-    } catch (err: any) {
-      console.error("[useUnreadMessagesCount] Error:", err?.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useUnreadMessagesCount] Error:", message);
     }
   }, [userId, getBlockedUsers]);
 

@@ -5,12 +5,6 @@ import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faRocket,
-  faUserPlus,
-  faCompass,
-  faPenNib,
-  faUsers,
-  faHeart,
-  faBell,
   faCheckCircle
 } from "@fortawesome/free-solid-svg-icons";
 
@@ -103,11 +97,11 @@ export default function GettingStartedPage() {
             <p>
               PinkQuill is the social platform built for creatives of all kinds - musicians, visual artists,
               photographers, filmmakers, dancers, actors, models, designers, and everyone who creates.
-              It's a space where you can share your work, connect with like-minded creators, and build a community
+              It&apos;s a space where you can share your work, connect with like-minded creators, and build a community
               around your art.
             </p>
             <p>
-              Whether you're an established creative or just starting your journey, PinkQuill provides the tools and community
+              Whether you&apos;re an established creative or just starting your journey, PinkQuill provides the tools and community
               you need to express yourself and grow as a creator.
             </p>
             <div className="bg-purple-primary/5 rounded-xl p-6 border border-purple-primary/10 my-6">
@@ -144,7 +138,7 @@ export default function GettingStartedPage() {
             </ol>
             <div className="bg-orange-50 rounded-xl p-4 border border-orange-200/50 my-6">
               <p className="font-ui text-sm text-orange-800 mb-0">
-                <strong>Tip:</strong> Choose a username that represents you as a creator. It can't be changed easily later.
+                <strong>Tip:</strong> Choose a username that represents you as a creator. It can&apos;t be changed easily later.
               </p>
             </div>
           </section>
@@ -164,8 +158,8 @@ export default function GettingStartedPage() {
             </ul>
             <h3>Additional details</h3>
             <ul>
-              <li><strong>Role/Occupation</strong> — What you do (e.g., "Poet", "Visual Artist")</li>
-              <li><strong>Location</strong> — Where you're based</li>
+              <li><strong>Role/Occupation</strong> — What you do (e.g., &quot;Poet&quot;, &quot;Visual Artist&quot;)</li>
+              <li><strong>Location</strong> — Where you&apos;re based</li>
               <li><strong>Website</strong> — Link to your personal site or portfolio</li>
               <li><strong>Social links</strong> — Connect your other platforms (Instagram, Twitter, etc.)</li>
             </ul>
@@ -176,7 +170,7 @@ export default function GettingStartedPage() {
 
           <section id="navigating" className="scroll-mt-24 mb-16">
             <h2>Navigating PinkQuill</h2>
-            <p>The PinkQuill interface is designed to be intuitive. Here's a quick tour:</p>
+            <p>The PinkQuill interface is designed to be intuitive. Here&apos;s a quick tour:</p>
 
             <h3>Left sidebar</h3>
             <ul>
@@ -185,9 +179,9 @@ export default function GettingStartedPage() {
               <li><strong>Takes</strong> — Short-form video content</li>
               <li><strong>Communities</strong> — Browse and join creative communities</li>
               <li><strong>Messages</strong> — Direct conversations with other users</li>
-              <li><strong>Saved</strong> — Posts you've bookmarked</li>
+              <li><strong>Saved</strong> — Posts you&apos;ve bookmarked</li>
               <li><strong>Create</strong> — Start a new post</li>
-              <li><strong>Notifications</strong> — See who's interacting with your content</li>
+              <li><strong>Notifications</strong> — See who&apos;s interacting with your content</li>
             </ul>
 
             <h3>Main feed</h3>
@@ -198,14 +192,14 @@ export default function GettingStartedPage() {
 
             <h3>Right sidebar</h3>
             <p>
-              Depending on the page, you'll see trending topics, suggested creators to follow,
+              Depending on the page, you&apos;ll see trending topics, suggested creators to follow,
               or community information.
             </p>
           </section>
 
           <section id="first-post" className="scroll-mt-24 mb-16">
             <h2>Your First Post</h2>
-            <p>Ready to share your first piece of content? Here's how:</p>
+            <p>Ready to share your first piece of content? Here&apos;s how:</p>
             <ol>
               <li>Click <strong>Create</strong> in the left sidebar</li>
               <li>Choose your <strong>post type</strong> (poem, journal, thought, etc.)</li>
@@ -228,10 +222,10 @@ export default function GettingStartedPage() {
               <li><strong>Explore page</strong> — Browse trending and recommended content</li>
               <li><strong>Search</strong> — Look for creators by username or content</li>
               <li><strong>Communities</strong> — Find creators in communities you join</li>
-              <li><strong>Suggestions</strong> — Check the "Who to follow" suggestions</li>
+              <li><strong>Suggestions</strong> — Check the &quot;Who to follow&quot; suggestions</li>
             </ul>
             <p>
-              When you find someone interesting, visit their profile (their "Studio") and click
+              When you find someone interesting, visit their profile (their &quot;Studio&quot;) and click
               <strong> Follow</strong> to see their posts in your feed.
             </p>
           </section>
@@ -240,7 +234,7 @@ export default function GettingStartedPage() {
             <h2>Joining Communities</h2>
             <p>
               Communities are spaces organized around shared interests, genres, or themes.
-              They're a great way to connect with like-minded creators.
+              They&apos;re a great way to connect with like-minded creators.
             </p>
             <ol>
               <li>Go to <strong>Communities</strong> in the sidebar</li>
@@ -256,7 +250,7 @@ export default function GettingStartedPage() {
 
           <section id="next-steps" className="scroll-mt-24 mb-16">
             <h2>Next Steps</h2>
-            <p>Now that you're set up, here are some things to try:</p>
+            <p>Now that you&apos;re set up, here are some things to try:</p>
 
             <div className="grid gap-4 my-6">
               <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-black/5">

@@ -384,8 +384,8 @@ export default function PostPage() {
 
         if (mentionsData) {
           mentions = mentionsData
-            .map((m: any) => m.user)
-            .filter((u: any): u is TaggedUser => u !== null && u !== undefined);
+            .map((m: { user: TaggedUser | null }) => m.user)
+            .filter((u): u is TaggedUser => u !== null && u !== undefined);
         }
       } catch {
         // Table might not exist yet
@@ -401,8 +401,8 @@ export default function PostPage() {
 
         if (tagsData) {
           hashtags = tagsData
-            .map((t: any) => t.tag?.name)
-            .filter((name: any): name is string => !!name);
+            .map((t: { tag: { name: string } | null }) => t.tag?.name)
+            .filter((name): name is string => !!name);
         }
       } catch {
         // Table might not exist yet
@@ -427,8 +427,8 @@ export default function PostPage() {
 
         if (collabData) {
           collaborators = collabData
-            .map((c: any) => ({ role: c.role, user: c.user }))
-            .filter((c: any) => c.user !== null);
+            .map((c: { role: string | null; user: CollaboratorUser['user'] | null }) => ({ role: c.role, user: c.user }))
+            .filter((c): c is CollaboratorUser => c.user !== null);
         }
       } catch {
         // Table might not exist yet
@@ -685,7 +685,7 @@ export default function PostPage() {
           <div className="max-w-[680px] mx-auto py-12 px-4 md:px-6">
             <div className="text-center py-20">
               <h1 className="font-display text-2xl text-ink mb-4">Post not found</h1>
-              <p className="font-body text-muted mb-6">This post may have been removed or doesn't exist.</p>
+              <p className="font-body text-muted mb-6">This post may have been removed or doesn&apos;t exist.</p>
               <Link href="/" className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-white">
                 Back to Feed
               </Link>

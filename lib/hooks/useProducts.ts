@@ -77,12 +77,13 @@ export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
       if (fetchError) throw fetchError;
 
       // Transform data
-      const transformedProducts: Product[] = (data || []).map((product: any) => ({
+      type RawProduct = Omit<Product, 'keywords'> & { keywords?: { keyword: string }[]; shipping?: ProductShippingOption[] };
+      const transformedProducts: Product[] = (data || []).map((product: RawProduct) => ({
         ...product,
         media: product.media || [],
         pricing: product.pricing || [],
         shipping: product.shipping?.[0] || null,
-        keywords: (product.keywords || []).map((k: any) => k.keyword),
+        keywords: (product.keywords || []).map((k: { keyword: string }) => k.keyword),
         primary_image_url: product.media?.find((m: ProductMedia) => m.is_primary)?.media_url
           || product.media?.[0]?.media_url,
         min_price: product.pricing?.length > 0
@@ -95,10 +96,11 @@ export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
 
       setProducts(transformedProducts);
       fetchedRef.current = true;
-    } catch (err: any) {
-      console.error("[useSellerProducts] Error:", err?.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useSellerProducts] Error:", message);
       if (mountedRef.current) {
-        setError(err?.message || "Failed to fetch products");
+        setError(message || "Failed to fetch products");
       }
     } finally {
       if (mountedRef.current) {
@@ -172,7 +174,7 @@ export function useProduct(productId?: string): UseProductReturn {
         pricing: data.pricing || [],
         shipping: data.shipping?.[0] || null,
         files: data.files || [],
-        keywords: (data.keywords || []).map((k: any) => k.keyword),
+        keywords: (data.keywords || []).map((k: { keyword: string }) => k.keyword),
         primary_image_url: data.media?.find((m: ProductMedia) => m.is_primary)?.media_url
           || data.media?.[0]?.media_url,
         min_price: data.pricing?.length > 0
@@ -184,10 +186,11 @@ export function useProduct(productId?: string): UseProductReturn {
       };
 
       setProduct(transformedProduct);
-    } catch (err: any) {
-      console.error("[useProduct] Error:", err?.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useProduct] Error:", message);
       if (mountedRef.current) {
-        setError(err?.message || "Failed to fetch product");
+        setError(message || "Failed to fetch product");
       }
     } finally {
       if (mountedRef.current) {
@@ -427,9 +430,10 @@ export function useCreateProduct(): UseCreateProductReturn {
       }
 
       return product as Product;
-    } catch (err: any) {
-      console.error("[useCreateProduct] Error:", err?.message || err);
-      setError(err?.message || "Failed to create product");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useCreateProduct] Error:", message);
+      setError(message || "Failed to create product");
       return null;
     } finally {
       setCreating(false);
@@ -480,9 +484,10 @@ export function useUpdateProduct(): UseUpdateProductReturn {
 
       if (updateError) throw updateError;
       return true;
-    } catch (err: any) {
-      console.error("[useUpdateProduct] Error:", err?.message || err);
-      setError(err?.message || "Failed to update product");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useUpdateProduct] Error:", message);
+      setError(message || "Failed to update product");
       return false;
     } finally {
       setUpdating(false);
@@ -526,9 +531,10 @@ export function useDeleteProduct(): UseDeleteProductReturn {
 
       if (deleteError) throw deleteError;
       return true;
-    } catch (err: any) {
-      console.error("[useDeleteProduct] Error:", err?.message || err);
-      setError(err?.message || "Failed to delete product");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useDeleteProduct] Error:", message);
+      setError(message || "Failed to delete product");
       return false;
     } finally {
       setDeleting(false);
@@ -571,9 +577,10 @@ export function useUpdateProductStatus(): UseUpdateProductStatusReturn {
 
       if (updateError) throw updateError;
       return true;
-    } catch (err: any) {
-      console.error("[useUpdateProductStatus] Error:", err?.message || err);
-      setError(err?.message || "Failed to update product status");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useUpdateProductStatus] Error:", message);
+      setError(message || "Failed to update product status");
       return false;
     } finally {
       setUpdating(false);
@@ -613,8 +620,9 @@ export function useToggleSaveProduct(): UseToggleSaveProductReturn {
         if (error) throw error;
       }
       return true;
-    } catch (err: any) {
-      console.error("[useToggleSaveProduct] Error:", err?.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useToggleSaveProduct] Error:", message);
       return false;
     }
   }, []);
@@ -699,7 +707,8 @@ export function useSavedProducts(userId?: string): UseSavedProductsReturn {
       if (fetchError) throw fetchError;
 
       // Transform and sort by save order
-      const transformedProducts: Product[] = (data || []).map((product: any) => ({
+      type RawProductData = Omit<Product, 'media' | 'pricing'> & { media?: ProductMedia[]; pricing?: ProductPricing[] };
+      const transformedProducts: Product[] = (data || []).map((product: RawProductData) => ({
         ...product,
         media: product.media || [],
         pricing: product.pricing || [],
@@ -718,9 +727,10 @@ export function useSavedProducts(userId?: string): UseSavedProductsReturn {
       });
 
       setProducts(sortedProducts);
-    } catch (err: any) {
-      console.error("[useSavedProducts] Error:", err?.message || err);
-      setError(err?.message || "Failed to fetch saved products");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useSavedProducts] Error:", message);
+      setError(message || "Failed to fetch saved products");
     } finally {
       setLoading(false);
     }

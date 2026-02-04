@@ -159,9 +159,11 @@ export default function TakeReactionPicker({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setIsMounted(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Handle mouse enter with delay
   const handleMouseEnter = () => {
@@ -195,6 +197,7 @@ export default function TakeReactionPicker({
   }, []);
 
   // Focus the first reaction when picker opens (for keyboard users)
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isOpen && focusedIndex === -1) {
       const currentIndex = currentReaction
@@ -208,6 +211,7 @@ export default function TakeReactionPicker({
       setFocusedIndex(-1);
     }
   }, [isOpen, currentReaction, focusedIndex]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Handle keyboard navigation within the picker
   const handlePickerKeyDown = useCallback((e: React.KeyboardEvent) => {

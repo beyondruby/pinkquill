@@ -2,11 +2,24 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useComments } from "../useComments";
 
+// Define types for the mock
+interface MockQueryBuilder {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  is: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  range: ReturnType<typeof vi.fn>;
+  single: ReturnType<typeof vi.fn>;
+  insert: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+}
+
 // Mock Supabase with proper chain
-const createMockQueryBuilder = (resolvedData: any = [], error: any = null) => {
+const createMockQueryBuilder = (resolvedData: unknown = [], error: unknown = null): MockQueryBuilder => {
   const mockResult = { data: resolvedData, error };
 
-  const builder: any = {
+  const builder: MockQueryBuilder = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     is: vi.fn().mockReturnThis(),

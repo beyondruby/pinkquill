@@ -197,7 +197,7 @@ export default function PrivacySettingsPage() {
             <h3 className="font-ui text-lg text-ink">Blocked Accounts</h3>
             <p className="font-body text-sm text-muted">
               {blockedUsers.length === 0
-                ? "You haven't blocked anyone"
+                ? "You haven&apos;t blocked anyone"
                 : `${blockedUsers.length} blocked ${blockedUsers.length === 1 ? 'account' : 'accounts'}`
               }
             </p>
@@ -216,7 +216,7 @@ export default function PrivacySettingsPage() {
               </svg>
             </div>
             <p className="font-body text-muted">
-              When you block someone, they won't be able to see your profile, posts, or message you.
+              When you block someone, they won&apos;t be able to see your profile, posts, or message you.
             </p>
           </div>
         ) : (

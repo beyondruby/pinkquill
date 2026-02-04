@@ -178,12 +178,12 @@ export default function AboutPageContent() {
                     what they do.
                   </p>
                   <p>
-                    The internet wasn't built for creatives. It was built for advertisers.
+                    The internet wasn&apos;t built for creatives. It was built for advertisers.
                     Algorithms decide what gets seen. Engagement metrics define worth.
                     Your art becomes content to be monetized, not expression to be celebrated.
                   </p>
                   <p>
-                    We're building something different. PinkQuill is a sanctuary where
+                    We&apos;re building something different. PinkQuill is a sanctuary where
                     musicians, visual artists, photographers, filmmakers, dancers, actors,
                     models, designers—anyone who creates—can share their work without
                     compromise. Where community means support, not competition.
@@ -213,7 +213,7 @@ export default function AboutPageContent() {
 
                 <div>
                   <p>
-                    <strong>You own everything you create.</strong> We're just here to help you share it.
+                    <strong>You own everything you create.</strong> We&apos;re just here to help you share it.
                   </p>
                   <p>
                     Your art stays yours. No hidden clauses, no rights grabs.
@@ -229,8 +229,8 @@ export default function AboutPageContent() {
 
                 <div className="my-8 pl-5 border-l-2 border-purple-primary/30">
                   <p className="font-body text-[0.95rem] text-muted italic !mb-0">
-                    "Create freely knowing your work and your identity are protected.
-                    Your voice matters here."
+                    &quot;Create freely knowing your work and your identity are protected.
+                    Your voice matters here.&quot;
                   </p>
                 </div>
               </section>
@@ -284,7 +284,7 @@ export default function AboutPageContent() {
                 </header>
 
                 <p className="mb-8">
-                  These aren't just values on a page. They're the principles that guide every feature we build.
+                  These aren&apos;t just values on a page. They&apos;re the principles that guide every feature we build.
                 </p>
 
                 <div className="space-y-8">
@@ -292,7 +292,7 @@ export default function AboutPageContent() {
                     <h4 className="font-display text-lg text-ink mb-2">Authenticity First</h4>
                     <p className="!mb-0">
                       Your art is yours. We celebrate raw, real creativity without filters
-                      or algorithms deciding what's worthy of being seen.
+                      or algorithms deciding what&apos;s worthy of being seen.
                     </p>
                   </div>
 
@@ -307,7 +307,7 @@ export default function AboutPageContent() {
                   <div className="border-t border-black/[0.06] pt-6">
                     <h4 className="font-display text-lg text-ink mb-2">Every Medium Welcome</h4>
                     <p className="!mb-0">
-                      Words, visuals, audio, video—if you create it, there's a home for it.
+                      Words, visuals, audio, video—if you create it, there&apos;s a home for it.
                       No creative left behind, no medium overlooked.
                     </p>
                   </div>
@@ -315,7 +315,7 @@ export default function AboutPageContent() {
                   <div className="border-t border-black/[0.06] pt-6">
                     <h4 className="font-display text-lg text-ink mb-2">No Ads, No Noise</h4>
                     <p className="!mb-0">
-                      Your feed is for creativity, not commercials. We'll never interrupt
+                      Your feed is for creativity, not commercials. We&apos;ll never interrupt
                       your experience with ads or sell your attention to the highest bidder.
                     </p>
                   </div>
@@ -338,7 +338,7 @@ export default function AboutPageContent() {
                     <strong>Your art. Your rules. Your community.</strong>
                   </p>
                   <p>
-                    Whether you're a musician dropping tracks, a photographer capturing moments,
+                    Whether you&apos;re a musician dropping tracks, a photographer capturing moments,
                     an actor building your portfolio, a model showcasing your work, a dancer
                     sharing choreography, or any kind of creative doing your thing—PinkQuill
                     is built for you.
@@ -397,7 +397,7 @@ export default function AboutPageContent() {
                 <div>
                   <p>
                     Thousands of creatives are already here. Your audience is waiting.
-                    Your community is ready. All that's missing is you.
+                    Your community is ready. All that&apos;s missing is you.
                   </p>
                 </div>
 

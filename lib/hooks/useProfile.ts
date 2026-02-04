@@ -235,8 +235,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
 
       if (!mountedRef.current) return;
       setPosts(postsWithStats as Post[]);
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useProfile] Error:", err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to fetch profile");
@@ -475,8 +475,8 @@ export function useFollowList(userId: string, type: "followers" | "following") {
         if (error) throw error;
         setUsers((data?.map((d) => d.following) as unknown as FollowUser[]) || []);
       }
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useFollowList] Error:", err);
     } finally {
       if (mountedRef.current) {

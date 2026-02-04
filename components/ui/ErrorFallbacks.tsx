@@ -49,7 +49,7 @@ export const FeedErrorFallback = memo(function FeedErrorFallback({
         </svg>
       </div>
       <h3 className="font-display text-lg text-ink mb-2">
-        Couldn't load feed
+        Couldn&apos;t load feed
       </h3>
       <p className="font-body text-sm text-muted mb-4 max-w-sm">
         Something went wrong while loading your feed. Please try again.
@@ -88,7 +88,7 @@ export const PostCardErrorFallback = memo(function PostCardErrorFallback({
         </svg>
       </div>
       <p className="font-body text-sm text-muted mb-3">
-        This post couldn't be displayed
+        This post couldn&apos;t be displayed
       </p>
       {onRetry && (
         <button
@@ -127,7 +127,7 @@ export const MessagesErrorFallback = memo(function MessagesErrorFallback({
         Messages unavailable
       </h3>
       <p className="font-body text-sm text-muted mb-4 max-w-sm">
-        We couldn't load your messages. Please try again.
+        We couldn&apos;t load your messages. Please try again.
       </p>
       {onRetry && (
         <button
@@ -148,7 +148,7 @@ export const SidebarErrorFallback = memo(function SidebarErrorFallback({
   return (
     <div className="p-4 text-center">
       <p className="font-body text-xs text-muted mb-2">
-        Couldn't load content
+        Couldn&apos;t load content
       </p>
       {onRetry && (
         <button
@@ -187,7 +187,7 @@ export const ProfileErrorFallback = memo(function ProfileErrorFallback({
         Profile unavailable
       </h3>
       <p className="font-body text-sm text-muted mb-4 max-w-sm">
-        We couldn't load this profile. It may have been removed or there was a temporary error.
+        We couldn&apos;t load this profile. It may have been removed or there was a temporary error.
       </p>
       {onRetry && (
         <button

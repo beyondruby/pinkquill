@@ -27,6 +27,25 @@ const sourceLabels: Record<string, string> = {
   relay: "Relay",
 };
 
+// Moved outside component to avoid "Cannot create components during render" error
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: { payload: { name: string; value: number; percentage: number; color: string } }[] }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white px-4 py-3 rounded-xl shadow-lg border border-black/10">
+        <p className="font-ui text-sm text-ink font-medium mb-1">{data.name}</p>
+        <p className="font-body text-sm text-muted">
+          <span className="font-medium" style={{ color: data.color }}>
+            {data.value.toLocaleString()}
+          </span>{" "}
+          views ({data.percentage.toFixed(1)}%)
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function TrafficSourcesChart({
   data,
   title = "Traffic Sources",
@@ -38,24 +57,6 @@ export default function TrafficSourcesChart({
     percentage: d.percentage,
     color: COLORS[i % COLORS.length],
   }));
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white px-4 py-3 rounded-xl shadow-lg border border-black/10">
-          <p className="font-ui text-sm text-ink font-medium mb-1">{data.name}</p>
-          <p className="font-body text-sm text-muted">
-            <span className="font-medium" style={{ color: data.color }}>
-              {data.value.toLocaleString()}
-            </span>{" "}
-            views ({data.percentage.toFixed(1)}%)
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   const renderLegend = () => (
     <div className="flex flex-wrap gap-3 justify-center mt-4">

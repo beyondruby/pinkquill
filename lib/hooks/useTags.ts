@@ -98,8 +98,9 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
       const tagCounts = new Map<string, { name: string; total: number; recent: number }>();
       const dataArray = tagData || [];
 
+      type TagRow = { tags?: { name: string }; posts?: { created_at: string } };
       for (let i = 0; i < dataArray.length; i++) {
-        const item = dataArray[i] as any;
+        const item = dataArray[i] as TagRow;
         const tagName = item.tags?.name;
         if (!tagName) continue;
 
@@ -137,8 +138,8 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
       if (!mountedRef.current) return;
       setTags(sortedTags);
       fetchedRef.current = true;
-    } catch (err: any) {
-      if (err?.name === "AbortError") return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useTrendingTags] Error:", err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to fetch trending tags");
@@ -293,7 +294,7 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
         .in("post_id", postIds);
 
       const tagsByPost = new Map<string, string[]>();
-      (allPostTags || []).forEach((pt: any) => {
+      (allPostTags || []).forEach((pt: { post_id: string; tags?: { name: string } }) => {
         const tagName = pt.tags?.name;
         if (tagName) {
           const existing = tagsByPost.get(pt.post_id) || [];
@@ -413,7 +414,7 @@ export function usePopularTags(limit: number = 20) {
         const dataArray = data || [];
 
         for (let i = 0; i < dataArray.length; i++) {
-          const tagName = (dataArray[i] as any).tags?.name;
+          const tagName = (dataArray[i] as { tags?: { name: string } }).tags?.name;
           if (tagName) {
             tagCounts.set(tagName, (tagCounts.get(tagName) || 0) + 1);
           }
@@ -428,8 +429,8 @@ export function usePopularTags(limit: number = 20) {
         if (!mountedRef.current) return;
         setTags(sortedTags);
         fetchedRef.current = true;
-      } catch (err: any) {
-        if (err?.name === "AbortError") return;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
         console.error("[usePopularTags] Error:", err);
       } finally {
         if (mountedRef.current) {

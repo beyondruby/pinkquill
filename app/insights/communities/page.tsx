@@ -215,7 +215,7 @@ export default function InsightsCommunitiesPage() {
         if (error) throw error;
 
         const communityList = data
-          ?.map((item: any) => item.community)
+          ?.map((item: { community: Community | null }) => item.community)
           .filter(Boolean) as Community[];
 
         setCommunities(communityList || []);
