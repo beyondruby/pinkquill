@@ -43,7 +43,11 @@
       "WebSearch",
       "Bash(while read file)",
       "Bash(git -C /Users/hadi/projects/pinkquill log --oneline -30)",
-      "Bash(npm run typecheck:*)"
+      "Bash(npm run typecheck:*)",
+      "Bash(npx next lint:*)",
+      "Bash(1)",
+      "Bash(npx eslint:*)",
+      "Bash(git restore:*)"
     ]
   }
 }
