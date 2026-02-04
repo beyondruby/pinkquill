@@ -187,7 +187,7 @@ export default function CommunityGuidelinesPage() {
                   on severity.
                 </p>
                 <Highlight>
-                  Our goal isn't to restrict creativity—it's to ensure everyone can express
+                  Our goal isn&apos;t to restrict creativity—it&apos;s to ensure everyone can express
                   themselves without fear of harassment, harm, or exploitation.
                 </Highlight>
               </Section>
@@ -233,7 +233,7 @@ export default function CommunityGuidelinesPage() {
 
               <Section id="be-respectful" number="03" title="Be Respectful">
                 <p>
-                  Respect is the foundation of our community. Treat others the way you'd
+                  Respect is the foundation of our community. Treat others the way you&apos;d
                   want to be treated—with kindness, empathy, and consideration.
                 </p>
 
@@ -241,9 +241,9 @@ export default function CommunityGuidelinesPage() {
                   Do
                 </p>
                 <ul>
-                  <li>Engage thoughtfully with others' creative work</li>
+                  <li>Engage thoughtfully with others&apos; creative work</li>
                   <li>Offer constructive feedback when asked</li>
-                  <li>Celebrate others' successes and milestones</li>
+                  <li>Celebrate others&apos; successes and milestones</li>
                   <li>Respect different opinions, styles, and perspectives</li>
                   <li>Use inclusive language that welcomes everyone</li>
                   <li>Acknowledge and credit inspirations and influences</li>
@@ -251,12 +251,12 @@ export default function CommunityGuidelinesPage() {
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
-                  Don't
+                  Don&apos;t
                 </p>
                 <ul>
                   <li>Harass, bully, intimidate, or threaten anyone</li>
-                  <li>Attack someone's identity, background, or personal characteristics</li>
-                  <li>Mock, ridicule, or demean others' creative work</li>
+                  <li>Attack someone&apos;s identity, background, or personal characteristics</li>
+                  <li>Mock, ridicule, or demean others&apos; creative work</li>
                   <li>Engage in pile-ons or coordinated harassment</li>
                   <li>Share private information about others without consent (doxxing)</li>
                   <li>Make unwanted sexual advances or comments</li>
@@ -265,7 +265,7 @@ export default function CommunityGuidelinesPage() {
                 </ul>
 
                 <Highlight>
-                  Disagreement is natural—even healthy. But there's a difference between
+                  Disagreement is natural—even healthy. But there&apos;s a difference between
                   respectful debate and personal attacks. Focus on ideas, not individuals.
                 </Highlight>
               </Section>
@@ -281,9 +281,9 @@ export default function CommunityGuidelinesPage() {
                 </p>
                 <ul>
                   <li>Use your real name or a consistent pseudonym—both are welcome</li>
-                  <li>Don't impersonate other people, brands, or organizations</li>
-                  <li>Don't create fake accounts to deceive others</li>
-                  <li>Don't claim false credentials, affiliations, or achievements</li>
+                  <li>Don&apos;t impersonate other people, brands, or organizations</li>
+                  <li>Don&apos;t create fake accounts to deceive others</li>
+                  <li>Don&apos;t claim false credentials, affiliations, or achievements</li>
                   <li>One account per person (no duplicate accounts)</li>
                 </ul>
 
@@ -293,9 +293,9 @@ export default function CommunityGuidelinesPage() {
                 <ul>
                   <li>Share your own original work</li>
                   <li>Credit others when sharing or building on their work</li>
-                  <li>Don't claim others' work as your own (plagiarism)</li>
+                  <li>Don&apos;t claim others&apos; work as your own (plagiarism)</li>
                   <li>Be honest about AI-assisted or AI-generated content</li>
-                  <li>Don't manipulate engagement artificially (fake likes, follow-for-follow schemes)</li>
+                  <li>Don&apos;t manipulate engagement artificially (fake likes, follow-for-follow schemes)</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -304,13 +304,13 @@ export default function CommunityGuidelinesPage() {
                 <ul>
                   <li>Disclose sponsored content or paid partnerships</li>
                   <li>Be clear about commercial intent when promoting products</li>
-                  <li>Don't use misleading tactics to gain followers or engagement</li>
+                  <li>Don&apos;t use misleading tactics to gain followers or engagement</li>
                 </ul>
               </Section>
 
               <Section id="be-safe" number="05" title="Be Safe">
                 <p>
-                  Safety is everyone's responsibility. Help us maintain a space where people
+                  Safety is everyone&apos;s responsibility. Help us maintain a space where people
                   can create and connect without fear.
                 </p>
 
@@ -329,10 +329,10 @@ export default function CommunityGuidelinesPage() {
                   Protect others
                 </p>
                 <ul>
-                  <li>Don't share others' personal information without consent</li>
+                  <li>Don&apos;t share others&apos; personal information without consent</li>
                   <li>Report content that could endanger someone</li>
-                  <li>Reach out if you're concerned about someone's wellbeing</li>
-                  <li>Don't encourage dangerous or illegal behavior</li>
+                  <li>Reach out if you&apos;re concerned about someone&apos;s wellbeing</li>
+                  <li>Don&apos;t encourage dangerous or illegal behavior</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -351,7 +351,7 @@ export default function CommunityGuidelinesPage() {
 
               <Section id="content-standards" number="06" title="Content Standards">
                 <p>
-                  PinkQuill welcomes diverse creative expression. Here's what we encourage
+                  PinkQuill welcomes diverse creative expression. Here&apos;s what we encourage
                   and what makes great content on our platform.
                 </p>
 
@@ -373,12 +373,12 @@ export default function CommunityGuidelinesPage() {
                   Content quality
                 </p>
                 <p>
-                  We don't judge the "quality" of your art—all creative expression is valid.
+                  We don&apos;t judge the &quot;quality&quot; of your art—all creative expression is valid.
                   However, content should be:
                 </p>
                 <ul>
                   <li>Posted in good faith as creative expression or genuine engagement</li>
-                  <li>Relevant to the communities and spaces where it's shared</li>
+                  <li>Relevant to the communities and spaces where it&apos;s shared</li>
                   <li>Not spam, advertisements, or solely self-promotional</li>
                 </ul>
 
@@ -388,7 +388,7 @@ export default function CommunityGuidelinesPage() {
                 <p>
                   We recognize that art often explores difficult themes—pain, darkness,
                   controversy, and the full spectrum of human experience. We allow content
-                  that might be uncomfortable if it has artistic merit and doesn't violate
+                  that might be uncomfortable if it has artistic merit and doesn&apos;t violate
                   our prohibited content policies.
                 </p>
               </Section>
@@ -427,7 +427,7 @@ export default function CommunityGuidelinesPage() {
                 <ul>
                   <li>Child sexual abuse material (CSAM) — zero tolerance</li>
                   <li>Sexual content involving minors in any form</li>
-                  <li>Non-consensual intimate imagery ("revenge porn")</li>
+                  <li>Non-consensual intimate imagery (&quot;revenge porn&quot;)</li>
                   <li>Sexual exploitation or trafficking content</li>
                   <li>Bestiality or zoophilia content</li>
                 </ul>
@@ -467,7 +467,7 @@ export default function CommunityGuidelinesPage() {
                 </ul>
 
                 <Highlight>
-                  When in doubt, err on the side of caution. If you're unsure whether
+                  When in doubt, err on the side of caution. If you&apos;re unsure whether
                   content is appropriate, use a content warning or reach out to us.
                 </Highlight>
               </Section>
@@ -496,10 +496,10 @@ export default function CommunityGuidelinesPage() {
                   How to use content warnings
                 </p>
                 <p>
-                  When creating a post with sensitive content, use PinkQuill's built-in
+                  When creating a post with sensitive content, use PinkQuill&apos;s built-in
                   content warning feature. This hides the content behind a warning that
                   users must click to reveal. Be specific about the type of content
-                  (e.g., "CW: Discussion of grief" rather than just "CW").
+                  (e.g., &quot;CW: Discussion of grief&quot; rather than just &quot;CW&quot;).
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -535,12 +535,12 @@ export default function CommunityGuidelinesPage() {
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
-                  Respecting others' work
+                  Respecting others&apos; work
                 </p>
                 <ul>
-                  <li><strong>Always credit:</strong> If you're inspired by or referencing someone's work, give them credit</li>
-                  <li><strong>Ask permission:</strong> Before using someone's work as a base for your own</li>
-                  <li><strong>Don't plagiarize:</strong> Copying others' work and claiming it as your own is never acceptable</li>
+                  <li><strong>Always credit:</strong> If you&apos;re inspired by or referencing someone&apos;s work, give them credit</li>
+                  <li><strong>Ask permission:</strong> Before using someone&apos;s work as a base for your own</li>
+                  <li><strong>Don&apos;t plagiarize:</strong> Copying others&apos; work and claiming it as your own is never acceptable</li>
                   <li><strong>Understand fair use:</strong> Know the limits of fair use and transformative work</li>
                 </ul>
 
@@ -552,9 +552,9 @@ export default function CommunityGuidelinesPage() {
                   creators welcome fan works, some do not. When creating fan art:
                 </p>
                 <ul>
-                  <li>Research the original creator's stance on fan works</li>
+                  <li>Research the original creator&apos;s stance on fan works</li>
                   <li>Credit the original work and creator</li>
-                  <li>Don't sell fan art unless you have permission or proper licensing</li>
+                  <li>Don&apos;t sell fan art unless you have permission or proper licensing</li>
                   <li>Be prepared to remove content if requested by rights holders</li>
                 </ul>
 
@@ -572,7 +572,7 @@ export default function CommunityGuidelinesPage() {
 
               <Section id="interactions" number="10" title="Interactions & Engagement">
                 <p>
-                  Meaningful interactions make our community special. Here's how to engage
+                  Meaningful interactions make our community special. Here&apos;s how to engage
                   in ways that lift everyone up.
                 </p>
 
@@ -584,7 +584,7 @@ export default function CommunityGuidelinesPage() {
                   <li>Use reactions to show appreciation (admire, snap, ovation, etc.)</li>
                   <li>Offer constructive criticism only when invited or appropriate</li>
                   <li>Avoid drive-by negativity or empty criticism</li>
-                  <li>Remember there's a person behind every post</li>
+                  <li>Remember there&apos;s a person behind every post</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -592,7 +592,7 @@ export default function CommunityGuidelinesPage() {
                 </p>
                 <ul>
                   <li>Follow creators whose work resonates with you</li>
-                  <li>Don't follow-then-unfollow to game the system</li>
+                  <li>Don&apos;t follow-then-unfollow to game the system</li>
                   <li>Curate your feed thoughtfully for your wellbeing</li>
                   <li>Use mute and block features to manage your experience</li>
                 </ul>
@@ -603,16 +603,16 @@ export default function CommunityGuidelinesPage() {
                 <ul>
                   <li>Relay work you genuinely appreciate to share with your followers</li>
                   <li>The original creator is always credited</li>
-                  <li>Don't relay content to mock or ridicule it</li>
-                  <li>Respect creators who don't want their work shared widely</li>
+                  <li>Don&apos;t relay content to mock or ridicule it</li>
+                  <li>Respect creators who don&apos;t want their work shared widely</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
                   Mentions & tags
                 </p>
                 <ul>
-                  <li>Only mention people when it's relevant to them</li>
-                  <li>Don't use mentions to harass, spam, or draw negative attention</li>
+                  <li>Only mention people when it&apos;s relevant to them</li>
+                  <li>Don&apos;t use mentions to harass, spam, or draw negative attention</li>
                   <li>Ask permission before tagging someone in potentially sensitive content</li>
                 </ul>
               </Section>
@@ -628,9 +628,9 @@ export default function CommunityGuidelinesPage() {
                 </p>
                 <ul>
                   <li>Introduce yourself when messaging someone new</li>
-                  <li>Be respectful of people's time and attention</li>
-                  <li>Accept "no" gracefully if someone declines to engage</li>
-                  <li>Keep conversations consensual—don't persist if someone stops responding</li>
+                  <li>Be respectful of people&apos;s time and attention</li>
+                  <li>Accept &quot;no&quot; gracefully if someone declines to engage</li>
+                  <li>Keep conversations consensual—don&apos;t persist if someone stops responding</li>
                   <li>Use messages for genuine connection, not just self-promotion</li>
                 </ul>
 
@@ -650,8 +650,8 @@ export default function CommunityGuidelinesPage() {
                   Message requests
                 </p>
                 <p>
-                  Messages from people you don't follow go to your message requests.
-                  You can choose to accept, ignore, or report them. You're never obligated
+                  Messages from people you don&apos;t follow go to your message requests.
+                  You can choose to accept, ignore, or report them. You&apos;re never obligated
                   to respond to anyone.
                 </p>
               </Section>
@@ -666,9 +666,9 @@ export default function CommunityGuidelinesPage() {
                   Joining communities
                 </p>
                 <ul>
-                  <li>Read and follow each community's specific rules</li>
+                  <li>Read and follow each community&apos;s specific rules</li>
                   <li>Contribute meaningfully to discussions</li>
-                  <li>Stay on topic for the community's focus</li>
+                  <li>Stay on topic for the community&apos;s focus</li>
                   <li>Respect moderators and their decisions</li>
                   <li>Report rule violations to community moderators</li>
                 </ul>
@@ -679,7 +679,7 @@ export default function CommunityGuidelinesPage() {
                 <ul>
                   <li>Establish clear, reasonable rules for your community</li>
                   <li>Enforce rules consistently and fairly</li>
-                  <li>Don't create communities for prohibited content or purposes</li>
+                  <li>Don&apos;t create communities for prohibited content or purposes</li>
                   <li>Respond to reports and maintain community health</li>
                   <li>Build inclusive spaces that welcome diverse members</li>
                 </ul>
@@ -688,7 +688,7 @@ export default function CommunityGuidelinesPage() {
                   Community rules
                 </p>
                 <p>
-                  Community-specific rules cannot override PinkQuill's Community Guidelines.
+                  Community-specific rules cannot override PinkQuill&apos;s Community Guidelines.
                   If a community rule conflicts with our guidelines, our guidelines take
                   precedence. Communities that consistently violate guidelines may be removed.
                 </p>
@@ -697,7 +697,7 @@ export default function CommunityGuidelinesPage() {
               <Section id="collaboration" number="13" title="Collaboration">
                 <p>
                   Collaboration is one of the most rewarding aspects of creative communities.
-                  Here's how to collaborate respectfully.
+                  Here&apos;s how to collaborate respectfully.
                 </p>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -707,7 +707,7 @@ export default function CommunityGuidelinesPage() {
                   <li>Only invite people who might genuinely be interested</li>
                   <li>Clearly explain the collaboration and expectations</li>
                   <li>Accept declinations gracefully</li>
-                  <li>Don't pressure or guilt people into collaborating</li>
+                  <li>Don&apos;t pressure or guilt people into collaborating</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -725,8 +725,8 @@ export default function CommunityGuidelinesPage() {
                 </p>
                 <ul>
                   <li>Always credit all collaborators on shared work</li>
-                  <li>Use PinkQuill's collaboration features to properly attribute</li>
-                  <li>Don't remove or diminish others' contributions</li>
+                  <li>Use PinkQuill&apos;s collaboration features to properly attribute</li>
+                  <li>Don&apos;t remove or diminish others&apos; contributions</li>
                   <li>Resolve attribution disputes privately and respectfully</li>
                 </ul>
               </Section>
@@ -740,11 +740,11 @@ export default function CommunityGuidelinesPage() {
                   Respecting privacy
                 </p>
                 <ul>
-                  <li>Don't share others' personal information without explicit consent</li>
-                  <li>Don't screenshot and share private conversations</li>
+                  <li>Don&apos;t share others&apos; personal information without explicit consent</li>
+                  <li>Don&apos;t screenshot and share private conversations</li>
                   <li>Respect when someone uses a pseudonym or keeps details private</li>
-                  <li>Don't attempt to identify anonymous or pseudonymous users</li>
-                  <li>Don't stalk or track people across platforms</li>
+                  <li>Don&apos;t attempt to identify anonymous or pseudonymous users</li>
+                  <li>Don&apos;t stalk or track people across platforms</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -753,8 +753,8 @@ export default function CommunityGuidelinesPage() {
                 <ul>
                   <li>Use privacy settings to control who sees your content</li>
                   <li>Block accounts that make you uncomfortable</li>
-                  <li>You don't owe anyone access to you or your work</li>
-                  <li>It's okay to decline requests, comments, or messages</li>
+                  <li>You don&apos;t owe anyone access to you or your work</li>
+                  <li>It&apos;s okay to decline requests, comments, or messages</li>
                 </ul>
 
                 <p className="font-ui text-sm tracking-wide text-ink mt-8 mb-4">
@@ -791,8 +791,8 @@ export default function CommunityGuidelinesPage() {
                 </p>
                 <ul>
                   <li>Never share sexual or inappropriate content with minors</li>
-                  <li>Don't solicit personal information from minors</li>
-                  <li>Don't engage in grooming behavior</li>
+                  <li>Don&apos;t solicit personal information from minors</li>
+                  <li>Don&apos;t engage in grooming behavior</li>
                   <li>Report any concerning interactions with or about minors</li>
                 </ul>
 
@@ -809,7 +809,7 @@ export default function CommunityGuidelinesPage() {
 
               <Section id="reporting" number="16" title="Reporting & Blocking">
                 <p>
-                  You play a crucial role in keeping our community safe. Here's how to
+                  You play a crucial role in keeping our community safe. Here&apos;s how to
                   report problems and protect yourself.
                 </p>
 
@@ -821,7 +821,7 @@ export default function CommunityGuidelinesPage() {
                   <li>Harassment or abuse directed at you or others</li>
                   <li>Spam or scam accounts</li>
                   <li>Impersonation of you or someone you know</li>
-                  <li>Content that may endanger someone's safety</li>
+                  <li>Content that may endanger someone&apos;s safety</li>
                   <li>Intellectual property theft</li>
                 </ul>
 
@@ -840,7 +840,7 @@ export default function CommunityGuidelinesPage() {
                 <ul>
                   <li>Reports are reviewed by our Trust & Safety team</li>
                   <li>We may contact you for additional information</li>
-                  <li>We'll notify you of the outcome when appropriate</li>
+                  <li>We&apos;ll notify you of the outcome when appropriate</li>
                   <li>Your identity is kept confidential from the reported user</li>
                 </ul>
 
@@ -851,9 +851,9 @@ export default function CommunityGuidelinesPage() {
                   You can block anyone at any time. When you block someone:
                 </p>
                 <ul>
-                  <li>They can't see your profile or posts</li>
-                  <li>They can't message you or comment on your work</li>
-                  <li>You won't see their content</li>
+                  <li>They can&apos;t see your profile or posts</li>
+                  <li>They can&apos;t message you or comment on your work</li>
+                  <li>You won&apos;t see their content</li>
                   <li>Any mutual follows are removed</li>
                 </ul>
 
@@ -865,7 +865,7 @@ export default function CommunityGuidelinesPage() {
 
               <Section id="enforcement" number="17" title="Enforcement">
                 <p>
-                  We enforce these guidelines to maintain a healthy community. Here's how
+                  We enforce these guidelines to maintain a healthy community. Here&apos;s how
                   our enforcement process works.
                 </p>
 
@@ -895,7 +895,7 @@ export default function CommunityGuidelinesPage() {
                 </p>
                 <ul>
                   <li>Severity of the violation</li>
-                  <li>Whether it's a first offense or repeated behavior</li>
+                  <li>Whether it&apos;s a first offense or repeated behavior</li>
                   <li>Intent behind the content or action</li>
                   <li>Potential for harm</li>
                   <li>Account history and standing</li>
@@ -966,7 +966,7 @@ export default function CommunityGuidelinesPage() {
                 </p>
                 <ul>
                   <li>Significant changes will be announced in advance</li>
-                  <li>The "Last updated" date at the top reflects the most recent revision</li>
+                  <li>The &quot;Last updated&quot; date at the top reflects the most recent revision</li>
                   <li>We may notify you of major changes via email or in-app notification</li>
                   <li>Continued use of PinkQuill after changes constitutes acceptance</li>
                 </ul>
@@ -979,7 +979,7 @@ export default function CommunityGuidelinesPage() {
               <Section id="contact" number="20" title="Contact">
                 <p>
                   Have questions about these guidelines or need to report something?
-                  We're here to help.
+                  We&apos;re here to help.
                 </p>
                 <div className="mt-6 space-y-2">
                   <p>

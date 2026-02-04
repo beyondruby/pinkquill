@@ -3,13 +3,13 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useSavedPosts, useToggleSave } from "@/lib/hooks";
-import { useSavedTakes, Take } from "@/lib/hooks/useTakes";
+import { useSavedTakes } from "@/lib/hooks/useTakes";
 import { useSavedProducts, useToggleSaveProduct } from "@/lib/hooks/useProducts";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
 import { supabase } from "@/lib/supabase";
 import Loading, { FullPageLoading } from "@/components/ui/Loading";
-import type { Product } from "@/lib/types/store";
+// Product type is inferred from useSavedProducts hook
 
 function getTimeAgo(dateString: string): string {
   const now = new Date();
