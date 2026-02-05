@@ -214,8 +214,19 @@ export default function InsightsCommunitiesPage() {
 
         if (error) throw error;
 
+        type CommunityRow = {
+          id: string;
+          name: string;
+          slug: string;
+          avatar_url: string | null;
+          member_count: number;
+        };
         const communityList = data
-          ?.map((item: { community: Community | null }) => item.community)
+          ?.map((item: { community: CommunityRow | CommunityRow[] | null }) => {
+            // Supabase may return array or single object depending on relationship
+            const c = Array.isArray(item.community) ? item.community[0] : item.community;
+            return c as Community | null;
+          })
           .filter(Boolean) as Community[];
 
         setCommunities(communityList || []);
