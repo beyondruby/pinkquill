@@ -109,7 +109,7 @@ export default function PostTags({ hashtags = [], mentions = [], collaborators =
           {hashtags.map((tag) => (
             <Link
               key={tag}
-              href={`/explore?tag=${encodeURIComponent(tag)}`}
+              href={`/tag/${encodeURIComponent(tag)}`}
               className="hashtag-pill"
               onClick={handleClick}
             >

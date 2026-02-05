@@ -631,7 +631,7 @@ export default function CreatePost() {
     const loadPost = async () => {
       setLoadingPost(true);
       try {
-        // Fetch post data
+        // Fetch post data with flair
         const { data: post, error: postError } = await supabase
           .from("posts")
           .select(`
@@ -642,6 +642,15 @@ export default function CreatePost() {
               media_type,
               caption,
               position
+            ),
+            flair:community_flairs (
+              id,
+              community_id,
+              name,
+              color,
+              emoji,
+              position,
+              created_at
             )
           `)
           .eq("id", editPostId)
@@ -702,6 +711,14 @@ export default function CreatePost() {
             }
           }
           setTags(tagNames);
+        }
+
+        // Set flair if exists (handle Supabase array response)
+        if (post.flair) {
+          const flairData = Array.isArray(post.flair) ? post.flair[0] : post.flair;
+          if (flairData && flairData.id) {
+            setSelectedFlair(flairData);
+          }
         }
 
         // Load collaborators
@@ -1425,6 +1442,18 @@ export default function CreatePost() {
       return;
     }
 
+    // Extract hashtags from content and merge with manually added tags
+    const contentHashtags = plainText.match(/#[\w]+/g);
+    const allTags = [...tags];
+    if (contentHashtags) {
+      const extractedTags = contentHashtags.map((tag) => tag.slice(1).toLowerCase());
+      extractedTags.forEach((tag) => {
+        if (!allTags.includes(tag)) {
+          allTags.push(tag);
+        }
+      });
+    }
+
     setLoading(true);
     setError(null);
 
@@ -1442,6 +1471,7 @@ export default function CreatePost() {
             visibility,
             content_warning: hasContentWarning ? contentWarning.trim() || null : null,
             spotify_track: spotifyTrack,
+            flair_id: selectedFlair?.id || null,
           })
           .eq("id", editPostId);
 
@@ -1546,9 +1576,9 @@ export default function CreatePost() {
         }
       }
 
-      // Add tags
-      if (tags.length > 0) {
-        for (const tagName of tags) {
+      // Add tags (including hashtags extracted from content)
+      if (allTags.length > 0) {
+        for (const tagName of allTags) {
           const { data: existingTag } = await supabase
             .from("tags")
             .select("id")
