@@ -1248,8 +1248,7 @@ export function useContentInsights(
       // Build content list
       type PostData = { id: string; title: string | null; type: string; created_at: string; media?: { media_type: string; media_url: string; position?: number }[] };
       type MediaItem = { media_type: string; media_url: string; position?: number };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const contentItems: ContentItem[] = ([
+      const contentItems: ContentItem[] = [
         ...posts.map((p: PostData) => {
           // Get first image from media array
           const media = p.media || [];
@@ -1259,7 +1258,7 @@ export function useContentInsights(
           return {
             id: p.id,
             type: "post" as const,
-            title: p.title,
+            title: p.title ?? undefined,
             postType: p.type,
             thumbnail: firstImage?.media_url,
             createdAt: p.created_at,
@@ -1275,8 +1274,8 @@ export function useContentInsights(
         ...takes.map((t: { id: string; caption: string | null; thumbnail_url: string | null; created_at: string }) => ({
           id: t.id,
           type: "take" as const,
-          title: t.caption,
-          thumbnail: t.thumbnail_url,
+          title: t.caption ?? undefined,
+          thumbnail: t.thumbnail_url ?? undefined,
           createdAt: t.created_at,
           views: takeViewCounts.get(t.id) || 0,
           impressions: 0,
@@ -1286,7 +1285,7 @@ export function useContentInsights(
           saves: 0,
           engagementRate: 0,
         })),
-      ] as any[]) as ContentItem[];
+      ];
 
       // Sort by views descending
       contentItems.sort((a, b) => b.views - a.views);

@@ -76,8 +76,8 @@ export function useCollections(userId?: string): UseCollectionsReturn {
       const transformedCollections: CollectionWithItems[] = (collectionsData || []).map((col: any) => ({
         ...col,
         items_count: col.items?.length || 0,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         items: (col.items || [])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((item: any) => ({
             ...item,
             posts_count: item.posts?.[0]?.count || 0,
