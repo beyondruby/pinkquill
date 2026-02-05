@@ -137,31 +137,34 @@ export async function fetchPostMetadata(postIds: string[]): Promise<PostMetadata
   const hashtagsByPost = new Map<string, string[]>();
 
   // Process collaborators
-  type CollaboratorRow = { post_id: string; status: string; role: string | null; user: PostCollaboratorData['user'] };
-  (collaboratorsResult.data || []).forEach((c: CollaboratorRow) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (collaboratorsResult.data || []).forEach((c: any) => {
     if (!collaboratorsByPost.has(c.post_id)) {
       collaboratorsByPost.set(c.post_id, []);
     }
+    const u = Array.isArray(c.user) ? c.user[0] : c.user;
     collaboratorsByPost.get(c.post_id)!.push({
       status: c.status,
       role: c.role,
-      user: c.user,
+      user: u,
     });
   });
 
   // Process mentions
-  type MentionRow = { post_id: string; user: PostMentionData['user'] };
-  (mentionsResult.data || []).forEach((m: MentionRow) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (mentionsResult.data || []).forEach((m: any) => {
     if (!mentionsByPost.has(m.post_id)) {
       mentionsByPost.set(m.post_id, []);
     }
-    mentionsByPost.get(m.post_id)!.push({ user: m.user });
+    const u = Array.isArray(m.user) ? m.user[0] : m.user;
+    mentionsByPost.get(m.post_id)!.push({ user: u });
   });
 
   // Process hashtags
-  type TagRow = { post_id: string; tag?: { name: string } | null };
-  (tagsResult.data || []).forEach((t: TagRow) => {
-    const tagName = t.tag?.name;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (tagsResult.data || []).forEach((t: any) => {
+    const tag = Array.isArray(t.tag) ? t.tag[0] : t.tag;
+    const tagName = tag?.name;
     if (tagName) {
       if (!hashtagsByPost.has(t.post_id)) {
         hashtagsByPost.set(t.post_id, []);

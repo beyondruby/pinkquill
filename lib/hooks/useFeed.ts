@@ -225,25 +225,27 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           const tagsResult = results[2];
 
           // Process collaborators
-          type CollaboratorRow = { post_id: string; status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null };
-          (collaboratorsResult.data || []).forEach((c: CollaboratorRow) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (collaboratorsResult.data || []).forEach((c: any) => {
             if (!collaboratorsByPost.has(c.post_id)) {
               collaboratorsByPost.set(c.post_id, []);
             }
+            const u = Array.isArray(c.user) ? c.user[0] : c.user;
             collaboratorsByPost.get(c.post_id)!.push({
               status: c.status,
               role: c.role,
-              user: c.user,
+              user: u,
             });
           });
 
           // Process mentions
-          type MentionRow = { post_id: string; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null };
-          (mentionsResult.data || []).forEach((m: MentionRow) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (mentionsResult.data || []).forEach((m: any) => {
             if (!mentionsByPost.has(m.post_id)) {
               mentionsByPost.set(m.post_id, []);
             }
-            mentionsByPost.get(m.post_id)!.push({ user: m.user });
+            const u = Array.isArray(m.user) ? m.user[0] : m.user;
+            mentionsByPost.get(m.post_id)!.push({ user: u });
           });
 
           // Process tags
@@ -267,14 +269,16 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
             userAdmires = new Set((admiresResult.data || []).map((a: { post_id: string }) => a.post_id));
             userSaves = new Set((savesResult.data || []).map((s: { post_id: string }) => s.post_id));
             userRelays = new Set((relaysResult.data || []).map((r: { post_id: string }) => r.post_id));
-            (reactionsResult.data || []).forEach((r: { post_id: string; reaction_type: string }) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (reactionsResult.data || []).forEach((r: any) => {
               userReactions.set(r.post_id, r.reaction_type);
             });
           }
         }
 
         // Transform posts with all data
-        const transformedPosts: Post[] = (postsData || []).map((post) => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const transformedPosts = (postsData as any[] || []).map((post) => ({
           id: post.id,
           author_id: post.author_id,
           type: post.type,
@@ -313,16 +317,17 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         if (abortController.signal.aborted || !mountedRef.current) return;
 
         // Update state
+        const typedPosts = transformedPosts as Post[];
         if (append) {
-          setPosts((prev) => [...prev, ...transformedPosts]);
+          setPosts((prev) => [...prev, ...typedPosts]);
         } else {
-          setPosts(transformedPosts);
+          setPosts(typedPosts);
         }
 
         setPagination({
           page,
           pageSize,
-          hasMore: transformedPosts.length === pageSize,
+          hasMore: typedPosts.length === pageSize,
           total: totalCount || undefined,
         });
       } catch (err: unknown) {

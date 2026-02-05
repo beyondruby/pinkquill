@@ -98,10 +98,12 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
       const tagCounts = new Map<string, { name: string; total: number; recent: number }>();
       const dataArray = tagData || [];
 
-      type TagRow = { tags?: { name: string }; posts?: { created_at: string } };
       for (let i = 0; i < dataArray.length; i++) {
-        const item = dataArray[i] as TagRow;
-        const tagName = item.tags?.name;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const item = dataArray[i] as any;
+        const tags = Array.isArray(item.tags) ? item.tags[0] : item.tags;
+        const posts = Array.isArray(item.posts) ? item.posts[0] : item.posts;
+        const tagName = tags?.name;
         if (!tagName) continue;
 
         let existing = tagCounts.get(tagName);
@@ -113,7 +115,7 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
         existing.total += 1;
 
         // Check if post is from last 7 days
-        const postDate = new Date(item.posts?.created_at);
+        const postDate = new Date(posts?.created_at);
         if (postDate >= sevenDaysAgo) {
           existing.recent += 1;
         }
@@ -294,8 +296,10 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
         .in("post_id", postIds);
 
       const tagsByPost = new Map<string, string[]>();
-      (allPostTags || []).forEach((pt: { post_id: string; tags?: { name: string } }) => {
-        const tagName = pt.tags?.name;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (allPostTags || []).forEach((pt: any) => {
+        const tags = Array.isArray(pt.tags) ? pt.tags[0] : pt.tags;
+        const tagName = tags?.name;
         if (tagName) {
           const existing = tagsByPost.get(pt.post_id) || [];
           existing.push(tagName);
@@ -414,7 +418,10 @@ export function usePopularTags(limit: number = 20) {
         const dataArray = data || [];
 
         for (let i = 0; i < dataArray.length; i++) {
-          const tagName = (dataArray[i] as { tags?: { name: string } }).tags?.name;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const item = dataArray[i] as any;
+          const tags = Array.isArray(item.tags) ? item.tags[0] : item.tags;
+          const tagName = tags?.name;
           if (tagName) {
             tagCounts.set(tagName, (tagCounts.get(tagName) || 0) + 1);
           }

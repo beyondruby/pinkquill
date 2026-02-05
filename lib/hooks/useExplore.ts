@@ -258,11 +258,13 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
       const admiredAuthors = new Set<string>();
       const recentAdmires = new Set<string>();
 
-      (admiresResult.data || []).forEach((admire: { post_id: string; post?: { type: string; author_id: string } }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (admiresResult.data || []).forEach((admire: any) => {
         recentAdmires.add(admire.post_id);
-        if (admire.post) {
-          const postType = admire.post.type;
-          const authorId = admire.post.author_id;
+        const post = Array.isArray(admire.post) ? admire.post[0] : admire.post;
+        if (post) {
+          const postType = post.type;
+          const authorId = post.author_id;
 
           admiredPostTypes.set(postType, (admiredPostTypes.get(postType) || 0) + 1);
           admiredAuthors.add(authorId);
@@ -470,26 +472,32 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
               .in("post_id", postIds),
           ]);
 
-          (collaboratorsResult.data || []).forEach((c) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (collaboratorsResult.data || []).forEach((c: any) => {
             if (!collaboratorsByPost.has(c.post_id)) {
               collaboratorsByPost.set(c.post_id, []);
             }
+            const u = Array.isArray(c.user) ? c.user[0] : c.user;
             collaboratorsByPost.get(c.post_id)!.push({
               status: c.status,
               role: c.role,
-              user: c.user,
+              user: u,
             });
           });
 
-          (mentionsResult.data || []).forEach((m) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (mentionsResult.data || []).forEach((m: any) => {
             if (!mentionsByPost.has(m.post_id)) {
               mentionsByPost.set(m.post_id, []);
             }
-            mentionsByPost.get(m.post_id)!.push({ user: m.user });
+            const u = Array.isArray(m.user) ? m.user[0] : m.user;
+            mentionsByPost.get(m.post_id)!.push({ user: u });
           });
 
-          (tagsResult.data || []).forEach((t: { post_id: string; tag?: { name: string } | null }) => {
-            const tagName = t.tag?.name;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (tagsResult.data || []).forEach((t: any) => {
+            const tag = Array.isArray(t.tag) ? t.tag[0] : t.tag;
+            const tagName = tag?.name;
             if (tagName) {
               if (!hashtagsByPost.has(t.post_id)) {
                 hashtagsByPost.set(t.post_id, []);
@@ -500,7 +508,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         }
 
         // Transform posts with all data
-        let transformedPosts: Post[] = (postsData || []).map((post) => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let transformedPosts = (postsData as any[] || []).map((post) => ({
           id: post.id,
           author_id: post.author_id,
           type: post.type,
@@ -626,7 +635,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
 
         // Paginate the results - for algorithmic tabs, we've already fetched extra posts for scoring
         // Take only pageSize posts from the scored/sorted results
-        const paginatedPosts = transformedPosts.slice(0, pageSize);
+        const paginatedPosts = transformedPosts.slice(0, pageSize) as Post[];
 
         if (!mountedRef.current) return;
 

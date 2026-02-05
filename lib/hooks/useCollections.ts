@@ -72,11 +72,13 @@ export function useCollections(userId?: string): UseCollectionsReturn {
       if (collectionsError) throw collectionsError;
 
       // Transform data
-      const transformedCollections: CollectionWithItems[] = (collectionsData || []).map((col: CollectionWithItems & { items?: CollectionItem[] }) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformedCollections: CollectionWithItems[] = (collectionsData || []).map((col: any) => ({
         ...col,
         items_count: col.items?.length || 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         items: (col.items || [])
-          .map((item: CollectionItem & { posts?: { count: number }[] }) => ({
+          .map((item: any) => ({
             ...item,
             posts_count: item.posts?.[0]?.count || 0,
           }))

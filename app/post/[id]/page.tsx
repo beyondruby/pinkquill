@@ -383,8 +383,12 @@ export default function PostPage() {
           .eq("post_id", postId);
 
         if (mentionsData) {
-          mentions = mentionsData
-            .map((m: { user: TaggedUser | null }) => m.user)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          mentions = (mentionsData as any[])
+            .map((m) => {
+              const u = Array.isArray(m.user) ? m.user[0] : m.user;
+              return u as TaggedUser | null;
+            })
             .filter((u): u is TaggedUser => u !== null && u !== undefined);
         }
       } catch {
@@ -400,8 +404,12 @@ export default function PostPage() {
           .eq("post_id", postId);
 
         if (tagsData) {
-          hashtags = tagsData
-            .map((t: { tag: { name: string } | null }) => t.tag?.name)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          hashtags = (tagsData as any[])
+            .map((t) => {
+              const tag = Array.isArray(t.tag) ? t.tag[0] : t.tag;
+              return tag?.name;
+            })
             .filter((name): name is string => !!name);
         }
       } catch {
@@ -426,9 +434,13 @@ export default function PostPage() {
           .eq("status", "accepted");
 
         if (collabData) {
-          collaborators = collabData
-            .map((c: { role: string | null; user: CollaboratorUser['user'] | null }) => ({ role: c.role, user: c.user }))
-            .filter((c): c is CollaboratorUser => c.user !== null);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          collaborators = (collabData as any[])
+            .map((c) => {
+              const u = Array.isArray(c.user) ? c.user[0] : c.user;
+              return u ? { role: c.role, user: u } as CollaboratorUser : null;
+            })
+            .filter((c): c is CollaboratorUser => c !== null);
         }
       } catch {
         // Table might not exist yet

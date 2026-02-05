@@ -5,6 +5,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useExplore, useTrendingTags } from "@/lib/hooks";
 import type { ExploreTab } from "@/lib/hooks";
 import PostCard from "@/components/feed/PostCard";
+import type { PostProps, PostType } from "@/components/feed/PostCard/types";
 import Link from "next/link";
 
 // Primary navigation tabs
@@ -302,13 +303,13 @@ function transformPostForCard(post: {
       handle: `@${post.author?.username || "unknown"}`,
       avatar: post.author?.avatar_url || "/default-avatar.png",
     },
-    type: post.type,
+    type: post.type as PostType,
     typeLabel: typeLabels[post.type] || "shared",
     timeAgo: getTimeAgo(post.created_at),
     createdAt: post.created_at,
-    title: post.title,
+    title: post.title || undefined,
     content: post.content || "",
-    contentWarning: post.content_warning,
+    contentWarning: post.content_warning || undefined,
     media: post.media,
     stats: {
       admires: post.admires_count || 0,
@@ -323,7 +324,7 @@ function transformPostForCard(post: {
     collaborators: post.collaborators,
     mentions: post.mentions,
     hashtags: post.hashtags,
-  };
+  } as PostProps;
 }
 
 export default function ExplorePageContent() {

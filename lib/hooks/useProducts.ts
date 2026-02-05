@@ -77,7 +77,7 @@ export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
       if (fetchError) throw fetchError;
 
       // Transform data
-      type RawProduct = Omit<Product, 'keywords'> & { keywords?: { keyword: string }[]; shipping?: ProductShippingOption[] };
+      type RawProduct = Omit<Product, 'keywords'> & { keywords?: { keyword: string }[]; shipping?: ProductShipping[] };
       const transformedProducts: Product[] = (data || []).map((product: RawProduct) => ({
         ...product,
         media: product.media || [],
@@ -86,11 +86,11 @@ export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
         keywords: (product.keywords || []).map((k: { keyword: string }) => k.keyword),
         primary_image_url: product.media?.find((m: ProductMedia) => m.is_primary)?.media_url
           || product.media?.[0]?.media_url,
-        min_price: product.pricing?.length > 0
-          ? Math.min(...product.pricing.map((p: ProductPricing) => p.price))
+        min_price: (product.pricing?.length ?? 0) > 0
+          ? Math.min(...(product.pricing ?? []).map((p: ProductPricing) => p.price))
           : undefined,
-        max_price: product.pricing?.length > 0
-          ? Math.max(...product.pricing.map((p: ProductPricing) => p.price))
+        max_price: (product.pricing?.length ?? 0) > 0
+          ? Math.max(...(product.pricing ?? []).map((p: ProductPricing) => p.price))
           : undefined,
       }));
 
@@ -714,8 +714,8 @@ export function useSavedProducts(userId?: string): UseSavedProductsReturn {
         pricing: product.pricing || [],
         primary_image_url: product.media?.find((m: ProductMedia) => m.is_primary)?.media_url
           || product.media?.[0]?.media_url,
-        min_price: product.pricing?.length > 0
-          ? Math.min(...product.pricing.map((p: ProductPricing) => p.price))
+        min_price: (product.pricing?.length ?? 0) > 0
+          ? Math.min(...(product.pricing ?? []).map((p: ProductPricing) => p.price))
           : undefined,
       }));
 

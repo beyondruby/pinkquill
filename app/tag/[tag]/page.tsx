@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTagPosts, useTrendingTags } from "@/lib/hooks";
 import PostCard from "@/components/feed/PostCard";
+import type { PostProps, PostType } from "@/components/feed/PostCard/types";
 
 // Loading skeleton
 function PostSkeleton() {
@@ -81,13 +82,13 @@ function transformPostForCard(post: {
       handle: `@${post.author?.username || "unknown"}`,
       avatar: post.author?.avatar_url || "/default-avatar.png",
     },
-    type: post.type,
+    type: post.type as PostType,
     typeLabel: typeLabels[post.type] || "shared",
     timeAgo: getTimeAgo(post.created_at),
     createdAt: post.created_at,
-    title: post.title,
+    title: post.title || undefined,
     content: post.content || "",
-    contentWarning: post.content_warning,
+    contentWarning: post.content_warning || undefined,
     media: post.media,
     stats: {
       admires: post.admires_count || 0,
@@ -98,7 +99,7 @@ function transformPostForCard(post: {
     isSaved: post.user_has_saved,
     isRelayed: post.user_has_relayed,
     hashtags: post.hashtags || [],
-  };
+  } as PostProps;
 }
 
 export default function TagPage() {

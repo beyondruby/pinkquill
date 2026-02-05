@@ -150,9 +150,11 @@ export default function MessagesView() {
       );
 
       const participantsMap = new Map<string, ParticipantQueryResult["user"]>();
-      (allParticipantsResult.data || []).forEach((p: { conversation_id: string; user: ParticipantQueryResult["user"] }) => {
-        if (p.user && !participantsMap.has(p.conversation_id)) {
-          participantsMap.set(p.conversation_id, p.user);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (allParticipantsResult.data || []).forEach((p: any) => {
+        const u = Array.isArray(p.user) ? p.user[0] : p.user;
+        if (u && !participantsMap.has(p.conversation_id)) {
+          participantsMap.set(p.conversation_id, u);
         }
       });
 
@@ -164,7 +166,8 @@ export default function MessagesView() {
       type MessageData = { id: string; conversation_id: string; sender_id: string; content: string; created_at: string; message_type?: "text" | "voice" | "media"; voice_duration?: number; media_type?: "image" | "video" };
       const lastMessageMap = new Map<string, MessageData>();
       const myLastMessageMap = new Map<string, MessageData>(); // For blocked users
-      (allMessagesResult.data || []).forEach((m: MessageData) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (allMessagesResult.data || []).forEach((m: any) => {
         // Store first (latest) message per conversation
         if (!lastMessageMap.has(m.conversation_id)) {
           lastMessageMap.set(m.conversation_id, m);

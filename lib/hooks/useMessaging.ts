@@ -88,10 +88,11 @@ export function useMessageReactions({
       const reactionsMap = new Map<string, MessageReaction[]>();
       const reactionsArray = reactions || [];
 
-      type ReactionRow = { id: string; message_id: string; user_id: string; emoji: string; created_at: string; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } };
       for (let i = 0; i < reactionsArray.length; i++) {
-        const reaction = reactionsArray[i] as ReactionRow;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const reaction = reactionsArray[i] as any;
         const messageId = reaction.message_id;
+        const u = Array.isArray(reaction.user) ? reaction.user[0] : reaction.user;
 
         let messageReactions = reactionsMap.get(messageId);
         if (!messageReactions) {
@@ -103,9 +104,9 @@ export function useMessageReactions({
           id: reaction.id,
           message_id: reaction.message_id,
           user_id: reaction.user_id,
-          emoji: reaction.emoji,
+          emoji: reaction.emoji as MessageReactionEmoji,
           created_at: reaction.created_at,
-          user: reaction.user,
+          user: u,
         });
       }
 
@@ -180,9 +181,9 @@ export function useMessageReactions({
                 .eq("id", newReaction.user_id)
                 .single();
 
-              userData = data;
+              userData = data as UserProfile | undefined;
               if (data) {
-                userProfileCache.set(newReaction.user_id, data);
+                userProfileCache.set(newReaction.user_id, data as UserProfile);
               }
             }
 
@@ -192,9 +193,9 @@ export function useMessageReactions({
               id: newReaction.id,
               message_id: newReaction.message_id,
               user_id: newReaction.user_id,
-              emoji: newReaction.emoji,
+              emoji: newReaction.emoji as MessageReactionEmoji,
               created_at: newReaction.created_at,
-              user: userData || undefined,
+              user: userData,
             };
 
             setReactionsByMessage(prev => {
@@ -225,7 +226,7 @@ export function useMessageReactions({
               if (index !== -1) {
                 messageReactions[index] = {
                   ...messageReactions[index],
-                  emoji: updatedReaction.emoji,
+                  emoji: updatedReaction.emoji as MessageReactionEmoji,
                 };
                 newMap.set(updatedReaction.message_id, [...messageReactions]);
               }

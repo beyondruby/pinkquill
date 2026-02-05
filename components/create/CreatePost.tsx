@@ -713,17 +713,23 @@ export default function CreatePost() {
             .eq("post_id", editPostId);
 
           if (collabData && Array.isArray(collabData)) {
-            type CollabRow = { status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null; is_verified: boolean } | null };
-            const loadedCollaborators: CollaboratorWithRole[] = (collabData as CollabRow[])
-              .filter((c) => c.user && c.status === 'accepted')
-              .map((c) => ({
-                id: c.user!.id,
-                username: c.user!.username,
-                display_name: c.user!.display_name,
-                avatar_url: c.user!.avatar_url,
-                is_verified: c.user!.is_verified,
-                role: c.role || undefined,
-              }));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const loadedCollaborators: CollaboratorWithRole[] = (collabData as any[])
+              .filter((c) => {
+                const u = Array.isArray(c.user) ? c.user[0] : c.user;
+                return u && c.status === 'accepted';
+              })
+              .map((c) => {
+                const u = Array.isArray(c.user) ? c.user[0] : c.user;
+                return {
+                  id: u.id,
+                  username: u.username,
+                  display_name: u.display_name,
+                  avatar_url: u.avatar_url,
+                  is_verified: u.is_verified,
+                  role: c.role || undefined,
+                };
+              });
             setCollaborators(loadedCollaborators);
           }
         } catch (collabErr) {
@@ -746,16 +752,22 @@ export default function CreatePost() {
             .eq("post_id", editPostId);
 
           if (mentionData && Array.isArray(mentionData)) {
-            type MentionRow = { user: { id: string; username: string; display_name: string | null; avatar_url: string | null; is_verified: boolean } | null };
-            const loadedMentions: SearchableUser[] = (mentionData as MentionRow[])
-              .filter((m) => m.user)
-              .map((m) => ({
-                id: m.user!.id,
-                username: m.user!.username,
-                display_name: m.user!.display_name,
-                avatar_url: m.user!.avatar_url,
-                is_verified: m.user!.is_verified,
-              }));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const loadedMentions: SearchableUser[] = (mentionData as any[])
+              .filter((m) => {
+                const u = Array.isArray(m.user) ? m.user[0] : m.user;
+                return u;
+              })
+              .map((m) => {
+                const u = Array.isArray(m.user) ? m.user[0] : m.user;
+                return {
+                  id: u.id,
+                  username: u.username,
+                  display_name: u.display_name,
+                  avatar_url: u.avatar_url,
+                  is_verified: u.is_verified,
+                };
+              });
             setTaggedPeople(loadedMentions);
           }
         } catch (mentionErr) {

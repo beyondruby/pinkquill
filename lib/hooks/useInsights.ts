@@ -1248,7 +1248,8 @@ export function useContentInsights(
       // Build content list
       type PostData = { id: string; title: string | null; type: string; created_at: string; media?: { media_type: string; media_url: string; position?: number }[] };
       type MediaItem = { media_type: string; media_url: string; position?: number };
-      const contentItems: ContentItem[] = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contentItems: ContentItem[] = ([
         ...posts.map((p: PostData) => {
           // Get first image from media array
           const media = p.media || [];
@@ -1285,7 +1286,7 @@ export function useContentInsights(
           saves: 0,
           engagementRate: 0,
         })),
-      ];
+      ] as any[]) as ContentItem[];
 
       // Sort by views descending
       contentItems.sort((a, b) => b.views - a.views);
