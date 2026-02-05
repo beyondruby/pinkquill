@@ -4,6 +4,7 @@ import { useFeed, useSavedPosts, useRelays } from "../useFeed";
 
 // Define types for the mock
 interface MockQueryBuilder {
+  [key: string]: ReturnType<typeof vi.fn>;
   select: ReturnType<typeof vi.fn>;
   eq: ReturnType<typeof vi.fn>;
   in: ReturnType<typeof vi.fn>;
@@ -28,7 +29,7 @@ const createMockQueryBuilder = (resolvedData: unknown = [], error: unknown = nul
   };
 
   // Make all methods chainable
-  Object.keys(builder).forEach(key => {
+  (Object.keys(builder) as Array<keyof MockQueryBuilder>).forEach(key => {
     if (key !== 'range' && key !== 'single' && key !== 'maybeSingle') {
       builder[key] = vi.fn().mockReturnValue(builder);
     }

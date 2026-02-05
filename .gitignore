@@ -6,3 +6,8 @@ node_modules/
 .DS_Store
 out/
 build/
+
+# Test output
+coverage/
+playwright-report/
+test-results/

@@ -106,14 +106,20 @@ describe("createNotification", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const insertMock = vi.fn().mockResolvedValue({ error: null });
-    mockFromImplementation = () => ({
-      insert: insertMock,
-    });
+    mockFromImplementation = () => {
+      const chain = createChainableMock();
+      chain.insert = insertMock;
+      return chain;
+    };
   });
 
   it("should not create notification when actor is user (self-notification)", async () => {
     const insertMock = vi.fn();
-    mockFromImplementation = () => ({ insert: insertMock });
+    mockFromImplementation = () => {
+      const chain = createChainableMock();
+      chain.insert = insertMock;
+      return chain;
+    };
 
     await createNotification("user-1", "user-1", "admire", "post-1");
 
@@ -122,7 +128,11 @@ describe("createNotification", () => {
 
   it("should create a notification for different user", async () => {
     const insertMock = vi.fn().mockResolvedValue({ error: null });
-    mockFromImplementation = () => ({ insert: insertMock });
+    mockFromImplementation = () => {
+      const chain = createChainableMock();
+      chain.insert = insertMock;
+      return chain;
+    };
 
     await createNotification("user-1", "actor-1", "admire", "post-1");
 
@@ -160,7 +170,7 @@ describe("useUnreadCount", () => {
     vi.clearAllMocks();
 
     mockFromImplementation = () => {
-      const chain = createChainableMock({ count: 5, error: null });
+      const chain = createChainableMock({ data: null, count: 5, error: null });
       return chain;
     };
 
@@ -184,7 +194,7 @@ describe("useMarkAsRead", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockFromImplementation = () => createChainableMock({ error: null });
+    mockFromImplementation = () => createChainableMock({ data: null, error: null });
   });
 
   it("should have markAsRead method", () => {
@@ -201,7 +211,11 @@ describe("useMarkAsRead", () => {
     const updateMock = vi.fn().mockReturnValue({
       eq: vi.fn().mockResolvedValue({ error: null }),
     });
-    mockFromImplementation = () => ({ update: updateMock });
+    mockFromImplementation = () => {
+      const chain = createChainableMock({ data: null, error: null });
+      chain.update = updateMock;
+      return chain;
+    };
 
     const { result } = renderHook(() => useMarkAsRead());
 

@@ -4,6 +4,7 @@ import { useComments } from "../useComments";
 
 // Define types for the mock
 interface MockQueryBuilder {
+  [key: string]: ReturnType<typeof vi.fn>;
   select: ReturnType<typeof vi.fn>;
   eq: ReturnType<typeof vi.fn>;
   is: ReturnType<typeof vi.fn>;
@@ -32,7 +33,7 @@ const createMockQueryBuilder = (resolvedData: unknown = [], error: unknown = nul
   };
 
   // Make chainable methods return builder
-  ['select', 'eq', 'is', 'order'].forEach(method => {
+  (['select', 'eq', 'is', 'order'] as const).forEach(method => {
     builder[method] = vi.fn().mockReturnValue(builder);
   });
 

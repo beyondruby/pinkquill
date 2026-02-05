@@ -272,7 +272,7 @@ describe("useFollow", () => {
   });
 
   it("should unfollow user", async () => {
-    mockFromImplementation = () => createChainableMock({ error: null });
+    mockFromImplementation = () => createChainableMock({ data: null, error: null });
 
     const { result } = renderHook(() => useFollow());
 
