@@ -426,7 +426,7 @@ const visibilityOptions = [
 export default function CreatePost() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
@@ -438,9 +438,9 @@ export default function CreatePost() {
   const isEditing = !!editPostId;
   const [loadingPost, setLoadingPost] = useState(isEditing);
 
-  // Community selection
+  // Community selection - only fetch when user is loaded
   const communitySlug = searchParams.get("community");
-  const { communities: userCommunities } = useCommunities(user?.id, 'joined');
+  const { communities: userCommunities, loading: communitiesLoading } = useCommunities(user?.id, 'joined');
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
 
@@ -452,15 +452,15 @@ export default function CreatePost() {
   const [selectedCollectionItem, setSelectedCollectionItem] = useState<CollectionItem | null>(null);
   const { addPost: addPostToCollectionItem } = useAddPostToCollectionItem();
 
-  // Set community from URL param
+  // Set community from URL param (wait for communities to load)
   useEffect(() => {
-    if (communitySlug && userCommunities.length > 0) {
+    if (communitySlug && userCommunities.length > 0 && !communitiesLoading) {
       const community = userCommunities.find(c => c.slug === communitySlug);
       if (community) {
         setSelectedCommunity(community);
       }
     }
-  }, [communitySlug, userCommunities]);
+  }, [communitySlug, userCommunities, communitiesLoading]);
 
   // Clear flair when community changes
   useEffect(() => {
@@ -3204,7 +3204,7 @@ export default function CreatePost() {
             </div>
 
             {/* Community Selector */}
-            {userCommunities.length > 0 && !isEditing && (
+            {!isEditing && (userCommunities.length > 0 || communitiesLoading) && (
               <div className="relative">
                 {selectedCommunity ? (
                   <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-primary/30 bg-purple-primary/5 text-purple-primary font-ui text-[0.85rem]">
@@ -3239,12 +3239,17 @@ export default function CreatePost() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => setShowCommunityMenu(!showCommunityMenu)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white text-muted hover:border-purple-primary hover:text-purple-primary font-ui text-[0.85rem] transition-all"
+                    onClick={() => !communitiesLoading && setShowCommunityMenu(!showCommunityMenu)}
+                    disabled={communitiesLoading}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white text-muted hover:border-purple-primary hover:text-purple-primary font-ui text-[0.85rem] transition-all ${communitiesLoading ? 'opacity-60 cursor-wait' : ''}`}
                   >
-                    {icons.users}
-                    <span>Community</span>
-                    {icons.chevronDown}
+                    {communitiesLoading ? (
+                      <div className="w-4 h-4 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
+                    ) : (
+                      icons.users
+                    )}
+                    <span>{communitiesLoading ? 'Loading...' : 'Community'}</span>
+                    {!communitiesLoading && icons.chevronDown}
                   </button>
                 )}
 
