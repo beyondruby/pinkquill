@@ -15,7 +15,8 @@ import {
   Sound,
 } from "@/lib/hooks/useTakes";
 import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
-import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle, SpotifyTrack } from "@/lib/types";
+import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle, SpotifyTrack, CommunityFlair } from "@/lib/types";
+import FlairPicker from "@/components/communities/FlairPicker";
 import BackgroundPicker from "@/components/create/BackgroundPicker";
 import JournalMetadataPanel from "@/components/create/JournalMetadata";
 import CollectionSelector from "@/components/collections/CollectionSelector";
@@ -443,6 +444,9 @@ export default function CreatePost() {
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
 
+  // Post flair (for community posts)
+  const [selectedFlair, setSelectedFlair] = useState<CommunityFlair | null>(null);
+
   // Collection selection
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [selectedCollectionItem, setSelectedCollectionItem] = useState<CollectionItem | null>(null);
@@ -457,6 +461,11 @@ export default function CreatePost() {
       }
     }
   }, [communitySlug, userCommunities]);
+
+  // Clear flair when community changes
+  useEffect(() => {
+    setSelectedFlair(null);
+  }, [selectedCommunity?.id]);
 
   const [selectedType, setSelectedType] = useState("thought");
   const [tags, setTags] = useState<string[]>([]);
@@ -1486,6 +1495,7 @@ export default function CreatePost() {
             visibility: postVisibility,
             content_warning: hasContentWarning ? contentWarning.trim() || null : null,
             community_id: selectedCommunity?.id || null,
+            flair_id: selectedFlair?.id || null,
             styling: Object.keys(postStyling).some(k => postStyling[k as keyof PostStyling] !== undefined && postStyling[k as keyof PostStyling] !== 'left' && postStyling[k as keyof PostStyling] !== 'normal' && postStyling[k as keyof PostStyling] !== false) ? postStyling : null,
             post_location: postLocation.trim() || null,
             metadata: postMetadata,
@@ -3289,7 +3299,15 @@ export default function CreatePost() {
               </div>
             )}
 
-                      </div>
+            {/* Flair Picker (only show when a community is selected) */}
+            {selectedCommunity && !isEditing && (
+              <FlairPicker
+                communityId={selectedCommunity.id}
+                selectedFlairId={selectedFlair?.id || null}
+                onSelect={setSelectedFlair}
+              />
+            )}
+          </div>
 
           <div className="flex gap-3">
             {!isTakeMode && (

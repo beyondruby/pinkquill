@@ -144,6 +144,10 @@ export interface Post {
   metadata?: JournalMetadata | null;
   spotify_track?: SpotifyTrack | null;
 
+  // Flair (community post categorization)
+  flair_id?: string | null;
+  flair?: CommunityFlair | null;
+
   // Joined data
   author: PostAuthor;
   media: PostMedia[];
@@ -575,6 +579,78 @@ export interface CommunityInvitation {
 }
 
 // ============================================================================
+// COMMUNITY FLAIR TYPES
+// ============================================================================
+
+export interface CommunityFlair {
+  id: string;
+  community_id: string;
+  name: string;
+  color: string;
+  emoji: string | null;
+  position: number;
+  created_at: string;
+}
+
+// ============================================================================
+// MOD QUEUE / REPORT TYPES
+// ============================================================================
+
+export type ReportType = "user" | "post" | "comment" | "take" | "community";
+export type ReportStatus = "pending" | "reviewed" | "resolved";
+export type ResolutionAction =
+  | "dismissed"
+  | "content_deleted"
+  | "user_muted"
+  | "user_banned"
+  | "warning_sent";
+
+export interface Report {
+  id: string;
+  reporter_id: string;
+  reported_user_id: string | null;
+  reported_post_id: string | null;
+  community_id: string | null;
+  reason: string;
+  details: string | null;
+  type: ReportType;
+  status: ReportStatus;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  resolution_action: ResolutionAction | null;
+  resolution_notes: string | null;
+  created_at: string;
+  // Joined data for display
+  reporter?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+  reported_user?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+  reported_post?: {
+    id: string;
+    title: string | null;
+    content: string;
+    type: PostType;
+  };
+  resolver?: {
+    username: string;
+    display_name: string | null;
+  };
+}
+
+// ============================================================================
+// SORTING / FILTERING TYPES
+// ============================================================================
+
+export type SortOption = "newest" | "hot" | "top";
+export type TopTimeRange = "today" | "week" | "month" | "year" | "all";
+
+// ============================================================================
 // PAGINATION TYPES
 // ============================================================================
 
@@ -621,6 +697,8 @@ export interface RawPostQueryResult {
   post_location?: string | null;
   metadata?: JournalMetadata | null;
   spotify_track?: SpotifyTrack | null;
+  flair_id?: string | null;
+  flair?: CommunityFlair | null;
   author: PostAuthor;
   media: PostMedia[];
   community?: PostCommunity | null;

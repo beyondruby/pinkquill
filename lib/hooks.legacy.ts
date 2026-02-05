@@ -560,8 +560,38 @@ export function useCommunityMembers(communityId: string, options?: { role?: stri
   return { members, loading, refetch: fetchMembers };
 }
 
+// Helper function to get start date for time range
+function getTimeRangeStart(timeRange: 'today' | 'week' | 'month' | 'year' | 'all'): Date | null {
+  const now = new Date();
+  switch (timeRange) {
+    case 'today':
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    case 'week':
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    case 'month':
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    case 'year':
+      return new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+    case 'all':
+    default:
+      return null;
+  }
+}
+
+// Calculate hot score using Reddit-style algorithm
+function calculateHotScore(admiresCount: number, commentsCount: number, relaysCount: number, createdAt: string): number {
+  const hoursAge = Math.max(0, (Date.now() - new Date(createdAt).getTime()) / 3600000);
+  const engagementScore = admiresCount + (commentsCount * 2) + (relaysCount * 1.5);
+  return engagementScore / Math.pow(hoursAge + 2, 1.5);
+}
+
 // Fetch posts for a community
-export function useCommunityPosts(communityId: string, userId?: string, sortBy: 'newest' | 'top' = 'newest') {
+export function useCommunityPosts(
+  communityId: string,
+  userId?: string,
+  sortBy: 'newest' | 'top' | 'hot' = 'newest',
+  options?: { timeRange?: 'today' | 'week' | 'month' | 'year' | 'all'; flairId?: string }
+) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [pinnedPosts, setPinnedPosts] = useState<Post[]>([]);
   const [pinnedPostIds, setPinnedPostIds] = useState<string[]>([]);
@@ -624,15 +654,39 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
             media_type,
             caption,
             position
+          ),
+          flair:community_flairs (
+            id,
+            community_id,
+            name,
+            color,
+            emoji,
+            position,
+            created_at
           )
         `)
         .eq("community_id", communityId)
-        .eq("status", "published")
-        .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1);
+        .eq("status", "published");
 
-      if (sortBy === 'newest') {
-        query = query.order("created_at", { ascending: false });
+      // Apply time range filter for 'top' sort
+      if (sortBy === 'top' && options?.timeRange && options.timeRange !== 'all') {
+        const startDate = getTimeRangeStart(options.timeRange);
+        if (startDate) {
+          query = query.gte("created_at", startDate.toISOString());
+        }
       }
+
+      // Apply flair filter if specified
+      if (options?.flairId) {
+        query = query.eq("flair_id", options.flairId);
+      }
+
+      // Apply pagination
+      query = query.range(pageNum * pageSize, (pageNum + 1) * pageSize - 1);
+
+      // For hot and top, we still order by created_at initially, then re-sort in memory
+      // For newest, we just order by created_at
+      query = query.order("created_at", { ascending: false });
 
       const { data, error: fetchError } = await query;
 
@@ -690,11 +744,17 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
         user_has_relayed: false,
       }));
 
-      // Sort by engagement if 'top'
+      // Sort by engagement for 'top' or hot score for 'hot'
       if (sortBy === 'top') {
         enrichedPosts.sort((a, b) => {
           const aScore = a.admires_count + a.comments_count * 2;
           const bScore = b.admires_count + b.comments_count * 2;
+          return bScore - aScore;
+        });
+      } else if (sortBy === 'hot') {
+        enrichedPosts.sort((a, b) => {
+          const aScore = calculateHotScore(a.admires_count, a.comments_count, a.relays_count, a.created_at);
+          const bScore = calculateHotScore(b.admires_count, b.comments_count, b.relays_count, b.created_at);
           return bScore - aScore;
         });
       }
@@ -729,7 +789,7 @@ export function useCommunityPosts(communityId: string, userId?: string, sortBy: 
         setLoading(false);
       }
     }
-  }, [communityId, sortBy, userId]);
+  }, [communityId, sortBy, userId, options?.timeRange, options?.flairId]);
 
   useEffect(() => {
     mountedRef.current = true;

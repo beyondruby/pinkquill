@@ -91,6 +91,12 @@ export {
 // Pinned Posts
 export { usePinnedPosts, useCommunityPinnedPosts } from "./usePinnedPosts";
 
+// Flair
+export { useCommunityFlairs, useManageFlairs, usePostFlair } from "./useFlair";
+
+// Mod Queue
+export { useModQueue, useResolveReport, useModerationActions } from "./useModQueue";
+
 // Marketplace
 export { useMarketplace, useFeaturedProducts } from "./useMarketplace";
 export type {
@@ -155,4 +161,11 @@ export type {
   CollectionItemMetadata,
   PinnedPost,
   CommunityPinnedPost,
+  CommunityFlair,
+  Report,
+  ReportType,
+  ReportStatus,
+  ResolutionAction,
+  SortOption,
+  TopTimeRange,
 } from "../types";

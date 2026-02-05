@@ -114,6 +114,15 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
               name,
               avatar_url
             ),
+            flair:community_flairs (
+              id,
+              community_id,
+              name,
+              color,
+              emoji,
+              position,
+              created_at
+            ),
             admires:admires(count),
             comments:comments(count),
             relays:relays(count)
@@ -547,6 +556,15 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
               slug,
               name,
               avatar_url
+            ),
+            flair:community_flairs (
+              id,
+              community_id,
+              name,
+              color,
+              emoji,
+              position,
+              created_at
             ),
             admires:admires(count),
             comments:comments(count),

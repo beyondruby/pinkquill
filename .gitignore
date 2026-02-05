@@ -11,3 +11,9 @@ build/
 coverage/
 playwright-report/
 test-results/
+
+# Build cache
+tsconfig.tsbuildinfo
+
+# Local settings
+.claude/settings.local.json

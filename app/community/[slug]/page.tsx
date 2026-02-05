@@ -9,7 +9,10 @@ import { useCommunity, useCommunityPosts, useCommunityPinnedPosts, useCommunityM
 import { useTrackCommunityView } from "@/lib/hooks/useTracking";
 import PostCard from "@/components/feed/PostCard";
 
-type SortOption = 'newest' | 'top';
+import TimeRangeDropdown from "@/components/communities/TimeRangeDropdown";
+import type { TopTimeRange } from "@/lib/types";
+
+type SortOption = 'newest' | 'hot' | 'top';
 
 function getTimeAgo(dateString: string): string {
   const now = new Date();
@@ -77,6 +80,7 @@ export default function CommunityFeedPage() {
   const { setModerationContext } = useModal();
   const { community, tags } = useCommunity(slug, user?.id);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [timeRange, setTimeRange] = useState<TopTimeRange>('week');
 
   // Track community views
   useTrackCommunityView(community?.id);
@@ -84,7 +88,8 @@ export default function CommunityFeedPage() {
   const { posts, pinnedPosts, loading, refetch } = useCommunityPosts(
     community?.id || '',
     user?.id,
-    sortBy
+    sortBy,
+    { timeRange: sortBy === 'top' ? timeRange : undefined }
   );
 
   // Pin/unpin functionality for admins/moderators
@@ -189,33 +194,57 @@ export default function CommunityFeedPage() {
       <div className="lg:col-span-2">
         {/* Sort Options - Enhanced */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-1 p-1 bg-white/80 backdrop-blur-sm rounded-xl border border-purple-primary/10">
-            <button
-              onClick={() => setSortBy('newest')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
-                sortBy === 'newest'
-                  ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
-                  : 'text-muted hover:text-ink hover:bg-purple-primary/5'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Newest
-            </button>
-            <button
-              onClick={() => setSortBy('top')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
-                sortBy === 'top'
-                  ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
-                  : 'text-muted hover:text-ink hover:bg-purple-primary/5'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              Top
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 p-1 bg-white/80 backdrop-blur-sm rounded-xl border border-purple-primary/10">
+              <button
+                onClick={() => setSortBy('newest')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
+                  sortBy === 'newest'
+                    ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
+                    : 'text-muted hover:text-ink hover:bg-purple-primary/5'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Newest
+              </button>
+              <button
+                onClick={() => setSortBy('hot')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
+                  sortBy === 'hot'
+                    ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
+                    : 'text-muted hover:text-ink hover:bg-purple-primary/5'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+                </svg>
+                Hot
+              </button>
+              <button
+                onClick={() => setSortBy('top')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
+                  sortBy === 'top'
+                    ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
+                    : 'text-muted hover:text-ink hover:bg-purple-primary/5'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                Top
+              </button>
+            </div>
+
+            {/* Time Range Dropdown - only show when Top is selected */}
+            {sortBy === 'top' && (
+              <TimeRangeDropdown
+                value={timeRange}
+                onChange={setTimeRange}
+              />
+            )}
           </div>
 
           <button

@@ -1,4 +1,4 @@
-import type { PostStyling, JournalMetadata, SpotifyTrack, ReactionType } from "@/lib/types";
+import type { PostStyling, JournalMetadata, SpotifyTrack, ReactionType, CommunityFlair } from "@/lib/types";
 
 export interface Author {
   name: string;
@@ -81,6 +81,7 @@ export interface PostProps {
   isSaved?: boolean;
   isRelayed?: boolean;
   community?: CommunityInfo;
+  flair?: CommunityFlair | null;
   collaborators?: CollaboratorInfo[];
   mentions?: MentionInfo[];
   hashtags?: string[];

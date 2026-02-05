@@ -13,6 +13,7 @@ import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import SendToDMModal from "@/components/messages/SendToDMModal";
 import CommunityBadge from "@/components/communities/CommunityBadge";
+import FlairBadge from "@/components/communities/FlairBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { PostStyling, JournalMetadata, PostBackground, SpotifyTrack, PostType } from "@/lib/types";
@@ -796,9 +797,15 @@ function PostCardComponent({
               )}
             </div>
 
-            {/* Secondary line: Time */}
+            {/* Secondary line: Time + Flair */}
             <div className="post-meta-line community-post-meta">
               <span className="post-time">{post.timeAgo}</span>
+              {post.flair && (
+                <>
+                  <span className="post-time-separator">·</span>
+                  <FlairBadge flair={post.flair} size="sm" />
+                </>
+              )}
             </div>
           </div>
           <PostMenu />
