@@ -18,7 +18,6 @@ import PostTags from "@/components/feed/PostTags";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
-import { getTimeAgo } from "@/lib/utils/format";
 
 interface TaggedUser {
   id: string;
@@ -76,7 +75,6 @@ interface Post {
   content: string;
   content_warning: string | null;
   created_at: string;
-  community_id: string | null;
   author: Author;
   media: MediaItem[];
   mentions?: TaggedUser[];
@@ -85,6 +83,18 @@ interface Post {
   post_location?: string | null;
   metadata?: JournalMetadata | null;
   spotify_track?: SpotifyTrack | null;
+}
+
+function getTimeAgo(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return "Just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return date.toLocaleDateString();
 }
 
 function formatDate(dateString: string): string {
@@ -618,13 +628,10 @@ export default function PostPage() {
     setReportSubmitting(true);
     try {
       const { error } = await supabase.from("reports").insert({
+        post_id: post.id,
         reporter_id: user.id,
-        reported_post_id: post.id,
-        community_id: post.community_id || null,
-        reason,
+        reason: reason,
         details: details || null,
-        type: "post",
-        status: "pending",
       });
 
       if (error) {
@@ -1184,7 +1191,6 @@ export default function PostPage() {
                       onLike={handleCommentLike}
                       onReply={handleCommentReply}
                       onDelete={handleCommentDelete}
-                      communityId={post.community_id || null}
                     />
                   ))}
                 </div>

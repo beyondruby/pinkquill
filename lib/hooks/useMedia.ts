@@ -106,11 +106,6 @@ export function useVoiceRecorder(maxDuration: number = 300) {
     }
 
     try {
-      // Revoke previous Object URL to prevent memory leak
-      if (state.audioUrl) {
-        URL.revokeObjectURL(state.audioUrl);
-      }
-
       // Reset state
       setState((prev) => ({
         ...prev,
@@ -352,15 +347,6 @@ export function useAudioPlayer(audioUrl: string | null) {
 
     return () => {
       audio.pause();
-      // Clear all event handlers to prevent firing after unmount
-      audio.onloadstart = null;
-      audio.oncanplay = null;
-      audio.onloadedmetadata = null;
-      audio.ontimeupdate = null;
-      audio.onended = null;
-      audio.onplay = null;
-      audio.onpause = null;
-      audio.onerror = null;
       audio.src = "";
     };
   }, [audioUrl]);

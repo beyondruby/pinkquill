@@ -288,7 +288,7 @@ export function useMessageReactions({
       // No existing reaction - add new one
       // Optimistic update
       const optimisticReaction: MessageReaction = {
-        id: crypto.randomUUID(),
+        id: `temp-${Date.now()}`,
         message_id: messageId,
         user_id: currentUserId,
         emoji,

@@ -7,7 +7,6 @@ import type { Comment } from "@/lib/hooks";
 import { useBlock } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import ReportModal from "@/components/ui/ReportModal";
-import { getTimeAgo } from "@/lib/utils/format";
 
 interface CommentItemProps {
   comment: Comment;
@@ -18,7 +17,6 @@ interface CommentItemProps {
   onBlock?: (userId: string) => void;
   isReply?: boolean;
   topLevelParentId?: string; // The top-level comment ID for flat threading
-  communityId?: string | null;
   // Community moderation props
   canModerateDelete?: boolean;
   onModeratorDelete?: (commentId: string, reason?: string) => Promise<void>;
@@ -60,6 +58,18 @@ function renderContentWithMentions(content: string): React.ReactNode {
   return parts.length > 0 ? parts : content;
 }
 
+function getTimeAgo(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return "now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
+  return date.toLocaleDateString();
+}
+
 function CommentItemComponent({
   comment,
   currentUserId,
@@ -69,7 +79,6 @@ function CommentItemComponent({
   onBlock,
   isReply = false,
   topLevelParentId,
-  communityId,
   canModerateDelete,
   onModeratorDelete,
 }: CommentItemProps) {
@@ -140,12 +149,8 @@ function CommentItemComponent({
       await supabase.from("reports").insert({
         reporter_id: currentUserId,
         reported_user_id: comment.user_id,
-        reported_post_id: comment.post_id,
-        community_id: communityId || null,
-        reason,
-        details: details || null,
+        reason: reason + (details ? `: ${details}` : ""),
         type: "comment",
-        status: "pending",
       });
       setReportSubmitted(true);
       reportTimeoutRef.current = setTimeout(() => {
@@ -374,7 +379,6 @@ function CommentItemComponent({
                 placeholder="Write a reply..."
                 disabled={submitting}
                 autoFocus
-                aria-label={`Reply to ${comment.author.display_name || comment.author.username}`}
                 className="flex-1 px-3 py-2 rounded-full bg-black/[0.03] border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-white focus:ring-2 focus:ring-purple-primary/20 transition-all"
               />
               <button
@@ -419,7 +423,6 @@ function CommentItemComponent({
                   onBlock={onBlock}
                   isReply
                   topLevelParentId={comment.id} // Pass the top-level comment ID for flat threading
-                  communityId={communityId}
                   canModerateDelete={canModerateDelete}
                   onModeratorDelete={onModeratorDelete}
                 />

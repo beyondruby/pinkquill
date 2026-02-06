@@ -17,8 +17,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
-import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack, CommunityFlair } from "@/lib/types";
-import { getTimeAgo } from "@/lib/utils/format";
+import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack } from "@/lib/types";
 
 // Helper to sanitize and clean HTML for display
 function cleanHtmlForDisplay(html: string): string {
@@ -333,13 +332,6 @@ interface Post {
   mentions?: TaggedUser[];
   hashtags?: string[];
   collaborators?: CollaboratorUser[];
-  community?: {
-    id?: string;
-    slug: string;
-    name: string;
-    avatar_url?: string | null;
-  } | null;
-  flair?: CommunityFlair | null;
   // Creative styling
   styling?: PostStyling | null;
   post_location?: string | null;
@@ -398,6 +390,18 @@ function formatWeather(weather?: string): string {
     'windy': 'Windy'
   };
   return labels[weather] || weather;
+}
+
+function getTimeAgo(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return "Just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return date.toLocaleDateString();
 }
 
 interface PostDetailModalProps {
@@ -534,13 +538,10 @@ export default function PostDetailModal({
     setReportSubmitting(true);
     try {
       const { error } = await supabase.from("reports").insert({
+        post_id: post.id,
         reporter_id: user.id,
-        reported_post_id: post.id,
-        community_id: post.community?.id || null,
-        reason,
+        reason: reason,
         details: details || null,
-        type: "post",
-        status: "pending",
       });
 
       if (error) {
@@ -1196,7 +1197,7 @@ export default function PostDetailModal({
                     <span className="font-ui text-sm font-semibold text-amber-700">Content Warning</span>
                   </div>
 
-                  <p className="font-body text-base text-ink/80 mb-6 max-w-md mx-auto line-clamp-3">{post.contentWarning}</p>
+                  <p className="font-body text-base text-ink/80 mb-6 max-w-md mx-auto">{post.contentWarning}</p>
 
                   <button
                     onClick={() => setShowContent(true)}
@@ -1341,7 +1342,6 @@ export default function PostDetailModal({
                       onLike={handleCommentLike}
                       onReply={handleCommentReply}
                       onDelete={handleCommentDelete}
-                      communityId={post.community?.id || null}
                       canModerateDelete={canModerateDeleteComments}
                       onModeratorDelete={onModeratorDeleteComment}
                     />

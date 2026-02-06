@@ -45,12 +45,17 @@ export function useCommunity(slug: string, userId?: string) {
   const [tags, setTags] = useState<CommunityTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const fetchIdRef = useRef(0);
+  const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchCommunity = useCallback(async () => {
     if (!slug) return;
 
-    const currentFetchId = ++fetchIdRef.current;
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       setLoading(true);
@@ -70,7 +75,7 @@ export function useCommunity(slug: string, userId?: string) {
         .eq("slug", slug)
         .single();
 
-      if (currentFetchId !== fetchIdRef.current) return;
+      if (!mountedRef.current) return;
 
       if (communityError) {
         if (communityError.code === 'PGRST116') {
@@ -81,9 +86,8 @@ export function useCommunity(slug: string, userId?: string) {
         return;
       }
 
-      // Fetch counts/membership in parallel, but tolerate secondary query failures.
-      // This prevents transient errors from showing a false "community not found" state.
-      const [membersResult, postsResult, userMemberResult, pendingRequestResult, pendingInvitationResult, rulesResult, tagsResult] = await Promise.allSettled([
+      // Fetch counts and user membership in parallel
+      const [membersResult, postsResult, userMemberResult, pendingRequestResult, pendingInvitationResult, rulesResult, tagsResult] = await Promise.all([
         supabase.from("community_members").select("*", { count: "exact", head: true }).eq("community_id", communityData.id).eq("status", "active"),
         supabase.from("posts").select("*", { count: "exact", head: true }).eq("community_id", communityData.id),
         userId ? supabase.from("community_members").select("role, status").eq("community_id", communityData.id).eq("user_id", userId).maybeSingle() : Promise.resolve({ data: null }),
@@ -93,80 +97,45 @@ export function useCommunity(slug: string, userId?: string) {
         supabase.from("community_tags").select("*").eq("community_id", communityData.id),
       ]);
 
-      if (currentFetchId !== fetchIdRef.current) return;
-
-      type SettledPayload<T = unknown> = {
-        data?: T | null;
-        error?: { message?: string } | null;
-        count?: number | null;
-      };
-
-      const logSettledError = (queryName: string, result: PromiseSettledResult<SettledPayload>) => {
-        if (result.status === "rejected") {
-          console.error(`[useCommunity] ${queryName} query rejected:`, result.reason);
-          return;
-        }
-        if (result.value.error) {
-          console.error(`[useCommunity] ${queryName} query error:`, result.value.error);
-        }
-      };
-
-      const getSettledData = <T,>(
-        result: PromiseSettledResult<SettledPayload<T>>,
-        fallback: T
-      ): T => {
-        if (result.status !== "fulfilled") return fallback;
-        if (result.value.error) return fallback;
-        return (result.value.data as T | null | undefined) ?? fallback;
-      };
-
-      const getSettledCount = (result: PromiseSettledResult<SettledPayload>, fallback = 0): number => {
-        if (result.status !== "fulfilled") return fallback;
-        if (result.value.error) return fallback;
-        return result.value.count ?? fallback;
-      };
-
-      logSettledError("members", membersResult);
-      logSettledError("posts", postsResult);
-      logSettledError("user membership", userMemberResult);
-      logSettledError("pending join request", pendingRequestResult);
-      logSettledError("pending invitation", pendingInvitationResult);
-      logSettledError("rules", rulesResult);
-      logSettledError("tags", tagsResult);
-
-      const userMemberData = getSettledData<{ role: 'admin' | 'moderator' | 'member'; status: 'active' | 'muted' | 'banned' } | null>(userMemberResult, null);
-      const pendingRequestData = getSettledData<{ id: string } | null>(pendingRequestResult, null);
-      const pendingInvitationData = getSettledData<{ id: string } | null>(pendingInvitationResult, null);
-      const rulesData = getSettledData<CommunityRule[]>(rulesResult, []);
-      const tagsData = getSettledData<CommunityTag[]>(tagsResult, []);
+      if (!mountedRef.current) return;
 
       setCommunity({
         ...communityData,
-        member_count: getSettledCount(membersResult),
-        post_count: getSettledCount(postsResult),
-        is_member: !!userMemberData && userMemberData.status === 'active',
-        user_role: userMemberData?.role || null,
-        user_status: userMemberData?.status || null,
-        has_pending_request: !!pendingRequestData,
-        has_pending_invitation: !!pendingInvitationData,
-        pending_invitation_id: pendingInvitationData?.id || undefined,
+        member_count: membersResult.count || 0,
+        post_count: postsResult.count || 0,
+        is_member: !!userMemberResult.data && userMemberResult.data.status === 'active',
+        user_role: userMemberResult.data?.role || null,
+        user_status: userMemberResult.data?.status || null,
+        has_pending_request: !!pendingRequestResult.data,
+        has_pending_invitation: !!pendingInvitationResult.data,
+        pending_invitation_id: pendingInvitationResult.data?.id || undefined,
       });
 
-      setRules(rulesData);
-      setTags(tagsData);
+      setRules(rulesResult.data || []);
+      setTags(tagsResult.data || []);
     } catch (err: unknown) {
-      if (currentFetchId !== fetchIdRef.current) return;
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useCommunity] Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch community");
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : "Failed to fetch community");
+      }
     } finally {
-      if (currentFetchId === fetchIdRef.current) {
+      if (mountedRef.current) {
         setLoading(false);
       }
     }
   }, [slug, userId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchCommunity();
+
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchCommunity]);
 
   return { community, rules, tags, loading, error, refetch: fetchCommunity };
@@ -306,11 +275,18 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const limit = options?.limit ?? 20;
 
   useEffect(() => {
     mountedRef.current = true;
+
+    // Abort any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     const fetchCommunities = async () => {
       try {
@@ -386,6 +362,7 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
         // Set trending as top 6 by member count
         setTrending(enrichedCommunities.slice(0, 6));
       } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
         console.error("[useDiscoverCommunities] Error:", err);
         if (mountedRef.current) {
           setError(err instanceof Error ? err.message : "Failed to discover communities");
@@ -401,6 +378,9 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
 
     return () => {
       mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, [options?.category, options?.tag, limit]);
 
@@ -719,21 +699,17 @@ export function useCommunityPosts(
         return;
       }
 
-      // Get engagement counts for sorting
+      // Get engagement counts for sorting by 'top'
       const postIds = data.map(p => p.id);
-      const [admiresResult, commentsResult, relaysResult, reactionsResult] = await Promise.all([
+      const [admiresResult, commentsResult] = await Promise.all([
         supabase.from("admires").select("post_id").in("post_id", postIds),
         supabase.from("comments").select("post_id").in("post_id", postIds),
-        supabase.from("relays").select("post_id").in("post_id", postIds),
-        supabase.from("reactions").select("post_id, reaction_type").in("post_id", postIds),
       ]);
 
       if (!mountedRef.current) return;
 
       const admiresCounts: Record<string, number> = {};
       const commentsCounts: Record<string, number> = {};
-      const relaysCounts: Record<string, number> = {};
-      const reactionsCounts: Record<string, number> = {};
 
       (admiresResult.data || []).forEach(a => {
         admiresCounts[a.post_id] = (admiresCounts[a.post_id] || 0) + 1;
@@ -741,47 +717,31 @@ export function useCommunityPosts(
       (commentsResult.data || []).forEach(c => {
         commentsCounts[c.post_id] = (commentsCounts[c.post_id] || 0) + 1;
       });
-      (relaysResult.data || []).forEach(r => {
-        relaysCounts[r.post_id] = (relaysCounts[r.post_id] || 0) + 1;
-      });
-      (reactionsResult.data || []).forEach(r => {
-        reactionsCounts[r.post_id] = (reactionsCounts[r.post_id] || 0) + 1;
-      });
 
       // Check user interactions if logged in
       let userAdmires: Set<string> = new Set();
       let userSaves: Set<string> = new Set();
-      let userRelays: Set<string> = new Set();
-      const userReactions: Record<string, string> = {};
 
       if (userId) {
-        const [userAdmiresResult, userSavesResult, userRelaysResult, userReactionsResult] = await Promise.all([
+        const [userAdmiresResult, userSavesResult] = await Promise.all([
           supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
           supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
-          supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
-          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", userId).in("post_id", postIds),
         ]);
 
         if (!mountedRef.current) return;
 
         userAdmires = new Set((userAdmiresResult.data || []).map(a => a.post_id));
         userSaves = new Set((userSavesResult.data || []).map(s => s.post_id));
-        userRelays = new Set((userRelaysResult.data || []).map(r => r.post_id));
-        (userReactionsResult.data || []).forEach(r => {
-          userReactions[r.post_id] = r.reaction_type;
-        });
       }
 
       const enrichedPosts = data.map(post => ({
         ...post,
         admires_count: admiresCounts[post.id] || 0,
         comments_count: commentsCounts[post.id] || 0,
-        relays_count: relaysCounts[post.id] || 0,
-        reactions_count: reactionsCounts[post.id] || 0,
+        relays_count: 0,
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: userSaves.has(post.id),
-        user_has_relayed: userRelays.has(post.id),
-        user_reaction_type: userReactions[post.id] || null,
+        user_has_relayed: false,
       }));
 
       // Sort by engagement for 'top' or hot score for 'hot'
@@ -1580,8 +1540,8 @@ export function useCommunityModeration(communityId: string) {
         .eq("id", postId)
         .single();
 
-      // Log the deletion (must succeed before we delete the post)
-      const { error: auditError } = await supabase.from("community_content_deletions").insert({
+      // Log the deletion
+      await supabase.from("community_content_deletions").insert({
         community_id: communityId,
         content_type: 'post',
         content_id: postId,
@@ -1589,11 +1549,6 @@ export function useCommunityModeration(communityId: string) {
         deleted_by: user.id,
         reason: reason || null,
       });
-
-      if (auditError) {
-        console.error("[deletePost] Audit log failed:", auditError);
-        return { success: false, error: 'Failed to create audit log for deletion' };
-      }
 
       // Delete the post
       const { error } = await supabase

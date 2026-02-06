@@ -2,15 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useUpdateCommunity } from "@/lib/hooks";
-import { useCommunityContext } from "@/components/providers/CommunityProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useCommunity, useUpdateCommunity } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 
 export default function CommunityGeneralSettingsPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const { community, refetch } = useCommunityContext();
+  const { user } = useAuth();
+  const { community, refetch } = useCommunity(slug, user?.id);
   const { update, updating: loading, error } = useUpdateCommunity();
 
   const [formData, setFormData] = useState({
@@ -24,7 +25,6 @@ export default function CommunityGeneralSettingsPage() {
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (community) {
@@ -38,16 +38,15 @@ export default function CommunityGeneralSettingsPage() {
     }
   }, [community]);
 
+  if (!community) return null;
+
   const isAdmin = community.user_role === 'admin';
   const isMod = community.user_role === 'moderator';
 
-  useEffect(() => {
-    if (!isAdmin && !isMod) {
-      router.replace(`/community/${slug}`);
-    }
-  }, [isAdmin, isMod, router, slug]);
-
-  if (!isAdmin && !isMod) return null;
+  if (!isAdmin && !isMod) {
+    router.push(`/community/${slug}`);
+    return null;
+  }
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -91,7 +90,6 @@ export default function CommunityGeneralSettingsPage() {
     e.preventDefault();
     setUploading(true);
     setSuccess(false);
-    setSubmitError(null);
 
     try {
       let avatar_url = community.avatar_url;
@@ -117,12 +115,9 @@ export default function CommunityGeneralSettingsPage() {
         setSuccess(true);
         refetch();
         setTimeout(() => setSuccess(false), 3000);
-      } else {
-        setSubmitError(result.error || 'Failed to update community settings');
       }
     } catch (err) {
       console.error('Error updating community:', err);
-      setSubmitError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setUploading(false);
     }
@@ -131,12 +126,6 @@ export default function CommunityGeneralSettingsPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <h2 className="font-display text-xl font-bold text-ink mb-6">General Settings</h2>
-
-      {(submitError || error) && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 font-ui text-sm">
-          {submitError || error}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Cover Image */}

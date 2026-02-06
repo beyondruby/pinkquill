@@ -7,13 +7,22 @@ import { Community, CommunityTag } from "@/lib/hooks";
 import JoinButton from "./JoinButton";
 import ReportModal from "@/components/ui/ReportModal";
 import { supabase } from "@/lib/supabase";
-import { formatCount } from "@/lib/utils/format";
 
 interface CommunityHeaderProps {
   community: Community;
   tags: CommunityTag[];
   userId?: string;
   onUpdate?: () => void;
+}
+
+function formatCount(count: number): string {
+  if (count >= 1000000) {
+    return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
+  }
+  if (count >= 1000) {
+    return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return count.toString();
 }
 
 export default function CommunityHeader({ community, tags, userId, onUpdate }: CommunityHeaderProps) {
@@ -29,11 +38,11 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
     if (!userId) return;
     setReportSubmitting(true);
     try {
+      // Store community report with community info in reason since there's no reported_community_id column
+      const fullReason = `[Community: ${community.name} (${community.id})] ${reason}${details ? ` - ${details}` : ""}`;
       await supabase.from("reports").insert({
         reporter_id: userId,
-        community_id: community.id,
-        reason,
-        details: details || null,
+        reason: fullReason,
         type: "community",
         status: "pending",
       });

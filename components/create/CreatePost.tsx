@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useDrafts, useAutoSave, Community, SearchableUser, saveCollaboratorsAndMentions, PostDraft } from "@/lib/hooks";
+import { useCommunities, useDrafts, useAutoSave, Community, SearchableUser, saveCollaboratorsAndMentions, PostDraft } from "@/lib/hooks";
 import {
   useCreateTake,
   useSounds,
@@ -440,8 +440,7 @@ export default function CreatePost() {
 
   // Community selection - only fetch when user is loaded
   const communitySlug = searchParams.get("community");
-  const [userCommunities, setUserCommunities] = useState<Community[]>([]);
-  const [communitiesLoading, setCommunitiesLoading] = useState(true);
+  const { communities: userCommunities, loading: communitiesLoading } = useCommunities(user?.id, 'joined');
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
 
@@ -452,127 +451,6 @@ export default function CreatePost() {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [selectedCollectionItem, setSelectedCollectionItem] = useState<CollectionItem | null>(null);
   const { addPost: addPostToCollectionItem } = useAddPostToCollectionItem();
-
-  // Load communities where the user is an active member
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchUserCommunities = async () => {
-      if (!user?.id) {
-        if (mounted) {
-          setUserCommunities([]);
-          setCommunitiesLoading(false);
-        }
-        return;
-      }
-
-      setCommunitiesLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("community_members")
-          .select(`
-            joined_at,
-            community:communities!community_members_community_id_fkey (
-              id,
-              slug,
-              name,
-              description,
-              avatar_url,
-              cover_url,
-              privacy,
-              topics,
-              created_by,
-              created_at,
-              updated_at
-            )
-          `)
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .order("joined_at", { ascending: false });
-
-        if (!mounted) return;
-
-        if (error) {
-          console.error("Error loading user communities:", error);
-          // Fallback path that does not rely on joined table relationship naming.
-          const { data: memberships, error: membershipsError } = await supabase
-            .from("community_members")
-            .select("community_id, joined_at")
-            .eq("user_id", user.id)
-            .eq("status", "active");
-
-          if (membershipsError) {
-            console.error("Fallback memberships query failed:", membershipsError);
-            setUserCommunities([]);
-            return;
-          }
-
-          const communityIds = (memberships || []).map((m) => m.community_id);
-          if (communityIds.length === 0) {
-            setUserCommunities([]);
-            return;
-          }
-
-          const { data: fallbackCommunities, error: fallbackCommunitiesError } = await supabase
-            .from("communities")
-            .select(`
-              id,
-              slug,
-              name,
-              description,
-              avatar_url,
-              cover_url,
-              privacy,
-              topics,
-              created_by,
-              created_at,
-              updated_at
-            `)
-            .in("id", communityIds);
-
-          if (fallbackCommunitiesError) {
-            console.error("Fallback communities query failed:", fallbackCommunitiesError);
-            setUserCommunities([]);
-            return;
-          }
-
-          const joinedAtById = new Map(
-            (memberships || []).map((m) => [
-              m.community_id,
-              m.joined_at ? new Date(m.joined_at).getTime() : 0,
-            ])
-          );
-
-          const sortedFallback = (fallbackCommunities || []).sort(
-            (a, b) => (joinedAtById.get(b.id) || 0) - (joinedAtById.get(a.id) || 0)
-          );
-
-          setUserCommunities(sortedFallback as Community[]);
-          return;
-        }
-
-        const mapped = (data || [])
-          .map((row) => {
-            const communityData = (row as { community: Community | Community[] | null }).community;
-            return Array.isArray(communityData) ? communityData[0] : communityData;
-          })
-          .filter((community): community is Community => !!community);
-
-        // Deduplicate by ID in case of unexpected duplicates
-        const unique = Array.from(new Map(mapped.map((c) => [c.id, c])).values());
-        setUserCommunities(unique);
-      } finally {
-        if (mounted) {
-          setCommunitiesLoading(false);
-        }
-      }
-    };
-
-    fetchUserCommunities();
-    return () => {
-      mounted = false;
-    };
-  }, [user?.id]);
 
   // Set community from URL param (wait for auth and communities to load)
   useEffect(() => {
@@ -586,16 +464,8 @@ export default function CreatePost() {
 
   // Clear flair when community changes
   useEffect(() => {
-    if (!selectedCommunity?.id) {
-      setSelectedFlair(null);
-      return;
-    }
-
-    // Keep existing flair intact while editing an existing community post.
-    if (!isEditing) {
-      setSelectedFlair(null);
-    }
-  }, [selectedCommunity?.id, isEditing]);
+    setSelectedFlair(null);
+  }, [selectedCommunity?.id]);
 
   const [selectedType, setSelectedType] = useState("thought");
   const [tags, setTags] = useState<string[]>([]);
@@ -808,21 +678,6 @@ export default function CreatePost() {
 
         // Store content to be set after editor mounts
         setInitialContent(post.content || "");
-
-        // Set selected community for community posts in edit mode
-        if (post.community_id) {
-          const { data: communityData } = await supabase
-            .from("communities")
-            .select("id, slug, name, avatar_url")
-            .eq("id", post.community_id)
-            .maybeSingle();
-
-          if (communityData) {
-            setSelectedCommunity(communityData as Community);
-          }
-        } else {
-          setSelectedCommunity(null);
-        }
 
         // Set existing media
         if (post.media && post.media.length > 0) {
@@ -3379,7 +3234,7 @@ export default function CreatePost() {
             </div>
 
             {/* Community Selector */}
-            {!isEditing && (
+            {!isEditing && (userCommunities.length > 0 || communitiesLoading || authLoading) && (
               <div className="relative">
                 {selectedCommunity ? (
                   <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-primary/30 bg-purple-primary/5 text-purple-primary font-ui text-[0.85rem]">
@@ -3447,49 +3302,40 @@ export default function CreatePost() {
                       {icons.globe}
                       <span>Personal Feed</span>
                     </button>
-                    {userCommunities.length > 0 ? (
-                      userCommunities.map((community) => (
-                        <button
-                          key={community.id}
-                          onClick={() => {
-                            setSelectedCommunity(community);
-                            setShowCommunityMenu(false);
-                          }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
-                            selectedCommunity?.id === community.id
-                              ? "bg-purple-primary/10 text-purple-primary"
-                              : "text-ink hover:bg-black/[0.03]"
-                          }`}
-                        >
-                          {community.avatar_url ? (
-                            <img
-                              src={community.avatar_url}
-                              alt=""
-                              className="w-6 h-6 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-[0.6rem] font-bold">
-                              {community.name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <span className="truncate">{community.name}</span>
-                        </button>
-                      ))
-                    ) : (
-                      !communitiesLoading &&
-                      !authLoading && (
-                        <div className="px-4 py-3 font-ui text-[0.8rem] text-muted">
-                          Join a community to post there.
-                        </div>
-                      )
-                    )}
+                    {userCommunities.map((community) => (
+                      <button
+                        key={community.id}
+                        onClick={() => {
+                          setSelectedCommunity(community);
+                          setShowCommunityMenu(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
+                          selectedCommunity?.id === community.id
+                            ? "bg-purple-primary/10 text-purple-primary"
+                            : "text-ink hover:bg-black/[0.03]"
+                        }`}
+                      >
+                        {community.avatar_url ? (
+                          <img
+                            src={community.avatar_url}
+                            alt=""
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-[0.6rem] font-bold">
+                            {community.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="truncate">{community.name}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Flair Picker (for community posts in create and edit mode) */}
-            {selectedCommunity && (
+            {/* Flair Picker (only show when a community is selected) */}
+            {selectedCommunity && !isEditing && (
               <FlairPicker
                 communityId={selectedCommunity.id}
                 selectedFlairId={selectedFlair?.id || null}

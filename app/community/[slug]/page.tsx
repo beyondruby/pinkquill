@@ -1,19 +1,30 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
-import { useCommunityPosts, useCommunityPinnedPosts, useCommunityModeration, Post } from "@/lib/hooks";
-import { useCommunityContext } from "@/components/providers/CommunityProvider";
+import { useCommunity, useCommunityPosts, useCommunityPinnedPosts, useCommunityModeration, Post } from "@/lib/hooks";
 import { useTrackCommunityView } from "@/lib/hooks/useTracking";
 import PostCard from "@/components/feed/PostCard";
 
 import TimeRangeDropdown from "@/components/communities/TimeRangeDropdown";
 import type { TopTimeRange } from "@/lib/types";
-import { getTimeAgo } from "@/lib/utils/format";
 
 type SortOption = 'newest' | 'hot' | 'top';
+
+function getTimeAgo(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return "Just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return date.toLocaleDateString();
+}
 
 function getTypeLabel(type: string): string {
   const labels: Record<string, string> = {
@@ -24,6 +35,7 @@ function getTypeLabel(type: string): string {
     audio: "recorded a voice note",
     video: "shared a video",
     essay: "wrote an essay",
+    blog: "published a blog post",
     story: "shared a story",
     letter: "wrote a letter",
     quote: "shared a quote",
@@ -31,12 +43,7 @@ function getTypeLabel(type: string): string {
   return labels[type] || "shared";
 }
 
-function transformPost(
-  post: Post,
-  community: { id: string; slug: string; name: string; avatar_url: string | null }
-) {
-  const flair = Array.isArray(post.flair) ? post.flair[0] : post.flair;
-
+function transformPost(post: Post) {
   return {
     id: post.id,
     authorId: post.author_id,
@@ -57,43 +64,29 @@ function transformPost(
     media: post.media || [],
     stats: {
       admires: post.admires_count,
-      reactions: post.reactions_count,
       comments: post.comments_count,
       relays: post.relays_count,
     },
     isAdmired: post.user_has_admired,
-    reactionType: post.user_reaction_type,
     isSaved: post.user_has_saved,
     isRelayed: post.user_has_relayed,
-    community: {
-      id: community.id,
-      slug: community.slug,
-      name: community.name,
-      avatar_url: community.avatar_url,
-    },
-    flair: flair || null,
-    styling: post.styling || null,
-    post_location: post.post_location || null,
-    metadata: post.metadata || null,
-    spotify_track: post.spotify_track || null,
   };
 }
 
 export default function CommunityFeedPage() {
+  const params = useParams();
+  const slug = params.slug as string;
   const { user } = useAuth();
   const { setModerationContext } = useModal();
-  const { community, tags } = useCommunityContext();
+  const { community, tags } = useCommunity(slug, user?.id);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [timeRange, setTimeRange] = useState<TopTimeRange>('week');
-  const isRoleModerator =
-    (community.user_role === 'admin' || community.user_role === 'moderator') &&
-    community.user_status === 'active';
 
   // Track community views
-  useTrackCommunityView(community.id);
+  useTrackCommunityView(community?.id);
 
   const { posts, pinnedPosts, loading, refetch } = useCommunityPosts(
-    community.id,
+    community?.id || '',
     user?.id,
     sortBy,
     { timeRange: sortBy === 'top' ? timeRange : undefined }
@@ -106,49 +99,36 @@ export default function CommunityFeedPage() {
     pinPost,
     unpinPost,
     refetch: refetchPins
-  } = useCommunityPinnedPosts(community.id);
+  } = useCommunityPinnedPosts(community?.id);
 
   // Moderation functionality
   const {
     deletePost,
     deleteComment,
     hasPermission,
-  } = useCommunityModeration(community.id);
+  } = useCommunityModeration(community?.id || '');
 
   // State for delete permissions
   const [canDeletePosts, setCanDeletePosts] = useState(false);
   const [canDeleteComments, setCanDeleteComments] = useState(false);
-  const [canPinPosts, setCanPinPosts] = useState(false);
 
-  // Check moderation permissions on mount and when user/community changes
+  // Check delete permissions on mount and when user/community changes
   useEffect(() => {
     const checkPermissions = async () => {
-      if (user?.id && community.id) {
-        try {
-          const [canDeletePostsPerm, canDeleteCommentsPerm, canPinPostsPerm] = await Promise.all([
-            hasPermission(user.id, 'can_delete_posts'),
-            hasPermission(user.id, 'can_delete_comments'),
-            hasPermission(user.id, 'can_pin_posts'),
-          ]);
-
-          // Fallback to role-based moderation for UI visibility if granular permissions fail to resolve.
-          setCanDeletePosts(canDeletePostsPerm || isRoleModerator);
-          setCanDeleteComments(canDeleteCommentsPerm || isRoleModerator);
-          setCanPinPosts(canPinPostsPerm || isRoleModerator);
-        } catch (err) {
-          console.error("[CommunityFeedPage] Permission check failed:", err);
-          setCanDeletePosts(isRoleModerator);
-          setCanDeleteComments(isRoleModerator);
-          setCanPinPosts(isRoleModerator);
-        }
+      if (user?.id && community?.id) {
+        const [canDeletePostsPerm, canDeleteCommentsPerm] = await Promise.all([
+          hasPermission(user.id, 'can_delete_posts'),
+          hasPermission(user.id, 'can_delete_comments'),
+        ]);
+        setCanDeletePosts(canDeletePostsPerm);
+        setCanDeleteComments(canDeleteCommentsPerm);
       } else {
         setCanDeletePosts(false);
         setCanDeleteComments(false);
-        setCanPinPosts(false);
       }
     };
     checkPermissions();
-  }, [user?.id, community.id, hasPermission, isRoleModerator]);
+  }, [user?.id, community?.id, hasPermission]);
 
   // Handler for moderator comment deletion
   const handleModeratorDeleteComment = useCallback(async (commentId: string, reason?: string) => {
@@ -185,12 +165,14 @@ export default function CommunityFeedPage() {
     }
   }, [deletePost, refetch]);
 
+  if (!community) return null;
+
   const canPost = community.is_member && community.user_status === 'active';
-  const canManagePins = canPinPosts;
+  const isAdmin = community.user_role === 'admin' || community.user_role === 'moderator';
 
   // Handle pin/unpin and refresh the posts list
   const handlePin = async (postId: string) => {
-    if (!user?.id || !canManagePins) return;
+    if (!user?.id) return;
     const success = await pinPost(postId, user.id);
     if (success) {
       refetch();
@@ -199,7 +181,6 @@ export default function CommunityFeedPage() {
   };
 
   const handleUnpin = async (postId: string) => {
-    if (!canManagePins) return;
     const success = await unpinPost(postId);
     if (success) {
       refetch();
@@ -293,7 +274,7 @@ export default function CommunityFeedPage() {
             </div>
             <div className="space-y-4">
               {pinnedPosts.map((post) => (
-                <div key={post.id} className="relative">
+                <div key={post.id} className="relative group/pin">
                   {/* Pin indicator badge */}
                   <div className="absolute -top-2 left-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
@@ -301,16 +282,24 @@ export default function CommunityFeedPage() {
                     </svg>
                     <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pinned</span>
                   </div>
+                  {/* Unpin button for admins */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleUnpin(post.id)}
+                      className="absolute -top-2 right-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-md border border-red-200 text-red-500 opacity-0 group-hover/pin:opacity-100 transition-all hover:bg-red-50 hover:border-red-300"
+                      title="Unpin post"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Unpin</span>
+                    </button>
+                  )}
                   <div className="pt-2">
                     <PostCard
-                      post={transformPost(post, community)}
+                      post={transformPost(post)}
                       canModerateDelete={canDeletePosts}
                       onModeratorDelete={handleModeratorDeletePost}
-                      canModeratePin={canManagePins}
-                      isPinned
-                      canPinMore={canPin}
-                      onPin={handlePin}
-                      onUnpin={handleUnpin}
                     />
                   </div>
                 </div>
@@ -331,17 +320,28 @@ export default function CommunityFeedPage() {
         ) : posts.length > 0 ? (
           <div className="space-y-5">
             {posts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={transformPost(post, community)}
-                canModerateDelete={canDeletePosts}
-                onModeratorDelete={handleModeratorDeletePost}
-                canModeratePin={canManagePins}
-                isPinned={isPinned(post.id)}
-                canPinMore={canPin}
-                onPin={handlePin}
-                onUnpin={handleUnpin}
-              />
+              <div key={post.id} className="relative group/pin">
+                {/* Pin button for admins (only if can pin more) */}
+                {isAdmin && canPin && !isPinned(post.id) && (
+                  <button
+                    onClick={() => handlePin(post.id)}
+                    className="absolute -top-2 left-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-md border border-purple-primary/20 text-purple-primary opacity-0 group-hover/pin:opacity-100 transition-all hover:bg-gradient-to-r hover:from-purple-primary hover:to-pink-vivid hover:text-white hover:border-transparent"
+                    title="Pin post"
+                  >
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
+                    </svg>
+                    <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pin</span>
+                  </button>
+                )}
+                <div className={isAdmin && canPin && !isPinned(post.id) ? "pt-2" : ""}>
+                  <PostCard
+                    post={transformPost(post)}
+                    canModerateDelete={canDeletePosts}
+                    onModeratorDelete={handleModeratorDeletePost}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         ) : (

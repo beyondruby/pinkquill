@@ -84,7 +84,6 @@ export default function Lightbox({ images, initialIndex, isOpen, onClose }: Ligh
         <button
           onClick={onClose}
           className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-red-500/80 hover:text-white transition-all duration-300 hover:rotate-90"
-          aria-label="Close lightbox"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -93,7 +92,7 @@ export default function Lightbox({ images, initialIndex, isOpen, onClose }: Ligh
       </div>
 
       {/* Main Content */}
-      <div className="absolute inset-0 flex items-center justify-center p-4 md:p-8 lg:p-16">
+      <div className="absolute inset-0 flex items-center justify-center p-16">
         {/* Image/Video */}
         <div
           className={`relative transition-transform duration-500 ${isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in'}`}

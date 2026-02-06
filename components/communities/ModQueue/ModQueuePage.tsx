@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModQueue, useResolveReport, useModerationActions } from "@/lib/hooks/useModQueue";
 import ReportCard from "./ReportCard";
@@ -14,8 +14,6 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
   const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<ReportStatus | undefined>("pending");
   const [typeFilter, setTypeFilter] = useState<ReportType | undefined>(undefined);
-  const pendingResolveRef = useRef(false);
-  const pendingDismissRef = useRef(false);
 
   const { reports, stats, loading, error, refetch } = useModQueue(communityId, {
     status: statusFilter,
@@ -26,41 +24,30 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
   const { deleteContent, muteUser, banUser } = useModerationActions(communityId);
 
   const handleResolve = async (reportId: string, action: ResolutionAction, notes?: string) => {
-    if (!user || pendingResolveRef.current) return;
-    pendingResolveRef.current = true;
+    if (!user) return;
 
-    try {
-      const success = await resolve(reportId, user.id, action, notes);
-      if (success) {
-        // Perform the moderation action
-        const report = reports.find((r) => r.id === reportId);
-        if (report) {
-          if (action === "content_deleted" && report.reported_post_id) {
-            await deleteContent(report.reported_post_id);
-          } else if (action === "user_muted" && report.reported_user_id) {
-            await muteUser(report.reported_user_id, notes || "Violated community guidelines", 7);
-          } else if (action === "user_banned" && report.reported_user_id) {
-            await banUser(report.reported_user_id, notes || "Violated community guidelines");
-          }
+    const success = await resolve(reportId, user.id, action, notes);
+    if (success) {
+      // Perform the moderation action
+      const report = reports.find((r) => r.id === reportId);
+      if (report) {
+        if (action === "content_deleted" && report.reported_post_id) {
+          await deleteContent(report.reported_post_id);
+        } else if (action === "user_muted" && report.reported_user_id) {
+          await muteUser(report.reported_user_id, notes || "Violated community guidelines", 7);
+        } else if (action === "user_banned" && report.reported_user_id) {
+          await banUser(report.reported_user_id, notes || "Violated community guidelines");
         }
-        refetch();
       }
-    } finally {
-      pendingResolveRef.current = false;
+      refetch();
     }
   };
 
   const handleDismiss = async (reportId: string, notes?: string) => {
-    if (!user || pendingDismissRef.current) return;
-    pendingDismissRef.current = true;
-
-    try {
-      const success = await dismiss(reportId, user.id, notes);
-      if (success) {
-        refetch();
-      }
-    } finally {
-      pendingDismissRef.current = false;
+    if (!user) return;
+    const success = await dismiss(reportId, user.id, notes);
+    if (success) {
+      refetch();
     }
   };
 

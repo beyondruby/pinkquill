@@ -376,25 +376,12 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
   // Delete a comment
   const deleteComment = async (commentId: string): Promise<{ success: boolean }> => {
     try {
-      // Delete child data first, then the comment
-      // If any step fails, abort to prevent orphaned data
+      // Delete in order: likes, replies, then the comment
       const { error: likesError } = await supabase.from("comment_likes").delete().eq("comment_id", commentId);
-      if (likesError) {
-        console.error("[useComments] Failed to delete comment likes:", likesError.message);
-        return { success: false };
-      }
+      if (likesError) console.warn("[useComments] Failed to delete comment likes:", likesError.message);
 
-      // Delete likes on replies before deleting replies themselves
-      const { data: replyIds } = await supabase.from("comments").select("id").eq("parent_id", commentId);
-      if (replyIds && replyIds.length > 0) {
-        const ids = replyIds.map(r => r.id);
-        await supabase.from("comment_likes").delete().in("comment_id", ids);
-        const { error: repliesError } = await supabase.from("comments").delete().eq("parent_id", commentId);
-        if (repliesError) {
-          console.error("[useComments] Failed to delete replies:", repliesError.message);
-          return { success: false };
-        }
-      }
+      const { error: repliesError } = await supabase.from("comments").delete().eq("parent_id", commentId);
+      if (repliesError) console.warn("[useComments] Failed to delete replies:", repliesError.message);
 
       const { error: commentError } = await supabase.from("comments").delete().eq("id", commentId);
       if (commentError) throw commentError;

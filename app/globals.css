@@ -600,6 +600,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
+  overflow: hidden;
   word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -1270,6 +1271,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .type-audio {
   background: white;
   border-radius: 20px;
+  overflow: hidden;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.04);
   display: flex;
@@ -1288,7 +1290,6 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   color: white;
   cursor: pointer;
   flex-shrink: 0;
-  border-radius: 20px 0 0 20px;
 }
 .sound-bars {
   display: flex;
@@ -1329,6 +1330,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .type-video {
   background: white;
   border-radius: 20px;
+  overflow: hidden;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.04);
   padding: 1.75rem;
@@ -1405,6 +1407,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .type-unified {
   background: white;
   border-radius: 20px;
+  overflow: hidden;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.04);
   padding: 1.75rem;

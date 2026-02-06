@@ -954,7 +954,7 @@ export function useProfileInsights(
         followerGrowth,
         topContent,
         viewsByDay,
-        bestPostingTimes: [], // Requires sufficient engagement history to calculate meaningfully; section is hidden when empty
+        bestPostingTimes: [], // TODO: Calculate from engagement data
       });
     } catch (err) {
       console.error("Error fetching profile insights:", err);

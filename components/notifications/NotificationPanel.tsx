@@ -7,7 +7,6 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { NotificationSkeleton } from "@/components/ui/Skeleton";
 import CollaborationInviteCard from "./CollaborationInviteCard";
 import FollowRequestCard from "./FollowRequestCard";
-import { getTimeAgo } from "@/lib/utils/format";
 
 interface NotificationPanelProps {
   isOpen: boolean;
@@ -459,6 +458,18 @@ const icons = {
   ),
 };
 
+function getTimeAgo(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return "Just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
+  return date.toLocaleDateString();
+}
+
 function getNotificationIcon(type: string) {
   switch (type) {
     case 'admire':
@@ -714,7 +725,7 @@ function NotificationItem({
 
 export default function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   const { user } = useAuth();
-  const { notifications, loading, hasMore, loadMore } = useNotifications(user?.id);
+  const { notifications, loading } = useNotifications(user?.id);
   const { markAsRead, markAllAsRead } = useMarkAsRead();
   const { invites: rawInvites, refetch: refetchInvites } = useCollaborationInvites(user?.id || "");
   // Filter out invites where post or author is null (e.g., deleted posts)
@@ -898,16 +909,6 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                   onClose={onClose}
                 />
               ))}
-
-              {/* Load older notifications */}
-              {hasMore && (
-                <button
-                  onClick={loadMore}
-                  className="w-full py-3 mt-2 rounded-xl font-ui text-[0.85rem] font-medium text-purple-primary hover:bg-purple-primary/[0.06] transition-all"
-                >
-                  Load older notifications
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -916,7 +917,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
         {hasContent && (
           <div className="px-6 py-3 border-t border-black/[0.04] bg-gradient-to-r from-purple-primary/[0.02] to-pink-vivid/[0.02]">
             <p className="font-ui text-[0.75rem] text-muted/60 text-center">
-              {hasMore ? "Scroll down to load more" : "Showing your recent activity"}
+              Showing your recent activity
             </p>
           </div>
         )}

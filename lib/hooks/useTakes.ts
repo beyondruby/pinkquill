@@ -241,20 +241,6 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         userRelaySet = new Set((userRelaysRes.data || []).map(r => r.take_id));
       }
 
-      // Fetch sound data for takes that have sound_id
-      const soundIds = [...new Set(takesData.filter(t => t.sound_id).map(t => t.sound_id as string))];
-      const soundMap = new Map<string, Sound>();
-      if (soundIds.length > 0) {
-        const { data: soundsData } = await supabase
-          .from("sounds")
-          .select("*, creator:profiles!sounds_created_by_fkey (username, display_name, avatar_url)")
-          .in("id", soundIds);
-        (soundsData || []).forEach((s: Record<string, unknown>) => {
-          const creator = Array.isArray(s.creator) ? s.creator[0] : s.creator;
-          soundMap.set(s.id as string, { ...s, creator: creator || undefined } as unknown as Sound);
-        });
-      }
-
       // Build lookup maps
       const authorMap = new Map((authorsRes.data || []).map(a => [a.id, a]));
       const reactionsCount: Record<string, number> = {};
@@ -297,7 +283,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         sound_start_time: take.sound_start_time || 0,
         original_audio_volume: take.original_audio_volume ?? 100,
         added_sound_volume: take.added_sound_volume ?? 100,
-        sound: take.sound_id ? soundMap.get(take.sound_id) || null : null,
+        sound: null, // TODO: fetch sound data if sound_id exists
         // Author info
         author: authorMap.get(take.author_id) || { username: "unknown", display_name: null, avatar_url: null },
         // Counts

@@ -15,7 +15,6 @@ export interface MediaItem {
 }
 
 export interface CommunityInfo {
-  id?: string;
   slug: string;
   name: string;
   avatar_url?: string | null;
@@ -99,11 +98,6 @@ export interface PostCardProps {
   // Community moderation props
   canModerateDelete?: boolean; // If true, shows delete option for moderators
   onModeratorDelete?: (postId: string, reason?: string) => Promise<void>; // Moderator delete handler
-  canModeratePin?: boolean; // If true, shows pin/unpin option for moderators/admins
-  isPinned?: boolean;
-  canPinMore?: boolean;
-  onPin?: (postId: string) => Promise<void> | void;
-  onUnpin?: (postId: string) => Promise<void> | void;
 }
 
 // Action handler types

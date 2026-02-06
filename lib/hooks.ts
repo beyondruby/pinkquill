@@ -75,9 +75,6 @@ export type { PostDraft, DraftMedia, DraftCollaborator, DraftMention } from "./h
 // Pinned Posts
 export { usePinnedPosts, useCommunityPinnedPosts } from "./hooks/usePinnedPosts";
 
-// Flairs
-export { useCommunityFlairs, useManageFlairs, usePostFlair } from "./hooks/useFlair";
-
 // Messaging (reactions, typing indicators, sharing)
 export {
   useMessageReactions,

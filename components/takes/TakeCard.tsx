@@ -8,7 +8,6 @@ import ReportModal from "@/components/ui/ReportModal";
 import ShareModal from "@/components/ui/ShareModal";
 import { Take, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
-import { formatCount } from "@/lib/utils/format";
 
 interface TakeCardProps {
   take: Take;
@@ -28,6 +27,12 @@ interface TakeCardProps {
   onOpenComments: () => void;
   onDelete?: () => void;
   onReport?: (reason: string, details?: string) => Promise<void>;
+}
+
+function formatCount(n: number): string {
+  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+  return String(n);
 }
 
 function getWordCount(text: string): number {

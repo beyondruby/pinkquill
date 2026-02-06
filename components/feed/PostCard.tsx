@@ -7,11 +7,12 @@ import { useRouter } from "next/navigation";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
-import { useToggleAdmire, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, createNotification, useBlock, ReactionType } from "@/lib/hooks";
+import { useToggleAdmire, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, createNotification, useBlock, ReactionType, ReactionCounts } from "@/lib/hooks";
 import { usePostViewTracker, useTrackPostImpression } from "@/lib/hooks/useTracking";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import SendToDMModal from "@/components/messages/SendToDMModal";
+import CommunityBadge from "@/components/communities/CommunityBadge";
 import FlairBadge from "@/components/communities/FlairBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
@@ -34,12 +35,19 @@ import {
   RelayIcon,
   ShareIcon,
   BookmarkIcon,
+  EllipsisIcon,
   TrashIcon,
+  EditIcon,
+  FlagIcon,
+  BlockIcon,
   PlayIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ArrowRightIcon,
 } from "@/components/ui/Icons";
+
+// Helper functions imported from @/lib/utils/sanitize
+import { stripHtml } from "@/lib/utils/sanitize";
 
 // TruncatedContent imported from ./PostCard/TruncatedContent
 const TruncatedContent = TruncatedContentComponent;
@@ -111,22 +119,12 @@ function PostCardComponent({
   onPostDeleted,
   canModerateDelete,
   onModeratorDelete,
-  canModeratePin,
-  isPinned = false,
-  canPinMore = true,
-  onPin,
-  onUnpin,
   disableRealtimeSubscriptions = false,
 }: {
   post: PostProps;
   onPostDeleted?: (postId: string) => void;
   canModerateDelete?: boolean;
   onModeratorDelete?: (postId: string, reason?: string) => Promise<void>;
-  canModeratePin?: boolean;
-  isPinned?: boolean;
-  canPinMore?: boolean;
-  onPin?: (postId: string) => Promise<void> | void;
-  onUnpin?: (postId: string) => Promise<void> | void;
   /** PERFORMANCE: Disable per-card real-time subscriptions when used in feed context */
   disableRealtimeSubscriptions?: boolean;
 }) {
@@ -140,7 +138,7 @@ function PostCardComponent({
   const { react: toggleReaction, removeReaction } = useToggleReaction();
 
   // Real-time reaction hooks - disabled in feed context to reduce subscription count
-  const { counts: reactionCounts } = useReactionCounts(post.id, { disableRealtime: disableRealtimeSubscriptions });
+  const { counts: reactionCounts, refetch: refetchReactionCounts } = useReactionCounts(post.id, { disableRealtime: disableRealtimeSubscriptions });
   const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post.id, user?.id, { disableRealtime: disableRealtimeSubscriptions });
 
   const [isAdmired, setIsAdmired] = useState(post.isAdmired || false);
@@ -165,6 +163,7 @@ function PostCardComponent({
   const [blockLoading, setBlockLoading] = useState(false);
 
   const { blockUser } = useBlock();
+  const menuRef = useRef<HTMLDivElement>(null);
   const reportTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isOwner = user && user.id === post.authorId;
 
@@ -419,6 +418,23 @@ function PostCardComponent({
     }
   }, [user, openAuthModal, isRelayed, post.id, post.authorId, notifyUpdate, toggleRelay]);
 
+  // Click outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showMenu]);
+
   const handleDelete = useCallback(async () => {
     setDeleting(true);
     try {
@@ -476,14 +492,6 @@ function PostCardComponent({
     }
   }, [post.id, moderatorDeleteReason, onModeratorDelete, onPostDeleted]);
 
-  const handleModeratePinToggle = useCallback(async () => {
-    if (isPinned) {
-      await onUnpin?.(post.id);
-      return;
-    }
-    await onPin?.(post.id);
-  }, [isPinned, onPin, onUnpin, post.id]);
-
   const handleEdit = useCallback(() => {
     router.push(`/create?edit=${post.id}`);
   }, [router, post.id]);
@@ -494,13 +502,10 @@ function PostCardComponent({
     setReportSubmitting(true);
     try {
       const { error } = await supabase.from("reports").insert({
+        post_id: post.id,
         reporter_id: user.id,
-        reported_post_id: post.id,
-        community_id: post.community?.id || null,
-        reason,
+        reason: reason,
         details: details || null,
-        type: "post",
-        status: "pending",
       });
 
       if (error) {
@@ -521,7 +526,7 @@ function PostCardComponent({
       actionToast.reportError();
     }
     setReportSubmitting(false);
-  }, [user, post.id, post.community?.id]);
+  }, [user, post.id]);
 
   const handleBlockUser = useCallback(async () => {
     if (!user) return;
@@ -605,26 +610,123 @@ function PostCardComponent({
 
   // Post menu component for owner and non-owner actions
   const PostMenu = () => (
-    <PostMenuComponent
-      isOpen={showMenu}
-      isOwner={!!isOwner}
-      isAuthenticated={!!user}
-      canModerateDelete={!!canModerateDelete && !!onModeratorDelete && !isOwner}
-      canModeratePin={!!canModeratePin && (isPinned || canPinMore)}
-      isPinned={isPinned}
-      blockedUsername={post.author.handle.replace(/^@/, "")}
-      onToggle={() => {
-        if (!user && !isOwner) return;
-        setShowMenu((prev) => !prev);
-      }}
-      onClose={() => setShowMenu(false)}
-      onEdit={handleEdit}
-      onDelete={() => setShowDeleteConfirm(true)}
-      onModerateDelete={() => setShowModeratorDeleteConfirm(true)}
-      onTogglePin={handleModeratePinToggle}
-      onReport={() => setShowReportModal(true)}
-      onBlock={() => setShowBlockConfirm(true)}
-    />
+    <>
+      {isOwner ? (
+        <div className="relative" ref={menuRef}>
+          <button
+            className="post-menu-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu(!showMenu);
+            }}
+            aria-label="Post options menu"
+            aria-expanded={showMenu}
+            aria-haspopup="menu"
+          >
+            <EllipsisIcon />
+          </button>
+          {showMenu && (
+            <div
+              className="absolute right-0 top-full mt-2 w-36 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50"
+              onClick={(e) => e.stopPropagation()}
+              role="menu"
+              aria-label="Post options"
+            >
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  handleEdit();
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                role="menuitem"
+              >
+                <EditIcon aria-hidden="true" />
+                Edit
+              </button>
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowDeleteConfirm(true);
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
+                role="menuitem"
+              >
+                <TrashIcon aria-hidden="true" />
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+      ) : user ? (
+        <div className="relative" ref={menuRef}>
+          <button
+            className="post-menu-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu(!showMenu);
+            }}
+            aria-label="Post options menu"
+            aria-expanded={showMenu}
+            aria-haspopup="menu"
+          >
+            <EllipsisIcon />
+          </button>
+          {showMenu && (
+            <div
+              className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50"
+              onClick={(e) => e.stopPropagation()}
+              role="menu"
+              aria-label="Post options"
+            >
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowBlockConfirm(true);
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                role="menuitem"
+              >
+                <BlockIcon aria-hidden="true" />
+                Block @{post.author.handle.replace('@', '')}
+              </button>
+              {/* Moderator delete option - only shown if user can moderate */}
+              {canModerateDelete && onModeratorDelete && (
+                <>
+                  <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowModeratorDeleteConfirm(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 transition-colors"
+                    role="menuitem"
+                  >
+                    <TrashIcon aria-hidden="true" />
+                    Delete (Mod)
+                  </button>
+                </>
+              )}
+              <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowReportModal(true);
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
+                role="menuitem"
+              >
+                <FlagIcon aria-hidden="true" />
+                Report
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <button className="post-menu-btn" onClick={(e) => e.stopPropagation()} aria-label="Post options">
+          <EllipsisIcon />
+        </button>
+      )}
+    </>
   );
 
   // Author Header component - Reddit-style for community posts
@@ -1036,7 +1138,7 @@ function PostCardComponent({
             visibility: "public",
             content_warning: post.contentWarning || null,
             created_at: post.createdAt || new Date().toISOString(),
-            community_id: post.community?.id || null,
+            community_id: null,
             author: {
               id: post.authorId,
               username: post.author.handle.replace(/^@/, ''),
@@ -1237,12 +1339,7 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
     prevProps.post.isRelayed === nextProps.post.isRelayed &&
     prevProps.post.reactionType === nextProps.post.reactionType &&
     prevProps.canModerateDelete === nextProps.canModerateDelete &&
-    prevProps.onModeratorDelete === nextProps.onModeratorDelete &&
-    prevProps.canModeratePin === nextProps.canModeratePin &&
-    prevProps.isPinned === nextProps.isPinned &&
-    prevProps.canPinMore === nextProps.canPinMore &&
-    prevProps.onPin === nextProps.onPin &&
-    prevProps.onUnpin === nextProps.onUnpin
+    prevProps.onModeratorDelete === nextProps.onModeratorDelete
   );
 });
 

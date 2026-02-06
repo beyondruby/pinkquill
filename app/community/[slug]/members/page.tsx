@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunityMembers, useCommunityModeration, useJoinRequests, ModeratorPermissions } from "@/lib/hooks";
-import { useCommunityContext } from "@/components/providers/CommunityProvider";
+import { useCommunity, useCommunityMembers, useCommunityModeration, useJoinRequests, ModeratorPermissions } from "@/lib/hooks";
 import InviteModal from "@/components/communities/InviteModal";
 import ModeratorPermissionsModal from "@/components/communities/ModeratorPermissionsModal";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
@@ -36,29 +35,29 @@ export default function CommunityMembersPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { user } = useAuth();
-  const { community } = useCommunityContext();
+  const { community } = useCommunity(slug, user?.id);
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [searchQuery, setSearchQuery] = useState("");
   const [moderationTab, setModerationTab] = useState<ModerationTab>('members');
 
   const { members, loading, refetch } = useCommunityMembers(
-    community.id,
+    community?.id || '',
     { role: roleFilter === 'all' ? undefined : roleFilter }
   );
 
   // Fetch muted and banned members
   const { members: mutedMembers, loading: mutedLoading, refetch: refetchMuted } = useCommunityMembers(
-    community.id,
+    community?.id || '',
     { status: 'muted' }
   );
 
   const { members: bannedMembers, loading: bannedLoading, refetch: refetchBanned } = useCommunityMembers(
-    community.id,
+    community?.id || '',
     { status: 'banned' }
   );
 
-  const { promoteUser, demoteUser, muteUser, banUser, unmuteUser, unbanUser, checkExpiredMutes, updateModeratorPermissions } = useCommunityModeration(community.id);
-  const { requests: joinRequests, approve: approveRequest, reject: rejectRequest, refetch: refetchRequests } = useJoinRequests(community.id);
+  const { promoteUser, demoteUser, muteUser, banUser, unmuteUser, unbanUser, checkExpiredMutes, updateModeratorPermissions } = useCommunityModeration(community?.id || '');
+  const { requests: joinRequests, approve: approveRequest, reject: rejectRequest, refetch: refetchRequests } = useJoinRequests(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
@@ -70,13 +69,13 @@ export default function CommunityMembersPage() {
 
   // Check and auto-unmute expired mutes on page load
   useEffect(() => {
-    if (community.id) {
+    if (community?.id) {
       checkExpiredMutes().then(() => {
         refetchMuted();
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [community.id]);
+  }, [community?.id]);
 
   // Mute modal state
   const [showMuteModal, setShowMuteModal] = useState(false);
@@ -91,6 +90,8 @@ export default function CommunityMembersPage() {
   const [selectedBanDuration, setSelectedBanDuration] = useState<number | null>(null);
   const [banReason, setBanReason] = useState("");
   const [customBanHours, setCustomBanHours] = useState("");
+
+  if (!community) return null;
 
   const isAdmin = community.user_role === 'admin';
   const isMod = community.user_role === 'moderator';
@@ -134,6 +135,15 @@ export default function CommunityMembersPage() {
     }
     setActionLoading(false);
   };
+
+  // Promote directly to admin (no permissions modal needed - admins have all permissions)
+  const _handlePromoteToAdmin = async (userId: string) => {
+    setActionLoading(true);
+    const result = await promoteUser(userId, 'admin');
+    if (result.success) refetch();
+    setActionLoading(false);
+  };
+  void _handlePromoteToAdmin; // Reserved for future use
 
   const handleDemote = async (userId: string) => {
     setActionLoading(true);

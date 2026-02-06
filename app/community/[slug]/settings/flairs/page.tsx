@@ -1,26 +1,36 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCommunityContext } from "@/components/providers/CommunityProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useCommunity } from "@/lib/hooks";
 import FlairManager from "@/components/communities/FlairManager";
 
 export default function CommunityFlairsSettingsPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const { community } = useCommunityContext();
-  const isAdmin = community.user_role === "admin";
+  const { user } = useAuth();
+  const { community, loading } = useCommunity(slug, user?.id);
 
-  useEffect(() => {
-    if (!isAdmin) {
-      router.replace(`/community/${slug}`);
-    }
-  }, [isAdmin, router, slug]);
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-3 border-purple-primary/20 border-t-purple-primary" />
+      </div>
+    );
+  }
+
+  if (!community) {
+    return null;
+  }
 
   // Only admins can manage flairs
-  if (!isAdmin) return null;
+  if (community.user_role !== "admin") {
+    router.push(`/community/${slug}`);
+    return null;
+  }
 
   return (
     <div className="max-w-2xl mx-auto">

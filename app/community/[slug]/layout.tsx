@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity } from "@/lib/hooks";
-import { CommunityProvider } from "@/components/providers/CommunityProvider";
 import CommunityHeader from "@/components/communities/CommunityHeader";
 import JoinButton from "@/components/communities/JoinButton";
 
@@ -16,10 +15,10 @@ export default function CommunityLayout({
 }) {
   const params = useParams();
   const slug = params.slug as string;
-  const { user, loading: authLoading } = useAuth();
-  const { community, rules, tags, loading, error, refetch } = useCommunity(slug, user?.id);
+  const { user } = useAuth();
+  const { community, tags, loading, error, refetch } = useCommunity(slug, user?.id);
 
-  if (loading || authLoading) {
+  if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
         <div className="relative mb-6">
@@ -37,34 +36,7 @@ export default function CommunityLayout({
     );
   }
 
-  if (!community) {
-    if (error && error !== "Community not found") {
-      return (
-        <div className="max-w-lg mx-auto px-4 py-20 text-center">
-          <div className="relative">
-            <div className="absolute inset-0 -m-8 bg-gradient-to-br from-red-500/5 via-pink-vivid/5 to-purple-primary/5 rounded-3xl blur-xl" />
-            <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl border border-red-200/50 p-10 shadow-xl">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-red-100 to-pink-100 flex items-center justify-center">
-                <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <h1 className="font-display text-2xl font-bold text-ink mb-3">Unable to Load Community</h1>
-              <p className="font-body text-muted mb-8 max-w-sm mx-auto">
-                We hit a temporary error while loading this community. Please try again.
-              </p>
-              <button
-                onClick={() => refetch()}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold shadow-lg shadow-purple-primary/25 hover:shadow-xl hover:shadow-pink-vivid/30 hover:-translate-y-0.5 transition-all"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
+  if (error || !community) {
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center">
         <div className="relative">
@@ -173,18 +145,16 @@ export default function CommunityLayout({
   }
 
   return (
-    <CommunityProvider community={community} rules={rules} tags={tags} refetch={refetch}>
-      <div className="min-h-screen bg-[#fafafa]">
-        <CommunityHeader
-          community={community}
-          tags={tags}
-          userId={user?.id}
-          onUpdate={refetch}
-        />
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-8">
-          {children}
-        </div>
+    <div className="min-h-screen bg-[#fafafa]">
+      <CommunityHeader
+        community={community}
+        tags={tags}
+        userId={user?.id}
+        onUpdate={refetch}
+      />
+      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-8">
+        {children}
       </div>
-    </CommunityProvider>
+    </div>
   );
 }

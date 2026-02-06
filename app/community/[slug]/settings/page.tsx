@@ -1,16 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useDeleteCommunity } from "@/lib/hooks";
-import { useCommunityContext } from "@/components/providers/CommunityProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useCommunity, useDeleteCommunity } from "@/lib/hooks";
 
 export default function CommunitySettingsPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const { community } = useCommunityContext();
+  const { user } = useAuth();
+  const { community, loading } = useCommunity(slug, user?.id);
   const { delete: deleteCommunity, deleting } = useDeleteCommunity();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmName, setConfirmName] = useState('');
@@ -24,16 +25,23 @@ export default function CommunitySettingsPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-3 border-purple-primary/20 border-t-purple-primary" />
+      </div>
+    );
+  }
+
+  if (!community) return null;
+
   const isAdmin = community.user_role === 'admin';
   const isMod = community.user_role === 'moderator';
 
-  useEffect(() => {
-    if (!isAdmin && !isMod) {
-      router.replace(`/community/${slug}`);
-    }
-  }, [isAdmin, isMod, router, slug]);
-
-  if (!isAdmin && !isMod) return null;
+  if (!isAdmin && !isMod) {
+    router.push(`/community/${slug}`);
+    return null;
+  }
 
   const settingsOptions = [
     {

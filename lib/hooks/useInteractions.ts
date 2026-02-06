@@ -9,30 +9,22 @@ import type { ReactionType, ReactionCounts } from "../types";
 // ============================================================================
 
 export function useToggleAdmire() {
-  const pendingRef = useRef(false);
-
   const toggle = async (postId: string, userId: string, isAdmired: boolean) => {
-    if (pendingRef.current) return;
-    pendingRef.current = true;
-    try {
-      if (isAdmired) {
-        const { error } = await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
-        if (error) {
-          console.error("[useToggleAdmire] Failed to remove admire:", error.message);
-          throw error;
-        }
-      } else {
-        const { error } = await supabase.from("admires").insert({
-          post_id: postId,
-          user_id: userId,
-        });
-        if (error) {
-          console.error("[useToggleAdmire] Failed to add admire:", error.message);
-          throw error;
-        }
+    if (isAdmired) {
+      const { error } = await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
+      if (error) {
+        console.error("[useToggleAdmire] Failed to remove admire:", error.message);
+        throw error;
       }
-    } finally {
-      pendingRef.current = false;
+    } else {
+      const { error } = await supabase.from("admires").insert({
+        post_id: postId,
+        user_id: userId,
+      });
+      if (error) {
+        console.error("[useToggleAdmire] Failed to add admire:", error.message);
+        throw error;
+      }
     }
   };
 
@@ -44,30 +36,22 @@ export function useToggleAdmire() {
 // ============================================================================
 
 export function useToggleSave() {
-  const pendingRef = useRef(false);
-
   const toggle = async (postId: string, userId: string, isSaved: boolean) => {
-    if (pendingRef.current) return;
-    pendingRef.current = true;
-    try {
-      if (isSaved) {
-        const { error } = await supabase.from("saves").delete().eq("post_id", postId).eq("user_id", userId);
-        if (error) {
-          console.error("[useToggleSave] Failed to unsave:", error.message);
-          throw error;
-        }
-      } else {
-        const { error } = await supabase.from("saves").insert({
-          post_id: postId,
-          user_id: userId,
-        });
-        if (error) {
-          console.error("[useToggleSave] Failed to save:", error.message);
-          throw error;
-        }
+    if (isSaved) {
+      const { error } = await supabase.from("saves").delete().eq("post_id", postId).eq("user_id", userId);
+      if (error) {
+        console.error("[useToggleSave] Failed to unsave:", error.message);
+        throw error;
       }
-    } finally {
-      pendingRef.current = false;
+    } else {
+      const { error } = await supabase.from("saves").insert({
+        post_id: postId,
+        user_id: userId,
+      });
+      if (error) {
+        console.error("[useToggleSave] Failed to save:", error.message);
+        throw error;
+      }
     }
   };
 
@@ -79,30 +63,22 @@ export function useToggleSave() {
 // ============================================================================
 
 export function useToggleRelay() {
-  const pendingRef = useRef(false);
-
   const toggle = async (postId: string, userId: string, isRelayed: boolean) => {
-    if (pendingRef.current) return;
-    pendingRef.current = true;
-    try {
-      if (isRelayed) {
-        const { error } = await supabase.from("relays").delete().eq("post_id", postId).eq("user_id", userId);
-        if (error) {
-          console.error("[useToggleRelay] Failed to remove relay:", error.message);
-          throw error;
-        }
-      } else {
-        const { error } = await supabase.from("relays").insert({
-          post_id: postId,
-          user_id: userId,
-        });
-        if (error) {
-          console.error("[useToggleRelay] Failed to add relay:", error.message);
-          throw error;
-        }
+    if (isRelayed) {
+      const { error } = await supabase.from("relays").delete().eq("post_id", postId).eq("user_id", userId);
+      if (error) {
+        console.error("[useToggleRelay] Failed to remove relay:", error.message);
+        throw error;
       }
-    } finally {
-      pendingRef.current = false;
+    } else {
+      const { error } = await supabase.from("relays").insert({
+        post_id: postId,
+        user_id: userId,
+      });
+      if (error) {
+        console.error("[useToggleRelay] Failed to add relay:", error.message);
+        throw error;
+      }
     }
   };
 

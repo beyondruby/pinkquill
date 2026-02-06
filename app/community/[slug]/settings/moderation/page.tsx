@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCommunityMembers, useCommunityModeration } from "@/lib/hooks";
-import { useCommunityContext } from "@/components/providers/CommunityProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useCommunity, useCommunityMembers, useCommunityModeration } from "@/lib/hooks";
 
 type TabType = 'muted' | 'banned';
 
@@ -12,42 +12,42 @@ export default function CommunityModerationSettingsPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const { community } = useCommunityContext();
+  const { user } = useAuth();
+  const { community } = useCommunity(slug, user?.id);
   const [activeTab, setActiveTab] = useState<TabType>('muted');
 
   const { members: mutedMembers, loading: mutedLoading, refetch: refetchMuted } = useCommunityMembers(
-    community.id,
+    community?.id || '',
     { status: 'muted' }
   );
 
   const { members: bannedMembers, loading: bannedLoading, refetch: refetchBanned } = useCommunityMembers(
-    community.id,
+    community?.id || '',
     { status: 'banned' }
   );
 
-  const { checkExpiredMutes, unmuteUser, unbanUser } = useCommunityModeration(community.id);
+  const { checkExpiredMutes, unmuteUser, unbanUser } = useCommunityModeration(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);
 
   // Check and auto-unmute expired mutes on page load
   useEffect(() => {
-    if (community.id) {
+    if (community?.id) {
       checkExpiredMutes().then(() => {
         refetchMuted();
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [community.id]);
+  }, [community?.id]);
+
+  if (!community) return null;
 
   const isAdmin = community.user_role === 'admin';
   const isMod = community.user_role === 'moderator';
 
-  useEffect(() => {
-    if (!isAdmin && !isMod) {
-      router.replace(`/community/${slug}`);
-    }
-  }, [isAdmin, isMod, router, slug]);
-
-  if (!isAdmin && !isMod) return null;
+  if (!isAdmin && !isMod) {
+    router.push(`/community/${slug}`);
+    return null;
+  }
 
   const handleUnmute = async (userId: string) => {
     setActionLoading(true);

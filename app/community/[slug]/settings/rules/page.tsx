@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useUpdateCommunity } from "@/lib/hooks";
-import { useCommunityContext } from "@/components/providers/CommunityProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useCommunity, useUpdateCommunity } from "@/lib/hooks";
 
 export default function CommunityRulesSettingsPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const { community, rules: existingRules, refetch } = useCommunityContext();
+  const { user } = useAuth();
+  const { community, rules: existingRules, refetch } = useCommunity(slug, user?.id);
   const { updateRules, updating: loading, error } = useUpdateCommunity();
 
   const [rules, setRules] = useState<{ title: string; description: string }[]>(() => {
@@ -34,16 +35,15 @@ export default function CommunityRulesSettingsPage() {
   }, [existingRules, rulesInitialized]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  if (!community) return null;
+
   const isAdmin = community.user_role === 'admin';
   const isMod = community.user_role === 'moderator';
 
-  useEffect(() => {
-    if (!isAdmin && !isMod) {
-      router.replace(`/community/${slug}`);
-    }
-  }, [isAdmin, isMod, router, slug]);
-
-  if (!isAdmin && !isMod) return null;
+  if (!isAdmin && !isMod) {
+    router.push(`/community/${slug}`);
+    return null;
+  }
 
   const addRule = () => {
     if (newRule.title.trim()) {

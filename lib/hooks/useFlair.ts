@@ -86,10 +86,9 @@ export function useManageFlairs(communityId: string) {
           .order("position", { ascending: false })
           .limit(1);
 
-        const nextPosition =
-          existing?.[0]?.position !== undefined
-            ? existing[0].position + 1
-            : 0;
+        const nextPosition = existing?.[0]?.position
+          ? existing[0].position + 1
+          : 0;
 
         const { data, error: createError } = await supabase
           .from("community_flairs")
@@ -184,11 +183,7 @@ export function useManageFlairs(communityId: string) {
             .eq("id", id)
         );
 
-        const results = await Promise.all(updates);
-        const failedUpdate = results.find((result) => result.error);
-        if (failedUpdate?.error) {
-          throw failedUpdate.error;
-        }
+        await Promise.all(updates);
 
         return true;
       } catch (err) {
