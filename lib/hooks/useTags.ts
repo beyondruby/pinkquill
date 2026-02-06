@@ -63,79 +63,21 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
       setLoading(true);
       setError(null);
 
-      // Get all post_tags with their tag names from the last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-      // Fetch tags with post counts - limit to prevent excessive data transfer
-      const { data: tagData, error: tagError } = await supabase
-        .from("post_tags")
-        .select(`
-          tag_id,
-          tags!inner (
-            id,
-            name
-          ),
-          posts!inner (
-            id,
-            created_at,
-            status,
-            visibility
-          )
-        `)
-        .eq("posts.status", "published")
-        .eq("posts.visibility", "public")
-        .gte("posts.created_at", thirtyDaysAgo.toISOString())
-        .limit(500); // Add reasonable limit
+      // Use server-side RPC function for aggregation instead of fetching raw rows
+      const { data, error: rpcError } = await supabase.rpc("get_trending_tags", {
+        tag_limit: limit,
+      });
 
       if (!mountedRef.current) return;
-      if (tagError) throw tagError;
+      if (rpcError) throw rpcError;
 
-      // Count posts per tag efficiently
-      const tagCounts = new Map<string, { name: string; total: number; recent: number }>();
-      const dataArray = tagData || [];
-
-      for (let i = 0; i < dataArray.length; i++) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const item = dataArray[i] as any;
-        const tags = Array.isArray(item.tags) ? item.tags[0] : item.tags;
-        const posts = Array.isArray(item.posts) ? item.posts[0] : item.posts;
-        const tagName = tags?.name;
-        if (!tagName) continue;
-
-        let existing = tagCounts.get(tagName);
-        if (!existing) {
-          existing = { name: tagName, total: 0, recent: 0 };
-          tagCounts.set(tagName, existing);
-        }
-
-        existing.total += 1;
-
-        // Check if post is from last 7 days
-        const postDate = new Date(posts?.created_at);
-        if (postDate >= sevenDaysAgo) {
-          existing.recent += 1;
-        }
-      }
-
-      // Convert to array and sort by recent posts first, then total
-      const sortedTags = Array.from(tagCounts.values())
-        .map((t) => ({
-          name: t.name,
-          post_count: t.total,
-          recent_posts: t.recent,
-        }))
-        .sort((a, b) => {
-          // Sort by recent posts first, then by total
-          if (b.recent_posts !== a.recent_posts) {
-            return b.recent_posts - a.recent_posts;
-          }
-          return b.post_count - a.post_count;
+      const sortedTags: TrendingTag[] = (data || []).map(
+        (row: { name: string; post_count: number; recent_posts: number }) => ({
+          name: row.name,
+          post_count: Number(row.post_count),
+          recent_posts: Number(row.recent_posts),
         })
-        .slice(0, limit);
+      );
 
       if (!mountedRef.current) return;
       setTags(sortedTags);
@@ -389,49 +331,21 @@ export function usePopularTags(limit: number = 20) {
       abortControllerRef.current = new AbortController();
 
       try {
-        // Optimized approach: Fetch tags with their usage counts using a more efficient query
-        // Instead of fetching 10,000 rows and counting client-side, we:
-        // 1. Get the most recently used tags (which are likely most popular)
-        // 2. Use a reasonable limit to prevent memory issues
-        // 3. Filter to only published, public posts for accurate counts
-
-        const ninetyDaysAgo = new Date();
-        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
-        const { data, error } = await supabase
-          .from("post_tags")
-          .select(`
-            tag_id,
-            tags!inner (name),
-            posts!inner (id, status, visibility)
-          `)
-          .eq("posts.status", "published")
-          .eq("posts.visibility", "public")
-          .gte("created_at", ninetyDaysAgo.toISOString())
-          .limit(500); // Reasonable limit - enough to get popular tags without memory issues
+        // Use server-side RPC function for aggregation
+        const { data, error } = await supabase.rpc("get_popular_tags", {
+          tag_limit: limit,
+        });
 
         if (!mountedRef.current) return;
         if (error) throw error;
 
-        // Count occurrences efficiently
-        const tagCounts = new Map<string, number>();
-        const dataArray = data || [];
-
-        for (let i = 0; i < dataArray.length; i++) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const item = dataArray[i] as any;
-          const tags = Array.isArray(item.tags) ? item.tags[0] : item.tags;
-          const tagName = tags?.name;
-          if (tagName) {
-            tagCounts.set(tagName, (tagCounts.get(tagName) || 0) + 1);
-          }
-        }
-
-        // Sort and limit
-        const sortedTags = Array.from(tagCounts.entries())
-          .map(([name, count]) => ({ name, post_count: count, recent_posts: 0 }))
-          .sort((a, b) => b.post_count - a.post_count)
-          .slice(0, limit);
+        const sortedTags: TrendingTag[] = (data || []).map(
+          (row: { name: string; post_count: number }) => ({
+            name: row.name,
+            post_count: Number(row.post_count),
+            recent_posts: 0,
+          })
+        );
 
         if (!mountedRef.current) return;
         setTags(sortedTags);

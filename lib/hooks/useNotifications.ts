@@ -55,22 +55,48 @@ export async function createNotification(
 // useNotifications - Fetch and subscribe to notifications
 // ============================================================================
 
+const NOTIFICATIONS_PAGE_SIZE = 50;
+
 interface UseNotificationsReturn {
   notifications: Notification[];
   loading: boolean;
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
   refetch: () => Promise<void>;
 }
 
 export function useNotifications(userId?: string): UseNotificationsReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const fetchedRef = useRef(false);
+  const loadingMoreRef = useRef(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const notificationSelect = `
+    *,
+    actor:profiles!notifications_actor_id_fkey (
+      username,
+      display_name,
+      avatar_url
+    ),
+    post:posts (
+      title,
+      content,
+      type
+    ),
+    community:communities (
+      name,
+      slug,
+      avatar_url
+    )
+  `;
 
   const fetchNotifications = useCallback(async () => {
     if (!userId) {
       setNotifications([]);
       setLoading(false);
+      setHasMore(false);
       return;
     }
 
@@ -81,33 +107,16 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
 
       const { data, error } = await supabase
         .from("notifications")
-        .select(
-          `
-          *,
-          actor:profiles!notifications_actor_id_fkey (
-            username,
-            display_name,
-            avatar_url
-          ),
-          post:posts (
-            title,
-            content,
-            type
-          ),
-          community:communities (
-            name,
-            slug,
-            avatar_url
-          )
-        `
-        )
+        .select(notificationSelect)
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(NOTIFICATIONS_PAGE_SIZE);
 
       if (error) throw error;
 
-      setNotifications(data || []);
+      const results = data || [];
+      setNotifications(results);
+      setHasMore(results.length === NOTIFICATIONS_PAGE_SIZE);
       fetchedRef.current = true;
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : "";
@@ -118,6 +127,34 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
       setLoading(false);
     }
   }, [userId]);
+
+  const loadMore = useCallback(async () => {
+    if (!userId || !hasMore || loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+
+    try {
+      const lastNotification = notifications[notifications.length - 1];
+      if (!lastNotification) return;
+
+      const { data, error } = await supabase
+        .from("notifications")
+        .select(notificationSelect)
+        .eq("user_id", userId)
+        .lt("created_at", lastNotification.created_at)
+        .order("created_at", { ascending: false })
+        .limit(NOTIFICATIONS_PAGE_SIZE);
+
+      if (error) throw error;
+
+      const results = data || [];
+      setNotifications((prev) => [...prev, ...results]);
+      setHasMore(results.length === NOTIFICATIONS_PAGE_SIZE);
+    } catch (err: unknown) {
+      console.error("[useNotifications] Error loading more:", err);
+    } finally {
+      loadingMoreRef.current = false;
+    }
+  }, [userId, hasMore, notifications]);
 
   // Initial fetch
   useEffect(() => {
@@ -246,7 +283,7 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
     };
   }, [userId, fetchNotifications]);
 
-  return { notifications, loading, refetch: fetchNotifications };
+  return { notifications, loading, hasMore, loadMore, refetch: fetchNotifications };
 }
 
 // ============================================================================

@@ -46,9 +46,6 @@ import {
   ArrowRightIcon,
 } from "@/components/ui/Icons";
 
-// Helper functions imported from @/lib/utils/sanitize
-import { stripHtml } from "@/lib/utils/sanitize";
-
 // TruncatedContent imported from ./PostCard/TruncatedContent
 const TruncatedContent = TruncatedContentComponent;
 

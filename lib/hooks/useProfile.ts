@@ -104,20 +104,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       if (!isOwnProfile && profileData.is_private && !viewerFollowsProfile) {
         setIsPrivateAccount(true);
 
-        // Get follow counts
-        const [followersResult, followingResult] = await Promise.all([
-          supabase
-            .from("follows")
-            .select("*", { count: "exact", head: true })
-            .eq("following_id", profileData.id)
-            .eq("status", "accepted"),
-          supabase
-            .from("follows")
-            .select("*", { count: "exact", head: true })
-            .eq("follower_id", profileData.id)
-            .eq("status", "accepted"),
-        ]);
-
+        // Don't expose follower/following counts for private accounts
         setProfile({
           ...profileData,
           bio: null,
@@ -128,8 +115,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           languages: null,
           website: null,
           works_count: 0,
-          followers_count: followersResult.count || 0,
-          following_count: followingResult.count || 0,
+          followers_count: 0,
+          following_count: 0,
           admires_count: 0,
         });
         setPosts([]);

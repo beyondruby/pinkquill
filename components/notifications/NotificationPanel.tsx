@@ -725,7 +725,7 @@ function NotificationItem({
 
 export default function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   const { user } = useAuth();
-  const { notifications, loading } = useNotifications(user?.id);
+  const { notifications, loading, hasMore, loadMore } = useNotifications(user?.id);
   const { markAsRead, markAllAsRead } = useMarkAsRead();
   const { invites: rawInvites, refetch: refetchInvites } = useCollaborationInvites(user?.id || "");
   // Filter out invites where post or author is null (e.g., deleted posts)
@@ -909,6 +909,16 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                   onClose={onClose}
                 />
               ))}
+
+              {/* Load older notifications */}
+              {hasMore && (
+                <button
+                  onClick={loadMore}
+                  className="w-full py-3 mt-2 rounded-xl font-ui text-[0.85rem] font-medium text-purple-primary hover:bg-purple-primary/[0.06] transition-all"
+                >
+                  Load older notifications
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -917,7 +927,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
         {hasContent && (
           <div className="px-6 py-3 border-t border-black/[0.04] bg-gradient-to-r from-purple-primary/[0.02] to-pink-vivid/[0.02]">
             <p className="font-ui text-[0.75rem] text-muted/60 text-center">
-              Showing your recent activity
+              {hasMore ? "Scroll down to load more" : "Showing your recent activity"}
             </p>
           </div>
         )}

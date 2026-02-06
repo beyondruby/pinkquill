@@ -1197,7 +1197,7 @@ export default function PostDetailModal({
                     <span className="font-ui text-sm font-semibold text-amber-700">Content Warning</span>
                   </div>
 
-                  <p className="font-body text-base text-ink/80 mb-6 max-w-md mx-auto">{post.contentWarning}</p>
+                  <p className="font-body text-base text-ink/80 mb-6 max-w-md mx-auto line-clamp-3">{post.contentWarning}</p>
 
                   <button
                     onClick={() => setShowContent(true)}

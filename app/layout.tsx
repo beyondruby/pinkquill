@@ -192,8 +192,12 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {/* Preconnect to critical origins for faster resource loading */}
-        <link rel="preconnect" href="https://loaitxbibjftsytlgddi.supabase.co" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://loaitxbibjftsytlgddi.supabase.co" />
+        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+          <>
+            <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+          </>
+        )}
       </head>
       <body
         className={`${libreBaskerville.variable} ${crimsonPro.variable} ${josefinSans.variable} ${poppins.variable} ${openSans.variable} ${playfairDisplay.variable} ${lora.variable} ${merriweather.variable} ${dancingScript.variable} ${caveat.variable} ${sourceCodePro.variable} ${inter.variable} ${spectral.variable} ${ebGaramond.variable} ${cormorantGaramond.variable} antialiased`}

@@ -78,13 +78,9 @@ export default function AuthForm() {
             .eq("username", normalizedUsername)
             .single();
 
-          if (profileError) {
-            console.error("Profile lookup error:", profileError.message);
-            throw new Error("Username not found. Please check your username or use your email.");
-          }
-
-          if (!profile?.email) {
-            throw new Error("No email associated with this username. Please sign in with your email.");
+          if (profileError || !profile?.email) {
+            // Use generic error to prevent username enumeration
+            throw new Error("Invalid credentials. Please check your email/username and password.");
           }
 
           loginEmail = profile.email;
@@ -108,7 +104,8 @@ export default function AuthForm() {
             setStep("otp");
             setMessage("Please verify your email with the code we sent.");
           } else {
-            throw error;
+            // Use generic error to prevent credential enumeration
+            throw new Error("Invalid credentials. Please check your email/username and password.");
           }
         } else {
           window.location.href = "/";
@@ -538,6 +535,7 @@ export default function AuthForm() {
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
                       onPaste={index === 0 ? handleOtpPaste : undefined}
                       disabled={loading}
+                      aria-label={`Digit ${index + 1} of 6`}
                       className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold text-ink rounded-xl bg-gray-50/50 border-2 border-gray-200 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/10 transition-all duration-200 disabled:opacity-50"
                     />
                   ))}

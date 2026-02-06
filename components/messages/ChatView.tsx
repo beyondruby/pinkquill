@@ -424,7 +424,7 @@ export default function ChatView({
     setNewMessage("");
 
     // Create optimistic message
-    const optimisticId = `temp-${Date.now()}`;
+    const optimisticId = `temp-${crypto.randomUUID()}`;
     const optimisticMessage: Message = {
       id: optimisticId,
       sender_id: currentUserId,
@@ -477,7 +477,7 @@ export default function ChatView({
     waveformData: number[]
   ) => {
     // Create optimistic voice message
-    const optimisticId = `temp-voice-${Date.now()}`;
+    const optimisticId = `temp-voice-${crypto.randomUUID()}`;
     const optimisticMessage: Message = {
       id: optimisticId,
       sender_id: currentUserId,
@@ -539,7 +539,7 @@ export default function ChatView({
     if (!mediaPreview) return;
 
     // Create optimistic message
-    const optimisticId = `temp-media-${Date.now()}`;
+    const optimisticId = `temp-media-${crypto.randomUUID()}`;
     const optimisticMessage: Message = {
       id: optimisticId,
       sender_id: currentUserId,
