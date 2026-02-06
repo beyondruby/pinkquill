@@ -47,7 +47,9 @@
       "Bash(npx next lint:*)",
       "Bash(1)",
       "Bash(npx eslint:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder-key' npm run build:*)"
     ]
   }
 }
