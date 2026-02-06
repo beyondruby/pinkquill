@@ -275,18 +275,11 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const limit = options?.limit ?? 20;
 
   useEffect(() => {
     mountedRef.current = true;
-
-    // Abort any in-flight request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
 
     const fetchCommunities = async () => {
       try {
@@ -362,7 +355,6 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
         // Set trending as top 6 by member count
         setTrending(enrichedCommunities.slice(0, 6));
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === "AbortError") return;
         console.error("[useDiscoverCommunities] Error:", err);
         if (mountedRef.current) {
           setError(err instanceof Error ? err.message : "Failed to discover communities");
@@ -378,9 +370,6 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
 
     return () => {
       mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
     };
   }, [options?.category, options?.tag, limit]);
 
@@ -699,17 +688,21 @@ export function useCommunityPosts(
         return;
       }
 
-      // Get engagement counts for sorting by 'top'
+      // Get engagement counts for sorting
       const postIds = data.map(p => p.id);
-      const [admiresResult, commentsResult] = await Promise.all([
+      const [admiresResult, commentsResult, relaysResult, reactionsResult] = await Promise.all([
         supabase.from("admires").select("post_id").in("post_id", postIds),
         supabase.from("comments").select("post_id").in("post_id", postIds),
+        supabase.from("relays").select("post_id").in("post_id", postIds),
+        supabase.from("reactions").select("post_id, reaction_type").in("post_id", postIds),
       ]);
 
       if (!mountedRef.current) return;
 
       const admiresCounts: Record<string, number> = {};
       const commentsCounts: Record<string, number> = {};
+      const relaysCounts: Record<string, number> = {};
+      const reactionsCounts: Record<string, number> = {};
 
       (admiresResult.data || []).forEach(a => {
         admiresCounts[a.post_id] = (admiresCounts[a.post_id] || 0) + 1;
@@ -717,31 +710,47 @@ export function useCommunityPosts(
       (commentsResult.data || []).forEach(c => {
         commentsCounts[c.post_id] = (commentsCounts[c.post_id] || 0) + 1;
       });
+      (relaysResult.data || []).forEach(r => {
+        relaysCounts[r.post_id] = (relaysCounts[r.post_id] || 0) + 1;
+      });
+      (reactionsResult.data || []).forEach(r => {
+        reactionsCounts[r.post_id] = (reactionsCounts[r.post_id] || 0) + 1;
+      });
 
       // Check user interactions if logged in
       let userAdmires: Set<string> = new Set();
       let userSaves: Set<string> = new Set();
+      let userRelays: Set<string> = new Set();
+      const userReactions: Record<string, string> = {};
 
       if (userId) {
-        const [userAdmiresResult, userSavesResult] = await Promise.all([
+        const [userAdmiresResult, userSavesResult, userRelaysResult, userReactionsResult] = await Promise.all([
           supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
           supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
+          supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
+          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", userId).in("post_id", postIds),
         ]);
 
         if (!mountedRef.current) return;
 
         userAdmires = new Set((userAdmiresResult.data || []).map(a => a.post_id));
         userSaves = new Set((userSavesResult.data || []).map(s => s.post_id));
+        userRelays = new Set((userRelaysResult.data || []).map(r => r.post_id));
+        (userReactionsResult.data || []).forEach(r => {
+          userReactions[r.post_id] = r.reaction_type;
+        });
       }
 
       const enrichedPosts = data.map(post => ({
         ...post,
         admires_count: admiresCounts[post.id] || 0,
         comments_count: commentsCounts[post.id] || 0,
-        relays_count: 0,
+        relays_count: relaysCounts[post.id] || 0,
+        reactions_count: reactionsCounts[post.id] || 0,
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: userSaves.has(post.id),
-        user_has_relayed: false,
+        user_has_relayed: userRelays.has(post.id),
+        user_reaction_type: userReactions[post.id] || null,
       }));
 
       // Sort by engagement for 'top' or hot score for 'hot'
@@ -1540,8 +1549,8 @@ export function useCommunityModeration(communityId: string) {
         .eq("id", postId)
         .single();
 
-      // Log the deletion
-      await supabase.from("community_content_deletions").insert({
+      // Log the deletion (must succeed before we delete the post)
+      const { error: auditError } = await supabase.from("community_content_deletions").insert({
         community_id: communityId,
         content_type: 'post',
         content_id: postId,
@@ -1549,6 +1558,11 @@ export function useCommunityModeration(communityId: string) {
         deleted_by: user.id,
         reason: reason || null,
       });
+
+      if (auditError) {
+        console.error("[deletePost] Audit log failed:", auditError);
+        return { success: false, error: 'Failed to create audit log for deletion' };
+      }
 
       // Delete the post
       const { error } = await supabase

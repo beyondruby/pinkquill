@@ -18,6 +18,7 @@ import PostTags from "@/components/feed/PostTags";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
+import { getTimeAgo } from "@/lib/utils/format";
 
 interface TaggedUser {
   id: string;
@@ -83,18 +84,6 @@ interface Post {
   post_location?: string | null;
   metadata?: JournalMetadata | null;
   spotify_track?: SpotifyTrack | null;
-}
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
 }
 
 function formatDate(dateString: string): string {

@@ -25,6 +25,7 @@ export default function CommunityGeneralSettingsPage() {
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (community) {
@@ -90,6 +91,7 @@ export default function CommunityGeneralSettingsPage() {
     e.preventDefault();
     setUploading(true);
     setSuccess(false);
+    setSubmitError(null);
 
     try {
       let avatar_url = community.avatar_url;
@@ -115,9 +117,12 @@ export default function CommunityGeneralSettingsPage() {
         setSuccess(true);
         refetch();
         setTimeout(() => setSuccess(false), 3000);
+      } else {
+        setSubmitError(result.error || 'Failed to update community settings');
       }
     } catch (err) {
       console.error('Error updating community:', err);
+      setSubmitError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setUploading(false);
     }
@@ -126,6 +131,12 @@ export default function CommunityGeneralSettingsPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <h2 className="font-display text-xl font-bold text-ink mb-6">General Settings</h2>
+
+      {(submitError || error) && (
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 font-ui text-sm">
+          {submitError || error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Cover Image */}

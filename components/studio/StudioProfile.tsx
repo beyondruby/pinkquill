@@ -25,6 +25,7 @@ import Loading from "@/components/ui/Loading";
 import StoreTab from "@/components/store/StoreTab";
 import type { Collection, Post } from "@/lib/types";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { formatCount, getTimeAgo } from "@/lib/utils/format";
 
 // Helper function to decode HTML entities
 function decodeHtmlEntities(text: string): string {
@@ -815,27 +816,9 @@ function CollectionCard({
   );
 }
 
-function formatCount(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}m`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
-  return num.toString();
-}
-
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
 }
 
 interface StudioProfileProps {

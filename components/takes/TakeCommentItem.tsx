@@ -7,6 +7,7 @@ import { useBlock } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import ReportModal from "@/components/ui/ReportModal";
 import { icons } from "@/components/ui/Icons";
+import { getTimeAgo } from "@/lib/utils/format";
 
 interface TakeCommentItemProps {
   comment: TakeComment;
@@ -53,18 +54,6 @@ function renderContentWithMentions(content: string, onModalClose?: () => void): 
   }
 
   return parts.length > 0 ? parts : content;
-}
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-  return date.toLocaleDateString();
 }
 
 export default function TakeCommentItem({

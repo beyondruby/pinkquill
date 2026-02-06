@@ -18,6 +18,7 @@ import { supabase } from "@/lib/supabase";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
 import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack } from "@/lib/types";
+import { getTimeAgo } from "@/lib/utils/format";
 
 // Helper to sanitize and clean HTML for display
 function cleanHtmlForDisplay(html: string): string {
@@ -390,18 +391,6 @@ function formatWeather(weather?: string): string {
     'windy': 'Windy'
   };
   return labels[weather] || weather;
-}
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
 }
 
 interface PostDetailModalProps {

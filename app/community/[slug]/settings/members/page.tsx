@@ -24,7 +24,7 @@ export default function CommunityMembersSettingsPage() {
 
   const { requests, loading: requestsLoading, approve, reject, refetch: refetchRequests } = useJoinRequests(community?.id || '');
 
-  const { promoteUser, demoteUser } = useCommunityModeration(community?.id || '');
+  const { demoteUser } = useCommunityModeration(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);
 
   if (!community) return null;
@@ -35,14 +35,6 @@ export default function CommunityMembersSettingsPage() {
     router.push(`/community/${slug}/settings`);
     return null;
   }
-
-  const _handlePromote = async (userId: string) => {
-    setActionLoading(true);
-    const result = await promoteUser(userId, 'moderator');
-    if (result.success) refetchMods();
-    setActionLoading(false);
-  };
-  void _handlePromote; // Reserved for future use
 
   const handleDemote = async (userId: string) => {
     if (confirm('Are you sure you want to remove moderator role from this user?')) {

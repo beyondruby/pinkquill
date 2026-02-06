@@ -136,15 +136,6 @@ export default function CommunityMembersPage() {
     setActionLoading(false);
   };
 
-  // Promote directly to admin (no permissions modal needed - admins have all permissions)
-  const _handlePromoteToAdmin = async (userId: string) => {
-    setActionLoading(true);
-    const result = await promoteUser(userId, 'admin');
-    if (result.success) refetch();
-    setActionLoading(false);
-  };
-  void _handlePromoteToAdmin; // Reserved for future use
-
   const handleDemote = async (userId: string) => {
     setActionLoading(true);
     const result = await demoteUser(userId);

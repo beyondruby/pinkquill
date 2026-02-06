@@ -16,24 +16,6 @@ const PROTECTED_ROUTES = [
 // Routes only accessible when NOT authenticated
 const AUTH_ROUTES = ["/login"];
 
-// Routes that are always public (no auth check needed)
-const PUBLIC_ROUTES = [
-  "/privacy",
-  "/terms",
-  "/about",
-  "/community-guidelines",
-  "/marketplace-guidelines",
-  "/help",
-  "/auth/callback",
-  "/tag",
-  "/post",
-  "/take",
-  "/studio",
-  "/community",
-  "/explore",
-  "/product",
-];
-
 function isProtectedRoute(pathname: string): boolean {
   // The home feed "/" is protected
   if (pathname === "/") return true;
@@ -44,12 +26,6 @@ function isProtectedRoute(pathname: string): boolean {
 
 function isAuthRoute(pathname: string): boolean {
   return AUTH_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(route + "/")
-  );
-}
-
-function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
   );
 }
