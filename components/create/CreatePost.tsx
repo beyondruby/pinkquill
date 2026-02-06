@@ -452,15 +452,15 @@ export default function CreatePost() {
   const [selectedCollectionItem, setSelectedCollectionItem] = useState<CollectionItem | null>(null);
   const { addPost: addPostToCollectionItem } = useAddPostToCollectionItem();
 
-  // Set community from URL param (wait for communities to load)
+  // Set community from URL param (wait for auth and communities to load)
   useEffect(() => {
-    if (communitySlug && userCommunities.length > 0 && !communitiesLoading) {
+    if (communitySlug && userCommunities.length > 0 && !communitiesLoading && !authLoading) {
       const community = userCommunities.find(c => c.slug === communitySlug);
       if (community) {
         setSelectedCommunity(community);
       }
     }
-  }, [communitySlug, userCommunities, communitiesLoading]);
+  }, [communitySlug, userCommunities, communitiesLoading, authLoading]);
 
   // Clear flair when community changes
   useEffect(() => {
@@ -3234,7 +3234,7 @@ export default function CreatePost() {
             </div>
 
             {/* Community Selector */}
-            {!isEditing && (userCommunities.length > 0 || communitiesLoading) && (
+            {!isEditing && (userCommunities.length > 0 || communitiesLoading || authLoading) && (
               <div className="relative">
                 {selectedCommunity ? (
                   <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-primary/30 bg-purple-primary/5 text-purple-primary font-ui text-[0.85rem]">
@@ -3269,17 +3269,17 @@ export default function CreatePost() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => !communitiesLoading && setShowCommunityMenu(!showCommunityMenu)}
-                    disabled={communitiesLoading}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white text-muted hover:border-purple-primary hover:text-purple-primary font-ui text-[0.85rem] transition-all ${communitiesLoading ? 'opacity-60 cursor-wait' : ''}`}
+                    onClick={() => !(communitiesLoading || authLoading) && setShowCommunityMenu(!showCommunityMenu)}
+                    disabled={communitiesLoading || authLoading}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white text-muted hover:border-purple-primary hover:text-purple-primary font-ui text-[0.85rem] transition-all ${(communitiesLoading || authLoading) ? 'opacity-60 cursor-wait' : ''}`}
                   >
-                    {communitiesLoading ? (
+                    {(communitiesLoading || authLoading) ? (
                       <div className="w-4 h-4 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
                     ) : (
                       icons.users
                     )}
-                    <span>{communitiesLoading ? 'Loading...' : 'Community'}</span>
-                    {!communitiesLoading && icons.chevronDown}
+                    <span>{(communitiesLoading || authLoading) ? 'Loading...' : 'Community'}</span>
+                    {!(communitiesLoading || authLoading) && icons.chevronDown}
                   </button>
                 )}
 
