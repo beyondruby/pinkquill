@@ -81,8 +81,9 @@ export function useCommunity(slug: string, userId?: string) {
         return;
       }
 
-      // Fetch counts and user membership in parallel
-      const [membersResult, postsResult, userMemberResult, pendingRequestResult, pendingInvitationResult, rulesResult, tagsResult] = await Promise.all([
+      // Fetch counts/membership in parallel, but tolerate secondary query failures.
+      // This prevents transient errors from showing a false "community not found" state.
+      const [membersResult, postsResult, userMemberResult, pendingRequestResult, pendingInvitationResult, rulesResult, tagsResult] = await Promise.allSettled([
         supabase.from("community_members").select("*", { count: "exact", head: true }).eq("community_id", communityData.id).eq("status", "active"),
         supabase.from("posts").select("*", { count: "exact", head: true }).eq("community_id", communityData.id),
         userId ? supabase.from("community_members").select("role, status").eq("community_id", communityData.id).eq("user_id", userId).maybeSingle() : Promise.resolve({ data: null }),
@@ -94,20 +95,65 @@ export function useCommunity(slug: string, userId?: string) {
 
       if (currentFetchId !== fetchIdRef.current) return;
 
+      type SettledPayload<T = unknown> = {
+        data?: T | null;
+        error?: { message?: string } | null;
+        count?: number | null;
+      };
+
+      const logSettledError = (queryName: string, result: PromiseSettledResult<SettledPayload>) => {
+        if (result.status === "rejected") {
+          console.error(`[useCommunity] ${queryName} query rejected:`, result.reason);
+          return;
+        }
+        if (result.value.error) {
+          console.error(`[useCommunity] ${queryName} query error:`, result.value.error);
+        }
+      };
+
+      const getSettledData = <T,>(
+        result: PromiseSettledResult<SettledPayload<T>>,
+        fallback: T
+      ): T => {
+        if (result.status !== "fulfilled") return fallback;
+        if (result.value.error) return fallback;
+        return (result.value.data as T | null | undefined) ?? fallback;
+      };
+
+      const getSettledCount = (result: PromiseSettledResult<SettledPayload>, fallback = 0): number => {
+        if (result.status !== "fulfilled") return fallback;
+        if (result.value.error) return fallback;
+        return result.value.count ?? fallback;
+      };
+
+      logSettledError("members", membersResult);
+      logSettledError("posts", postsResult);
+      logSettledError("user membership", userMemberResult);
+      logSettledError("pending join request", pendingRequestResult);
+      logSettledError("pending invitation", pendingInvitationResult);
+      logSettledError("rules", rulesResult);
+      logSettledError("tags", tagsResult);
+
+      const userMemberData = getSettledData<{ role: 'admin' | 'moderator' | 'member'; status: 'active' | 'muted' | 'banned' } | null>(userMemberResult, null);
+      const pendingRequestData = getSettledData<{ id: string } | null>(pendingRequestResult, null);
+      const pendingInvitationData = getSettledData<{ id: string } | null>(pendingInvitationResult, null);
+      const rulesData = getSettledData<CommunityRule[]>(rulesResult, []);
+      const tagsData = getSettledData<CommunityTag[]>(tagsResult, []);
+
       setCommunity({
         ...communityData,
-        member_count: membersResult.count || 0,
-        post_count: postsResult.count || 0,
-        is_member: !!userMemberResult.data && userMemberResult.data.status === 'active',
-        user_role: userMemberResult.data?.role || null,
-        user_status: userMemberResult.data?.status || null,
-        has_pending_request: !!pendingRequestResult.data,
-        has_pending_invitation: !!pendingInvitationResult.data,
-        pending_invitation_id: pendingInvitationResult.data?.id || undefined,
+        member_count: getSettledCount(membersResult),
+        post_count: getSettledCount(postsResult),
+        is_member: !!userMemberData && userMemberData.status === 'active',
+        user_role: userMemberData?.role || null,
+        user_status: userMemberData?.status || null,
+        has_pending_request: !!pendingRequestData,
+        has_pending_invitation: !!pendingInvitationData,
+        pending_invitation_id: pendingInvitationData?.id || undefined,
       });
 
-      setRules(rulesResult.data || []);
-      setTags(tagsResult.data || []);
+      setRules(rulesData);
+      setTags(tagsData);
     } catch (err: unknown) {
       if (currentFetchId !== fetchIdRef.current) return;
       console.error("[useCommunity] Error:", err);

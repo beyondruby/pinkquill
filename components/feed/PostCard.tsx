@@ -111,12 +111,22 @@ function PostCardComponent({
   onPostDeleted,
   canModerateDelete,
   onModeratorDelete,
+  canModeratePin,
+  isPinned = false,
+  canPinMore = true,
+  onPin,
+  onUnpin,
   disableRealtimeSubscriptions = false,
 }: {
   post: PostProps;
   onPostDeleted?: (postId: string) => void;
   canModerateDelete?: boolean;
   onModeratorDelete?: (postId: string, reason?: string) => Promise<void>;
+  canModeratePin?: boolean;
+  isPinned?: boolean;
+  canPinMore?: boolean;
+  onPin?: (postId: string) => Promise<void> | void;
+  onUnpin?: (postId: string) => Promise<void> | void;
   /** PERFORMANCE: Disable per-card real-time subscriptions when used in feed context */
   disableRealtimeSubscriptions?: boolean;
 }) {
@@ -466,6 +476,14 @@ function PostCardComponent({
     }
   }, [post.id, moderatorDeleteReason, onModeratorDelete, onPostDeleted]);
 
+  const handleModeratePinToggle = useCallback(async () => {
+    if (isPinned) {
+      await onUnpin?.(post.id);
+      return;
+    }
+    await onPin?.(post.id);
+  }, [isPinned, onPin, onUnpin, post.id]);
+
   const handleEdit = useCallback(() => {
     router.push(`/create?edit=${post.id}`);
   }, [router, post.id]);
@@ -592,6 +610,8 @@ function PostCardComponent({
       isOwner={!!isOwner}
       isAuthenticated={!!user}
       canModerateDelete={!!canModerateDelete && !!onModeratorDelete && !isOwner}
+      canModeratePin={!!canModeratePin && (isPinned || canPinMore)}
+      isPinned={isPinned}
       blockedUsername={post.author.handle.replace(/^@/, "")}
       onToggle={() => {
         if (!user && !isOwner) return;
@@ -601,6 +621,7 @@ function PostCardComponent({
       onEdit={handleEdit}
       onDelete={() => setShowDeleteConfirm(true)}
       onModerateDelete={() => setShowModeratorDeleteConfirm(true)}
+      onTogglePin={handleModeratePinToggle}
       onReport={() => setShowReportModal(true)}
       onBlock={() => setShowBlockConfirm(true)}
     />
@@ -1216,7 +1237,12 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
     prevProps.post.isRelayed === nextProps.post.isRelayed &&
     prevProps.post.reactionType === nextProps.post.reactionType &&
     prevProps.canModerateDelete === nextProps.canModerateDelete &&
-    prevProps.onModeratorDelete === nextProps.onModeratorDelete
+    prevProps.onModeratorDelete === nextProps.onModeratorDelete &&
+    prevProps.canModeratePin === nextProps.canModeratePin &&
+    prevProps.isPinned === nextProps.isPinned &&
+    prevProps.canPinMore === nextProps.canPinMore &&
+    prevProps.onPin === nextProps.onPin &&
+    prevProps.onUnpin === nextProps.onUnpin
   );
 });
 

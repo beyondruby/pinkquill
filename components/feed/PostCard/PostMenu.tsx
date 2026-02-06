@@ -14,12 +14,15 @@ interface PostMenuProps {
   isOwner: boolean;
   isAuthenticated: boolean;
   canModerateDelete?: boolean;
+  canModeratePin?: boolean;
+  isPinned?: boolean;
   blockedUsername?: string;
   onToggle: () => void;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onModerateDelete?: () => void;
+  onTogglePin?: () => void;
   onReport: () => void;
   onBlock: () => void;
 }
@@ -29,12 +32,15 @@ function PostMenuComponent({
   isOwner,
   isAuthenticated,
   canModerateDelete = false,
+  canModeratePin = false,
+  isPinned = false,
   blockedUsername,
   onToggle,
   onClose,
   onEdit,
   onDelete,
   onModerateDelete,
+  onTogglePin,
   onReport,
   onBlock,
 }: PostMenuProps) {
@@ -56,6 +62,29 @@ function PostMenuComponent({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, onClose]);
+
+  const renderPinAction = () => {
+    if (!canModeratePin || !onTogglePin) return null;
+
+    return (
+      <button
+        className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 ${
+          isPinned ? "text-orange-600 hover:bg-orange-50" : "text-purple-primary hover:bg-purple-primary/10"
+        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onTogglePin();
+          onClose();
+        }}
+        role="menuitem"
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z" />
+        </svg>
+        {isPinned ? "Unpin (Mod)" : "Pin (Mod)"}
+      </button>
+    );
+  };
 
   return (
     <div className="relative shrink-0" ref={menuRef}>
@@ -93,6 +122,12 @@ function PostMenuComponent({
                 <EditIcon className="w-4 h-4" />
                 Edit
               </button>
+              {canModeratePin && onTogglePin && (
+                <>
+                  <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+                  {renderPinAction()}
+                </>
+              )}
               <button
                 className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                 onClick={(e) => {
@@ -121,23 +156,26 @@ function PostMenuComponent({
                 {blockedUsername ? `Block @${blockedUsername}` : "Block user"}
               </button>
 
-              {canModerateDelete && onModerateDelete && (
+              {(canModerateDelete && onModerateDelete) || (canModeratePin && onTogglePin) ? (
                 <>
                   <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
-                  <button
-                    className="w-full px-4 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onModerateDelete();
-                      onClose();
-                    }}
-                    role="menuitem"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                    Delete (Mod)
-                  </button>
+                  {canModerateDelete && onModerateDelete && (
+                    <button
+                      className="w-full px-4 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onModerateDelete();
+                        onClose();
+                      }}
+                      role="menuitem"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                      Delete (Mod)
+                    </button>
+                  )}
+                  {renderPinAction()}
                 </>
-              )}
+              ) : null}
 
               <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
               <button

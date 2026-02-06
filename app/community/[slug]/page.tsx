@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
@@ -81,13 +80,14 @@ function transformPost(
 }
 
 export default function CommunityFeedPage() {
-  const params = useParams();
-  const slug = params.slug as string;
   const { user } = useAuth();
   const { setModerationContext } = useModal();
   const { community, tags } = useCommunityContext();
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [timeRange, setTimeRange] = useState<TopTimeRange>('week');
+  const isRoleModerator =
+    (community.user_role === 'admin' || community.user_role === 'moderator') &&
+    community.user_status === 'active';
 
   // Track community views
   useTrackCommunityView(community.id);
@@ -124,14 +124,23 @@ export default function CommunityFeedPage() {
   useEffect(() => {
     const checkPermissions = async () => {
       if (user?.id && community.id) {
-        const [canDeletePostsPerm, canDeleteCommentsPerm, canPinPostsPerm] = await Promise.all([
-          hasPermission(user.id, 'can_delete_posts'),
-          hasPermission(user.id, 'can_delete_comments'),
-          hasPermission(user.id, 'can_pin_posts'),
-        ]);
-        setCanDeletePosts(canDeletePostsPerm);
-        setCanDeleteComments(canDeleteCommentsPerm);
-        setCanPinPosts(canPinPostsPerm);
+        try {
+          const [canDeletePostsPerm, canDeleteCommentsPerm, canPinPostsPerm] = await Promise.all([
+            hasPermission(user.id, 'can_delete_posts'),
+            hasPermission(user.id, 'can_delete_comments'),
+            hasPermission(user.id, 'can_pin_posts'),
+          ]);
+
+          // Fallback to role-based moderation for UI visibility if granular permissions fail to resolve.
+          setCanDeletePosts(canDeletePostsPerm || isRoleModerator);
+          setCanDeleteComments(canDeleteCommentsPerm || isRoleModerator);
+          setCanPinPosts(canPinPostsPerm || isRoleModerator);
+        } catch (err) {
+          console.error("[CommunityFeedPage] Permission check failed:", err);
+          setCanDeletePosts(isRoleModerator);
+          setCanDeleteComments(isRoleModerator);
+          setCanPinPosts(isRoleModerator);
+        }
       } else {
         setCanDeletePosts(false);
         setCanDeleteComments(false);
@@ -139,7 +148,7 @@ export default function CommunityFeedPage() {
       }
     };
     checkPermissions();
-  }, [user?.id, community.id, hasPermission]);
+  }, [user?.id, community.id, hasPermission, isRoleModerator]);
 
   // Handler for moderator comment deletion
   const handleModeratorDeleteComment = useCallback(async (commentId: string, reason?: string) => {
@@ -284,7 +293,7 @@ export default function CommunityFeedPage() {
             </div>
             <div className="space-y-4">
               {pinnedPosts.map((post) => (
-                <div key={post.id} className="relative group/pin">
+                <div key={post.id} className="relative">
                   {/* Pin indicator badge */}
                   <div className="absolute -top-2 left-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
@@ -292,24 +301,16 @@ export default function CommunityFeedPage() {
                     </svg>
                     <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pinned</span>
                   </div>
-                  {/* Unpin button for admins */}
-                  {canManagePins && (
-                    <button
-                      onClick={() => handleUnpin(post.id)}
-                      className="absolute -top-2 right-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-md border border-red-200 text-red-500 opacity-0 group-hover/pin:opacity-100 transition-all hover:bg-red-50 hover:border-red-300"
-                      title="Unpin post"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Unpin</span>
-                    </button>
-                  )}
                   <div className="pt-2">
                     <PostCard
                       post={transformPost(post, community)}
                       canModerateDelete={canDeletePosts}
                       onModeratorDelete={handleModeratorDeletePost}
+                      canModeratePin={canManagePins}
+                      isPinned
+                      canPinMore={canPin}
+                      onPin={handlePin}
+                      onUnpin={handleUnpin}
                     />
                   </div>
                 </div>
@@ -330,28 +331,17 @@ export default function CommunityFeedPage() {
         ) : posts.length > 0 ? (
           <div className="space-y-5">
             {posts.map((post) => (
-              <div key={post.id} className="relative group/pin">
-                {/* Pin button for admins (only if can pin more) */}
-                {canManagePins && canPin && !isPinned(post.id) && (
-                  <button
-                    onClick={() => handlePin(post.id)}
-                    className="absolute -top-2 left-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-md border border-purple-primary/20 text-purple-primary opacity-0 group-hover/pin:opacity-100 transition-all hover:bg-gradient-to-r hover:from-purple-primary hover:to-pink-vivid hover:text-white hover:border-transparent"
-                    title="Pin post"
-                  >
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
-                    </svg>
-                    <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pin</span>
-                  </button>
-                )}
-                <div className={canManagePins && canPin && !isPinned(post.id) ? "pt-2" : ""}>
-                  <PostCard
-                    post={transformPost(post, community)}
-                    canModerateDelete={canDeletePosts}
-                    onModeratorDelete={handleModeratorDeletePost}
-                  />
-                </div>
-              </div>
+              <PostCard
+                key={post.id}
+                post={transformPost(post, community)}
+                canModerateDelete={canDeletePosts}
+                onModeratorDelete={handleModeratorDeletePost}
+                canModeratePin={canManagePins}
+                isPinned={isPinned(post.id)}
+                canPinMore={canPin}
+                onPin={handlePin}
+                onUnpin={handleUnpin}
+              />
             ))}
           </div>
         ) : (
