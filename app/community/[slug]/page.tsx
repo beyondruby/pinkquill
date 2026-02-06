@@ -32,7 +32,12 @@ function getTypeLabel(type: string): string {
   return labels[type] || "shared";
 }
 
-function transformPost(post: Post) {
+function transformPost(
+  post: Post,
+  community: { id: string; slug: string; name: string; avatar_url: string | null }
+) {
+  const flair = Array.isArray(post.flair) ? post.flair[0] : post.flair;
+
   return {
     id: post.id,
     authorId: post.author_id,
@@ -53,12 +58,25 @@ function transformPost(post: Post) {
     media: post.media || [],
     stats: {
       admires: post.admires_count,
+      reactions: post.reactions_count,
       comments: post.comments_count,
       relays: post.relays_count,
     },
     isAdmired: post.user_has_admired,
+    reactionType: post.user_reaction_type,
     isSaved: post.user_has_saved,
     isRelayed: post.user_has_relayed,
+    community: {
+      id: community.id,
+      slug: community.slug,
+      name: community.name,
+      avatar_url: community.avatar_url,
+    },
+    flair: flair || null,
+    styling: post.styling || null,
+    post_location: post.post_location || null,
+    metadata: post.metadata || null,
+    spotify_track: post.spotify_track || null,
   };
 }
 
@@ -100,20 +118,24 @@ export default function CommunityFeedPage() {
   // State for delete permissions
   const [canDeletePosts, setCanDeletePosts] = useState(false);
   const [canDeleteComments, setCanDeleteComments] = useState(false);
+  const [canPinPosts, setCanPinPosts] = useState(false);
 
-  // Check delete permissions on mount and when user/community changes
+  // Check moderation permissions on mount and when user/community changes
   useEffect(() => {
     const checkPermissions = async () => {
       if (user?.id && community.id) {
-        const [canDeletePostsPerm, canDeleteCommentsPerm] = await Promise.all([
+        const [canDeletePostsPerm, canDeleteCommentsPerm, canPinPostsPerm] = await Promise.all([
           hasPermission(user.id, 'can_delete_posts'),
           hasPermission(user.id, 'can_delete_comments'),
+          hasPermission(user.id, 'can_pin_posts'),
         ]);
         setCanDeletePosts(canDeletePostsPerm);
         setCanDeleteComments(canDeleteCommentsPerm);
+        setCanPinPosts(canPinPostsPerm);
       } else {
         setCanDeletePosts(false);
         setCanDeleteComments(false);
+        setCanPinPosts(false);
       }
     };
     checkPermissions();
@@ -155,11 +177,11 @@ export default function CommunityFeedPage() {
   }, [deletePost, refetch]);
 
   const canPost = community.is_member && community.user_status === 'active';
-  const isAdmin = community.user_role === 'admin' || community.user_role === 'moderator';
+  const canManagePins = canPinPosts;
 
   // Handle pin/unpin and refresh the posts list
   const handlePin = async (postId: string) => {
-    if (!user?.id) return;
+    if (!user?.id || !canManagePins) return;
     const success = await pinPost(postId, user.id);
     if (success) {
       refetch();
@@ -168,6 +190,7 @@ export default function CommunityFeedPage() {
   };
 
   const handleUnpin = async (postId: string) => {
+    if (!canManagePins) return;
     const success = await unpinPost(postId);
     if (success) {
       refetch();
@@ -270,7 +293,7 @@ export default function CommunityFeedPage() {
                     <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pinned</span>
                   </div>
                   {/* Unpin button for admins */}
-                  {isAdmin && (
+                  {canManagePins && (
                     <button
                       onClick={() => handleUnpin(post.id)}
                       className="absolute -top-2 right-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-md border border-red-200 text-red-500 opacity-0 group-hover/pin:opacity-100 transition-all hover:bg-red-50 hover:border-red-300"
@@ -284,7 +307,7 @@ export default function CommunityFeedPage() {
                   )}
                   <div className="pt-2">
                     <PostCard
-                      post={transformPost(post)}
+                      post={transformPost(post, community)}
                       canModerateDelete={canDeletePosts}
                       onModeratorDelete={handleModeratorDeletePost}
                     />
@@ -309,7 +332,7 @@ export default function CommunityFeedPage() {
             {posts.map((post) => (
               <div key={post.id} className="relative group/pin">
                 {/* Pin button for admins (only if can pin more) */}
-                {isAdmin && canPin && !isPinned(post.id) && (
+                {canManagePins && canPin && !isPinned(post.id) && (
                   <button
                     onClick={() => handlePin(post.id)}
                     className="absolute -top-2 left-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-md border border-purple-primary/20 text-purple-primary opacity-0 group-hover/pin:opacity-100 transition-all hover:bg-gradient-to-r hover:from-purple-primary hover:to-pink-vivid hover:text-white hover:border-transparent"
@@ -321,9 +344,9 @@ export default function CommunityFeedPage() {
                     <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pin</span>
                   </button>
                 )}
-                <div className={isAdmin && canPin && !isPinned(post.id) ? "pt-2" : ""}>
+                <div className={canManagePins && canPin && !isPinned(post.id) ? "pt-2" : ""}>
                   <PostCard
-                    post={transformPost(post)}
+                    post={transformPost(post, community)}
                     canModerateDelete={canDeletePosts}
                     onModeratorDelete={handleModeratorDeletePost}
                   />

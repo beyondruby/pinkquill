@@ -76,6 +76,7 @@ interface Post {
   content: string;
   content_warning: string | null;
   created_at: string;
+  community_id: string | null;
   author: Author;
   media: MediaItem[];
   mentions?: TaggedUser[];
@@ -617,10 +618,13 @@ export default function PostPage() {
     setReportSubmitting(true);
     try {
       const { error } = await supabase.from("reports").insert({
-        post_id: post.id,
         reporter_id: user.id,
-        reason: reason,
+        reported_post_id: post.id,
+        community_id: post.community_id || null,
+        reason,
         details: details || null,
+        type: "post",
+        status: "pending",
       });
 
       if (error) {
@@ -1180,6 +1184,7 @@ export default function PostPage() {
                       onLike={handleCommentLike}
                       onReply={handleCommentReply}
                       onDelete={handleCommentDelete}
+                      communityId={post.community_id || null}
                     />
                   ))}
                 </div>

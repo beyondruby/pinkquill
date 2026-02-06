@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -30,10 +30,13 @@ export default function CommunityMembersSettingsPage() {
 
   const isAdmin = community.user_role === 'admin';
 
-  if (!isAdmin) {
-    router.push(`/community/${slug}/settings`);
-    return null;
-  }
+  useEffect(() => {
+    if (!isAdmin) {
+      router.replace(`/community/${slug}/settings`);
+    }
+  }, [isAdmin, router, slug]);
+
+  if (!isAdmin) return null;
 
   const handleDemote = async (userId: string) => {
     if (confirm('Are you sure you want to remove moderator role from this user?')) {

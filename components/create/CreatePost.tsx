@@ -464,8 +464,16 @@ export default function CreatePost() {
 
   // Clear flair when community changes
   useEffect(() => {
-    setSelectedFlair(null);
-  }, [selectedCommunity?.id]);
+    if (!selectedCommunity?.id) {
+      setSelectedFlair(null);
+      return;
+    }
+
+    // Keep existing flair intact while editing an existing community post.
+    if (!isEditing) {
+      setSelectedFlair(null);
+    }
+  }, [selectedCommunity?.id, isEditing]);
 
   const [selectedType, setSelectedType] = useState("thought");
   const [tags, setTags] = useState<string[]>([]);
@@ -678,6 +686,21 @@ export default function CreatePost() {
 
         // Store content to be set after editor mounts
         setInitialContent(post.content || "");
+
+        // Set selected community for community posts in edit mode
+        if (post.community_id) {
+          const { data: communityData } = await supabase
+            .from("communities")
+            .select("id, slug, name, avatar_url")
+            .eq("id", post.community_id)
+            .maybeSingle();
+
+          if (communityData) {
+            setSelectedCommunity(communityData as Community);
+          }
+        } else {
+          setSelectedCommunity(null);
+        }
 
         // Set existing media
         if (post.media && post.media.length > 0) {
@@ -3334,8 +3357,8 @@ export default function CreatePost() {
               </div>
             )}
 
-            {/* Flair Picker (only show when a community is selected) */}
-            {selectedCommunity && !isEditing && (
+            {/* Flair Picker (for community posts in create and edit mode) */}
+            {selectedCommunity && (
               <FlairPicker
                 communityId={selectedCommunity.id}
                 selectedFlairId={selectedFlair?.id || null}

@@ -15,6 +15,7 @@ export interface MediaItem {
 }
 
 export interface CommunityInfo {
+  id?: string;
   slug: string;
   name: string;
   avatar_url?: string | null;

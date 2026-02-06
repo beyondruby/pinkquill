@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useDeleteCommunity } from "@/lib/hooks";
@@ -27,10 +27,13 @@ export default function CommunitySettingsPage() {
   const isAdmin = community.user_role === 'admin';
   const isMod = community.user_role === 'moderator';
 
-  if (!isAdmin && !isMod) {
-    router.push(`/community/${slug}`);
-    return null;
-  }
+  useEffect(() => {
+    if (!isAdmin && !isMod) {
+      router.replace(`/community/${slug}`);
+    }
+  }, [isAdmin, isMod, router, slug]);
+
+  if (!isAdmin && !isMod) return null;
 
   const settingsOptions = [
     {

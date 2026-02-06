@@ -29,11 +29,11 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
     if (!userId) return;
     setReportSubmitting(true);
     try {
-      // Store community report with community info in reason since there's no reported_community_id column
-      const fullReason = `[Community: ${community.name} (${community.id})] ${reason}${details ? ` - ${details}` : ""}`;
       await supabase.from("reports").insert({
         reporter_id: userId,
-        reason: fullReason,
+        community_id: community.id,
+        reason,
+        details: details || null,
         type: "community",
         status: "pending",
       });

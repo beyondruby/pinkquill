@@ -18,6 +18,7 @@ interface CommentItemProps {
   onBlock?: (userId: string) => void;
   isReply?: boolean;
   topLevelParentId?: string; // The top-level comment ID for flat threading
+  communityId?: string | null;
   // Community moderation props
   canModerateDelete?: boolean;
   onModeratorDelete?: (commentId: string, reason?: string) => Promise<void>;
@@ -68,6 +69,7 @@ function CommentItemComponent({
   onBlock,
   isReply = false,
   topLevelParentId,
+  communityId,
   canModerateDelete,
   onModeratorDelete,
 }: CommentItemProps) {
@@ -138,8 +140,12 @@ function CommentItemComponent({
       await supabase.from("reports").insert({
         reporter_id: currentUserId,
         reported_user_id: comment.user_id,
-        reason: reason + (details ? `: ${details}` : ""),
+        reported_post_id: comment.post_id,
+        community_id: communityId || null,
+        reason,
+        details: details || null,
         type: "comment",
+        status: "pending",
       });
       setReportSubmitted(true);
       reportTimeoutRef.current = setTimeout(() => {
@@ -413,6 +419,7 @@ function CommentItemComponent({
                   onBlock={onBlock}
                   isReply
                   topLevelParentId={comment.id} // Pass the top-level comment ID for flat threading
+                  communityId={communityId}
                   canModerateDelete={canModerateDelete}
                   onModeratorDelete={onModeratorDelete}
                 />

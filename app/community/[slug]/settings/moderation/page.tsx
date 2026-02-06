@@ -41,10 +41,13 @@ export default function CommunityModerationSettingsPage() {
   const isAdmin = community.user_role === 'admin';
   const isMod = community.user_role === 'moderator';
 
-  if (!isAdmin && !isMod) {
-    router.push(`/community/${slug}`);
-    return null;
-  }
+  useEffect(() => {
+    if (!isAdmin && !isMod) {
+      router.replace(`/community/${slug}`);
+    }
+  }, [isAdmin, isMod, router, slug]);
+
+  if (!isAdmin && !isMod) return null;
 
   const handleUnmute = async (userId: string) => {
     setActionLoading(true);

@@ -17,7 +17,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
-import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack } from "@/lib/types";
+import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack, CommunityFlair } from "@/lib/types";
 import { getTimeAgo } from "@/lib/utils/format";
 
 // Helper to sanitize and clean HTML for display
@@ -333,6 +333,13 @@ interface Post {
   mentions?: TaggedUser[];
   hashtags?: string[];
   collaborators?: CollaboratorUser[];
+  community?: {
+    id?: string;
+    slug: string;
+    name: string;
+    avatar_url?: string | null;
+  } | null;
+  flair?: CommunityFlair | null;
   // Creative styling
   styling?: PostStyling | null;
   post_location?: string | null;
@@ -527,10 +534,13 @@ export default function PostDetailModal({
     setReportSubmitting(true);
     try {
       const { error } = await supabase.from("reports").insert({
-        post_id: post.id,
         reporter_id: user.id,
-        reason: reason,
+        reported_post_id: post.id,
+        community_id: post.community?.id || null,
+        reason,
         details: details || null,
+        type: "post",
+        status: "pending",
       });
 
       if (error) {
@@ -1331,6 +1341,7 @@ export default function PostDetailModal({
                       onLike={handleCommentLike}
                       onReply={handleCommentReply}
                       onDelete={handleCommentDelete}
+                      communityId={post.community?.id || null}
                       canModerateDelete={canModerateDeleteComments}
                       onModeratorDelete={onModeratorDeleteComment}
                     />

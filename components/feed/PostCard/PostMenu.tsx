@@ -12,10 +12,14 @@ import {
 interface PostMenuProps {
   isOpen: boolean;
   isOwner: boolean;
+  isAuthenticated: boolean;
+  canModerateDelete?: boolean;
+  blockedUsername?: string;
   onToggle: () => void;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onModerateDelete?: () => void;
   onReport: () => void;
   onBlock: () => void;
 }
@@ -23,10 +27,14 @@ interface PostMenuProps {
 function PostMenuComponent({
   isOpen,
   isOwner,
+  isAuthenticated,
+  canModerateDelete = false,
+  blockedUsername,
   onToggle,
   onClose,
   onEdit,
   onDelete,
+  onModerateDelete,
   onReport,
   onBlock,
 }: PostMenuProps) {
@@ -50,9 +58,9 @@ function PostMenuComponent({
   }, [isOpen, onClose]);
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative shrink-0" ref={menuRef}>
       <button
-        className="action-btn p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+        className="post-menu-btn"
         onClick={(e) => {
           e.stopPropagation();
           onToggle();
@@ -64,56 +72,85 @@ function PostMenuComponent({
         <EllipsisIcon className="w-4 h-4 text-muted" />
       </button>
 
-      {isOpen && (
-        <div className="absolute right-0 top-8 bg-paper rounded-lg shadow-lg border border-gray-100 py-1 min-w-[160px] z-50">
+      {isOpen && (isOwner || isAuthenticated) && (
+        <div
+          className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-[120]"
+          onClick={(e) => e.stopPropagation()}
+          role="menu"
+          aria-label="Post options"
+        >
           {isOwner ? (
             <>
               <button
-                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-gray-50 flex items-center gap-2"
+                className="w-full px-4 py-2.5 text-left text-sm text-ink hover:bg-gray-50 flex items-center gap-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit();
                   onClose();
                 }}
+                role="menuitem"
               >
                 <EditIcon className="w-4 h-4" />
-                Edit post
+                Edit
               </button>
               <button
-                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete();
                   onClose();
                 }}
+                role="menuitem"
               >
                 <TrashIcon className="w-4 h-4" />
-                Delete post
+                Delete
               </button>
             </>
           ) : (
             <>
               <button
-                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-gray-50 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onReport();
-                  onClose();
-                }}
-              >
-                <FlagIcon className="w-4 h-4" />
-                Report post
-              </button>
-              <button
-                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                className="w-full px-4 py-2.5 text-left text-sm text-ink hover:bg-gray-50 flex items-center gap-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   onBlock();
                   onClose();
                 }}
+                role="menuitem"
               >
                 <BlockIcon className="w-4 h-4" />
-                Block user
+                {blockedUsername ? `Block @${blockedUsername}` : "Block user"}
+              </button>
+
+              {canModerateDelete && onModerateDelete && (
+                <>
+                  <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+                  <button
+                    className="w-full px-4 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onModerateDelete();
+                      onClose();
+                    }}
+                    role="menuitem"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                    Delete (Mod)
+                  </button>
+                </>
+              )}
+
+              <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+              <button
+                className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReport();
+                  onClose();
+                }}
+                role="menuitem"
+              >
+                <FlagIcon className="w-4 h-4" />
+                Report
               </button>
             </>
           )}
