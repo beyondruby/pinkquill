@@ -3,20 +3,17 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useCommunityMembers } from "@/lib/hooks";
+import { useCommunityMembers } from "@/lib/hooks";
+import { useCommunityContext } from "@/components/providers/CommunityProvider";
 
 export default function CommunityAboutPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const { user } = useAuth();
-  const { community, rules, tags, loading } = useCommunity(slug, user?.id);
+  const { community, rules, tags } = useCommunityContext();
 
   // Fetch admins and moderators
-  const { members: admins } = useCommunityMembers(community?.id || '', { role: 'admin' });
-  const { members: moderators } = useCommunityMembers(community?.id || '', { role: 'moderator' });
-
-  if (loading || !community) return null;
+  const { members: admins } = useCommunityMembers(community.id, { role: 'admin' });
+  const { members: moderators } = useCommunityMembers(community.id, { role: 'moderator' });
 
   const isAdmin = community.user_role === 'admin';
   const isMod = community.user_role === 'moderator';

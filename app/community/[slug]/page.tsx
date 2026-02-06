@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
-import { useCommunity, useCommunityPosts, useCommunityPinnedPosts, useCommunityModeration, Post } from "@/lib/hooks";
+import { useCommunityPosts, useCommunityPinnedPosts, useCommunityModeration, Post } from "@/lib/hooks";
+import { useCommunityContext } from "@/components/providers/CommunityProvider";
 import { useTrackCommunityView } from "@/lib/hooks/useTracking";
 import PostCard from "@/components/feed/PostCard";
 
@@ -66,15 +67,15 @@ export default function CommunityFeedPage() {
   const slug = params.slug as string;
   const { user } = useAuth();
   const { setModerationContext } = useModal();
-  const { community, tags } = useCommunity(slug, user?.id);
+  const { community, tags } = useCommunityContext();
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [timeRange, setTimeRange] = useState<TopTimeRange>('week');
 
   // Track community views
-  useTrackCommunityView(community?.id);
+  useTrackCommunityView(community.id);
 
   const { posts, pinnedPosts, loading, refetch } = useCommunityPosts(
-    community?.id || '',
+    community.id,
     user?.id,
     sortBy,
     { timeRange: sortBy === 'top' ? timeRange : undefined }
@@ -87,14 +88,14 @@ export default function CommunityFeedPage() {
     pinPost,
     unpinPost,
     refetch: refetchPins
-  } = useCommunityPinnedPosts(community?.id);
+  } = useCommunityPinnedPosts(community.id);
 
   // Moderation functionality
   const {
     deletePost,
     deleteComment,
     hasPermission,
-  } = useCommunityModeration(community?.id || '');
+  } = useCommunityModeration(community.id);
 
   // State for delete permissions
   const [canDeletePosts, setCanDeletePosts] = useState(false);
@@ -103,7 +104,7 @@ export default function CommunityFeedPage() {
   // Check delete permissions on mount and when user/community changes
   useEffect(() => {
     const checkPermissions = async () => {
-      if (user?.id && community?.id) {
+      if (user?.id && community.id) {
         const [canDeletePostsPerm, canDeleteCommentsPerm] = await Promise.all([
           hasPermission(user.id, 'can_delete_posts'),
           hasPermission(user.id, 'can_delete_comments'),
@@ -116,7 +117,7 @@ export default function CommunityFeedPage() {
       }
     };
     checkPermissions();
-  }, [user?.id, community?.id, hasPermission]);
+  }, [user?.id, community.id, hasPermission]);
 
   // Handler for moderator comment deletion
   const handleModeratorDeleteComment = useCallback(async (commentId: string, reason?: string) => {
@@ -152,8 +153,6 @@ export default function CommunityFeedPage() {
       throw new Error(result.error as string);
     }
   }, [deletePost, refetch]);
-
-  if (!community) return null;
 
   const canPost = community.is_member && community.user_status === 'active';
   const isAdmin = community.user_role === 'admin' || community.user_role === 'moderator';

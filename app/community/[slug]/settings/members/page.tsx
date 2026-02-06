@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useCommunityMembers, useJoinRequests, useCommunityModeration } from "@/lib/hooks";
+import { useCommunityMembers, useJoinRequests, useCommunityModeration } from "@/lib/hooks";
+import { useCommunityContext } from "@/components/providers/CommunityProvider";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
 type TabType = 'moderators' | 'requests';
@@ -14,20 +15,18 @@ export default function CommunityMembersSettingsPage() {
   const router = useRouter();
   const slug = params.slug as string;
   const { user } = useAuth();
-  const { community, refetch: refetchCommunity } = useCommunity(slug, user?.id);
+  const { community, refetch: refetchCommunity } = useCommunityContext();
   const [activeTab, setActiveTab] = useState<TabType>('moderators');
 
   const { members: moderators, loading: modsLoading, refetch: refetchMods } = useCommunityMembers(
-    community?.id || '',
+    community.id,
     { role: 'moderator' }
   );
 
-  const { requests, loading: requestsLoading, approve, reject, refetch: refetchRequests } = useJoinRequests(community?.id || '');
+  const { requests, loading: requestsLoading, approve, reject, refetch: refetchRequests } = useJoinRequests(community.id);
 
-  const { demoteUser } = useCommunityModeration(community?.id || '');
+  const { demoteUser } = useCommunityModeration(community.id);
   const [actionLoading, setActionLoading] = useState(false);
-
-  if (!community) return null;
 
   const isAdmin = community.user_role === 'admin';
 

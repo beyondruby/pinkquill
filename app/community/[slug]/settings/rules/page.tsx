@@ -2,15 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useUpdateCommunity } from "@/lib/hooks";
+import { useUpdateCommunity } from "@/lib/hooks";
+import { useCommunityContext } from "@/components/providers/CommunityProvider";
 
 export default function CommunityRulesSettingsPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const { user } = useAuth();
-  const { community, rules: existingRules, refetch } = useCommunity(slug, user?.id);
+  const { community, rules: existingRules, refetch } = useCommunityContext();
   const { updateRules, updating: loading, error } = useUpdateCommunity();
 
   const [rules, setRules] = useState<{ title: string; description: string }[]>(() => {
@@ -34,8 +33,6 @@ export default function CommunityRulesSettingsPage() {
     }
   }, [existingRules, rulesInitialized]);
   /* eslint-enable react-hooks/set-state-in-effect */
-
-  if (!community) return null;
 
   const isAdmin = community.user_role === 'admin';
   const isMod = community.user_role === 'moderator';

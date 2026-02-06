@@ -45,17 +45,12 @@ export function useCommunity(slug: string, userId?: string) {
   const [tags, setTags] = useState<CommunityTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const fetchIdRef = useRef(0);
 
   const fetchCommunity = useCallback(async () => {
     if (!slug) return;
 
-    // Abort any in-flight request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
+    const currentFetchId = ++fetchIdRef.current;
 
     try {
       setLoading(true);
@@ -75,7 +70,7 @@ export function useCommunity(slug: string, userId?: string) {
         .eq("slug", slug)
         .single();
 
-      if (!mountedRef.current) return;
+      if (currentFetchId !== fetchIdRef.current) return;
 
       if (communityError) {
         if (communityError.code === 'PGRST116') {
@@ -97,7 +92,7 @@ export function useCommunity(slug: string, userId?: string) {
         supabase.from("community_tags").select("*").eq("community_id", communityData.id),
       ]);
 
-      if (!mountedRef.current) return;
+      if (currentFetchId !== fetchIdRef.current) return;
 
       setCommunity({
         ...communityData,
@@ -114,28 +109,18 @@ export function useCommunity(slug: string, userId?: string) {
       setRules(rulesResult.data || []);
       setTags(tagsResult.data || []);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (currentFetchId !== fetchIdRef.current) return;
       console.error("[useCommunity] Error:", err);
-      if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : "Failed to fetch community");
-      }
+      setError(err instanceof Error ? err.message : "Failed to fetch community");
     } finally {
-      if (mountedRef.current) {
+      if (currentFetchId === fetchIdRef.current) {
         setLoading(false);
       }
     }
   }, [slug, userId]);
 
   useEffect(() => {
-    mountedRef.current = true;
     fetchCommunity();
-
-    return () => {
-      mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
   }, [fetchCommunity]);
 
   return { community, rules, tags, loading, error, refetch: fetchCommunity };

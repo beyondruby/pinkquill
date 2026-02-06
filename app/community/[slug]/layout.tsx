@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity } from "@/lib/hooks";
+import { CommunityProvider } from "@/components/providers/CommunityProvider";
 import CommunityHeader from "@/components/communities/CommunityHeader";
 import JoinButton from "@/components/communities/JoinButton";
 
@@ -15,10 +16,10 @@ export default function CommunityLayout({
 }) {
   const params = useParams();
   const slug = params.slug as string;
-  const { user } = useAuth();
-  const { community, tags, loading, error, refetch } = useCommunity(slug, user?.id);
+  const { user, loading: authLoading } = useAuth();
+  const { community, rules, tags, loading, error, refetch } = useCommunity(slug, user?.id);
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
         <div className="relative mb-6">
@@ -145,16 +146,18 @@ export default function CommunityLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
-      <CommunityHeader
-        community={community}
-        tags={tags}
-        userId={user?.id}
-        onUpdate={refetch}
-      />
-      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-8">
-        {children}
+    <CommunityProvider community={community} rules={rules} tags={tags} refetch={refetch}>
+      <div className="min-h-screen bg-[#fafafa]">
+        <CommunityHeader
+          community={community}
+          tags={tags}
+          userId={user?.id}
+          onUpdate={refetch}
+        />
+        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-8">
+          {children}
+        </div>
       </div>
-    </div>
+    </CommunityProvider>
   );
 }
