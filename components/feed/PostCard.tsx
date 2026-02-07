@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, memo, useMemo, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -418,10 +419,13 @@ function PostCardComponent({
     }
   }, [user, openAuthModal, isRelayed, post.id, post.authorId, notifyUpdate, toggleRelay]);
 
-  // Click outside to close menu
+  // Click outside to close menu (check both dropdown portal and button)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedInDropdown = menuRef.current && menuRef.current.contains(target);
+      const clickedOnButton = menuButtonRef.current && menuButtonRef.current.contains(target);
+      if (!clickedInDropdown && !clickedOnButton) {
         setShowMenu(false);
       }
     };
@@ -608,125 +612,169 @@ function PostCardComponent({
   const hasCollaborators = acceptedCollaborators.length > 0;
   const hasCommunity = !!post.community;
 
-  // Post menu component for owner and non-owner actions
-  const PostMenu = () => (
+  // Portal-based dropdown to escape stacking contexts (transform, overflow, z-index)
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+
+  // Calculate dropdown position when menu opens
+  useEffect(() => {
+    if (showMenu && menuButtonRef.current) {
+      const rect = menuButtonRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + 8 + window.scrollY,
+        left: rect.right + window.scrollX,
+      });
+    }
+  }, [showMenu]);
+
+  // Reposition on scroll/resize while open
+  useEffect(() => {
+    if (!showMenu) return;
+    const reposition = () => {
+      if (menuButtonRef.current) {
+        const rect = menuButtonRef.current.getBoundingClientRect();
+        setMenuPos({
+          top: rect.bottom + 8 + window.scrollY,
+          left: rect.right + window.scrollX,
+        });
+      }
+    };
+    window.addEventListener("scroll", reposition, true);
+    window.addEventListener("resize", reposition);
+    return () => {
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+    };
+  }, [showMenu]);
+
+  // Render dropdown items into a portal at document.body
+  const renderDropdownPortal = (width: string, children: ReactNode) => {
+    if (!showMenu || !menuPos) return null;
+    return createPortal(
+      <div
+        ref={menuRef}
+        className={`${width} bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden`}
+        style={{
+          position: "absolute",
+          top: menuPos.top,
+          left: menuPos.left,
+          transform: "translateX(-100%)",
+          zIndex: 9999,
+        }}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        role="menu"
+        aria-label="Post options"
+      >
+        {children}
+      </div>,
+      document.body
+    );
+  };
+
+  // Post menu button + portal dropdown
+  const postMenuElement = isOwner ? (
     <>
-      {isOwner ? (
-        <div className="relative" ref={menuRef}>
-          <button
-            className="post-menu-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowMenu(!showMenu);
-            }}
-            aria-label="Post options menu"
-            aria-expanded={showMenu}
-            aria-haspopup="menu"
-          >
-            <EllipsisIcon />
-          </button>
-          {showMenu && (
-            <div
-              className="absolute right-0 top-full mt-2 w-36 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50"
-              onClick={(e) => e.stopPropagation()}
-              role="menu"
-              aria-label="Post options"
-            >
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  handleEdit();
-                }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
-                role="menuitem"
-              >
-                <EditIcon aria-hidden="true" />
-                Edit
-              </button>
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowDeleteConfirm(true);
-                }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
-                role="menuitem"
-              >
-                <TrashIcon aria-hidden="true" />
-                Delete
-              </button>
-            </div>
-          )}
-        </div>
-      ) : user ? (
-        <div className="relative" ref={menuRef}>
-          <button
-            className="post-menu-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowMenu(!showMenu);
-            }}
-            aria-label="Post options menu"
-            aria-expanded={showMenu}
-            aria-haspopup="menu"
-          >
-            <EllipsisIcon />
-          </button>
-          {showMenu && (
-            <div
-              className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50"
-              onClick={(e) => e.stopPropagation()}
-              role="menu"
-              aria-label="Post options"
-            >
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowBlockConfirm(true);
-                }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
-                role="menuitem"
-              >
-                <BlockIcon aria-hidden="true" />
-                Block @{post.author.handle.replace('@', '')}
-              </button>
-              {/* Moderator delete option - only shown if user can moderate */}
-              {canModerateDelete && onModeratorDelete && (
-                <>
-                  <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowModeratorDeleteConfirm(true);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 transition-colors"
-                    role="menuitem"
-                  >
-                    <TrashIcon aria-hidden="true" />
-                    Delete (Mod)
-                  </button>
-                </>
-              )}
-              <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowReportModal(true);
-                }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
-                role="menuitem"
-              >
-                <FlagIcon aria-hidden="true" />
-                Report
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <button className="post-menu-btn" onClick={(e) => e.stopPropagation()} aria-label="Post options">
-          <EllipsisIcon />
+      <button
+        ref={menuButtonRef}
+        className="post-menu-btn"
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowMenu(!showMenu);
+        }}
+        aria-label="Post options menu"
+        aria-expanded={showMenu}
+        aria-haspopup="menu"
+      >
+        <EllipsisIcon />
+      </button>
+      {renderDropdownPortal("w-36", <>
+        <button
+          onClick={() => {
+            setShowMenu(false);
+            handleEdit();
+          }}
+          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+          role="menuitem"
+        >
+          <EditIcon aria-hidden="true" />
+          Edit
         </button>
-      )}
+        <button
+          onClick={() => {
+            setShowMenu(false);
+            setShowDeleteConfirm(true);
+          }}
+          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
+          role="menuitem"
+        >
+          <TrashIcon aria-hidden="true" />
+          Delete
+        </button>
+      </>)}
     </>
+  ) : user ? (
+    <>
+      <button
+        ref={menuButtonRef}
+        className="post-menu-btn"
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowMenu(!showMenu);
+        }}
+        aria-label="Post options menu"
+        aria-expanded={showMenu}
+        aria-haspopup="menu"
+      >
+        <EllipsisIcon />
+      </button>
+      {renderDropdownPortal("w-44", <>
+        <button
+          onClick={() => {
+            setShowMenu(false);
+            setShowBlockConfirm(true);
+          }}
+          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+          role="menuitem"
+        >
+          <BlockIcon aria-hidden="true" />
+          Block @{post.author.handle.replace('@', '')}
+        </button>
+        {/* Moderator delete option - only shown if user can moderate */}
+        {canModerateDelete && onModeratorDelete && (
+          <>
+            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                setShowModeratorDeleteConfirm(true);
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 transition-colors"
+              role="menuitem"
+            >
+              <TrashIcon aria-hidden="true" />
+              Delete (Mod)
+            </button>
+          </>
+        )}
+        <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+        <button
+          onClick={() => {
+            setShowMenu(false);
+            setShowReportModal(true);
+          }}
+          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
+          role="menuitem"
+        >
+          <FlagIcon aria-hidden="true" />
+          Report
+        </button>
+      </>)}
+    </>
+  ) : (
+    <button className="post-menu-btn" onClick={(e) => e.stopPropagation()} aria-label="Post options">
+      <EllipsisIcon />
+    </button>
   );
 
   // Author Header component - Reddit-style for community posts
@@ -808,7 +856,7 @@ function PostCardComponent({
               )}
             </div>
           </div>
-          <PostMenu />
+          {postMenuElement}
         </div>
       );
     }
@@ -918,7 +966,7 @@ function PostCardComponent({
             <span className="post-time">{post.timeAgo}</span>
           </div>
         </div>
-        <PostMenu />
+        {postMenuElement}
       </div>
     );
   };
@@ -963,7 +1011,7 @@ function PostCardComponent({
     // Audio post - special layout
     if (post.type === "audio") {
       return (
-        <article className={`post type-audio${showMenu ? ' post-menu-open' : ''}`} onClick={handleOpenModal}>
+        <article className="post type-audio" onClick={handleOpenModal}>
           <div className="audio-visual" onClick={(e) => e.stopPropagation()}>
             <SoundBars />
           </div>
@@ -982,7 +1030,7 @@ function PostCardComponent({
     // Video post - special layout
     if (post.type === "video") {
       return (
-        <article className={`post type-video${showMenu ? ' post-menu-open' : ''}`} onClick={handleOpenModal}>
+        <article className="post type-video" onClick={handleOpenModal}>
           <AuthorHeader />
           <ContentSection>
             <div className="video-container" onClick={(e) => e.stopPropagation()}>
@@ -1008,7 +1056,7 @@ function PostCardComponent({
     // UNIFIED LAYOUT for all other post types
     // Format: Title → First 250 chars → Images (square) → Continue reading
     return (
-      <article className={`post type-unified${showMenu ? ' post-menu-open' : ''}`} onClick={handleOpenModal}>
+      <article className="post type-unified" onClick={handleOpenModal}>
         <AuthorHeader />
         <ContentSection>
           {/* 1. Title */}
