@@ -610,6 +610,12 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   border-color: rgba(142, 68, 173, 0.1);
   transform: translateY(-2px);
 }
+/* When a post's 3-dot menu is open, raise its z-index above sibling posts.
+   The transform on :hover creates a stacking context that traps z-50 dropdowns,
+   so we need the entire post card to sit above its siblings. */
+.post.post-menu-open {
+  z-index: 100;
+}
 
 /* Author Header */
 .author-header {

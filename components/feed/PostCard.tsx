@@ -963,7 +963,7 @@ function PostCardComponent({
     // Audio post - special layout
     if (post.type === "audio") {
       return (
-        <article className="post type-audio" onClick={handleOpenModal}>
+        <article className={`post type-audio${showMenu ? ' post-menu-open' : ''}`} onClick={handleOpenModal}>
           <div className="audio-visual" onClick={(e) => e.stopPropagation()}>
             <SoundBars />
           </div>
@@ -982,7 +982,7 @@ function PostCardComponent({
     // Video post - special layout
     if (post.type === "video") {
       return (
-        <article className="post type-video" onClick={handleOpenModal}>
+        <article className={`post type-video${showMenu ? ' post-menu-open' : ''}`} onClick={handleOpenModal}>
           <AuthorHeader />
           <ContentSection>
             <div className="video-container" onClick={(e) => e.stopPropagation()}>
@@ -1008,7 +1008,7 @@ function PostCardComponent({
     // UNIFIED LAYOUT for all other post types
     // Format: Title → First 250 chars → Images (square) → Continue reading
     return (
-      <article className="post type-unified" onClick={handleOpenModal}>
+      <article className={`post type-unified${showMenu ? ' post-menu-open' : ''}`} onClick={handleOpenModal}>
         <AuthorHeader />
         <ContentSection>
           {/* 1. Title */}
