@@ -1484,10 +1484,10 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
     prevProps.post.isRelayed === nextProps.post.isRelayed &&
     prevProps.post.reactionType === nextProps.post.reactionType &&
     prevProps.canModerateDelete === nextProps.canModerateDelete &&
-    prevProps.onModeratorDelete === nextProps.onModeratorDelete &&
+    !!prevProps.onModeratorDelete === !!nextProps.onModeratorDelete &&
     prevProps.isPinned === nextProps.isPinned &&
-    prevProps.onPin === nextProps.onPin &&
-    prevProps.onUnpin === nextProps.onUnpin
+    !!prevProps.onPin === !!nextProps.onPin &&
+    !!prevProps.onUnpin === !!nextProps.onUnpin
   );
 });
 

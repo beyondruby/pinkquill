@@ -1590,7 +1590,7 @@ export function useCommunityModeration(communityId: string) {
 
   // Delete a post from the community via atomic RPC
   // Handles permission check, deletion, and audit logging in a single DB transaction
-  const deletePost = async (postId: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
+  const deletePost = useCallback(async (postId: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
     try {
       const { data, error } = await supabase.rpc('moderate_delete_post', {
         p_community_id: communityId,
@@ -1609,12 +1609,12 @@ export function useCommunityModeration(communityId: string) {
       console.error("[deletePost] Error:", err);
       return { success: false, error: err };
     }
-  };
+  }, [communityId]);
 
   // Delete a comment from a community post via atomic RPC
   // Handles permission check, cascade cleanup (likes, replies), deletion, and audit logging
   // in a single DB transaction
-  const deleteComment = async (commentId: string, _postId?: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
+  const deleteComment = useCallback(async (commentId: string, _postId?: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
     try {
       const { data, error } = await supabase.rpc('moderate_delete_comment', {
         p_community_id: communityId,
@@ -1633,7 +1633,7 @@ export function useCommunityModeration(communityId: string) {
       console.error("[deleteComment] Error:", err);
       return { success: false, error: err };
     }
-  };
+  }, [communityId]);
 
   const updateMemberStatus = async (
     userId: string,

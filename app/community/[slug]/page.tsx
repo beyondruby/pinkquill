@@ -192,22 +192,22 @@ export default function CommunityFeedPage() {
   const isAdmin = community.user_role === 'admin' || community.user_role === 'moderator';
 
   // Handle pin/unpin and refresh the posts list
-  const handlePin = async (postId: string) => {
+  const handlePin = useCallback(async (postId: string) => {
     if (!user?.id) return;
     const success = await pinPost(postId, user.id);
     if (success) {
       refetch();
       refetchPins();
     }
-  };
+  }, [user?.id, pinPost, refetch, refetchPins]);
 
-  const handleUnpin = async (postId: string) => {
+  const handleUnpin = useCallback(async (postId: string) => {
     const success = await unpinPost(postId);
     if (success) {
       refetch();
       refetchPins();
     }
-  };
+  }, [unpinPost, refetch, refetchPins]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

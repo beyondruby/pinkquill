@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "../supabase";
 import type { PinnedPost, CommunityPinnedPost } from "../types";
 
@@ -65,7 +65,7 @@ export function usePinnedPosts(userId?: string): UsePinnedPostsReturn {
     };
   }, [fetchPinnedPosts]);
 
-  const pinnedPostIds = pinnedPosts.map((p) => p.post_id);
+  const pinnedPostIds = useMemo(() => pinnedPosts.map((p) => p.post_id), [pinnedPosts]);
 
   const isPinned = useCallback(
     (postId: string) => pinnedPostIds.includes(postId),
@@ -248,7 +248,7 @@ export function useCommunityPinnedPosts(
     };
   }, [fetchPinnedPosts]);
 
-  const pinnedPostIds = pinnedPosts.map((p) => p.post_id);
+  const pinnedPostIds = useMemo(() => pinnedPosts.map((p) => p.post_id), [pinnedPosts]);
 
   const isPinned = useCallback(
     (postId: string) => pinnedPostIds.includes(postId),

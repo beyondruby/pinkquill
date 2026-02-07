@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from "react";
 import PostDetailModal from "@/components/feed/PostDetailModal";
 import TakeDetailModal, { TakeUpdate } from "@/components/takes/TakeDetailModal";
 import { Take, TakeReactionType } from "@/lib/hooks/useTakes";
@@ -133,7 +133,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   // Moderation context state
   const [moderationContext, setModerationContext] = useState<ModerationContext | null>(null);
 
-  const openPostModal = (post: Post) => {
+  const openPostModal = useCallback((post: Post) => {
     // Store the original URL before changing
     originalUrlRef.current = window.location.pathname + window.location.search;
 
@@ -142,9 +142,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 
     setSelectedPost(post);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const closePostModal = () => {
+  const closePostModal = useCallback(() => {
     // Restore the original URL
     if (originalUrlRef.current) {
       window.history.pushState({}, '', originalUrlRef.current);
@@ -153,9 +153,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 
     setIsModalOpen(false);
     setTimeout(() => setSelectedPost(null), 300);
-  };
+  }, []);
 
-  const openTakeModal = (take: Take) => {
+  const openTakeModal = useCallback((take: Take) => {
     // Store the original URL before changing
     takeOriginalUrlRef.current = window.location.pathname + window.location.search;
 
@@ -164,9 +164,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 
     setSelectedTake(take);
     setIsTakeModalOpen(true);
-  };
+  }, []);
 
-  const closeTakeModal = () => {
+  const closeTakeModal = useCallback(() => {
     // Restore the original URL
     if (takeOriginalUrlRef.current) {
       window.history.pushState({}, '', takeOriginalUrlRef.current);
@@ -175,7 +175,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 
     setIsTakeModalOpen(false);
     setTimeout(() => setSelectedTake(null), 300);
-  };
+  }, []);
 
   // Handle browser back button
   useEffect(() => {
@@ -303,22 +303,38 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     notifyTakeDelete(takeId);
   }, [notifyTakeDelete]);
 
+  const contextValue = useMemo(() => ({
+    openPostModal,
+    closePostModal,
+    subscribeToUpdates,
+    notifyUpdate,
+    subscribeToDeletes,
+    notifyDelete,
+    openTakeModal,
+    closeTakeModal,
+    subscribeToTakeUpdates,
+    notifyTakeUpdate,
+    subscribeToTakeDeletes,
+    notifyTakeDelete,
+    setModerationContext,
+  }), [
+    openPostModal,
+    closePostModal,
+    subscribeToUpdates,
+    notifyUpdate,
+    subscribeToDeletes,
+    notifyDelete,
+    openTakeModal,
+    closeTakeModal,
+    subscribeToTakeUpdates,
+    notifyTakeUpdate,
+    subscribeToTakeDeletes,
+    notifyTakeDelete,
+    setModerationContext,
+  ]);
+
   return (
-    <ModalContext.Provider value={{
-      openPostModal,
-      closePostModal,
-      subscribeToUpdates,
-      notifyUpdate,
-      subscribeToDeletes,
-      notifyDelete,
-      openTakeModal,
-      closeTakeModal,
-      subscribeToTakeUpdates,
-      notifyTakeUpdate,
-      subscribeToTakeDeletes,
-      notifyTakeDelete,
-      setModerationContext,
-    }}>
+    <ModalContext.Provider value={contextValue}>
       {children}
       {selectedPost && (
         <PostDetailModal
