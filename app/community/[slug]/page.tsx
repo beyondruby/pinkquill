@@ -295,7 +295,7 @@ export default function CommunityFeedPage() {
             </div>
             <div className="space-y-4">
               {pinnedPosts.map((post) => (
-                <div key={post.id} className="relative group/pin">
+                <div key={post.id} className="relative">
                   {/* Pin indicator badge */}
                   <div className="absolute -top-2 left-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
@@ -303,24 +303,13 @@ export default function CommunityFeedPage() {
                     </svg>
                     <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pinned</span>
                   </div>
-                  {/* Unpin button for admins */}
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleUnpin(post.id)}
-                      className="absolute -top-2 right-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-md border border-red-200 text-red-500 opacity-0 group-hover/pin:opacity-100 transition-all hover:bg-red-50 hover:border-red-300"
-                      title="Unpin post"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Unpin</span>
-                    </button>
-                  )}
                   <div className="pt-2">
                     <PostCard
                       post={transformPost(post)}
                       canModerateDelete={canDeletePosts}
                       onModeratorDelete={handleModeratorDeletePost}
+                      isPinned={true}
+                      onUnpin={isAdmin ? handleUnpin : undefined}
                     />
                   </div>
                 </div>
@@ -341,27 +330,15 @@ export default function CommunityFeedPage() {
         ) : posts.length > 0 ? (
           <div className="space-y-5">
             {posts.map((post) => (
-              <div key={post.id} className="relative group/pin">
-                {/* Pin button for admins (only if can pin more) */}
-                {isAdmin && canPin && !isPinned(post.id) && (
-                  <button
-                    onClick={() => handlePin(post.id)}
-                    className="absolute -top-2 left-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-white shadow-md border border-purple-primary/20 text-purple-primary opacity-0 group-hover/pin:opacity-100 transition-all hover:bg-gradient-to-r hover:from-purple-primary hover:to-pink-vivid hover:text-white hover:border-transparent"
-                    title="Pin post"
-                  >
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
-                    </svg>
-                    <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pin</span>
-                  </button>
-                )}
-                <div className={isAdmin && canPin && !isPinned(post.id) ? "pt-2" : ""}>
-                  <PostCard
-                    post={transformPost(post)}
-                    canModerateDelete={canDeletePosts}
-                    onModeratorDelete={handleModeratorDeletePost}
-                  />
-                </div>
+              <div key={post.id}>
+                <PostCard
+                  post={transformPost(post)}
+                  canModerateDelete={canDeletePosts}
+                  onModeratorDelete={handleModeratorDeletePost}
+                  isPinned={isPinned(post.id)}
+                  onPin={isAdmin && canPin && !isPinned(post.id) ? handlePin : undefined}
+                  onUnpin={isAdmin && isPinned(post.id) ? handleUnpin : undefined}
+                />
               </div>
             ))}
           </div>

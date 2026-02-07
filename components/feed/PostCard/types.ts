@@ -98,6 +98,10 @@ export interface PostCardProps {
   // Community moderation props
   canModerateDelete?: boolean; // If true, shows delete option for moderators
   onModeratorDelete?: (postId: string, reason?: string) => Promise<void>; // Moderator delete handler
+  // Community pin props
+  onPin?: (postId: string) => void; // Pin post handler (for admins/moderators)
+  onUnpin?: (postId: string) => void; // Unpin post handler (for admins/moderators)
+  isPinned?: boolean; // Whether this post is currently pinned
 }
 
 // Action handler types

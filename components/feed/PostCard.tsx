@@ -120,12 +120,18 @@ function PostCardComponent({
   onPostDeleted,
   canModerateDelete,
   onModeratorDelete,
+  onPin,
+  onUnpin,
+  isPinned,
   disableRealtimeSubscriptions = false,
 }: {
   post: PostProps;
   onPostDeleted?: (postId: string) => void;
   canModerateDelete?: boolean;
   onModeratorDelete?: (postId: string, reason?: string) => Promise<void>;
+  onPin?: (postId: string) => void;
+  onUnpin?: (postId: string) => void;
+  isPinned?: boolean;
   /** PERFORMANCE: Disable per-card real-time subscriptions when used in feed context */
   disableRealtimeSubscriptions?: boolean;
 }) {
@@ -688,7 +694,44 @@ function PostCardComponent({
       >
         <EllipsisIcon />
       </button>
-      {renderDropdownPortal("w-36", <>
+      {renderDropdownPortal((onPin || onUnpin) ? "w-40" : "w-36", <>
+        {/* Pin/Unpin option for community admins/moderators */}
+        {isPinned && onUnpin && (
+          <>
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                onUnpin(post.id);
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+              role="menuitem"
+            >
+              <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Unpin
+            </button>
+            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+          </>
+        )}
+        {!isPinned && onPin && (
+          <>
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                onPin(post.id);
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-purple-primary hover:bg-purple-primary/5 transition-colors"
+              role="menuitem"
+            >
+              <svg className="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
+              </svg>
+              Pin
+            </button>
+            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+          </>
+        )}
         <button
           onClick={() => {
             setShowMenu(false);
@@ -729,6 +772,43 @@ function PostCardComponent({
         <EllipsisIcon />
       </button>
       {renderDropdownPortal("w-44", <>
+        {/* Pin/Unpin option for community admins/moderators */}
+        {isPinned && onUnpin && (
+          <>
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                onUnpin(post.id);
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+              role="menuitem"
+            >
+              <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Unpin
+            </button>
+            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+          </>
+        )}
+        {!isPinned && onPin && (
+          <>
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                onPin(post.id);
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-purple-primary hover:bg-purple-primary/5 transition-colors"
+              role="menuitem"
+            >
+              <svg className="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
+              </svg>
+              Pin
+            </button>
+            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+          </>
+        )}
         <button
           onClick={() => {
             setShowMenu(false);
