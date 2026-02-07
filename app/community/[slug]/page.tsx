@@ -64,12 +64,33 @@ function transformPost(post: Post) {
     media: post.media || [],
     stats: {
       admires: post.admires_count,
+      reactions: post.reactions_count,
       comments: post.comments_count,
       relays: post.relays_count,
     },
     isAdmired: post.user_has_admired,
+    reactionType: post.user_reaction_type,
     isSaved: post.user_has_saved,
     isRelayed: post.user_has_relayed,
+    // Community & flair data
+    community: post.community ? {
+      slug: post.community.slug,
+      name: post.community.name,
+      avatar_url: post.community.avatar_url,
+    } : undefined,
+    flair: post.flair || undefined,
+    // Creative styling
+    styling: post.styling,
+    post_location: post.post_location,
+    metadata: post.metadata,
+    spotify_track: post.spotify_track,
+    // Collaborators, mentions, hashtags
+    collaborators: post.collaborators?.map(c => ({
+      ...c,
+      status: c.status as "pending" | "accepted" | "declined",
+    })),
+    mentions: post.mentions,
+    hashtags: post.hashtags,
   };
 }
 

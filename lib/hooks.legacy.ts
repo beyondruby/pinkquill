@@ -490,13 +490,19 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
 }
 
 // Fetch community members
-export function useCommunityMembers(communityId: string, options?: { role?: string; status?: string }) {
+export function useCommunityMembers(
+  communityId: string,
+  options?: { role?: string; status?: string; pageSize?: number }
+) {
   const [members, setMembers] = useState<CommunityMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const pageSize = options?.pageSize || 50;
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchMembers = useCallback(async () => {
+  const fetchMembers = useCallback(async (pageNum: number = 0, append: boolean = false) => {
     if (!communityId) return;
 
     // Abort any in-flight request
@@ -521,7 +527,8 @@ export function useCommunityMembers(communityId: string, options?: { role?: stri
           )
         `)
         .eq("community_id", communityId)
-        .order("joined_at", { ascending: true });
+        .order("joined_at", { ascending: false })
+        .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1);
 
       if (options?.role) {
         query = query.eq("role", options.role);
@@ -534,7 +541,15 @@ export function useCommunityMembers(communityId: string, options?: { role?: stri
 
       if (!mountedRef.current) return;
       if (error) throw error;
-      setMembers(data || []);
+
+      const newMembers = data || [];
+      if (append) {
+        setMembers(prev => [...prev, ...newMembers]);
+      } else {
+        setMembers(newMembers);
+      }
+      setHasMore(newMembers.length === pageSize);
+      setPage(pageNum);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useCommunityMembers] Error:", err);
@@ -543,11 +558,11 @@ export function useCommunityMembers(communityId: string, options?: { role?: stri
         setLoading(false);
       }
     }
-  }, [communityId, options?.role, options?.status]);
+  }, [communityId, options?.role, options?.status, pageSize]);
 
   useEffect(() => {
     mountedRef.current = true;
-    fetchMembers();
+    fetchMembers(0, false);
 
     return () => {
       mountedRef.current = false;
@@ -557,7 +572,13 @@ export function useCommunityMembers(communityId: string, options?: { role?: stri
     };
   }, [fetchMembers]);
 
-  return { members, loading, refetch: fetchMembers };
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      fetchMembers(page + 1, true);
+    }
+  }, [fetchMembers, loading, hasMore, page]);
+
+  return { members, loading, hasMore, loadMore, refetch: () => fetchMembers(0, false) };
 }
 
 // Helper function to get start date for time range
@@ -699,17 +720,21 @@ export function useCommunityPosts(
         return;
       }
 
-      // Get engagement counts for sorting by 'top'
+      // Get engagement counts for sorting
       const postIds = data.map(p => p.id);
-      const [admiresResult, commentsResult] = await Promise.all([
+      const [admiresResult, commentsResult, relaysResult, reactionsResult] = await Promise.all([
         supabase.from("admires").select("post_id").in("post_id", postIds),
         supabase.from("comments").select("post_id").in("post_id", postIds),
+        supabase.from("relays").select("post_id").in("post_id", postIds),
+        supabase.from("reactions").select("post_id, reaction_type").in("post_id", postIds),
       ]);
 
       if (!mountedRef.current) return;
 
       const admiresCounts: Record<string, number> = {};
       const commentsCounts: Record<string, number> = {};
+      const relaysCounts: Record<string, number> = {};
+      const reactionsCounts: Record<string, number> = {};
 
       (admiresResult.data || []).forEach(a => {
         admiresCounts[a.post_id] = (admiresCounts[a.post_id] || 0) + 1;
@@ -717,31 +742,47 @@ export function useCommunityPosts(
       (commentsResult.data || []).forEach(c => {
         commentsCounts[c.post_id] = (commentsCounts[c.post_id] || 0) + 1;
       });
+      (relaysResult.data || []).forEach(r => {
+        relaysCounts[r.post_id] = (relaysCounts[r.post_id] || 0) + 1;
+      });
+      (reactionsResult.data || []).forEach(r => {
+        reactionsCounts[r.post_id] = (reactionsCounts[r.post_id] || 0) + 1;
+      });
 
       // Check user interactions if logged in
       let userAdmires: Set<string> = new Set();
       let userSaves: Set<string> = new Set();
+      let userRelays: Set<string> = new Set();
+      let userReactions: Record<string, string> = {};
 
       if (userId) {
-        const [userAdmiresResult, userSavesResult] = await Promise.all([
+        const [userAdmiresResult, userSavesResult, userRelaysResult, userReactionsResult] = await Promise.all([
           supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
           supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
+          supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
+          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", userId).in("post_id", postIds),
         ]);
 
         if (!mountedRef.current) return;
 
         userAdmires = new Set((userAdmiresResult.data || []).map(a => a.post_id));
         userSaves = new Set((userSavesResult.data || []).map(s => s.post_id));
+        userRelays = new Set((userRelaysResult.data || []).map(r => r.post_id));
+        (userReactionsResult.data || []).forEach(r => {
+          userReactions[r.post_id] = r.reaction_type;
+        });
       }
 
       const enrichedPosts = data.map(post => ({
         ...post,
         admires_count: admiresCounts[post.id] || 0,
         comments_count: commentsCounts[post.id] || 0,
-        relays_count: 0,
+        relays_count: relaysCounts[post.id] || 0,
+        reactions_count: reactionsCounts[post.id] || 0,
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: userSaves.has(post.id),
-        user_has_relayed: false,
+        user_has_relayed: userRelays.has(post.id),
+        user_reaction_type: userReactions[post.id] || null,
       }));
 
       // Sort by engagement for 'top' or hot score for 'hot'
@@ -814,10 +855,11 @@ export function useCommunityPosts(
 
 // Join/leave community
 export function useJoinCommunity() {
-  const [isJoining, setIsJoining] = useState(false);
+  const [activeOperation, setActiveOperation] = useState<string | null>(null);
 
   const join = async (communityId: string, userId: string) => {
-    setIsJoining(true);
+    if (activeOperation) return { success: false, error: 'Another operation in progress' };
+    setActiveOperation('join');
     try {
       const { error } = await supabase
         .from("community_members")
@@ -834,12 +876,13 @@ export function useJoinCommunity() {
       console.error("[join] Error:", err);
       return { success: false, error: err };
     } finally {
-      setIsJoining(false);
+      setActiveOperation(null);
     }
   };
 
   const leave = async (communityId: string, userId: string) => {
-    setIsJoining(true);
+    if (activeOperation) return { success: false, error: 'Another operation in progress' };
+    setActiveOperation('leave');
     try {
       const { error } = await supabase
         .from("community_members")
@@ -853,12 +896,13 @@ export function useJoinCommunity() {
       console.error("[leave] Error:", err);
       return { success: false, error: err };
     } finally {
-      setIsJoining(false);
+      setActiveOperation(null);
     }
   };
 
   const requestJoin = async (communityId: string, userId: string, message?: string) => {
-    setIsJoining(true);
+    if (activeOperation) return { success: false, error: 'Another operation in progress' };
+    setActiveOperation('requestJoin');
     try {
       const { error } = await supabase
         .from("community_join_requests")
@@ -902,12 +946,13 @@ export function useJoinCommunity() {
       console.error("[requestJoin] Error:", err);
       return { success: false, error: err };
     } finally {
-      setIsJoining(false);
+      setActiveOperation(null);
     }
   };
 
   const cancelRequest = async (communityId: string, userId: string) => {
-    setIsJoining(true);
+    if (activeOperation) return { success: false, error: 'Another operation in progress' };
+    setActiveOperation('cancelRequest');
     try {
       const { error } = await supabase
         .from("community_join_requests")
@@ -922,9 +967,11 @@ export function useJoinCommunity() {
       console.error("[cancelRequest] Error:", err);
       return { success: false, error: err };
     } finally {
-      setIsJoining(false);
+      setActiveOperation(null);
     }
   };
+
+  const isJoining = activeOperation !== null;
 
   return { join, leave, requestJoin, cancelRequest, isJoining };
 }
@@ -999,14 +1046,8 @@ export function useCommunityInvitations(userId?: string) {
     if (!userId) return { success: false };
 
     try {
-      // Update invitation status
-      await supabase
-        .from("community_invitations")
-        .update({ status: "accepted", responded_at: new Date().toISOString() })
-        .eq("id", invitationId);
-
-      // Add user as member
-      await supabase
+      // Insert member first — if this fails (e.g., already a member), invitation stays pending
+      const { error: memberError } = await supabase
         .from("community_members")
         .insert({
           community_id: communityId,
@@ -1014,6 +1055,14 @@ export function useCommunityInvitations(userId?: string) {
           role: "member",
           status: "active",
         });
+
+      if (memberError) throw memberError;
+
+      // Only mark invitation accepted after member insert succeeds
+      await supabase
+        .from("community_invitations")
+        .update({ status: "accepted", responded_at: new Date().toISOString() })
+        .eq("id", invitationId);
 
       return { success: true };
     } catch (err) {
@@ -1188,8 +1237,8 @@ export function useCreateCommunity() {
 
       if (createError) throw createError;
 
-      // Add creator as admin
-      await supabase
+      // Add creator as admin — if this fails, delete the orphaned community
+      const { error: adminError } = await supabase
         .from("community_members")
         .insert({
           community_id: community.id,
@@ -1197,6 +1246,12 @@ export function useCreateCommunity() {
           role: "admin",
           status: "active",
         });
+
+      if (adminError) {
+        // Rollback: delete the orphaned community
+        await supabase.from("communities").delete().eq("id", community.id);
+        throw adminError;
+      }
 
       // Add tags if provided
       if (data.tags && data.tags.length > 0) {
@@ -1304,13 +1359,15 @@ export function useUpdateCommunity() {
       // SECURITY: Verify user has permission to update rules
       await verifyPermission(communityId);
 
-      // Delete existing rules
-      await supabase
+      // Get existing rule IDs for cleanup after successful insert
+      const { data: existingRules } = await supabase
         .from("community_rules")
-        .delete()
+        .select("id")
         .eq("community_id", communityId);
 
-      // Insert new rules
+      const existingIds = (existingRules || []).map(r => r.id);
+
+      // Insert new rules first — if this fails, old rules are still intact
       if (rules.length > 0) {
         const rulesData = rules.map((rule, index) => ({
           community_id: communityId,
@@ -1324,6 +1381,14 @@ export function useUpdateCommunity() {
           .insert(rulesData);
 
         if (insertError) throw insertError;
+      }
+
+      // Delete old rules only after new ones are successfully inserted
+      if (existingIds.length > 0) {
+        await supabase
+          .from("community_rules")
+          .delete()
+          .in("id", existingIds);
       }
 
       return { success: true };
@@ -1367,19 +1432,22 @@ export function useDeleteCommunity() {
         throw new Error("Only community admins can delete communities");
       }
 
-      // Delete in order: rules, tags, members, join requests, invitations, posts (set community_id to null), then community
-      await Promise.all([
-        supabase.from("community_rules").delete().eq("community_id", communityId),
-        supabase.from("community_tags").delete().eq("community_id", communityId),
-        supabase.from("community_members").delete().eq("community_id", communityId),
-        supabase.from("community_join_requests").delete().eq("community_id", communityId),
-        supabase.from("community_invitations").delete().eq("community_id", communityId),
-      ]);
+      // Delete dependent tables sequentially to avoid partial failure.
+      // Order: content deletions log, pinned posts, flairs, rules, tags,
+      // join requests, invitations, members, then detach posts, then community.
+      await supabase.from("community_content_deletions").delete().eq("community_id", communityId);
+      await supabase.from("community_pinned_posts").delete().eq("community_id", communityId);
+      await supabase.from("community_flairs").delete().eq("community_id", communityId);
+      await supabase.from("community_rules").delete().eq("community_id", communityId);
+      await supabase.from("community_tags").delete().eq("community_id", communityId);
+      await supabase.from("community_join_requests").delete().eq("community_id", communityId);
+      await supabase.from("community_invitations").delete().eq("community_id", communityId);
+      await supabase.from("community_members").delete().eq("community_id", communityId);
 
       // Remove community reference from posts (don't delete the posts)
       await supabase
         .from("posts")
-        .update({ community_id: null })
+        .update({ community_id: null, flair_id: null })
         .eq("community_id", communityId);
 
       // Finally delete the community
@@ -1800,8 +1868,9 @@ export function useCommunityModeration(communityId: string) {
   };
 
   const unbanUser = async (userId: string) => {
-    // When unbanning, we remove the member entirely so they can rejoin
-    return removeMember(userId);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+    return updateMemberStatus(userId, 'active', user.id);
   };
 
   const checkExpiredMutes = async () => {

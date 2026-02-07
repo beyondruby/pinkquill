@@ -81,26 +81,25 @@ export function usePinnedPosts(userId?: string): UsePinnedPostsReturn {
       if (isPinned(postId)) return true;
 
       try {
-        // Get next position
         const nextPosition = pinnedPosts.length;
 
-        const { error } = await supabase.from("pinned_posts").insert({
+        const { data, error } = await supabase.from("pinned_posts").insert({
           user_id: userId,
           post_id: postId,
           position: nextPosition,
-        });
+        }).select().single();
 
         if (error) throw error;
 
-        // Update local state
+        // Use the real ID from the insert response
         setPinnedPosts((prev) => [
           ...prev,
           {
-            id: "", // Will be set on refetch
+            id: data.id,
             user_id: userId,
             post_id: postId,
             position: nextPosition,
-            pinned_at: new Date().toISOString(),
+            pinned_at: data.pinned_at || new Date().toISOString(),
           },
         ]);
 
@@ -133,12 +132,13 @@ export function usePinnedPosts(userId?: string): UsePinnedPostsReturn {
 
         setPinnedPosts(remaining);
 
-        // Update positions in database
+        // Update positions using post_id (reliable) instead of id (may be stale)
         for (const pin of remaining) {
           await supabase
             .from("pinned_posts")
             .update({ position: pin.position })
-            .eq("id", pin.id);
+            .eq("user_id", userId)
+            .eq("post_id", pin.post_id);
         }
 
         return true;
@@ -266,24 +266,24 @@ export function useCommunityPinnedPosts(
       try {
         const nextPosition = pinnedPosts.length;
 
-        const { error } = await supabase.from("community_pinned_posts").insert({
+        const { data, error } = await supabase.from("community_pinned_posts").insert({
           community_id: communityId,
           post_id: postId,
           pinned_by: pinnedBy,
           position: nextPosition,
-        });
+        }).select().single();
 
         if (error) throw error;
 
         setPinnedPosts((prev) => [
           ...prev,
           {
-            id: "",
+            id: data.id,
             community_id: communityId,
             post_id: postId,
             pinned_by: pinnedBy,
             position: nextPosition,
-            pinned_at: new Date().toISOString(),
+            pinned_at: data.pinned_at || new Date().toISOString(),
           },
         ]);
 
@@ -315,12 +315,13 @@ export function useCommunityPinnedPosts(
 
         setPinnedPosts(remaining);
 
-        // Update positions
+        // Update positions using community_id + post_id (reliable) instead of id
         for (const pin of remaining) {
           await supabase
             .from("community_pinned_posts")
             .update({ position: pin.position })
-            .eq("id", pin.id);
+            .eq("community_id", communityId)
+            .eq("post_id", pin.post_id);
         }
 
         return true;

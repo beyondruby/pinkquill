@@ -35,6 +35,22 @@ export function useModQueue(communityId: string, filters?: ModQueueFilters) {
     setError(null);
 
     try {
+      // First, get all post IDs that belong to this community
+      const { data: communityPostIds } = await supabase
+        .from("posts")
+        .select("id")
+        .eq("community_id", communityId);
+
+      if (!communityPostIds || communityPostIds.length === 0) {
+        if (mountedRef.current) {
+          setReports([]);
+          setStats({ pending: 0, resolvedThisWeek: 0 });
+        }
+        return;
+      }
+
+      const postIds = communityPostIds.map(p => p.id);
+
       let query = supabase
         .from("reports")
         .select(`
@@ -60,7 +76,7 @@ export function useModQueue(communityId: string, filters?: ModQueueFilters) {
             display_name
           )
         `)
-        .eq("community_id", communityId)
+        .in("reported_post_id", postIds)
         .order("created_at", { ascending: false });
 
       // Apply filters
