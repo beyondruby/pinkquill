@@ -694,7 +694,7 @@ function PostCardComponent({
       >
         <EllipsisIcon />
       </button>
-      {renderDropdownPortal((onPin || onUnpin) ? "w-40" : "w-36", <>
+      {renderDropdownPortal((onPin || onUnpin || (canModerateDelete && onModeratorDelete)) ? "w-44" : "w-36", <>
         {/* Pin/Unpin option for community admins/moderators */}
         {isPinned && onUnpin && (
           <>
@@ -754,6 +754,23 @@ function PostCardComponent({
           <TrashIcon aria-hidden="true" />
           Delete
         </button>
+        {/* Moderator delete for owner-moderators (audited) */}
+        {canModerateDelete && onModeratorDelete && (
+          <>
+            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                setShowModeratorDeleteConfirm(true);
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 transition-colors"
+              role="menuitem"
+            >
+              <TrashIcon aria-hidden="true" />
+              Delete (Mod)
+            </button>
+          </>
+        )}
       </>)}
     </>
   ) : user ? (
@@ -1467,7 +1484,10 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
     prevProps.post.isRelayed === nextProps.post.isRelayed &&
     prevProps.post.reactionType === nextProps.post.reactionType &&
     prevProps.canModerateDelete === nextProps.canModerateDelete &&
-    prevProps.onModeratorDelete === nextProps.onModeratorDelete
+    prevProps.onModeratorDelete === nextProps.onModeratorDelete &&
+    prevProps.isPinned === nextProps.isPinned &&
+    prevProps.onPin === nextProps.onPin &&
+    prevProps.onUnpin === nextProps.onUnpin
   );
 });
 

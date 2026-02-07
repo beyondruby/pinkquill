@@ -1552,7 +1552,7 @@ export function useCommunityModeration(communityId: string) {
   };
 
   // Get moderator permissions for a user
-  const getModeratorPermissions = async (userId: string): Promise<ModeratorPermissions | null> => {
+  const getModeratorPermissions = useCallback(async (userId: string): Promise<ModeratorPermissions | null> => {
     try {
       const { data, error } = await supabase
         .from("community_members")
@@ -1579,127 +1579,59 @@ export function useCommunityModeration(communityId: string) {
       console.error("[getModeratorPermissions] Error:", err);
       return null;
     }
-  };
+  }, [communityId]);
 
   // Check if a user has a specific permission
-  const hasPermission = async (userId: string, permission: keyof ModeratorPermissions): Promise<boolean> => {
+  const hasPermission = useCallback(async (userId: string, permission: keyof ModeratorPermissions): Promise<boolean> => {
     const permissions = await getModeratorPermissions(userId);
     if (!permissions) return false;
     return permissions[permission] === true;
-  };
+  }, [getModeratorPermissions]);
 
-  // Delete a post from the community
+  // Delete a post from the community via atomic RPC
+  // Handles permission check, deletion, and audit logging in a single DB transaction
   const deletePost = async (postId: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
-    setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { success: false, error: 'Not authenticated' };
-
-      // Check if user has permission
-      const canDelete = await hasPermission(user.id, 'can_delete_posts');
-      if (!canDelete) {
-        return { success: false, error: 'You do not have permission to delete posts' };
-      }
-
-      // Get post info for audit log
-      const { data: post } = await supabase
-        .from("posts")
-        .select("author_id")
-        .eq("id", postId)
-        .single();
-
-      // Log the deletion
-      await supabase.from("community_content_deletions").insert({
-        community_id: communityId,
-        content_type: 'post',
-        content_id: postId,
-        content_author_id: post?.author_id,
-        deleted_by: user.id,
-        reason: reason || null,
+      const { data, error } = await supabase.rpc('moderate_delete_post', {
+        p_community_id: communityId,
+        p_post_id: postId,
+        p_reason: reason || null,
       });
 
-      // Delete the post
-      const { error } = await supabase
-        .from("posts")
-        .delete()
-        .eq("id", postId)
-        .eq("community_id", communityId);
-
       if (error) throw error;
+
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Failed to delete post' };
+      }
 
       return { success: true };
     } catch (err) {
       console.error("[deletePost] Error:", err);
       return { success: false, error: err };
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Delete a comment from a community post
-  const deleteComment = async (commentId: string, postId?: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
-    setLoading(true);
+  // Delete a comment from a community post via atomic RPC
+  // Handles permission check, cascade cleanup (likes, replies), deletion, and audit logging
+  // in a single DB transaction
+  const deleteComment = async (commentId: string, _postId?: string, reason?: string): Promise<{ success: boolean; error?: unknown }> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { success: false, error: 'Not authenticated' };
-
-      // Check if user has permission
-      const canDelete = await hasPermission(user.id, 'can_delete_comments');
-      if (!canDelete) {
-        return { success: false, error: 'You do not have permission to delete comments' };
-      }
-
-      // Get comment info (including post_id if not provided)
-      const { data: comment } = await supabase
-        .from("comments")
-        .select("user_id, post_id")
-        .eq("id", commentId)
-        .single();
-
-      if (!comment) {
-        return { success: false, error: 'Comment not found' };
-      }
-
-      // Use the post_id from comment if not explicitly provided
-      const effectivePostId = postId || comment.post_id;
-
-      // Verify the post belongs to this community
-      const { data: post } = await supabase
-        .from("posts")
-        .select("id")
-        .eq("id", effectivePostId)
-        .eq("community_id", communityId)
-        .single();
-
-      if (!post) {
-        return { success: false, error: 'Post not found in this community' };
-      }
-
-      // Log the deletion
-      await supabase.from("community_content_deletions").insert({
-        community_id: communityId,
-        content_type: 'comment',
-        content_id: commentId,
-        content_author_id: comment.user_id,
-        deleted_by: user.id,
-        reason: reason || null,
+      const { data, error } = await supabase.rpc('moderate_delete_comment', {
+        p_community_id: communityId,
+        p_comment_id: commentId,
+        p_reason: reason || null,
       });
 
-      // Delete the comment
-      const { error } = await supabase
-        .from("comments")
-        .delete()
-        .eq("id", commentId)
-        .eq("post_id", effectivePostId);
-
       if (error) throw error;
+
+      if (!data?.success) {
+        return { success: false, error: data?.error || 'Failed to delete comment' };
+      }
 
       return { success: true };
     } catch (err) {
       console.error("[deleteComment] Error:", err);
       return { success: false, error: err };
-    } finally {
-      setLoading(false);
     }
   };
 
