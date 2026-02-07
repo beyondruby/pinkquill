@@ -186,12 +186,8 @@ export default function CommunityFeedPage() {
     }
   }, [deletePost, refetch]);
 
-  if (!community) return null;
-
-  const canPost = community.is_member && community.user_status === 'active';
-  const isAdmin = community.user_role === 'admin' || community.user_role === 'moderator';
-
   // Handle pin/unpin and refresh the posts list
+  // Must be above the early return to respect rules of hooks
   const handlePin = useCallback(async (postId: string) => {
     if (!user?.id) return;
     const success = await pinPost(postId, user.id);
@@ -208,6 +204,11 @@ export default function CommunityFeedPage() {
       refetchPins();
     }
   }, [unpinPost, refetch, refetchPins]);
+
+  if (!community) return null;
+
+  const canPost = community.is_member && community.user_status === 'active';
+  const isAdmin = community.user_role === 'admin' || community.user_role === 'moderator';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
