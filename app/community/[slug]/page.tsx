@@ -298,12 +298,12 @@ export default function CommunityFeedPage() {
               {pinnedPosts.map((post) => (
                 <div key={post.id} className="relative">
                   {/* Pin indicator */}
-                  <div className="absolute -top-2 left-4 z-10">
+                  <div className="absolute top-1 left-4 z-10">
                     <svg className="w-4 h-4 text-purple-primary drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
                     </svg>
                   </div>
-                  <div className="pt-2">
+                  <div>
                     <PostCard
                       post={transformPost(post)}
                       canModerateDelete={canDeletePosts}
