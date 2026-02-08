@@ -51,7 +51,13 @@
       "Bash(npm run test:coverage:*)",
       "Bash(NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder-key' npm run build:*)",
       "Bash(kill:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(npx supabase db push:*)",
+      "Bash(npx supabase --version)",
+      "Bash(PGPASSWORD='Beyondruby1234!@#' psql:*)",
+      "Bash(npm ls:*)",
+      "Bash(npx:*)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }

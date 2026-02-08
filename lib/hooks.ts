@@ -239,6 +239,7 @@ export {
   useUpdateCommunity,
   useDeleteCommunity,
   useCommunityModeration,
+  useModLog,
 } from "./hooks.legacy";
 
 // Search

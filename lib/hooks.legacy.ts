@@ -22,6 +22,7 @@ import type {
   CommunityTag,
   JoinRequest,
   CommunityInvitation,
+  ContentDeletion,
 } from "./types";
 
 // Re-export community types for backwards compatibility
@@ -2572,4 +2573,84 @@ export async function fetchCollaboratedPosts(userId: string) {
     console.error('[fetchCollaboratedPosts] Error:', err);
     return [];
   }
+}
+
+// ============================================
+// MOD LOG HOOK
+// ============================================
+
+export function useModLog(communityId: string, options?: { pageSize?: number }) {
+  const [entries, setEntries] = useState<ContentDeletion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const mountedRef = useRef(true);
+  const pageSize = options?.pageSize || 20;
+
+  const fetchEntries = useCallback(async (pageNum: number = 0, append: boolean = false) => {
+    if (!communityId) {
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (!append) setLoading(true);
+
+      const { data, error } = await supabase
+        .from("community_content_deletions")
+        .select(`
+          *,
+          author_profile:profiles!community_content_deletions_content_author_id_fkey (
+            username, display_name, avatar_url
+          ),
+          moderator_profile:profiles!community_content_deletions_deleted_by_fkey (
+            username, display_name, avatar_url
+          )
+        `)
+        .eq("community_id", communityId)
+        .order("deleted_at", { ascending: false })
+        .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1);
+
+      if (!mountedRef.current) return;
+      if (error) throw error;
+
+      const newEntries = (data || []) as ContentDeletion[];
+
+      if (append) {
+        setEntries(prev => [...prev, ...newEntries]);
+      } else {
+        setEntries(newEntries);
+      }
+      setHasMore(newEntries.length === pageSize);
+      setPage(pageNum);
+    } catch (err) {
+      console.error("[useModLog] Error:", err);
+      if (!append && mountedRef.current) {
+        setEntries([]);
+      }
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [communityId, pageSize]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchEntries(0, false);
+    return () => { mountedRef.current = false; };
+  }, [fetchEntries]);
+
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      fetchEntries(page + 1, true);
+    }
+  }, [fetchEntries, loading, hasMore, page]);
+
+  return {
+    entries,
+    loading,
+    hasMore,
+    loadMore,
+    refetch: () => fetchEntries(0, false),
+  };
 }

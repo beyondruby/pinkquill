@@ -475,6 +475,20 @@ export interface Community {
   };
 }
 
+// Content deletion audit log entry
+export interface ContentDeletion {
+  id: string;
+  community_id: string;
+  content_type: 'post' | 'comment';
+  content_id: string;
+  content_author_id: string | null;
+  deleted_by: string;
+  reason: string | null;
+  deleted_at: string;
+  author_profile?: { username: string; display_name: string | null; avatar_url: string | null };
+  moderator_profile?: { username: string; display_name: string | null; avatar_url: string | null };
+}
+
 // Moderator permissions - granular control over what moderators can do
 export interface ModeratorPermissions {
   can_mute: boolean;
