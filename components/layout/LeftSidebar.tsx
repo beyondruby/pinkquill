@@ -273,7 +273,7 @@ export default function LeftSidebar() {
                 className={`relative h-12 flex items-center rounded-xl transition-all duration-300 ${
                   isExpanded ? "px-4 gap-3.5" : "justify-center px-0"
                 } ${
-                  pathname === "/messages"
+                  pathname.startsWith("/messages")
                     ? "text-pink-vivid bg-pink-vivid/10 font-medium"
                     : "text-muted hover:text-purple-primary hover:bg-purple-primary/10"
                 }`}

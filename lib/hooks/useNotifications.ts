@@ -388,8 +388,8 @@ export function useMarkAsRead() {
 }
 
 // ============================================================================
-// useUnreadMessagesCount - Unread messages count (filtered for blocks)
-// Optimized: Caches blocked users, uses longer debounce, more efficient queries
+// useUnreadMessagesCount - Unread count for DMs + community chat inbox
+// Optimized: Caches blocked users, keeps DM incremental updates, debounces refetches
 // ============================================================================
 
 interface UseUnreadMessagesCountReturn {
@@ -411,17 +411,22 @@ const blockedUsersCacheByUser = new Map<string, BlockedUsersCache>();
 export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountReturn {
   const [count, setCount] = useState(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const communityChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const fetchedRef = useRef(false);
   const mountedRef = useRef(true);
   const isFetchingRef = useRef(false);
   const conversationIdsRef = useRef<Set<string>>(new Set());
   const blockedUsersRef = useRef<Set<string>>(new Set());
+  const dmUnreadCountRef = useRef(0);
+  const communityUnreadCountRef = useRef(0);
 
   // Reset cache refs when user changes so a stale state never leaks between accounts.
   useEffect(() => {
     fetchedRef.current = false;
     conversationIdsRef.current = new Set();
     blockedUsersRef.current = new Set();
+    dmUnreadCountRef.current = 0;
+    communityUnreadCountRef.current = 0;
     if (!userId) {
       setCount(0);
     }
@@ -468,12 +473,47 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
     }
   }, [userId]);
 
+  const syncTotalCount = useCallback(() => {
+    if (!mountedRef.current) return;
+    setCount(dmUnreadCountRef.current + communityUnreadCountRef.current);
+  }, []);
+
+  const fetchCommunityUnreadCount = useCallback(async (): Promise<number> => {
+    if (!userId) return 0;
+
+    try {
+      const { data, error } = await retryWithBackoff(
+        () =>
+          supabase.rpc("get_community_chat_unread_count", {
+            p_user_id: userId,
+          }),
+        {
+          attempts: 3,
+          shouldRetry: isRetryableError,
+        }
+      );
+
+      if (error) {
+        console.error("[useUnreadMessagesCount] Error fetching community unread count:", error.message);
+        return communityUnreadCountRef.current;
+      }
+
+      return Number(data || 0);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useUnreadMessagesCount] Unexpected community unread count error:", message);
+      return communityUnreadCountRef.current;
+    }
+  }, [userId]);
+
   const fetchCount = useCallback(async () => {
     if (!userId) {
       setCount(0);
       fetchedRef.current = false;
       conversationIdsRef.current = new Set();
       blockedUsersRef.current = new Set();
+      dmUnreadCountRef.current = 0;
+      communityUnreadCountRef.current = 0;
       return;
     }
 
@@ -503,44 +543,46 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
       if (!mountedRef.current) return;
       if (participationsError) throw participationsError;
 
+      let filteredCount = 0;
       if (!participations || participations.length === 0) {
         conversationIdsRef.current = new Set();
-        setCount(0);
-        fetchedRef.current = true;
-        return;
+      } else {
+        const conversationIds = participations.map((p) => p.conversation_id);
+        conversationIdsRef.current = new Set(conversationIds);
+
+        // Get unread count - only fetch sender_id for filtering (minimal data)
+        const { data: unreadMessages, error } = await retryWithBackoff(
+          () =>
+            supabase
+              .from("messages")
+              .select("sender_id")
+              .in("conversation_id", conversationIds)
+              .eq("is_read", false)
+              .neq("sender_id", userId),
+          {
+            attempts: 3,
+            shouldRetry: isRetryableError,
+          }
+        );
+
+        if (!mountedRef.current) return;
+        if (error) throw error;
+
+        // Filter out blocked users (this is fast since blockedUserIds is a Set)
+        const messages = unreadMessages || [];
+        for (let i = 0; i < messages.length; i++) {
+          if (!blockedUserIds.has(messages[i].sender_id)) {
+            filteredCount++;
+          }
+        }
       }
 
-      const conversationIds = participations.map((p) => p.conversation_id);
-      conversationIdsRef.current = new Set(conversationIds);
-
-      // Get unread count - only fetch sender_id for filtering (minimal data)
-      const { data: unreadMessages, error } = await retryWithBackoff(
-        () =>
-          supabase
-            .from("messages")
-            .select("sender_id")
-            .in("conversation_id", conversationIds)
-            .eq("is_read", false)
-            .neq("sender_id", userId),
-        {
-          attempts: 3,
-          shouldRetry: isRetryableError,
-        }
-      );
-
+      const communityUnreadCount = await fetchCommunityUnreadCount();
       if (!mountedRef.current) return;
-      if (error) throw error;
 
-      // Filter out blocked users (this is fast since blockedUserIds is a Set)
-      let filteredCount = 0;
-      const messages = unreadMessages || [];
-      for (let i = 0; i < messages.length; i++) {
-        if (!blockedUserIds.has(messages[i].sender_id)) {
-          filteredCount++;
-        }
-      }
-
-      setCount(filteredCount);
+      dmUnreadCountRef.current = filteredCount;
+      communityUnreadCountRef.current = communityUnreadCount;
+      syncTotalCount();
       fetchedRef.current = true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -548,7 +590,7 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
     } finally {
       isFetchingRef.current = false;
     }
-  }, [userId, getBlockedUsers]);
+  }, [userId, getBlockedUsers, fetchCommunityUnreadCount, syncTotalCount]);
 
   // Use ref to access latest fetchCount in subscription callback
   const fetchCountRef = useRef(fetchCount);
@@ -573,6 +615,10 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+      }
+      if (communityChannelRef.current) {
+        supabase.removeChannel(communityChannelRef.current);
+        communityChannelRef.current = null;
       }
       return;
     }
@@ -609,7 +655,8 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
 
       // New incoming unread message increments count without a DB round-trip.
       if (inserted?.is_read !== true) {
-        setCount((prev) => prev + 1);
+        dmUnreadCountRef.current += 1;
+        syncTotalCount();
       } else {
         debouncedFetch();
       }
@@ -634,11 +681,13 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
 
       if (typeof previous?.is_read === "boolean" && typeof updated?.is_read === "boolean") {
         if (!previous.is_read && updated.is_read) {
-          setCount((prev) => Math.max(0, prev - 1));
+          dmUnreadCountRef.current = Math.max(0, dmUnreadCountRef.current - 1);
+          syncTotalCount();
           return;
         }
         if (previous.is_read && !updated.is_read) {
-          setCount((prev) => prev + 1);
+          dmUnreadCountRef.current += 1;
+          syncTotalCount();
           return;
         }
       }
@@ -659,7 +708,8 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
       if (blockedUsersRef.current.has(senderId)) return;
 
       if (deleted?.is_read === false) {
-        setCount((prev) => Math.max(0, prev - 1));
+        dmUnreadCountRef.current = Math.max(0, dmUnreadCountRef.current - 1);
+        syncTotalCount();
       } else {
         debouncedFetch();
       }
@@ -707,7 +757,76 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
         channelRef.current = null;
       }
     };
-  }, [userId]); // Only userId - prevents channel recreation
+  }, [userId, syncTotalCount]);
+
+  // Community chat updates
+  useEffect(() => {
+    if (!userId) {
+      if (communityChannelRef.current) {
+        supabase.removeChannel(communityChannelRef.current);
+        communityChannelRef.current = null;
+      }
+      return;
+    }
+
+    if (communityChannelRef.current) {
+      supabase.removeChannel(communityChannelRef.current);
+    }
+
+    let debounceTimer: NodeJS.Timeout | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (mountedRef.current) {
+          fetchCountRef.current();
+        }
+      }, 1000);
+    };
+
+    const channelName = `unread-community-messages-count-${userId}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "community_chat_messages",
+        },
+        debouncedFetch
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_chat_thread_reads",
+          filter: `user_id=eq.${userId}`,
+        },
+        debouncedFetch
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_members",
+          filter: `user_id=eq.${userId}`,
+        },
+        debouncedFetch
+      )
+      .subscribe();
+
+    communityChannelRef.current = channel;
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (communityChannelRef.current) {
+        supabase.removeChannel(communityChannelRef.current);
+        communityChannelRef.current = null;
+      }
+    };
+  }, [userId]);
 
   return { count, refetch: fetchCount };
 }

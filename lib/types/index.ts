@@ -445,6 +445,67 @@ export interface TypingUser {
 }
 
 // ============================================================================
+// COMMUNITY CHAT TYPES
+// ============================================================================
+
+export type CommunityChatSenderRole = "system" | "member" | "moderator" | "admin";
+export type CommunityChatMessageType =
+  | "message"
+  | "announcement"
+  | "welcome"
+  | "mod_action"
+  | "appeal"
+  | "status_update";
+
+export interface CommunityChatThread {
+  id: string;
+  community_id: string;
+  member_id: string;
+  created_at: string;
+  updated_at: string;
+  last_message_at: string | null;
+  closed_at: string | null;
+  member_profile?: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+export interface CommunityChatMessage {
+  id: string;
+  thread_id: string;
+  sender_id: string | null;
+  sender_role: CommunityChatSenderRole;
+  message_type: CommunityChatMessageType;
+  content: string;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  sender_profile?: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
+}
+
+export interface CommunityChatMembership {
+  community_id: string;
+  role: "admin" | "moderator" | "member";
+  status: "active" | "muted" | "banned";
+  mute_reason: string | null;
+  ban_reason: string | null;
+  community: {
+    id: string;
+    slug: string;
+    name: string;
+    avatar_url: string | null;
+    welcome_message?: string | null;
+  };
+}
+
+// ============================================================================
 // COMMUNITY TYPES
 // ============================================================================
 
@@ -457,6 +518,7 @@ export interface Community {
   cover_url: string | null;
   privacy: "public" | "private";
   topics: string[];
+  welcome_message?: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;

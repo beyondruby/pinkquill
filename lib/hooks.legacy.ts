@@ -1321,6 +1321,7 @@ export function useUpdateCommunity() {
     topics: string[];
     avatar_url: string;
     cover_url: string;
+    welcome_message: string | null;
   }>) => {
     setUpdating(true);
     setError(null);

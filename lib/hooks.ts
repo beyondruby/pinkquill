@@ -83,6 +83,14 @@ export {
   MESSAGE_REACTION_EMOJIS,
 } from "./hooks/useMessaging";
 
+// Community Chat / Modmail
+export {
+  useCommunityChatMemberships,
+  useCommunityChatThreads,
+  useCommunityChatMessages,
+  useCommunityChatActions,
+} from "./hooks/useCommunityChat";
+
 // Share to DM
 export { useShareToDM, fetchSharedPostPreview } from "./hooks/useShareToDM";
 
@@ -186,6 +194,11 @@ export type {
   MessageReactionEmoji,
   SharedPostPreview,
   TypingUser,
+  CommunityChatThread,
+  CommunityChatMessage,
+  CommunityChatMembership,
+  CommunityChatSenderRole,
+  CommunityChatMessageType,
   Community,
   CommunityMember,
   CommunityRule,
