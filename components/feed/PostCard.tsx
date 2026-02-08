@@ -511,11 +511,25 @@ function PostCardComponent({
 
     setReportSubmitting(true);
     try {
+      // Look up the post's community_id for mod queue filtering
+      let communityId: string | null = null;
+      if (post.community) {
+        const { data: postData } = await supabase
+          .from("posts")
+          .select("community_id")
+          .eq("id", post.id)
+          .single();
+        communityId = postData?.community_id || null;
+      }
+
       const { error } = await supabase.from("reports").insert({
-        post_id: post.id,
+        reported_post_id: post.id,
+        reported_user_id: post.authorId,
         reporter_id: user.id,
         reason: reason,
         details: details || null,
+        type: "post",
+        community_id: communityId,
       });
 
       if (error) {
@@ -536,7 +550,7 @@ function PostCardComponent({
       actionToast.reportError();
     }
     setReportSubmitting(false);
-  }, [user, post.id]);
+  }, [user, post.id, post.authorId, post.community]);
 
   const handleBlockUser = useCallback(async () => {
     if (!user) return;

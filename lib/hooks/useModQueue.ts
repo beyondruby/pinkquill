@@ -35,48 +35,34 @@ export function useModQueue(communityId: string, filters?: ModQueueFilters) {
     setError(null);
 
     try {
-      // First, get all post IDs that belong to this community
-      const { data: communityPostIds } = await supabase
-        .from("posts")
-        .select("id")
-        .eq("community_id", communityId);
-
-      if (!communityPostIds || communityPostIds.length === 0) {
-        if (mountedRef.current) {
-          setReports([]);
-          setStats({ pending: 0, resolvedThisWeek: 0 });
-        }
-        return;
-      }
-
-      const postIds = communityPostIds.map(p => p.id);
-
+      // Query reports directly by community_id (set when reports are created)
+      // Use column-name disambiguation for FK joins to profiles/posts
       let query = supabase
         .from("reports")
         .select(`
           *,
-          reporter:profiles!reports_reporter_id_fkey (
+          reporter:profiles!reporter_id (
             username,
             display_name,
             avatar_url
           ),
-          reported_user:profiles!reports_reported_user_id_fkey (
+          reported_user:profiles!reported_user_id (
             username,
             display_name,
             avatar_url
           ),
-          reported_post:posts!reports_reported_post_id_fkey (
+          reported_post:posts!reported_post_id (
             id,
             title,
             content,
             type
           ),
-          resolver:profiles!reports_resolved_by_fkey (
+          resolver:profiles!resolved_by (
             username,
             display_name
           )
         `)
-        .in("reported_post_id", postIds)
+        .eq("community_id", communityId)
         .order("created_at", { ascending: false });
 
       // Apply filters

@@ -537,11 +537,21 @@ export default function PostDetailModal({
 
     setReportSubmitting(true);
     try {
+      // Look up community_id and author_id from the post
+      const { data: postData } = await supabase
+        .from("posts")
+        .select("community_id, author_id")
+        .eq("id", post.id)
+        .single();
+
       const { error } = await supabase.from("reports").insert({
-        post_id: post.id,
+        reported_post_id: post.id,
+        reported_user_id: postData?.author_id || post.authorId || null,
         reporter_id: user.id,
         reason: reason,
         details: details || null,
+        type: "post",
+        community_id: postData?.community_id || null,
       });
 
       if (error) {

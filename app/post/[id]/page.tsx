@@ -627,11 +627,21 @@ export default function PostPage() {
 
     setReportSubmitting(true);
     try {
+      // Look up community_id from the post
+      const { data: postMeta } = await supabase
+        .from("posts")
+        .select("community_id")
+        .eq("id", post.id)
+        .single();
+
       const { error } = await supabase.from("reports").insert({
-        post_id: post.id,
+        reported_post_id: post.id,
+        reported_user_id: post.author_id,
         reporter_id: user.id,
         reason: reason,
         details: details || null,
+        type: "post",
+        community_id: postMeta?.community_id || null,
       });
 
       if (error) {
