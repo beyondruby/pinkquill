@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCreateCommission } from "@/lib/hooks/useCommissions";
@@ -37,9 +37,40 @@ const PACKAGE_PRESETS: Array<{ tier: CommissionPackageFormState["tier"]; name: s
   { tier: "premium", name: "Premium" },
 ];
 
+const TIER_STYLES: Record<
+  CommissionPackageFormState["tier"],
+  {
+    badge: string;
+    card: string;
+    chip: string;
+  }
+> = {
+  basic: {
+    badge: "from-slate-500 to-slate-700",
+    card: "from-slate-100/80 via-white to-slate-50/90",
+    chip: "bg-slate-100 text-slate-700",
+  },
+  standard: {
+    badge: "from-purple-primary to-pink-vivid",
+    card: "from-purple-primary/10 via-white to-pink-vivid/10",
+    chip: "bg-purple-100 text-purple-primary",
+  },
+  premium: {
+    badge: "from-orange-warm to-pink-vivid",
+    card: "from-orange-warm/10 via-white to-pink-vivid/10",
+    chip: "bg-orange-100 text-orange-700",
+  },
+  custom: {
+    badge: "from-blue-500 to-indigo-600",
+    card: "from-blue-500/10 via-white to-indigo-500/10",
+    chip: "bg-blue-100 text-blue-700",
+  },
+};
+
 export default function CreateCommissionWizard() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaUrlsRef = useRef<string[]>([]);
   const { user, profile } = useAuth();
   const { createCommission, creating, error: createError } = useCreateCommission();
 
@@ -49,6 +80,17 @@ export default function CreateCommissionWizard() {
 
   const categories = useMemo(() => getAllCommissionCategories(), []);
   const selectedCategory = state.category ? COMMISSION_CATEGORIES[state.category] : null;
+  const progressPercent = (step / STEP_LABELS.length) * 100;
+
+  useEffect(() => {
+    mediaUrlsRef.current = state.mediaPreviews.map((item) => item.url);
+  }, [state.mediaPreviews]);
+
+  useEffect(() => {
+    return () => {
+      mediaUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   const updateState = useCallback((updates: Partial<CommissionWizardState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -147,11 +189,19 @@ export default function CreateCommissionWizard() {
         setError("Add a service title.");
         return false;
       }
+      if (!state.description.trim()) {
+        setError("Describe your service clearly before continuing.");
+        return false;
+      }
     }
 
     if (targetStep === 2) {
       const hasValidPackage = state.packages.some(
-        (pkg) => pkg.price !== null && pkg.price > 0 && pkg.description.trim().length > 0
+        (pkg) =>
+          pkg.name.trim().length > 0 &&
+          pkg.price !== null &&
+          pkg.price > 0 &&
+          pkg.description.trim().length > 0
       );
 
       if (!hasValidPackage) {
@@ -198,305 +248,514 @@ export default function CreateCommissionWizard() {
     }
   }, [createCommission, profile, router, state, user, validateStep]);
 
+  const priceFrom = useMemo(() => {
+    const values = state.packages
+      .map((pkg) => pkg.price)
+      .filter((value): value is number => typeof value === "number" && value > 0);
+    return values.length > 0 ? Math.min(...values) : null;
+  }, [state.packages]);
+
+  const completion = useMemo(() => ({
+    positioning: Boolean(state.category && state.title.trim() && state.description.trim()),
+    package: state.packages.some((pkg) => pkg.price && pkg.price > 0 && pkg.description.trim()),
+    media: state.mediaPreviews.length > 0,
+    trust: state.requirements.length > 0 || state.faqs.length > 0,
+  }), [state.category, state.description, state.faqs.length, state.mediaPreviews.length, state.packages, state.requirements.length, state.title]);
+
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50/50 via-white to-pink-50/40 flex items-center justify-center px-6">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-white to-pink-50/50 flex items-center justify-center px-6">
         <div className="max-w-lg text-center">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center">
-            <svg className="w-9 h-9 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-24 h-24 mx-auto mb-6 rounded-[28px] bg-gradient-to-br from-purple-primary/20 to-pink-vivid/25 border border-white shadow-lg flex items-center justify-center">
+            <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
           <h1 className="font-display text-3xl text-ink mb-3">Sign in to offer commissions</h1>
-          <p className="font-body text-muted">Create service packages, set your timeline, and get hired from your studio and marketplace.</p>
+          <p className="font-body text-muted">
+            Create premium service packages, define delivery timelines, and get hired from studio and marketplace.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-white to-orange-50/30">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-12">
-        <p className="text-xs font-ui font-semibold uppercase tracking-[0.2em] text-pink-vivid/70 text-center mb-3">
-          Commission Studio
-        </p>
-        <h1 className="font-display text-3xl sm:text-4xl text-center text-ink mb-8">
-          Build a service buyers can trust
-        </h1>
+    <div className="relative min-h-screen overflow-hidden bg-[#fffaf8]">
+      <DecorativeBackdrop />
 
-        <StepRail currentStep={step} />
-
-        {(error || createError) && (
-          <div className="mt-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-600 text-sm font-body">
-            {error || createError}
-          </div>
-        )}
-
-        <div className="mt-8 space-y-6">
-          {step === 1 && (
-            <section className="space-y-6">
-              <SectionCard title="Category" description="Choose where your service will appear in commissions and marketplace.">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {categories.map((category) => {
-                    const selected = state.category === category.id;
-                    return (
-                      <button
-                        key={category.id}
-                        type="button"
-                        onClick={() => updateState({ category: category.id, subcategory: null })}
-                        className={`text-left p-4 rounded-2xl border transition-all ${
-                          selected
-                            ? "border-pink-vivid bg-pink-50/70 shadow-md shadow-pink-vivid/10"
-                            : "border-black/[0.08] bg-white hover:border-pink-vivid/50"
-                        }`}
-                      >
-                        <p className="font-ui font-semibold text-ink mb-1">{category.name}</p>
-                        <p className="text-xs font-body text-muted">{category.description}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </SectionCard>
-
-              {selectedCategory && (
-                <SectionCard title="Specialization" description="Buyers filter by specialization first.">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {selectedCategory.subcategories.map((subcategory) => {
-                      const selected = state.subcategory === subcategory.value;
-                      return (
-                        <button
-                          key={subcategory.value}
-                          type="button"
-                          onClick={() => updateState({ subcategory: subcategory.value })}
-                          className={`text-left p-3.5 rounded-xl border transition-all ${
-                            selected
-                              ? "border-purple-primary bg-purple-50/60"
-                              : "border-black/[0.08] hover:border-purple-primary/50"
-                          }`}
-                        >
-                          <p className="font-ui text-sm font-semibold text-ink">{subcategory.label}</p>
-                          <p className="text-xs font-body text-muted mt-1">{subcategory.description}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </SectionCard>
-              )}
-
-              <SectionCard title="Positioning" description="Write clear positioning like top Fiverr/Upwork listings.">
-                <div className="space-y-4">
-                  <FieldLabel text="Service title" required />
-                  <input
-                    value={state.title}
-                    onChange={(event) => updateState({ title: event.target.value })}
-                    placeholder="I will design a conversion-ready landing page for your brand"
-                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
-                  />
-
-                  <FieldLabel text="Short headline" />
-                  <input
-                    value={state.headline}
-                    onChange={(event) => updateState({ headline: event.target.value })}
-                    placeholder="Fast delivery, strategic UX, and copy-ready handoff"
-                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
-                  />
-
-                  <FieldLabel text="Service description" required />
-                  <textarea
-                    rows={6}
-                    value={state.description}
-                    onChange={(event) => updateState({ description: event.target.value })}
-                    placeholder="Describe your process, what buyers get, and why your approach is different."
-                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
-                  />
-                </div>
-              </SectionCard>
-            </section>
-          )}
-
-          {step === 2 && (
-            <section className="space-y-6">
-              <SectionCard title="Package strategy" description="Offer structured options so buyers can choose based on scope and urgency.">
-                <div className="space-y-4">
-                  {state.packages.map((pkg, index) => (
-                    <PackageEditor
-                      key={pkg.id}
-                      index={index}
-                      pkg={pkg}
-                      canRemove={state.packages.length > 1}
-                      onRemove={() => removePackage(pkg.id)}
-                      onChange={(updates) => updatePackage(pkg.id, updates)}
-                    />
-                  ))}
-
-                  {state.packages.length < 3 && (
-                    <button
-                      type="button"
-                      onClick={addPackage}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui font-medium text-purple-primary bg-purple-50 hover:bg-purple-100 transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Add Package Tier
-                    </button>
-                  )}
-                </div>
-              </SectionCard>
-            </section>
-          )}
-
-          {step === 3 && (
-            <section className="space-y-6">
-              <SectionCard title="Portfolio media" description="Show examples of delivered outcomes. First media becomes the cover.">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={ACCEPTED_MEDIA_TYPES.join(",")}
-                  multiple
-                  onChange={(event) => handleMediaUpload(event.target.files)}
-                  className="hidden"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-pink-vivid/30 rounded-2xl px-6 py-10 text-center hover:border-pink-vivid transition-colors"
-                >
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-pink-vivid/10 flex items-center justify-center">
-                    <svg className="w-7 h-7 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                  <p className="font-ui font-medium text-ink">Upload Portfolio Media</p>
-                  <p className="text-xs font-body text-muted mt-1">{state.mediaPreviews.length} / {MAX_MEDIA} added</p>
-                </button>
-
-                {state.mediaPreviews.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {state.mediaPreviews.map((media, index) => (
-                      <div key={media.url} className="relative rounded-xl overflow-hidden border border-black/[0.08] group">
-                        <img src={media.url} alt={`Portfolio ${index + 1}`} className="w-full aspect-square object-cover" />
-                        <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/70 to-transparent text-xs text-white flex items-center justify-between">
-                          <button type="button" className="underline" onClick={() => setPrimaryMedia(index)}>
-                            {media.isPrimary ? "Primary" : "Set primary"}
-                          </button>
-                          <button type="button" className="underline" onClick={() => removeMedia(index)}>
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </SectionCard>
-
-              <SectionCard title="Buyer requirements" description="Ask for the exact assets you need to start immediately.">
-                <StringListEditor
-                  values={state.requirements}
-                  placeholder="e.g., Brand guidelines, references, target audience"
-                  onChange={(values) => updateState({ requirements: values })}
-                />
-              </SectionCard>
-
-              <SectionCard title="FAQs" description="Reduce back-and-forth by answering common concerns upfront.">
-                <FaqEditor
-                  values={state.faqs}
-                  onChange={(faqs) => updateState({ faqs })}
-                />
-              </SectionCard>
-
-              <SectionCard title="Search tags" description="Help buyers discover your service in marketplace and studio.">
-                <StringListEditor
-                  values={state.keywords}
-                  placeholder="e.g., landing page, figma, conversion optimization"
-                  onChange={(values) => updateState({ keywords: values })}
-                />
-              </SectionCard>
-            </section>
-          )}
-
-          {step === 4 && (
-            <section className="space-y-6">
-              <SectionCard title="Ready to publish" description="Quick quality check before listing goes live.">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <ReviewItem label="Category" value={selectedCategory?.name || "Not set"} />
-                  <ReviewItem label="Specialization" value={state.subcategory || "Not set"} />
-                  <ReviewItem label="Title" value={state.title || "Not set"} />
-                  <ReviewItem label="Media" value={`${state.mediaPreviews.length} files`} />
-                  <ReviewItem label="Packages" value={`${state.packages.length} tier(s)`} />
-                  <ReviewItem label="Requirements" value={`${state.requirements.length} questions`} />
-                </div>
-
-                <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-purple-primary/5 via-pink-vivid/5 to-orange-warm/5 border border-purple-primary/10">
-                  <p className="text-sm font-body text-ink">
-                    Unique PinkQuill advantage: every commission listing highlights the creator story, process clarity, and transparent package scope. Buyers see exactly what they get before they hire.
-                  </p>
-                </div>
-              </SectionCard>
-            </section>
-          )}
+      <div className="relative max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-12">
+        <div className="text-center mb-8">
+          <p className="text-xs font-ui font-semibold uppercase tracking-[0.2em] text-pink-vivid/70 mb-3">
+            Commission Studio
+          </p>
+          <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl text-ink">
+            Craft a service buyers cannot ignore
+          </h1>
+          <p className="font-body text-muted text-sm sm:text-base mt-3 max-w-2xl mx-auto">
+            Build a premium commission listing with crystal-clear scope, social proof visuals, and high-conversion packages.
+          </p>
         </div>
 
-        <div className="mt-8 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={goBack}
-            disabled={step === 1 || creating}
-            className="px-5 py-3 rounded-full text-sm font-ui font-semibold text-ink bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Back
-          </button>
+        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[360px_minmax(0,1fr)]">
+          <aside className="space-y-4 lg:sticky lg:top-6 self-start">
+            <ListingPreviewCard
+              state={state}
+              step={step}
+              selectedCategory={selectedCategory?.name || "Choose category"}
+              priceFrom={priceFrom}
+            />
+            <QualityChecklist completion={completion} />
+          </aside>
 
-          {step < 4 ? (
-            <button
-              type="button"
-              onClick={goNext}
-              disabled={creating}
-              className="px-7 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all"
-            >
-              Continue
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={publishService}
-              disabled={creating}
-              className="px-7 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {creating ? "Publishing..." : "Publish Service"}
-            </button>
-          )}
+          <main className="space-y-6">
+            <StepRail currentStep={step} progressPercent={progressPercent} />
+
+            {(error || createError) && (
+              <div className="p-4 rounded-2xl border border-red-200 bg-red-50/95 backdrop-blur-sm text-red-700 text-sm font-body shadow-sm">
+                {error || createError}
+              </div>
+            )}
+
+            <section className="rounded-[30px] border border-black/[0.06] bg-white/90 backdrop-blur-xl shadow-[0_20px_60px_-35px_rgba(127,63,191,0.35)] overflow-hidden">
+              <div className="px-5 sm:px-8 py-6 border-b border-black/[0.06] bg-gradient-to-r from-white via-purple-50/40 to-orange-50/40">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-ui font-semibold uppercase tracking-[0.18em] text-muted">
+                      Step {step} of {STEP_LABELS.length}
+                    </p>
+                    <h2 className="font-display text-2xl sm:text-3xl text-ink mt-1">
+                      {STEP_LABELS[step - 1]}
+                    </h2>
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-black/[0.06] shadow-sm">
+                    <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid" />
+                    <span className="text-xs font-ui font-semibold text-ink">{Math.round(progressPercent)}% complete</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 sm:p-8">
+                {step === 1 && (
+                  <div className="space-y-6">
+                    <SectionCard
+                      title="Category"
+                      description="Pick the exact creative domain where buyers will find your service."
+                      tone="rose"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {categories.map((category) => {
+                          const selected = state.category === category.id;
+
+                          return (
+                            <button
+                              key={category.id}
+                              type="button"
+                              onClick={() => updateState({ category: category.id, subcategory: null })}
+                              className={`group text-left rounded-2xl p-4 border transition-all duration-300 ${
+                                selected
+                                  ? "border-transparent shadow-md shadow-pink-vivid/20"
+                                  : "border-black/[0.08] bg-white hover:border-pink-vivid/40 hover:shadow-sm"
+                              }`}
+                              style={{
+                                backgroundImage: selected
+                                  ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+                                  : undefined,
+                                backgroundOrigin: "border-box",
+                                backgroundClip: selected ? "padding-box, border-box" : undefined,
+                              }}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                  selected
+                                    ? "bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 text-pink-vivid"
+                                    : "bg-gray-100 text-gray-500 group-hover:text-pink-vivid group-hover:bg-pink-50"
+                                }`}>
+                                  <CategoryGlyph categoryId={category.id} />
+                                </div>
+                                <div>
+                                  <p className="font-ui font-semibold text-ink">{category.name}</p>
+                                  <p className="text-xs font-body text-muted mt-1">{category.description}</p>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </SectionCard>
+
+                    {selectedCategory && (
+                      <SectionCard
+                        title="Specialization"
+                        description="Buyers filter by specialization first. Pick the one that matches your strongest outcome."
+                        tone="purple"
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {selectedCategory.subcategories.map((subcategory) => {
+                            const selected = state.subcategory === subcategory.value;
+                            return (
+                              <button
+                                key={subcategory.value}
+                                type="button"
+                                onClick={() => updateState({ subcategory: subcategory.value })}
+                                className={`text-left rounded-xl p-3.5 border transition-all ${
+                                  selected
+                                    ? "border-purple-primary/40 bg-purple-50/70 shadow-sm"
+                                    : "border-black/[0.08] bg-white hover:border-purple-primary/40"
+                                }`}
+                              >
+                                <p className="font-ui text-sm font-semibold text-ink">{subcategory.label}</p>
+                                <p className="text-xs font-body text-muted mt-1">{subcategory.description}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </SectionCard>
+                    )}
+
+                    <SectionCard
+                      title="Positioning"
+                      description="Lead with promise, clarity, and transformation. Think top Fiverr and Upwork listings."
+                      tone="neutral"
+                    >
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-3">
+                            <FieldLabel text="Service title" required />
+                            <span className="text-xs font-ui text-muted">{state.title.trim().length}/80</span>
+                          </div>
+                          <input
+                            maxLength={80}
+                            value={state.title}
+                            onChange={(event) => updateState({ title: event.target.value })}
+                            placeholder="I will design a conversion-ready landing page for your brand"
+                            className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid transition-colors"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-3">
+                            <FieldLabel text="Short headline" />
+                            <span className="text-xs font-ui text-muted">{state.headline.trim().length}/100</span>
+                          </div>
+                          <input
+                            maxLength={100}
+                            value={state.headline}
+                            onChange={(event) => updateState({ headline: event.target.value })}
+                            placeholder="Fast delivery, strategic UX, and copy-ready handoff"
+                            className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid transition-colors"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-3">
+                            <FieldLabel text="Service description" required />
+                            <span className="text-xs font-ui text-muted">{state.description.trim().length}/1200</span>
+                          </div>
+                          <textarea
+                            rows={6}
+                            maxLength={1200}
+                            value={state.description}
+                            onChange={(event) => updateState({ description: event.target.value })}
+                            placeholder="Describe your process, what buyers get, and why your approach is different."
+                            className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
+                          />
+                        </div>
+                      </div>
+                    </SectionCard>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="space-y-6">
+                    <SectionCard
+                      title="Package architecture"
+                      description="Offer clear tiers with measurable scope. Buyers should understand differences in 5 seconds."
+                      tone="purple"
+                    >
+                      <div className="space-y-4">
+                        {state.packages.map((pkg, index) => (
+                          <PackageEditor
+                            key={pkg.id}
+                            index={index}
+                            pkg={pkg}
+                            canRemove={state.packages.length > 1}
+                            onRemove={() => removePackage(pkg.id)}
+                            onChange={(updates) => updatePackage(pkg.id, updates)}
+                          />
+                        ))}
+
+                        {state.packages.length < 3 && (
+                          <button
+                            type="button"
+                            onClick={addPackage}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui font-semibold text-purple-primary bg-purple-50 hover:bg-purple-100 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Package Tier
+                          </button>
+                        )}
+                      </div>
+                    </SectionCard>
+                  </div>
+                )}
+
+                {step === 3 && (
+                  <div className="space-y-6">
+                    <SectionCard
+                      title="Portfolio media"
+                      description="Lead with proof. Add finished outcomes, not just process screenshots."
+                      tone="rose"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={ACCEPTED_MEDIA_TYPES.join(",")}
+                        multiple
+                        onChange={(event) => handleMediaUpload(event.target.files)}
+                        className="hidden"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="relative w-full rounded-2xl border border-dashed border-pink-vivid/35 bg-gradient-to-br from-pink-50/70 via-white to-orange-50/70 px-6 py-10 text-center hover:border-pink-vivid transition-colors"
+                      >
+                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white shadow-sm border border-pink-vivid/15 flex items-center justify-center">
+                          <svg className="w-8 h-8 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </div>
+                        <p className="font-ui font-semibold text-ink">Upload Portfolio Media</p>
+                        <p className="text-xs font-body text-muted mt-1">{state.mediaPreviews.length} / {MAX_MEDIA} added</p>
+                        <p className="text-xs font-body text-muted/80 mt-1">JPG, PNG, WEBP, GIF, MP4, MOV</p>
+                      </button>
+
+                      {state.mediaPreviews.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {state.mediaPreviews.map((media, index) => (
+                            <div key={media.url} className="relative rounded-xl overflow-hidden border border-black/[0.08] group bg-white">
+                              {media.file.type.startsWith("video/") ? (
+                                <video
+                                  src={media.url}
+                                  className="w-full aspect-square object-cover"
+                                  muted
+                                  playsInline
+                                />
+                              ) : (
+                                <img src={media.url} alt={`Portfolio ${index + 1}`} className="w-full aspect-square object-cover" />
+                              )}
+
+                              <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/70 to-transparent text-xs text-white flex items-center justify-between">
+                                <button type="button" className="underline underline-offset-2" onClick={() => setPrimaryMedia(index)}>
+                                  {media.isPrimary ? "Primary" : "Set primary"}
+                                </button>
+                                <button type="button" className="underline underline-offset-2" onClick={() => removeMedia(index)}>
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </SectionCard>
+
+                    <SectionCard
+                      title="Buyer requirements"
+                      description="Ask only the critical inputs needed to begin immediately."
+                      tone="neutral"
+                    >
+                      <StringListEditor
+                        values={state.requirements}
+                        placeholder="e.g., Brand guidelines, references, target audience"
+                        onChange={(values) => updateState({ requirements: values })}
+                      />
+                    </SectionCard>
+
+                    <SectionCard
+                      title="FAQs"
+                      description="Answer objections before buyers ask."
+                      tone="neutral"
+                    >
+                      <FaqEditor
+                        values={state.faqs}
+                        onChange={(faqs) => updateState({ faqs })}
+                      />
+                    </SectionCard>
+
+                    <SectionCard
+                      title="Search tags"
+                      description="Improve discoverability across commissions and marketplace filters."
+                      tone="neutral"
+                    >
+                      <StringListEditor
+                        values={state.keywords}
+                        placeholder="e.g., landing page, figma, conversion optimization"
+                        onChange={(values) => updateState({ keywords: values })}
+                      />
+                    </SectionCard>
+                  </div>
+                )}
+
+                {step === 4 && (
+                  <div className="space-y-6">
+                    <SectionCard
+                      title="Launch readiness"
+                      description="Final check before you publish to studio and marketplace."
+                      tone="purple"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <ReviewItem label="Category" value={selectedCategory?.name || "Not set"} />
+                        <ReviewItem label="Specialization" value={state.subcategory || "Not set"} />
+                        <ReviewItem label="Title" value={state.title || "Not set"} />
+                        <ReviewItem label="Starting price" value={priceFrom ? `$${priceFrom}` : "Not set"} />
+                        <ReviewItem label="Media" value={`${state.mediaPreviews.length} files`} />
+                        <ReviewItem label="Packages" value={`${state.packages.length} tier(s)`} />
+                        <ReviewItem label="Requirements" value={`${state.requirements.length} question(s)`} />
+                        <ReviewItem label="FAQs" value={`${state.faqs.length} item(s)`} />
+                      </div>
+                    </SectionCard>
+
+                    <SectionCard
+                      title="Tier preview"
+                      description="How buyers will compare your offers."
+                      tone="rose"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {state.packages.map((pkg) => {
+                          const style = TIER_STYLES[pkg.tier];
+                          return (
+                            <div key={pkg.id} className={`rounded-2xl p-4 border border-black/[0.08] bg-gradient-to-br ${style.card}`}>
+                              <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold uppercase tracking-wider text-white bg-gradient-to-r ${style.badge}`}>
+                                {pkg.name || pkg.tier}
+                              </span>
+                              <p className="font-display text-2xl text-ink mt-3">${pkg.price ?? 0}</p>
+                              <p className="text-xs font-body text-muted mt-1 line-clamp-3">{pkg.description || "No scope added yet."}</p>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <span className={`text-[11px] font-ui font-semibold px-2 py-1 rounded-full ${style.chip}`}>
+                                  {pkg.deliveryDays} day{pkg.deliveryDays === 1 ? "" : "s"}
+                                </span>
+                                <span className={`text-[11px] font-ui font-semibold px-2 py-1 rounded-full ${style.chip}`}>
+                                  {pkg.revisions} revision{pkg.revisions === 1 ? "" : "s"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </SectionCard>
+
+                    <div className="rounded-2xl border border-purple-primary/15 bg-gradient-to-r from-purple-primary/5 via-pink-vivid/5 to-orange-warm/5 p-5">
+                      <p className="text-sm font-body text-ink">
+                        PinkQuill differentiator: every commission shows an outcome-focused listing, transparent package terms, and process clarity.
+                        Buyers can hire faster because expectations are explicit from the first click.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={goBack}
+                disabled={step === 1 || creating}
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-ui font-semibold text-ink bg-white border border-black/[0.08] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </button>
+
+              {step < 4 ? (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={creating}
+                  className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Continue
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={publishService}
+                  disabled={creating}
+                  className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {creating ? "Publishing..." : "Publish Service"}
+                  {!creating && (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              )}
+            </div>
+          </main>
         </div>
       </div>
     </div>
   );
 }
 
-function StepRail({ currentStep }: { currentStep: number }) {
+function DecorativeBackdrop() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {STEP_LABELS.map((label, index) => {
-        const step = index + 1;
-        const isActive = currentStep === step;
-        const isCompleted = currentStep > step;
+    <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full bg-purple-primary/10 blur-3xl" />
+      <div className="absolute top-20 right-0 w-[28rem] h-[28rem] rounded-full bg-pink-vivid/10 blur-3xl" />
+      <div className="absolute bottom-[-120px] left-1/3 w-[34rem] h-[34rem] rounded-full bg-orange-warm/10 blur-3xl" />
+      <div className="absolute inset-0 opacity-[0.08]" style={{
+        backgroundImage:
+          "radial-gradient(circle at 1px 1px, rgba(0,0,0,0.25) 1px, transparent 0)",
+        backgroundSize: "28px 28px",
+      }} />
+    </div>
+  );
+}
 
-        return (
+function StepRail({ currentStep, progressPercent }: { currentStep: number; progressPercent: number }) {
+  return (
+    <div className="rounded-2xl border border-black/[0.06] bg-white/85 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
+      <div className="flex flex-col gap-4">
+        <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
           <div
-            key={label}
-            className={`rounded-xl border px-3 py-3 transition-all ${
-              isActive
-                ? "border-pink-vivid bg-pink-50/60"
-                : isCompleted
-                ? "border-purple-primary/30 bg-purple-50/40"
-                : "border-black/[0.08] bg-white"
-            }`}
-          >
-            <p className="text-xs font-ui uppercase tracking-wider text-muted mb-1">Step {step}</p>
-            <p className="text-sm font-ui font-semibold text-ink">{label}</p>
-          </div>
-        );
-      })}
+            className="h-full rounded-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {STEP_LABELS.map((label, index) => {
+            const step = index + 1;
+            const active = currentStep === step;
+            const complete = currentStep > step;
+
+            return (
+              <div
+                key={label}
+                className={`rounded-xl px-3 py-3 border transition-all ${
+                  active
+                    ? "bg-pink-50/80 border-pink-vivid/30 shadow-sm"
+                    : complete
+                    ? "bg-purple-50/60 border-purple-primary/20"
+                    : "bg-white border-black/[0.08]"
+                }`}
+              >
+                <p className="text-[11px] font-ui font-semibold uppercase tracking-wider text-muted">Step {step}</p>
+                <p className="text-sm font-ui font-semibold text-ink mt-1 leading-tight">{label}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -505,14 +764,22 @@ function SectionCard({
   title,
   description,
   children,
+  tone = "neutral",
 }: {
   title: string;
   description: string;
-  children: React.ReactNode;
+  children: ReactNode;
+  tone?: "neutral" | "purple" | "rose";
 }) {
+  const toneClasses = {
+    neutral: "border-black/[0.08] bg-white",
+    purple: "border-purple-primary/15 bg-gradient-to-br from-purple-primary/[0.06] via-white to-purple-primary/[0.04]",
+    rose: "border-pink-vivid/15 bg-gradient-to-br from-pink-vivid/[0.08] via-white to-orange-warm/[0.06]",
+  } as const;
+
   return (
-    <div className="rounded-2xl border border-black/[0.08] bg-white p-5 sm:p-6">
-      <h2 className="font-display text-2xl text-ink">{title}</h2>
+    <div className={`rounded-2xl border p-5 sm:p-6 ${toneClasses[tone]}`}>
+      <h3 className="font-display text-2xl text-ink">{title}</h3>
       <p className="text-sm font-body text-muted mt-1 mb-5">{description}</p>
       {children}
     </div>
@@ -541,10 +808,17 @@ function PackageEditor({
   onRemove: () => void;
   onChange: (updates: Partial<CommissionPackageFormState>) => void;
 }) {
+  const style = TIER_STYLES[pkg.tier];
+
   return (
-    <div className="rounded-xl border border-black/[0.08] p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="font-ui font-semibold text-ink">Package {index + 1}</p>
+    <div className={`rounded-2xl border border-black/[0.08] p-4 bg-gradient-to-br ${style.card} space-y-4`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold uppercase tracking-wider text-white bg-gradient-to-r ${style.badge}`}>
+            {pkg.tier}
+          </span>
+          <p className="font-ui font-semibold text-ink">Package {index + 1}</p>
+        </div>
         {canRemove && (
           <button type="button" onClick={onRemove} className="text-xs font-ui text-red-500 hover:text-red-600">
             Remove
@@ -553,55 +827,74 @@ function PackageEditor({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input
-          value={pkg.name}
-          onChange={(event) => onChange({ name: event.target.value })}
-          placeholder="Package name"
-          className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-        />
-        <input
-          type="number"
-          min={5}
-          step={1}
-          value={pkg.price ?? ""}
-          onChange={(event) => onChange({ price: event.target.value ? Number(event.target.value) : null })}
-          placeholder="Price (USD)"
-          className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-        />
+        <div className="space-y-1.5">
+          <FieldLabel text="Package name" required />
+          <input
+            value={pkg.name}
+            onChange={(event) => onChange({ name: event.target.value })}
+            placeholder="Package name"
+            className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <FieldLabel text="Price" required />
+          <input
+            type="number"
+            min={5}
+            step={1}
+            value={pkg.price ?? ""}
+            onChange={(event) => onChange({ price: event.target.value ? Number(event.target.value) : null })}
+            placeholder="Price (USD)"
+            className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
+          />
+        </div>
       </div>
 
-      <textarea
-        rows={3}
-        value={pkg.description}
-        onChange={(event) => onChange({ description: event.target.value })}
-        placeholder="Describe scope and deliverables."
-        className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-      />
+      <div className="space-y-1.5">
+        <FieldLabel text="Scope and deliverables" required />
+        <textarea
+          rows={3}
+          value={pkg.description}
+          onChange={(event) => onChange({ description: event.target.value })}
+          placeholder="Describe scope and deliverables."
+          className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
+        />
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input
-          type="number"
-          min={1}
-          value={pkg.deliveryDays}
-          onChange={(event) => onChange({ deliveryDays: Math.max(1, Number(event.target.value || 1)) })}
-          placeholder="Delivery days"
-          className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-        />
-        <input
-          type="number"
-          min={0}
-          value={pkg.revisions}
-          onChange={(event) => onChange({ revisions: Math.max(0, Number(event.target.value || 0)) })}
-          placeholder="Revisions"
-          className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-        />
+        <div className="space-y-1.5">
+          <FieldLabel text="Delivery timeline" required />
+          <input
+            type="number"
+            min={1}
+            value={pkg.deliveryDays}
+            onChange={(event) => onChange({ deliveryDays: Math.max(1, Number(event.target.value || 1)) })}
+            placeholder="Delivery days"
+            className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <FieldLabel text="Revisions" required />
+          <input
+            type="number"
+            min={0}
+            value={pkg.revisions}
+            onChange={(event) => onChange({ revisions: Math.max(0, Number(event.target.value || 0)) })}
+            placeholder="Revisions"
+            className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
+          />
+        </div>
       </div>
 
-      <StringListEditor
-        values={pkg.features}
-        placeholder="e.g., 3 design concepts, source file, commercial use"
-        onChange={(features) => onChange({ features })}
-      />
+      <div className="pt-1">
+        <FieldLabel text="What is included" />
+        <StringListEditor
+          values={pkg.features}
+          placeholder="e.g., 3 design concepts, source file, commercial use"
+          onChange={(features) => onChange({ features })}
+          compact
+        />
+      </div>
     </div>
   );
 }
@@ -610,10 +903,12 @@ function StringListEditor({
   values,
   placeholder,
   onChange,
+  compact = false,
 }: {
   values: string[];
   placeholder: string;
   onChange: (values: string[]) => void;
+  compact?: boolean;
 }) {
   const updateValue = (index: number, value: string) => {
     const next = [...values];
@@ -630,21 +925,24 @@ function StringListEditor({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mt-2">
       {values.map((value, index) => (
         <div key={`${index}-${value}`} className="flex items-center gap-2">
           <input
             value={value}
             onChange={(event) => updateValue(index, event.target.value)}
             placeholder={placeholder}
-            className="flex-1 px-3 py-2 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+            className={`flex-1 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid ${
+              compact ? "px-3 py-2 text-sm" : "px-3 py-2.5"
+            }`}
           />
-          <button type="button" onClick={() => removeValue(index)} className="text-xs font-ui text-red-500">
+          <button type="button" onClick={() => removeValue(index)} className="text-xs font-ui text-red-500 hover:text-red-600">
             Remove
           </button>
         </div>
       ))}
-      <button type="button" onClick={addValue} className="text-xs font-ui font-semibold text-purple-primary">
+
+      <button type="button" onClick={addValue} className="text-xs font-ui font-semibold text-purple-primary hover:text-pink-vivid">
         + Add line
       </button>
     </div>
@@ -673,26 +971,27 @@ function FaqEditor({
   return (
     <div className="space-y-3">
       {values.map((item, index) => (
-        <div key={index} className="rounded-xl border border-black/[0.08] p-3 space-y-2">
+        <div key={index} className="rounded-xl border border-black/[0.08] bg-white p-3 space-y-2">
           <input
             value={item.question}
             onChange={(event) => updateItem(index, { question: event.target.value })}
             placeholder="Question"
-            className="w-full px-3 py-2 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+            className="w-full px-3 py-2 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
           />
           <textarea
             rows={2}
             value={item.answer}
             onChange={(event) => updateItem(index, { answer: event.target.value })}
             placeholder="Answer"
-            className="w-full px-3 py-2 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+            className="w-full px-3 py-2 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
           />
-          <button type="button" onClick={() => removeItem(index)} className="text-xs font-ui text-red-500">
+          <button type="button" onClick={() => removeItem(index)} className="text-xs font-ui text-red-500 hover:text-red-600">
             Remove FAQ
           </button>
         </div>
       ))}
-      <button type="button" onClick={addItem} className="text-xs font-ui font-semibold text-purple-primary">
+
+      <button type="button" onClick={addItem} className="text-xs font-ui font-semibold text-purple-primary hover:text-pink-vivid">
         + Add FAQ
       </button>
     </div>
@@ -701,9 +1000,174 @@ function FaqEditor({
 
 function ReviewItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-black/[0.08] px-3 py-2.5">
-      <p className="text-xs font-ui uppercase tracking-wider text-muted">{label}</p>
+    <div className="rounded-xl border border-black/[0.08] bg-white px-3 py-3">
+      <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{label}</p>
       <p className="text-sm font-ui font-semibold text-ink mt-1">{value}</p>
     </div>
+  );
+}
+
+function ListingPreviewCard({
+  state,
+  step,
+  selectedCategory,
+  priceFrom,
+}: {
+  state: CommissionWizardState;
+  step: number;
+  selectedCategory: string;
+  priceFrom: number | null;
+}) {
+  const primaryMedia = state.mediaPreviews.find((item) => item.isPrimary) ?? state.mediaPreviews[0];
+
+  return (
+    <div className="rounded-2xl border border-black/[0.07] bg-white/90 backdrop-blur-sm shadow-sm overflow-hidden">
+      <div className="px-4 py-3 border-b border-black/[0.06] bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10">
+        <p className="text-[11px] font-ui font-semibold uppercase tracking-wider text-muted">Live listing preview</p>
+      </div>
+
+      <div className="p-4 space-y-3">
+        <div className="rounded-xl overflow-hidden border border-black/[0.08] bg-gradient-to-br from-orange-50 to-pink-50">
+          {primaryMedia ? (
+            primaryMedia.file.type.startsWith("video/") ? (
+              <video src={primaryMedia.url} className="w-full aspect-[4/3] object-cover" muted playsInline />
+            ) : (
+              <img src={primaryMedia.url} alt="Service preview" className="w-full aspect-[4/3] object-cover" />
+            )
+          ) : (
+            <div className="aspect-[4/3] flex items-center justify-center text-xs font-ui text-muted px-4 text-center">
+              Add portfolio media to see your listing cover
+            </div>
+          )}
+        </div>
+
+        <div>
+          <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{selectedCategory}</p>
+          <h3 className="font-ui font-semibold text-sm text-ink mt-1 line-clamp-2">
+            {state.title || "Your service title will appear here"}
+          </h3>
+          <p className="text-xs font-body text-muted mt-1 line-clamp-2">
+            {state.headline || "Short headline to communicate your unique value."}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-body text-muted">Starting at</span>
+          <span className="text-lg font-display text-ink">{priceFrom ? `$${priceFrom}` : "--"}</span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex px-2 py-1 rounded-full bg-gray-100 text-[11px] font-ui text-gray-700">
+            {state.packages.length} tier{state.packages.length === 1 ? "" : "s"}
+          </span>
+          <span className="inline-flex px-2 py-1 rounded-full bg-gray-100 text-[11px] font-ui text-gray-700">
+            {state.mediaPreviews.length} media
+          </span>
+          <span className="inline-flex px-2 py-1 rounded-full bg-gray-100 text-[11px] font-ui text-gray-700">
+            Step {step}/{STEP_LABELS.length}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QualityChecklist({
+  completion,
+}: {
+  completion: {
+    positioning: boolean;
+    package: boolean;
+    media: boolean;
+    trust: boolean;
+  };
+}) {
+  const rows = [
+    { label: "Clear positioning", done: completion.positioning },
+    { label: "Structured packages", done: completion.package },
+    { label: "Proof media", done: completion.media },
+    { label: "Trust signals", done: completion.trust },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-black/[0.07] bg-white/90 backdrop-blur-sm shadow-sm p-4">
+      <p className="text-[11px] font-ui font-semibold uppercase tracking-wider text-muted mb-3">Conversion checklist</p>
+      <div className="space-y-2.5">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between rounded-lg bg-gray-50/80 px-3 py-2">
+            <span className="text-sm font-ui text-ink">{row.label}</span>
+            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${
+              row.done ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white" : "bg-gray-200 text-gray-500"
+            }`}>
+              {row.done ? (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CategoryGlyph({ categoryId }: { categoryId: string }) {
+  if (categoryId === "design") {
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4l8 4-8 4-8-4 8-4zm0 8v8m8-8v8M4 12v8" />
+      </svg>
+    );
+  }
+
+  if (categoryId === "illustration") {
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 7h.01M7 3h10a2 2 0 012 2v14l-5-3-5 3-5-3V5a2 2 0 012-2z" />
+      </svg>
+    );
+  }
+
+  if (categoryId === "writing") {
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+      </svg>
+    );
+  }
+
+  if (categoryId === "video") {
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-10 5h8a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    );
+  }
+
+  if (categoryId === "audio_music") {
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19V6l12-2v13M9 19a2 2 0 11-4 0 2 2 0 014 0zm12-2a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    );
+  }
+
+  if (categoryId === "development") {
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 16l-4-4 4-4m8 8l4-4-4-4M13 4l-2 16" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v16m8-8H4" />
+    </svg>
   );
 }
