@@ -2,7 +2,13 @@
 
 import React from "react";
 
-export default function MarketplaceHero() {
+interface MarketplaceHeroProps {
+  listingType: "product" | "service";
+}
+
+export default function MarketplaceHero({ listingType }: MarketplaceHeroProps) {
+  const isService = listingType === "service";
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm">
       {/* Background pattern */}
@@ -16,12 +22,14 @@ export default function MarketplaceHero() {
           {/* Left: Text content */}
           <div className="w-full lg:w-1/2 text-center lg:text-left">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold text-white leading-tight">
-              Discover Original
+              {isService ? "Hire Top" : "Discover Original"}
               <br />
-              <span className="text-white/90">Creative Works</span>
+              <span className="text-white/90">{isService ? "Creative Talent" : "Creative Works"}</span>
             </h1>
             <p className="mt-4 sm:mt-6 text-lg sm:text-xl font-body text-white/80 max-w-lg mx-auto lg:mx-0">
-              Shop unique art, prints, digital downloads, and handcrafted pieces directly from independent creators.
+              {isService
+                ? "Book vetted creators for design, writing, video, and production services with clear packages and delivery timelines."
+                : "Shop unique art, prints, digital downloads, and handcrafted pieces directly from independent creators."}
             </p>
 
             {/* Value propositions */}
@@ -30,19 +38,19 @@ export default function MarketplaceHero() {
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-sm font-ui font-medium text-white">Low 5% Fees</span>
+                <span className="text-sm font-ui font-medium text-white">{isService ? "Clear Package Pricing" : "Low 5% Fees"}</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-sm rounded-full border border-white/20">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span className="text-sm font-ui font-medium text-white">Direct to Creator</span>
+                <span className="text-sm font-ui font-medium text-white">{isService ? "Direct Creator Chat" : "Direct to Creator"}</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-sm rounded-full border border-white/20">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                <span className="text-sm font-ui font-medium text-white">Secure Payments</span>
+                <span className="text-sm font-ui font-medium text-white">{isService ? "Milestone-style Delivery" : "Secure Payments"}</span>
               </div>
             </div>
           </div>
@@ -58,8 +66,10 @@ export default function MarketplaceHero() {
               {/* Main image container */}
               <div className="relative w-full h-full rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl shadow-black/20 bg-white/10 backdrop-blur-sm">
                 <img
-                  src="https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&h=800&fit=crop&q=80"
-                  alt="Creative artwork"
+                  src={isService
+                    ? "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=800&fit=crop&q=80"
+                    : "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&h=800&fit=crop&q=80"}
+                  alt={isService ? "Creative professionals at work" : "Creative artwork"}
                   className="w-full h-full object-cover"
                 />
                 {/* Overlay gradient */}

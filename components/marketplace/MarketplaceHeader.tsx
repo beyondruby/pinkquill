@@ -3,15 +3,23 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { PRODUCT_CATEGORIES } from "@/lib/store/categories";
 import type { MarketplaceFilters, MarketplaceSortOption } from "@/lib/hooks/useMarketplace";
+import {
+  COMMISSION_DELIVERY_FILTERS,
+  COMMISSION_REVISION_FILTERS,
+  getAllCommissionCategories,
+} from "@/lib/commissions/categories";
 
 interface MarketplaceHeaderProps {
   filters: MarketplaceFilters;
   onSearch: (query: string) => void;
+  onListingTypeChange: (type: "product" | "service" | undefined) => void;
   onCategoryChange: (category: string | undefined) => void;
   onSubcategoryChange: (subcategory: string | undefined) => void;
   onDeliveryTypeChange: (type: "physical" | "digital" | undefined) => void;
   onSortChange: (sort: MarketplaceSortOption) => void;
   onPriceRangeChange: (min?: number, max?: number) => void;
+  onMaxDeliveryDaysChange: (days: number | undefined) => void;
+  onMinRevisionsChange: (count: number | undefined) => void;
   onClearFilters: () => void;
   totalProducts: number;
 }
@@ -32,15 +40,19 @@ const priceRanges = [
 ];
 
 const categories = Object.values(PRODUCT_CATEGORIES);
+const commissionCategories = getAllCommissionCategories();
 
 export default function MarketplaceHeader({
   filters,
   onSearch,
+  onListingTypeChange,
   onCategoryChange,
   onSubcategoryChange,
   onDeliveryTypeChange,
   onSortChange,
   onPriceRangeChange,
+  onMaxDeliveryDaysChange,
+  onMinRevisionsChange,
   onClearFilters,
   totalProducts,
 }: MarketplaceHeaderProps) {
@@ -53,9 +65,16 @@ export default function MarketplaceHeader({
   const hasActiveFilters =
     filters.category || filters.subcategory || filters.delivery_type ||
     filters.min_price !== undefined || filters.max_price !== undefined ||
+    filters.max_delivery_days !== undefined || filters.min_revisions !== undefined ||
     filters.keywords?.length;
 
-  const selectedCategory = filters.category ? PRODUCT_CATEGORIES[filters.category] : undefined;
+  const catalogType = filters.listing_type || "product";
+  const categoryOptions = catalogType === "service" ? commissionCategories : categories;
+  const selectedCategory = filters.category
+    ? catalogType === "service"
+      ? commissionCategories.find((item) => item.id === filters.category)
+      : PRODUCT_CATEGORIES[filters.category]
+    : undefined;
 
   // Debounced search
   const handleSearch = useCallback(
@@ -87,15 +106,38 @@ export default function MarketplaceHeader({
     <div className="sticky top-0 z-40 bg-white border-b border-black/[0.06] shadow-sm">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Main Bar */}
-        <div className="flex items-center justify-between gap-4 h-16">
-          {/* Center: Search */}
+        <div className="flex items-center justify-between gap-3 h-16">
+          <div className="hidden sm:flex items-center p-1 bg-gray-50 rounded-full border border-black/[0.04]">
+            <button
+              onClick={() => onListingTypeChange("product")}
+              className={`px-3 py-1.5 rounded-full text-xs font-ui font-semibold transition-all ${
+                catalogType === "product"
+                  ? "bg-white text-purple-primary shadow-sm"
+                  : "text-muted hover:text-ink"
+              }`}
+            >
+              Products
+            </button>
+            <button
+              onClick={() => onListingTypeChange("service")}
+              className={`px-3 py-1.5 rounded-full text-xs font-ui font-semibold transition-all ${
+                catalogType === "service"
+                  ? "bg-white text-pink-vivid shadow-sm"
+                  : "text-muted hover:text-ink"
+              }`}
+            >
+              Commissions
+            </button>
+          </div>
+
+          {/* Search */}
           <div className="flex-1 max-w-xl">
             <div className="relative">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Search products..."
+                placeholder={catalogType === "service" ? "Search commissions..." : "Search products..."}
                 className="w-full h-10 pl-10 pr-4 bg-gray-50 rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-transparent focus:border-pink-vivid/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 transition-all"
               />
               <svg
@@ -127,7 +169,14 @@ export default function MarketplaceHeader({
               <span className="hidden sm:inline">Filters</span>
               {hasActiveFilters && !showFilters && (
                 <span className="w-5 h-5 flex items-center justify-center bg-pink-vivid text-white text-xs rounded-full">
-                  {[filters.category, filters.subcategory, filters.delivery_type, filters.min_price !== undefined].filter(Boolean).length}
+                  {[
+                    filters.category,
+                    filters.subcategory,
+                    filters.delivery_type,
+                    filters.min_price !== undefined,
+                    filters.max_delivery_days !== undefined,
+                    filters.min_revisions !== undefined,
+                  ].filter(Boolean).length}
                 </span>
               )}
             </button>
@@ -143,6 +192,10 @@ export default function MarketplaceHeader({
                 </option>
               ))}
             </select>
+
+            <span className="hidden lg:inline text-xs font-ui text-muted px-1">
+              {totalProducts.toLocaleString()} results
+            </span>
           </div>
         </div>
 
@@ -162,7 +215,7 @@ export default function MarketplaceHeader({
             All
           </button>
 
-          {categories.map((cat) => (
+          {categoryOptions.map((cat) => (
             <div key={cat.id} className="relative flex-shrink-0">
               <button
                 onClick={() => {
@@ -221,39 +274,106 @@ export default function MarketplaceHeader({
       {showFilters && (
         <div className="border-t border-black/[0.04] bg-gradient-to-b from-gray-50/50 to-white animate-fadeIn">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-              {/* Delivery Type */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
-                <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Type</h4>
+                <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Section</h4>
                 <div className="space-y-1">
                   {[
-                    { value: undefined, label: "All" },
-                    { value: "physical" as const, label: "Physical" },
-                    { value: "digital" as const, label: "Digital" },
-                  ].map((type) => (
+                    { value: "product" as const, label: "Products" },
+                    { value: "service" as const, label: "Commissions" },
+                  ].map((option) => (
                     <button
-                      key={type.label}
-                      onClick={() => onDeliveryTypeChange(type.value)}
+                      key={option.value}
+                      onClick={() => onListingTypeChange(option.value)}
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
-                        filters.delivery_type === type.value
+                        catalogType === option.value
+                          ? "bg-pink-50 text-pink-vivid"
+                          : "text-ink hover:bg-gray-50"
+                      }`}
+                    >
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        catalogType === option.value ? "border-pink-vivid" : "border-gray-300"
+                      }`}>
+                        {catalogType === option.value && <span className="w-2 h-2 rounded-full bg-pink-vivid" />}
+                      </span>
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {catalogType === "product" ? (
+                <div>
+                  <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Type</h4>
+                  <div className="space-y-1">
+                    {[
+                      { value: undefined, label: "All" },
+                      { value: "physical" as const, label: "Physical" },
+                      { value: "digital" as const, label: "Digital" },
+                    ].map((type) => (
+                      <button
+                        key={type.label}
+                        onClick={() => onDeliveryTypeChange(type.value)}
+                        className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
+                          filters.delivery_type === type.value
+                            ? "bg-purple-50 text-purple-primary"
+                            : "text-ink hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          filters.delivery_type === type.value
+                            ? "border-purple-primary"
+                            : "border-gray-300"
+                        }`}>
+                          {filters.delivery_type === type.value && (
+                            <span className="w-2 h-2 rounded-full bg-purple-primary" />
+                          )}
+                        </span>
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Delivery</h4>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => onMaxDeliveryDaysChange(undefined)}
+                      className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
+                        filters.max_delivery_days === undefined
                           ? "bg-purple-50 text-purple-primary"
                           : "text-ink hover:bg-gray-50"
                       }`}
                     >
                       <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                        filters.delivery_type === type.value
-                          ? "border-purple-primary"
-                          : "border-gray-300"
+                        filters.max_delivery_days === undefined ? "border-purple-primary" : "border-gray-300"
                       }`}>
-                        {filters.delivery_type === type.value && (
-                          <span className="w-2 h-2 rounded-full bg-purple-primary" />
-                        )}
+                        {filters.max_delivery_days === undefined && <span className="w-2 h-2 rounded-full bg-purple-primary" />}
                       </span>
-                      {type.label}
+                      Any timeline
                     </button>
-                  ))}
+                    {COMMISSION_DELIVERY_FILTERS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => onMaxDeliveryDaysChange(option.value)}
+                        className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
+                          filters.max_delivery_days === option.value
+                            ? "bg-purple-50 text-purple-primary"
+                            : "text-ink hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          filters.max_delivery_days === option.value ? "border-purple-primary" : "border-gray-300"
+                        }`}>
+                          {filters.max_delivery_days === option.value && <span className="w-2 h-2 rounded-full bg-purple-primary" />}
+                        </span>
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Price Range */}
               <div>
@@ -302,6 +422,47 @@ export default function MarketplaceHeader({
                   ))}
                 </div>
               </div>
+
+              {catalogType === "service" && (
+                <div>
+                  <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Revisions</h4>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => onMinRevisionsChange(undefined)}
+                      className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
+                        filters.min_revisions === undefined
+                          ? "bg-orange-50 text-orange-warm"
+                          : "text-ink hover:bg-gray-50"
+                      }`}
+                    >
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        filters.min_revisions === undefined ? "border-orange-warm" : "border-gray-300"
+                      }`}>
+                        {filters.min_revisions === undefined && <span className="w-2 h-2 rounded-full bg-orange-warm" />}
+                      </span>
+                      Any revision count
+                    </button>
+                    {COMMISSION_REVISION_FILTERS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => onMinRevisionsChange(option.value)}
+                        className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
+                          filters.min_revisions === option.value
+                            ? "bg-orange-50 text-orange-warm"
+                            : "text-ink hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          filters.min_revisions === option.value ? "border-orange-warm" : "border-gray-300"
+                        }`}>
+                          {filters.min_revisions === option.value && <span className="w-2 h-2 rounded-full bg-orange-warm" />}
+                        </span>
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Subcategories (if category selected) */}
               {selectedCategory && (
@@ -392,6 +553,26 @@ export default function MarketplaceHeader({
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-primary/80 text-white text-xs font-ui rounded-full capitalize">
                     {filters.delivery_type}
                     <button onClick={() => onDeliveryTypeChange(undefined)} className="hover:bg-white/20 rounded-full p-0.5">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                {filters.max_delivery_days !== undefined && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-primary/80 text-white text-xs font-ui rounded-full">
+                    {`Up to ${filters.max_delivery_days} days`}
+                    <button onClick={() => onMaxDeliveryDaysChange(undefined)} className="hover:bg-white/20 rounded-full p-0.5">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                {filters.min_revisions !== undefined && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-warm text-white text-xs font-ui rounded-full">
+                    {`${filters.min_revisions}+ revisions`}
+                    <button onClick={() => onMinRevisionsChange(undefined)} className="hover:bg-white/20 rounded-full p-0.5">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>

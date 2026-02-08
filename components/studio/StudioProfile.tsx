@@ -15,7 +15,7 @@ import { useUserTakes, useRelayedTakes } from "@/lib/hooks/useTakes";
 import { useTrackProfileView } from "@/lib/hooks/useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import FollowersModal from "./FollowersModal";
 import ShareModal from "@/components/ui/ShareModal";
@@ -23,6 +23,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 import TakePostCard from "@/components/takes/TakePostCard";
 import Loading from "@/components/ui/Loading";
 import StoreTab from "@/components/store/StoreTab";
+import CommissionsTab from "@/components/commissions/CommissionsTab";
 import type { Collection, Post } from "@/lib/types";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
@@ -844,6 +845,7 @@ interface StudioProfileProps {
 
 export default function StudioProfile({ username }: StudioProfileProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { openPostModal } = useModal();
   const { profile, posts, loading, error, isBlockedByUser, isPrivateAccount, refetch: refetchProfile } = useProfile(username, user?.id);
@@ -860,7 +862,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const { revealedCards, observeCard } = useScrollReveal();
   const [pageLoaded, setPageLoaded] = useState(false);
   const [showCommunitiesModal, setShowCommunitiesModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"posts" | "takes" | "relays" | "store" | "collections">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "takes" | "relays" | "store" | "commissions" | "collections">("posts");
   const [relaySubTab, setRelaySubTab] = useState<"posts" | "takes">("posts");
   const [followStatus, setFollowStatus] = useState<FollowStatus>(null);
   const [followLoading, setFollowLoading] = useState(false);
@@ -887,6 +889,13 @@ export default function StudioProfile({ username }: StudioProfileProps) {
       return () => clearTimeout(timer);
     }
   }, [loading, profile]);
+
+  useEffect(() => {
+    const tab = searchParams?.get("tab");
+    if (tab === "posts" || tab === "takes" || tab === "relays" || tab === "store" || tab === "commissions" || tab === "collections") {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const profileUrl = typeof window !== 'undefined' ? `${window.location.origin}/studio/${username}` : `/studio/${username}`;
 
@@ -1568,6 +1577,12 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             className={`studio-tab-btn ${activeTab === "store" ? "active" : ""}`}
           >
             {icons.store} Store
+          </button>
+          <button
+            onClick={() => setActiveTab("commissions")}
+            className={`studio-tab-btn ${activeTab === "commissions" ? "active" : ""}`}
+          >
+            {icons.briefcase} Commissions
           </button>
           <button
             onClick={() => setActiveTab("collections")}
@@ -2688,6 +2703,15 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {/* Store Section */}
         {activeTab === "store" && profile && (
           <StoreTab
+            userId={profile.id}
+            isOwnProfile={isOwnProfile}
+            pageLoaded={pageLoaded}
+          />
+        )}
+
+        {/* Commissions Section */}
+        {activeTab === "commissions" && profile && (
+          <CommissionsTab
             userId={profile.id}
             isOwnProfile={isOwnProfile}
             pageLoaded={pageLoaded}

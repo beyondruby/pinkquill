@@ -107,6 +107,15 @@ export type {
   UseMarketplaceReturn,
 } from "./useMarketplace";
 
+// Commissions
+export {
+  useCreateCommission,
+  useSellerCommissions,
+  useHireCommission,
+  useCommissionOrder,
+  useUpdateCommissionOrder,
+} from "./useCommissions";
+
 // Messaging (reactions, typing indicators, sharing)
 export {
   useMessageReactions,

@@ -153,6 +153,15 @@ export {
   useUpdateProductStatus,
 } from "./hooks/useProducts";
 
+// Commissions / Services
+export {
+  useCreateCommission,
+  useSellerCommissions,
+  useHireCommission,
+  useCommissionOrder,
+  useUpdateCommissionOrder,
+} from "./hooks/useCommissions";
+
 // Marketplace Browser
 export { useMarketplace, useFeaturedProducts } from "./hooks/useMarketplace";
 export type {
@@ -222,10 +231,16 @@ export type {
   ProductFile,
   ProductSeller,
   ProductAttributes,
+  ListingType,
   ProductDelivery,
   ProductStatus,
+  PackageTier,
+  ServiceMetadata,
+  ServiceFaqItem,
   ProductPurchase,
   ProductWizardState,
+  CommissionPackageFormState,
+  CommissionWizardState,
 } from "./types";
 
 // Export constants (values, not types)

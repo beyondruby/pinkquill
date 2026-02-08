@@ -358,7 +358,20 @@ export default function LeftSidebar() {
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
-                  <span className="font-ui text-[0.9rem]">Sell</span>
+                  <span className="font-ui text-[0.9rem]">Sell Product</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowCreateMenu(false);
+                    router.push("/sell/service");
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                >
+                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
+                  </svg>
+                  <span className="font-ui text-[0.9rem]">Add Service</span>
                 </button>
               </div>
             )}

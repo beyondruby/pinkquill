@@ -13,12 +13,19 @@ export default function MarketplaceProductCard({ product }: MarketplaceProductCa
   const imageUrl = product.primary_image_url || "/placeholder-product.jpg";
   const price = product.min_price;
   const hasMultiplePrices = product.min_price !== product.max_price;
-  const isDigital = product.delivery_type === "digital";
+  const isService = product.listing_type === "service";
+  const isDigital = !isService && product.delivery_type === "digital";
   const sellerName = product.seller?.display_name || product.seller?.username;
+  const minDeliveryDays = isService
+    ? (product.pricing || [])
+        .map((pkg) => pkg.delivery_days)
+        .filter((days): days is number => days !== null && days !== undefined)
+        .sort((a, b) => a - b)[0]
+    : undefined;
 
   return (
     <Link
-      href={`/product/${product.id}`}
+      href={isService ? `/commissions/${product.id}` : `/product/${product.id}`}
       className="group block"
     >
       {/* Card Container */}
@@ -33,12 +40,16 @@ export default function MarketplaceProductCard({ product }: MarketplaceProductCa
 
           {/* Badges - Top */}
           <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
-            {isDigital && (
+            {isService ? (
+              <span className="px-2.5 py-1 bg-pink-vivid text-white text-[0.65rem] font-ui font-medium uppercase tracking-wide rounded-full shadow-lg">
+                Commission
+              </span>
+            ) : isDigital && (
               <span className="px-2.5 py-1 bg-purple-primary text-white text-[0.65rem] font-ui font-medium uppercase tracking-wide rounded-full shadow-lg">
                 Digital
               </span>
             )}
-            {!isDigital && <span />}
+            {!isDigital && !isService && <span />}
 
             {/* Wishlist button placeholder */}
             <button
@@ -90,7 +101,7 @@ export default function MarketplaceProductCard({ product }: MarketplaceProductCa
           <div className="flex items-center justify-between">
             {price !== undefined ? (
               <div className="flex items-baseline gap-1">
-                {hasMultiplePrices && (
+                {(hasMultiplePrices || isService) && (
                   <span className="text-xs font-body text-muted">From</span>
                 )}
                 <span className="text-lg font-display font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
@@ -114,6 +125,12 @@ export default function MarketplaceProductCard({ product }: MarketplaceProductCa
               </svg>
             </button>
           </div>
+
+          {isService && minDeliveryDays !== undefined && (
+            <div className="mt-2 pt-2 border-t border-black/[0.05] text-xs font-body text-muted">
+              Delivery from {minDeliveryDays} day{minDeliveryDays === 1 ? "" : "s"}
+            </div>
+          )}
         </div>
       </div>
     </Link>

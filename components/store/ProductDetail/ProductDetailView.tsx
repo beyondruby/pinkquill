@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useProduct, useToggleSaveProduct } from "@/lib/hooks/useProducts";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { ProductPricing } from "@/lib/types/store";
@@ -19,6 +20,7 @@ interface ProductDetailViewProps {
 }
 
 export default function ProductDetailView({ productId }: ProductDetailViewProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const { product, loading, error } = useProduct(productId);
   const { toggle: toggleSave, checkIsSaved } = useToggleSaveProduct();
@@ -35,6 +37,12 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
     }
   }, [user, productId, checkIsSaved]);
 
+  useEffect(() => {
+    if (product?.listing_type === "service") {
+      router.replace(`/commissions/${product.id}`);
+    }
+  }, [product, router]);
+
   const handleToggleSave = async () => {
     if (!user) return;
     const newSavedState = !isSaved;
@@ -46,7 +54,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   };
 
   // Loading state
-  if (loading) {
+  if (loading || product?.listing_type === "service") {
     return (
       <div className="min-h-screen bg-background py-8 px-4">
         <div className="max-w-6xl mx-auto">

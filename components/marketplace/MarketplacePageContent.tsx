@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMarketplace } from "@/lib/hooks";
 import MarketplaceHero from "./MarketplaceHero";
@@ -8,6 +9,7 @@ import MarketplaceHeader from "./MarketplaceHeader";
 import MarketplaceProductCard from "./MarketplaceProductCard";
 
 export default function MarketplacePageContent() {
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const {
     products,
@@ -16,14 +18,26 @@ export default function MarketplacePageContent() {
     pagination,
     loadMore,
     filters,
+    setListingType,
     setCategory,
     setSubcategory,
     setDeliveryType,
     setPriceRange,
+    setMaxDeliveryDays,
+    setMinRevisions,
     setSortBy,
     setSearchQuery,
     clearFilters,
-  } = useMarketplace(user?.id);
+  } = useMarketplace(user?.id, { initialListingType: "product" });
+
+  useEffect(() => {
+    const section = searchParams?.get("section");
+    if (section === "commissions" && filters.listing_type !== "service") {
+      setListingType("service");
+    } else if (section === "products" && filters.listing_type !== "product") {
+      setListingType("product");
+    }
+  }, [searchParams, setListingType, filters.listing_type]);
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadingMore = useRef(false);
@@ -59,16 +73,19 @@ export default function MarketplacePageContent() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-white to-orange-50/30">
       {/* Hero Section */}
-      <MarketplaceHero />
+      <MarketplaceHero listingType={filters.listing_type || "product"} />
 
       {/* Sticky Header with Search & Filters */}
       <MarketplaceHeader
         filters={filters}
         onSearch={setSearchQuery}
+        onListingTypeChange={setListingType}
         onCategoryChange={setCategory}
         onSubcategoryChange={setSubcategory}
         onDeliveryTypeChange={setDeliveryType}
         onPriceRangeChange={setPriceRange}
+        onMaxDeliveryDaysChange={setMaxDeliveryDays}
+        onMinRevisionsChange={setMinRevisions}
         onSortChange={setSortBy}
         onClearFilters={clearFilters}
         totalProducts={pagination.total}
@@ -106,10 +123,14 @@ export default function MarketplacePageContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <h3 className="font-display text-lg font-semibold text-ink mb-2">No products found</h3>
+            <h3 className="font-display text-lg font-semibold text-ink mb-2">
+              {filters.listing_type === "service" ? "No commissions found" : "No products found"}
+            </h3>
             <p className="text-sm font-body text-muted mb-5 max-w-sm mx-auto">
               {filters.keywords?.length
                 ? `No results for "${filters.keywords.join(" ")}"`
+                : filters.listing_type === "service"
+                ? "Try widening your timeline, revision, or category filters."
                 : "Try adjusting your filters to find what you're looking for"}
             </p>
             <button

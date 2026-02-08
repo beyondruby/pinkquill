@@ -14,7 +14,7 @@ interface StoreTabProps {
 }
 
 export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabProps) {
-  const { products, loading, error, refetch } = useSellerProducts(userId);
+  const { products, loading, error, refetch } = useSellerProducts(userId, { listingType: "product" });
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
 
   // Filter products based on status

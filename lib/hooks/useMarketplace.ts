@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
-import type { Product, ProductMedia, ProductPricing } from "../types/store";
+import type { ListingType, Product, ProductMedia, ProductPricing } from "../types/store";
 
 // ============================================================================
 // TYPES
@@ -11,11 +11,14 @@ import type { Product, ProductMedia, ProductPricing } from "../types/store";
 export type MarketplaceSortOption = "newest" | "price_low" | "price_high" | "popular";
 
 export interface MarketplaceFilters {
+  listing_type?: ListingType;
   category?: string;
   subcategory?: string;
   delivery_type?: "physical" | "digital";
   min_price?: number;
   max_price?: number;
+  max_delivery_days?: number;
+  min_revisions?: number;
   sort_by: MarketplaceSortOption;
   keywords?: string[];
 }
@@ -31,6 +34,7 @@ export interface UseMarketplaceOptions {
   pageSize?: number;
   initialCategory?: string;
   initialDeliveryType?: "physical" | "digital";
+  initialListingType?: ListingType;
 }
 
 export interface UseMarketplaceReturn {
@@ -43,10 +47,13 @@ export interface UseMarketplaceReturn {
 
   // Filters
   filters: MarketplaceFilters;
+  setListingType: (listingType: ListingType | undefined) => void;
   setCategory: (category: string | undefined) => void;
   setSubcategory: (subcategory: string | undefined) => void;
   setDeliveryType: (type: "physical" | "digital" | undefined) => void;
   setPriceRange: (min?: number, max?: number) => void;
+  setMaxDeliveryDays: (days: number | undefined) => void;
+  setMinRevisions: (count: number | undefined) => void;
   setSortBy: (sort: MarketplaceSortOption) => void;
   setSearchQuery: (query: string) => void;
   clearFilters: () => void;
@@ -66,7 +73,12 @@ export function useMarketplace(
   userId?: string,
   options: UseMarketplaceOptions = {}
 ): UseMarketplaceReturn {
-  const { pageSize = DEFAULT_PAGE_SIZE, initialCategory, initialDeliveryType } = options;
+  const {
+    pageSize = DEFAULT_PAGE_SIZE,
+    initialCategory,
+    initialDeliveryType,
+    initialListingType = "product",
+  } = options;
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
@@ -78,6 +90,7 @@ export function useMarketplace(
     sort_by: "newest",
     category: initialCategory,
     delivery_type: initialDeliveryType,
+    listing_type: initialListingType,
   });
   const [pagination, setPagination] = useState<MarketplacePagination>({
     page: 0,
@@ -142,6 +155,10 @@ export function useMarketplace(
           )
           .eq("status", "active");
 
+        if (filters.listing_type) {
+          query = query.eq("listing_type", filters.listing_type);
+        }
+
         // Apply category filter
         if (filters.category) {
           query = query.eq("category", filters.category);
@@ -193,6 +210,28 @@ export function useMarketplace(
           });
         }
 
+        if (filters.max_delivery_days !== undefined) {
+          transformedProducts = transformedProducts.filter((p) => {
+            if (p.listing_type !== "service") return true;
+            return (p.pricing || []).some((pkg) =>
+              pkg.delivery_days !== null &&
+              pkg.delivery_days !== undefined &&
+              pkg.delivery_days <= filters.max_delivery_days!
+            );
+          });
+        }
+
+        if (filters.min_revisions !== undefined) {
+          transformedProducts = transformedProducts.filter((p) => {
+            if (p.listing_type !== "service") return true;
+            return (p.pricing || []).some((pkg) =>
+              pkg.revisions !== null &&
+              pkg.revisions !== undefined &&
+              pkg.revisions >= filters.min_revisions!
+            );
+          });
+        }
+
         // Apply client-side price sorting
         if (filters.sort_by === "price_low") {
           transformedProducts.sort((a, b) => (a.min_price || 0) - (b.min_price || 0));
@@ -240,7 +279,7 @@ export function useMarketplace(
   // Fetch featured products
   const fetchFeaturedProducts = useCallback(async () => {
     try {
-      const { data } = await supabase
+      let query = supabase
         .from("products")
         .select(
           `
@@ -256,21 +295,33 @@ export function useMarketplace(
         .order("created_at", { ascending: false })
         .limit(8);
 
+      if (filters.listing_type) {
+        query = query.eq("listing_type", filters.listing_type);
+      }
+
+      const { data } = await query;
+
       if (data && mountedRef.current) {
         setFeaturedProducts(data.map(transformProduct));
       }
     } catch (err) {
       console.error("[useMarketplace] Failed to fetch featured:", err);
     }
-  }, [transformProduct]);
+  }, [transformProduct, filters.listing_type]);
 
   // Fetch category counts
   const fetchCategoryCounts = useCallback(async () => {
     try {
-      const { data } = await supabase
+      let query = supabase
         .from("products")
         .select("category")
         .eq("status", "active");
+
+      if (filters.listing_type) {
+        query = query.eq("listing_type", filters.listing_type);
+      }
+
+      const { data } = await query;
 
       if (data && mountedRef.current) {
         const counts: Record<string, number> = {};
@@ -282,9 +333,23 @@ export function useMarketplace(
     } catch (err) {
       console.error("[useMarketplace] Failed to fetch category counts:", err);
     }
-  }, []);
+  }, [filters.listing_type]);
 
   // Filter setters
+  const setListingType = useCallback((listing_type: ListingType | undefined) => {
+    setFilters((prev) => ({
+      ...prev,
+      listing_type,
+      category: undefined,
+      subcategory: undefined,
+      delivery_type: undefined,
+      max_delivery_days: undefined,
+      min_revisions: undefined,
+    }));
+    setProducts([]);
+    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
+  }, []);
+
   const setCategory = useCallback((category: string | undefined) => {
     setFilters((prev) => ({ ...prev, category, subcategory: undefined }));
     setProducts([]);
@@ -312,6 +377,18 @@ export function useMarketplace(
     setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
 
+  const setMaxDeliveryDays = useCallback((max_delivery_days: number | undefined) => {
+    setFilters((prev) => ({ ...prev, max_delivery_days }));
+    setProducts([]);
+    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
+  }, []);
+
+  const setMinRevisions = useCallback((min_revisions: number | undefined) => {
+    setFilters((prev) => ({ ...prev, min_revisions }));
+    setProducts([]);
+    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
+  }, []);
+
   const setSortBy = useCallback((sort_by: MarketplaceSortOption) => {
     setFilters((prev) => ({ ...prev, sort_by }));
     setProducts([]);
@@ -326,7 +403,10 @@ export function useMarketplace(
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFilters({ sort_by: "newest" });
+    setFilters((prev) => ({
+      sort_by: "newest",
+      listing_type: prev.listing_type,
+    }));
     setProducts([]);
     setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
@@ -360,10 +440,13 @@ export function useMarketplace(
     loadMore,
     refresh,
     filters,
+    setListingType,
     setCategory,
     setSubcategory,
     setDeliveryType,
     setPriceRange,
+    setMaxDeliveryDays,
+    setMinRevisions,
     setSortBy,
     setSearchQuery,
     clearFilters,

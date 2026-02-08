@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 import type {
+  ListingType,
   Product,
   ProductMedia,
   ProductPricing,
@@ -38,7 +39,15 @@ interface UseSellerProductsReturn {
   refetch: () => Promise<void>;
 }
 
-export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
+interface UseSellerProductsOptions {
+  listingType?: ListingType;
+}
+
+export function useSellerProducts(
+  sellerId?: string,
+  options: UseSellerProductsOptions = {}
+): UseSellerProductsReturn {
+  const { listingType } = options;
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +67,7 @@ export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
       }
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from("products")
         .select(`
           *,
@@ -72,6 +81,12 @@ export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
         `)
         .eq("seller_id", sellerId)
         .order("created_at", { ascending: false });
+
+      if (listingType) {
+        query = query.eq("listing_type", listingType);
+      }
+
+      const { data, error: fetchError } = await query;
 
       if (!mountedRef.current) return;
       if (fetchError) throw fetchError;
@@ -107,7 +122,7 @@ export function useSellerProducts(sellerId?: string): UseSellerProductsReturn {
         setLoading(false);
       }
     }
-  }, [sellerId]);
+  }, [sellerId, listingType]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -258,6 +273,8 @@ export function useCreateProduct(): UseCreateProductReturn {
         .from("products")
         .insert({
           seller_id: user.id,
+          listing_type: "product",
+          service_metadata: {},
           title: wizardState.title,
           slug,
           description: wizardState.description || null,
