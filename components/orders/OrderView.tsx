@@ -1,9 +1,12 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useOrder } from "@/lib/hooks/useOrders";
+import CheckoutModal from "@/components/checkout/CheckoutModal";
 import OrderTimeline from "./OrderTimeline";
 import OrderMessages from "./OrderMessages";
 import OrderActions from "./OrderActions";
@@ -16,6 +19,21 @@ interface OrderViewProps {
 export default function OrderView({ orderId }: OrderViewProps) {
   const { user } = useAuth();
   const { order, loading, error, refetch } = useOrder(orderId);
+  const searchParams = useSearchParams();
+  const [showCheckout, setShowCheckout] = useState(false);
+
+  // Auto-open checkout if redirected back with payment=success
+  const paymentParam = searchParams.get("payment");
+  useEffect(() => {
+    if (paymentParam === "success") {
+      refetch();
+    }
+  }, [paymentParam, refetch]);
+
+  const handlePaymentSuccess = useCallback(() => {
+    setShowCheckout(false);
+    refetch();
+  }, [refetch]);
 
   if (loading) {
     return (
@@ -141,6 +159,41 @@ export default function OrderView({ orderId }: OrderViewProps) {
             )}
           </div>
         </section>
+
+        {/* Payment Required Banner */}
+        {order.status === "pending_payment" && isBuyer && (
+          <section className="rounded-2xl border-2 border-[var(--color-purple-primary)]/30 bg-purple-50 p-5 sm:p-6 text-center">
+            <h2 className="font-display text-xl text-ink mb-2">Payment Required</h2>
+            <p className="text-sm font-body text-muted mb-4">
+              Complete your payment to activate this order.
+              {order.listing_type === "service" && " Your payment will be held securely until you approve the delivery."}
+            </p>
+            <button
+              onClick={() => setShowCheckout(true)}
+              className="px-8 py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-xl font-ui font-semibold hover:opacity-90 transition-opacity"
+            >
+              Pay ${Number(order.amount).toFixed(2)}
+            </button>
+          </section>
+        )}
+
+        {order.status === "pending_payment" && !isBuyer && (
+          <section className="rounded-2xl border border-yellow-300/50 bg-yellow-50 p-5 sm:p-6 text-center">
+            <h2 className="font-display text-lg text-ink mb-1">Awaiting Payment</h2>
+            <p className="text-sm font-body text-muted">
+              The buyer hasn&apos;t completed payment yet. You&apos;ll be notified when the order is active.
+            </p>
+          </section>
+        )}
+
+        {/* Checkout Modal */}
+        {showCheckout && order && (
+          <CheckoutModal
+            order={order}
+            onSuccess={handlePaymentSuccess}
+            onClose={() => setShowCheckout(false)}
+          />
+        )}
 
         {/* Timeline */}
         <OrderTimeline order={order} />

@@ -129,6 +129,14 @@ export {
   useOrderStats,
 } from "./useOrders";
 
+// Payments
+export {
+  useSellerOnboarding,
+  useCheckout,
+  useSellerEarnings,
+  useTransactionHistory,
+} from "./usePayments";
+
 // Messaging (reactions, typing indicators, sharing)
 export {
   useMessageReactions,
@@ -202,4 +210,7 @@ export type {
   OrderStats,
   PaymentStatus,
   CreateOrderData,
+  SellerAccount,
+  SellerEarnings,
+  Transaction,
 } from "../types/store";
