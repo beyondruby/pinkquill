@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSellerCommissions } from "@/lib/hooks/useCommissions";
 import type { Product } from "@/lib/types/store";
 
@@ -11,21 +11,78 @@ interface CommissionsTabProps {
   pageLoaded: boolean;
 }
 
+type StatusFilter = "all" | "active" | "inactive";
+
+const STATUS_LABEL: Record<Product["status"], string> = {
+  draft: "Draft",
+  active: "Active",
+  sold: "Sold",
+  paused: "Paused",
+  archived: "Archived",
+};
+
+const STATUS_STYLES: Record<Product["status"], string> = {
+  draft: "bg-slate-100 text-slate-700",
+  active: "bg-emerald-100 text-emerald-700",
+  sold: "bg-blue-100 text-blue-700",
+  paused: "bg-amber-100 text-amber-700",
+  archived: "bg-gray-100 text-gray-700",
+};
+
 export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: CommissionsTabProps) {
   const { commissions, loading, error } = useSellerCommissions(userId);
-  const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
+  const [filter, setFilter] = useState<StatusFilter>("all");
 
-  const filtered = commissions.filter((item) => {
-    if (filter === "all") return true;
-    if (filter === "active") return item.status === "active";
-    return ["draft", "paused", "archived"].includes(item.status);
-  });
+  const filtered = useMemo(() => {
+    return commissions.filter((item) => {
+      if (filter === "all") return true;
+      if (filter === "active") return item.status === "active";
+      return ["draft", "paused", "archived"].includes(item.status);
+    });
+  }, [commissions, filter]);
+
+  const stats = useMemo(() => {
+    const activeCount = commissions.filter((item) => item.status === "active").length;
+    const inactiveCount = commissions.filter((item) => ["draft", "paused", "archived"].includes(item.status)).length;
+
+    const prices = commissions
+      .map((item) => item.min_price)
+      .filter((value): value is number => typeof value === "number" && value > 0);
+
+    const avgMinPrice = prices.length ? Math.round(prices.reduce((sum, value) => sum + value, 0) / prices.length) : null;
+
+    const deliveryDays = commissions
+      .flatMap((item) => item.pricing || [])
+      .map((pkg) => pkg.delivery_days)
+      .filter((value): value is number => typeof value === "number" && value > 0);
+
+    const avgDelivery = deliveryDays.length ? Math.round(deliveryDays.reduce((sum, value) => sum + value, 0) / deliveryDays.length) : null;
+
+    return {
+      total: commissions.length,
+      active: activeCount,
+      inactive: inactiveCount,
+      avgMinPrice,
+      avgDelivery,
+    };
+  }, [commissions]);
 
   if (loading) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="flex items-center justify-center py-16">
-          <div className="w-10 h-10 rounded-full border-2 border-pink-vivid/20 border-t-pink-vivid animate-spin" />
+        <div className="rounded-3xl border border-black/[0.06] bg-white/90 p-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="rounded-2xl border border-black/[0.06] bg-gray-50/60 p-4 animate-pulse">
+                <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-purple-50 to-pink-50" />
+                <div className="mt-4 space-y-2">
+                  <div className="h-3 w-1/3 rounded bg-gray-200" />
+                  <div className="h-4 w-3/4 rounded bg-gray-200" />
+                  <div className="h-4 w-1/2 rounded bg-gray-200" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -34,9 +91,9 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   if (error) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="text-center py-14">
-          <p className="font-ui text-red-500">Failed to load commissions</p>
-          <p className="text-sm font-body text-muted mt-1">{error}</p>
+        <div className="rounded-3xl border border-red-200 bg-red-50/60 p-10 text-center">
+          <p className="font-ui text-red-600">Failed to load commissions</p>
+          <p className="text-sm font-body text-red-500/90 mt-1">{error}</p>
         </div>
       </div>
     );
@@ -45,30 +102,35 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   if (commissions.length === 0) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="rounded-3xl border border-pink-100 bg-gradient-to-br from-pink-50/70 via-white to-orange-50/50 p-10 text-center">
-          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-purple-primary/15 to-pink-vivid/15 flex items-center justify-center">
-            <svg className="w-8 h-8 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
-            </svg>
+        <div className="relative rounded-[32px] border border-pink-100 bg-gradient-to-br from-pink-50/90 via-white to-orange-50/80 p-10 text-center overflow-hidden">
+          <div className="absolute -top-16 -left-14 w-40 h-40 rounded-full bg-purple-primary/10 blur-2xl" />
+          <div className="absolute -bottom-16 -right-14 w-44 h-44 rounded-full bg-orange-warm/15 blur-2xl" />
+
+          <div className="relative">
+            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-purple-primary/15 to-pink-vivid/15 flex items-center justify-center">
+              <svg className="w-8 h-8 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
+              </svg>
+            </div>
+
+            <h3 className="font-display text-2xl text-ink mb-3">
+              {isOwnProfile ? "Launch your first commission" : "No commissions yet"}
+            </h3>
+            <p className="font-body text-muted max-w-md mx-auto">
+              {isOwnProfile
+                ? "Package your expertise into clear service tiers and turn your studio into a high-conversion storefront."
+                : "This creator has not published commission services yet."}
+            </p>
+
+            {isOwnProfile && (
+              <Link
+                href="/sell/service"
+                className="inline-flex mt-7 items-center gap-2 px-6 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all"
+              >
+                Add Service
+              </Link>
+            )}
           </div>
-
-          <h3 className="font-display text-2xl text-ink mb-3">
-            {isOwnProfile ? "Launch your first commission" : "No commissions yet"}
-          </h3>
-          <p className="font-body text-muted max-w-md mx-auto">
-            {isOwnProfile
-              ? "Package your process into clear tiers and start getting hired directly from your studio."
-              : "This creator has not published commission services yet."}
-          </p>
-
-          {isOwnProfile && (
-            <Link
-              href="/sell/service"
-              className="inline-flex mt-7 items-center gap-2 px-6 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all"
-            >
-              Add Service
-            </Link>
-          )}
         </div>
       </div>
     );
@@ -76,57 +138,149 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <div className="flex items-center justify-between gap-3 mb-7">
-        <div className="flex items-center gap-1 p-1.5 rounded-2xl bg-gradient-to-r from-orange-50 to-pink-50">
-          {[
-            { id: "all", label: "All", count: commissions.length },
-            { id: "active", label: "Active", count: commissions.filter((item) => item.status === "active").length },
-            { id: "inactive", label: "Inactive", count: commissions.filter((item) => ["draft", "paused", "archived"].includes(item.status)).length },
-          ].map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setFilter(item.id as typeof filter)}
-              className={`px-4 py-2 rounded-xl text-sm font-ui transition-all ${
-                filter === item.id ? "bg-white text-pink-vivid shadow-sm font-medium" : "text-muted hover:text-ink"
-              }`}
-            >
-              {item.label}
-              <span className="ml-1.5 text-xs">{item.count}</span>
-            </button>
-          ))}
+      <div className="relative rounded-[30px] border border-black/[0.07] bg-white/95 shadow-[0_24px_60px_-45px_rgba(127,63,191,0.45)] overflow-hidden mb-7">
+        <div className="absolute -top-24 -left-16 w-56 h-56 rounded-full bg-purple-primary/10 blur-3xl" />
+        <div className="absolute -bottom-24 -right-20 w-64 h-64 rounded-full bg-pink-vivid/10 blur-3xl" />
+
+        <div className="relative p-5 sm:p-6 lg:p-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-ui font-semibold uppercase tracking-[0.18em] text-pink-vivid/70">Commission Studio</p>
+              <h2 className="font-display text-2xl sm:text-3xl text-ink mt-1">Service Catalog</h2>
+              <p className="text-sm font-body text-muted mt-2 max-w-2xl">
+                Showcase outcome-driven packages buyers can trust. Your services here appear in studio and marketplace.
+              </p>
+            </div>
+
+            {isOwnProfile && (
+              <Link
+                href="/sell/service"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all self-start"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Service
+              </Link>
+            )}
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatsPill label="Total Services" value={stats.total.toString()} />
+            <StatsPill label="Active Listings" value={stats.active.toString()} />
+            <StatsPill label="Avg Starting Price" value={stats.avgMinPrice ? `$${stats.avgMinPrice}` : "--"} />
+            <StatsPill label="Avg Delivery" value={stats.avgDelivery ? `${stats.avgDelivery} days` : "--"} />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="inline-flex items-center gap-1.5 rounded-2xl border border-black/[0.07] bg-white p-1.5">
+          <FilterButton
+            active={filter === "all"}
+            label="All"
+            count={stats.total}
+            onClick={() => setFilter("all")}
+          />
+          <FilterButton
+            active={filter === "active"}
+            label="Active"
+            count={stats.active}
+            onClick={() => setFilter("active")}
+          />
+          <FilterButton
+            active={filter === "inactive"}
+            label="Inactive"
+            count={stats.inactive}
+            onClick={() => setFilter("inactive")}
+          />
         </div>
 
-        {isOwnProfile && (
-          <Link
-            href="/sell/service"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Service
-          </Link>
-        )}
+        <p className="text-xs font-ui text-muted">
+          {filtered.length} visible service{filtered.length === 1 ? "" : "s"}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filtered.map((commission) => (
-          <CommissionCard key={commission.id} commission={commission} />
-        ))}
-      </div>
+      {filtered.length === 0 ? (
+        <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center">
+          <p className="font-ui text-ink">No services in this filter yet.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+          {filtered.map((commission) => (
+            <CommissionCard key={commission.id} commission={commission} />
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+function StatsPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-black/[0.06] bg-white/90 px-3.5 py-3">
+      <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{label}</p>
+      <p className="font-display text-lg text-ink mt-1">{value}</p>
+    </div>
+  );
+}
+
+function FilterButton({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-4 py-2 rounded-xl text-sm font-ui transition-all ${
+        active
+          ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-sm"
+          : "text-muted hover:text-ink hover:bg-gray-50"
+      }`}
+    >
+      {label}
+      <span className={`ml-1.5 text-xs ${active ? "text-white/80" : "text-muted"}`}>{count}</span>
+    </button>
   );
 }
 
 function CommissionCard({ commission }: { commission: Product }) {
   const cover = commission.primary_image_url;
+  const headline =
+    typeof commission.service_metadata?.headline === "string"
+      ? commission.service_metadata.headline
+      : null;
+
+  const minDelivery = (commission.pricing || [])
+    .map((pkg) => pkg.delivery_days)
+    .filter((value): value is number => typeof value === "number" && value > 0)
+    .sort((a, b) => a - b)[0];
+
+  const maxRevisions = (commission.pricing || [])
+    .map((pkg) => pkg.revisions)
+    .filter((value): value is number => typeof value === "number" && value >= 0)
+    .sort((a, b) => b - a)[0];
+
+  const packageCount = commission.pricing?.length || 0;
+  const startingPrice = commission.min_price;
 
   return (
     <Link
       href={`/commissions/${commission.id}`}
-      className="group rounded-2xl border border-black/[0.06] overflow-hidden bg-white hover:shadow-xl hover:shadow-pink-vivid/10 hover:-translate-y-1 transition-all"
+      className="group relative rounded-[24px] border border-black/[0.06] overflow-hidden bg-white shadow-sm hover:shadow-xl hover:shadow-pink-vivid/15 hover:-translate-y-1 transition-all duration-300"
     >
+      <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute -top-16 -right-14 w-40 h-40 rounded-full bg-pink-vivid/10 blur-2xl" />
+      </div>
+
       <div className="aspect-[4/3] bg-gradient-to-br from-pink-50 to-orange-50 relative overflow-hidden">
         {cover ? (
           <img src={cover} alt={commission.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -138,8 +292,13 @@ function CommissionCard({ commission }: { commission: Product }) {
           </div>
         )}
 
-        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold bg-white/90 text-purple-primary">
-          Commission
+        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold bg-white/90 text-purple-primary">
+            Commission
+          </span>
+          <span className={`px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold ${STATUS_STYLES[commission.status]}`}>
+            {STATUS_LABEL[commission.status]}
+          </span>
         </div>
       </div>
 
@@ -148,18 +307,44 @@ function CommissionCard({ commission }: { commission: Product }) {
         <h3 className="font-display text-lg leading-snug text-ink mb-2 line-clamp-2 group-hover:text-pink-vivid transition-colors">
           {commission.title}
         </h3>
+        <p className="text-sm font-body text-muted line-clamp-2 min-h-[2.5rem]">
+          {headline || "Outcome-focused service with clear package scope and transparent delivery."}
+        </p>
 
-        {commission.min_price !== undefined ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-body text-muted">Starting at</span>
-            <span className="font-display text-xl font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
-              ${commission.min_price.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-            </span>
-          </div>
-        ) : (
-          <p className="text-sm font-body text-muted">Price on request</p>
-        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <MetaChip label={`${packageCount} package${packageCount === 1 ? "" : "s"}`} />
+          <MetaChip label={minDelivery ? `${minDelivery} day delivery` : "Custom timeline"} />
+          {maxRevisions !== undefined && <MetaChip label={`${maxRevisions} revision${maxRevisions === 1 ? "" : "s"}`} />}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          {startingPrice !== undefined ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-body text-muted">Starting at</span>
+              <span className="font-display text-xl font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+                ${startingPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm font-body text-muted">Price on request</p>
+          )}
+
+          <span className="inline-flex items-center gap-1 text-xs font-ui font-semibold text-pink-vivid group-hover:text-orange-warm transition-colors">
+            View Service
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </span>
+        </div>
       </div>
     </Link>
+  );
+}
+
+function MetaChip({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-ui font-medium bg-gray-100 text-gray-700">
+      {label}
+    </span>
   );
 }

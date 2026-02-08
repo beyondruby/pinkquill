@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMarketplace } from "@/lib/hooks";
@@ -41,6 +41,32 @@ export default function MarketplacePageContent() {
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadingMore = useRef(false);
+  const isService = filters.listing_type === "service";
+
+  const hasActiveFilters = useMemo(() => {
+    return Boolean(
+      filters.category ||
+      filters.subcategory ||
+      filters.delivery_type ||
+      filters.min_price !== undefined ||
+      filters.max_price !== undefined ||
+      filters.max_delivery_days !== undefined ||
+      filters.min_revisions !== undefined ||
+      filters.keywords?.length
+    );
+  }, [filters.category, filters.delivery_type, filters.keywords, filters.max_delivery_days, filters.max_price, filters.min_price, filters.min_revisions, filters.subcategory]);
+
+  const activeFilterCount = useMemo(() => {
+    return [
+      filters.category,
+      filters.subcategory,
+      filters.delivery_type,
+      filters.min_price !== undefined || filters.max_price !== undefined,
+      filters.max_delivery_days !== undefined,
+      filters.min_revisions !== undefined,
+      Boolean(filters.keywords?.length),
+    ].filter(Boolean).length;
+  }, [filters.category, filters.delivery_type, filters.keywords, filters.max_delivery_days, filters.max_price, filters.min_price, filters.min_revisions, filters.subcategory]);
 
   // Infinite scroll observer
   const handleObserver = useCallback(
@@ -72,10 +98,8 @@ export default function MarketplacePageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-white to-orange-50/30">
-      {/* Hero Section */}
       <MarketplaceHero listingType={filters.listing_type || "product"} />
 
-      {/* Sticky Header with Search & Filters */}
       <MarketplaceHeader
         filters={filters}
         onSearch={setSearchQuery}
@@ -91,11 +115,17 @@ export default function MarketplacePageContent() {
         totalProducts={pagination.total}
       />
 
-      {/* Product Grid */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-8 sm:py-12">
-        {/* Initial loading state */}
+        <DiscoveryStrip
+          isService={isService}
+          total={pagination.total}
+          hasActiveFilters={hasActiveFilters}
+          activeFilterCount={activeFilterCount}
+          keyword={filters.keywords?.join(" ")}
+        />
+
         {loading && products.length === 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
               <ProductSkeleton key={i} />
             ))}
@@ -124,12 +154,12 @@ export default function MarketplacePageContent() {
               </svg>
             </div>
             <h3 className="font-display text-lg font-semibold text-ink mb-2">
-              {filters.listing_type === "service" ? "No commissions found" : "No products found"}
+              {isService ? "No commissions found" : "No products found"}
             </h3>
             <p className="text-sm font-body text-muted mb-5 max-w-sm mx-auto">
               {filters.keywords?.length
                 ? `No results for "${filters.keywords.join(" ")}"`
-                : filters.listing_type === "service"
+                : isService
                 ? "Try widening your timeline, revision, or category filters."
                 : "Try adjusting your filters to find what you're looking for"}
             </p>
@@ -142,19 +172,19 @@ export default function MarketplacePageContent() {
           </div>
         ) : (
           <>
-            {/* Product Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {products.map((product) => (
                 <MarketplaceProductCard key={product.id} product={product} />
               ))}
             </div>
 
-            {/* Load more trigger */}
             <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-10">
               {loading && products.length > 0 && (
                 <div className="flex items-center gap-3 text-muted">
                   <div className="w-5 h-5 border-2 border-pink-vivid/30 border-t-pink-vivid rounded-full animate-spin" />
-                  <span className="text-sm font-body">Loading more products...</span>
+                  <span className="text-sm font-body">
+                    Loading more {isService ? "commissions" : "products"}...
+                  </span>
                 </div>
               )}
             </div>
@@ -165,13 +195,67 @@ export default function MarketplacePageContent() {
   );
 }
 
+function DiscoveryStrip({
+  isService,
+  total,
+  hasActiveFilters,
+  activeFilterCount,
+  keyword,
+}: {
+  isService: boolean;
+  total: number;
+  hasActiveFilters: boolean;
+  activeFilterCount: number;
+  keyword?: string;
+}) {
+  return (
+    <div className="relative rounded-[24px] border border-black/[0.06] bg-white/95 px-4 sm:px-6 py-5 shadow-sm overflow-hidden">
+      <div className="absolute -top-14 -right-12 w-40 h-40 rounded-full bg-pink-vivid/10 blur-2xl" />
+      <div className="absolute -bottom-16 -left-12 w-40 h-40 rounded-full bg-purple-primary/10 blur-2xl" />
+
+      <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div>
+          <p className="text-xs font-ui font-semibold uppercase tracking-[0.18em] text-muted">
+            {isService ? "Commissions Marketplace" : "Products Marketplace"}
+          </p>
+          <h2 className="font-display text-2xl text-ink mt-1">
+            {isService ? "Hire creative services" : "Discover original goods"}
+          </h2>
+          <p className="text-sm font-body text-muted mt-1">
+            {isService
+              ? "Explore outcome-driven service packages with clear timelines and revisions."
+              : "Find unique physical and digital creations directly from independent artists."}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge label={`${total.toLocaleString()} result${total === 1 ? "" : "s"}`} tone="purple" />
+          {hasActiveFilters && <Badge label={`${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} active`} tone="pink" />}
+          {keyword && <Badge label={`“${keyword}”`} tone="neutral" />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Badge({ label, tone }: { label: string; tone: "purple" | "pink" | "neutral" }) {
+  const toneClasses = {
+    purple: "bg-purple-100 text-purple-primary",
+    pink: "bg-pink-100 text-pink-vivid",
+    neutral: "bg-gray-100 text-gray-700",
+  } as const;
+
+  return (
+    <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-ui font-semibold ${toneClasses[tone]}`}>
+      {label}
+    </span>
+  );
+}
+
 function ProductSkeleton() {
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-black/[0.04] shadow-sm">
-      {/* Image skeleton */}
-      <div className="aspect-square bg-gradient-to-br from-orange-50 to-pink-50 animate-pulse" />
-
-      {/* Content skeleton */}
+      <div className="aspect-[4/3] bg-gradient-to-br from-orange-50 to-pink-50 animate-pulse" />
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 bg-gray-100 rounded-full animate-pulse" />

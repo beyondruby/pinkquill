@@ -75,6 +75,12 @@ export default function MarketplaceHeader({
       ? commissionCategories.find((item) => item.id === filters.category)
       : PRODUCT_CATEGORIES[filters.category]
     : undefined;
+  const activeTabClass = catalogType === "service"
+    ? "bg-gradient-to-r from-pink-vivid to-orange-warm text-white shadow-md shadow-pink-vivid/25"
+    : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md shadow-purple-primary/20";
+  const activeCategoryClass = catalogType === "service"
+    ? "bg-gradient-to-r from-pink-vivid to-orange-warm text-white shadow-md shadow-pink-vivid/20"
+    : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md shadow-purple-primary/20";
 
   // Debounced search
   const handleSearch = useCallback(
@@ -103,16 +109,16 @@ export default function MarketplaceHeader({
   };
 
   return (
-    <div className="sticky top-0 z-40 bg-white border-b border-black/[0.06] shadow-sm">
+    <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-black/[0.06] shadow-sm">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Main Bar */}
-        <div className="flex items-center justify-between gap-3 h-16">
-          <div className="hidden sm:flex items-center p-1 bg-gray-50 rounded-full border border-black/[0.04]">
+        <div className="flex items-center justify-between gap-3 h-16 sm:h-[72px]">
+          <div className="hidden sm:flex items-center p-1.5 bg-gradient-to-r from-orange-50 via-pink-50 to-purple-50 rounded-full border border-black/[0.05] shadow-sm">
             <button
               onClick={() => onListingTypeChange("product")}
               className={`px-3 py-1.5 rounded-full text-xs font-ui font-semibold transition-all ${
                 catalogType === "product"
-                  ? "bg-white text-purple-primary shadow-sm"
+                  ? activeTabClass
                   : "text-muted hover:text-ink"
               }`}
             >
@@ -122,7 +128,7 @@ export default function MarketplaceHeader({
               onClick={() => onListingTypeChange("service")}
               className={`px-3 py-1.5 rounded-full text-xs font-ui font-semibold transition-all ${
                 catalogType === "service"
-                  ? "bg-white text-pink-vivid shadow-sm"
+                  ? activeTabClass
                   : "text-muted hover:text-ink"
               }`}
             >
@@ -138,7 +144,7 @@ export default function MarketplaceHeader({
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder={catalogType === "service" ? "Search commissions..." : "Search products..."}
-                className="w-full h-10 pl-10 pr-4 bg-gray-50 rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-transparent focus:border-pink-vivid/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 transition-all"
+                className="w-full h-10 pl-10 pr-4 bg-white rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-black/[0.08] shadow-sm focus:border-pink-vivid/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 transition-all"
               />
               <svg
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
@@ -157,10 +163,12 @@ export default function MarketplaceHeader({
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui transition-all ${
                 showFilters
-                  ? "bg-pink-vivid text-white"
+                  ? catalogType === "service"
+                    ? "bg-gradient-to-r from-pink-vivid to-orange-warm text-white"
+                    : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
                   : hasActiveFilters
                   ? "bg-pink-50 text-pink-vivid border border-pink-vivid/20"
-                  : "bg-gray-50 text-ink hover:bg-gray-100"
+                  : "bg-white text-ink border border-black/[0.08] hover:bg-gray-50"
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,7 +192,7 @@ export default function MarketplaceHeader({
             <select
               value={filters.sort_by}
               onChange={(e) => onSortChange(e.target.value as MarketplaceSortOption)}
-              className="h-10 px-4 bg-gray-50 rounded-full text-sm font-ui text-ink border-0 focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 cursor-pointer"
+              className="h-10 px-4 bg-white rounded-full text-sm font-ui text-ink border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 cursor-pointer"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -208,8 +216,8 @@ export default function MarketplaceHeader({
             }}
             className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-ui transition-all ${
               !filters.category
-                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md shadow-pink-vivid/20"
-                : "bg-gray-50 text-muted hover:text-ink hover:bg-gray-100"
+                ? activeCategoryClass
+                : "bg-white border border-black/[0.08] text-muted hover:text-ink hover:bg-gray-50"
             }`}
           >
             All
@@ -232,8 +240,8 @@ export default function MarketplaceHeader({
                 onMouseLeave={() => setActiveDropdown(null)}
                 className={`px-4 py-2 rounded-full text-sm font-ui transition-all ${
                   filters.category === cat.id
-                    ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md shadow-pink-vivid/20"
-                    : "bg-gray-50 text-muted hover:text-ink hover:bg-gray-100"
+                    ? activeCategoryClass
+                    : "bg-white border border-black/[0.08] text-muted hover:text-ink hover:bg-gray-50"
                 }`}
               >
                 {cat.name}
@@ -244,7 +252,7 @@ export default function MarketplaceHeader({
                 <div
                   onMouseEnter={() => setActiveDropdown(cat.id)}
                   onMouseLeave={() => setActiveDropdown(null)}
-                  className="absolute top-full left-0 mt-2 py-2 bg-white rounded-xl border border-black/[0.06] shadow-xl min-w-[180px] z-50 animate-fadeIn"
+                  className="absolute top-full left-0 mt-2 py-2 bg-white rounded-xl border border-black/[0.06] shadow-xl min-w-[190px] z-50 animate-fadeIn"
                 >
                   {cat.subcategories.map((sub) => (
                     <button
@@ -272,9 +280,9 @@ export default function MarketplaceHeader({
 
       {/* Expanded Filter Panel */}
       {showFilters && (
-        <div className="border-t border-black/[0.04] bg-gradient-to-b from-gray-50/50 to-white animate-fadeIn">
+        <div className="border-t border-black/[0.04] bg-gradient-to-b from-orange-50/40 via-white to-white animate-fadeIn">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 bg-white/90 border border-black/[0.05] rounded-2xl p-5 shadow-sm">
               <div>
                 <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Section</h4>
                 <div className="space-y-1">
