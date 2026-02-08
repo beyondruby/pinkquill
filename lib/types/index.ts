@@ -485,6 +485,11 @@ export interface ContentDeletion {
   deleted_by: string;
   reason: string | null;
   deleted_at: string;
+  content_snapshot?: {
+    title?: string | null;
+    content?: string;
+    type?: string;
+  } | null;
   author_profile?: { username: string; display_name: string | null; avatar_url: string | null };
   moderator_profile?: { username: string; display_name: string | null; avatar_url: string | null };
 }

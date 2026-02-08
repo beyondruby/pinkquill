@@ -1,6 +1,13 @@
 -- RPC functions for atomic moderator deletion of posts and comments.
 -- Uses SECURITY DEFINER to bypass RLS (permission checked inside the function).
 -- Wraps audit log + delete in a single transaction to prevent orphan records.
+-- Captures a content snapshot before deletion for the mod log.
+
+-- Add content_snapshot column to audit table (stores deleted content for review)
+ALTER TABLE community_content_deletions
+ADD COLUMN IF NOT EXISTS content_snapshot JSONB DEFAULT NULL;
+
+COMMENT ON COLUMN community_content_deletions.content_snapshot IS 'Snapshot of deleted content: {title, content, type} for posts, {content} for comments';
 
 -- =============================================================================
 -- moderate_delete_post: Atomically delete a community post with audit logging
@@ -13,6 +20,7 @@ CREATE OR REPLACE FUNCTION moderate_delete_post(
 DECLARE
   v_user_id UUID;
   v_author_id UUID;
+  v_snapshot JSONB;
 BEGIN
   -- Get current user
   v_user_id := auth.uid();
@@ -25,8 +33,14 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'You do not have permission to delete posts');
   END IF;
 
-  -- Get post author and verify it belongs to this community
-  SELECT author_id INTO v_author_id
+  -- Get post info and snapshot content before deletion
+  SELECT author_id,
+         jsonb_build_object(
+           'title', title,
+           'content', content,
+           'type', type
+         )
+  INTO v_author_id, v_snapshot
   FROM posts
   WHERE id = p_post_id AND community_id = p_community_id;
 
@@ -37,11 +51,11 @@ BEGIN
   -- Delete the post (ON DELETE CASCADE on post_media, admires, comments, etc. handles related data)
   DELETE FROM posts WHERE id = p_post_id AND community_id = p_community_id;
 
-  -- Log the deletion (after delete succeeds, same transaction ensures atomicity)
+  -- Log the deletion with content snapshot
   INSERT INTO community_content_deletions
-    (community_id, content_type, content_id, content_author_id, deleted_by, reason)
+    (community_id, content_type, content_id, content_author_id, deleted_by, reason, content_snapshot)
   VALUES
-    (p_community_id, 'post', p_post_id, v_author_id, v_user_id, p_reason);
+    (p_community_id, 'post', p_post_id, v_author_id, v_user_id, p_reason, v_snapshot);
 
   RETURN jsonb_build_object('success', true);
 EXCEPTION
@@ -62,6 +76,7 @@ DECLARE
   v_user_id UUID;
   v_comment_author_id UUID;
   v_comment_post_id UUID;
+  v_snapshot JSONB;
 BEGIN
   -- Get current user
   v_user_id := auth.uid();
@@ -74,8 +89,10 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'You do not have permission to delete comments');
   END IF;
 
-  -- Get comment info
-  SELECT user_id, post_id INTO v_comment_author_id, v_comment_post_id
+  -- Get comment info and snapshot content before deletion
+  SELECT user_id, post_id,
+         jsonb_build_object('content', content)
+  INTO v_comment_author_id, v_comment_post_id, v_snapshot
   FROM comments
   WHERE id = p_comment_id;
 
@@ -103,11 +120,11 @@ BEGIN
   -- Delete the comment
   DELETE FROM comments WHERE id = p_comment_id;
 
-  -- Log the deletion (after delete succeeds, same transaction ensures atomicity)
+  -- Log the deletion with content snapshot
   INSERT INTO community_content_deletions
-    (community_id, content_type, content_id, content_author_id, deleted_by, reason)
+    (community_id, content_type, content_id, content_author_id, deleted_by, reason, content_snapshot)
   VALUES
-    (p_community_id, 'comment', p_comment_id, v_comment_author_id, v_user_id, p_reason);
+    (p_community_id, 'comment', p_comment_id, v_comment_author_id, v_user_id, p_reason, v_snapshot);
 
   RETURN jsonb_build_object('success', true);
 EXCEPTION

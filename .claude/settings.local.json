@@ -57,7 +57,11 @@
       "Bash(PGPASSWORD='Beyondruby1234!@#' psql:*)",
       "Bash(npm ls:*)",
       "Bash(npx:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(nslookup:*)",
+      "Bash(ping:*)",
+      "Bash(curl:*)",
+      "Bash(dig:*)"
     ]
   }
 }

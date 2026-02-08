@@ -193,11 +193,30 @@ export default function CommunityModerationSettingsPage() {
                         )}
                       </p>
 
+                      {/* Content Snapshot */}
+                      {entry.content_snapshot && (
+                        <div className="mt-2 px-3 py-2.5 rounded-lg bg-black/[0.02] border border-black/5">
+                          {entry.content_snapshot.title && (
+                            <p className="font-ui text-sm font-semibold text-ink/80 mb-1">
+                              {entry.content_snapshot.title}
+                            </p>
+                          )}
+                          <p
+                            className="font-body text-sm text-ink/60 line-clamp-3"
+                            dangerouslySetInnerHTML={{
+                              __html: entry.content_snapshot.content?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300) || ''
+                            }}
+                          />
+                        </div>
+                      )}
+
                       {/* Reason */}
                       {entry.reason && (
-                        <div className="mt-2 px-3 py-2 rounded-lg bg-black/[0.02] border border-black/5">
-                          <p className="font-body text-sm text-ink/70">
-                            <span className="font-ui text-xs text-muted uppercase tracking-wide mr-2">Reason</span>
+                        <div className="mt-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-orange-50/50 border border-orange-200/30">
+                          <svg className="w-3.5 h-3.5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                          <p className="font-body text-sm text-orange-700/80">
                             {entry.reason}
                           </p>
                         </div>
