@@ -31,6 +31,13 @@ const STEP_LABELS = [
   "Review & Publish",
 ];
 
+const STEP_TITLES: Record<number, { prefix: string; highlight1: string; highlight2: string }> = {
+  1: { prefix: "Let's", highlight1: "position", highlight2: "your service" },
+  2: { prefix: "Build", highlight1: "packages", highlight2: "buyers can trust" },
+  3: { prefix: "Add", highlight1: "proof", highlight2: "and requirements" },
+  4: { prefix: "Review and", highlight1: "publish", highlight2: "your service" },
+};
+
 const PACKAGE_PRESETS: Array<{ tier: CommissionPackageFormState["tier"]; name: string }> = [
   { tier: "basic", name: "Basic" },
   { tier: "standard", name: "Standard" },
@@ -80,7 +87,8 @@ export default function CreateCommissionWizard() {
 
   const categories = useMemo(() => getAllCommissionCategories(), []);
   const selectedCategory = state.category ? COMMISSION_CATEGORIES[state.category] : null;
-  const progressPercent = (step / STEP_LABELS.length) * 100;
+  const progressPercent = step === 1 ? 25 : step === 2 ? 50 : step === 3 ? 75 : 100;
+  const stepTitle = STEP_TITLES[step] || STEP_TITLES[1];
 
   useEffect(() => {
     mediaUrlsRef.current = state.mediaPreviews.map((item) => item.url);
@@ -255,13 +263,6 @@ export default function CreateCommissionWizard() {
     return values.length > 0 ? Math.min(...values) : null;
   }, [state.packages]);
 
-  const completion = useMemo(() => ({
-    positioning: Boolean(state.category && state.title.trim() && state.description.trim()),
-    package: state.packages.some((pkg) => pkg.price && pkg.price > 0 && pkg.description.trim()),
-    media: state.mediaPreviews.length > 0,
-    trust: state.requirements.length > 0 || state.faqs.length > 0,
-  }), [state.category, state.description, state.faqs.length, state.mediaPreviews.length, state.packages, state.requirements.length, state.title]);
-
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-white to-pink-50/50 flex items-center justify-center px-6">
@@ -281,61 +282,39 @@ export default function CreateCommissionWizard() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#fffaf8]">
-      <DecorativeBackdrop />
+    <div className="min-h-screen bg-white">
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <p className="text-center text-sm font-ui text-muted uppercase tracking-wider mb-4">
+          STEP {step}
+        </p>
 
-      <div className="relative max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-12">
-        <div className="text-center mb-8">
-          <p className="text-xs font-ui font-semibold uppercase tracking-[0.2em] text-pink-vivid/70 mb-3">
-            Commission Studio
-          </p>
-          <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl text-ink">
-            Craft a service buyers cannot ignore
-          </h1>
-          <p className="font-body text-muted text-sm sm:text-base mt-3 max-w-2xl mx-auto">
-            Build a premium commission listing with crystal-clear scope, social proof visuals, and high-conversion packages.
-          </p>
+        <h1 className="text-center text-3xl md:text-4xl font-display font-bold text-ink mb-8">
+          {stepTitle.prefix}{" "}
+          <span className="bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">
+            {stepTitle.highlight1}
+          </span>{" "}
+          <span className="bg-gradient-to-r from-pink-vivid to-purple-primary bg-clip-text text-transparent">
+            {stepTitle.highlight2}
+          </span>
+        </h1>
+
+        <div className="mb-12">
+          <StepRail currentStep={step} />
+          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[360px_minmax(0,1fr)]">
-          <aside className="space-y-4 lg:sticky lg:top-6 self-start">
-            <ListingPreviewCard
-              state={state}
-              step={step}
-              selectedCategory={selectedCategory?.name || "Choose category"}
-              priceFrom={priceFrom}
-            />
-            <QualityChecklist completion={completion} />
-          </aside>
+        {(error || createError) && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+            <p className="text-sm text-red-600 font-body">{error || createError}</p>
+          </div>
+        )}
 
-          <main className="space-y-6">
-            <StepRail currentStep={step} progressPercent={progressPercent} />
-
-            {(error || createError) && (
-              <div className="p-4 rounded-2xl border border-red-200 bg-red-50/95 backdrop-blur-sm text-red-700 text-sm font-body shadow-sm">
-                {error || createError}
-              </div>
-            )}
-
-            <section className="rounded-[30px] border border-black/[0.06] bg-white/90 backdrop-blur-xl shadow-[0_20px_60px_-35px_rgba(127,63,191,0.35)] overflow-hidden">
-              <div className="px-5 sm:px-8 py-6 border-b border-black/[0.06] bg-gradient-to-r from-white via-purple-50/40 to-orange-50/40">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs font-ui font-semibold uppercase tracking-[0.18em] text-muted">
-                      Step {step} of {STEP_LABELS.length}
-                    </p>
-                    <h2 className="font-display text-2xl sm:text-3xl text-ink mt-1">
-                      {STEP_LABELS[step - 1]}
-                    </h2>
-                  </div>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-black/[0.06] shadow-sm">
-                    <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid" />
-                    <span className="text-xs font-ui font-semibold text-ink">{Math.round(progressPercent)}% complete</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-5 sm:p-8">
+        <div className="mb-12">
                 {step === 1 && (
                   <div className="space-y-6">
                     <SectionCard
@@ -602,6 +581,18 @@ export default function CreateCommissionWizard() {
                 {step === 4 && (
                   <div className="space-y-6">
                     <SectionCard
+                      title="Final listing preview"
+                      description="This is the listing buyers will see once your service is live."
+                      tone="neutral"
+                    >
+                      <ListingPreviewCard
+                        state={state}
+                        selectedCategory={selectedCategory?.name || "Choose category"}
+                        priceFrom={priceFrom}
+                      />
+                    </SectionCard>
+
+                    <SectionCard
                       title="Launch readiness"
                       description="Final check before you publish to studio and marketplace."
                       tone="purple"
@@ -655,10 +646,9 @@ export default function CreateCommissionWizard() {
                     </div>
                   </div>
                 )}
-              </div>
-            </section>
+        </div>
 
-            <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={goBack}
@@ -698,65 +688,39 @@ export default function CreateCommissionWizard() {
                   )}
                 </button>
               )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepRail({ currentStep }: { currentStep: number }) {
+  return (
+    <div className="flex items-center justify-center gap-6 md:gap-8 mb-4 flex-wrap">
+      {STEP_LABELS.map((label, index) => {
+        const step = index + 1;
+        const isCompleted = currentStep > step;
+        const isCurrent = currentStep === step;
+        const isActive = currentStep >= step;
+
+        return (
+          <div key={label} className="flex items-center gap-2">
+            <div
+              className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${
+                isActive
+                  ? "bg-gradient-to-r from-orange-warm to-pink-vivid text-white"
+                  : "bg-gray-200 text-gray-500"
+              }`}
+            >
+              {isCompleted ? "✓" : step}
             </div>
-          </main>
-        </div>
+            <span className={`text-sm font-ui ${isCurrent || isCompleted ? "text-ink font-medium" : "text-muted"}`}>
+              {label}
+            </span>
+          </div>
+        );
+      })}
       </div>
-    </div>
-  );
-}
-
-function DecorativeBackdrop() {
-  return (
-    <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full bg-purple-primary/10 blur-3xl" />
-      <div className="absolute top-20 right-0 w-[28rem] h-[28rem] rounded-full bg-pink-vivid/10 blur-3xl" />
-      <div className="absolute bottom-[-120px] left-1/3 w-[34rem] h-[34rem] rounded-full bg-orange-warm/10 blur-3xl" />
-      <div className="absolute inset-0 opacity-[0.08]" style={{
-        backgroundImage:
-          "radial-gradient(circle at 1px 1px, rgba(0,0,0,0.25) 1px, transparent 0)",
-        backgroundSize: "28px 28px",
-      }} />
-    </div>
-  );
-}
-
-function StepRail({ currentStep, progressPercent }: { currentStep: number; progressPercent: number }) {
-  return (
-    <div className="rounded-2xl border border-black/[0.06] bg-white/85 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
-      <div className="flex flex-col gap-4">
-        <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {STEP_LABELS.map((label, index) => {
-            const step = index + 1;
-            const active = currentStep === step;
-            const complete = currentStep > step;
-
-            return (
-              <div
-                key={label}
-                className={`rounded-xl px-3 py-3 border transition-all ${
-                  active
-                    ? "bg-pink-50/80 border-pink-vivid/30 shadow-sm"
-                    : complete
-                    ? "bg-purple-50/60 border-purple-primary/20"
-                    : "bg-white border-black/[0.08]"
-                }`}
-              >
-                <p className="text-[11px] font-ui font-semibold uppercase tracking-wider text-muted">Step {step}</p>
-                <p className="text-sm font-ui font-semibold text-ink mt-1 leading-tight">{label}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -1009,12 +973,10 @@ function ReviewItem({ label, value }: { label: string; value: string }) {
 
 function ListingPreviewCard({
   state,
-  step,
   selectedCategory,
   priceFrom,
 }: {
   state: CommissionWizardState;
-  step: number;
   selectedCategory: string;
   priceFrom: number | null;
 }) {
@@ -1023,7 +985,7 @@ function ListingPreviewCard({
   return (
     <div className="rounded-2xl border border-black/[0.07] bg-white/90 backdrop-blur-sm shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-black/[0.06] bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10">
-        <p className="text-[11px] font-ui font-semibold uppercase tracking-wider text-muted">Live listing preview</p>
+        <p className="text-[11px] font-ui font-semibold uppercase tracking-wider text-muted">Listing preview</p>
       </div>
 
       <div className="p-4 space-y-3">
@@ -1063,54 +1025,7 @@ function ListingPreviewCard({
           <span className="inline-flex px-2 py-1 rounded-full bg-gray-100 text-[11px] font-ui text-gray-700">
             {state.mediaPreviews.length} media
           </span>
-          <span className="inline-flex px-2 py-1 rounded-full bg-gray-100 text-[11px] font-ui text-gray-700">
-            Step {step}/{STEP_LABELS.length}
-          </span>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function QualityChecklist({
-  completion,
-}: {
-  completion: {
-    positioning: boolean;
-    package: boolean;
-    media: boolean;
-    trust: boolean;
-  };
-}) {
-  const rows = [
-    { label: "Clear positioning", done: completion.positioning },
-    { label: "Structured packages", done: completion.package },
-    { label: "Proof media", done: completion.media },
-    { label: "Trust signals", done: completion.trust },
-  ];
-
-  return (
-    <div className="rounded-2xl border border-black/[0.07] bg-white/90 backdrop-blur-sm shadow-sm p-4">
-      <p className="text-[11px] font-ui font-semibold uppercase tracking-wider text-muted mb-3">Conversion checklist</p>
-      <div className="space-y-2.5">
-        {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between rounded-lg bg-gray-50/80 px-3 py-2">
-            <span className="text-sm font-ui text-ink">{row.label}</span>
-            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${
-              row.done ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white" : "bg-gray-200 text-gray-500"
-            }`}>
-              {row.done ? (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              )}
-            </span>
-          </div>
-        ))}
       </div>
     </div>
   );

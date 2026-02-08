@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useProduct } from "@/lib/hooks/useProducts";
 import { useHireCommission } from "@/lib/hooks/useCommissions";
+import { getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
 
 interface CommissionDetailViewProps {
@@ -50,6 +51,49 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
     const items = product?.service_metadata?.requirements;
     if (!Array.isArray(items)) return [];
     return items.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }, [product]);
+
+  const serviceKeywords = useMemo(() => {
+    const items = product?.keywords;
+    if (!Array.isArray(items)) return [];
+    return items.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }, [product]);
+
+  const serviceIncludes = useMemo(() => {
+    const items = product?.service_metadata?.includes;
+    if (!Array.isArray(items)) return [];
+    return items.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }, [product]);
+
+  const serviceExcludes = useMemo(() => {
+    const items = product?.service_metadata?.excludes;
+    if (!Array.isArray(items)) return [];
+    return items.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }, [product]);
+
+  const deliveryNotes = useMemo(() => {
+    const value = product?.service_metadata?.delivery_notes;
+    return typeof value === "string" && value.trim().length > 0 ? value : null;
+  }, [product]);
+
+  const minDeliveryDays = useMemo(() => {
+    return packages
+      .map((pkg) => pkg.delivery_days)
+      .filter((days): days is number => days !== null && days !== undefined)
+      .sort((a, b) => a - b)[0];
+  }, [packages]);
+
+  const maxRevisions = useMemo(() => {
+    return packages
+      .map((pkg) => pkg.revisions)
+      .filter((count): count is number => count !== null && count !== undefined)
+      .sort((a, b) => b - a)[0];
+  }, [packages]);
+
+  const categoryLabel = useMemo(() => {
+    if (!product) return "";
+    if (!product.subcategory) return product.category;
+    return `${product.category} · ${getCommissionSubcategoryLabel(product.category, product.subcategory)}`;
   }, [product]);
 
   const openHireModal = () => {
@@ -180,7 +224,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                             </p>
                             {Array.isArray(pkg.package_features) && pkg.package_features.length > 0 && (
                               <ul className="mt-2 space-y-1">
-                                {pkg.package_features.slice(0, 3).map((feature) => (
+                                {pkg.package_features.map((feature) => (
                                   <li key={feature} className="text-xs font-body text-ink/80 flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-pink-vivid/70" />
                                     {feature}
@@ -205,6 +249,22 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                 </div>
               </section>
 
+              {selectedPackage && Array.isArray(selectedPackage.package_features) && selectedPackage.package_features.length > 0 && (
+                <section className="rounded-2xl border border-black/[0.06] p-5 bg-white">
+                  <h3 className="font-display text-xl text-ink">
+                    What&apos;s included in {selectedPackage.variant_name || "this package"}
+                  </h3>
+                  <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {selectedPackage.package_features.map((feature) => (
+                      <li key={feature} className="text-sm font-body text-ink/90 flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-pink-vivid mt-2" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
               <button
                 onClick={openHireModal}
                 disabled={!selectedPackage}
@@ -217,15 +277,45 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                 <p className="text-sm font-body text-red-500">{localError}</p>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <InfoCard title="Response Speed" value={`${product.service_metadata?.response_time_hours ?? 24}h avg reply`} />
-                <InfoCard title="Category" value={`${product.category}${product.subcategory ? ` · ${product.subcategory}` : ""}`} />
+                <InfoCard title="Category" value={categoryLabel} />
+                <InfoCard title="Fastest Delivery" value={minDeliveryDays ? `${minDeliveryDays} day${minDeliveryDays === 1 ? "" : "s"}` : "Custom timeline"} />
+                <InfoCard title="Revisions" value={maxRevisions !== undefined ? `${maxRevisions} max` : "Custom"} />
               </div>
             </div>
           </div>
 
-          {(serviceRequirements.length > 0 || serviceFaqs.length > 0) && (
+          {(serviceRequirements.length > 0 || serviceFaqs.length > 0 || serviceIncludes.length > 0 || serviceExcludes.length > 0 || serviceKeywords.length > 0 || Boolean(deliveryNotes)) && (
             <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {serviceIncludes.length > 0 && (
+                <section className="rounded-2xl border border-black/[0.06] p-5 bg-white">
+                  <h3 className="font-display text-xl text-ink mb-3">Includes</h3>
+                  <ul className="space-y-2">
+                    {serviceIncludes.map((item) => (
+                      <li key={item} className="font-body text-sm text-ink/90 flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {serviceExcludes.length > 0 && (
+                <section className="rounded-2xl border border-black/[0.06] p-5 bg-white">
+                  <h3 className="font-display text-xl text-ink mb-3">Not included</h3>
+                  <ul className="space-y-2">
+                    {serviceExcludes.map((item) => (
+                      <li key={item} className="font-body text-sm text-ink/90 flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-warm mt-2" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
               {serviceRequirements.length > 0 && (
                 <section className="rounded-2xl border border-black/[0.06] p-5 bg-white">
                   <h3 className="font-display text-xl text-ink mb-3">What the creator needs</h3>
@@ -251,6 +341,29 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                       </article>
                     ))}
                   </div>
+                </section>
+              )}
+
+              {serviceKeywords.length > 0 && (
+                <section className="rounded-2xl border border-black/[0.06] p-5 bg-white">
+                  <h3 className="font-display text-xl text-ink mb-3">Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {serviceKeywords.map((keyword) => (
+                      <span
+                        key={keyword}
+                        className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-xs font-ui text-gray-700"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {deliveryNotes && (
+                <section className="rounded-2xl border border-black/[0.06] p-5 bg-white lg:col-span-2">
+                  <h3 className="font-display text-xl text-ink mb-2">Delivery notes</h3>
+                  <p className="font-body text-sm text-ink/90 leading-relaxed">{deliveryNotes}</p>
                 </section>
               )}
             </div>
