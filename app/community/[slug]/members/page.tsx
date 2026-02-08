@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useCommunityMembers, useCommunityModeration, useJoinRequests, ModeratorPermissions } from "@/lib/hooks";
 import InviteModal from "@/components/communities/InviteModal";
@@ -333,13 +334,14 @@ export default function CommunityMembersPage() {
                     href={`/studio/${request.profile?.username}`}
                     className="flex-shrink-0"
                   >
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {request.profile?.avatar_url ? (
-                        <img
+                        <Image
                           src={getOptimizedAvatarUrl(request.profile.avatar_url, 40)}
                           alt=""
-                          className="w-full h-full object-cover"
-                          loading="lazy"
+                          fill
+                          sizes="40px"
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
@@ -476,13 +478,14 @@ export default function CommunityMembersPage() {
                     href={`/studio/${member.profile?.username}`}
                     className="flex-shrink-0"
                   >
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {member.profile?.avatar_url ? (
-                        <img
+                        <Image
                           src={getOptimizedAvatarUrl(member.profile.avatar_url, 48)}
                           alt=""
-                          className="w-full h-full object-cover"
-                          loading="lazy"
+                          fill
+                          sizes="48px"
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold">
@@ -655,9 +658,15 @@ export default function CommunityMembersPage() {
                 >
                   {/* Avatar */}
                   <Link href={`/studio/${member.profile?.username}`} className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {member.profile?.avatar_url ? (
-                        <img src={getOptimizedAvatarUrl(member.profile.avatar_url, 40)} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        <Image
+                          src={getOptimizedAvatarUrl(member.profile.avatar_url, 40)}
+                          alt=""
+                          fill
+                          sizes="40px"
+                          className="object-cover"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
                           {(member.profile?.display_name || member.profile?.username || '?').charAt(0).toUpperCase()}
@@ -743,9 +752,15 @@ export default function CommunityMembersPage() {
                 >
                   {/* Avatar */}
                   <Link href={`/studio/${member.profile?.username}`} className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {member.profile?.avatar_url ? (
-                        <img src={getOptimizedAvatarUrl(member.profile.avatar_url, 40)} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        <Image
+                          src={getOptimizedAvatarUrl(member.profile.avatar_url, 40)}
+                          alt=""
+                          fill
+                          sizes="40px"
+                          className="object-cover"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
                           {(member.profile?.display_name || member.profile?.username || '?').charAt(0).toUpperCase()}

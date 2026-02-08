@@ -3,6 +3,7 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useCommunityMembers } from "@/lib/hooks";
 
@@ -235,12 +236,14 @@ export default function CommunityAboutPage() {
                   className="flex items-center gap-3 group"
                 >
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {admin.profile?.avatar_url ? (
-                        <img
+                        <Image
                           src={admin.profile.avatar_url}
                           alt={admin.profile.display_name || admin.profile.username}
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="40px"
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold">
@@ -277,12 +280,14 @@ export default function CommunityAboutPage() {
                   className="flex items-center gap-3 group"
                 >
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600">
                       {mod.profile?.avatar_url ? (
-                        <img
+                        <Image
                           src={mod.profile.avatar_url}
                           alt={mod.profile.display_name || mod.profile.username}
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="40px"
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold">

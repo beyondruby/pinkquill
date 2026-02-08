@@ -38,8 +38,6 @@ export function useModQueue(communityId: string, filters?: ModQueueFilters) {
       // Try direct community_id filter first (works after migration is applied)
       // Fall back to N+1 post IDs approach if community_id column doesn't exist
       let data: Report[] | null = null;
-      let fetchError: Error | null = null;
-
       // Attempt 1: Direct community_id filter (preferred, single query)
       try {
         const result = await supabase

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSavedPosts, useToggleSave } from "@/lib/hooks";
 import { useSavedTakes } from "@/lib/hooks/useTakes";
 import { useSavedProducts, useToggleSaveProduct } from "@/lib/hooks/useProducts";
@@ -397,10 +398,12 @@ export default function SavedPage() {
                 >
                   {/* Background */}
                   {hasMedia && firstMedia?.media_type === "image" ? (
-                    <img
+                    <Image
                       src={firstMedia.media_url}
                       alt=""
-                      className="absolute inset-0 w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                      className="absolute inset-0 object-cover"
                     />
                   ) : hasMedia && firstMedia?.media_type === "video" ? (
                     <video
@@ -455,11 +458,15 @@ export default function SavedPage() {
                   {/* Bottom info */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <img
-                        src={post.author?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                        alt=""
-                        className="w-6 h-6 rounded-full object-cover border border-white/30"
-                      />
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/30">
+                        <Image
+                          src={post.author?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+                          alt=""
+                          fill
+                          sizes="24px"
+                          className="object-cover"
+                        />
+                      </div>
                       <span className="font-ui text-xs text-white/90 truncate">
                         {post.author?.display_name || post.author?.username || "Unknown"}
                       </span>
@@ -512,10 +519,12 @@ export default function SavedPage() {
                 >
                   {/* Video thumbnail */}
                   {take.thumbnail_url ? (
-                    <img
+                    <Image
                       src={take.thumbnail_url}
                       alt=""
-                      className="absolute inset-0 w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                      className="absolute inset-0 object-cover"
                     />
                   ) : (
                     <video
@@ -559,11 +568,15 @@ export default function SavedPage() {
                   {/* Bottom info */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <img
-                        src={take.author?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                        alt=""
-                        className="w-6 h-6 rounded-full object-cover border border-white/30"
-                      />
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/30">
+                        <Image
+                          src={take.author?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+                          alt=""
+                          fill
+                          sizes="24px"
+                          className="object-cover"
+                        />
+                      </div>
                       <span className="font-ui text-xs text-white/90 truncate">
                         {take.author?.display_name || take.author?.username || "Unknown"}
                       </span>
@@ -620,10 +633,12 @@ export default function SavedPage() {
                 >
                   {/* Product image */}
                   {primaryImage ? (
-                    <img
+                    <Image
                       src={primaryImage}
                       alt={product.title}
-                      className="absolute inset-0 w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                      className="absolute inset-0 object-cover"
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-pink-50" />
@@ -655,11 +670,15 @@ export default function SavedPage() {
                   {/* Bottom info */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <img
-                        src={product.seller?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                        alt=""
-                        className="w-6 h-6 rounded-full object-cover border border-white/30"
-                      />
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/30">
+                        <Image
+                          src={product.seller?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
+                          alt=""
+                          fill
+                          sizes="24px"
+                          className="object-cover"
+                        />
+                      </div>
                       <span className="font-ui text-xs text-white/90 truncate">
                         {product.seller?.display_name || product.seller?.username || "Unknown"}
                       </span>

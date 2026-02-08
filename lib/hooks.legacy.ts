@@ -616,7 +616,6 @@ export function useCommunityPosts(
 ) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [pinnedPosts, setPinnedPosts] = useState<Post[]>([]);
-  const [pinnedPostIds, setPinnedPostIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -626,7 +625,7 @@ export function useCommunityPosts(
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch pinned post IDs
-  const fetchPinnedPostIds = async () => {
+  const fetchPinnedPostIds = useCallback(async () => {
     if (!communityId) return [];
     try {
       const { data, error } = await supabase
@@ -641,7 +640,7 @@ export function useCommunityPosts(
       console.error("[useCommunityPosts] Error fetching pinned posts:", err);
       return [];
     }
-  };
+  }, [communityId]);
 
   const fetchPosts = useCallback(async (pageNum: number = 0, append: boolean = false) => {
     if (!communityId) return;
@@ -659,7 +658,6 @@ export function useCommunityPosts(
       // First fetch pinned post IDs
       const currentPinnedIds = await fetchPinnedPostIds();
       if (!mountedRef.current) return;
-      setPinnedPostIds(currentPinnedIds);
 
       let query = supabase
         .from("posts")
@@ -754,7 +752,7 @@ export function useCommunityPosts(
       let userAdmires: Set<string> = new Set();
       let userSaves: Set<string> = new Set();
       let userRelays: Set<string> = new Set();
-      let userReactions: Record<string, string> = {};
+      const userReactions: Record<string, string> = {};
 
       if (userId) {
         const [userAdmiresResult, userSavesResult, userRelaysResult, userReactionsResult] = await Promise.all([
@@ -831,7 +829,7 @@ export function useCommunityPosts(
         setLoading(false);
       }
     }
-  }, [communityId, sortBy, userId, options?.timeRange, options?.flairId]);
+  }, [communityId, sortBy, userId, options?.timeRange, options?.flairId, fetchPinnedPostIds]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -1512,7 +1510,7 @@ export function useCommunityModeration(communityId: string) {
       let notificationContent = `Your role has been changed to ${role}`;
       if (role === 'moderator' && permissions) {
         const enabledPermissions = Object.entries(permissions)
-          .filter(([_, enabled]) => enabled)
+          .filter(([, enabled]) => enabled)
           .map(([key]) => key.replace('can_', '').replace(/_/g, ' '));
         if (enabledPermissions.length > 0) {
           notificationContent += `. You can: ${enabledPermissions.join(', ')}`;
