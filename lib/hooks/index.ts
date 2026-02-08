@@ -107,6 +107,14 @@ export type {
   UseMarketplaceReturn,
 } from "./useMarketplace";
 
+// Products
+export {
+  useSellerProducts,
+  useProduct,
+  useUpdateProductStatus,
+  useDeleteProduct,
+} from "./useProducts";
+
 // Commissions
 export {
   useCreateCommission,
@@ -136,6 +144,15 @@ export {
   useSellerEarnings,
   useTransactionHistory,
 } from "./usePayments";
+
+// Reviews
+export {
+  useSubmitReview,
+  useOrderReviews,
+  useSellerReviews,
+  useSellerStats,
+  useRespondToReview,
+} from "./useReviews";
 
 // Messaging (reactions, typing indicators, sharing)
 export {
@@ -213,4 +230,9 @@ export type {
   SellerAccount,
   SellerEarnings,
   Transaction,
+  Review,
+  SellerStats,
+  SellerLevel,
 } from "../types/store";
+
+export { SELLER_LEVEL_LABELS } from "../types/store";

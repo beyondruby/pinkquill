@@ -9,6 +9,7 @@ import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
 import { PLATFORM_FEES } from "@/lib/types/store";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
+import SellerRating from "@/components/reviews/SellerRating";
 
 interface CommissionDetailViewProps {
   commissionId: string;
@@ -194,12 +195,17 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                   <p className="font-body text-muted mt-2">{String(product.service_metadata.headline)}</p>
                 )}
                 {product.seller && (
-                  <p className="text-sm font-body text-muted mt-3">
-                    by{" "}
-                    <Link href={`/studio/${product.seller.username}`} className="text-pink-vivid hover:text-orange-warm">
-                      {product.seller.display_name || product.seller.username}
-                    </Link>
-                  </p>
+                  <div className="mt-3">
+                    <p className="text-sm font-body text-muted">
+                      by{" "}
+                      <Link href={`/studio/${product.seller.username}`} className="text-pink-vivid hover:text-orange-warm">
+                        {product.seller.display_name || product.seller.username}
+                      </Link>
+                    </p>
+                    <div className="mt-1.5">
+                      <SellerRating sellerId={product.seller.id} compact />
+                    </div>
+                  </div>
                 )}
               </div>
 

@@ -14,6 +14,7 @@ import {
 } from "@/lib/store/categories";
 import ProductGallery from "./ProductGallery";
 import SellerCard from "./SellerCard";
+import SellerRating from "@/components/reviews/SellerRating";
 import ShareModal from "@/components/ui/ShareModal";
 
 interface ProductDetailViewProps {
@@ -197,15 +198,20 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 {product.title}
               </h1>
               {product.seller && (
-                <p className="text-base text-muted font-body">
-                  by{" "}
-                  <Link
-                    href={`/studio/${product.seller.username}`}
-                    className="text-pink-vivid hover:text-orange-warm transition-colors font-medium"
-                  >
-                    {product.seller.display_name || product.seller.username}
-                  </Link>
-                </p>
+                <div>
+                  <p className="text-base text-muted font-body">
+                    by{" "}
+                    <Link
+                      href={`/studio/${product.seller.username}`}
+                      className="text-pink-vivid hover:text-orange-warm transition-colors font-medium"
+                    >
+                      {product.seller.display_name || product.seller.username}
+                    </Link>
+                  </p>
+                  <div className="mt-1">
+                    <SellerRating sellerId={product.seller.id} compact />
+                  </div>
+                </div>
               )}
             </div>
 

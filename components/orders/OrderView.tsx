@@ -6,7 +6,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useOrder } from "@/lib/hooks/useOrders";
+import { useOrderReviews } from "@/lib/hooks/useReviews";
 import CheckoutModal from "@/components/checkout/CheckoutModal";
+import ReviewForm from "@/components/reviews/ReviewForm";
+import ReviewCard from "@/components/reviews/ReviewCard";
 import OrderTimeline from "./OrderTimeline";
 import OrderMessages from "./OrderMessages";
 import OrderActions from "./OrderActions";
@@ -241,10 +244,73 @@ export default function OrderView({ orderId }: OrderViewProps) {
           onUpdate={() => refetch()}
         />
 
+        {/* Reviews */}
+        <OrderReviewSection order={order} userId={user?.id} />
+
         {/* Messages */}
         <OrderMessages orderId={orderId} />
       </div>
     </div>
+  );
+}
+
+const REVIEWABLE_STATUSES = new Set(["completed", "delivered", "escrow_released"]);
+
+function OrderReviewSection({ order, userId }: { order: Order; userId?: string }) {
+  const { reviews, myReview, loading, refetch } = useOrderReviews(
+    REVIEWABLE_STATUSES.has(order.status) ? order.id : undefined,
+    userId
+  );
+  const [showForm, setShowForm] = useState(false);
+
+  if (!REVIEWABLE_STATUSES.has(order.status) || !userId) return null;
+  if (loading) return null;
+
+  const hasReviewed = !!myReview;
+
+  return (
+    <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
+      <h2 className="font-display text-xl text-ink mb-4">Reviews</h2>
+
+      {/* Existing reviews */}
+      {reviews.length > 0 && (
+        <div className="mb-4">
+          {reviews.map((review) => (
+            <ReviewCard
+              key={review.id}
+              review={review}
+              onResponseSubmitted={refetch}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Leave a review */}
+      {!hasReviewed && !showForm && (
+        <button
+          onClick={() => setShowForm(true)}
+          className="w-full py-3 rounded-xl border-2 border-dashed border-purple-primary/30 text-purple-primary font-ui font-semibold text-sm hover:bg-purple-50/50 transition-colors"
+        >
+          Leave a Review
+        </button>
+      )}
+
+      {!hasReviewed && showForm && (
+        <ReviewForm
+          orderId={order.id}
+          onSubmitted={() => {
+            setShowForm(false);
+            refetch();
+          }}
+        />
+      )}
+
+      {hasReviewed && reviews.length === 0 && (
+        <p className="text-sm font-body text-muted">
+          Your review has been submitted. It will be visible once the other party also reviews (or after 14 days).
+        </p>
+      )}
+    </section>
   );
 }
 
