@@ -1,8 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Product } from "@/lib/types/store";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useToggleSaveProduct } from "@/lib/hooks/useProducts";
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
 
 interface MarketplaceProductCardProps {
@@ -146,11 +149,64 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
 }
 
 function ProductMarketplaceCard({ product }: { product: Product }) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { toggle: toggleSave, checkIsSaved } = useToggleSaveProduct();
   const imageUrl = product.primary_image_url || "/placeholder-product.jpg";
   const price = product.min_price;
   const hasMultiplePrices = product.min_price !== product.max_price;
   const isDigital = product.delivery_type === "digital";
   const sellerName = product.seller?.display_name || product.seller?.username || "Creator";
+  const [isSaved, setIsSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const isSavedForUi = user?.id ? isSaved : false;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!user?.id) return;
+
+    checkIsSaved(product.id, user.id)
+      .then((saved) => {
+        if (isMounted) {
+          setIsSaved(saved);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setIsSaved(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [checkIsSaved, product.id, user?.id]);
+
+  const handleToggleSave = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (saving) return;
+
+    if (!user?.id) {
+      router.push("/login");
+      return;
+    }
+
+    const previousValue = isSavedForUi;
+    const nextValue = !previousValue;
+
+    setIsSaved(nextValue);
+    setSaving(true);
+
+    const success = await toggleSave(product.id, user.id, previousValue);
+    if (!success) {
+      setIsSaved(previousValue);
+    }
+
+    setSaving(false);
+  };
 
   return (
     <Link href={`/product/${product.id}`} className="group block h-full">
@@ -172,6 +228,29 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
                 Physical
               </span>
             )}
+
+            <button
+              type="button"
+              onClick={handleToggleSave}
+              aria-label={isSavedForUi ? "Unsave product" : "Save product"}
+              aria-pressed={isSavedForUi}
+              className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm border transition-all ${
+                isSavedForUi
+                  ? "bg-white text-pink-vivid border-pink-vivid/30 shadow-md"
+                  : "bg-white/90 text-gray-500 border-black/[0.08] hover:text-pink-vivid hover:border-pink-vivid/30"
+              }`}
+              disabled={saving}
+            >
+              <svg
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill={isSavedForUi ? "currentColor" : "none"}
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path d="M12.001 20.727l-.842-.764C6.284 15.53 3 12.548 3 8.91 3 5.93 5.4 3.5 8.4 3.5c1.7 0 3.334.79 4.4 2.026C13.866 4.29 15.5 3.5 17.2 3.5c3 0 5.4 2.43 5.4 5.41 0 3.638-3.284 6.62-8.16 11.053l-.839.764z" />
+              </svg>
+            </button>
           </div>
         </div>
 
