@@ -318,7 +318,16 @@ export type NotificationType =
   | "collaboration_invite"
   | "collaboration_accepted"
   | "collaboration_declined"
-  | "mention";
+  | "mention"
+  | "order_placed"
+  | "order_paid"
+  | "order_started"
+  | "order_delivered"
+  | "order_completed"
+  | "revision_requested"
+  | "order_cancelled"
+  | "review_received"
+  | "order_message";
 
 export interface Notification {
   id: string;
@@ -328,6 +337,7 @@ export interface Notification {
   post_id: string | null;
   comment_id: string | null;
   community_id: string | null;
+  order_id: string | null;
   content: string | null;
   read: boolean;
   created_at: string;

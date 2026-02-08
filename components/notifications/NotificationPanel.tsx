@@ -432,6 +432,113 @@ const icons = {
       <circle cx="12" cy="7" r="1.5" fill="url(#mentionGrad)" />
     </svg>
   ),
+  orderPlaced: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="orderPlacedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#8e44ad" />
+          <stop offset="100%" stopColor="#ff9f43" />
+        </linearGradient>
+      </defs>
+      <rect x="3" y="6" width="18" height="14" rx="2" stroke="url(#orderPlacedGrad)" strokeWidth="2" />
+      <path d="M3 10h18" stroke="url(#orderPlacedGrad)" strokeWidth="2" />
+      <path d="M7 14h4M7 17h2" stroke="url(#orderPlacedGrad)" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
+  orderPaid: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="orderPaidGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#27ae60" />
+          <stop offset="100%" stopColor="#2ecc71" />
+        </linearGradient>
+      </defs>
+      <circle cx="12" cy="12" r="10" stroke="url(#orderPaidGrad)" strokeWidth="2" />
+      <path d="M12 6v2m0 8v2m-4-6h1.5a2.5 2.5 0 010 5H9m6-5h-1.5a2.5 2.5 0 000-5H15" stroke="url(#orderPaidGrad)" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
+  orderStarted: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="orderStartedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#8e44ad" />
+          <stop offset="100%" stopColor="#ff007f" />
+        </linearGradient>
+      </defs>
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="url(#orderStartedGrad)" strokeWidth="2" />
+      <path d="M10 8l6 4-6 4V8z" fill="url(#orderStartedGrad)" />
+    </svg>
+  ),
+  orderDelivered: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="orderDeliveredGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ff007f" />
+          <stop offset="100%" stopColor="#ff9f43" />
+        </linearGradient>
+      </defs>
+      <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4M4 7l8 4M4 7v10l8 4m0-10v10" stroke="url(#orderDeliveredGrad)" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  ),
+  orderCompleted: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="orderCompletedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#27ae60" />
+          <stop offset="100%" stopColor="#2ecc71" />
+        </linearGradient>
+      </defs>
+      <circle cx="12" cy="12" r="10" fill="url(#orderCompletedGrad)" />
+      <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  revisionRequested: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="revisionGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ff9f43" />
+          <stop offset="100%" stopColor="#ff007f" />
+        </linearGradient>
+      </defs>
+      <path d="M1 4v6h6M23 20v-6h-6" stroke="url(#revisionGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke="url(#revisionGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  orderCancelled: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="orderCancelledGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#e74c3c" />
+          <stop offset="100%" stopColor="#c0392b" />
+        </linearGradient>
+      </defs>
+      <circle cx="12" cy="12" r="10" stroke="url(#orderCancelledGrad)" strokeWidth="2" />
+      <path d="M15 9l-6 6M9 9l6 6" stroke="url(#orderCancelledGrad)" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  ),
+  reviewReceived: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="reviewGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ff9f43" />
+          <stop offset="100%" stopColor="#ff007f" />
+        </linearGradient>
+      </defs>
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="url(#reviewGrad)" />
+    </svg>
+  ),
+  orderMessage: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="orderMsgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#8e44ad" />
+          <stop offset="100%" stopColor="#ff9f43" />
+        </linearGradient>
+      </defs>
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" stroke="url(#orderMsgGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 10h8M8 14h4" stroke="url(#orderMsgGrad)" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
   checkAll: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -518,6 +625,24 @@ function getNotificationIcon(type: string) {
       return icons.collaborationDeclined;
     case 'mention':
       return icons.mention;
+    case 'order_placed':
+      return icons.orderPlaced;
+    case 'order_paid':
+      return icons.orderPaid;
+    case 'order_started':
+      return icons.orderStarted;
+    case 'order_delivered':
+      return icons.orderDelivered;
+    case 'order_completed':
+      return icons.orderCompleted;
+    case 'revision_requested':
+      return icons.revisionRequested;
+    case 'order_cancelled':
+      return icons.orderCancelled;
+    case 'review_received':
+      return icons.reviewReceived;
+    case 'order_message':
+      return icons.orderMessage;
     default:
       return icons.admire;
   }
@@ -575,6 +700,24 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
       return { actor: actorName, action: `declined your collaboration invite` };
     case 'mention':
       return { actor: actorName, action: `mentioned you in their ${postType}` };
+    case 'order_placed':
+      return { actor: actorName, action: 'placed a new order' };
+    case 'order_paid':
+      return { actor: actorName, action: 'completed payment for your order' };
+    case 'order_started':
+      return { actor: actorName, action: 'started working on your order' };
+    case 'order_delivered':
+      return { actor: actorName, action: 'delivered your order' };
+    case 'order_completed':
+      return { actor: actorName, action: 'marked your order as completed' };
+    case 'revision_requested':
+      return { actor: actorName, action: 'requested a revision' };
+    case 'order_cancelled':
+      return { actor: actorName, action: 'cancelled the order' };
+    case 'review_received':
+      return { actor: actorName, action: 'left a review on your order' };
+    case 'order_message':
+      return { actor: actorName, action: 'sent a message in your order' };
     default:
       return { actor: actorName, action: 'interacted with you' };
   }
@@ -596,6 +739,20 @@ function NotificationItem({
     notification.type === "community_banned";
 
   const getNotificationLink = (): string => {
+    // Order-related notifications link to the order page
+    if (notification.order_id && (
+      notification.type === 'order_placed' ||
+      notification.type === 'order_paid' ||
+      notification.type === 'order_started' ||
+      notification.type === 'order_delivered' ||
+      notification.type === 'order_completed' ||
+      notification.type === 'revision_requested' ||
+      notification.type === 'order_cancelled' ||
+      notification.type === 'review_received' ||
+      notification.type === 'order_message'
+    )) {
+      return `/orders/${notification.order_id}`;
+    }
     if (notification.type === 'follow' ||
         notification.type === 'follow_request' ||
         notification.type === 'follow_request_accepted') {
@@ -694,8 +851,15 @@ function NotificationItem({
           </p>
         )}
 
+        {/* Order notification content */}
+        {notification.content && notification.order_id && (
+          <p className="font-body text-[0.82rem] text-muted/80 mt-1.5 line-clamp-2 pl-3 border-l-2 border-purple-primary/20">
+            {notification.content}
+          </p>
+        )}
+
         {/* Post preview */}
-        {notification.post && notification.type !== 'follow' && !notification.type.startsWith('community_') && !notification.content && (
+        {notification.post && notification.type !== 'follow' && !notification.type.startsWith('community_') && !notification.order_id && !notification.content && (
           <p className="font-body text-[0.78rem] text-muted/60 mt-1 line-clamp-1 truncate">
             {notification.post.title || notification.post.content?.substring(0, 60)}...
           </p>
