@@ -511,26 +511,28 @@ function PostCardComponent({
 
     setReportSubmitting(true);
     try {
-      // Look up the post's community_id for mod queue filtering
-      let communityId: string | null = null;
+      // Build report data with required columns
+      const reportData: Record<string, unknown> = {
+        reported_post_id: post.id,
+        reported_user_id: post.authorId,
+        reporter_id: user.id,
+        reason: details ? `${reason}: ${details}` : reason,
+        type: "post",
+      };
+
+      // Add community_id if post belongs to a community (for mod queue filtering)
       if (post.community) {
         const { data: postData } = await supabase
           .from("posts")
           .select("community_id")
           .eq("id", post.id)
           .single();
-        communityId = postData?.community_id || null;
+        if (postData?.community_id) {
+          reportData.community_id = postData.community_id;
+        }
       }
 
-      const { error } = await supabase.from("reports").insert({
-        reported_post_id: post.id,
-        reported_user_id: post.authorId,
-        reporter_id: user.id,
-        reason: reason,
-        details: details || null,
-        type: "post",
-        community_id: communityId,
-      });
+      const { error } = await supabase.from("reports").insert(reportData);
 
       if (error) {
         console.error("Error submitting report:", error);

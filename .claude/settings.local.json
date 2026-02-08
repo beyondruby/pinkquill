@@ -61,7 +61,9 @@
       "Bash(nslookup:*)",
       "Bash(ping:*)",
       "Bash(curl:*)",
-      "Bash(dig:*)"
+      "Bash(dig:*)",
+      "Bash(node:*)",
+      "Bash(NODE_PATH=/Users/hadi/projects/pinkquill/node_modules node:*)"
     ]
   }
 }

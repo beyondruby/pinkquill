@@ -634,15 +634,18 @@ export default function PostPage() {
         .eq("id", post.id)
         .single();
 
-      const { error } = await supabase.from("reports").insert({
+      const reportData: Record<string, unknown> = {
         reported_post_id: post.id,
         reported_user_id: post.author_id,
         reporter_id: user.id,
-        reason: reason,
-        details: details || null,
+        reason: details ? `${reason}: ${details}` : reason,
         type: "post",
-        community_id: postMeta?.community_id || null,
-      });
+      };
+      if (postMeta?.community_id) {
+        reportData.community_id = postMeta.community_id;
+      }
+
+      const { error } = await supabase.from("reports").insert(reportData);
 
       if (error) {
         console.error("Error submitting report:", error);

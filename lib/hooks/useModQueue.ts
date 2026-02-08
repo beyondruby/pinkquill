@@ -35,58 +35,99 @@ export function useModQueue(communityId: string, filters?: ModQueueFilters) {
     setError(null);
 
     try {
-      // Query reports directly by community_id (set when reports are created)
-      // Use column-name disambiguation for FK joins to profiles/posts
-      let query = supabase
-        .from("reports")
-        .select(`
-          *,
-          reporter:profiles!reporter_id (
-            username,
-            display_name,
-            avatar_url
-          ),
-          reported_user:profiles!reported_user_id (
-            username,
-            display_name,
-            avatar_url
-          ),
-          reported_post:posts!reported_post_id (
-            id,
-            title,
-            content,
-            type
-          ),
-          resolver:profiles!resolved_by (
-            username,
-            display_name
-          )
-        `)
-        .eq("community_id", communityId)
-        .order("created_at", { ascending: false });
+      // Try direct community_id filter first (works after migration is applied)
+      // Fall back to N+1 post IDs approach if community_id column doesn't exist
+      let data: Report[] | null = null;
+      let fetchError: Error | null = null;
 
-      // Apply filters
-      if (filters?.status) {
-        query = query.eq("status", filters.status);
-      }
-      if (filters?.type) {
-        query = query.eq("type", filters.type);
-      }
+      // Attempt 1: Direct community_id filter (preferred, single query)
+      try {
+        const result = await supabase
+          .from("reports")
+          .select(`
+            *,
+            reporter:profiles!reporter_id (
+              username,
+              display_name,
+              avatar_url
+            ),
+            reported_user:profiles!reported_user_id (
+              username,
+              display_name,
+              avatar_url
+            ),
+            reported_post:posts!reported_post_id (
+              id,
+              title,
+              content,
+              type
+            ),
+            resolver:profiles!resolved_by (
+              username,
+              display_name
+            )
+          `)
+          .eq("community_id", communityId)
+          .order("created_at", { ascending: false });
 
-      const { data, error: fetchError } = await query;
+        if (!result.error) {
+          data = result.data;
+        } else if (result.error.message?.includes("community_id")) {
+          // Column doesn't exist yet — fall through to attempt 2
+          throw new Error("column_missing");
+        } else {
+          throw result.error;
+        }
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : "";
+        if (errorMessage !== "column_missing") {
+          // For FK join errors, try the fallback approach
+          if (!errorMessage.includes("could not find")) {
+            throw e;
+          }
+        }
+
+        // Attempt 2: Fallback — get community post IDs, then filter reports
+        const { data: communityPostIds } = await supabase
+          .from("posts")
+          .select("id")
+          .eq("community_id", communityId);
+
+        if (!communityPostIds || communityPostIds.length === 0) {
+          data = [];
+        } else {
+          const postIds = communityPostIds.map((p) => p.id);
+          const result = await supabase
+            .from("reports")
+            .select("*")
+            .in("reported_post_id", postIds)
+            .order("created_at", { ascending: false });
+
+          if (result.error) throw result.error;
+          data = result.data;
+        }
+      }
 
       if (!mountedRef.current) return;
 
-      if (fetchError) throw fetchError;
+      // Apply client-side filters if needed
+      let filtered = data || [];
+      if (filters?.status) {
+        filtered = filtered.filter((r) => r.status === filters.status);
+      }
+      if (filters?.type) {
+        filtered = filtered.filter((r) => r.type === filters.type);
+      }
 
-      setReports(data || []);
+      setReports(filtered);
 
-      // Calculate stats
-      const pending = (data || []).filter(r => r.status === "pending").length;
+      // Calculate stats from unfiltered data
+      const allReports = data || [];
+      const pending = allReports.filter((r) => r.status === "pending").length;
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      const resolvedThisWeek = (data || []).filter(
-        r => r.status === "resolved" && new Date(r.resolved_at || "") > weekAgo
+      const resolvedThisWeek = allReports.filter(
+        (r) => r.status === "resolved" && new Date(r.resolved_at || "") > weekAgo
       ).length;
 
       setStats({ pending, resolvedThisWeek });

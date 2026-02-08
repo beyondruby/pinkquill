@@ -544,15 +544,18 @@ export default function PostDetailModal({
         .eq("id", post.id)
         .single();
 
-      const { error } = await supabase.from("reports").insert({
+      const reportData: Record<string, unknown> = {
         reported_post_id: post.id,
         reported_user_id: postData?.author_id || post.authorId || null,
         reporter_id: user.id,
-        reason: reason,
-        details: details || null,
+        reason: details ? `${reason}: ${details}` : reason,
         type: "post",
-        community_id: postData?.community_id || null,
-      });
+      };
+      if (postData?.community_id) {
+        reportData.community_id = postData.community_id;
+      }
+
+      const { error } = await supabase.from("reports").insert(reportData);
 
       if (error) {
         console.error("Error submitting report:", error);
