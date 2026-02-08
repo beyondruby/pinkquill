@@ -274,13 +274,6 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
                     members
                   </span>
                 </Link>
-                <div className="w-1 h-1 rounded-full bg-white/50" />
-                <div className="flex items-center gap-2">
-                  <span className="font-display text-xl md:text-2xl font-bold text-white">
-                    {formatCount(community.post_count || 0)}
-                  </span>
-                  <span className="font-ui text-sm text-white/70">posts</span>
-                </div>
               </div>
             </div>
 

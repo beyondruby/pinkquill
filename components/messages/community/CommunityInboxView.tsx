@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import {
   useCommunityAnnouncements,
   useCommunityChatActions,
+  useCommunityChatOverview,
   useCommunityChatMemberships,
   useCommunityChatMessages,
   useCommunityChatThreads,
@@ -71,27 +72,52 @@ export default function CommunityInboxView() {
     loading: membershipsLoading,
     error: membershipsError,
   } = useCommunityChatMemberships(user?.id);
+  const {
+    overviewByCommunity,
+    loading: overviewLoading,
+    error: overviewError,
+  } = useCommunityChatOverview(user?.id);
 
   const [selectedCommunityIdState, setSelectedCommunityIdState] = useState<string | null>(null);
   const [selectedThreadIdState, setSelectedThreadIdState] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [sendAsAppeal, setSendAsAppeal] = useState(false);
 
+  const sortedMemberships = useMemo(() => {
+    const entries = memberships.map((membership) => {
+      const overview = overviewByCommunity.get(membership.community_id);
+      return {
+        membership,
+        unreadCount: overview?.unread_count || 0,
+        lastMessageAt: overview?.last_message_at || null,
+      };
+    });
+
+    entries.sort((a, b) => {
+      const aTs = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const bTs = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      if (aTs !== bTs) return bTs - aTs;
+      return a.membership.community.name.localeCompare(b.membership.community.name);
+    });
+
+    return entries;
+  }, [memberships, overviewByCommunity]);
+
   const selectedCommunityId = useMemo(() => {
-    if (memberships.length === 0) return null;
+    if (sortedMemberships.length === 0) return null;
     if (
       selectedCommunityIdState &&
-      memberships.some((m) => m.community_id === selectedCommunityIdState)
+      sortedMemberships.some((entry) => entry.membership.community_id === selectedCommunityIdState)
     ) {
       return selectedCommunityIdState;
     }
 
     const byQuery = requestedCommunity
-      ? memberships.find((m) => m.community.slug === requestedCommunity)
+      ? sortedMemberships.find((entry) => entry.membership.community.slug === requestedCommunity)
       : undefined;
 
-    return byQuery?.community_id || memberships[0].community_id;
-  }, [memberships, requestedCommunity, selectedCommunityIdState]);
+    return byQuery?.membership.community_id || sortedMemberships[0].membership.community_id;
+  }, [sortedMemberships, requestedCommunity, selectedCommunityIdState]);
 
   const selectedMembership = useMemo(
     () => memberships.find((m) => m.community_id === selectedCommunityId) || null,
@@ -231,7 +257,7 @@ export default function CommunityInboxView() {
     );
   }
 
-  const combinedError = membershipsError || threadsError || activeError;
+  const combinedError = membershipsError || overviewError || threadsError || activeError;
 
   return (
     <div className="h-screen bg-[#f8f7fc] flex flex-col md:flex-row">
@@ -253,11 +279,11 @@ export default function CommunityInboxView() {
           </Link>
         </div>
 
-        {membershipsLoading ? (
+        {membershipsLoading || (overviewLoading && memberships.length === 0) ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="w-7 h-7 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin" />
           </div>
-        ) : memberships.length === 0 ? (
+        ) : sortedMemberships.length === 0 ? (
           <div className="flex-1 p-6 text-center">
             <p className="font-body text-muted">You are not in any communities yet.</p>
             <Link
@@ -269,7 +295,7 @@ export default function CommunityInboxView() {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto">
-            {memberships.map((membership) => {
+            {sortedMemberships.map(({ membership, unreadCount }) => {
               const isSelected = membership.community_id === selectedCommunityId;
               return (
                 <button
@@ -290,9 +316,16 @@ export default function CommunityInboxView() {
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="font-ui text-sm text-ink font-medium truncate">
-                        {membership.community.name}
-                      </p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-ui text-sm text-ink font-medium truncate">
+                          {membership.community.name}
+                        </p>
+                        {unreadCount > 0 && (
+                          <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white font-ui text-[10px] font-semibold flex items-center justify-center">
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-1 flex items-center gap-1.5">
                         <span
                           className={`px-1.5 py-0.5 rounded text-[10px] font-ui uppercase ${getRoleBadgeClass(

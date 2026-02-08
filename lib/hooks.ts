@@ -89,6 +89,8 @@ export {
   useCommunityChatThreads,
   useCommunityChatMessages,
   useCommunityAnnouncements,
+  useCommunityChatOverview,
+  useCommunityChatUnreadCount,
   useCommunityChatActions,
 } from "./hooks/useCommunityChat";
 

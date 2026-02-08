@@ -3,7 +3,7 @@
  * Adds Reddit-style community modmail/broadcast chat without touching DMs.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type {
   CommunityChatMembership,
@@ -44,6 +44,28 @@ interface UseCommunityChatActionsReturn {
   ) => Promise<{ success: boolean; sentCount?: number; error?: string }>;
 }
 
+export interface CommunityChatOverview {
+  community_id: string;
+  unread_count: number;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+}
+
+interface UseCommunityChatOverviewReturn {
+  overviewByCommunity: Map<string, CommunityChatOverview>;
+  totalUnreadCount: number;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+interface UseCommunityChatUnreadCountReturn {
+  count: number;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
 interface UseCommunityAnnouncementsReturn {
   messages: CommunityChatMessage[];
   loading: boolean;
@@ -61,6 +83,13 @@ interface CommunityAnnouncementRow {
   metadata: Record<string, unknown> | null;
   created_at: string;
   sender_profile?: CommunityChatMessage["sender_profile"] | CommunityChatMessage["sender_profile"][];
+}
+
+interface CommunityChatOverviewRow {
+  community_id: string;
+  unread_count: number | string | null;
+  last_message_at: string | null;
+  last_message_preview: string | null;
 }
 
 function normalizeSenderProfile(row: {
@@ -96,6 +125,270 @@ function dedupeAnnouncements(messages: CommunityChatMessage[]): CommunityChatMes
   return Array.from(deduped.values()).sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
+}
+
+export function useCommunityChatOverview(userId?: string): UseCommunityChatOverviewReturn {
+  const [overviewByCommunity, setOverviewByCommunity] = useState<Map<string, CommunityChatOverview>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const fetchOverview = useCallback(async () => {
+    if (!userId) {
+      setOverviewByCommunity(new Map());
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fetchError } = await supabase.rpc(
+        "get_community_chat_overview",
+        { p_user_id: userId }
+      );
+
+      if (!mountedRef.current) return;
+      if (fetchError) throw fetchError;
+
+      const rows = (data || []) as CommunityChatOverviewRow[];
+      const nextMap = new Map<string, CommunityChatOverview>();
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        nextMap.set(row.community_id, {
+          community_id: row.community_id,
+          unread_count: Number(row.unread_count || 0),
+          last_message_at: row.last_message_at || null,
+          last_message_preview: row.last_message_preview || null,
+        });
+      }
+
+      setOverviewByCommunity(nextMap);
+    } catch (err) {
+      console.error("[useCommunityChatOverview] Error:", err);
+      if (mountedRef.current) {
+        setError("Failed to load community chat overview");
+        setOverviewByCommunity(new Map());
+      }
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchOverview();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [fetchOverview]);
+
+  useEffect(() => {
+    if (!userId) {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      return;
+    }
+
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedRefetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (mountedRef.current) {
+          fetchOverview();
+        }
+      }, 500);
+    };
+
+    const channel = supabase
+      .channel(`community-chat-overview-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_chat_messages",
+        },
+        debouncedRefetch
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_chat_thread_reads",
+          filter: `user_id=eq.${userId}`,
+        },
+        debouncedRefetch
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_members",
+          filter: `user_id=eq.${userId}`,
+        },
+        debouncedRefetch
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [userId, fetchOverview]);
+
+  const totalUnreadCount = useMemo(() => {
+    let total = 0;
+    overviewByCommunity.forEach((overview) => {
+      total += overview.unread_count;
+    });
+    return total;
+  }, [overviewByCommunity]);
+
+  return {
+    overviewByCommunity,
+    totalUnreadCount,
+    loading,
+    error,
+    refetch: fetchOverview,
+  };
+}
+
+export function useCommunityChatUnreadCount(userId?: string): UseCommunityChatUnreadCountReturn {
+  const [count, setCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!userId) {
+      setCount(0);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fetchError } = await supabase.rpc(
+        "get_community_chat_unread_count",
+        { p_user_id: userId }
+      );
+
+      if (!mountedRef.current) return;
+      if (fetchError) throw fetchError;
+
+      setCount(Number(data || 0));
+    } catch (err) {
+      console.error("[useCommunityChatUnreadCount] Error:", err);
+      if (mountedRef.current) {
+        setError("Failed to load unread community messages");
+        setCount(0);
+      }
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchUnreadCount();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [fetchUnreadCount]);
+
+  useEffect(() => {
+    if (!userId) {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      return;
+    }
+
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedRefetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (mountedRef.current) {
+          fetchUnreadCount();
+        }
+      }, 500);
+    };
+
+    const channel = supabase
+      .channel(`community-chat-unread-count-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_chat_messages",
+        },
+        debouncedRefetch
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_chat_thread_reads",
+          filter: `user_id=eq.${userId}`,
+        },
+        debouncedRefetch
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "community_members",
+          filter: `user_id=eq.${userId}`,
+        },
+        debouncedRefetch
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [userId, fetchUnreadCount]);
+
+  return {
+    count,
+    loading,
+    error,
+    refetch: fetchUnreadCount,
+  };
 }
 
 export function useCommunityChatMemberships(userId?: string): UseCommunityChatMembershipsReturn {

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useCommunityChatUnreadCount } from "@/lib/hooks";
 import ConversationList from "./ConversationList";
 import ChatView from "./ChatView";
 import NewMessageModal from "./NewMessageModal";
@@ -61,6 +62,7 @@ export default function MessagesView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, profile } = useAuth();
+  const { count: communityUnreadCount } = useCommunityChatUnreadCount(user?.id);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -348,11 +350,16 @@ export default function MessagesView() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => router.push("/messages/community")}
-              className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/[0.04] text-ink flex items-center justify-center hover:bg-black/[0.08] transition-all"
+              className="relative w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/[0.04] text-ink flex items-center justify-center hover:bg-black/[0.08] transition-all"
               title="Community Inbox"
               aria-label="Open community inbox"
             >
               {icons.community}
+              {communityUnreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white font-ui text-[10px] font-semibold flex items-center justify-center">
+                  {communityUnreadCount > 99 ? "99+" : communityUnreadCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setShowNewMessage(true)}

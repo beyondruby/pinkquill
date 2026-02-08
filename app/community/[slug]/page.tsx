@@ -284,25 +284,19 @@ export default function CommunityFeedPage() {
         {pinnedPosts.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10 border border-purple-primary/10">
-                <svg className="w-4 h-4 text-purple-primary" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
-                </svg>
-                <span className="font-ui text-xs font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent uppercase tracking-wider">
-                  Pinned
-                </span>
-              </div>
+              <svg className="w-4 h-4 text-purple-primary" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
+              </svg>
               <div className="flex-1 h-px bg-gradient-to-r from-purple-primary/20 via-pink-vivid/10 to-transparent" />
             </div>
             <div className="space-y-4">
               {pinnedPosts.map((post) => (
                 <div key={post.id} className="relative">
-                  {/* Pin indicator badge */}
-                  <div className="absolute -top-2 left-4 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md">
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  {/* Pin indicator */}
+                  <div className="absolute -top-2 left-4 z-10">
+                    <svg className="w-4 h-4 text-purple-primary drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
                     </svg>
-                    <span className="font-ui text-[10px] font-semibold uppercase tracking-wide">Pinned</span>
                   </div>
                   <div className="pt-2">
                     <PostCard

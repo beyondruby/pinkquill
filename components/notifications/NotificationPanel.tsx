@@ -589,6 +589,12 @@ function NotificationItem({
   onMarkAsRead: (id: string) => void;
   onClose: () => void;
 }) {
+  const opensCommunityInbox =
+    notification.type === "community_join_approved" ||
+    notification.type === "community_role_change" ||
+    notification.type === "community_muted" ||
+    notification.type === "community_banned";
+
   const getNotificationLink = (): string => {
     if (notification.type === 'follow' ||
         notification.type === 'follow_request' ||
@@ -598,6 +604,9 @@ function NotificationItem({
     if (notification.type === 'community_join_request' && notification.community?.slug) {
       // Link to the members settings page where admins can approve/reject
       return `/community/${notification.community.slug}/settings/members`;
+    }
+    if (opensCommunityInbox && notification.community?.slug) {
+      return `/messages/community?community=${encodeURIComponent(notification.community.slug)}`;
     }
     if (notification.type.startsWith('community_') && notification.community?.slug) {
       return `/community/${notification.community.slug}`;
