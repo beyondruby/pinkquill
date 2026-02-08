@@ -8,6 +8,8 @@ import { supabase } from "@/lib/supabase";
 import type {
   CommunityChatMembership,
   CommunityChatMessage,
+  CommunityChatMessageType,
+  CommunityChatSenderRole,
   CommunityChatThread,
 } from "@/lib/types";
 
@@ -40,6 +42,60 @@ interface UseCommunityChatActionsReturn {
     communityId: string,
     content: string
   ) => Promise<{ success: boolean; sentCount?: number; error?: string }>;
+}
+
+interface UseCommunityAnnouncementsReturn {
+  messages: CommunityChatMessage[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+interface CommunityAnnouncementRow {
+  id: string;
+  thread_id: string;
+  sender_id: string | null;
+  sender_role: CommunityChatSenderRole;
+  message_type: CommunityChatMessageType;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  sender_profile?: CommunityChatMessage["sender_profile"] | CommunityChatMessage["sender_profile"][];
+}
+
+function normalizeSenderProfile(row: {
+  sender_profile?: CommunityChatMessage["sender_profile"] | CommunityChatMessage["sender_profile"][];
+}): CommunityChatMessage["sender_profile"] {
+  if (!row.sender_profile) return null;
+  return Array.isArray(row.sender_profile) ? row.sender_profile[0] || null : row.sender_profile;
+}
+
+function toAnnouncementDedupKey(message: CommunityChatMessage): string {
+  const metadata = message.metadata as Record<string, unknown> | null | undefined;
+  const broadcastId =
+    metadata && typeof metadata.broadcast_id === "string" ? metadata.broadcast_id : null;
+
+  if (broadcastId) return `broadcast:${broadcastId}`;
+
+  // Fallback key for historical rows without broadcast metadata.
+  const secondBucket = message.created_at.slice(0, 19);
+  return `legacy:${message.sender_id || "system"}:${message.content}:${secondBucket}`;
+}
+
+function dedupeAnnouncements(messages: CommunityChatMessage[]): CommunityChatMessage[] {
+  const deduped = new Map<string, CommunityChatMessage>();
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
+    const key = toAnnouncementDedupKey(message);
+    const existing = deduped.get(key);
+    if (!existing || new Date(message.created_at).getTime() > new Date(existing.created_at).getTime()) {
+      deduped.set(key, message);
+    }
+  }
+
+  return Array.from(deduped.values()).sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 }
 
 export function useCommunityChatMemberships(userId?: string): UseCommunityChatMembershipsReturn {
@@ -402,6 +458,161 @@ export function useCommunityChatMessages(
     error,
     sendMessage,
     refetch: fetchMessages,
+  };
+}
+
+export function useCommunityAnnouncements(
+  communityId: string,
+  userId?: string
+): UseCommunityAnnouncementsReturn {
+  const [messages, setMessages] = useState<CommunityChatMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  const fetchAnnouncements = useCallback(async () => {
+    if (!communityId || !userId) {
+      setMessages([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("community_chat_messages")
+        .select(`
+          id,
+          thread_id,
+          sender_id,
+          sender_role,
+          message_type,
+          content,
+          metadata,
+          created_at,
+          sender_profile:profiles!community_chat_messages_sender_id_fkey (
+            id,
+            username,
+            display_name,
+            avatar_url
+          ),
+          thread:community_chat_threads!inner (
+            community_id
+          )
+        `)
+        .eq("message_type", "announcement")
+        .eq("thread.community_id", communityId)
+        .order("created_at", { ascending: true });
+
+      if (!mountedRef.current) return;
+      if (fetchError) throw fetchError;
+
+      const rows = (data || []) as CommunityAnnouncementRow[];
+      const mapped = rows.map((row) => ({
+        id: row.id,
+        thread_id: row.thread_id,
+        sender_id: row.sender_id,
+        sender_role: row.sender_role,
+        message_type: row.message_type,
+        content: row.content,
+        metadata: row.metadata,
+        created_at: row.created_at,
+        sender_profile: normalizeSenderProfile(row),
+      }));
+
+      setMessages(dedupeAnnouncements(mapped));
+    } catch (err) {
+      console.error("[useCommunityAnnouncements] Error:", err);
+      if (mountedRef.current) {
+        setError("Failed to load community announcements");
+        setMessages([]);
+      }
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [communityId, userId]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchAnnouncements();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [fetchAnnouncements]);
+
+  useEffect(() => {
+    if (!communityId || !userId) return;
+
+    const channel = supabase
+      .channel(`community-announcements-${communityId}-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "community_chat_messages",
+        },
+        async (payload) => {
+          const inserted = payload.new as CommunityChatMessage;
+
+          const { data, error: fetchError } = await supabase
+            .from("community_chat_messages")
+            .select(`
+              id,
+              thread_id,
+              sender_id,
+              sender_role,
+              message_type,
+              content,
+              metadata,
+              created_at,
+              sender_profile:profiles!community_chat_messages_sender_id_fkey (
+                id,
+                username,
+                display_name,
+                avatar_url
+              ),
+              thread:community_chat_threads!inner (
+                community_id
+              )
+            `)
+            .eq("id", inserted.id)
+            .eq("message_type", "announcement")
+            .eq("thread.community_id", communityId)
+            .maybeSingle();
+
+          if (fetchError || !data || !mountedRef.current) return;
+
+          const row = data as CommunityAnnouncementRow;
+          const mapped: CommunityChatMessage = {
+            id: row.id,
+            thread_id: row.thread_id,
+            sender_id: row.sender_id,
+            sender_role: row.sender_role,
+            message_type: row.message_type,
+            content: row.content,
+            metadata: row.metadata,
+            created_at: row.created_at,
+            sender_profile: normalizeSenderProfile(row),
+          };
+
+          setMessages((prev) => dedupeAnnouncements([...prev, mapped]));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [communityId, userId]);
+
+  return {
+    messages,
+    loading,
+    error,
+    refetch: fetchAnnouncements,
   };
 }
 

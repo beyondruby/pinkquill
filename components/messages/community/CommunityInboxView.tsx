@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import {
+  useCommunityAnnouncements,
   useCommunityChatActions,
   useCommunityChatMemberships,
   useCommunityChatMessages,
@@ -58,6 +59,8 @@ function getThreadDisplayName(thread: CommunityChatThread): string {
   );
 }
 
+const STAFF_GENERAL_THREAD_ID = "__community_general__";
+
 export default function CommunityInboxView() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -73,7 +76,6 @@ export default function CommunityInboxView() {
   const [selectedThreadIdState, setSelectedThreadIdState] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [sendAsAppeal, setSendAsAppeal] = useState(false);
-  const [broadcastMode, setBroadcastMode] = useState(false);
 
   const selectedCommunityId = useMemo(() => {
     if (memberships.length === 0) return null;
@@ -112,44 +114,75 @@ export default function CommunityInboxView() {
   );
 
   const selectedThreadId = useMemo(() => {
-    if (!selectedCommunityId || threads.length === 0) return null;
-    if (
-      selectedThreadIdState &&
-      threads.some((thread) => thread.id === selectedThreadIdState)
-    ) {
+    if (!selectedCommunityId) return null;
+
+    if (isStaff) {
+      const validIds = new Set<string>([
+        STAFF_GENERAL_THREAD_ID,
+        ...threads.map((thread) => thread.id),
+      ]);
+
+      if (selectedThreadIdState && validIds.has(selectedThreadIdState)) {
+        return selectedThreadIdState;
+      }
+
+      return STAFF_GENERAL_THREAD_ID;
+    }
+
+    if (threads.length === 0) return null;
+    if (selectedThreadIdState && threads.some((thread) => thread.id === selectedThreadIdState)) {
       return selectedThreadIdState;
     }
+
     return threads[0].id;
-  }, [selectedCommunityId, threads, selectedThreadIdState]);
+  }, [selectedCommunityId, isStaff, threads, selectedThreadIdState]);
+
+  const isGeneralThreadSelected = isStaff && selectedThreadId === STAFF_GENERAL_THREAD_ID;
+  const directThreadId = !selectedThreadId || isGeneralThreadSelected ? "" : selectedThreadId;
 
   const {
-    messages,
-    loading: messagesLoading,
+    messages: directMessages,
+    loading: directMessagesLoading,
     sending,
-    error: messagesError,
+    error: directMessagesError,
     sendMessage,
-  } = useCommunityChatMessages(selectedThreadId || "", user?.id);
+  } = useCommunityChatMessages(directThreadId, user?.id);
+
+  const {
+    messages: announcementMessages,
+    loading: announcementsLoading,
+    error: announcementsError,
+  } = useCommunityAnnouncements(selectedCommunityId || "", user?.id);
 
   const { broadcasting, broadcastToCommunity } = useCommunityChatActions();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const activeMessages = isGeneralThreadSelected ? announcementMessages : directMessages;
+  const activeMessagesLoading = isGeneralThreadSelected ? announcementsLoading : directMessagesLoading;
+  const activeError = isGeneralThreadSelected ? announcementsError : directMessagesError;
+  const isSending = isGeneralThreadSelected ? broadcasting : sending;
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [activeMessages]);
 
-  const selectedThread = threads.find((t) => t.id === selectedThreadId) || null;
+  const selectedThread =
+    selectedThreadId && selectedThreadId !== STAFF_GENERAL_THREAD_ID
+      ? threads.find((thread) => thread.id === selectedThreadId) || null
+      : null;
 
   const canAppeal =
     !!selectedMembership &&
     selectedMembership.role === "member" &&
+    !isGeneralThreadSelected &&
     (selectedMembership.status === "muted" || selectedMembership.status === "banned");
 
   const handleSend = async () => {
     if (!draft.trim()) return;
     if (!selectedMembership) return;
 
-    if (isStaff && broadcastMode) {
+    if (isGeneralThreadSelected) {
       const result = await broadcastToCommunity(selectedMembership.community_id, draft);
       if (!result.success) {
         showToast.error("Broadcast failed", result.error);
@@ -161,7 +194,6 @@ export default function CommunityInboxView() {
         `Delivered to ${result.sentCount || 0} member${result.sentCount === 1 ? "" : "s"}`
       );
       setDraft("");
-      setBroadcastMode(false);
       await refetchThreads();
       return;
     }
@@ -199,7 +231,7 @@ export default function CommunityInboxView() {
     );
   }
 
-  const combinedError = membershipsError || threadsError || messagesError;
+  const combinedError = membershipsError || threadsError || activeError;
 
   return (
     <div className="h-screen bg-[#f8f7fc] flex flex-col md:flex-row">
@@ -245,7 +277,7 @@ export default function CommunityInboxView() {
                   onClick={() => {
                     setSelectedCommunityIdState(membership.community_id);
                     setSelectedThreadIdState(null);
-                    setBroadcastMode(false);
+                    setSendAsAppeal(false);
                   }}
                   className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
                     isSelected ? "bg-purple-primary/8" : "hover:bg-black/[0.02]"
@@ -290,22 +322,48 @@ export default function CommunityInboxView() {
       {selectedMembership && isStaff && (
         <aside className="hidden md:flex w-[280px] border-r border-black/[0.06] bg-white flex-col">
           <div className="px-4 py-3 border-b border-black/[0.06]">
-            <p className="font-ui text-xs uppercase tracking-wide text-muted">Member Threads</p>
+            <p className="font-ui text-xs uppercase tracking-wide text-muted">Threads</p>
           </div>
+          <button
+            onClick={() => {
+              setSelectedThreadIdState(STAFF_GENERAL_THREAD_ID);
+              setSendAsAppeal(false);
+            }}
+            className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
+              selectedThreadId === STAFF_GENERAL_THREAD_ID
+                ? "bg-purple-primary/8"
+                : "hover:bg-black/[0.02]"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-ui text-sm text-ink font-medium truncate">General</p>
+                <p className="font-ui text-xs text-muted truncate">Message all members</p>
+              </div>
+            </div>
+          </button>
           {threadsLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="w-6 h-6 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin" />
             </div>
           ) : threads.length === 0 ? (
             <div className="flex-1 p-4">
-              <p className="font-ui text-sm text-muted">No member threads yet.</p>
+              <p className="font-ui text-sm text-muted">No direct member threads yet.</p>
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto">
               {threads.map((thread) => (
                 <button
                   key={thread.id}
-                  onClick={() => setSelectedThreadIdState(thread.id)}
+                  onClick={() => {
+                    setSelectedThreadIdState(thread.id);
+                    setSendAsAppeal(false);
+                  }}
                   className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
                     thread.id === selectedThreadId
                       ? "bg-purple-primary/8"
@@ -363,39 +421,36 @@ export default function CommunityInboxView() {
                   {selectedMembership.community.name}
                 </p>
                 <h2 className="font-display text-lg text-ink">
-                  {isStaff
+                  {isGeneralThreadSelected
+                    ? "General Announcements"
+                    : isStaff
                     ? selectedThread
                       ? getThreadDisplayName(selectedThread)
                       : "Member"
                     : "Moderation Team"}
                 </h2>
               </div>
-              {isStaff && (
-                <button
-                  onClick={() => setBroadcastMode((prev) => !prev)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-ui transition-colors ${
-                    broadcastMode
-                      ? "bg-purple-primary text-white"
-                      : "bg-black/[0.04] text-ink hover:bg-black/[0.08]"
-                  }`}
-                >
-                  {broadcastMode ? "Broadcasting" : "Broadcast"}
-                </button>
+              {isGeneralThreadSelected && (
+                <span className="px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-xs font-ui font-medium">
+                  All Members
+                </span>
               )}
             </div>
 
             {isStaff && (
               <div className="md:hidden px-4 py-2 bg-white border-b border-black/[0.06]">
-                {threadsLoading ? (
+                {threadsLoading && threads.length === 0 ? (
                   <p className="font-ui text-xs text-muted">Loading member threads...</p>
-                ) : threads.length === 0 ? (
-                  <p className="font-ui text-xs text-muted">No member threads yet.</p>
                 ) : (
                   <select
-                    value={selectedThreadId || threads[0].id}
-                    onChange={(e) => setSelectedThreadIdState(e.target.value)}
+                    value={selectedThreadId || STAFF_GENERAL_THREAD_ID}
+                    onChange={(e) => {
+                      setSelectedThreadIdState(e.target.value);
+                      setSendAsAppeal(false);
+                    }}
                     className="w-full px-3 py-2 rounded-lg bg-[#f5f5f5] border border-black/[0.06] font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
                   >
+                    <option value={STAFF_GENERAL_THREAD_ID}>General (All Members)</option>
                     {threads.map((thread) => (
                       <option key={thread.id} value={thread.id}>
                         {getThreadDisplayName(thread)}
@@ -413,18 +468,22 @@ export default function CommunityInboxView() {
             )}
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {messagesLoading ? (
+              {activeMessagesLoading ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="w-7 h-7 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin" />
                 </div>
-              ) : messages.length === 0 ? (
+              ) : activeMessages.length === 0 ? (
                 <div className="h-full flex items-center justify-center">
-                  <p className="font-body text-muted">No messages yet.</p>
+                  <p className="font-body text-muted">
+                    {isGeneralThreadSelected
+                      ? "No announcements yet."
+                      : "No messages yet."}
+                  </p>
                 </div>
               ) : (
-                messages.map((message, index) => {
+                activeMessages.map((message, index) => {
                   const isOwn = message.sender_id === user.id;
-                  const prev = index > 0 ? messages[index - 1] : null;
+                  const prev = index > 0 ? activeMessages[index - 1] : null;
                   const showDate =
                     !prev ||
                     new Date(prev.created_at).toDateString() !==
@@ -529,10 +588,10 @@ export default function CommunityInboxView() {
                 </div>
               )}
 
-              {isStaff && broadcastMode && (
+              {isGeneralThreadSelected && (
                 <div className="mb-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2">
                   <p className="font-ui text-xs text-blue-700">
-                    Broadcast mode: this message will be sent to every member thread in this community.
+                    Messages in this thread are sent to all community members.
                   </p>
                 </div>
               )}
@@ -549,8 +608,8 @@ export default function CommunityInboxView() {
                     }
                   }}
                   placeholder={
-                    isStaff && broadcastMode
-                      ? "Write a broadcast update..."
+                    isGeneralThreadSelected
+                      ? "Write an announcement for all members..."
                       : sendAsAppeal
                       ? "Write your appeal..."
                       : "Write a message..."
@@ -559,10 +618,10 @@ export default function CommunityInboxView() {
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!draft.trim() || sending || broadcasting}
+                  disabled={!draft.trim() || isSending}
                   className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center disabled:opacity-50"
                 >
-                  {sending || broadcasting ? (
+                  {isSending ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

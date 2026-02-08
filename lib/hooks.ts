@@ -88,6 +88,7 @@ export {
   useCommunityChatMemberships,
   useCommunityChatThreads,
   useCommunityChatMessages,
+  useCommunityAnnouncements,
   useCommunityChatActions,
 } from "./hooks/useCommunityChat";
 

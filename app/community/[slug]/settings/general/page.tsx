@@ -18,7 +18,6 @@ export default function CommunityGeneralSettingsPage() {
     name: '',
     description: '',
     privacy: 'public' as 'public' | 'private',
-    welcome_message: '',
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -33,7 +32,6 @@ export default function CommunityGeneralSettingsPage() {
         name: community.name,
         description: community.description || '',
         privacy: community.privacy,
-        welcome_message: community.welcome_message || '',
       });
       setAvatarPreview(community.avatar_url);
       setCoverPreview(community.cover_url);
@@ -109,7 +107,6 @@ export default function CommunityGeneralSettingsPage() {
         name: formData.name,
         description: formData.description,
         privacy: formData.privacy,
-        welcome_message: formData.welcome_message.trim() || null,
         avatar_url: avatar_url ?? undefined,
         cover_url: cover_url ?? undefined,
       });
@@ -221,24 +218,6 @@ export default function CommunityGeneralSettingsPage() {
             className="w-full px-4 py-3 rounded-xl bg-white border border-black/5 font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
             maxLength={500}
           />
-        </div>
-
-        {/* Welcome Message */}
-        <div>
-          <label className="block font-ui text-sm font-medium text-ink mb-2">
-            Welcome Message
-          </label>
-          <textarea
-            value={formData.welcome_message}
-            onChange={(e) => setFormData(prev => ({ ...prev, welcome_message: e.target.value }))}
-            rows={3}
-            placeholder="Shown in community chat when a member joins..."
-            className="w-full px-4 py-3 rounded-xl bg-white border border-black/5 font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
-            maxLength={1000}
-          />
-          <p className="mt-1 font-ui text-xs text-muted text-right">
-            {formData.welcome_message.length}/1000
-          </p>
         </div>
 
         {/* Privacy (Admin Only) */}
