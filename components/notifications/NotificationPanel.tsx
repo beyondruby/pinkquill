@@ -724,13 +724,21 @@ function NotificationItem({
 }
 
 export default function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return <NotificationPanelContent onClose={onClose} />;
+}
+
+function NotificationPanelContent({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const { notifications, loading } = useNotifications(user?.id);
   const { markAsRead, markAllAsRead } = useMarkAsRead();
   const { invites: rawInvites, refetch: refetchInvites } = useCollaborationInvites(user?.id || "");
   // Filter out invites where post or author is null (e.g., deleted posts)
   const invites = rawInvites.filter(invite => invite.post && invite.post.author);
-  const { requests: followRequests, loading: followRequestsLoading, accept: acceptFollowRequest, decline: declineFollowRequest, refetch: refetchFollowRequests } = useFollowRequests(user?.id);
+  const { requests: followRequests, accept: acceptFollowRequest, decline: declineFollowRequest, refetch: refetchFollowRequests } = useFollowRequests(user?.id);
 
   const handleAcceptFollowRequest = async (requesterId: string) => {
     await acceptFollowRequest(requesterId);
@@ -749,8 +757,6 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
   }, [onClose]);
 
   useEffect(() => {
-    if (!isOpen) return;
-
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCloseRef.current();
     };
@@ -762,7 +768,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen]);
+  }, []);
 
   const handleMarkAllAsRead = async () => {
     if (user) {
@@ -772,8 +778,6 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
 
   const unreadCount = notifications.filter(n => !n.read).length + invites.length + followRequests.length;
   const hasContent = notifications.length > 0 || invites.length > 0 || followRequests.length > 0;
-
-  if (!isOpen) return null;
 
   return (
     <>

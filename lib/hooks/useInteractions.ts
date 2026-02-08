@@ -248,11 +248,20 @@ export function useToggleReaction() {
 interface UseReactionCountsOptions {
   /** Disable real-time subscription (useful when parent already manages updates) */
   disableRealtime?: boolean;
+  /** Skip initial fetch (useful when initial data is already provided by parent). */
+  skipInitialFetch?: boolean;
+  /** Initial counts from parent data to avoid immediate N+1 fetches. */
+  initialCounts?: ReactionCounts;
 }
 
 export function useReactionCounts(postId: string, options?: UseReactionCountsOptions) {
-  const { disableRealtime = false } = options || {};
-  const [counts, setCounts] = useState<ReactionCounts>({
+  const {
+    disableRealtime = false,
+    skipInitialFetch = false,
+    initialCounts,
+  } = options || {};
+
+  const [counts, setCounts] = useState<ReactionCounts>(initialCounts || {
     admire: 0,
     snap: 0,
     ovation: 0,
@@ -261,7 +270,7 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
     applaud: 0,
     total: 0,
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!skipInitialFetch);
   const mountedRef = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -353,10 +362,29 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
     fetchCountsRef.current = fetchCounts;
   }, [fetchCounts]);
 
+  // Keep local counts in sync if parent-provided initial counts change.
+  useEffect(() => {
+    if (!initialCounts) return;
+    setCounts(initialCounts);
+  }, [
+    initialCounts,
+    initialCounts?.admire,
+    initialCounts?.snap,
+    initialCounts?.ovation,
+    initialCounts?.support,
+    initialCounts?.inspired,
+    initialCounts?.applaud,
+    initialCounts?.total,
+  ]);
+
   // Initial fetch
   useEffect(() => {
+    if (skipInitialFetch) {
+      setLoading(false);
+      return;
+    }
     fetchCounts();
-  }, [fetchCounts]);
+  }, [fetchCounts, skipInitialFetch]);
 
   // Real-time subscription - only depends on postId to prevent recreation
   // PERFORMANCE: Skip subscription when disableRealtime is true (e.g., in feed context)
@@ -412,12 +440,21 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
 interface UseUserReactionOptions {
   /** Disable real-time subscription (useful when parent already manages updates) */
   disableRealtime?: boolean;
+  /** Skip initial fetch (useful when parent already provides current reaction). */
+  skipInitialFetch?: boolean;
+  /** Initial reaction from parent-provided data. */
+  initialReaction?: ReactionType | null;
 }
 
 export function useUserReaction(postId: string, userId?: string, options?: UseUserReactionOptions) {
-  const { disableRealtime = false } = options || {};
-  const [reaction, setReaction] = useState<ReactionType | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    disableRealtime = false,
+    skipInitialFetch = false,
+    initialReaction = null,
+  } = options || {};
+
+  const [reaction, setReaction] = useState<ReactionType | null>(initialReaction);
+  const [loading, setLoading] = useState(!skipInitialFetch && !!userId);
   const mountedRef = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -466,10 +503,19 @@ export function useUserReaction(postId: string, userId?: string, options?: UseUs
     }
   }, [postId, userId]);
 
+  // Keep local reaction in sync if parent-provided initial value changes.
+  useEffect(() => {
+    setReaction(initialReaction);
+  }, [initialReaction]);
+
   // Initial fetch
   useEffect(() => {
+    if (skipInitialFetch) {
+      setLoading(false);
+      return;
+    }
     fetchReaction();
-  }, [fetchReaction]);
+  }, [fetchReaction, skipInitialFetch]);
 
   // Real-time subscription - only depends on postId and userId to prevent recreation
   // PERFORMANCE: Skip subscription when disableRealtime is true (e.g., in feed context)

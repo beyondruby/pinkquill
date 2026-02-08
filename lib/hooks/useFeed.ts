@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabase";
 import type { Post, PostMedia, PaginationState, RelayedPost, ReactionType, AggregateCount, PostAuthor, PostType, PostVisibility } from "../types";
 import { getAggregateCount } from "../types";
-import { categorizeError } from "../utils/retry";
+import { categorizeError, retryWithBackoff, isRetryableError } from "../utils/retry";
 
 // ============================================================================
 // CONSTANTS
@@ -84,61 +84,67 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         const from = page * pageSize;
         const to = from + pageSize - 1;
 
-        // Build the query - RLS handles all visibility/blocking logic
-        let query = supabase
-          .from("posts")
-          .select(
-            `
-            *,
-            styling,
-            post_location,
-            metadata,
-            author:profiles!posts_author_id_fkey (
-              id,
-              username,
-              display_name,
-              avatar_url,
-              is_verified,
-              is_private
-            ),
-            media:post_media (
-              id,
-              media_url,
-              media_type,
-              caption,
-              position
-            ),
-            community:communities (
-              id,
-              slug,
-              name,
-              avatar_url
-            ),
-            flair:community_flairs (
-              id,
-              community_id,
-              name,
-              color,
-              emoji,
-              position,
-              created_at
-            ),
-            admires:admires(count),
-            comments:comments(count),
-            relays:relays(count)
-          `,
-            { count: "exact" }
-          )
-          .eq("status", "published")
-          .order("created_at", { ascending: false })
-          .range(from, to);
+        // Build query lazily so transient failures can be retried safely.
+        const runPostsQuery = () => {
+          let query = supabase
+            .from("posts")
+            .select(
+              `
+              *,
+              styling,
+              post_location,
+              metadata,
+              author:profiles!posts_author_id_fkey (
+                id,
+                username,
+                display_name,
+                avatar_url,
+                is_verified,
+                is_private
+              ),
+              media:post_media (
+                id,
+                media_url,
+                media_type,
+                caption,
+                position
+              ),
+              community:communities (
+                id,
+                slug,
+                name,
+                avatar_url
+              ),
+              flair:community_flairs (
+                id,
+                community_id,
+                name,
+                color,
+                emoji,
+                position,
+                created_at
+              ),
+              admires:admires(count),
+              comments:comments(count),
+              relays:relays(count)
+            `,
+              { count: "exact" }
+            )
+            .eq("status", "published")
+            .order("created_at", { ascending: false })
+            .range(from, to);
 
-        // Filter by community if specified
-        if (communityId) {
-          query = query.eq("community_id", communityId);
-        }
+          if (communityId) {
+            query = query.eq("community_id", communityId);
+          }
 
-        const { data: postsData, error: queryError, count: totalCount } = await query;
+          return query;
+        };
+
+        const { data: postsData, error: queryError, count: totalCount } = await retryWithBackoff(runPostsQuery, {
+          attempts: 3,
+          shouldRetry: isRetryableError,
+        });
 
         // Check if request was aborted or component unmounted
         if (abortController.signal.aborted || !mountedRef.current) return;
@@ -310,7 +316,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
           comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
           relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-          reactions_count: 0, // Will be computed from reactions if needed
+          reactions_count: getAggregateCount(post.admires as AggregateCount[] | null),
           // User flags
           user_has_admired: userAdmires.has(post.id),
           user_has_saved: userSaves.has(post.id),
@@ -593,7 +599,7 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
         admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
         comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
         relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-        reactions_count: 0,
+        reactions_count: getAggregateCount(post.admires as AggregateCount[] | null),
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: true,
         user_has_relayed: userRelays.has(post.id),
@@ -788,7 +794,7 @@ export function useRelays(username: string) {
               admires_count: getCount(post.admires),
               comments_count: getCount(post.comments),
               relays_count: getCount(post.relays),
-              reactions_count: 0,
+              reactions_count: getCount(post.admires),
               user_has_admired: false,
               user_has_saved: false,
               user_has_relayed: false,

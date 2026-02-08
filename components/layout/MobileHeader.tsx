@@ -32,8 +32,6 @@ export default function MobileHeader() {
     }
   };
 
-  const totalUnread = unreadCount + unreadMessagesCount;
-
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-b border-black/[0.06] md:hidden">
@@ -93,10 +91,12 @@ export default function MobileHeader() {
       </header>
 
       {/* Notification Panel */}
-      <NotificationPanel
-        isOpen={showNotifications}
-        onClose={() => setShowNotifications(false)}
-      />
+      {showNotifications && (
+        <NotificationPanel
+          isOpen={showNotifications}
+          onClose={() => setShowNotifications(false)}
+        />
+      )}
     </>
   );
 }

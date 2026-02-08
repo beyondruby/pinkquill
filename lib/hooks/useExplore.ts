@@ -526,7 +526,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
           comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
           relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-          reactions_count: 0,
+          reactions_count: getAggregateCount(post.admires as AggregateCount[] | null),
           user_has_admired: userAdmires.has(post.id),
           user_has_saved: userSaves.has(post.id),
           user_has_relayed: userRelays.has(post.id),

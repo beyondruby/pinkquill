@@ -144,9 +144,34 @@ function PostCardComponent({
   const { toggle: toggleRelay } = useToggleRelay();
   const { react: toggleReaction, removeReaction } = useToggleReaction();
 
+  const initialReactionTotal = Math.max(
+    0,
+    post.stats?.reactions ?? post.stats?.admires ?? 0
+  );
+  const initialReactionCounts = useMemo<ReactionCounts>(
+    () => ({
+      admire: initialReactionTotal,
+      snap: 0,
+      ovation: 0,
+      support: 0,
+      inspired: 0,
+      applaud: 0,
+      total: initialReactionTotal,
+    }),
+    [initialReactionTotal]
+  );
+
   // Real-time reaction hooks - disabled in feed context to reduce subscription count
-  const { counts: reactionCounts, refetch: refetchReactionCounts } = useReactionCounts(post.id, { disableRealtime: disableRealtimeSubscriptions });
-  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post.id, user?.id, { disableRealtime: disableRealtimeSubscriptions });
+  const { counts: reactionCounts, refetch: refetchReactionCounts } = useReactionCounts(post.id, {
+    disableRealtime: disableRealtimeSubscriptions,
+    skipInitialFetch: disableRealtimeSubscriptions,
+    initialCounts: initialReactionCounts,
+  });
+  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post.id, user?.id, {
+    disableRealtime: disableRealtimeSubscriptions,
+    skipInitialFetch: disableRealtimeSubscriptions,
+    initialReaction: post.reactionType ?? null,
+  });
 
   const [isAdmired, setIsAdmired] = useState(post.isAdmired || false);
   const [isSaved, setIsSaved] = useState(post.isSaved || false);
@@ -306,12 +331,16 @@ function PostCardComponent({
       if (!wasReacted && !isSameReaction) {
         await createNotification(post.authorId, user.id, reactionType, post.id);
       }
+
+      if (disableRealtimeSubscriptions) {
+        await refetchReactionCounts();
+      }
     } catch {
       // Revert on error
       setUserReaction(previousReaction);
       actionToast.reactionError();
     }
-  }, [user, openAuthModal, userReaction, post.id, post.authorId, notifyUpdate, toggleReaction, setUserReaction]);
+  }, [user, openAuthModal, userReaction, post.id, post.authorId, notifyUpdate, toggleReaction, setUserReaction, disableRealtimeSubscriptions, refetchReactionCounts]);
 
   const handleRemoveReaction = useCallback(async () => {
     if (!user) {
@@ -337,12 +366,15 @@ function PostCardComponent({
     try {
       // Perform database update (real-time subscription will update counts)
       await removeReaction(post.id, user.id);
+      if (disableRealtimeSubscriptions) {
+        await refetchReactionCounts();
+      }
     } catch {
       // Revert on error
       setUserReaction(previousReaction);
       actionToast.reactionError();
     }
-  }, [user, openAuthModal, userReaction, post.id, notifyUpdate, removeReaction, setUserReaction]);
+  }, [user, openAuthModal, userReaction, post.id, notifyUpdate, removeReaction, setUserReaction, disableRealtimeSubscriptions, refetchReactionCounts]);
 
   const handleSave = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1493,6 +1525,7 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
   return (
     prevProps.post.id === nextProps.post.id &&
     prevProps.post.stats?.admires === nextProps.post.stats?.admires &&
+    prevProps.post.stats?.reactions === nextProps.post.stats?.reactions &&
     prevProps.post.stats?.comments === nextProps.post.stats?.comments &&
     prevProps.post.stats?.relays === nextProps.post.stats?.relays &&
     prevProps.post.isAdmired === nextProps.post.isAdmired &&
@@ -1503,7 +1536,8 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
     !!prevProps.onModeratorDelete === !!nextProps.onModeratorDelete &&
     prevProps.isPinned === nextProps.isPinned &&
     !!prevProps.onPin === !!nextProps.onPin &&
-    !!prevProps.onUnpin === !!nextProps.onUnpin
+    !!prevProps.onUnpin === !!nextProps.onUnpin &&
+    prevProps.disableRealtimeSubscriptions === nextProps.disableRealtimeSubscriptions
   );
 });
 

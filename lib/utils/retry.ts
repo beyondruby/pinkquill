@@ -2,6 +2,124 @@
  * Error categorization utility for better user feedback
  */
 
+// ============================================================================
+// RETRY UTILITIES
+// ============================================================================
+
+export interface RetryOptions {
+  /** Total attempts including the initial try. */
+  attempts?: number;
+  /** Initial delay before retrying (ms). */
+  initialDelayMs?: number;
+  /** Maximum backoff delay (ms). */
+  maxDelayMs?: number;
+  /** Exponential backoff multiplier. */
+  factor?: number;
+  /** Add jitter to avoid synchronized retries. */
+  jitter?: boolean;
+  /** Optional custom retry predicate. */
+  shouldRetry?: (error: unknown, attempt: number) => boolean;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object" && "message" in error) {
+    const msg = (error as { message?: unknown }).message;
+    return typeof msg === "string" ? msg : String(msg || "");
+  }
+  return "";
+}
+
+/**
+ * Best-effort retryability detection for transient network/database failures.
+ */
+export function isRetryableError(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: unknown }).code || "")
+      : "";
+  const status =
+    error && typeof error === "object" && "status" in error
+      ? Number((error as { status?: unknown }).status)
+      : NaN;
+
+  if (
+    message.includes("network") ||
+    message.includes("failed to fetch") ||
+    message.includes("timeout") ||
+    message.includes("timed out") ||
+    message.includes("connection") ||
+    message.includes("temporary") ||
+    message.includes("rate limit") ||
+    message.includes("too many requests")
+  ) {
+    return true;
+  }
+
+  if (!Number.isNaN(status) && (status === 429 || status >= 500)) {
+    return true;
+  }
+
+  // Common transient Postgres / PostgREST codes
+  const retryableCodes = new Set([
+    "PGRST003", // pool timeout
+    "PGRST301", // gateway/connection issue
+    "57014", // statement timeout / query canceled
+    "57P03", // cannot connect now
+    "53300", // too many connections
+  ]);
+
+  return retryableCodes.has(code);
+}
+
+/**
+ * Retry an async operation with exponential backoff.
+ */
+export async function retryWithBackoff<T>(
+  operation: () => PromiseLike<T> | T,
+  options: RetryOptions = {}
+): Promise<T> {
+  const {
+    attempts = 3,
+    initialDelayMs = 250,
+    maxDelayMs = 2000,
+    factor = 2,
+    jitter = true,
+    shouldRetry = isRetryableError,
+  } = options;
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await Promise.resolve(operation());
+    } catch (error) {
+      lastError = error;
+      const isLastAttempt = attempt >= attempts;
+
+      if (isLastAttempt || !shouldRetry(error, attempt)) {
+        throw error;
+      }
+
+      let delay = Math.min(maxDelayMs, initialDelayMs * Math.pow(factor, attempt - 1));
+      if (jitter) {
+        delay = Math.round(delay * (0.75 + Math.random() * 0.5));
+      }
+      await sleep(delay);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Retry attempts exhausted");
+}
+
 /**
  * Categorize errors for better user feedback
  */

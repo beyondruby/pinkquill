@@ -520,10 +520,12 @@ export default function LeftSidebar() {
       </nav>
 
       {/* Notification Panel */}
-      <NotificationPanel
-        isOpen={showNotifications}
-        onClose={() => setShowNotifications(false)}
-      />
+      {showNotifications && (
+        <NotificationPanel
+          isOpen={showNotifications}
+          onClose={() => setShowNotifications(false)}
+        />
+      )}
     </>
   );
 }

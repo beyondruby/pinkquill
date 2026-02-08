@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
-import type { Post, PostMedia, AggregateCount } from "../types";
+import type { Post, PostMedia, AggregateCount, ReactionType } from "../types";
 import { getAggregateCount } from "../types";
 
 // ============================================================================
@@ -273,17 +273,27 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
       let userAdmires = new Set<string>();
       let userSaves = new Set<string>();
       let userRelays = new Set<string>();
+      const userReactions = new Map<string, ReactionType>();
 
       if (userId && postIds.length > 0) {
-        const [admiresResult, savesResult, relaysResult] = await Promise.all([
+        const [admiresResult, savesResult, relaysResult, reactionsResult] = await Promise.all([
           supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
           supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
           supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
+          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", userId).in("post_id", postIds),
         ]);
 
         userAdmires = new Set((admiresResult.data || []).map((a) => a.post_id));
         userSaves = new Set((savesResult.data || []).map((s) => s.post_id));
         userRelays = new Set((relaysResult.data || []).map((r) => r.post_id));
+
+        if (!reactionsResult.error) {
+          (reactionsResult.data || []).forEach((reaction) => {
+            if (reaction.post_id && reaction.reaction_type) {
+              userReactions.set(reaction.post_id, reaction.reaction_type as ReactionType);
+            }
+          });
+        }
       }
 
       // Fetch tags for each post
@@ -323,11 +333,11 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
         admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
         comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
         relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-        reactions_count: 0,
+        reactions_count: getAggregateCount(post.admires as AggregateCount[] | null),
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: userSaves.has(post.id),
         user_has_relayed: userRelays.has(post.id),
-        user_reaction_type: null,
+        user_reaction_type: userReactions.get(post.id) || null,
         community_id: post.community_id || null,
         hashtags: tagsByPost.get(post.id) || [],
       }));

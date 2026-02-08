@@ -219,7 +219,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
         comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
         relays_count: 0,
-        reactions_count: 0,
+        reactions_count: getAggregateCount(post.admires as AggregateCount[] | null),
         user_has_admired: false,
         user_has_saved: false,
         user_has_relayed: false,

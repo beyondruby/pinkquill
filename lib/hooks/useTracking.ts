@@ -9,6 +9,62 @@ import { useAuth } from "@/components/providers/AuthProvider";
 // ============================================================================
 
 const SESSION_ID_KEY = "quill_session_id";
+const RELATIONSHIP_CACHE_TTL_MS = 2 * 60 * 1000;
+
+interface BooleanCacheEntry {
+  value: boolean;
+  fetchedAt: number;
+}
+
+const blockedRelationshipCache = new Map<string, BooleanCacheEntry>();
+const followRelationshipCache = new Map<string, BooleanCacheEntry>();
+
+type IdleCallback = (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void;
+type IdleWindow = Window & {
+  requestIdleCallback?: (callback: IdleCallback, options?: { timeout: number }) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
+function getCachedBoolean(
+  cache: Map<string, BooleanCacheEntry>,
+  key: string
+): boolean | undefined {
+  const cached = cache.get(key);
+  if (!cached) return undefined;
+  if (Date.now() - cached.fetchedAt >= RELATIONSHIP_CACHE_TTL_MS) {
+    cache.delete(key);
+    return undefined;
+  }
+  return cached.value;
+}
+
+function setCachedBoolean(
+  cache: Map<string, BooleanCacheEntry>,
+  key: string,
+  value: boolean
+) {
+  cache.set(key, { value, fetchedAt: Date.now() });
+}
+
+function runWhenIdle(task: () => void, timeout: number = 1200): () => void {
+  if (typeof window === "undefined") {
+    task();
+    return () => undefined;
+  }
+
+  const idleWindow = window as IdleWindow;
+  if (typeof idleWindow.requestIdleCallback === "function") {
+    const handle = idleWindow.requestIdleCallback(() => task(), { timeout });
+    return () => {
+      if (typeof idleWindow.cancelIdleCallback === "function") {
+        idleWindow.cancelIdleCallback(handle);
+      }
+    };
+  }
+
+  const timer = window.setTimeout(task, 0);
+  return () => window.clearTimeout(timer);
+}
 
 function generateSessionId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
@@ -36,23 +92,38 @@ async function isBlockedEitherWay(
   if (!userId1) return false;
   if (userId1 === userId2) return false;
 
-  // Check both directions separately to avoid SQL injection from string interpolation
-  const [{ data: block1 }, { data: block2 }] = await Promise.all([
-    supabase
-      .from("blocks")
-      .select("id")
-      .eq("blocker_id", userId1)
-      .eq("blocked_id", userId2)
-      .maybeSingle(),
-    supabase
-      .from("blocks")
-      .select("id")
-      .eq("blocker_id", userId2)
-      .eq("blocked_id", userId1)
-      .maybeSingle(),
-  ]);
+  const cacheKey = [userId1, userId2].sort().join(":");
+  const cached = getCachedBoolean(blockedRelationshipCache, cacheKey);
+  if (cached !== undefined) return cached;
 
-  return !!(block1 || block2);
+  try {
+    // Check both directions separately to avoid SQL injection from string interpolation
+    const [{ data: block1, error: error1 }, { data: block2, error: error2 }] = await Promise.all([
+      supabase
+        .from("blocks")
+        .select("id")
+        .eq("blocker_id", userId1)
+        .eq("blocked_id", userId2)
+        .maybeSingle(),
+      supabase
+        .from("blocks")
+        .select("id")
+        .eq("blocker_id", userId2)
+        .eq("blocked_id", userId1)
+        .maybeSingle(),
+    ]);
+
+    if (error1 || error2) {
+      throw error1 || error2;
+    }
+
+    const blocked = !!(block1 || block2);
+    setCachedBoolean(blockedRelationshipCache, cacheKey, blocked);
+    return blocked;
+  } catch (err) {
+    console.warn("[tracking] block lookup failed:", err);
+    return false;
+  }
 }
 
 // ============================================================================
@@ -65,14 +136,29 @@ async function checkIsFollowing(
 ): Promise<boolean> {
   if (!followerId || followerId === followingId) return false;
 
-  const { data } = await supabase
-    .from("follows")
-    .select("follower_id")
-    .eq("follower_id", followerId)
-    .eq("following_id", followingId)
-    .maybeSingle();
+  const cacheKey = `${followerId}->${followingId}`;
+  const cached = getCachedBoolean(followRelationshipCache, cacheKey);
+  if (cached !== undefined) return cached;
 
-  return !!data;
+  try {
+    const { data, error } = await supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", followerId)
+      .eq("following_id", followingId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    const isFollowing = !!data;
+    setCachedBoolean(followRelationshipCache, cacheKey, isFollowing);
+    return isFollowing;
+  } catch (err) {
+    console.warn("[tracking] follow lookup failed:", err);
+    return false;
+  }
 }
 
 // ============================================================================
@@ -97,15 +183,25 @@ export function useTrackPostImpression(
     const recordImpression = async () => {
       const sessionId = getSessionId();
 
-      await supabase.from("post_impressions").insert({
+      const { error } = await supabase.from("post_impressions").insert({
         post_id: postId,
         viewer_id: user?.id || null,
         session_id: user?.id ? null : sessionId,
         source,
       });
+
+      if (error) {
+        console.warn("[tracking] post impression insert failed:", error.message);
+      }
     };
 
-    recordImpression();
+    const cancelIdle = runWhenIdle(() => {
+      void recordImpression();
+    });
+
+    return () => {
+      cancelIdle();
+    };
   }, [postId, user?.id, source]);
 }
 
@@ -277,15 +373,25 @@ export function useTrackTakeImpression(
     const recordImpression = async () => {
       const sessionId = getSessionId();
 
-      await supabase.from("take_impressions").insert({
+      const { error } = await supabase.from("take_impressions").insert({
         take_id: takeId,
         viewer_id: user?.id || null,
         session_id: user?.id ? null : sessionId,
         source,
       });
+
+      if (error) {
+        console.warn("[tracking] take impression insert failed:", error.message);
+      }
     };
 
-    recordImpression();
+    const cancelIdle = runWhenIdle(() => {
+      void recordImpression();
+    });
+
+    return () => {
+      cancelIdle();
+    };
   }, [takeId, user?.id, source]);
 }
 

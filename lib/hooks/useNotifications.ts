@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabase";
 import type { Notification, NotificationType } from "../types";
+import { isRetryableError, retryWithBackoff } from "../utils/retry";
 
 // ============================================================================
 // createNotification - Helper to create notifications
@@ -79,31 +80,38 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
         setLoading(true);
       }
 
-      const { data, error } = await supabase
-        .from("notifications")
-        .select(
-          `
-          *,
-          actor:profiles!notifications_actor_id_fkey (
-            username,
-            display_name,
-            avatar_url
-          ),
-          post:posts (
-            title,
-            content,
-            type
-          ),
-          community:communities (
-            name,
-            slug,
-            avatar_url
-          )
-        `
-        )
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      const { data, error } = await retryWithBackoff(
+        () =>
+          supabase
+            .from("notifications")
+            .select(
+              `
+              *,
+              actor:profiles!notifications_actor_id_fkey (
+                username,
+                display_name,
+                avatar_url
+              ),
+              post:posts (
+                title,
+                content,
+                type
+              ),
+              community:communities (
+                name,
+                slug,
+                avatar_url
+              )
+            `
+            )
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(50),
+        {
+          attempts: 3,
+          shouldRetry: isRetryableError,
+        }
+      );
 
       if (error) throw error;
 
@@ -269,11 +277,18 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
     }
 
     try {
-      const { count: unreadCount, error } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("read", false);
+      const { count: unreadCount, error } = await retryWithBackoff(
+        () =>
+          supabase
+            .from("notifications")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", userId)
+            .eq("read", false),
+        {
+          attempts: 3,
+          shouldRetry: isRetryableError,
+        }
+      );
 
       if (error) {
         console.error("[useUnreadCount] Error fetching count:", error.message);
@@ -398,6 +413,19 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const fetchedRef = useRef(false);
   const mountedRef = useRef(true);
+  const isFetchingRef = useRef(false);
+  const conversationIdsRef = useRef<Set<string>>(new Set());
+  const blockedUsersRef = useRef<Set<string>>(new Set());
+
+  // Reset cache refs when user changes so a stale state never leaks between accounts.
+  useEffect(() => {
+    fetchedRef.current = false;
+    conversationIdsRef.current = new Set();
+    blockedUsersRef.current = new Set();
+    if (!userId) {
+      setCount(0);
+    }
+  }, [userId]);
 
   // Fetch blocked users with caching
   const getBlockedUsers = useCallback(async (): Promise<Set<string>> => {
@@ -411,10 +439,17 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
 
     try {
       // Fetch both directions in parallel
-      const [blockedByResult, iBlockedResult] = await Promise.all([
-        supabase.from("blocks").select("blocker_id").eq("blocked_id", userId),
-        supabase.from("blocks").select("blocked_id").eq("blocker_id", userId),
-      ]);
+      const [blockedByResult, iBlockedResult] = await retryWithBackoff(
+        () =>
+          Promise.all([
+            supabase.from("blocks").select("blocker_id").eq("blocked_id", userId),
+            supabase.from("blocks").select("blocked_id").eq("blocker_id", userId),
+          ]),
+        {
+          attempts: 3,
+          shouldRetry: isRetryableError,
+        }
+      );
 
       const blockedUserIds = new Set<string>();
       (blockedByResult.data || []).forEach((b) => blockedUserIds.add(b.blocker_id));
@@ -436,37 +471,62 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
   const fetchCount = useCallback(async () => {
     if (!userId) {
       setCount(0);
+      fetchedRef.current = false;
+      conversationIdsRef.current = new Set();
+      blockedUsersRef.current = new Set();
       return;
     }
+
+    if (isFetchingRef.current) {
+      return;
+    }
+    isFetchingRef.current = true;
 
     try {
       // Get blocked users (uses cache)
       const blockedUserIds = await getBlockedUsers();
+      blockedUsersRef.current = blockedUserIds;
 
-      // Optimized: Single query to get unread count by joining tables
       // Get conversations where user is participant
-      const { data: participations } = await supabase
-        .from("conversation_participants")
-        .select("conversation_id")
-        .eq("user_id", userId);
+      const { data: participations, error: participationsError } = await retryWithBackoff(
+        () =>
+          supabase
+            .from("conversation_participants")
+            .select("conversation_id")
+            .eq("user_id", userId),
+        {
+          attempts: 3,
+          shouldRetry: isRetryableError,
+        }
+      );
 
       if (!mountedRef.current) return;
+      if (participationsError) throw participationsError;
 
       if (!participations || participations.length === 0) {
+        conversationIdsRef.current = new Set();
         setCount(0);
         fetchedRef.current = true;
         return;
       }
 
       const conversationIds = participations.map((p) => p.conversation_id);
+      conversationIdsRef.current = new Set(conversationIds);
 
       // Get unread count - only fetch sender_id for filtering (minimal data)
-      const { data: unreadMessages, error } = await supabase
-        .from("messages")
-        .select("sender_id")
-        .in("conversation_id", conversationIds)
-        .eq("is_read", false)
-        .neq("sender_id", userId);
+      const { data: unreadMessages, error } = await retryWithBackoff(
+        () =>
+          supabase
+            .from("messages")
+            .select("sender_id")
+            .in("conversation_id", conversationIds)
+            .eq("is_read", false)
+            .neq("sender_id", userId),
+        {
+          attempts: 3,
+          shouldRetry: isRetryableError,
+        }
+      );
 
       if (!mountedRef.current) return;
       if (error) throw error;
@@ -485,6 +545,8 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("[useUnreadMessagesCount] Error:", message);
+    } finally {
+      isFetchingRef.current = false;
     }
   }, [userId, getBlockedUsers]);
 
@@ -531,6 +593,78 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
       }, 1000); // Increased from 300ms to 1000ms
     };
 
+    const handleInsert = (payload: { new?: { conversation_id?: string; sender_id?: string; is_read?: boolean } }) => {
+      const inserted = payload.new;
+      const conversationId = inserted?.conversation_id;
+      const senderId = inserted?.sender_id;
+      if (!conversationId || !senderId) {
+        debouncedFetch();
+        return;
+      }
+
+      // Ignore events not relevant to this user
+      if (!conversationIdsRef.current.has(conversationId)) return;
+      if (senderId === userId) return;
+      if (blockedUsersRef.current.has(senderId)) return;
+
+      // New incoming unread message increments count without a DB round-trip.
+      if (inserted?.is_read !== true) {
+        setCount((prev) => prev + 1);
+      } else {
+        debouncedFetch();
+      }
+    };
+
+    const handleUpdate = (payload: {
+      new?: { conversation_id?: string; sender_id?: string; is_read?: boolean };
+      old?: { conversation_id?: string; sender_id?: string; is_read?: boolean };
+    }) => {
+      const updated = payload.new;
+      const previous = payload.old;
+      const conversationId = updated?.conversation_id || previous?.conversation_id;
+      const senderId = updated?.sender_id || previous?.sender_id;
+
+      if (!conversationId || !senderId) {
+        debouncedFetch();
+        return;
+      }
+      if (!conversationIdsRef.current.has(conversationId)) return;
+      if (senderId === userId) return;
+      if (blockedUsersRef.current.has(senderId)) return;
+
+      if (typeof previous?.is_read === "boolean" && typeof updated?.is_read === "boolean") {
+        if (!previous.is_read && updated.is_read) {
+          setCount((prev) => Math.max(0, prev - 1));
+          return;
+        }
+        if (previous.is_read && !updated.is_read) {
+          setCount((prev) => prev + 1);
+          return;
+        }
+      }
+
+      debouncedFetch();
+    };
+
+    const handleDelete = (payload: { old?: { conversation_id?: string; sender_id?: string; is_read?: boolean } }) => {
+      const deleted = payload.old;
+      const conversationId = deleted?.conversation_id;
+      const senderId = deleted?.sender_id;
+      if (!conversationId || !senderId) {
+        debouncedFetch();
+        return;
+      }
+      if (!conversationIdsRef.current.has(conversationId)) return;
+      if (senderId === userId) return;
+      if (blockedUsersRef.current.has(senderId)) return;
+
+      if (deleted?.is_read === false) {
+        setCount((prev) => Math.max(0, prev - 1));
+      } else {
+        debouncedFetch();
+      }
+    };
+
     const channelName = `unread-messages-count-${userId}`;
     const channel = supabase
       .channel(channelName)
@@ -540,8 +674,9 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
           event: "INSERT",
           schema: "public",
           table: "messages",
+          filter: "is_read=eq.false",
         },
-        debouncedFetch
+        handleInsert
       )
       .on(
         "postgres_changes",
@@ -550,7 +685,16 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
           schema: "public",
           table: "messages",
         },
-        debouncedFetch
+        handleUpdate
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "messages",
+        },
+        handleDelete
       )
       .subscribe();
 

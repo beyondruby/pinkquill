@@ -63,10 +63,12 @@ function transformPostForCard(post: Post) {
     media: post.media || [],
     stats: {
       admires: post.admires_count,
+      reactions: post.reactions_count,
       comments: post.comments_count,
       relays: post.relays_count,
     },
     isAdmired: post.user_has_admired,
+    reactionType: post.user_reaction_type,
     isSaved: post.user_has_saved,
     isRelayed: post.user_has_relayed,
     community: post.community ? {

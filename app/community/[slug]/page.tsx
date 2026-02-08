@@ -195,7 +195,7 @@ export default function CommunityFeedPage() {
       refetch();
       refetchPins();
     }
-  }, [user?.id, pinPost, refetch, refetchPins]);
+  }, [user, pinPost, refetch, refetchPins]);
 
   const handleUnpin = useCallback(async (postId: string) => {
     const success = await unpinPost(postId);
@@ -311,6 +311,7 @@ export default function CommunityFeedPage() {
                       onModeratorDelete={handleModeratorDeletePost}
                       isPinned={true}
                       onUnpin={isAdmin ? handleUnpin : undefined}
+                      disableRealtimeSubscriptions={true}
                     />
                   </div>
                 </div>
@@ -339,6 +340,7 @@ export default function CommunityFeedPage() {
                   isPinned={isPinned(post.id)}
                   onPin={isAdmin && canPin && !isPinned(post.id) ? handlePin : undefined}
                   onUnpin={isAdmin && isPinned(post.id) ? handleUnpin : undefined}
+                  disableRealtimeSubscriptions={true}
                 />
               </div>
             ))}
