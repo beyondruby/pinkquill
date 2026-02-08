@@ -1,20 +1,11 @@
-import type { Metadata } from "next";
-import CommissionOrderView from "@/components/commissions/CommissionOrder";
+import { redirect } from "next/navigation";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  await params;
-
-  return {
-    title: "Commission Order | Quill",
-    description: "Track status, revisions, and delivery for your commission order.",
-  };
-}
-
+// Redirect old commission order URLs to the new unified orders page
 export default async function CommissionOrderPage({ params }: Props) {
   const { id } = await params;
-  return <CommissionOrderView orderId={id} />;
+  redirect(`/orders/${id}`);
 }

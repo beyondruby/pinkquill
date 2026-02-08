@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useProduct } from "@/lib/hooks/useProducts";
-import { useHireCommission } from "@/lib/hooks/useCommissions";
+import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
+import { PLATFORM_FEES } from "@/lib/types/store";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
 
 interface CommissionDetailViewProps {
@@ -17,7 +18,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
   const router = useRouter();
   const { user } = useAuth();
   const { product, loading, error } = useProduct(commissionId);
-  const { hire, hiring, error: hireError } = useHireCommission();
+  const { createOrder, creating: hiring, error: hireError } = useCreateOrder();
 
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [showHireModal, setShowHireModal] = useState(false);
@@ -122,13 +123,17 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + Math.max(1, timelineDays));
 
-    const order = await hire({
-      productId: product.id,
-      pricingId: selectedPackage.id,
+    const order = await createOrder({
+      product_id: product.id,
+      pricing_id: selectedPackage.id,
+      listing_type: "service",
       amount: selectedPackage.price,
+      platform_fee: Math.round(selectedPackage.price * PLATFORM_FEES.service * 100) / 100,
+      seller_amount: Math.round(selectedPackage.price * (1 - PLATFORM_FEES.service) * 100) / 100,
       currency: selectedPackage.currency,
       brief,
-      dueDate: dueDate.toISOString(),
+      due_date: dueDate.toISOString(),
+      max_revisions: selectedPackage.revisions || undefined,
       requirements: {
         notes: requirementsText,
       },
@@ -136,7 +141,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
     if (order) {
       setShowHireModal(false);
-      router.push(`/commissions/orders/${order.id}`);
+      router.push(`/orders/${order.id}`);
     }
   };
 

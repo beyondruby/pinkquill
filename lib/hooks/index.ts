@@ -116,6 +116,19 @@ export {
   useUpdateCommissionOrder,
 } from "./useCommissions";
 
+// Orders
+export {
+  useCreateOrder,
+  useOrder,
+  useBuyerOrders,
+  useSellerOrders,
+  useUpdateOrderStatus,
+  useOrderMessages,
+  useSendOrderMessage,
+  useOrderEvents,
+  useOrderStats,
+} from "./useOrders";
+
 // Messaging (reactions, typing indicators, sharing)
 export {
   useMessageReactions,
@@ -178,3 +191,15 @@ export type {
   SortOption,
   TopTimeRange,
 } from "../types";
+
+// Re-export order/store types
+export type {
+  Order,
+  OrderMessage,
+  OrderEvent,
+  OrderStatus,
+  OrderFilters,
+  OrderStats,
+  PaymentStatus,
+  CreateOrderData,
+} from "../types/store";

@@ -24,6 +24,26 @@ export type PurchaseStatus =
   | 'refunded'
   | 'cancelled';
 
+export type OrderStatus =
+  | 'pending_payment'
+  | 'paid'
+  | 'in_progress'
+  | 'submitted'
+  | 'revision_requested'
+  | 'completed'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'refund_requested'
+  | 'refunded'
+  | 'disputed'
+  | 'resolved';
+
+export type PaymentStatus = 'pending' | 'authorized' | 'paid' | 'refunded' | 'partially_refunded' | 'failed';
+export type OrderMessageType = 'text' | 'file' | 'status_update' | 'system';
+export type OrderEventType = 'status_change' | 'payment' | 'message' | 'revision' | 'dispute' | 'system';
+
 // ============================================================================
 // PRODUCT SELLER (minimal profile for display)
 // ============================================================================
@@ -292,6 +312,154 @@ export interface DownloadToken {
 }
 
 // ============================================================================
+// ORDER TYPES (new orders system)
+// ============================================================================
+
+export interface Order {
+  id: string;
+  order_number: string;
+
+  // Participants
+  buyer_id: string;
+  seller_id: string;
+
+  // Product
+  product_id: string;
+  pricing_id: string | null;
+  listing_type: ListingType;
+
+  // Financial
+  amount: number;
+  platform_fee: number;
+  seller_amount: number;
+  currency: string;
+
+  // Status
+  status: OrderStatus;
+  payment_intent_id: string | null;
+  payment_status: PaymentStatus;
+  escrow_released: boolean;
+  escrow_released_at: string | null;
+
+  // Commission fields
+  brief: string | null;
+  requirements: Record<string, unknown>;
+  due_date: string | null;
+  started_at: string | null;
+  submitted_at: string | null;
+  completed_at: string | null;
+  delivery_note: string | null;
+  delivery_assets: string[];
+  revision_count: number;
+  max_revisions: number | null;
+
+  // Product fields
+  quantity: number;
+  shipping_address: ShippingAddress | null;
+  tracking_number: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+
+  // Cancellation
+  cancelled_by: string | null;
+  cancel_reason: string | null;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+
+  // Joined data
+  product?: Product;
+  buyer?: ProductSeller;
+  seller?: ProductSeller;
+  pricing?: ProductPricing;
+  messages?: OrderMessage[];
+  events?: OrderEvent[];
+}
+
+export interface OrderMessage {
+  id: string;
+  order_id: string;
+  sender_id: string;
+  content: string | null;
+  message_type: OrderMessageType;
+  attachments: OrderAttachment[];
+  created_at: string;
+
+  // Joined
+  sender?: ProductSeller;
+}
+
+export interface OrderAttachment {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
+export interface OrderEvent {
+  id: string;
+  order_id: string;
+  actor_id: string | null;
+  event_type: OrderEventType;
+  from_status: string | null;
+  to_status: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+
+  // Joined
+  actor?: ProductSeller;
+}
+
+export interface CreateOrderData {
+  product_id: string;
+  pricing_id: string;
+  listing_type: ListingType;
+  amount: number;
+  platform_fee: number;
+  seller_amount: number;
+  currency?: string;
+  brief?: string;
+  requirements?: Record<string, string | string[]>;
+  due_date?: string;
+  max_revisions?: number;
+  quantity?: number;
+  shipping_address?: ShippingAddress;
+}
+
+export interface OrderFilters {
+  status?: OrderStatus;
+  listing_type?: ListingType;
+  date_from?: string;
+  date_to?: string;
+}
+
+export interface OrderStats {
+  total_orders: number;
+  active_orders: number;
+  completed_orders: number;
+  cancelled_orders: number;
+  total_revenue: number;
+  pending_revenue: number;
+}
+
+// ============================================================================
+// FEE CALCULATION
+// ============================================================================
+
+export const PLATFORM_FEES = {
+  product: 0.08,    // 8% for products
+  service: 0.10,    // 10% for commissions
+} as const;
+
+export function calculateFees(amount: number, listingType: ListingType) {
+  const feeRate = PLATFORM_FEES[listingType];
+  const platformFee = Math.round(amount * feeRate * 100) / 100;
+  const sellerAmount = Math.round((amount - platformFee) * 100) / 100;
+  return { platformFee, sellerAmount };
+}
+
+// ============================================================================
 // CREATE/UPDATE FORM TYPES
 // ============================================================================
 
@@ -490,18 +658,20 @@ export const initialCommissionWizardState: CommissionWizardState = {
 // MARKETPLACE FILTER TYPES
 // ============================================================================
 
+export type MarketplaceSortOption = 'newest' | 'price_low' | 'price_high' | 'popular';
+
 export interface MarketplaceFilters {
   listing_type?: ListingType;
   category?: string;
   subcategory?: string;
-  delivery_type?: ProductDelivery;
+  delivery_type?: ProductDelivery | 'physical' | 'digital';
   min_price?: number;
   max_price?: number;
   max_delivery_days?: number;
   min_revisions?: number;
   keywords?: string[];
   seller_id?: string;
-  sort_by?: 'newest' | 'price_low' | 'price_high' | 'popular';
+  sort_by: MarketplaceSortOption;
 }
 
 export interface MarketplacePagination {

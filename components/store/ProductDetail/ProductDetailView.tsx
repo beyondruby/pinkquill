@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProduct, useToggleSaveProduct } from "@/lib/hooks/useProducts";
+import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { ProductPricing } from "@/lib/types/store";
+import { ProductPricing, PLATFORM_FEES, ShippingAddress } from "@/lib/types/store";
 import {
   getCategoryConfig,
   formatAttributeValue,
@@ -24,11 +25,20 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   const { user } = useAuth();
   const { product, loading, error } = useProduct(productId);
   const { toggle: toggleSave, checkIsSaved } = useToggleSaveProduct();
+  const { createOrder, creating: buying, error: buyError } = useCreateOrder();
   const [selectedPricing, setSelectedPricing] = useState<ProductPricing | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showBuyModal, setShowBuyModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState<Partial<ShippingAddress>>({
+    name: "",
+    line1: "",
+    city: "",
+    postal_code: "",
+    country: "",
+  });
 
   // Check if product is saved
   useEffect(() => {
@@ -290,8 +300,12 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               </Link>
             )}
 
-            {/* Add to Cart */}
+            {/* Buy Now */}
             <button
+              onClick={() => {
+                if (!user) { router.push("/login"); return; }
+                setShowBuyModal(true);
+              }}
               disabled={!activePricing || activePricing.stock === 0}
               className="w-full py-4 bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm
                 text-white font-display font-bold text-lg rounded-xl
@@ -303,8 +317,9 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              Add to Cart
+              Buy Now
             </button>
+            {buyError && <p className="text-sm font-body text-red-500">{buyError}</p>}
           </div>
         </div>
 
@@ -433,6 +448,125 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
         title={product.title}
         onClose={() => setShowShareModal(false)}
       />
+
+      {/* Buy Modal */}
+      {showBuyModal && activePricing && product && (
+        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm px-4 py-8 overflow-y-auto">
+          <div className="max-w-lg mx-auto rounded-2xl bg-white shadow-2xl border border-black/[0.08]">
+            <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between">
+              <div>
+                <h2 className="font-display text-2xl text-ink">Review Order</h2>
+                <p className="text-sm font-body text-muted mt-1">
+                  {activePricing.variant_name || product.title}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowBuyModal(false)}
+                className="w-9 h-9 rounded-full hover:bg-gray-100 text-muted"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Order summary */}
+              <div className="rounded-xl border border-black/[0.06] p-4 space-y-2">
+                <div className="flex justify-between text-sm font-body">
+                  <span className="text-muted">Subtotal</span>
+                  <span className="text-ink font-semibold">${activePricing.price.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-body">
+                  <span className="text-muted">Platform fee ({Math.round(PLATFORM_FEES.product * 100)}%)</span>
+                  <span className="text-ink">${(activePricing.price * PLATFORM_FEES.product).toFixed(2)}</span>
+                </div>
+                <div className="border-t border-black/[0.06] pt-2 flex justify-between">
+                  <span className="font-ui font-semibold text-ink">Total</span>
+                  <span className="font-display text-xl font-bold text-ink">${activePricing.price.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Shipping address (for physical) */}
+              {product.delivery_type !== "digital" && (
+                <div className="space-y-3">
+                  <h3 className="font-ui font-semibold text-ink text-sm">Shipping Address</h3>
+                  <input
+                    placeholder="Full name"
+                    value={shippingAddress.name || ""}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+                  />
+                  <input
+                    placeholder="Address line 1"
+                    value={shippingAddress.line1 || ""}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, line1: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      placeholder="City"
+                      value={shippingAddress.city || ""}
+                      onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+                    />
+                    <input
+                      placeholder="Postal code"
+                      value={shippingAddress.postal_code || ""}
+                      onChange={(e) => setShippingAddress((prev) => ({ ...prev, postal_code: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+                    />
+                  </div>
+                  <input
+                    placeholder="Country"
+                    value={shippingAddress.country || ""}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, country: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+                  />
+                </div>
+              )}
+
+              {buyError && <p className="text-sm font-body text-red-500">{buyError}</p>}
+
+              <button
+                onClick={async () => {
+                  const isPhysical = product.delivery_type !== "digital";
+                  if (isPhysical && (!shippingAddress.name || !shippingAddress.line1 || !shippingAddress.city || !shippingAddress.country)) {
+                    return;
+                  }
+
+                  const platformFee = Math.round(activePricing.price * PLATFORM_FEES.product * 100) / 100;
+                  const sellerAmount = Math.round((activePricing.price - platformFee) * 100) / 100;
+
+                  const order = await createOrder({
+                    product_id: product.id,
+                    pricing_id: activePricing.id,
+                    listing_type: "product",
+                    amount: activePricing.price,
+                    platform_fee: platformFee,
+                    seller_amount: sellerAmount,
+                    currency: activePricing.currency,
+                    shipping_address: isPhysical ? shippingAddress as ShippingAddress : undefined,
+                  });
+
+                  if (order) {
+                    setShowBuyModal(false);
+                    router.push(`/orders/${order.id}`);
+                  }
+                }}
+                disabled={buying}
+                className="w-full py-3.5 rounded-xl text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60"
+              >
+                {buying ? "Processing..." : "Place Order"}
+              </button>
+              <p className="text-xs text-center font-body text-muted">
+                Payment will be processed on the next screen
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

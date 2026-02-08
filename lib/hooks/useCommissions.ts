@@ -405,48 +405,42 @@ export function useUpdateCommissionOrder(): UseUpdateCommissionOrderReturn {
     setError(null);
 
     try {
-      const { data: existing, error: existingError } = await supabase
+      // Use SECURITY DEFINER RPCs for safe status transitions
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Determine if user is buyer or seller for this purchase
+      const { data: purchase, error: purchaseError } = await supabase
         .from("product_purchases")
-        .select("revision_count")
+        .select("buyer_id, product:products!inner(seller_id)")
         .eq("id", orderId)
         .single();
 
-      if (existingError) throw existingError;
+      if (purchaseError) throw purchaseError;
 
-      const updates: Record<string, unknown> = {
-        status: payload.status,
-      };
+      const productData = purchase.product as unknown as { seller_id: string } | null;
+      const isBuyer = purchase.buyer_id === user.id;
+      const isSeller = productData?.seller_id === user.id;
 
-      if (payload.delivery_note !== undefined) {
-        updates.delivery_note = payload.delivery_note;
+      if (!isBuyer && !isSeller) {
+        throw new Error("Not authorized to update this order");
       }
 
-      if (payload.delivery_assets !== undefined) {
-        updates.delivery_assets = payload.delivery_assets;
+      if (isSeller) {
+        const { error: rpcError } = await supabase.rpc("update_purchase_as_seller", {
+          p_purchase_id: orderId,
+          p_status: payload.status,
+          p_delivery_note: payload.delivery_note || null,
+          p_delivery_assets: payload.delivery_assets ? JSON.stringify(payload.delivery_assets) : null,
+        });
+        if (rpcError) throw rpcError;
+      } else {
+        const { error: rpcError } = await supabase.rpc("update_purchase_as_buyer", {
+          p_purchase_id: orderId,
+          p_status: payload.status,
+        });
+        if (rpcError) throw rpcError;
       }
-
-      if (payload.status === "in_progress") {
-        updates.started_at = new Date().toISOString();
-      }
-
-      if (payload.status === "submitted") {
-        updates.submitted_at = new Date().toISOString();
-      }
-
-      if (payload.status === "completed") {
-        updates.completed_at = new Date().toISOString();
-      }
-
-      if (payload.status === "revision_requested") {
-        updates.revision_count = (existing?.revision_count || 0) + 1;
-      }
-
-      const { error: updateError } = await supabase
-        .from("product_purchases")
-        .update(updates)
-        .eq("id", orderId);
-
-      if (updateError) throw updateError;
       return true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);

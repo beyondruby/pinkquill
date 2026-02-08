@@ -2,33 +2,21 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
-import type { ListingType, Product, ProductMedia, ProductPricing } from "../types/store";
+import type {
+  ListingType,
+  MarketplaceFilters,
+  MarketplacePagination,
+  MarketplaceSortOption,
+  Product,
+  ProductMedia,
+  ProductPricing,
+} from "../types/store";
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export type MarketplaceSortOption = "newest" | "price_low" | "price_high" | "popular";
-
-export interface MarketplaceFilters {
-  listing_type?: ListingType;
-  category?: string;
-  subcategory?: string;
-  delivery_type?: "physical" | "digital";
-  min_price?: number;
-  max_price?: number;
-  max_delivery_days?: number;
-  min_revisions?: number;
-  sort_by: MarketplaceSortOption;
-  keywords?: string[];
-}
-
-export interface MarketplacePagination {
-  page: number;
-  per_page: number;
-  total: number;
-  has_more: boolean;
-}
+export type { MarketplaceSortOption, MarketplaceFilters, MarketplacePagination };
 
 export interface UseMarketplaceOptions {
   pageSize?: number;
@@ -174,6 +162,14 @@ export function useMarketplace(
           );
         }
 
+        // Apply keyword search server-side via title/description ilike
+        if (filters.keywords && filters.keywords.length > 0) {
+          const searchTerm = filters.keywords.join(" ");
+          query = query.or(
+            `title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
+          );
+        }
+
         // Apply sorting
         switch (filters.sort_by) {
           case "newest":
@@ -182,7 +178,8 @@ export function useMarketplace(
           case "price_low":
           case "price_high":
           case "popular":
-            // These need post-processing for computed fields
+            // Price sorting requires post-processing since min_price is computed
+            // Popular falls back to newest until engagement tracking is added
             query = query.order("created_at", { ascending: false });
             break;
         }
@@ -199,7 +196,8 @@ export function useMarketplace(
         // Transform products
         let transformedProducts: Product[] = (data || []).map(transformProduct);
 
-        // Apply price range filter (post-query filtering for computed min_price)
+        // Post-query filtering for computed fields
+        // Note: these filters operate on joined pricing data that can't be filtered server-side
         if (filters.min_price !== undefined || filters.max_price !== undefined) {
           transformedProducts = transformedProducts.filter((p) => {
             const price = p.min_price;
@@ -232,22 +230,11 @@ export function useMarketplace(
           });
         }
 
-        // Apply client-side price sorting
+        // Apply price sorting on transformed products
         if (filters.sort_by === "price_low") {
           transformedProducts.sort((a, b) => (a.min_price || 0) - (b.min_price || 0));
         } else if (filters.sort_by === "price_high") {
           transformedProducts.sort((a, b) => (b.min_price || 0) - (a.min_price || 0));
-        }
-
-        // Search filter (client-side full-text on title, description, keywords)
-        if (filters.keywords && filters.keywords.length > 0) {
-          const searchTerms = filters.keywords.map((k) => k.toLowerCase());
-          transformedProducts = transformedProducts.filter((p) => {
-            const searchableText = [p.title, p.description, ...(p.keywords || [])]
-              .join(" ")
-              .toLowerCase();
-            return searchTerms.some((term) => searchableText.includes(term));
-          });
         }
 
         // Update state

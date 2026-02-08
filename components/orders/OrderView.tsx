@@ -1,0 +1,205 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useOrder } from "@/lib/hooks/useOrders";
+import OrderTimeline from "./OrderTimeline";
+import OrderMessages from "./OrderMessages";
+import OrderActions from "./OrderActions";
+import type { Order } from "@/lib/types/store";
+
+interface OrderViewProps {
+  orderId: string;
+}
+
+export default function OrderView({ orderId }: OrderViewProps) {
+  const { user } = useAuth();
+  const { order, loading, error, refetch } = useOrder(orderId);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background py-10 px-4">
+        <div className="max-w-5xl mx-auto space-y-4">
+          <div className="h-10 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-52 bg-gray-100 rounded-2xl animate-pulse" />
+          <div className="h-64 bg-gray-100 rounded-2xl animate-pulse" />
+          <div className="h-48 bg-gray-100 rounded-2xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <h1 className="font-display text-3xl text-ink mb-3">Order not found</h1>
+          <p className="font-body text-muted mb-6">
+            This order doesn&apos;t exist or you don&apos;t have permission to view it.
+          </p>
+          <Link
+            href="/orders"
+            className="inline-flex px-5 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid"
+          >
+            Back to Orders
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const isBuyer = user?.id === order.buyer_id;
+  const counterparty = isBuyer ? order.seller : order.buyer;
+  const isCommission = order.listing_type === "service";
+
+  return (
+    <div className="min-h-screen bg-background py-8 px-4">
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Header */}
+        <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-ui uppercase tracking-wider text-pink-vivid mb-2">
+                {isCommission ? "Commission Order" : "Product Order"}
+              </p>
+              <h1 className="font-display text-2xl sm:text-3xl text-ink mb-1 truncate">
+                {order.product?.title || "Order"}
+              </h1>
+              <p className="text-sm font-body text-muted">
+                {order.order_number} &middot; Status:{" "}
+                <span className="font-semibold text-ink capitalize">
+                  {order.status.replace(/_/g, " ")}
+                </span>
+              </p>
+            </div>
+
+            {/* Counterparty */}
+            {counterparty && (
+              <Link
+                href={`/studio/${counterparty.username}`}
+                className="flex items-center gap-2.5 shrink-0"
+              >
+                {counterparty.avatar_url ? (
+                  <Image
+                    src={counterparty.avatar_url}
+                    alt=""
+                    width={36}
+                    height={36}
+                    className="w-9 h-9 rounded-full"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
+                    <span className="text-xs font-ui font-bold text-white">
+                      {(counterparty.display_name || counterparty.username)[0].toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs font-ui text-muted">{isBuyer ? "Seller" : "Buyer"}</p>
+                  <p className="text-sm font-ui font-semibold text-ink">
+                    {counterparty.display_name || counterparty.username}
+                  </p>
+                </div>
+              </Link>
+            )}
+          </div>
+
+          {/* Metrics */}
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Metric label="Amount" value={`$${order.amount.toFixed(2)}`} />
+            {isCommission && (
+              <Metric
+                label="Package"
+                value={order.pricing?.variant_name || "Selected"}
+              />
+            )}
+            {isCommission && (
+              <Metric
+                label="Due"
+                value={order.due_date ? new Date(order.due_date).toLocaleDateString() : "Not set"}
+              />
+            )}
+            {!isCommission && order.quantity > 1 && (
+              <Metric label="Quantity" value={`${order.quantity}`} />
+            )}
+            <Metric
+              label="Ordered"
+              value={new Date(order.created_at).toLocaleDateString()}
+            />
+            {isBuyer && (
+              <Metric
+                label="Platform Fee"
+                value={`$${order.platform_fee.toFixed(2)}`}
+              />
+            )}
+            {!isBuyer && (
+              <Metric
+                label="Your Earnings"
+                value={`$${order.seller_amount.toFixed(2)}`}
+              />
+            )}
+          </div>
+        </section>
+
+        {/* Timeline */}
+        <OrderTimeline order={order} />
+
+        {/* Brief (commissions) */}
+        {isCommission && order.brief && (
+          <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
+            <h2 className="font-display text-xl text-ink mb-3">Brief</h2>
+            <p className="font-body text-sm text-ink/90 whitespace-pre-wrap">{order.brief}</p>
+            {order.requirements && Object.keys(order.requirements).length > 0 && (
+              <div className="mt-4 p-3 rounded-xl bg-gray-50 border border-black/[0.06]">
+                <p className="text-xs font-ui uppercase tracking-wider text-muted mb-2">Requirements</p>
+                {Object.entries(order.requirements).map(([key, value]) => (
+                  <div key={key} className="text-sm font-body text-ink/80 mb-1">
+                    <span className="font-semibold">{key}:</span>{" "}
+                    {Array.isArray(value) ? value.join(", ") : String(value)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Shipping Address (physical products) */}
+        {order.shipping_address && (
+          <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
+            <h2 className="font-display text-xl text-ink mb-3">Shipping Address</h2>
+            <div className="font-body text-sm text-ink/90">
+              <p className="font-semibold">{order.shipping_address.name}</p>
+              <p>{order.shipping_address.line1}</p>
+              {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
+              <p>
+                {order.shipping_address.city}
+                {order.shipping_address.state ? `, ${order.shipping_address.state}` : ""}{" "}
+                {order.shipping_address.postal_code}
+              </p>
+              <p>{order.shipping_address.country}</p>
+            </div>
+          </section>
+        )}
+
+        {/* Actions */}
+        <OrderActions
+          order={order}
+          onUpdate={() => refetch()}
+        />
+
+        {/* Messages */}
+        <OrderMessages orderId={orderId} />
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-black/[0.08] px-3 py-2.5">
+      <p className="text-xs font-ui uppercase tracking-wider text-muted">{label}</p>
+      <p className="font-ui font-semibold text-ink mt-1 truncate">{value}</p>
+    </div>
+  );
+}
