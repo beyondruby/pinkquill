@@ -101,7 +101,9 @@ export default function SellerOnboarding() {
       </div>
       <h2 className="text-xl font-bold mb-3">Seller Account Active</h2>
       <p className="text-gray-600 mb-6">
-        Your account is set up and ready to receive payments.
+        {account.placeholder_mode
+          ? "Placeholder payments are active while Stripe setup is pending."
+          : "Your account is set up and ready to receive payments."}
       </p>
 
       <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
@@ -123,7 +125,7 @@ export default function SellerOnboarding() {
         onClick={openDashboard}
         className="px-6 py-2.5 bg-[var(--color-purple-primary)] text-white rounded-lg font-medium hover:opacity-90 transition-opacity inline-flex items-center gap-2"
       >
-        <span>Open Stripe Dashboard</span>
+        <span>{account.placeholder_mode ? "Open Placeholder Setup" : "Open Stripe Dashboard"}</span>
         <FontAwesomeIcon icon={faExternalLinkAlt} className="text-xs" />
       </button>
     </div>

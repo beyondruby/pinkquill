@@ -35,15 +35,19 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
     const success = await requestRefund(order.id, refundReason || undefined);
     if (success) {
       setShowRefund(false);
-      if (onUpdate) onUpdate({ ...order, status: "refund_requested" });
+      if (onUpdate) onUpdate({ ...order, status: "refunded", payment_status: "refunded" });
     }
   };
 
   // No actions for non-participants
   if (!isBuyer && !isSeller) return null;
 
+  const isTerminal =
+    ["completed", "cancelled", "refunded", "resolved"].includes(order.status)
+    || (!isBuyer && order.status === "delivered");
+
   // Terminal states
-  if (["completed", "delivered", "cancelled", "refunded", "resolved"].includes(order.status)) {
+  if (isTerminal) {
     return (
       <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
         <div className="flex items-center gap-2">
@@ -142,6 +146,17 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
             </div>
           )}
 
+          {/* Deliver Digital Product */}
+          {order.listing_type === "product" && !order.shipping_address && order.status === "paid" && (
+            <button
+              onClick={() => handleAction("delivered")}
+              disabled={updating}
+              className="px-5 py-3 rounded-xl text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid disabled:opacity-60"
+            >
+              Deliver Digital Order
+            </button>
+          )}
+
           {/* Ship Order (physical product) */}
           {order.listing_type === "product" && order.shipping_address && order.status === "paid" && (
             <div className="space-y-3">
@@ -224,7 +239,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
       )}
 
       {/* CANCEL (both roles, only early stages) */}
-      {["pending_payment", "paid"].includes(order.status) && !showCancel && (
+      {order.status === "pending_payment" && !showCancel && (
         <button
           onClick={() => setShowCancel(true)}
           className="text-sm font-ui text-red-500 hover:text-red-600"

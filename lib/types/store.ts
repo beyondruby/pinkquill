@@ -337,6 +337,8 @@ export interface Order {
   // Status
   status: OrderStatus;
   payment_intent_id: string | null;
+  payment_provider?: "stripe" | "placeholder" | null;
+  payment_reference?: string | null;
   payment_status: PaymentStatus;
   escrow_released: boolean;
   escrow_released_at: string | null;
@@ -417,10 +419,12 @@ export interface OrderEvent {
 export interface CreateOrderData {
   product_id: string;
   pricing_id: string;
-  listing_type: ListingType;
-  amount: number;
-  platform_fee: number;
-  seller_amount: number;
+  // Legacy client fields retained for compatibility.
+  // Server computes authoritative values from product/pricing.
+  listing_type?: ListingType;
+  amount?: number;
+  platform_fee?: number;
+  seller_amount?: number;
   currency?: string;
   brief?: string;
   requirements?: Record<string, string | string[]>;
@@ -454,6 +458,8 @@ export interface SellerAccount {
   id: string;
   user_id: string;
   stripe_account_id: string | null;
+  provider?: "stripe" | "placeholder";
+  placeholder_mode?: boolean;
   onboarding_complete: boolean;
   charges_enabled: boolean;
   payouts_enabled: boolean;

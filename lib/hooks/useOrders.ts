@@ -15,9 +15,7 @@ import type {
   ProductMedia,
   ProductPricing,
   ProductSeller,
-  calculateFees,
 } from "../types/store";
-import { PLATFORM_FEES } from "../types/store";
 
 // ============================================================================
 // HELPERS
@@ -110,66 +108,29 @@ export function useCreateOrder(): UseCreateOrderReturn {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please sign in to place an order");
 
-      // Get seller_id from product
-      const { data: product, error: productError } = await supabase
-        .from("products")
-        .select("id, seller_id, listing_type, status")
-        .eq("id", data.product_id)
-        .single();
+      const response = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-      if (productError) throw productError;
-      if (!product) throw new Error("Product not found");
-      if (product.status !== "active") throw new Error("This listing is not available");
-      if (product.seller_id === user.id) throw new Error("You cannot purchase your own listing");
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to create order");
+      }
 
-      // Calculate fees
-      const feeRate = PLATFORM_FEES[data.listing_type];
-      const platformFee = Math.round(data.amount * feeRate * 100) / 100;
-      const sellerAmount = Math.round((data.amount - platformFee) * 100) / 100;
+      const orderId = payload.order_id as string | undefined;
+      if (!orderId) {
+        throw new Error("Order created but response was missing order_id");
+      }
 
-      const { data: order, error: orderError } = await supabase
+      const { data: order, error: fetchError } = await supabase
         .from("orders")
-        .insert({
-          buyer_id: user.id,
-          seller_id: product.seller_id,
-          product_id: data.product_id,
-          pricing_id: data.pricing_id,
-          listing_type: data.listing_type,
-          amount: data.amount,
-          platform_fee: platformFee,
-          seller_amount: sellerAmount,
-          currency: data.currency || "usd",
-          status: "pending_payment",
-          payment_status: "pending",
-          brief: data.brief || null,
-          requirements: data.requirements || {},
-          due_date: data.due_date || null,
-          max_revisions: data.max_revisions || null,
-          quantity: data.quantity || 1,
-          shipping_address: data.shipping_address || null,
-        })
         .select(ORDER_SELECT)
+        .eq("id", orderId)
         .single();
 
-      if (orderError) throw orderError;
-
-      // Log creation event
-      await supabase.from("order_events").insert({
-        order_id: order.id,
-        actor_id: user.id,
-        event_type: "status_change",
-        from_status: null,
-        to_status: "pending_payment",
-      });
-
-      // System message
-      await supabase.from("order_messages").insert({
-        order_id: order.id,
-        sender_id: user.id,
-        content: "Order created — awaiting payment",
-        message_type: "system",
-      });
-
+      if (fetchError) throw fetchError;
       return transformOrder(order);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);

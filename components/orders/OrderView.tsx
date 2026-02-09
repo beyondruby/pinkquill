@@ -30,10 +30,13 @@ export default function OrderView({ orderId }: OrderViewProps) {
   // Auto-open checkout if redirected back with payment=success
   const paymentParam = searchParams.get("payment");
   useEffect(() => {
+    if (paymentParam === "start" && order?.status === "pending_payment" && user?.id === order.buyer_id) {
+      setShowCheckout(true);
+    }
     if (paymentParam === "success") {
       refetch();
     }
-  }, [paymentParam, refetch]);
+  }, [paymentParam, order?.status, order?.buyer_id, user?.id, refetch]);
 
   const handlePaymentSuccess = useCallback(() => {
     setShowCheckout(false);
@@ -259,7 +262,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
   );
 }
 
-const REVIEWABLE_STATUSES = new Set(["completed", "delivered", "escrow_released"]);
+const REVIEWABLE_STATUSES = new Set(["completed", "delivered", "resolved"]);
 
 function OrderReviewSection({ order, userId }: { order: Order; userId?: string }) {
   const { reviews, myReview, loading, refetch } = useOrderReviews(

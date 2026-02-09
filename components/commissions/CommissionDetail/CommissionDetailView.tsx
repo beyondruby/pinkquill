@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
+import { useStudioQueue } from "@/lib/hooks/useStudioQueue";
 import { getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
 import { PLATFORM_FEES } from "@/lib/types/store";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
@@ -20,6 +21,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
   const { user } = useAuth();
   const { product, loading, error } = useProduct(commissionId);
   const { createOrder, creating: hiring, error: hireError } = useCreateOrder();
+  const { addItem, hasItem } = useStudioQueue();
 
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [showHireModal, setShowHireModal] = useState(false);
@@ -38,6 +40,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
     if (!selectedPackageId) return packages[0];
     return packages.find((pkg) => pkg.id === selectedPackageId) || packages[0];
   }, [packages, selectedPackageId]);
+  const isQueued = selectedPackage && product ? hasItem(product.id, selectedPackage.id) : false;
 
   const serviceFaqs = useMemo(() => {
     const faqs = product?.service_metadata?.faqs;
@@ -142,7 +145,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
     if (order) {
       setShowHireModal(false);
-      router.push(`/orders/${order.id}`);
+      router.push(`/orders/${order.id}?payment=start`);
     }
   };
 
@@ -283,6 +286,36 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
               >
                 Hire Creator
               </button>
+
+              {selectedPackage && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      if (!product) return;
+                      addItem({
+                        product_id: product.id,
+                        pricing_id: selectedPackage.id,
+                        listing_type: "service",
+                        delivery_type: product.delivery_type,
+                        title: product.title,
+                        seller_name: product.seller?.display_name || product.seller?.username || "Creator",
+                        price: selectedPackage.price,
+                        currency: selectedPackage.currency,
+                        image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
+                      });
+                    }}
+                    className="w-full py-3 rounded-xl border border-purple-primary/30 bg-purple-50 text-purple-primary font-ui font-semibold text-sm hover:bg-purple-100 transition-colors"
+                  >
+                    {isQueued ? "In Studio Queue" : "Add to Studio Queue"}
+                  </button>
+                  <button
+                    onClick={() => router.push("/queue")}
+                    className="w-full py-3 rounded-xl border border-black/[0.08] bg-white text-ink font-ui font-semibold text-sm hover:bg-black/[0.02] transition-colors"
+                  >
+                    Open Studio Queue
+                  </button>
+                </div>
+              )}
 
               {localError && (
                 <p className="text-sm font-body text-red-500">{localError}</p>

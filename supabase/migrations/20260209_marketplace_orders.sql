@@ -263,12 +263,16 @@ BEGIN
         RAISE EXCEPTION 'Cannot ship from status: %', v_order.status;
       END IF;
     WHEN 'delivered' THEN
-      IF v_order.status != 'shipped' THEN
+      IF v_order.status = 'shipped' THEN
+        NULL;
+      ELSIF v_order.status = 'paid' AND v_order.shipping_address IS NULL THEN
+        NULL;
+      ELSE
         RAISE EXCEPTION 'Cannot deliver from status: %', v_order.status;
       END IF;
     WHEN 'cancelled' THEN
-      IF v_order.status NOT IN ('pending_payment', 'paid') THEN
-        RAISE EXCEPTION 'Cannot cancel from status: %', v_order.status;
+      IF v_order.status != 'pending_payment' THEN
+        RAISE EXCEPTION 'Only unpaid orders can be cancelled directly';
       END IF;
     ELSE
       RAISE EXCEPTION 'Invalid seller status: %', p_status;
@@ -346,8 +350,8 @@ BEGIN
         RAISE EXCEPTION 'Maximum revisions reached (%)', v_order.max_revisions;
       END IF;
     WHEN 'cancelled' THEN
-      IF v_order.status NOT IN ('pending_payment', 'paid') THEN
-        RAISE EXCEPTION 'Cannot cancel from status: %', v_order.status;
+      IF v_order.status != 'pending_payment' THEN
+        RAISE EXCEPTION 'Only unpaid orders can be cancelled directly';
       END IF;
     ELSE
       RAISE EXCEPTION 'Invalid buyer status: %', p_status;

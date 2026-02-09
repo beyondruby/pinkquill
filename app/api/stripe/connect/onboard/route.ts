@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { stripe, CONNECT_ACCOUNT_TYPE } from "@/lib/stripe";
 import { getAuthUser } from "@/lib/auth-server";
+import { getPaymentProvider } from "@/lib/payments";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export async function POST(request: Request) {
@@ -9,6 +9,17 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    if (getPaymentProvider() !== "stripe") {
+      const { url } = request;
+      const origin = new URL(url).origin;
+      return NextResponse.json({
+        url: `${origin}/seller/onboarding?provider=placeholder`,
+        placeholder_mode: true,
+      });
+    }
+
+    const { stripe, CONNECT_ACCOUNT_TYPE } = await import("@/lib/stripe");
 
     // Check if seller account already exists
     const { data: existingAccount } = await supabaseAdmin

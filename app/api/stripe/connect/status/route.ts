@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
 import { getAuthUser } from "@/lib/auth-server";
+import { getPaymentProvider } from "@/lib/payments";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export async function GET() {
@@ -8,6 +8,19 @@ export async function GET() {
     const user = await getAuthUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (getPaymentProvider() !== "stripe") {
+      return NextResponse.json({
+        provider: "placeholder",
+        user_id: user.id,
+        has_account: true,
+        onboarding_complete: true,
+        charges_enabled: true,
+        payouts_enabled: false,
+        country: null,
+        placeholder_mode: true,
+      });
     }
 
     const { data: account } = await supabaseAdmin
@@ -27,6 +40,7 @@ export async function GET() {
 
     // If we have a Stripe account, fetch fresh status
     if (account.stripe_account_id) {
+      const { stripe } = await import("@/lib/stripe");
       const stripeAccount = await stripe.accounts.retrieve(account.stripe_account_id);
 
       const updates = {
@@ -44,6 +58,7 @@ export async function GET() {
         .eq("id", account.id);
 
       return NextResponse.json({
+        user_id: user.id,
         has_account: true,
         stripe_account_id: account.stripe_account_id,
         ...updates,
@@ -51,6 +66,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      user_id: user.id,
       has_account: true,
       onboarding_complete: account.onboarding_complete,
       charges_enabled: account.charges_enabled,

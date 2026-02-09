@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
 import { getAuthUser } from "@/lib/auth-server";
+import { getPaymentProvider } from "@/lib/payments";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export async function POST() {
@@ -8,6 +8,13 @@ export async function POST() {
     const user = await getAuthUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (getPaymentProvider() !== "stripe") {
+      return NextResponse.json({
+        url: "/seller/onboarding?provider=placeholder",
+        placeholder_mode: true,
+      });
     }
 
     const { data: account } = await supabaseAdmin
@@ -23,6 +30,7 @@ export async function POST() {
       );
     }
 
+    const { stripe } = await import("@/lib/stripe");
     const loginLink = await stripe.accounts.createLoginLink(account.stripe_account_id);
 
     return NextResponse.json({ url: loginLink.url });

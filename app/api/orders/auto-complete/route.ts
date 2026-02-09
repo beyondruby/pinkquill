@@ -1,26 +1,21 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { stripe } from "@/lib/stripe";
 
-/**
- * Auto-complete orders past their deadline.
- * Called by a cron job / Supabase Edge Function on a schedule.
- * Also releases escrow for newly completed commission orders.
- *
- * Auth: Uses a shared secret header for cron authentication.
- */
 export async function POST(request: Request) {
   try {
-    // Verify cron secret (if set)
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      const authHeader = request.headers.get("authorization");
-      if (authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    if (!cronSecret) {
+      return NextResponse.json(
+        { error: "CRON_SECRET is not configured" },
+        { status: 500 }
+      );
     }
 
-    // Call the DB function that auto-completes overdue orders
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { data: count, error } = await supabaseAdmin.rpc("auto_complete_orders");
 
     if (error) {
@@ -28,70 +23,52 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Release escrow for any completed commission orders that haven't been released yet
-    const { data: pendingEscrow } = await supabaseAdmin
+    // Release escrow for completed commission orders.
+    const { data: pendingEscrow, error: escrowQueryError } = await supabaseAdmin
       .from("orders")
-      .select("id, payment_intent_id, amount, platform_fee, seller_amount, currency")
+      .select("id")
       .eq("status", "completed")
       .eq("escrow_released", false)
       .eq("listing_type", "service")
-      .not("payment_intent_id", "is", null);
+      .in("payment_status", ["authorized", "paid"]);
+
+    if (escrowQueryError) {
+      console.error("[Auto-Complete] Escrow query error:", escrowQueryError);
+      return NextResponse.json({ error: escrowQueryError.message }, { status: 500 });
+    }
 
     let escrowReleased = 0;
-    if (pendingEscrow && pendingEscrow.length > 0) {
-      for (const order of pendingEscrow) {
-        try {
-          const pi = await stripe.paymentIntents.retrieve(order.payment_intent_id!);
-          if (pi.status === "requires_capture") {
-            await stripe.paymentIntents.capture(order.payment_intent_id!);
 
-            await supabaseAdmin.from("transactions").insert([
-              {
-                order_id: order.id,
-                type: "payment",
-                amount: order.amount,
-                currency: order.currency,
-                stripe_payment_intent_id: order.payment_intent_id,
-                status: "completed",
-              },
-              {
-                order_id: order.id,
-                type: "platform_fee",
-                amount: order.platform_fee,
-                currency: order.currency,
-                stripe_payment_intent_id: order.payment_intent_id,
-                status: "completed",
-              },
-              {
-                order_id: order.id,
-                type: "seller_payout",
-                amount: order.seller_amount,
-                currency: order.currency,
-                stripe_payment_intent_id: order.payment_intent_id,
-                status: "completed",
-              },
-            ]);
+    for (const order of pendingEscrow || []) {
+      await supabaseAdmin
+        .from("transactions")
+        .update({ status: "completed" })
+        .eq("order_id", order.id)
+        .eq("status", "pending");
 
-            await supabaseAdmin
-              .from("orders")
-              .update({
-                escrow_released: true,
-                escrow_released_at: new Date().toISOString(),
-                payment_status: "paid",
-              })
-              .eq("id", order.id);
+      const { error: updateError } = await supabaseAdmin
+        .from("orders")
+        .update({
+          escrow_released: true,
+          escrow_released_at: new Date().toISOString(),
+          payment_status: "paid",
+        })
+        .eq("id", order.id);
 
-            escrowReleased++;
-          }
-        } catch (err) {
-          console.error(`[Auto-Complete] Failed to release escrow for order ${order.id}:`, err);
-        }
+      if (!updateError) {
+        escrowReleased += 1;
+        await supabaseAdmin.from("order_events").insert({
+          order_id: order.id,
+          event_type: "payment",
+          metadata: { action: "escrow_released_auto", provider: "placeholder" },
+        });
       }
     }
 
     return NextResponse.json({
       auto_completed: count ?? 0,
       escrow_released: escrowReleased,
+      provider: "placeholder",
     });
   } catch (error) {
     console.error("[Auto-Complete]", error);

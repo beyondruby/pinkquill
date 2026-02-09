@@ -106,18 +106,27 @@ function CheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
 }
 
 export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutModalProps) {
-  const { clientSecret, loading, error: checkoutError, createCheckout } = useCheckout();
+  const {
+    mode,
+    clientSecret,
+    loading,
+    error: checkoutError,
+    createCheckout,
+    confirmPlaceholderPayment,
+  } = useCheckout();
   const [stripeReady, setStripeReady] = useState(false);
+  const [confirmingPlaceholder, setConfirmingPlaceholder] = useState(false);
 
   useEffect(() => {
     createCheckout(order.id);
   }, [order.id, createCheckout]);
 
   useEffect(() => {
+    if (mode !== "stripe") return;
     getStripe().then((s) => {
       if (s) setStripeReady(true);
     });
-  }, []);
+  }, [mode]);
 
   const elementsOptions: StripeElementsOptions | undefined = clientSecret
     ? {
@@ -167,7 +176,51 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
           </div>
         )}
 
-        {clientSecret && stripeReady && elementsOptions && (
+        {mode === "placeholder" && !checkoutError && !loading && (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <p className="font-semibold">Placeholder payment mode is active.</p>
+              <p className="mt-1">
+                Stripe setup is pending. Confirm payment with the temporary flow so order work can continue.
+              </p>
+            </div>
+            <div className="rounded-xl border border-black/[0.06] p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Order total</span>
+                <span className="font-semibold">${Number(order.amount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Provider</span>
+                <span className="font-semibold">Placeholder</span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={confirmingPlaceholder}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setConfirmingPlaceholder(true);
+                  const success = await confirmPlaceholderPayment(order.id);
+                  setConfirmingPlaceholder(false);
+                  if (success) onSuccess();
+                }}
+                disabled={confirmingPlaceholder}
+                className="flex-1 px-4 py-2.5 bg-[var(--color-purple-primary)] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {confirmingPlaceholder ? "Confirming..." : "Confirm Placeholder Payment"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {mode === "stripe" && clientSecret && stripeReady && elementsOptions && (
           <Elements stripe={getStripe()} options={elementsOptions}>
             <CheckoutForm order={order} onSuccess={onSuccess} onClose={onClose} />
           </Elements>

@@ -137,6 +137,9 @@ export {
   useOrderStats,
 } from "./useOrders";
 
+// Studio Queue
+export { useStudioQueue } from "./useStudioQueue";
+
 // Payments
 export {
   useSellerOnboarding,

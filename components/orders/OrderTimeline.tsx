@@ -51,6 +51,10 @@ function getStatusIndex(steps: TimelineStep[], status: OrderStatus): number {
 export default function OrderTimeline({ order }: OrderTimelineProps) {
   const steps = useMemo(() => getSteps(order), [order]);
   const activeIndex = useMemo(() => getStatusIndex(steps, order.status), [steps, order.status]);
+  const desktopColumnsClass =
+    steps.length === 2 ? "md:grid-cols-2"
+      : steps.length === 3 ? "md:grid-cols-3"
+        : "md:grid-cols-4";
 
   const isCancelled = order.status === "cancelled" || order.status === "refunded";
   const isRevisionRequested = order.status === "revision_requested";
@@ -83,7 +87,7 @@ export default function OrderTimeline({ order }: OrderTimelineProps) {
         </div>
       )}
 
-      <div className={`grid grid-cols-1 md:grid-cols-${steps.length} gap-3`}>
+      <div className={`grid grid-cols-1 ${desktopColumnsClass} gap-3`}>
         {steps.map((step, index) => {
           const isActive = index <= activeIndex;
           const isCurrent = index === activeIndex;

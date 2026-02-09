@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
 import { getAuthUser } from "@/lib/auth-server";
 import { supabaseAdmin } from "@/lib/supabase-server";
+
+type EscrowOrder = {
+  id: string;
+  buyer_id: string;
+  seller_id: string;
+  status: string;
+  listing_type: string;
+  payment_status: string;
+  escrow_released: boolean | null;
+};
 
 export async function POST(request: Request) {
   try {
@@ -11,24 +20,30 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { order_id } = body;
+    const { order_id: orderId } = body as { order_id?: string };
 
-    if (!order_id) {
+    if (!orderId) {
       return NextResponse.json({ error: "order_id is required" }, { status: 400 });
     }
 
-    // Fetch order
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("*")
-      .eq("id", order_id)
-      .single();
+      .select("id, buyer_id, seller_id, status, listing_type, payment_status, escrow_released")
+      .eq("id", orderId)
+      .single<EscrowOrder>();
 
     if (orderError || !order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Only completed orders can have escrow released
+    if (user.id !== order.buyer_id && user.id !== order.seller_id) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
+
+    if (order.listing_type !== "service") {
+      return NextResponse.json({ error: "Escrow release only applies to commission orders" }, { status: 400 });
+    }
+
     if (order.status !== "completed") {
       return NextResponse.json(
         { error: "Order must be completed before releasing escrow" },
@@ -37,67 +52,50 @@ export async function POST(request: Request) {
     }
 
     if (order.escrow_released) {
-      return NextResponse.json({ message: "Escrow already released" });
+      return NextResponse.json({ success: true, already_released: true });
     }
 
-    if (!order.payment_intent_id) {
+    if (!["authorized", "paid"].includes(order.payment_status)) {
       return NextResponse.json(
-        { error: "No payment intent found for this order" },
+        { error: `Cannot release escrow with payment status ${order.payment_status}` },
         { status: 400 }
       );
     }
 
-    // Capture the held payment
-    const paymentIntent = await stripe.paymentIntents.capture(order.payment_intent_id);
+    const now = new Date().toISOString();
 
-    // Record the transaction
-    await supabaseAdmin.from("transactions").insert([
-      {
-        order_id: order.id,
-        type: "payment",
-        amount: order.amount,
-        currency: order.currency,
-        stripe_payment_intent_id: paymentIntent.id,
-        status: "completed",
-      },
-      {
-        order_id: order.id,
-        type: "platform_fee",
-        amount: order.platform_fee,
-        currency: order.currency,
-        stripe_payment_intent_id: paymentIntent.id,
-        status: "completed",
-      },
-      {
-        order_id: order.id,
-        type: "seller_payout",
-        amount: order.seller_amount,
-        currency: order.currency,
-        stripe_payment_intent_id: paymentIntent.id,
-        status: "completed",
-      },
-    ]);
+    await supabaseAdmin
+      .from("transactions")
+      .update({ status: "completed" })
+      .eq("order_id", order.id)
+      .eq("status", "pending");
 
-    // Mark escrow as released
     await supabaseAdmin
       .from("orders")
       .update({
         escrow_released: true,
-        escrow_released_at: new Date().toISOString(),
+        escrow_released_at: now,
         payment_status: "paid",
       })
-      .eq("id", order_id);
+      .eq("id", orderId);
 
-    // Log event
     await supabaseAdmin.from("order_events").insert({
       order_id: order.id,
+      actor_id: user.id,
       event_type: "payment",
-      metadata: { action: "escrow_released", payment_intent_id: paymentIntent.id },
+      metadata: { action: "escrow_released", provider: "placeholder" },
     });
 
-    return NextResponse.json({ success: true });
+    await supabaseAdmin.from("order_messages").insert({
+      order_id: order.id,
+      sender_id: user.id,
+      content: "Escrow released and payout marked as available.",
+      message_type: "system",
+    });
+
+    return NextResponse.json({ success: true, provider: "placeholder" });
   } catch (error) {
-    console.error("[Stripe Escrow Release]", error);
+    console.error("[Escrow Release]", error);
     const message = error instanceof Error ? error.message : "Failed to release escrow";
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProduct, useToggleSaveProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
+import { useStudioQueue } from "@/lib/hooks/useStudioQueue";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { ProductPricing, PLATFORM_FEES, ShippingAddress } from "@/lib/types/store";
 import {
@@ -27,6 +28,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   const { product, loading, error } = useProduct(productId);
   const { toggle: toggleSave, checkIsSaved } = useToggleSaveProduct();
   const { createOrder, creating: buying, error: buyError } = useCreateOrder();
+  const { addItem, hasItem } = useStudioQueue();
   const [selectedPricing, setSelectedPricing] = useState<ProductPricing | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -122,6 +124,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
   const categoryConfig = getCategoryConfig(product.category);
   const activePricing = selectedPricing || product.pricing?.[0];
+  const isQueued = activePricing ? hasItem(product.id, activePricing.id) : false;
 
   const formatPrice = (price: number, currency = "USD") => {
     return new Intl.NumberFormat("en-US", {
@@ -323,8 +326,37 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              Buy Now
+              Start Order
             </button>
+
+            {activePricing && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={() => {
+                    addItem({
+                      product_id: product.id,
+                      pricing_id: activePricing.id,
+                      listing_type: "product",
+                      delivery_type: product.delivery_type,
+                      title: product.title,
+                      seller_name: product.seller?.display_name || product.seller?.username || "Creator",
+                      price: activePricing.price,
+                      currency: activePricing.currency,
+                      image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
+                    });
+                  }}
+                  className="w-full py-3 rounded-xl border border-purple-primary/30 bg-purple-50 text-purple-primary font-ui font-semibold text-sm hover:bg-purple-100 transition-colors"
+                >
+                  {isQueued ? "In Studio Queue" : "Add to Studio Queue"}
+                </button>
+                <button
+                  onClick={() => router.push("/queue")}
+                  className="w-full py-3 rounded-xl border border-black/[0.08] bg-white text-ink font-ui font-semibold text-sm hover:bg-black/[0.02] transition-colors"
+                >
+                  Open Studio Queue
+                </button>
+              </div>
+            )}
             {buyError && <p className="text-sm font-body text-red-500">{buyError}</p>}
           </div>
         </div>
@@ -461,7 +493,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
           <div className="max-w-lg mx-auto rounded-2xl bg-white shadow-2xl border border-black/[0.08]">
             <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between">
               <div>
-                <h2 className="font-display text-2xl text-ink">Review Order</h2>
+                <h2 className="font-display text-2xl text-ink">Order Composer</h2>
                 <p className="text-sm font-body text-muted mt-1">
                   {activePricing.variant_name || product.title}
                 </p>
@@ -558,16 +590,16 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
                   if (order) {
                     setShowBuyModal(false);
-                    router.push(`/orders/${order.id}`);
+                    router.push(`/orders/${order.id}?payment=start`);
                   }
                 }}
                 disabled={buying}
                 className="w-full py-3.5 rounded-xl text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60"
               >
-                {buying ? "Processing..." : "Place Order"}
+                {buying ? "Creating..." : "Create Order Draft"}
               </button>
               <p className="text-xs text-center font-body text-muted">
-                Payment will be processed on the next screen
+                Payment confirmation happens in the next step
               </p>
             </div>
           </div>

@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
 import { getAuthUser } from "@/lib/auth-server";
 import { supabaseAdmin } from "@/lib/supabase-server";
+
+type RefundableOrder = {
+  id: string;
+  buyer_id: string;
+  status: string;
+  payment_status: string;
+  amount: number;
+  currency: string;
+};
 
 export async function POST(request: Request) {
   try {
@@ -11,85 +19,97 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { order_id, reason } = body;
+    const { order_id: orderId, reason } = body as { order_id?: string; reason?: string };
 
-    if (!order_id) {
+    if (!orderId) {
       return NextResponse.json({ error: "order_id is required" }, { status: 400 });
     }
 
-    // Fetch order
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("*")
-      .eq("id", order_id)
-      .single();
+      .select("id, buyer_id, status, payment_status, amount, currency")
+      .eq("id", orderId)
+      .single<RefundableOrder>();
 
     if (orderError || !order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Only the buyer can request a refund (or triggered by dispute resolution)
-    if (user.id !== order.buyer_id) {
+    if (order.buyer_id !== user.id) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
-    if (!order.payment_intent_id) {
+    if (order.payment_status === "refunded") {
+      return NextResponse.json({ success: true, already_refunded: true });
+    }
+
+    if (!["authorized", "paid", "partially_refunded"].includes(order.payment_status)) {
       return NextResponse.json(
-        { error: "No payment found for this order" },
+        { error: `Cannot refund payment in status: ${order.payment_status}` },
         { status: 400 }
       );
     }
 
-    // Determine refund approach based on escrow state
-    const paymentIntent = await stripe.paymentIntents.retrieve(order.payment_intent_id);
+    const now = new Date().toISOString();
 
-    if (paymentIntent.status === "requires_capture") {
-      // Escrow: cancel the uncaptured payment
-      await stripe.paymentIntents.cancel(order.payment_intent_id);
-    } else if (paymentIntent.status === "succeeded") {
-      // Already captured: issue a refund
-      await stripe.refunds.create({
-        payment_intent: order.payment_intent_id,
-        reason: "requested_by_customer",
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        status: "refunded",
+        payment_status: "refunded",
+        cancel_reason: reason || "Refund requested by buyer",
+        updated_at: now,
+      })
+      .eq("id", orderId);
+
+    // Mark existing pending transactions as refunded first.
+    await supabaseAdmin
+      .from("transactions")
+      .update({ status: "refunded" })
+      .eq("order_id", order.id)
+      .eq("status", "pending");
+
+    const { data: existingRefund } = await supabaseAdmin
+      .from("transactions")
+      .select("id")
+      .eq("order_id", order.id)
+      .eq("type", "refund")
+      .maybeSingle();
+
+    if (!existingRefund) {
+      await supabaseAdmin.from("transactions").insert({
+        order_id: order.id,
+        type: "refund",
+        amount: order.amount,
+        currency: order.currency,
+        status: "completed",
+        metadata: { provider: "placeholder", reason: reason || null },
       });
-    } else {
-      return NextResponse.json(
-        { error: `Cannot refund payment in status: ${paymentIntent.status}` },
-        { status: 400 }
-      );
     }
 
-    // Update order via RPC (request_refund handles status transition + notifications)
-    const { error: rpcError } = await supabaseAdmin.rpc("request_refund", {
-      p_order_id: order_id,
-      p_reason: reason || "Refund requested by buyer",
-    });
-
-    // If RPC fails (e.g. already in refund_requested state), still update directly
-    if (rpcError) {
-      await supabaseAdmin
-        .from("orders")
-        .update({
-          status: "refunded",
-          payment_status: "refunded",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", order_id);
-    }
-
-    // Record refund transaction
-    await supabaseAdmin.from("transactions").insert({
+    await supabaseAdmin.from("order_events").insert({
       order_id: order.id,
-      type: "refund",
-      amount: order.amount,
-      currency: order.currency,
-      stripe_payment_intent_id: order.payment_intent_id,
-      status: "completed",
+      actor_id: user.id,
+      event_type: "payment",
+      metadata: {
+        action: "refund",
+        provider: "placeholder",
+        reason: reason || null,
+      },
     });
 
-    return NextResponse.json({ success: true });
+    await supabaseAdmin.from("order_messages").insert({
+      order_id: order.id,
+      sender_id: user.id,
+      content: reason
+        ? `Refund requested by buyer. Reason: ${reason}`
+        : "Refund requested by buyer.",
+      message_type: "system",
+    });
+
+    return NextResponse.json({ success: true, provider: "placeholder" });
   } catch (error) {
-    console.error("[Stripe Refund]", error);
+    console.error("[Refund]", error);
     const message = error instanceof Error ? error.message : "Failed to process refund";
     return NextResponse.json({ error: message }, { status: 500 });
   }

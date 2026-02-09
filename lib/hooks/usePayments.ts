@@ -31,20 +31,20 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
       if (!res.ok) throw new Error(data.error);
 
       if (data.has_account) {
-        // Fetch full account from DB
-        const { data: dbAccount } = await supabase
-          .from("seller_accounts")
-          .select("*")
-          .single();
-
-        if (dbAccount) {
-          setAccount({
-            ...dbAccount,
-            onboarding_complete: data.onboarding_complete,
-            charges_enabled: data.charges_enabled,
-            payouts_enabled: data.payouts_enabled,
-          } as SellerAccount);
-        }
+        setAccount({
+          id: data.id || `seller-${data.user_id || "placeholder"}`,
+          user_id: data.user_id || "",
+          stripe_account_id: data.stripe_account_id || null,
+          onboarding_complete: Boolean(data.onboarding_complete),
+          charges_enabled: Boolean(data.charges_enabled),
+          payouts_enabled: Boolean(data.payouts_enabled),
+          default_currency: data.default_currency || "usd",
+          country: data.country || null,
+          created_at: data.created_at || new Date().toISOString(),
+          updated_at: data.updated_at || new Date().toISOString(),
+          provider: data.provider || "placeholder",
+          placeholder_mode: Boolean(data.placeholder_mode),
+        } as SellerAccount);
       } else {
         setAccount(null);
       }
@@ -103,13 +103,16 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
 // ============================================================================
 
 interface UseCheckoutReturn {
+  mode: "stripe" | "placeholder";
   clientSecret: string | null;
   loading: boolean;
   error: string | null;
   createCheckout: (orderId: string) => Promise<string | null>;
+  confirmPlaceholderPayment: (orderId: string) => Promise<boolean>;
 }
 
 export function useCheckout(): UseCheckoutReturn {
+  const [mode, setMode] = useState<"stripe" | "placeholder">("placeholder");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,8 +132,10 @@ export function useCheckout(): UseCheckoutReturn {
 
       if (!res.ok) throw new Error(data.error);
 
-      setClientSecret(data.client_secret);
-      return data.client_secret;
+      const checkoutMode = (data.mode || "placeholder") as "stripe" | "placeholder";
+      setMode(checkoutMode);
+      setClientSecret(data.client_secret || null);
+      return data.client_secret || null;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create checkout";
       setError(message);
@@ -140,7 +145,30 @@ export function useCheckout(): UseCheckoutReturn {
     }
   }, []);
 
-  return { clientSecret, loading, error, createCheckout };
+  const confirmPlaceholderPayment = useCallback(async (orderId: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const res = await fetch("/api/payments/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: orderId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to confirm payment");
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to confirm payment";
+      setError(message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { mode, clientSecret, loading, error, createCheckout, confirmPlaceholderPayment };
 }
 
 // ============================================================================
