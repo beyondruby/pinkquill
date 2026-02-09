@@ -138,39 +138,33 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <div className="relative rounded-[30px] border border-black/[0.07] bg-white/95 shadow-[0_24px_60px_-45px_rgba(127,63,191,0.45)] overflow-hidden mb-7">
-        <div className="absolute -top-24 -left-16 w-56 h-56 rounded-full bg-purple-primary/10 blur-3xl" />
-        <div className="absolute -bottom-24 -right-20 w-64 h-64 rounded-full bg-pink-vivid/10 blur-3xl" />
-
-        <div className="relative p-5 sm:p-6 lg:p-7">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-xs font-ui font-semibold uppercase tracking-[0.18em] text-pink-vivid/70">Commission Studio</p>
-              <h2 className="font-display text-2xl sm:text-3xl text-ink mt-1">Service Catalog</h2>
-              <p className="text-sm font-body text-muted mt-2 max-w-2xl">
-                Showcase outcome-driven packages buyers can trust. Your services here appear in studio and marketplace.
-              </p>
+      <div className="mb-6 border-b border-black/[0.08] pb-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <InlineStat label="Total Services" value={stats.total.toString()} />
+              <InlineStat label="Active Listings" value={stats.active.toString()} />
+              <InlineStat label="Avg Starting Price" value={stats.avgMinPrice ? `$${stats.avgMinPrice}` : "--"} />
+              <InlineStat label="Avg Delivery" value={stats.avgDelivery ? `${stats.avgDelivery} days` : "--"} />
             </div>
-
-            {isOwnProfile && (
-              <Link
-                href="/sell/service"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all self-start"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Service
-              </Link>
-            )}
+            <p className="text-sm font-body text-muted mt-2">
+              {isOwnProfile
+                ? "Your services here are visible across studio and marketplace."
+                : "Published services this creator currently offers."}
+            </p>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatsPill label="Total Services" value={stats.total.toString()} />
-            <StatsPill label="Active Listings" value={stats.active.toString()} />
-            <StatsPill label="Avg Starting Price" value={stats.avgMinPrice ? `$${stats.avgMinPrice}` : "--"} />
-            <StatsPill label="Avg Delivery" value={stats.avgDelivery ? `${stats.avgDelivery} days` : "--"} />
-          </div>
+          {isOwnProfile && (
+            <Link
+              href="/sell/service"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-ui font-semibold text-pink-vivid border border-pink-vivid/30 bg-white hover:bg-pink-50 transition-colors self-start"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Service
+            </Link>
+          )}
         </div>
       </div>
 
@@ -216,12 +210,11 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   );
 }
 
-function StatsPill({ label, value }: { label: string; value: string }) {
+function InlineStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-black/[0.06] bg-white/90 px-3.5 py-3">
-      <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{label}</p>
-      <p className="font-display text-lg text-ink mt-1">{value}</p>
-    </div>
+    <p className="text-xs font-ui text-muted">
+      {label}: <span className="text-ink font-semibold">{value}</span>
+    </p>
   );
 }
 
