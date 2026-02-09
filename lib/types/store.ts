@@ -364,6 +364,9 @@ export interface Order {
   cancelled_by: string | null;
   cancel_reason: string | null;
 
+  // Auto-completion
+  auto_completion_at: string | null;
+
   // Timestamps
   created_at: string;
   updated_at: string;
@@ -532,6 +535,68 @@ export const SELLER_LEVEL_LABELS: Record<SellerLevel, string> = {
   top: 'Top Creator',
   pro: 'Pro Creator',
 };
+
+// ============================================================================
+// DISPUTES & REFUNDS
+// ============================================================================
+
+export type DisputeStatus = 'open' | 'under_review' | 'resolved' | 'escalated' | 'cancelled';
+
+export type DisputeReason =
+  | 'item_not_as_described'
+  | 'item_not_received'
+  | 'quality_issue'
+  | 'seller_unresponsive'
+  | 'buyer_unresponsive'
+  | 'late_delivery'
+  | 'unauthorized_charge'
+  | 'other';
+
+export type DisputeResolution =
+  | 'full_refund'
+  | 'partial_refund'
+  | 'release_to_seller'
+  | 'order_cancelled'
+  | 'mutual_agreement';
+
+export const DISPUTE_REASON_LABELS: Record<DisputeReason, string> = {
+  item_not_as_described: 'Item not as described',
+  item_not_received: 'Item not received',
+  quality_issue: 'Quality issue',
+  seller_unresponsive: 'Seller unresponsive',
+  buyer_unresponsive: 'Buyer unresponsive',
+  late_delivery: 'Late delivery',
+  unauthorized_charge: 'Unauthorized charge',
+  other: 'Other',
+};
+
+export const DISPUTE_RESOLUTION_LABELS: Record<DisputeResolution, string> = {
+  full_refund: 'Full refund',
+  partial_refund: 'Partial refund',
+  release_to_seller: 'Funds released to seller',
+  order_cancelled: 'Order cancelled',
+  mutual_agreement: 'Mutual agreement',
+};
+
+export interface Dispute {
+  id: string;
+  order_id: string;
+  initiated_by: string;
+  reason: DisputeReason;
+  description: string;
+  status: DisputeStatus;
+  resolution: DisputeResolution | null;
+  resolution_notes: string | null;
+  resolved_by: string | null;
+  refund_amount: number | null;
+  created_at: string;
+  resolved_at: string | null;
+  updated_at: string;
+
+  // Joined
+  initiator?: ProductSeller;
+  order?: Order;
+}
 
 // ============================================================================
 // FEE CALCULATION

@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useOrder } from "@/lib/hooks/useOrders";
 import { useOrderReviews } from "@/lib/hooks/useReviews";
+import { useOrderDispute } from "@/lib/hooks/useDisputes";
 import CheckoutModal from "@/components/checkout/CheckoutModal";
 import ReviewForm from "@/components/reviews/ReviewForm";
 import ReviewCard from "@/components/reviews/ReviewCard";
@@ -14,6 +15,7 @@ import OrderTimeline from "./OrderTimeline";
 import OrderMessages from "./OrderMessages";
 import OrderActions from "./OrderActions";
 import type { Order } from "@/lib/types/store";
+import { DISPUTE_REASON_LABELS, DISPUTE_RESOLUTION_LABELS } from "@/lib/types/store";
 
 interface OrderViewProps {
   orderId: string;
@@ -244,6 +246,9 @@ export default function OrderView({ orderId }: OrderViewProps) {
           onUpdate={() => refetch()}
         />
 
+        {/* Dispute Banner */}
+        <DisputeBanner orderId={order.id} orderStatus={order.status} />
+
         {/* Reviews */}
         <OrderReviewSection order={order} userId={user?.id} />
 
@@ -310,6 +315,83 @@ function OrderReviewSection({ order, userId }: { order: Order; userId?: string }
           Your review has been submitted. It will be visible once the other party also reviews (or after 14 days).
         </p>
       )}
+    </section>
+  );
+}
+
+function DisputeBanner({ orderId, orderStatus }: { orderId: string; orderStatus: string }) {
+  const { dispute, loading } = useOrderDispute(
+    ["disputed", "resolved"].includes(orderStatus) ? orderId : undefined
+  );
+
+  if (loading || !dispute) return null;
+
+  const isResolved = dispute.status === "resolved";
+
+  return (
+    <section className={`rounded-2xl border-2 p-5 sm:p-6 ${
+      isResolved
+        ? "border-green-200 bg-green-50"
+        : "border-red-200 bg-red-50"
+    }`}>
+      <div className="flex items-center gap-2 mb-3">
+        <svg className={`w-5 h-5 ${isResolved ? "text-green-600" : "text-red-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {isResolved ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          )}
+        </svg>
+        <h2 className={`font-display text-lg ${isResolved ? "text-green-700" : "text-red-700"}`}>
+          {isResolved ? "Dispute Resolved" : "Dispute Open"}
+        </h2>
+      </div>
+
+      <div className="space-y-2">
+        <div>
+          <span className={`text-xs font-ui uppercase tracking-wider ${isResolved ? "text-green-600/70" : "text-red-500/70"}`}>
+            Reason
+          </span>
+          <p className={`text-sm font-body ${isResolved ? "text-green-800" : "text-red-800"}`}>
+            {DISPUTE_REASON_LABELS[dispute.reason] || dispute.reason}
+          </p>
+        </div>
+
+        <div>
+          <span className={`text-xs font-ui uppercase tracking-wider ${isResolved ? "text-green-600/70" : "text-red-500/70"}`}>
+            Description
+          </span>
+          <p className={`text-sm font-body ${isResolved ? "text-green-800" : "text-red-800"}`}>
+            {dispute.description}
+          </p>
+        </div>
+
+        {isResolved && dispute.resolution && (
+          <div>
+            <span className="text-xs font-ui uppercase tracking-wider text-green-600/70">
+              Resolution
+            </span>
+            <p className="text-sm font-body text-green-800 font-semibold">
+              {DISPUTE_RESOLUTION_LABELS[dispute.resolution] || dispute.resolution}
+            </p>
+            {dispute.resolution_notes && (
+              <p className="text-sm font-body text-green-700 mt-1">{dispute.resolution_notes}</p>
+            )}
+            {dispute.refund_amount && (
+              <p className="text-sm font-body text-green-700 mt-1">
+                Refund amount: ${dispute.refund_amount.toFixed(2)}
+              </p>
+            )}
+          </div>
+        )}
+
+        <p className={`text-xs font-body ${isResolved ? "text-green-600/60" : "text-red-500/60"}`}>
+          {isResolved && dispute.resolved_at
+            ? `Resolved on ${new Date(dispute.resolved_at).toLocaleDateString()}`
+            : `Opened on ${new Date(dispute.created_at).toLocaleDateString()}`
+          }
+        </p>
+      </div>
     </section>
   );
 }

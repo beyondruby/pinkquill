@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUpdateOrderStatus } from "@/lib/hooks/useOrders";
+import { useRequestRefund } from "@/lib/hooks/useDisputes";
+import DisputeModal from "./DisputeModal";
 import type { Order, OrderStatus } from "@/lib/types/store";
 
 interface OrderActionsProps {
@@ -13,9 +15,13 @@ interface OrderActionsProps {
 export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
   const { user } = useAuth();
   const { updateStatus, updating, error } = useUpdateOrderStatus();
+  const { requestRefund, loading: refunding, error: refundError } = useRequestRefund();
   const [deliveryNote, setDeliveryNote] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [showCancel, setShowCancel] = useState(false);
+  const [showDispute, setShowDispute] = useState(false);
+  const [showRefund, setShowRefund] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
 
   const isBuyer = !!user && user.id === order.buyer_id;
   const isSeller = !!user && user.id === order.seller_id;
@@ -25,10 +31,18 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
     if (result && onUpdate) onUpdate(result);
   };
 
+  const handleRefund = async () => {
+    const success = await requestRefund(order.id, refundReason || undefined);
+    if (success) {
+      setShowRefund(false);
+      if (onUpdate) onUpdate({ ...order, status: "refund_requested" });
+    }
+  };
+
   // No actions for non-participants
   if (!isBuyer && !isSeller) return null;
 
-  // No actions for terminal states
+  // Terminal states
   if (["completed", "delivered", "cancelled", "refunded", "resolved"].includes(order.status)) {
     return (
       <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
@@ -39,12 +53,51 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
               : "bg-red-400"
           }`} />
           <p className="text-sm font-ui font-semibold text-ink capitalize">
-            {order.status.replace("_", " ")}
+            {order.status.replace(/_/g, " ")}
           </p>
         </div>
         {order.status === "completed" && order.completed_at && (
           <p className="text-xs font-body text-muted mt-2">
             Completed on {new Date(order.completed_at).toLocaleDateString()}
+          </p>
+        )}
+      </section>
+    );
+  }
+
+  // Disputed state
+  if (order.status === "disputed") {
+    return (
+      <section className="rounded-2xl border-2 border-red-200 bg-red-50 p-5 sm:p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <h2 className="font-display text-lg text-red-700">Dispute Open</h2>
+        </div>
+        <p className="text-sm font-body text-red-600/80">
+          This order is currently under dispute. Actions are paused until the dispute is resolved.
+        </p>
+      </section>
+    );
+  }
+
+  // Refund requested state
+  if (order.status === "refund_requested") {
+    return (
+      <section className="rounded-2xl border-2 border-orange-200 bg-orange-50 p-5 sm:p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+          </svg>
+          <h2 className="font-display text-lg text-orange-700">Refund Requested</h2>
+        </div>
+        <p className="text-sm font-body text-orange-600/80">
+          A refund has been requested for this order. It is being processed.
+        </p>
+        {order.cancel_reason && (
+          <p className="text-sm font-body text-orange-700 mt-2">
+            <span className="font-semibold">Reason:</span> {order.cancel_reason}
           </p>
         )}
       </section>
@@ -165,6 +218,11 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
         </>
       )}
 
+      {/* AUTO-COMPLETION COUNTDOWN */}
+      {order.auto_completion_at && isBuyer && (
+        <AutoCompletionCountdown deadline={order.auto_completion_at} />
+      )}
+
       {/* CANCEL (both roles, only early stages) */}
       {["pending_payment", "paid"].includes(order.status) && !showCancel && (
         <button
@@ -203,6 +261,66 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
         </div>
       )}
 
+      {/* REFUND (buyer, post-payment non-disputed) */}
+      {isBuyer && ["paid", "completed", "delivered"].includes(order.status) && !showRefund && (
+        <button
+          onClick={() => setShowRefund(true)}
+          className="text-sm font-ui text-orange-500 hover:text-orange-600"
+        >
+          Request Refund
+        </button>
+      )}
+
+      {showRefund && (
+        <div className="space-y-3 p-4 rounded-xl border border-orange-200 bg-orange-50">
+          <p className="text-sm font-ui font-semibold text-orange-600">Request a refund?</p>
+          <textarea
+            rows={2}
+            value={refundReason}
+            onChange={(e) => setRefundReason(e.target.value)}
+            placeholder="Reason for refund (optional)"
+            className="w-full px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-body focus:outline-none focus:ring-2 focus:ring-orange-200"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleRefund}
+              disabled={refunding}
+              className="px-4 py-2.5 rounded-xl text-sm font-ui font-semibold text-white bg-orange-500 disabled:opacity-60"
+            >
+              {refunding ? "Processing..." : "Confirm Refund"}
+            </button>
+            <button
+              onClick={() => { setShowRefund(false); setRefundReason(""); }}
+              className="px-4 py-2.5 rounded-xl text-sm font-ui text-muted"
+            >
+              Nevermind
+            </button>
+          </div>
+          {refundError && <p className="text-sm text-red-500 font-body">{refundError}</p>}
+        </div>
+      )}
+
+      {/* DISPUTE (both roles, post-payment active orders) */}
+      {!["pending_payment", "cancelled", "refunded", "disputed", "resolved", "refund_requested"].includes(order.status) && (
+        <button
+          onClick={() => setShowDispute(true)}
+          className="text-sm font-ui text-red-400 hover:text-red-500"
+        >
+          Open Dispute
+        </button>
+      )}
+
+      {showDispute && (
+        <DisputeModal
+          orderId={order.id}
+          onSuccess={() => {
+            setShowDispute(false);
+            if (onUpdate) onUpdate({ ...order, status: "disputed" });
+          }}
+          onClose={() => setShowDispute(false)}
+        />
+      )}
+
       {/* Delivery note display */}
       {order.delivery_note && (
         <div className="p-4 rounded-xl border border-black/[0.08] bg-gray-50/60">
@@ -223,5 +341,53 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
         <p className="text-sm text-red-500 font-body">{error}</p>
       )}
     </section>
+  );
+}
+
+// ============================================================================
+// Auto-Completion Countdown
+// ============================================================================
+
+function AutoCompletionCountdown({ deadline }: { deadline: string }) {
+  const deadlineDate = new Date(deadline);
+  const now = new Date();
+  const diff = deadlineDate.getTime() - now.getTime();
+
+  if (diff <= 0) {
+    return (
+      <div className="p-4 rounded-xl border border-yellow-300 bg-yellow-50">
+        <p className="text-sm font-ui font-semibold text-yellow-700">
+          Auto-completion deadline has passed — this order will be completed shortly.
+        </p>
+      </div>
+    );
+  }
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  let timeText: string;
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    const remHours = hours % 24;
+    timeText = `${days}d ${remHours}h`;
+  } else {
+    timeText = `${hours}h ${minutes}m`;
+  }
+
+  return (
+    <div className="p-4 rounded-xl border border-yellow-300 bg-yellow-50">
+      <div className="flex items-center gap-2 mb-1">
+        <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p className="text-sm font-ui font-semibold text-yellow-700">
+          Auto-completes in {timeText}
+        </p>
+      </div>
+      <p className="text-xs font-body text-yellow-600/80">
+        If you don&apos;t take action before the deadline, this order will be automatically marked as completed.
+      </p>
+    </div>
   );
 }

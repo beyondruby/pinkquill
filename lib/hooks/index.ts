@@ -154,6 +154,14 @@ export {
   useRespondToReview,
 } from "./useReviews";
 
+// Disputes & Refunds
+export {
+  useCreateDispute,
+  useOrderDispute,
+  useResolveDispute,
+  useRequestRefund,
+} from "./useDisputes";
+
 // Messaging (reactions, typing indicators, sharing)
 export {
   useMessageReactions,
@@ -233,6 +241,10 @@ export type {
   Review,
   SellerStats,
   SellerLevel,
+  Dispute,
+  DisputeStatus,
+  DisputeReason,
+  DisputeResolution,
 } from "../types/store";
 
-export { SELLER_LEVEL_LABELS } from "../types/store";
+export { SELLER_LEVEL_LABELS, DISPUTE_REASON_LABELS, DISPUTE_RESOLUTION_LABELS } from "../types/store";

@@ -327,7 +327,11 @@ export type NotificationType =
   | "revision_requested"
   | "order_cancelled"
   | "review_received"
-  | "order_message";
+  | "order_message"
+  | "order_disputed"
+  | "dispute_resolved"
+  | "refund_requested"
+  | "order_refunded";
 
 export interface Notification {
   id: string;

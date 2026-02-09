@@ -539,6 +539,51 @@ const icons = {
       <path d="M8 10h8M8 14h4" stroke="url(#orderMsgGrad)" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
+  orderDisputed: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="disputeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#e74c3c" />
+          <stop offset="100%" stopColor="#e67e22" />
+        </linearGradient>
+      </defs>
+      <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" stroke="url(#disputeGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  disputeResolved: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="resolvedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#27ae60" />
+          <stop offset="100%" stopColor="#2ecc71" />
+        </linearGradient>
+      </defs>
+      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="url(#resolvedGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  refundRequested: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="refundReqGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#e67e22" />
+          <stop offset="100%" stopColor="#f39c12" />
+        </linearGradient>
+      </defs>
+      <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" stroke="url(#refundReqGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  orderRefunded: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="refundedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#27ae60" />
+          <stop offset="100%" stopColor="#2ecc71" />
+        </linearGradient>
+      </defs>
+      <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" stroke="url(#refundedGrad)" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="4" stroke="url(#refundedGrad)" strokeWidth="2" />
+    </svg>
+  ),
   checkAll: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -643,6 +688,14 @@ function getNotificationIcon(type: string) {
       return icons.reviewReceived;
     case 'order_message':
       return icons.orderMessage;
+    case 'order_disputed':
+      return icons.orderDisputed;
+    case 'dispute_resolved':
+      return icons.disputeResolved;
+    case 'refund_requested':
+      return icons.refundRequested;
+    case 'order_refunded':
+      return icons.orderRefunded;
     default:
       return icons.admire;
   }
@@ -718,6 +771,14 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
       return { actor: actorName, action: 'left a review on your order' };
     case 'order_message':
       return { actor: actorName, action: 'sent a message in your order' };
+    case 'order_disputed':
+      return { actor: actorName, action: 'opened a dispute on your order' };
+    case 'dispute_resolved':
+      return { actor: 'Your dispute', action: 'has been resolved' };
+    case 'refund_requested':
+      return { actor: actorName, action: 'requested a refund on your order' };
+    case 'order_refunded':
+      return { actor: 'Your order', action: 'has been refunded' };
     default:
       return { actor: actorName, action: 'interacted with you' };
   }
@@ -749,7 +810,11 @@ function NotificationItem({
       notification.type === 'revision_requested' ||
       notification.type === 'order_cancelled' ||
       notification.type === 'review_received' ||
-      notification.type === 'order_message'
+      notification.type === 'order_message' ||
+      notification.type === 'order_disputed' ||
+      notification.type === 'dispute_resolved' ||
+      notification.type === 'refund_requested' ||
+      notification.type === 'order_refunded'
     )) {
       return `/orders/${notification.order_id}`;
     }
