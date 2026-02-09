@@ -466,6 +466,17 @@ export default function LeftSidebar() {
                 </Link>
 
                 <Link
+                  href="/seller/dashboard"
+                  onClick={() => setShowMenu(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                >
+                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3h7v7H3V3zm11 0h7v4h-7V3zm0 7h7v11h-7V10zM3 13h7v8H3v-8z" />
+                  </svg>
+                  <span className="font-ui text-[0.9rem]">Seller Dashboard</span>
+                </Link>
+
+                <Link
                   href="/settings"
                   onClick={() => setShowMenu(false)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
