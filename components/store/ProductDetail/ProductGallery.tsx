@@ -57,11 +57,11 @@ export default function ProductGallery({
       <div
         className={`aspect-square rounded-[28px] flex items-center justify-center border ${
           isService
-            ? "bg-gradient-to-br from-[#1f172f] to-[#33204f] border-white/10"
+            ? "bg-gradient-to-br from-orange-50/70 to-pink-50/50 border-orange-100/70"
             : "bg-gradient-to-br from-pink-50 to-orange-50 border-pink-100/50"
         }`}
       >
-        <div className={`text-center ${isService ? "text-white/40" : "text-pink-vivid/40"}`}>
+        <div className={`text-center ${isService ? "text-orange-warm/45" : "text-pink-vivid/40"}`}>
           <svg className="w-20 h-20 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
@@ -88,10 +88,10 @@ export default function ProductGallery({
                 className={`relative w-20 h-20 rounded-2xl overflow-hidden transition-all duration-300 flex-shrink-0 ${
                   index === selectedIndex
                     ? isService
-                      ? "ring-2 ring-orange-warm ring-offset-2 ring-offset-[#100c1a] shadow-lg shadow-orange-warm/20"
+                      ? "ring-2 ring-orange-warm ring-offset-2 shadow-lg shadow-orange-warm/15"
                       : "ring-2 ring-pink-vivid ring-offset-2 shadow-lg shadow-pink-vivid/20"
                     : isService
-                    ? "opacity-55 hover:opacity-100 border border-white/15"
+                    ? "opacity-55 hover:opacity-100 border border-orange-100"
                     : "opacity-55 hover:opacity-100 border border-pink-vivid/10"
                 }`}
                 aria-label={`View image ${index + 1}`}
@@ -109,10 +109,10 @@ export default function ProductGallery({
 
         <div className="flex-1">
           <div
-            className={`relative aspect-square rounded-[28px] overflow-hidden group cursor-pointer ${
+            className={`relative aspect-square rounded-[28px] overflow-hidden group cursor-pointer border ${
               isService
-                ? "bg-gradient-to-br from-[#1f172f] via-[#241a38] to-[#33204f] border border-white/10 shadow-xl shadow-black/40"
-                : "bg-gradient-to-br from-pink-50/40 to-orange-50/40 shadow-lg shadow-black/5 border border-black/[0.06]"
+                ? "bg-gradient-to-br from-[#fff8f5] via-[#fff6fc] to-[#fefaf3] border-orange-100/70 shadow-[0_18px_48px_-28px_rgba(255,159,67,0.45)]"
+                : "bg-gradient-to-br from-pink-50/40 to-orange-50/40 border-black/[0.06] shadow-lg shadow-black/5"
             }`}
             onClick={() => setIsFullscreen(true)}
           >
@@ -136,7 +136,7 @@ export default function ProductGallery({
                       ? "bg-orange-warm text-white shadow-lg shadow-orange-warm/30"
                       : "bg-pink-vivid text-white shadow-lg shadow-pink-vivid/30"
                     : isService
-                    ? "bg-black/35 text-white/80 hover:bg-black/55 hover:text-white"
+                    ? "bg-white/90 text-orange-warm hover:bg-white border border-orange-100"
                     : "bg-white/90 text-muted hover:bg-white hover:text-pink-vivid hover:shadow-lg"
                 }`}
                 aria-label={isLiked ? "Unlike" : "Like"}
@@ -166,13 +166,13 @@ export default function ProductGallery({
                   }}
                   className={`absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 ${
                     isService
-                      ? "bg-black/45 hover:bg-black/60 border border-white/20"
+                      ? "bg-white/95 hover:bg-white border border-orange-100"
                       : "bg-white/95 hover:bg-white border border-pink-vivid/10"
                   }`}
                   aria-label="Previous image"
                 >
                   <svg
-                    className={`w-5 h-5 ${isService ? "text-white" : "text-pink-vivid"}`}
+                    className={`w-5 h-5 ${isService ? "text-orange-warm" : "text-pink-vivid"}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -187,13 +187,13 @@ export default function ProductGallery({
                   }}
                   className={`absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 ${
                     isService
-                      ? "bg-black/45 hover:bg-black/60 border border-white/20"
+                      ? "bg-white/95 hover:bg-white border border-orange-100"
                       : "bg-white/95 hover:bg-white border border-pink-vivid/10"
                   }`}
                   aria-label="Next image"
                 >
                   <svg
-                    className={`w-5 h-5 ${isService ? "text-white" : "text-pink-vivid"}`}
+                    className={`w-5 h-5 ${isService ? "text-orange-warm" : "text-pink-vivid"}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -236,7 +236,7 @@ export default function ProductGallery({
                   className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden transition-all duration-200 ${
                     index === selectedIndex
                       ? isService
-                        ? "ring-2 ring-orange-warm ring-offset-2 ring-offset-[#100c1a]"
+                        ? "ring-2 ring-orange-warm ring-offset-2"
                         : "ring-2 ring-pink-vivid ring-offset-2"
                       : "opacity-60 hover:opacity-100"
                   }`}

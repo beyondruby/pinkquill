@@ -71,15 +71,15 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   if (loading || product?.listing_type === "service") {
     return (
       <div className="min-h-screen bg-background px-4 py-10">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="h-24 rounded-3xl bg-white border border-black/[0.05] animate-pulse" />
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_360px] gap-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="h-8 w-48 rounded bg-gray-100 animate-pulse" />
+          <div className="mt-4 h-10 w-4/5 max-w-xl rounded bg-gray-100 animate-pulse" />
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_340px] gap-10">
             <div className="aspect-square rounded-[28px] bg-gradient-to-br from-pink-50 to-orange-50 animate-pulse" />
-            <div className="rounded-3xl bg-white border border-black/[0.05] p-6 space-y-4">
-              <div className="h-7 w-2/3 bg-gray-100 rounded animate-pulse" />
-              <div className="h-5 w-1/2 bg-gray-100 rounded animate-pulse" />
-              <div className="h-12 w-full bg-gray-100 rounded-xl animate-pulse" />
-              <div className="h-12 w-full bg-gray-100 rounded-xl animate-pulse" />
+            <div className="space-y-4">
+              <div className="h-7 w-2/3 rounded bg-gray-100 animate-pulse" />
+              <div className="h-10 w-full rounded bg-gray-100 animate-pulse" />
+              <div className="h-10 w-full rounded bg-gray-100 animate-pulse" />
             </div>
           </div>
         </div>
@@ -90,13 +90,8 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   if (error || !product) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="max-w-md text-center rounded-3xl border border-black/[0.06] bg-white p-8 shadow-sm">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-pink-100 to-orange-100 flex items-center justify-center">
-            <svg className="w-7 h-7 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="mt-4 text-2xl font-display text-ink">Product Not Found</h2>
+        <div className="max-w-md text-center">
+          <h2 className="text-2xl font-display text-ink">Product Not Found</h2>
           <p className="mt-2 text-sm font-body text-muted">This product may have been removed or doesn&apos;t exist.</p>
           <Link
             href="/"
@@ -141,7 +136,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
       .map((field) => ({
         label: field.label,
         value: formatAttributeValue(field, product.attributes[field.key]),
-        group: field.group,
       }));
   };
 
@@ -157,37 +151,23 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
         ].filter((item) => item.value)
       : [];
 
-  const deliveryLabel =
-    product.delivery_type === "digital"
-      ? "Digital product"
-      : product.delivery_type === "both"
-      ? "Physical + Digital"
-      : "Physical product";
-
-  const shippingPreview = product.shipping?.shipping_locations?.length
-    ? `${product.shipping.shipping_locations.slice(0, 2).join(", ")}${
-        product.shipping.shipping_locations.length > 2 ? "..." : ""
-      }`
-    : null;
-
   return (
-    <div className="min-h-screen bg-background pb-16">
-      <div className="relative overflow-hidden border-b border-black/[0.05] bg-white">
-        <div className="absolute -top-32 right-0 w-72 h-72 bg-orange-warm/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-24 left-0 w-72 h-72 bg-pink-vivid/10 rounded-full blur-3xl" />
-
-        <div className="relative max-w-6xl mx-auto px-4 pt-8 pb-7">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fffefc_45%,#fff9f2_100%)] pb-16">
+      <div className="max-w-6xl mx-auto px-4 pt-8">
+        <div className="pb-6 border-b border-black/[0.08]">
           <div className="flex items-start justify-between gap-4">
-            <div className="space-y-3 max-w-3xl">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-ui font-semibold uppercase tracking-[0.14em] text-pink-vivid bg-pink-50 border border-pink-vivid/10">
-                  Marketplace
-                </span>
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-ui font-medium text-ink/70 bg-black/[0.03] border border-black/[0.05]">
-                  {product.category}
-                </span>
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-ui font-medium text-ink/70 bg-black/[0.03] border border-black/[0.05]">
-                  {deliveryLabel}
+            <div className="space-y-3 max-w-4xl">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-ui uppercase tracking-[0.15em] text-muted">
+                <span>Marketplace</span>
+                <span className="text-black/20">•</span>
+                <span>{product.category}</span>
+                <span className="text-black/20">•</span>
+                <span>
+                  {product.delivery_type === "digital"
+                    ? "Digital"
+                    : product.delivery_type === "both"
+                    ? "Physical + Digital"
+                    : "Physical"}
                 </span>
               </div>
 
@@ -206,7 +186,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                       {product.seller.display_name || product.seller.username}
                     </Link>
                   </p>
-                  <div className="mt-1.5">
+                  <div className="mt-1">
                     <SellerRating sellerId={product.seller.id} compact />
                   </div>
                 </div>
@@ -221,56 +201,51 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             />
           </div>
         </div>
-      </div>
 
-      <div className="max-w-6xl mx-auto px-4 mt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_360px] gap-6 lg:gap-8">
-          <div className="space-y-6">
-            <section className="rounded-[30px] border border-black/[0.06] bg-white p-3 sm:p-4 shadow-sm">
-              <ProductGallery
-                media={product.media || []}
-                title={product.title}
-                variant="product"
-                isLiked={isLiked}
-                onLike={() => setIsLiked(!isLiked)}
-              />
-            </section>
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_340px] gap-10">
+          <div className="space-y-10">
+            <ProductGallery
+              media={product.media || []}
+              title={product.title}
+              variant="product"
+              isLiked={isLiked}
+              onLike={() => setIsLiked(!isLiked)}
+            />
 
             {product.description && (
-              <section className="rounded-3xl border border-black/[0.06] bg-white p-5 sm:p-6 shadow-sm">
-                <h2 className="text-lg font-display text-ink">About This Piece</h2>
-                <p className="mt-3 text-sm font-body leading-relaxed text-ink/85">
+              <section className="pt-8 border-t border-black/[0.08]">
+                <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Artist Note</h2>
+                <p className="mt-3 text-sm md:text-base font-body leading-relaxed text-ink/85 max-w-3xl">
                   {product.description}
                 </p>
               </section>
             )}
 
             {displayAttributes.length > 0 && (
-              <section className="rounded-3xl border border-black/[0.06] bg-white p-5 sm:p-6 shadow-sm">
-                <h2 className="text-lg font-display text-ink">Specifications</h2>
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <section className="pt-8 border-t border-black/[0.08]">
+                <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Specifications</h2>
+                <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
                   {displayAttributes.map((attr, index) => (
-                    <div key={`${attr.label}-${index}`} className="rounded-2xl bg-black/[0.02] border border-black/[0.04] px-3 py-2.5">
-                      <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{attr.label}</p>
-                      <p className="mt-1 text-sm font-body text-ink">{attr.value}</p>
+                    <div key={`${attr.label}-${index}`} className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
+                      <dt className="text-sm font-body text-muted">{attr.label}</dt>
+                      <dd className="text-sm font-ui text-ink text-right">{attr.value}</dd>
                     </div>
                   ))}
-                </div>
+                </dl>
               </section>
             )}
 
-            {(dimensions.length > 0 || (product.delivery_type !== "digital" && product.shipping) || (product.keywords && product.keywords.length > 0)) && (
-              <section className="rounded-3xl border border-black/[0.06] bg-white p-5 sm:p-6 shadow-sm space-y-6">
+            {(dimensions.length > 0 || product.delivery_type !== "digital" || (product.keywords && product.keywords.length > 0)) && (
+              <section className="pt-8 border-t border-black/[0.08] space-y-7">
                 {dimensions.length > 0 && (
                   <div>
-                    <h3 className="text-base font-display text-ink">Dimensions</h3>
+                    <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Dimensions</h3>
                     <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {dimensions.map((item) => (
-                        <div key={item.label} className="rounded-2xl border border-black/[0.06] px-3 py-2.5">
-                          <p className="text-lg font-display text-ink leading-none">{item.value}</p>
-                          <p className="text-xs font-body text-muted mt-1">
-                            {item.unit} · {item.label}
-                          </p>
+                        <div key={item.label}>
+                          <p className="text-xl font-display text-ink leading-none">{item.value}</p>
+                          <p className="text-xs font-body text-muted mt-1">{item.label}</p>
+                          <p className="text-xs font-body text-muted">{item.unit}</p>
                         </div>
                       ))}
                     </div>
@@ -279,41 +254,36 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
                 {product.delivery_type !== "digital" && product.shipping && (
                   <div>
-                    <h3 className="text-base font-display text-ink">Shipping</h3>
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Shipping</h3>
+                    <dl className="mt-3 space-y-2 max-w-3xl">
                       {product.shipping.shipping_locations?.length > 0 && (
-                        <InfoPill
-                          label="Ships To"
-                          value={product.shipping.shipping_locations.join(", ")}
-                        />
+                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <dt className="text-sm font-body text-muted">Ships to</dt>
+                          <dd className="text-sm font-ui text-ink text-right">{product.shipping.shipping_locations.join(", ")}</dd>
+                        </div>
                       )}
                       {product.shipping.processing_days && (
-                        <InfoPill
-                          label="Processing"
-                          value={`${product.shipping.processing_days} business days`}
-                        />
+                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <dt className="text-sm font-body text-muted">Processing</dt>
+                          <dd className="text-sm font-ui text-ink text-right">{product.shipping.processing_days} business days</dd>
+                        </div>
                       )}
                       {product.shipping.packaging && (
-                        <InfoPill
-                          label="Packaging"
-                          value={product.shipping.packaging.replace(/_/g, " ")}
-                        />
+                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <dt className="text-sm font-body text-muted">Packaging</dt>
+                          <dd className="text-sm font-ui text-ink text-right capitalize">{product.shipping.packaging.replace(/_/g, " ")}</dd>
+                        </div>
                       )}
-                    </div>
+                    </dl>
                   </div>
                 )}
 
                 {product.keywords && product.keywords.length > 0 && (
                   <div>
-                    <h3 className="text-base font-display text-ink">Tags</h3>
+                    <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Tags</h3>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {product.keywords.map((keyword) => (
-                        <span
-                          key={keyword}
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-ui font-medium bg-pink-50 text-pink-vivid border border-pink-vivid/10"
-                        >
-                          #{keyword}
-                        </span>
+                        <span key={keyword} className="text-sm font-body text-muted">#{keyword}</span>
                       ))}
                     </div>
                   </div>
@@ -322,64 +292,59 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             )}
 
             {product.seller && (
-              <div className="lg:hidden">
-                <SellerCard seller={product.seller} className="rounded-3xl" />
+              <div className="lg:hidden pt-8 border-t border-black/[0.08]">
+                <SellerCard seller={product.seller} />
               </div>
             )}
           </div>
 
-          <aside className="lg:sticky lg:top-8 lg:self-start space-y-4">
-            <section className="rounded-3xl border border-black/[0.07] bg-white p-5 sm:p-6 shadow-sm">
-              {activePricing ? (
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Price</p>
-                    <p className="text-3xl font-display text-ink mt-1">
-                      {formatPrice(activePricing.price, activePricing.currency)}
-                    </p>
-                  </div>
+          <aside className="lg:sticky lg:top-8 lg:self-start lg:pl-8 lg:border-l lg:border-black/[0.08]">
+            {activePricing ? (
+              <div className="space-y-5">
+                <div>
+                  <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Price</p>
+                  <p className="mt-1 text-4xl font-display text-ink">
+                    {formatPrice(activePricing.price, activePricing.currency)}
+                  </p>
                   {activePricing.pricing_type === "original" && (
-                    <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-ui font-semibold text-orange-warm bg-orange-50 border border-orange-warm/15">
-                      Original
-                    </span>
+                    <p className="text-xs font-ui text-orange-warm mt-1">Original piece</p>
                   )}
                 </div>
-              ) : (
-                <p className="text-sm font-body text-muted">No available pricing options.</p>
-              )}
 
-              {product.pricing && product.pricing.length > 1 && (
-                <div className="mt-5 space-y-2">
-                  {product.pricing.map((pricing) => {
-                    const isActive = activePricing?.id === pricing.id;
-                    return (
-                      <button
-                        key={pricing.id}
-                        onClick={() => setSelectedPricing(pricing)}
-                        className={`w-full text-left rounded-2xl border px-3.5 py-3 transition-colors ${
-                          isActive
-                            ? "border-pink-vivid/35 bg-pink-50/70"
-                            : "border-black/[0.08] hover:bg-black/[0.02]"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className={`text-sm font-ui ${isActive ? "text-ink font-semibold" : "text-ink/80"}`}>
-                              {pricing.variant_name || getPricingTypeLabel(pricing.pricing_type)}
-                            </p>
-                            <p className="text-xs font-body text-muted mt-0.5">{getPricingTypeLabel(pricing.pricing_type)}</p>
-                          </div>
-                          <p className={`text-sm font-display ${isActive ? "text-pink-vivid" : "text-ink"}`}>
-                            {formatPrice(pricing.price, pricing.currency)}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                {product.pricing && product.pricing.length > 1 && (
+                  <div>
+                    <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted mb-2">Options</p>
+                    <div className="divide-y divide-black/[0.08]">
+                      {product.pricing.map((pricing) => {
+                        const isActive = activePricing?.id === pricing.id;
 
-              <div className="mt-5 space-y-3">
+                        return (
+                          <button
+                            key={pricing.id}
+                            onClick={() => setSelectedPricing(pricing)}
+                            className="w-full py-2.5 text-left"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-2">
+                                <span className={`mt-1 inline-flex w-2.5 h-2.5 rounded-full ${isActive ? "bg-pink-vivid" : "bg-black/15"}`} />
+                                <div>
+                                  <p className={`text-sm font-ui ${isActive ? "text-ink" : "text-muted"}`}>
+                                    {pricing.variant_name || getPricingTypeLabel(pricing.pricing_type)}
+                                  </p>
+                                  <p className="text-xs font-body text-muted">{getPricingTypeLabel(pricing.pricing_type)}</p>
+                                </div>
+                              </div>
+                              <p className={`text-sm font-display ${isActive ? "text-pink-vivid" : "text-ink"}`}>
+                                {formatPrice(pricing.price, pricing.currency)}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={() => {
                     if (!user) {
@@ -390,39 +355,37 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                     setShowBuyModal(true);
                   }}
                   disabled={!activePricing || activePricing.stock === 0}
-                  className="w-full py-3.5 rounded-2xl text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3.5 rounded-full text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Start Order
                 </button>
 
-                {activePricing && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <button
-                      onClick={() => {
-                        addItem({
-                          product_id: product.id,
-                          pricing_id: activePricing.id,
-                          listing_type: "product",
-                          delivery_type: product.delivery_type,
-                          title: product.title,
-                          seller_name: product.seller?.display_name || product.seller?.username || "Creator",
-                          price: activePricing.price,
-                          currency: activePricing.currency,
-                          image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
-                        });
-                      }}
-                      className="w-full py-2.5 rounded-xl border border-purple-primary/25 bg-purple-50 text-purple-primary text-sm font-ui font-semibold hover:bg-purple-100 transition-colors"
-                    >
-                      {isQueued ? "In Studio Queue" : "Add to Studio Queue"}
-                    </button>
-                    <button
-                      onClick={() => router.push("/queue")}
-                      className="w-full py-2.5 rounded-xl border border-black/[0.08] bg-white text-ink text-sm font-ui font-semibold hover:bg-black/[0.02] transition-colors"
-                    >
-                      Open Studio Queue
-                    </button>
-                  </div>
-                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    onClick={() => {
+                      addItem({
+                        product_id: product.id,
+                        pricing_id: activePricing.id,
+                        listing_type: "product",
+                        delivery_type: product.delivery_type,
+                        title: product.title,
+                        seller_name: product.seller?.display_name || product.seller?.username || "Creator",
+                        price: activePricing.price,
+                        currency: activePricing.currency,
+                        image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
+                      });
+                    }}
+                    className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-pink-vivid/40 transition-colors"
+                  >
+                    {isQueued ? "In Studio Queue" : "Add to Studio Queue"}
+                  </button>
+                  <button
+                    onClick={() => router.push("/queue")}
+                    className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-purple-primary/40 transition-colors"
+                  >
+                    Open Studio Queue
+                  </button>
+                </div>
 
                 {product.seller && (
                   <Link
@@ -438,29 +401,14 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   </Link>
                 )}
 
+                {product.delivery_type === "digital" && (
+                  <p className="text-xs font-body text-muted">Instant digital access after payment confirmation.</p>
+                )}
+
                 {buyError && <p className="text-sm font-body text-red-500">{buyError}</p>}
               </div>
-            </section>
-
-            {(shippingPreview || product.shipping?.processing_days || product.delivery_type === "digital") && (
-              <section className="rounded-3xl border border-black/[0.07] bg-white p-5 shadow-sm">
-                <h3 className="text-base font-display text-ink">Delivery Snapshot</h3>
-                <div className="mt-3 space-y-2">
-                  {product.delivery_type === "digital" ? (
-                    <InfoPill label="Delivery" value="Instant digital access after purchase" />
-                  ) : (
-                    <>
-                      {shippingPreview && <InfoPill label="Ships to" value={shippingPreview} />}
-                      {product.shipping?.processing_days && (
-                        <InfoPill
-                          label="Processing"
-                          value={`${product.shipping.processing_days} days before dispatch`}
-                        />
-                      )}
-                    </>
-                  )}
-                </div>
-              </section>
+            ) : (
+              <p className="text-sm font-body text-muted">No available pricing options.</p>
             )}
           </aside>
         </div>
@@ -617,15 +565,6 @@ function getPricingTypeLabel(type: string): string {
     default:
       return type;
   }
-}
-
-function InfoPill({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-2.5">
-      <p className="text-[11px] font-ui uppercase tracking-[0.13em] text-muted">{label}</p>
-      <p className="mt-1 text-sm font-body text-ink capitalize">{value}</p>
-    </div>
-  );
 }
 
 function MoreMenu({

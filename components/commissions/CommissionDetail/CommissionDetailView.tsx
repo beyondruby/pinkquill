@@ -152,15 +152,16 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f6f4fb] px-4 py-10">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="h-48 rounded-3xl bg-[#1b122a] animate-pulse" />
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6">
-            <div className="aspect-square rounded-[28px] bg-[#1f172f] animate-pulse" />
-            <div className="rounded-3xl bg-white border border-black/[0.06] p-6 space-y-4">
-              <div className="h-8 w-2/3 bg-gray-100 rounded animate-pulse" />
-              <div className="h-20 w-full bg-gray-100 rounded-2xl animate-pulse" />
-              <div className="h-12 w-full bg-gray-100 rounded-xl animate-pulse" />
+      <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_100%)] px-4 py-10">
+        <div className="max-w-6xl mx-auto">
+          <div className="h-8 w-52 rounded bg-gray-100 animate-pulse" />
+          <div className="mt-4 h-10 w-4/5 max-w-xl rounded bg-gray-100 animate-pulse" />
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_360px] gap-10">
+            <div className="aspect-square rounded-[28px] bg-gradient-to-br from-pink-50 to-orange-50 animate-pulse" />
+            <div className="space-y-4">
+              <div className="h-10 w-full rounded bg-gray-100 animate-pulse" />
+              <div className="h-10 w-full rounded bg-gray-100 animate-pulse" />
+              <div className="h-10 w-full rounded bg-gray-100 animate-pulse" />
             </div>
           </div>
         </div>
@@ -170,8 +171,8 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
   if (error || !product || product.listing_type !== "service") {
     return (
-      <div className="min-h-screen bg-[#f6f4fb] flex items-center justify-center px-4">
-        <div className="max-w-md text-center rounded-3xl border border-black/[0.06] bg-white p-8 shadow-sm">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="max-w-md text-center">
           <h1 className="font-display text-3xl text-ink mb-3">Commission Not Found</h1>
           <p className="font-body text-sm text-muted mb-6">This service may be private, unpublished, or removed.</p>
           <Link
@@ -187,119 +188,121 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
   return (
     <>
-      <div className="min-h-screen bg-[#f6f4fb] pb-16">
-        <section className="relative overflow-hidden bg-[#1a1229] text-white">
-          <div className="absolute -top-24 left-0 w-80 h-80 rounded-full bg-pink-vivid/20 blur-3xl" />
-          <div className="absolute -bottom-24 right-0 w-80 h-80 rounded-full bg-purple-primary/35 blur-3xl" />
-
-          <div className="relative max-w-6xl mx-auto px-4 pt-10 pb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-ui font-semibold uppercase tracking-[0.14em] text-pink-100">
-              Commission Service
-            </div>
-
-            <h1 className="mt-4 font-display text-3xl md:text-4xl leading-tight text-white max-w-4xl">
-              {product.title}
-            </h1>
+      <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_48%,#fff7f2_100%)] pb-16">
+        <div className="max-w-6xl mx-auto px-4 pt-8">
+          <div className="pb-6 border-b border-black/[0.08]">
+            <p className="text-[11px] font-ui uppercase tracking-[0.15em] text-muted">Commission Service</p>
+            <h1 className="mt-3 font-display text-3xl md:text-4xl leading-tight text-ink max-w-4xl">{product.title}</h1>
 
             {product.service_metadata?.headline && (
-              <p className="mt-3 text-sm md:text-base font-body text-white/80 max-w-3xl">
+              <p className="mt-3 text-sm md:text-base font-body text-muted max-w-3xl">
                 {String(product.service_metadata.headline)}
               </p>
             )}
 
             {product.seller && (
-              <div className="mt-4">
-                <p className="text-sm font-body text-white/70">
+              <div className="mt-3">
+                <p className="text-sm font-body text-muted">
                   by{" "}
                   <Link
                     href={`/studio/${product.seller.username}`}
-                    className="text-pink-200 hover:text-orange-warm transition-colors font-ui font-semibold"
+                    className="font-ui font-semibold text-ink hover:text-pink-vivid transition-colors"
                   >
                     {product.seller.display_name || product.seller.username}
                   </Link>
                 </p>
-                <div className="mt-1.5">
+                <div className="mt-1">
                   <SellerRating sellerId={product.seller.id} compact />
                 </div>
               </div>
             )}
 
-            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-              <HeroMetric
-                title="Response"
-                value={`${product.service_metadata?.response_time_hours ?? 24}h avg`}
-              />
-              <HeroMetric
-                title="Fastest Delivery"
-                value={minDeliveryDays ? `${minDeliveryDays} day${minDeliveryDays === 1 ? "" : "s"}` : "Custom"}
-              />
-              <HeroMetric
-                title="Revisions"
-                value={maxRevisions !== undefined ? `${maxRevisions} max` : "Custom"}
-              />
-              <HeroMetric title="Category" value={categoryLabel} />
+            <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-xs font-body text-muted">
+              <span>{categoryLabel}</span>
+              <span>•</span>
+              <span>{product.service_metadata?.response_time_hours ?? 24}h average response</span>
+              <span>•</span>
+              <span>
+                {minDeliveryDays ? `${minDeliveryDays} day${minDeliveryDays === 1 ? "" : "s"} fastest delivery` : "Custom delivery"}
+              </span>
+              <span>•</span>
+              <span>{maxRevisions !== undefined ? `${maxRevisions} max revisions` : "Custom revisions"}</span>
             </div>
           </div>
-        </section>
 
-        <div className="max-w-6xl mx-auto px-4 -mt-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 lg:gap-8">
-            <div className="space-y-6">
-              <section className="rounded-[30px] border border-white/15 bg-[#120d1d] p-3 sm:p-4 shadow-2xl shadow-black/30">
-                <ProductGallery media={product.media || []} title={product.title} variant="service" />
-              </section>
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_360px] gap-10">
+            <div className="space-y-10">
+              <ProductGallery media={product.media || []} title={product.title} variant="service" />
 
               {product.description && (
-                <section className="rounded-3xl border border-black/[0.07] bg-white p-5 sm:p-6 shadow-sm">
-                  <h2 className="font-display text-xl text-ink">Service Overview</h2>
-                  <p className="mt-3 text-sm font-body leading-relaxed text-ink/85">{product.description}</p>
+                <section className="pt-8 border-t border-black/[0.08]">
+                  <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Overview</h2>
+                  <p className="mt-3 text-sm md:text-base font-body leading-relaxed text-ink/85">
+                    {product.description}
+                  </p>
                 </section>
               )}
 
+              <section className="pt-8 border-t border-black/[0.08]">
+                <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Process</h2>
+                <ol className="mt-4 space-y-3">
+                  <li className="flex items-start gap-3">
+                    <span className="text-sm font-ui text-pink-vivid">01</span>
+                    <p className="text-sm font-body text-ink/85">You submit your brief, references, and constraints in the hire form.</p>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-sm font-ui text-pink-vivid">02</span>
+                    <p className="text-sm font-body text-ink/85">I deliver according to package scope and timeline.</p>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-sm font-ui text-pink-vivid">03</span>
+                    <p className="text-sm font-body text-ink/85">Revisions are handled based on the selected package.</p>
+                  </li>
+                </ol>
+              </section>
+
               {(serviceIncludes.length > 0 || serviceExcludes.length > 0) && (
-                <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <section className="pt-8 border-t border-black/[0.08] grid grid-cols-1 md:grid-cols-2 gap-8">
                   {serviceIncludes.length > 0 && (
-                    <article className="rounded-3xl border border-emerald-500/20 bg-white p-5 shadow-sm">
-                      <h3 className="font-display text-lg text-ink">Included</h3>
+                    <div>
+                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Includes</h3>
                       <ul className="mt-3 space-y-2">
                         {serviceIncludes.map((item) => (
-                          <li key={item} className="text-sm font-body text-ink/90 flex items-start gap-2">
+                          <li key={item} className="text-sm font-body text-ink/85 flex items-start gap-2">
                             <span className="mt-2 w-1.5 h-1.5 rounded-full bg-emerald-500" />
                             <span>{item}</span>
                           </li>
                         ))}
                       </ul>
-                    </article>
+                    </div>
                   )}
 
                   {serviceExcludes.length > 0 && (
-                    <article className="rounded-3xl border border-orange-warm/25 bg-white p-5 shadow-sm">
-                      <h3 className="font-display text-lg text-ink">Not Included</h3>
+                    <div>
+                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Not Included</h3>
                       <ul className="mt-3 space-y-2">
                         {serviceExcludes.map((item) => (
-                          <li key={item} className="text-sm font-body text-ink/90 flex items-start gap-2">
+                          <li key={item} className="text-sm font-body text-ink/85 flex items-start gap-2">
                             <span className="mt-2 w-1.5 h-1.5 rounded-full bg-orange-warm" />
                             <span>{item}</span>
                           </li>
                         ))}
                       </ul>
-                    </article>
+                    </div>
                   )}
                 </section>
               )}
 
-              {(serviceRequirements.length > 0 || serviceFaqs.length > 0 || serviceKeywords.length > 0 || Boolean(deliveryNotes)) && (
-                <section className="rounded-3xl border border-black/[0.07] bg-white p-5 sm:p-6 shadow-sm space-y-6">
+              {(serviceRequirements.length > 0 || serviceFaqs.length > 0 || Boolean(deliveryNotes) || serviceKeywords.length > 0) && (
+                <section className="pt-8 border-t border-black/[0.08] space-y-8">
                   {serviceRequirements.length > 0 && (
                     <div>
-                      <h3 className="font-display text-lg text-ink">What I Need From You</h3>
+                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">What I Need From You</h3>
                       <ol className="mt-3 space-y-2">
                         {serviceRequirements.map((item, index) => (
-                          <li key={item} className="flex items-start gap-3">
-                            <span className="inline-flex w-6 h-6 rounded-full bg-pink-50 text-pink-vivid text-xs font-ui font-semibold items-center justify-center mt-0.5">
-                              {index + 1}
-                            </span>
-                            <span className="text-sm font-body text-ink/90">{item}</span>
+                          <li key={item} className="flex items-start gap-3 text-sm font-body text-ink/85">
+                            <span className="font-ui text-pink-vivid">{index + 1}.</span>
+                            <span>{item}</span>
                           </li>
                         ))}
                       </ol>
@@ -308,10 +311,10 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
                   {serviceFaqs.length > 0 && (
                     <div>
-                      <h3 className="font-display text-lg text-ink">FAQs</h3>
-                      <div className="mt-3 space-y-2.5">
+                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">FAQs</h3>
+                      <div className="mt-3 divide-y divide-black/[0.08]">
                         {serviceFaqs.map((faq) => (
-                          <article key={faq.question} className="rounded-2xl border border-black/[0.07] px-4 py-3">
+                          <article key={faq.question} className="py-3">
                             <h4 className="font-ui text-sm font-semibold text-ink">{faq.question}</h4>
                             <p className="font-body text-sm text-muted mt-1">{faq.answer}</p>
                           </article>
@@ -322,22 +325,17 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
                   {deliveryNotes && (
                     <div>
-                      <h3 className="font-display text-lg text-ink">Delivery Notes</h3>
-                      <p className="mt-2 text-sm font-body text-ink/90 leading-relaxed">{deliveryNotes}</p>
+                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Delivery Notes</h3>
+                      <p className="mt-3 text-sm font-body text-ink/85 leading-relaxed">{deliveryNotes}</p>
                     </div>
                   )}
 
                   {serviceKeywords.length > 0 && (
                     <div>
-                      <h3 className="font-display text-lg text-ink">Tags</h3>
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Tags</h3>
+                      <div className="mt-3 flex flex-wrap gap-2">
                         {serviceKeywords.map((keyword) => (
-                          <span
-                            key={keyword}
-                            className="inline-flex items-center px-2.5 py-1 rounded-full bg-purple-50 text-purple-primary text-xs font-ui border border-purple-primary/15"
-                          >
-                            {keyword}
-                          </span>
+                          <span key={keyword} className="text-sm font-body text-muted">#{keyword}</span>
                         ))}
                       </div>
                     </div>
@@ -346,16 +344,11 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
               )}
             </div>
 
-            <aside className="lg:sticky lg:top-8 lg:self-start space-y-4">
-              <section className="rounded-3xl border border-black/[0.08] bg-white p-5 sm:p-6 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="font-display text-xl text-ink">Choose a Package</h2>
-                  <span className="text-xs font-ui text-muted">
-                    {packages.length} option{packages.length === 1 ? "" : "s"}
-                  </span>
-                </div>
+            <aside className="lg:sticky lg:top-8 lg:self-start lg:pl-8 lg:border-l lg:border-black/[0.08]">
+              <div>
+                <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Commission Planner</h2>
 
-                <div className="mt-4 space-y-2.5">
+                <div className="mt-4 divide-y divide-black/[0.08]">
                   {packages.map((pkg) => {
                     const selected = selectedPackage?.id === pkg.id;
 
@@ -363,33 +356,24 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                       <button
                         key={pkg.id}
                         onClick={() => setSelectedPackageId(pkg.id)}
-                        className={`w-full text-left rounded-2xl border px-3.5 py-3 transition-colors ${
-                          selected
-                            ? "border-pink-vivid/35 bg-pink-50/70"
-                            : "border-black/[0.08] hover:bg-black/[0.02]"
-                        }`}
+                        className="w-full py-3 text-left"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-ui text-sm font-semibold text-ink">{pkg.variant_name || "Package"}</p>
-                            <p className="text-xs font-body text-muted mt-1">
-                              {pkg.delivery_days ?? 7} day delivery · {pkg.revisions ?? 0} revision
-                              {(pkg.revisions ?? 0) === 1 ? "" : "s"}
-                            </p>
+                          <div className="flex items-start gap-2">
+                            <span className={`mt-1 inline-flex w-2.5 h-2.5 rounded-full ${selected ? "bg-pink-vivid" : "bg-black/15"}`} />
+                            <div>
+                              <p className={`text-sm font-ui ${selected ? "text-ink" : "text-muted"}`}>
+                                {pkg.variant_name || "Package"}
+                              </p>
+                              <p className="text-xs font-body text-muted mt-0.5">
+                                {pkg.delivery_days ?? 7} day delivery · {pkg.revisions ?? 0} revision
+                                {(pkg.revisions ?? 0) === 1 ? "" : "s"}
+                              </p>
+                            </div>
                           </div>
-
-                          <div className="text-right">
-                            <p className="font-display text-xl text-ink">
-                              ${pkg.price.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-                            </p>
-                            <span
-                              className={`inline-flex mt-2 w-5 h-5 rounded-full border-2 items-center justify-center ${
-                                selected ? "border-pink-vivid" : "border-gray-300"
-                              }`}
-                            >
-                              {selected && <span className="w-2 h-2 rounded-full bg-pink-vivid" />}
-                            </span>
-                          </div>
+                          <p className={`text-sm font-display ${selected ? "text-pink-vivid" : "text-ink"}`}>
+                            ${pkg.price.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                          </p>
                         </div>
                       </button>
                     );
@@ -397,11 +381,11 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                 </div>
 
                 {selectedPackage && Array.isArray(selectedPackage.package_features) && selectedPackage.package_features.length > 0 && (
-                  <div className="mt-4 rounded-2xl border border-black/[0.07] bg-black/[0.02] p-3.5">
-                    <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Included in this package</p>
+                  <div className="mt-4">
+                    <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">This Package Covers</p>
                     <ul className="mt-2 space-y-1.5">
                       {selectedPackage.package_features.map((feature) => (
-                        <li key={feature} className="text-sm font-body text-ink/90 flex items-start gap-2">
+                        <li key={feature} className="text-sm font-body text-ink/85 flex items-start gap-2">
                           <span className="mt-2 w-1.5 h-1.5 rounded-full bg-pink-vivid" />
                           <span>{feature}</span>
                         </li>
@@ -413,58 +397,43 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                 <button
                   onClick={openHireModal}
                   disabled={!selectedPackage}
-                  className="mt-5 w-full py-3.5 rounded-xl text-white font-display font-semibold text-lg bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all disabled:opacity-60"
+                  className="mt-6 w-full py-3.5 rounded-full text-white font-display font-semibold text-lg bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60"
                 >
                   Hire Creator
                 </button>
 
-                {selectedPackage && (
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <button
-                      onClick={() => {
-                        if (!product) return;
-                        addItem({
-                          product_id: product.id,
-                          pricing_id: selectedPackage.id,
-                          listing_type: "service",
-                          delivery_type: product.delivery_type,
-                          title: product.title,
-                          seller_name: product.seller?.display_name || product.seller?.username || "Creator",
-                          price: selectedPackage.price,
-                          currency: selectedPackage.currency,
-                          image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
-                        });
-                      }}
-                      className="w-full py-2.5 rounded-xl border border-purple-primary/30 bg-purple-50 text-purple-primary font-ui font-semibold text-sm hover:bg-purple-100 transition-colors"
-                    >
-                      {isQueued ? "In Studio Queue" : "Add to Studio Queue"}
-                    </button>
-                    <button
-                      onClick={() => router.push("/queue")}
-                      className="w-full py-2.5 rounded-xl border border-black/[0.08] bg-white text-ink font-ui font-semibold text-sm hover:bg-black/[0.02] transition-colors"
-                    >
-                      Open Studio Queue
-                    </button>
-                  </div>
-                )}
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    onClick={() => {
+                      if (!selectedPackage || !product) return;
+                      addItem({
+                        product_id: product.id,
+                        pricing_id: selectedPackage.id,
+                        listing_type: "service",
+                        delivery_type: product.delivery_type,
+                        title: product.title,
+                        seller_name: product.seller?.display_name || product.seller?.username || "Creator",
+                        price: selectedPackage.price,
+                        currency: selectedPackage.currency,
+                        image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
+                      });
+                    }}
+                    className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-pink-vivid/40 transition-colors"
+                  >
+                    {isQueued ? "In Studio Queue" : "Add to Studio Queue"}
+                  </button>
+                  <button
+                    onClick={() => router.push("/queue")}
+                    className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-purple-primary/40 transition-colors"
+                  >
+                    Open Studio Queue
+                  </button>
+                </div>
 
                 {(localError || hireError) && (
                   <p className="mt-3 text-sm font-body text-red-500">{localError || hireError}</p>
                 )}
-              </section>
-
-              <section className="rounded-3xl border border-black/[0.08] bg-white p-5 shadow-sm">
-                <h3 className="font-display text-lg text-ink">Service Snapshot</h3>
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <InfoCard title="Response Speed" value={`${product.service_metadata?.response_time_hours ?? 24}h avg reply`} />
-                  <InfoCard title="Category" value={categoryLabel} />
-                  <InfoCard
-                    title="Fastest Delivery"
-                    value={minDeliveryDays ? `${minDeliveryDays} day${minDeliveryDays === 1 ? "" : "s"}` : "Custom timeline"}
-                  />
-                  <InfoCard title="Revisions" value={maxRevisions !== undefined ? `${maxRevisions} max` : "Custom"} />
-                </div>
-              </section>
+              </div>
             </aside>
           </div>
         </div>
@@ -541,23 +510,5 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
         </div>
       )}
     </>
-  );
-}
-
-function HeroMetric({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/15 bg-white/5 px-3 py-2.5 backdrop-blur-sm">
-      <p className="text-[11px] font-ui uppercase tracking-[0.14em] text-white/60">{title}</p>
-      <p className="mt-1 text-sm font-ui font-semibold text-white">{value}</p>
-    </div>
-  );
-}
-
-function InfoCard({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-black/[0.06] bg-black/[0.02] p-3.5">
-      <p className="text-[11px] font-ui uppercase tracking-[0.13em] text-muted">{title}</p>
-      <p className="font-ui font-semibold text-ink mt-1 text-sm">{value}</p>
-    </div>
   );
 }
