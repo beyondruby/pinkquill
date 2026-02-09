@@ -24,48 +24,102 @@ import { useAddPostToCollectionItem } from "@/lib/hooks/useCollections";
 import type { Collection, CollectionItem } from "@/lib/types";
 import DOMPurify from "dompurify";
 
-type PostCategory = "text" | "photo" | "video";
+type PostLane = "text" | "visual" | "video";
 
 interface PostTypeOption {
   id: string;
   label: string;
   icon: string;
   placeholder: string;
-  category: PostCategory;
+  lane: PostLane;
+}
+
+interface PostLaneMeta {
+  label: string;
+  description: string;
+  icon: string;
+  note: string;
+  focus: string;
+  mediaGuidance: string;
+  publishIntent: string;
+  tone: {
+    activeCard: string;
+    activeIcon: string;
+    activeBadge: string;
+    ghostBorder: string;
+    ghostBg: string;
+    rail: string;
+  };
 }
 
 const postTypes: PostTypeOption[] = [
-  { id: "thought", label: "Thought", icon: "lightbulb", placeholder: "What's on your mind?", category: "text" },
-  { id: "take", label: "Take", icon: "video", placeholder: "Share a short video moment...", category: "video" },
-  { id: "poem", label: "Poem", icon: "feather", placeholder: "Let your verses flow...", category: "text" },
-  { id: "journal", label: "Journal", icon: "book", placeholder: "Dear diary...", category: "text" },
-  { id: "essay", label: "Essay", icon: "scroll", placeholder: "Begin your exploration...", category: "text" },
-  { id: "blog", label: "Blog", icon: "blog", placeholder: "Share your thoughts with the world...", category: "text" },
-  { id: "story", label: "Story", icon: "bookOpen", placeholder: "Once upon a time...", category: "text" },
-  { id: "letter", label: "Letter", icon: "envelope", placeholder: "Dear reader...", category: "text" },
-  { id: "quote", label: "Quote", icon: "quote", placeholder: "Share words that inspire...", category: "text" },
-  { id: "visual", label: "Visual", icon: "image", placeholder: "Tell the story behind your images...", category: "photo" },
+  { id: "thought", label: "Thought", icon: "lightbulb", placeholder: "What's on your mind?", lane: "text" },
+  { id: "take", label: "Take", icon: "video", placeholder: "Share a short video moment...", lane: "video" },
+  { id: "poem", label: "Poem", icon: "feather", placeholder: "Let your verses flow...", lane: "text" },
+  { id: "journal", label: "Journal", icon: "book", placeholder: "Dear diary...", lane: "text" },
+  { id: "essay", label: "Essay", icon: "scroll", placeholder: "Begin your exploration...", lane: "text" },
+  { id: "blog", label: "Blog", icon: "blog", placeholder: "Share your thoughts with the world...", lane: "text" },
+  { id: "story", label: "Story", icon: "bookOpen", placeholder: "Once upon a time...", lane: "text" },
+  { id: "letter", label: "Letter", icon: "envelope", placeholder: "Dear reader...", lane: "text" },
+  { id: "quote", label: "Quote", icon: "quote", placeholder: "Share words that inspire...", lane: "text" },
+  { id: "visual", label: "Visual", icon: "image", placeholder: "Tell the story behind your images...", lane: "visual" },
 ];
 
-const postCategoryMeta: Record<PostCategory, { label: string; description: string; icon: string }> = {
+const postLaneMeta: Record<PostLane, PostLaneMeta> = {
   text: {
-    label: "Text",
-    description: "Writing-first formats for long and short expression.",
+    label: "Text-First",
+    description: "Writing-led formats for poems, journals, essays, stories, and more.",
     icon: "scroll",
+    note: "You can still attach photos or videos later.",
+    focus: "Words lead the emotional arc.",
+    mediaGuidance: "Photos and videos support the narrative, not replace it.",
+    publishIntent: "Built for reflective, literary, and idea-driven posts.",
+    tone: {
+      activeCard: "border-[#d59b34]/45 bg-gradient-to-br from-[#fff7e8] to-[#fffdf6]",
+      activeIcon: "bg-[#d59b34] text-white",
+      activeBadge: "border-[#eecf9f] bg-[#fff1d9] text-[#8f5f1d]",
+      ghostBorder: "hover:border-[#d59b34]/45",
+      ghostBg: "bg-[#fdfbf8]",
+      rail: "from-[#ffe6b5] via-[#fff3dc] to-white",
+    },
   },
-  photo: {
-    label: "Photo",
-    description: "Image-led storytelling and visual narratives.",
+  visual: {
+    label: "Visual-First",
+    description: "Lead with imagery while keeping space for written context.",
     icon: "image",
+    note: "Best for visual stories with optional prose.",
+    focus: "Imagery sets the scene first.",
+    mediaGuidance: "Use captions and body text to deepen visual context.",
+    publishIntent: "Designed for galleries, snapshots, and visual narratives.",
+    tone: {
+      activeCard: "border-[#2f9b95]/45 bg-gradient-to-br from-[#ecfffd] to-[#f8fffb]",
+      activeIcon: "bg-[#2f9b95] text-white",
+      activeBadge: "border-[#bde8e3] bg-[#e6fbf8] text-[#176b66]",
+      ghostBorder: "hover:border-[#2f9b95]/45",
+      ghostBg: "bg-[#f8fcfb]",
+      rail: "from-[#d7f8f4] via-[#ebfffc] to-white",
+    },
   },
   video: {
-    label: "Video",
-    description: "Short-form motion storytelling with Takes.",
+    label: "Video-First",
+    description: "Short-form video storytelling through Takes.",
     icon: "video",
+    note: "Takes are built with dedicated video tools.",
+    focus: "Motion and pacing drive the story.",
+    mediaGuidance: "Video is primary, with caption, sound, and cover shaping mood.",
+    publishIntent: "Optimized for short-form moments and performances.",
+    tone: {
+      activeCard: "border-[#e26752]/45 bg-gradient-to-br from-[#fff2ec] to-[#fffaf7]",
+      activeIcon: "bg-[#e26752] text-white",
+      activeBadge: "border-[#f2c7bd] bg-[#ffe8e1] text-[#9a3f2e]",
+      ghostBorder: "hover:border-[#e26752]/45",
+      ghostBg: "bg-[#fdf9f7]",
+      rail: "from-[#ffd7cd] via-[#ffece6] to-white",
+    },
   },
 };
 
-const postCategoryOrder: PostCategory[] = ["text", "photo", "video"];
+const postLaneOrder: PostLane[] = ["text", "visual", "video"];
 
 const contentWarningPresets = [
   "Sensitive content",
@@ -686,7 +740,14 @@ export default function CreatePost() {
     }
   });
   const currentType = postTypes.find((t) => t.id === selectedType);
-  const selectedTypeCategory = currentType?.category || "text";
+  const selectedTypeLane = currentType?.lane || "text";
+  const visibleLaneTypes = postTypes.filter((type) => type.lane === selectedTypeLane);
+  const currentLaneMeta = postLaneMeta[selectedTypeLane];
+  const selectLane = useCallback((lane: PostLane) => {
+    const laneDefaultType = postTypes.find((type) => type.lane === lane);
+    if (!laneDefaultType) return;
+    setSelectedType(laneDefaultType.id);
+  }, []);
   const titleTextForJourney = titleRef.current?.innerText?.trim() || "";
   const hasCoreContent = isTakeMode
     ? Boolean(takeVideoFile)
@@ -722,13 +783,46 @@ export default function CreatePost() {
     ? "audience"
     : "publish";
   const journeySteps = [
-    { id: "format", label: "Choose Format" },
+    { id: "format", label: "Direction" },
     { id: "compose", label: "Compose" },
-    { id: "creative", label: "Creative Layer" },
-    { id: "audience", label: "Audience & Collaborators" },
+    { id: "creative", label: "Media & Mood" },
+    { id: "audience", label: "Audience" },
     { id: "publish", label: "Publish" },
   ] as const;
   const activeJourneyIndex = journeySteps.findIndex((step) => step.id === activeJourneyStep);
+  const activeJourneyIndexSafe = activeJourneyIndex >= 0 ? activeJourneyIndex : 0;
+  const activeJourney = journeySteps[activeJourneyIndexSafe];
+  const journeyStepDetails: Record<
+    (typeof journeySteps)[number]["id"],
+    { title: string; prompt: string }
+  > = {
+    format: {
+      title: "Set your narrative direction",
+      prompt: "Choose a lane and type that matches how the story should feel.",
+    },
+    compose: {
+      title: "Build the core message",
+      prompt: "Write or record the central piece before layering creative assets.",
+    },
+    creative: {
+      title: "Shape your creative mood",
+      prompt: "Add media, styling, soundtrack, location, and tags with intention.",
+    },
+    audience: {
+      title: "Define context and collaborators",
+      prompt: "Set boundaries, invite collaborators, and tag people responsibly.",
+    },
+    publish: {
+      title: "Choose destination and visibility",
+      prompt: "Finalize where it goes and who can experience it before publishing.",
+    },
+  };
+  const activeJourneyDetail = journeyStepDetails[activeJourney.id];
+  const laneMediaHint: Record<PostLane, string> = {
+    text: "Text-first posts can include photos or videos as supporting layers while the writing remains primary.",
+    visual: "Visual-first posts center media sequence first, with text used as narrative framing.",
+    video: "Video-first posts are produced as Takes with dedicated motion, sound, and cover controls.",
+  };
 
   // Load existing post data when editing
   useEffect(() => {
@@ -2004,7 +2098,7 @@ export default function CreatePost() {
         </p>
         <button
           onClick={() => router.push("/login")}
-          className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-white"
+          className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-[#2f9b95] to-[#e26752] font-ui text-[0.95rem] font-medium text-white"
         >
           Sign In
         </button>
@@ -2015,19 +2109,23 @@ export default function CreatePost() {
   if (loadingPost) {
     return (
       <div className="max-w-[680px] mx-auto py-10 px-6 text-center">
-        <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <div className="w-8 h-8 border-2 border-[#2f9b95] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="font-body text-muted italic">Loading post...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-[720px] mx-auto py-10 px-6">
+    <div className="relative max-w-[860px] mx-auto py-8 px-4 sm:px-6">
+      <div className="pointer-events-none absolute -top-14 left-[-120px] w-[280px] h-[280px] rounded-full bg-[#ffdbbe]/35 blur-3xl" />
+      <div className="pointer-events-none absolute top-[25%] right-[-110px] w-[260px] h-[260px] rounded-full bg-[#bdebe7]/30 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-70px] left-[38%] w-[220px] h-[220px] rounded-full bg-[#ffd8d2]/30 blur-3xl" />
+
       {/* Draft Recovery Banner */}
       {showDraftRecovery && recoveredDraft && (
-        <div className="mb-6 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 border border-purple-primary/20 rounded-2xl p-5 animate-fadeIn">
+        <div className="mb-6 rounded-2xl border border-[#d4e7e5] bg-gradient-to-r from-[#fff9f1] via-white to-[#eef9f8] p-5 animate-fadeIn">
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#d59b34] to-[#2f9b95] flex items-center justify-center text-white flex-shrink-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -2049,13 +2147,13 @@ export default function CreatePost() {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleRecoverDraft}
-                  className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.85rem] font-medium text-white shadow-md shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-lg transition-all"
+                  className="px-4 py-2 rounded-full bg-gradient-to-r from-[#2f9b95] to-[#d59b34] font-ui text-[0.85rem] font-medium text-white shadow-md shadow-[#2f9b95]/30 hover:-translate-y-0.5 hover:shadow-lg transition-all"
                 >
                   Continue Editing
                 </button>
                 <button
                   onClick={handleDismissDraftRecovery}
-                  className="px-4 py-2 rounded-full border border-black/[0.08] bg-white font-ui text-[0.85rem] text-muted hover:border-purple-primary hover:text-purple-primary transition-all"
+                  className="px-4 py-2 rounded-full border border-black/[0.08] bg-white font-ui text-[0.85rem] text-muted hover:border-[#2f9b95] hover:text-[#2f9b95] transition-all"
                 >
                   Start Fresh
                 </button>
@@ -2079,38 +2177,83 @@ export default function CreatePost() {
 
       {/* Header + Journey */}
       <div className="mb-8 space-y-5">
-        <div className="text-center">
-          <h1 className="font-display text-[2rem] text-ink mb-2">
-            {isEditing ? "Refine Your Post" : "Create Your Post"}
-          </h1>
-          <p className="font-body text-muted italic">
-            {isEditing
-              ? "Polish your draft and prepare it for publishing."
-              : "Move from idea to finished piece with a focused creative workflow."}
-          </p>
+        <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+          <div className={`rounded-[28px] border border-black/[0.06] bg-gradient-to-br ${currentLaneMeta.tone.rail} p-5 md:p-6`}>
+            <p className="font-ui text-[0.72rem] tracking-[0.14em] uppercase text-muted mb-2">
+              Creative Studio
+            </p>
+            <h1 className="font-display text-[1.95rem] leading-tight text-ink mb-2">
+              {isEditing ? "Refine Your Post" : "Create Your Post"}
+            </h1>
+            <p className="font-body text-[0.9rem] text-muted">
+              {isEditing
+                ? "Tighten your narrative, rebalance media, and publish with intention."
+                : "Craft your post in five focused stages: direction, core story, creative layer, audience, and launch."}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 font-ui text-[0.75rem] ${currentLaneMeta.tone.activeBadge}`}>
+                {icons[currentLaneMeta.icon]}
+                {currentLaneMeta.label}
+              </span>
+              {currentType && (
+                <span className="inline-flex items-center gap-2 rounded-full border border-black/[0.12] bg-white px-3 py-1.5 font-ui text-[0.75rem] text-ink">
+                  {icons[currentType.icon]}
+                  {currentType.label}
+                </span>
+              )}
+              {isEditing && (
+                <span className="inline-flex items-center rounded-full border border-black/[0.08] bg-white px-3 py-1.5 font-ui text-[0.75rem] text-muted">
+                  Editing mode
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-black/[0.06] bg-white/95 backdrop-blur p-5">
+            <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-muted mb-2">
+              Journey Focus
+            </p>
+            <h3 className="font-display text-[1.15rem] text-ink leading-tight">
+              {activeJourneyDetail.title}
+            </h3>
+            <p className="font-body text-[0.82rem] text-muted mt-2 leading-relaxed">
+              {activeJourneyDetail.prompt}
+            </p>
+            <div className="mt-4">
+              <div className="h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#2f9b95] via-[#d59b34] to-[#e26752] transition-all"
+                  style={{ width: `${((activeJourneyIndexSafe + 1) / journeySteps.length) * 100}%` }}
+                />
+              </div>
+              <p className="font-ui text-[0.74rem] text-muted mt-2">
+                Step {activeJourneyIndexSafe + 1} of {journeySteps.length}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="rounded-3xl border border-black/[0.06] bg-gradient-to-br from-[#fff8fc] via-white to-[#f6fbff] p-4 md:p-5">
+        <div className="rounded-3xl border border-black/[0.06] bg-white/95 p-4 md:p-5">
           <div className="flex items-center justify-between gap-3 mb-3">
             <span className="font-ui text-[0.72rem] tracking-[0.14em] uppercase text-muted">
               Creative Journey
             </span>
             <span className="font-ui text-[0.75rem] text-muted">
-              Step {Math.max(activeJourneyIndex + 1, 1)} of {journeySteps.length}
+              Step {activeJourneyIndexSafe + 1} of {journeySteps.length}
             </span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             {journeySteps.map((step, index) => {
-              const isActive = index === activeJourneyIndex;
-              const isDone = index < activeJourneyIndex;
+              const isActive = index === activeJourneyIndexSafe;
+              const isDone = index < activeJourneyIndexSafe;
               return (
                 <div
                   key={step.id}
                   className={`rounded-xl px-3 py-2.5 border transition-all ${
                     isActive
-                      ? "border-purple-primary/40 bg-purple-primary/10"
+                      ? "border-[#2f9b95]/35 bg-[#ecf9f8]"
                       : isDone
-                      ? "border-emerald-300/60 bg-emerald-50"
+                      ? "border-[#d59b34]/35 bg-[#fff7e6]"
                       : "border-black/[0.08] bg-white"
                   }`}
                 >
@@ -2118,9 +2261,9 @@ export default function CreatePost() {
                     <span
                       className={`w-5 h-5 rounded-full flex items-center justify-center font-ui text-[0.65rem] font-semibold ${
                         isActive
-                          ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
+                          ? "bg-[#2f9b95] text-white"
                           : isDone
-                          ? "bg-emerald-500 text-white"
+                          ? "bg-[#d59b34] text-white"
                           : "bg-black/[0.06] text-muted"
                       }`}
                     >
@@ -2141,88 +2284,116 @@ export default function CreatePost() {
         </div>
       </div>
 
-      {/* Categorized Format Selector */}
-      <div className="space-y-4 mb-8">
-        {postCategoryOrder.map((category) => {
-          const categoryTypes = postTypes.filter((type) => type.category === category);
-          const meta = postCategoryMeta[category];
-          const isActiveCategory = selectedTypeCategory === category;
+      {/* Direction + Type Selection */}
+      <div className="mb-8 rounded-[28px] border border-black/[0.06] bg-white/95 backdrop-blur p-4 md:p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="font-ui text-[0.7rem] tracking-[0.14em] uppercase text-muted">
+              Step 1 · Direction
+            </p>
+            <h2 className="font-display text-[1.2rem] text-ink">Choose your creative direction</h2>
+            <p className="font-body text-[0.84rem] text-muted mt-1">
+              Pick a lane for narrative emphasis, then select a post type. Media remains flexible across text, photo, and video workflows.
+            </p>
+          </div>
+          <span className={`hidden sm:inline-flex rounded-full border px-3 py-1.5 font-ui text-[0.75rem] ${currentLaneMeta.tone.activeBadge}`}>
+            {currentLaneMeta.label}
+          </span>
+        </div>
 
-          return (
-            <section
-              key={category}
-              className={`rounded-2xl border p-4 md:p-5 transition-all ${
-                isActiveCategory
-                  ? "border-purple-primary/35 bg-gradient-to-r from-purple-primary/[0.06] to-pink-vivid/[0.05]"
-                  : "border-black/[0.06] bg-white"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      isActiveCategory
-                        ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
-                        : "bg-black/[0.04] text-muted"
-                    }`}
-                  >
-                    {icons[meta.icon]}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          {postLaneOrder.map((lane) => {
+            const laneMeta = postLaneMeta[lane];
+            const isActiveLane = selectedTypeLane === lane;
+            const laneTypeCount = postTypes.filter((type) => type.lane === lane).length;
+            return (
+              <button
+                key={lane}
+                onClick={() => selectLane(lane)}
+                className={`text-left rounded-2xl border p-3.5 transition-all ${
+                  isActiveLane
+                    ? `${laneMeta.tone.activeCard} shadow-[0_8px_24px_rgba(20,20,20,0.06)]`
+                    : `border-black/[0.08] ${laneMeta.tone.ghostBg} ${laneMeta.tone.ghostBorder} hover:-translate-y-0.5`
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                    isActiveLane ? laneMeta.tone.activeIcon : "bg-black/[0.05] text-muted"
+                  }`}>
+                    {icons[laneMeta.icon]}
                   </div>
-                  <div>
-                    <h2 className="font-ui text-[0.98rem] font-semibold text-ink">{meta.label}</h2>
-                    <p className="font-body text-[0.83rem] text-muted">{meta.description}</p>
-                  </div>
+                  <span className={`font-ui text-[0.7rem] px-2 py-1 rounded-full border ${isActiveLane ? laneMeta.tone.activeBadge : "bg-white border-black/[0.06] text-muted"}`}>
+                    {laneTypeCount}
+                  </span>
                 </div>
-                <span className="font-ui text-[0.72rem] px-2.5 py-1 rounded-full bg-black/[0.04] text-muted">
-                  {categoryTypes.length} type{categoryTypes.length > 1 ? "s" : ""}
-                </span>
-              </div>
+                <p className="font-ui text-[0.9rem] font-semibold text-ink mt-2">{laneMeta.label}</p>
+                <p className="font-body text-[0.78rem] text-muted mt-1">{laneMeta.description}</p>
+                <p className="font-body text-[0.74rem] text-muted mt-2">{laneMeta.focus}</p>
+              </button>
+            );
+          })}
+        </div>
 
-              <div className="flex flex-wrap gap-2">
-                {categoryTypes.map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => setSelectedType(type.id)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-ui text-[0.85rem] whitespace-nowrap transition-all ${
-                      selectedType === type.id
-                        ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/25"
-                        : "bg-white border border-black/[0.08] text-muted hover:border-purple-primary hover:text-purple-primary"
-                    }`}
-                  >
-                    {icons[type.icon]}
-                    {type.label}
-                  </button>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
-
-      {currentType && (
-        <div className="mb-7 rounded-2xl border border-purple-primary/20 bg-gradient-to-r from-purple-primary/[0.05] to-pink-vivid/[0.04] px-4 py-3.5">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white border border-purple-primary/20 text-purple-primary flex items-center justify-center">
-              {icons[currentType.icon]}
+        <div className={`rounded-2xl border p-4 ${currentLaneMeta.tone.activeCard}`}>
+          <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-muted mb-3">
+            Lane Blueprint
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            <div className="rounded-xl border border-black/[0.08] bg-white px-3 py-2.5">
+              <p className="font-ui text-[0.67rem] uppercase tracking-wide text-muted">Creative Focus</p>
+              <p className="font-body text-[0.8rem] text-ink mt-1">{currentLaneMeta.focus}</p>
             </div>
-            <div>
-              <p className="font-ui text-[0.72rem] tracking-[0.14em] uppercase text-purple-primary/70">
-                Selected Format
-              </p>
-              <p className="font-ui text-[0.95rem] font-semibold text-ink">{currentType.label}</p>
-              <p className="font-body text-[0.83rem] text-muted">{currentType.placeholder}</p>
+            <div className="rounded-xl border border-black/[0.08] bg-white px-3 py-2.5">
+              <p className="font-ui text-[0.67rem] uppercase tracking-wide text-muted">Media Strategy</p>
+              <p className="font-body text-[0.8rem] text-ink mt-1">{currentLaneMeta.mediaGuidance}</p>
+            </div>
+            <div className="rounded-xl border border-black/[0.08] bg-white px-3 py-2.5">
+              <p className="font-ui text-[0.67rem] uppercase tracking-wide text-muted">Publish Intent</p>
+              <p className="font-body text-[0.8rem] text-ink mt-1">{currentLaneMeta.publishIntent}</p>
             </div>
           </div>
         </div>
-      )}
+
+        <div className="rounded-2xl border border-black/[0.08] bg-[#fcfcfb] p-3.5">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-muted">
+                Post Type
+              </p>
+              <p className="font-body text-[0.82rem] text-muted">
+                {currentLaneMeta.note}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {visibleLaneTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setSelectedType(type.id)}
+                className={`flex items-center gap-2 px-3.5 py-3 rounded-xl border font-ui text-[0.83rem] transition-all ${
+                  selectedType === type.id
+                    ? `${currentLaneMeta.tone.activeCard} text-ink shadow-sm`
+                    : "bg-white border-black/[0.08] text-muted hover:border-black/[0.2] hover:text-ink"
+                }`}
+              >
+                <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedType === type.id ? currentLaneMeta.tone.activeIcon : "bg-black/[0.05] text-muted"}`}>
+                  {icons[type.icon]}
+                </span>
+                <span className="truncate font-medium">{type.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Collection Selector - Below format selection for organizing posts */}
       {!isEditing && !isTakeMode && (
-        <div className="mb-7 rounded-2xl border border-black/[0.06] bg-white p-4">
+        <div className="mb-7 rounded-2xl border border-[#dce9e7] bg-gradient-to-r from-[#fefaf1] via-white to-[#eef8f7] p-4">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
               <p className="font-ui text-[0.72rem] tracking-[0.14em] uppercase text-muted">Optional Organization</p>
-              <p className="font-body text-[0.83rem] text-muted">Place this post into a collection or series.</p>
+              <p className="font-body text-[0.83rem] text-muted">Anchor this post in a collection, chapter, or recurring creative thread.</p>
             </div>
           </div>
           <CollectionSelector
@@ -2235,11 +2406,11 @@ export default function CreatePost() {
       )}
 
       {/* Editor Card */}
-      <div className="bg-white rounded-[24px] shadow-sm border border-black/[0.04]">
-        <div className="px-6 pt-5 pb-4 border-b border-black/[0.06] bg-gradient-to-r from-[#fdf7ff] to-[#fff8f5]">
+      <div className="bg-white/95 backdrop-blur rounded-[26px] shadow-sm border border-black/[0.05]">
+        <div className={`px-6 pt-5 pb-4 border-b border-black/[0.06] bg-gradient-to-r ${currentLaneMeta.tone.rail}`}>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="font-ui text-[0.7rem] tracking-[0.14em] uppercase text-purple-primary/70">
+              <p className="font-ui text-[0.7rem] tracking-[0.14em] uppercase text-muted">
                 Step 2 · Compose
               </p>
               <h2 className="font-display text-[1.25rem] text-ink">
@@ -2247,7 +2418,7 @@ export default function CreatePost() {
               </h2>
             </div>
             {currentType && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-purple-primary/20 text-purple-primary font-ui text-[0.78rem]">
+              <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border font-ui text-[0.78rem] ${currentLaneMeta.tone.activeBadge}`}>
                 {icons[currentType.icon]}
                 {currentType.label}
               </div>
@@ -2266,15 +2437,15 @@ export default function CreatePost() {
               <div
                 className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all max-w-md mx-auto ${
                   takeDragActive
-                    ? "border-purple-primary bg-purple-primary/5"
-                    : "border-black/[0.08] hover:border-purple-primary/50 hover:bg-purple-primary/[0.02]"
+                    ? "border-[#2f9b95] bg-[#2f9b95]/5"
+                    : "border-black/[0.08] hover:border-[#2f9b95]/50 hover:bg-[#2f9b95]/[0.02]"
                 }`}
                 onDrop={handleTakeDrop}
                 onDragOver={handleTakeDragOver}
                 onDragLeave={handleTakeDragLeave}
                 onClick={() => videoInputRef.current?.click()}
               >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#2f9b95] to-[#e26752] flex items-center justify-center text-white">
                   {icons.video}
                 </div>
                 <p className="font-ui text-[1rem] text-ink font-medium mb-1">Upload your Take</p>
@@ -2313,7 +2484,7 @@ export default function CreatePost() {
                         className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
                         onClick={handleToggleTakePreview}
                       >
-                        <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center text-purple-primary">
+                        <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center text-[#176b66]">
                           {isTakePreviewPlaying ? icons.pause : icons.play}
                         </div>
                       </div>
@@ -2363,7 +2534,7 @@ export default function CreatePost() {
                       placeholder="Write a caption..."
                       maxLength={500}
                       rows={3}
-                      className="w-full p-3 rounded-xl border border-black/[0.08] bg-[#fafafa] font-body text-[0.9rem] text-ink resize-none outline-none focus:border-purple-primary focus:bg-white transition-all placeholder:text-muted/50"
+                      className="w-full p-3 rounded-xl border border-black/[0.08] bg-[#fafafa] font-body text-[0.9rem] text-ink resize-none outline-none focus:border-[#2f9b95] focus:bg-white transition-all placeholder:text-muted/50"
                     />
                     <div className="text-right font-ui text-[0.7rem] text-muted mt-1">{takeCaption.length}/500</div>
                   </div>
@@ -2396,7 +2567,7 @@ export default function CreatePost() {
                               <div
                                 className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${
                                   takeSelectedFilter === filter.name
-                                    ? "border-purple-primary ring-2 ring-purple-primary/20"
+                                    ? "border-[#2f9b95] ring-2 ring-[#2f9b95]/20"
                                     : "border-transparent"
                                 }`}
                               >
@@ -2405,7 +2576,7 @@ export default function CreatePost() {
                                   style={filter.style}
                                 />
                               </div>
-                              <span className={`text-[0.65rem] font-medium ${takeSelectedFilter === filter.name ? "text-purple-primary" : "text-muted"}`}>
+                              <span className={`text-[0.65rem] font-medium ${takeSelectedFilter === filter.name ? "text-[#176b66]" : "text-muted"}`}>
                                 {filter.label}
                               </span>
                             </button>
@@ -2464,7 +2635,7 @@ export default function CreatePost() {
                               placeholder="Search sounds..."
                               value={takeSoundSearch}
                               onChange={(e) => setTakeSoundSearch(e.target.value)}
-                              className="w-full p-2.5 rounded-lg border border-black/[0.08] bg-[#fafafa] text-sm outline-none focus:border-purple-primary"
+                              className="w-full p-2.5 rounded-lg border border-black/[0.08] bg-[#fafafa] text-sm outline-none focus:border-[#2f9b95]"
                             />
                             <div className="max-h-36 overflow-y-auto space-y-1">
                               {searchingSounds ? (
@@ -2562,7 +2733,7 @@ export default function CreatePost() {
                         {takeThumbnailFromVideo ? (
                           <button
                             onClick={() => { setTakeThumbnailPreview(null); setTakeThumbnailFile(null); }}
-                            className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${!takeThumbnailPreview ? "border-purple-primary" : "border-transparent hover:border-gray-300"}`}
+                            className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${!takeThumbnailPreview ? "border-[#2f9b95]" : "border-transparent hover:border-gray-300"}`}
                           >
                             <img src={takeThumbnailFromVideo} alt="" className="w-full h-full object-cover" />
                             <span className="absolute bottom-1 left-1 right-1 text-[0.6rem] text-white text-center bg-black/50 rounded px-1 py-0.5">From Video</span>
@@ -2572,7 +2743,7 @@ export default function CreatePost() {
                         )}
                         <button
                           onClick={() => thumbnailInputRef.current?.click()}
-                          className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${takeThumbnailPreview ? "border-purple-primary" : "border-dashed border-gray-200 hover:border-gray-300"}`}
+                          className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${takeThumbnailPreview ? "border-[#2f9b95]" : "border-dashed border-gray-200 hover:border-gray-300"}`}
                         >
                           {takeThumbnailPreview ? (
                             <>
@@ -2624,7 +2795,7 @@ export default function CreatePost() {
             <button
               onClick={handleBold}
               className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                isBold ? "bg-purple-primary text-white" : "hover:bg-black/5 text-muted"
+                isBold ? currentLaneMeta.tone.activeIcon : "hover:bg-black/5 text-muted"
               }`}
               title="Bold (Ctrl+B)"
             >
@@ -2633,7 +2804,7 @@ export default function CreatePost() {
             <button
               onClick={handleItalic}
               className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                isItalic ? "bg-purple-primary text-white" : "hover:bg-black/5 text-muted"
+                isItalic ? currentLaneMeta.tone.activeIcon : "hover:bg-black/5 text-muted"
               }`}
               title="Italic (Ctrl+I)"
             >
@@ -2642,7 +2813,7 @@ export default function CreatePost() {
             <button
               onClick={handleUnderline}
               className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                isUnderline ? "bg-purple-primary text-white" : "hover:bg-black/5 text-muted"
+                isUnderline ? currentLaneMeta.tone.activeIcon : "hover:bg-black/5 text-muted"
               }`}
               title="Underline (Ctrl+U)"
             >
@@ -2979,7 +3150,7 @@ export default function CreatePost() {
                 onClick={() => setTextAlignment(align)}
                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                   textAlignment === align
-                    ? 'bg-purple-primary text-white'
+                    ? currentLaneMeta.tone.activeIcon
                     : 'hover:bg-black/5 text-muted'
                 }`}
                 title={`Align ${align}`}
@@ -2997,7 +3168,7 @@ export default function CreatePost() {
                 onClick={() => setLineSpacing(spacing)}
                 className={`px-2 py-1 rounded-lg font-ui text-xs transition-all ${
                   lineSpacing === spacing
-                    ? 'bg-purple-primary text-white'
+                    ? currentLaneMeta.tone.activeIcon
                     : 'hover:bg-black/5 text-muted'
                 }`}
                 title={`Line spacing ${spacing}`}
@@ -3012,7 +3183,7 @@ export default function CreatePost() {
             onClick={() => setDropCapEnabled(!dropCapEnabled)}
             className={`w-8 h-8 rounded-lg flex items-center justify-center ml-2 transition-all ${
               dropCapEnabled
-                ? 'bg-purple-primary text-white'
+                ? currentLaneMeta.tone.activeIcon
                 : 'hover:bg-black/5 text-muted'
             }`}
             title="Drop Cap"
@@ -3048,9 +3219,9 @@ export default function CreatePost() {
 
         {!isTakeMode && (
           <div className="px-6 pb-2">
-            <div className="flex items-center justify-between rounded-xl border border-black/[0.06] bg-[#fcfcfc] px-3.5 py-2.5">
+            <div className="flex items-center justify-between rounded-xl border border-[#dce9e7] bg-gradient-to-r from-[#fff7e8] via-white to-[#ebf8f7] px-3.5 py-2.5">
               <div>
-                <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-purple-primary/70">
+                <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-muted">
                   Step 3 · Creative Layer
                 </p>
                 <p className="font-ui text-[0.82rem] text-ink">Add visuals, sound, style, and creative context.</p>
@@ -3061,86 +3232,96 @@ export default function CreatePost() {
 
         {/* Media Upload Section - Hidden in Take mode */}
         {!isTakeMode && (
-        <div className="px-6 pb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
-              Media Attachments
-            </span>
-            <span className="font-ui text-[0.75rem] text-muted/60">
-              ({mediaItems.length}/20)
-            </span>
-          </div>
+          <div className="px-6 pb-6 space-y-3">
+            <div className="rounded-2xl border border-[#dce9e7] bg-[#fcfffe] px-4 py-3">
+              <p className="font-ui text-[0.68rem] uppercase tracking-[0.14em] text-muted mb-1">Media Strategy</p>
+              <p className="font-body text-[0.84rem] text-muted">
+                {laneMediaHint[selectedTypeLane]}
+              </p>
+            </div>
 
-          {mediaItems.length < 20 && (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-purple-primary/25 rounded-2xl p-6 text-center cursor-pointer hover:border-purple-primary/50 hover:bg-purple-primary/[0.02] transition-all"
-            >
-              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white shadow-lg shadow-purple-primary/30">
-                {icons.upload}
+            <div className="rounded-2xl border border-black/[0.07] bg-[#fcfcfb] p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
+                  Asset Board
+                </span>
+                <span className="font-ui text-[0.75rem] text-muted/60">
+                  ({mediaItems.length}/20)
+                </span>
               </div>
-              <p className="font-ui text-[0.95rem] text-ink mb-1">
-                Drop files here or click to upload
-              </p>
-              <p className="font-body text-[0.85rem] text-muted">
-                Images, videos, GIFs - Max 50MB each
-              </p>
-            </div>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*,video/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
 
-          {mediaItems.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
-              {mediaItems.map((item, index) => (
+              {mediaItems.length < 20 && (
                 <div
-                  key={item.id}
-                  className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group shadow-sm hover:shadow-lg transition-all"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-[#2f9b95]/35 rounded-2xl p-6 text-center cursor-pointer hover:border-[#2f9b95]/60 hover:bg-[#2f9b95]/[0.04] transition-all"
                 >
-                  <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid text-white font-ui text-[0.7rem] font-semibold flex items-center justify-center z-10">
-                    {index + 1}
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-[#2f9b95] to-[#e26752] flex items-center justify-center text-white shadow-lg shadow-[#2f9b95]/25">
+                    {icons.upload}
                   </div>
-                  <button
-                    onClick={() => handleRemoveMedia(item.id)}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 z-10"
-                  >
-                    {icons.x}
-                  </button>
-                  {item.type === "video" ? (
-                    <video src={item.preview} className="w-full h-full object-cover" />
-                  ) : (
-                    <img src={item.preview} alt="" className="w-full h-full object-cover" />
-                  )}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-8 opacity-0 group-hover:opacity-100 transition-all">
-                    <input
-                      type="text"
-                      value={item.caption}
-                      onChange={(e) => handleCaptionChange(item.id, e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      placeholder="Add caption..."
-                      className="w-full px-3 py-2 rounded-lg bg-white/95 font-body text-[0.85rem] text-ink outline-none placeholder:text-muted"
-                    />
-                  </div>
+                  <p className="font-ui text-[0.95rem] text-ink mb-1">
+                    Drop files here or click to upload
+                  </p>
+                  <p className="font-body text-[0.85rem] text-muted">
+                    Images, videos, and GIFs. Up to 50MB per asset.
+                  </p>
                 </div>
-              ))}
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+
+              {mediaItems.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+                  {mediaItems.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group shadow-sm hover:shadow-lg transition-all"
+                    >
+                      <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-gradient-to-br from-[#2f9b95] to-[#d59b34] text-white font-ui text-[0.7rem] font-semibold flex items-center justify-center z-10">
+                        {index + 1}
+                      </div>
+                      <button
+                        onClick={() => handleRemoveMedia(item.id)}
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 z-10"
+                      >
+                        {icons.x}
+                      </button>
+                      {item.type === "video" ? (
+                        <video src={item.preview} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={item.preview} alt="" className="w-full h-full object-cover" />
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-8 opacity-0 group-hover:opacity-100 transition-all">
+                        <input
+                          type="text"
+                          value={item.caption}
+                          onChange={(e) => handleCaptionChange(item.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="Add caption..."
+                          className="w-full px-3 py-2 rounded-lg bg-white/95 font-body text-[0.85rem] text-ink outline-none placeholder:text-muted"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
         )}
 
         {/* Creative Styling Section - Hidden in Take mode */}
         {!isTakeMode && (
         <div className="px-6 pb-6">
+          <div className="rounded-2xl border border-black/[0.07] bg-[#fcfcfb] p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-purple-primary">{icons.background}</span>
+            <span className="text-[#2f9b95]">{icons.background}</span>
             <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
-              Creative Styling
+              Visual Mood
             </span>
           </div>
 
@@ -3149,7 +3330,7 @@ export default function CreatePost() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowBackgroundPicker(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-purple-primary/20 bg-white hover:border-purple-primary/50 hover:bg-purple-primary/5 transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#2f9b95]/20 bg-white hover:border-[#2f9b95]/50 hover:bg-[#2f9b95]/5 transition-all"
               >
                 {styling.background ? (
                   <div
@@ -3165,7 +3346,7 @@ export default function CreatePost() {
                     }}
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-lg border-2 border-dashed border-purple-primary/30" />
+                  <div className="w-6 h-6 rounded-lg border-2 border-dashed border-[#2f9b95]/35" />
                 )}
                 <span className="font-ui text-sm text-ink">
                   {styling.background ? 'Change Background' : 'Add Background'}
@@ -3182,16 +3363,18 @@ export default function CreatePost() {
             </div>
 
           </div>
+          </div>
         </div>
         )}
 
         {/* Spotify Song Section - Hidden in Take mode */}
         {!isTakeMode && (
         <div className="px-6 pb-6">
+          <div className="rounded-2xl border border-black/[0.07] bg-[#fcfcfb] p-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[#1DB954]">{icons.spotify}</span>
             <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
-              Currently Listening
+              Soundtrack
             </span>
             <span className="font-ui text-[0.75rem] text-muted/60">(optional)</span>
           </div>
@@ -3291,26 +3474,30 @@ export default function CreatePost() {
               <span className="font-ui text-sm text-ink">Add a song</span>
             </button>
           )}
+          </div>
         </div>
         )}
 
         {/* Journal Metadata - shown only for journal type */}
         {!isTakeMode && selectedType === 'journal' && (
         <div className="px-6 pb-6">
-          <JournalMetadataPanel
-            value={journalMetadata}
-            onChange={setJournalMetadata}
-            location={postLocation}
-            onLocationChange={setPostLocation}
-          />
+          <div className="rounded-2xl border border-black/[0.07] bg-[#fcfcfb] p-4">
+            <JournalMetadataPanel
+              value={journalMetadata}
+              onChange={setJournalMetadata}
+              location={postLocation}
+              onLocationChange={setPostLocation}
+            />
+          </div>
         </div>
         )}
 
         {/* Location Input - shown for all types except journal (which has it in metadata panel) */}
         {!isTakeMode && selectedType !== 'journal' && (
         <div className="px-6 pb-6">
+          <div className="rounded-2xl border border-black/[0.07] bg-[#fcfcfb] p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-purple-primary">{icons.location}</span>
+            <span className="text-[#e26752]">{icons.location}</span>
             <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
               Location
             </span>
@@ -3321,29 +3508,31 @@ export default function CreatePost() {
             value={postLocation}
             onChange={(e) => setPostLocation(e.target.value)}
             placeholder="Where are you writing from?"
-            className="w-full px-4 py-2.5 rounded-xl border border-purple-primary/20 bg-white font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+            className="w-full px-4 py-2.5 rounded-xl border border-[#e26752]/25 bg-white font-ui text-sm text-ink focus:outline-none focus:border-[#e26752] transition-colors placeholder:text-muted/50"
           />
+          </div>
         </div>
         )}
 
         {/* Tags Section */}
         <div className="px-6 pb-6">
+          <div className="rounded-2xl border border-black/[0.07] bg-[#fcfcfb] p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-purple-primary">{icons.tag}</span>
+            <span className="text-[#d59b34]">{icons.tag}</span>
             <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
               Tags
             </span>
             <span className="font-ui text-[0.75rem] text-muted/60">({tags.length}/20)</span>
           </div>
 
-          <div className="flex flex-wrap gap-2 p-3 bg-[#fafafa] rounded-xl border-2 border-transparent focus-within:border-purple-primary focus-within:bg-white transition-all">
+          <div className="flex flex-wrap gap-2 p-3 bg-white rounded-xl border-2 border-transparent focus-within:border-[#d59b34]/50 transition-all">
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary rounded-full font-ui text-[0.85rem]"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fff1d9] text-[#8f5f1d] rounded-full font-ui text-[0.85rem]"
               >
                 #{tag}
-                <button onClick={() => handleRemoveTag(tag)} className="hover:text-pink-vivid transition-colors">
+                <button onClick={() => handleRemoveTag(tag)} className="hover:text-[#e26752] transition-colors">
                   {icons.x}
                 </button>
               </span>
@@ -3360,12 +3549,13 @@ export default function CreatePost() {
               />
             )}
           </div>
+          </div>
         </div>
 
         <div className="px-6 pb-2">
-          <div className="flex items-center justify-between rounded-xl border border-black/[0.06] bg-[#fcfcfc] px-3.5 py-2.5">
+          <div className="flex items-center justify-between rounded-xl border border-[#dce9e7] bg-gradient-to-r from-[#eef8f7] via-white to-[#fff5ea] px-3.5 py-2.5">
             <div>
-              <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-purple-primary/70">
+              <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-muted">
                 Step 4 · Audience & Collaboration
               </p>
               <p className="font-ui text-[0.82rem] text-ink">Invite people in, tag context, and set boundaries.</p>
@@ -3375,9 +3565,10 @@ export default function CreatePost() {
 
         {/* Collaborators Section */}
         <div className="px-6 pb-6">
+          <div className="rounded-2xl border border-black/[0.07] bg-[#fcfcfb] p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-purple-primary">{icons.collaborators}</span>
+              <span className="text-[#2f9b95]">{icons.collaborators}</span>
               <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
                 Collaborators
               </span>
@@ -3385,7 +3576,7 @@ export default function CreatePost() {
             </div>
             <button
               onClick={() => setShowCollaboratorPicker(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary rounded-full font-ui text-[0.8rem] font-medium hover:from-purple-primary/20 hover:to-pink-vivid/20 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e6fbf8] text-[#176b66] rounded-full font-ui text-[0.8rem] font-medium hover:bg-[#d9f4f1] transition-all"
             >
               {icons.plus}
               Add
@@ -3393,12 +3584,12 @@ export default function CreatePost() {
           </div>
 
           {collaborators.length > 0 ? (
-            <div className="p-3 bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 rounded-xl border border-purple-primary/10">
+            <div className="p-3 bg-gradient-to-r from-[#2f9b95]/8 to-[#d59b34]/8 rounded-xl border border-[#2f9b95]/15">
               <div className="flex flex-wrap gap-2">
                 {collaborators.map((user) => (
                   <div
                     key={user.id}
-                    className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-full border border-purple-primary/20 shadow-sm"
+                    className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-full border border-[#2f9b95]/20 shadow-sm"
                   >
                     <div className="relative">
                       {user.avatar_url ? (
@@ -3408,12 +3599,12 @@ export default function CreatePost() {
                           className="w-6 h-6 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-xs font-medium">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2f9b95] to-[#d59b34] flex items-center justify-center text-white text-xs font-medium">
                           {(user.display_name || user.username)[0].toUpperCase()}
                         </div>
                       )}
                       {user.is_verified && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full flex items-center justify-center">
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gradient-to-r from-[#2f9b95] to-[#d59b34] rounded-full flex items-center justify-center">
                           {icons.check}
                         </div>
                       )}
@@ -3422,7 +3613,7 @@ export default function CreatePost() {
                       {user.display_name || user.username}
                     </span>
                     {user.role && (
-                      <span className="text-xs px-2 py-0.5 bg-purple-primary/10 text-purple-primary rounded-full font-ui font-medium">
+                      <span className="text-xs px-2 py-0.5 bg-[#e6fbf8] text-[#176b66] rounded-full font-ui font-medium">
                         {user.role}
                       </span>
                     )}
@@ -3447,23 +3638,25 @@ export default function CreatePost() {
           ) : (
             <button
               onClick={() => setShowCollaboratorPicker(true)}
-              className="w-full p-4 border-2 border-dashed border-gray-200 rounded-xl text-center hover:border-purple-primary/40 hover:bg-purple-primary/5 transition-all group"
+              className="w-full p-4 border-2 border-dashed border-gray-200 rounded-xl text-center hover:border-[#2f9b95]/40 hover:bg-[#2f9b95]/5 transition-all group"
             >
-              <div className="text-gray-400 group-hover:text-purple-primary transition-colors">
+              <div className="text-gray-400 group-hover:text-[#2f9b95] transition-colors">
                 {icons.collaborators}
               </div>
-              <p className="mt-2 text-sm text-muted font-ui group-hover:text-purple-primary transition-colors">
+              <p className="mt-2 text-sm text-muted font-ui group-hover:text-[#2f9b95] transition-colors">
                 Invite people to collaborate on this post
               </p>
             </button>
           )}
+          </div>
         </div>
 
         {/* Tag People Section */}
         <div className="px-6 pb-6">
+          <div className="rounded-2xl border border-black/[0.07] bg-[#fcfcfb] p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-pink-vivid">{icons.userTag}</span>
+              <span className="text-[#e26752]">{icons.userTag}</span>
               <span className="font-ui text-[0.75rem] font-semibold tracking-wider uppercase text-muted">
                 Tag People
               </span>
@@ -3471,7 +3664,7 @@ export default function CreatePost() {
             </div>
             <button
               onClick={() => setShowTagPeoplePicker(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-pink-vivid/10 to-warm-orange/10 text-pink-vivid rounded-full font-ui text-[0.8rem] font-medium hover:from-pink-vivid/20 hover:to-warm-orange/20 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ffe8e1] text-[#9a3f2e] rounded-full font-ui text-[0.8rem] font-medium hover:bg-[#ffdcd2] transition-all"
             >
               {icons.plus}
               Add
@@ -3479,12 +3672,12 @@ export default function CreatePost() {
           </div>
 
           {taggedPeople.length > 0 ? (
-            <div className="p-3 bg-gradient-to-r from-pink-vivid/5 to-warm-orange/5 rounded-xl border border-pink-vivid/10">
+            <div className="p-3 bg-gradient-to-r from-[#e26752]/8 to-[#d59b34]/8 rounded-xl border border-[#e26752]/15">
               <div className="flex flex-wrap gap-2">
                 {taggedPeople.map((user) => (
                   <div
                     key={user.id}
-                    className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-full border border-pink-vivid/20 shadow-sm"
+                    className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-full border border-[#e26752]/20 shadow-sm"
                   >
                     <div className="relative">
                       {user.avatar_url ? (
@@ -3494,7 +3687,7 @@ export default function CreatePost() {
                           className="w-6 h-6 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-vivid to-warm-orange flex items-center justify-center text-white text-xs font-medium">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#e26752] to-[#d59b34] flex items-center justify-center text-white text-xs font-medium">
                           {(user.display_name || user.username)[0].toUpperCase()}
                         </div>
                       )}
@@ -3515,16 +3708,17 @@ export default function CreatePost() {
           ) : (
             <button
               onClick={() => setShowTagPeoplePicker(true)}
-              className="w-full p-4 border-2 border-dashed border-gray-200 rounded-xl text-center hover:border-pink-vivid/40 hover:bg-pink-vivid/5 transition-all group"
+              className="w-full p-4 border-2 border-dashed border-gray-200 rounded-xl text-center hover:border-[#e26752]/40 hover:bg-[#e26752]/5 transition-all group"
             >
-              <div className="text-gray-400 group-hover:text-pink-vivid transition-colors">
+              <div className="text-gray-400 group-hover:text-[#e26752] transition-colors">
                 {icons.userTag}
               </div>
-              <p className="mt-2 text-sm text-muted font-ui group-hover:text-pink-vivid transition-colors">
+              <p className="mt-2 text-sm text-muted font-ui group-hover:text-[#e26752] transition-colors">
                 Tag people in this post
               </p>
             </button>
           )}
+          </div>
         </div>
 
         {/* Content Warning Section */}
@@ -3538,7 +3732,7 @@ export default function CreatePost() {
               <button
                 onClick={() => setHasContentWarning(!hasContentWarning)}
                 className={`w-12 h-7 rounded-full transition-all relative ${
-                  hasContentWarning ? "bg-gradient-to-r from-purple-primary to-pink-vivid" : "bg-gray-300"
+                  hasContentWarning ? "bg-gradient-to-r from-[#e26752] to-[#d59b34]" : "bg-gray-300"
                 }`}
               >
                 <div
@@ -3586,11 +3780,11 @@ export default function CreatePost() {
           <div className="mx-6 mb-6">
             <div className="flex items-center justify-between mb-2">
               <span className="font-ui text-[0.85rem] text-muted">Uploading your Take...</span>
-              <span className="font-ui text-[0.85rem] font-medium text-purple-primary">{Math.round(takeProgress)}%</span>
+              <span className="font-ui text-[0.85rem] font-medium text-[#176b66]">{Math.round(takeProgress)}%</span>
             </div>
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-purple-primary to-pink-vivid transition-all duration-300"
+                className="h-full bg-gradient-to-r from-[#2f9b95] to-[#e26752] transition-all duration-300"
                 style={{ width: `${takeProgress}%` }}
               />
             </div>
@@ -3598,9 +3792,9 @@ export default function CreatePost() {
         )}
 
         <div className="px-6 pb-2">
-          <div className="flex items-center justify-between rounded-xl border border-black/[0.06] bg-[#fcfcfc] px-3.5 py-2.5">
+          <div className="flex items-center justify-between rounded-xl border border-[#dce9e7] bg-gradient-to-r from-[#eef8f7] via-white to-[#fff6eb] px-3.5 py-2.5">
             <div>
-              <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-purple-primary/70">
+              <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-muted">
                 Step 5 · Publish Setup
               </p>
               <p className="font-ui text-[0.82rem] text-ink">Finalize visibility, destination, and publish.</p>
@@ -3621,8 +3815,8 @@ export default function CreatePost() {
                 disabled={isCommunityPost}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full border bg-white font-ui text-[0.85rem] transition-all ${
                   isCommunityPost
-                    ? "border-purple-primary/30 text-purple-primary cursor-not-allowed"
-                    : "border-black/[0.08] text-muted hover:border-purple-primary hover:text-purple-primary"
+                    ? "border-[#2f9b95]/30 text-[#176b66] cursor-not-allowed"
+                    : "border-black/[0.08] text-muted hover:border-[#2f9b95] hover:text-[#176b66]"
                 }`}
               >
                 {icons[currentVisibility?.icon || "globe"]}
@@ -3641,7 +3835,7 @@ export default function CreatePost() {
                       }}
                       className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                         visibility === option.id
-                          ? "bg-purple-primary/10 text-purple-primary"
+                          ? "bg-[#e6fbf8] text-[#176b66]"
                           : "text-ink hover:bg-black/[0.03]"
                       }`}
                     >
@@ -3660,7 +3854,7 @@ export default function CreatePost() {
             {!isEditing && (userCommunities.length > 0 || communitiesLoading || authLoading) && (
               <div className="relative">
                 {selectedCommunity ? (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-primary/30 bg-purple-primary/5 text-purple-primary font-ui text-[0.85rem]">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#2f9b95]/30 bg-[#2f9b95]/5 text-[#176b66] font-ui text-[0.85rem]">
                     <span
                       onClick={() => setShowCommunityMenu(!showCommunityMenu)}
                       className="flex items-center gap-2 cursor-pointer"
@@ -3672,7 +3866,7 @@ export default function CreatePost() {
                           className="w-5 h-5 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-[0.5rem] font-bold">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#2f9b95] to-[#d59b34] flex items-center justify-center text-white text-[0.5rem] font-bold">
                           {selectedCommunity.name.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -3694,7 +3888,7 @@ export default function CreatePost() {
                   <button
                     onClick={() => !(communitiesLoading || authLoading) && setShowCommunityMenu(!showCommunityMenu)}
                     disabled={communitiesLoading || authLoading}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white text-muted hover:border-purple-primary hover:text-purple-primary font-ui text-[0.85rem] transition-all ${(communitiesLoading || authLoading) ? 'opacity-60 cursor-wait' : ''}`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white text-muted hover:border-[#2f9b95] hover:text-[#176b66] font-ui text-[0.85rem] transition-all ${(communitiesLoading || authLoading) ? 'opacity-60 cursor-wait' : ''}`}
                   >
                     {(communitiesLoading || authLoading) ? (
                       <div className="w-4 h-4 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
@@ -3716,11 +3910,11 @@ export default function CreatePost() {
                         setSelectedCommunity(null);
                         setShowCommunityMenu(false);
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
-                        !selectedCommunity
-                          ? "bg-purple-primary/10 text-purple-primary"
-                          : "text-ink hover:bg-black/[0.03]"
-                      }`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
+                          !selectedCommunity
+                            ? "bg-[#e6fbf8] text-[#176b66]"
+                            : "text-ink hover:bg-black/[0.03]"
+                        }`}
                     >
                       {icons.globe}
                       <span>Personal Feed</span>
@@ -3734,7 +3928,7 @@ export default function CreatePost() {
                         }}
                         className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                           selectedCommunity?.id === community.id
-                            ? "bg-purple-primary/10 text-purple-primary"
+                            ? "bg-[#e6fbf8] text-[#176b66]"
                             : "text-ink hover:bg-black/[0.03]"
                         }`}
                       >
@@ -3745,7 +3939,7 @@ export default function CreatePost() {
                             className="w-6 h-6 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-[0.6rem] font-bold">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2f9b95] to-[#d59b34] flex items-center justify-center text-white text-[0.6rem] font-bold">
                             {community.name.charAt(0).toUpperCase()}
                           </div>
                         )}
@@ -3775,9 +3969,9 @@ export default function CreatePost() {
                 className={`px-5 py-2.5 rounded-full border font-ui text-[0.9rem] transition-all ${
                   draftSaveStatus === "saved"
                     ? "border-green-500 bg-green-50 text-green-600"
-                    : draftSaveStatus === "saving"
-                    ? "border-purple-primary/50 bg-purple-50 text-purple-primary"
-                    : "border-black/[0.08] bg-white text-muted hover:border-purple-primary hover:text-purple-primary"
+                  : draftSaveStatus === "saving"
+                    ? "border-[#2f9b95]/40 bg-[#ecf9f8] text-[#176b66]"
+                    : "border-black/[0.08] bg-white text-muted hover:border-[#2f9b95] hover:text-[#176b66]"
                 }`}
               >
                 {draftSaveStatus === "saving" ? (
@@ -3803,7 +3997,7 @@ export default function CreatePost() {
             <button
               onClick={handlePublish}
               disabled={loading || takeUploading || (isTakeMode && !takeVideoFile)}
-              className="px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.9rem] font-medium text-white shadow-lg shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#2f9b95] to-[#e26752] font-ui text-[0.9rem] font-medium text-white shadow-lg shadow-[#2f9b95]/30 hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
               {isTakeMode
                 ? takeUploading
