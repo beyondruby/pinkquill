@@ -74,6 +74,15 @@ function getBackgroundPreviewStyle(background?: PostBackground): React.CSSProper
       return { backgroundColor: background.value };
     case 'gradient':
       return { background: background.value };
+    case 'pattern':
+      return {
+        background: background.value,
+        backgroundSize: background.value.includes("notebook")
+          ? "100% 24px"
+          : background.value.includes("dots") || background.value.includes("grid")
+          ? "20px 20px"
+          : "auto",
+      };
     case 'image':
       return {
         backgroundImage: `url(${background.imageUrl || background.value})`,
@@ -83,6 +92,39 @@ function getBackgroundPreviewStyle(background?: PostBackground): React.CSSProper
     default:
       return {};
   }
+}
+
+function getLuminance(hex: string): number {
+  const normalized = hex.replace("#", "");
+  if (normalized.length < 6) return 1;
+  const r = parseInt(normalized.substring(0, 2), 16);
+  const g = parseInt(normalized.substring(2, 4), 16);
+  const b = parseInt(normalized.substring(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+function extractColorsFromGradient(gradient: string): string[] {
+  const hexPattern = /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g;
+  return gradient.match(hexPattern) || [];
+}
+
+function isDarkBackground(background?: PostBackground): boolean {
+  if (!background) return false;
+
+  if (background.type === "solid") {
+    return getLuminance(background.value) < 0.5;
+  }
+
+  if (background.type === "image") return true;
+
+  if (background.type === "gradient" || background.type === "pattern") {
+    const colors = extractColorsFromGradient(background.value);
+    if (colors.length === 0) return false;
+    const average = colors.reduce((sum, color) => sum + getLuminance(color), 0) / colors.length;
+    return average < 0.5;
+  }
+
+  return false;
 }
 
 // Weather icons (simplified inline)
@@ -1200,98 +1242,128 @@ function PostCardComponent({
 
     // UNIFIED LAYOUT for all other post types
     // Format: Title → First 250 chars → Images (square) → Continue reading
+    const hasCreativeBackground = Boolean(post.styling?.background);
+    const hasDarkCreativeBackground = isDarkBackground(post.styling?.background);
+    const creativeTextClass = hasDarkCreativeBackground ? "text-white" : "";
+    const alignmentClass = {
+      left: "text-left",
+      center: "text-center",
+      right: "text-right",
+      justify: "text-justify",
+    }[post.styling?.textAlignment || "left"];
+    const lineSpacingClass = {
+      normal: "leading-relaxed",
+      relaxed: "leading-[2]",
+      loose: "leading-[2.5]",
+    }[post.styling?.lineSpacing || "normal"];
+
     return (
       <article className="post type-unified" onClick={handleOpenModal}>
         <AuthorHeader />
         <ContentSection>
-          {/* 1. Title */}
-          {post.title && <h3 className="unified-post-title">{post.title}</h3>}
+          <div
+            className={hasCreativeBackground ? "relative rounded-xl overflow-hidden p-4 md:p-5" : undefined}
+            style={hasCreativeBackground ? getBackgroundPreviewStyle(post.styling?.background) : undefined}
+          >
+            {post.styling?.background?.type === "image" && (
+              <div className="absolute inset-0 bg-black/30" />
+            )}
+            <div className={hasCreativeBackground ? "relative z-10" : undefined}>
+              {/* 1. Title */}
+              {post.title && (
+                <h3 className={`unified-post-title ${creativeTextClass} ${alignmentClass}`}>
+                  {post.title}
+                </h3>
+              )}
 
-          {/* 2. First 250 chars with Continue reading */}
-          {post.content && (
-            <TruncatedContent
-              content={post.content}
-              onReadMore={handleOpenModal}
-            />
-          )}
+              {/* 2. First 250 chars with Continue reading */}
+              {post.content && (
+                <TruncatedContent
+                  content={post.content}
+                  onReadMore={handleOpenModal}
+                  className={`${creativeTextClass} ${alignmentClass} ${lineSpacingClass} ${post.styling?.dropCap ? "drop-cap-enabled" : ""}`}
+                />
+              )}
 
-          {/* Spotify Track Indicator */}
-          {post.spotify_track && (
-            <div className="flex items-center gap-2 mt-3 mb-1 px-1">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1DB954]/10 border border-[#1DB954]/20">
-                <svg className="w-4 h-4 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                </svg>
-                <span className="font-ui text-xs text-[#1DB954] font-medium truncate max-w-[180px]">
-                  {post.spotify_track.name}
-                </span>
-                <span className="font-ui text-xs text-[#1DB954]/60 hidden sm:inline">
-                  · {post.spotify_track.artist}
-                </span>
-              </div>
-            </div>
-          )}
+              {/* Spotify Track Indicator */}
+              {post.spotify_track && (
+                <div className="flex items-center gap-2 mt-3 mb-1 px-1">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1DB954]/10 border border-[#1DB954]/20">
+                    <svg className="w-4 h-4 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                    </svg>
+                    <span className="font-ui text-xs text-[#1DB954] font-medium truncate max-w-[180px]">
+                      {post.spotify_track.name}
+                    </span>
+                    <span className="font-ui text-xs text-[#1DB954]/60 hidden sm:inline">
+                      · {post.spotify_track.artist}
+                    </span>
+                  </div>
+                </div>
+              )}
 
-          {/* 3. Images as squares */}
-          {hasMedia && (
-            <div className="unified-media-grid" onClick={(e) => e.stopPropagation()}>
-              {post.media!.slice(0, 4).map((item, idx) => (
-                <div
-                  key={item.id || idx}
-                  className={`unified-media-item ${post.media!.length === 1 ? 'single' : ''} ${post.media!.length === 2 ? 'double' : ''} ${post.media!.length === 3 && idx === 0 ? 'featured' : ''}`}
-                >
-                  {item.media_type === "video" ? (
-                    <div className="unified-video-thumb">
-                      <video
-                        src={item.media_url}
-                        className="unified-media-image"
-                        preload="metadata"
-                        aria-label={item.caption || `Video ${idx + 1} in post by ${post.author.name}`}
-                      />
-                      <div className="unified-video-play" aria-hidden="true">
-                        <PlayIcon />
-                      </div>
+              {/* 3. Images as squares */}
+              {hasMedia && (
+                <div className="unified-media-grid" onClick={(e) => e.stopPropagation()}>
+                  {post.media!.slice(0, 4).map((item, idx) => (
+                    <div
+                      key={item.id || idx}
+                      className={`unified-media-item ${post.media!.length === 1 ? 'single' : ''} ${post.media!.length === 2 ? 'double' : ''} ${post.media!.length === 3 && idx === 0 ? 'featured' : ''}`}
+                    >
+                      {item.media_type === "video" ? (
+                        <div className="unified-video-thumb">
+                          <video
+                            src={item.media_url}
+                            className="unified-media-image"
+                            preload="metadata"
+                            aria-label={item.caption || `Video ${idx + 1} in post by ${post.author.name}`}
+                          />
+                          <div className="unified-video-play" aria-hidden="true">
+                            <PlayIcon />
+                          </div>
+                        </div>
+                      ) : (
+                        <Image
+                          src={item.media_url}
+                          alt={item.caption || `Image ${idx + 1} in post by ${post.author.name}`}
+                          width={400}
+                          height={400}
+                          className="unified-media-image"
+                          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 200px, 180px"
+                          quality={75}
+                          loading="lazy"
+                        />
+                      )}
+                      {/* Show +N overlay on the last visible image if more than 4 */}
+                      {idx === 3 && post.media!.length > 4 && (
+                        <div className="unified-media-more">
+                          +{post.media!.length - 4}
+                        </div>
+                      )}
                     </div>
-                  ) : (
+                  ))}
+                </div>
+              )}
+
+              {/* Legacy single image support */}
+              {!hasMedia && post.image && (
+                <div className="unified-media-grid single-legacy" onClick={(e) => e.stopPropagation()}>
+                  <div className="unified-media-item single">
                     <Image
-                      src={item.media_url}
-                      alt={item.caption || `Image ${idx + 1} in post by ${post.author.name}`}
+                      src={post.image}
+                      alt={post.title || ""}
                       width={400}
                       height={400}
                       className="unified-media-image"
-                      sizes="(max-width: 640px) 45vw, (max-width: 1024px) 200px, 180px"
+                      sizes="(max-width: 640px) 90vw, (max-width: 1024px) 400px, 360px"
                       quality={75}
                       loading="lazy"
                     />
-                  )}
-                  {/* Show +N overlay on the last visible image if more than 4 */}
-                  {idx === 3 && post.media!.length > 4 && (
-                    <div className="unified-media-more">
-                      +{post.media!.length - 4}
-                    </div>
-                  )}
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
-          )}
-
-          {/* Legacy single image support */}
-          {!hasMedia && post.image && (
-            <div className="unified-media-grid single-legacy" onClick={(e) => e.stopPropagation()}>
-              <div className="unified-media-item single">
-                <Image
-                  src={post.image}
-                  alt={post.title || ""}
-                  width={400}
-                  height={400}
-                  className="unified-media-image"
-                  sizes="(max-width: 640px) 90vw, (max-width: 1024px) 400px, 360px"
-                  quality={75}
-                  loading="lazy"
-                />
-              </div>
-            </div>
-          )}
+          </div>
         </ContentSection>
         <Actions />
       </article>

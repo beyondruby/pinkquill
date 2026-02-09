@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunities, useDrafts, useAutoSave, Community, SearchableUser, saveCollaboratorsAndMentions, PostDraft } from "@/lib/hooks";
+import { useCommunities, useDrafts, useAutoSave, Community, SearchableUser, createNotification, PostDraft } from "@/lib/hooks";
 import {
   useCreateTake,
   useSounds,
@@ -15,7 +15,7 @@ import {
   Sound,
 } from "@/lib/hooks/useTakes";
 import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
-import { PostStyling, PostBackground, JournalMetadata, TextAlignment, LineSpacing, DividerStyle, SpotifyTrack, CommunityFlair } from "@/lib/types";
+import { PostStyling, JournalMetadata, TextAlignment, LineSpacing, SpotifyTrack, CommunityFlair } from "@/lib/types";
 import FlairPicker from "@/components/communities/FlairPicker";
 import BackgroundPicker from "@/components/create/BackgroundPicker";
 import JournalMetadataPanel from "@/components/create/JournalMetadata";
@@ -44,6 +44,8 @@ const contentWarningPresets = [
   "Mental health",
   "Strong language",
 ];
+
+const MAX_MEDIA_SIZE_BYTES = 50 * 1024 * 1024;
 
 const fontOptions = [
   // Serif fonts - great for literary content
@@ -437,6 +439,7 @@ export default function CreatePost() {
   const editPostId = searchParams.get("edit");
   const isEditing = !!editPostId;
   const [loadingPost, setLoadingPost] = useState(isEditing);
+  const [editingCommunityId, setEditingCommunityId] = useState<string | null>(null);
 
   // Community selection - only fetch when user is loaded
   const communitySlug = searchParams.get("community");
@@ -464,13 +467,27 @@ export default function CreatePost() {
 
   // Clear flair when community changes
   useEffect(() => {
+    if (isEditing) return;
     setSelectedFlair(null);
-  }, [selectedCommunity?.id]);
+  }, [selectedCommunity?.id, isEditing]);
+
+  // In edit mode, hydrate selected community from loaded membership list when available.
+  useEffect(() => {
+    if (!isEditing) return;
+    if (!editingCommunityId || userCommunities.length === 0) return;
+    const matchedCommunity = userCommunities.find((community) => community.id === editingCommunityId);
+    if (matchedCommunity) {
+      setSelectedCommunity(matchedCommunity);
+    }
+  }, [editingCommunityId, isEditing, userCommunities]);
 
   const [selectedType, setSelectedType] = useState("thought");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [visibility, setVisibility] = useState("public");
+  const isCommunityPost = isEditing
+    ? Boolean(selectedCommunity?.id || editingCommunityId)
+    : Boolean(selectedCommunity?.id);
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -478,6 +495,13 @@ export default function CreatePost() {
   const [showTextColorMenu, setShowTextColorMenu] = useState(false);
   const [showHighlightMenu, setShowHighlightMenu] = useState(false);
   const [charCount, setCharCount] = useState(0);
+
+  // Community posts are always public.
+  useEffect(() => {
+    if (isCommunityPost && visibility !== "public") {
+      setVisibility("public");
+    }
+  }, [isCommunityPost, visibility]);
 
   // Formatting state
   const [isBold, setIsBold] = useState(false);
@@ -562,7 +586,7 @@ export default function CreatePost() {
   const displaySounds = takeSoundSearch ? searchedSounds : trendingSounds;
 
   // Drafts
-  const { drafts, saveDraft, loadDraft, deleteDraft, getMostRecentDraft } = useDrafts();
+  const { saveDraft, deleteDraft, getMostRecentDraft } = useDrafts(user?.id);
   const [showDraftRecovery, setShowDraftRecovery] = useState(false);
   const [recoveredDraft, setRecoveredDraft] = useState<PostDraft | null>(null);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
@@ -587,7 +611,7 @@ export default function CreatePost() {
       type: selectedType,
       title,
       content,
-      visibility: visibility as "public" | "private",
+      visibility: visibility as PostDraft["visibility"],
       contentWarning: hasContentWarning ? contentWarning : "",
       collaborators: collaborators.map(c => ({
         id: c.id,
@@ -604,6 +628,8 @@ export default function CreatePost() {
       })),
       communityId: selectedCommunity?.id || null,
       communityName: selectedCommunity?.name,
+      flair: selectedFlair,
+      tags,
       mediaMetadata: mediaItems.map(m => ({
         id: m.id,
         preview: m.preview,
@@ -611,13 +637,20 @@ export default function CreatePost() {
         caption: m.caption
       })),
       styling: styling as PostDraft["styling"],
+      textAlignment,
+      lineSpacing,
+      dropCap: dropCapEnabled,
+      postLocation,
+      journalMetadata,
+      spotifyTrack,
     };
-  }, [isTakeMode, isEditing, selectedType, visibility, hasContentWarning, contentWarning, collaborators, taggedPeople, selectedCommunity, mediaItems, styling]);
+  }, [isTakeMode, isEditing, selectedType, visibility, hasContentWarning, contentWarning, collaborators, taggedPeople, selectedCommunity, selectedFlair, tags, mediaItems, styling, textAlignment, lineSpacing, dropCapEnabled, postLocation, journalMetadata, spotifyTrack]);
 
   // Auto-save every 30 seconds
-  const { lastSaved: autoSaveTime } = useAutoSave(getDraftData, {
+  useAutoSave(getDraftData, {
     enabled: !isEditing && !isTakeMode,
     interval: 30000, // 30 seconds
+    saveDraft,
     onSave: (id) => {
       setCurrentDraftId(id);
     }
@@ -673,8 +706,27 @@ export default function CreatePost() {
         setSelectedType(post.type || "thought");
         setInitialTitle(post.title || "");
         setVisibility(post.visibility || "public");
+        setEditingCommunityId(post.community_id || null);
+        if (post.community_id) {
+          const matchedCommunity = userCommunities.find((community) => community.id === post.community_id);
+          if (matchedCommunity) {
+            setSelectedCommunity(matchedCommunity);
+          }
+        } else {
+          setSelectedCommunity(null);
+        }
         setHasContentWarning(!!post.content_warning);
         setContentWarning(post.content_warning || "");
+        setTags([]);
+        setSpotifyTrack(post.spotify_track || null);
+        setPostLocation(post.post_location || "");
+        setJournalMetadata(post.metadata || {});
+
+        const loadedStyling = (post.styling || {}) as PostStyling;
+        setStyling(loadedStyling);
+        setTextAlignment(loadedStyling.textAlignment || "left");
+        setLineSpacing(loadedStyling.lineSpacing || "normal");
+        setDropCapEnabled(Boolean(loadedStyling.dropCap));
 
         // Store content to be set after editor mounts
         setInitialContent(post.content || "");
@@ -808,7 +860,7 @@ export default function CreatePost() {
     };
 
     loadPost();
-  }, [editPostId, user]);
+  }, [editPostId, user, userCommunities]);
 
   // Set initial content once editor mounts (for edit mode)
   useEffect(() => {
@@ -1057,9 +1109,22 @@ export default function CreatePost() {
 
     const remainingSlots = 20 - mediaItems.length;
     const filesToAdd = Array.from(files).slice(0, remainingSlots);
+    const validationErrors: string[] = [];
 
     filesToAdd.forEach((file) => {
-      const isVideo = file.type.startsWith("video");
+      const isImage = file.type.startsWith("image/");
+      const isVideo = file.type.startsWith("video/");
+
+      if (!isImage && !isVideo) {
+        validationErrors.push(`${file.name} is not a supported image or video format.`);
+        return;
+      }
+
+      if (file.size > MAX_MEDIA_SIZE_BYTES) {
+        validationErrors.push(`${file.name} exceeds the 50MB limit.`);
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (event) => {
         const newItem: MediaItem = {
@@ -1073,6 +1138,10 @@ export default function CreatePost() {
       };
       reader.readAsDataURL(file);
     });
+
+    if (validationErrors.length > 0) {
+      setError(validationErrors[0]);
+    }
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -1259,10 +1328,9 @@ export default function CreatePost() {
 
     // Set other state
     setVisibility(recoveredDraft.visibility);
-    if (recoveredDraft.contentWarning) {
-      setHasContentWarning(true);
-      setContentWarning(recoveredDraft.contentWarning);
-    }
+    setHasContentWarning(Boolean(recoveredDraft.contentWarning));
+    setContentWarning(recoveredDraft.contentWarning || "");
+    setTags(recoveredDraft.tags || []);
     setCollaborators(recoveredDraft.collaborators.map(c => ({
       ...c,
       role: c.role || "collaborator",
@@ -1275,11 +1343,37 @@ export default function CreatePost() {
     if (recoveredDraft.styling) {
       setStyling(recoveredDraft.styling as PostStyling);
     }
+    setTextAlignment(
+      recoveredDraft.textAlignment ||
+      recoveredDraft.styling?.textAlignment ||
+      "left"
+    );
+    setLineSpacing(
+      recoveredDraft.lineSpacing ||
+      recoveredDraft.styling?.lineSpacing ||
+      "normal"
+    );
+    setDropCapEnabled(
+      Boolean(recoveredDraft.dropCap ?? recoveredDraft.styling?.dropCap)
+    );
+    setPostLocation(recoveredDraft.postLocation || "");
+    setJournalMetadata(recoveredDraft.journalMetadata || {});
+    setSpotifyTrack(recoveredDraft.spotifyTrack || null);
+    setSelectedFlair(recoveredDraft.flair || null);
+
+    if (recoveredDraft.communityId) {
+      const matchedCommunity = userCommunities.find((community) => community.id === recoveredDraft.communityId);
+      if (matchedCommunity) {
+        setSelectedCommunity(matchedCommunity);
+      }
+    } else {
+      setSelectedCommunity(null);
+    }
 
     // Set current draft ID so we update instead of create new
     setCurrentDraftId(recoveredDraft.id);
     setShowDraftRecovery(false);
-  }, [recoveredDraft]);
+  }, [recoveredDraft, userCommunities]);
 
   // Handle dismissing draft recovery
   const handleDismissDraftRecovery = useCallback(() => {
@@ -1316,7 +1410,7 @@ export default function CreatePost() {
       type: selectedType,
       title,
       content,
-      visibility: visibility as "public" | "private",
+      visibility: visibility as PostDraft["visibility"],
       contentWarning: hasContentWarning ? contentWarning : "",
       collaborators: collaborators.map(c => ({
         id: c.id,
@@ -1333,6 +1427,8 @@ export default function CreatePost() {
       })),
       communityId: selectedCommunity?.id || null,
       communityName: selectedCommunity?.name,
+      flair: selectedFlair,
+      tags,
       mediaMetadata: mediaItems.map(m => ({
         id: m.id,
         preview: m.preview,
@@ -1340,6 +1436,12 @@ export default function CreatePost() {
         caption: m.caption,
       })),
       styling: styling,
+      textAlignment,
+      lineSpacing,
+      dropCap: dropCapEnabled,
+      postLocation,
+      journalMetadata,
+      spotifyTrack,
     };
 
     const id = saveDraft(draftData, currentDraftId || undefined);
@@ -1357,8 +1459,16 @@ export default function CreatePost() {
     collaborators,
     taggedPeople,
     selectedCommunity,
+    selectedFlair,
+    tags,
     mediaItems,
     styling,
+    textAlignment,
+    lineSpacing,
+    dropCapEnabled,
+    postLocation,
+    journalMetadata,
+    spotifyTrack,
     saveDraft,
     currentDraftId,
   ]);
@@ -1422,7 +1532,6 @@ export default function CreatePost() {
 
     const rawContent = editorRef.current?.innerHTML || "";
     const plainText = editorRef.current?.innerText || "";
-    const rawTitleHtml = titleRef.current?.innerHTML || "";
     const titleText = titleRef.current?.innerText?.trim() || "";
 
     // Clean up HTML content - convert &nbsp; to regular spaces
@@ -1435,7 +1544,6 @@ export default function CreatePost() {
     };
 
     const content = cleanHtml(rawContent);
-    const titleHtml = cleanHtml(rawTitleHtml);
 
     if (!plainText.trim()) {
       setError("Please write something before publishing.");
@@ -1459,6 +1567,30 @@ export default function CreatePost() {
 
     try {
       let postId: string;
+      let failedMediaUploads = 0;
+      const postVisibility = isCommunityPost ? "public" : visibility;
+
+      const postStyling: PostStyling = {
+        background: styling.background,
+        textAlignment: textAlignment,
+        lineSpacing: lineSpacing,
+        dropCap: dropCapEnabled,
+      };
+
+      const persistedStyling = Object.keys(postStyling).some(
+        (key) =>
+          postStyling[key as keyof PostStyling] !== undefined &&
+          postStyling[key as keyof PostStyling] !== "left" &&
+          postStyling[key as keyof PostStyling] !== "normal" &&
+          postStyling[key as keyof PostStyling] !== false
+      )
+        ? postStyling
+        : null;
+
+      const postMetadata =
+        selectedType === "journal" && Object.keys(journalMetadata).length > 0
+          ? journalMetadata
+          : null;
 
       if (isEditing && editPostId) {
         // Update existing post
@@ -1468,8 +1600,11 @@ export default function CreatePost() {
             type: selectedType,
             title: titleText || null,
             content: content.trim(),
-            visibility,
+            visibility: postVisibility,
             content_warning: hasContentWarning ? contentWarning.trim() || null : null,
+            styling: persistedStyling,
+            post_location: postLocation.trim() || null,
+            metadata: postMetadata,
             spotify_track: spotifyTrack,
             flair_id: selectedFlair?.id || null,
           })
@@ -1498,48 +1633,46 @@ export default function CreatePost() {
         // Handle tags - delete old and add new
         await supabase.from("post_tags").delete().eq("post_id", editPostId);
       } else {
-        // Create new post
-        // Community posts are always public to be visible to all members
-        const postVisibility = selectedCommunity ? "public" : visibility;
-
-        // Build styling object
-        const postStyling: PostStyling = {
-          background: styling.background,
-          textAlignment: textAlignment,
-          lineSpacing: lineSpacing,
-          dropCap: dropCapEnabled,
+        // Create new post atomically with collaborators + mentions in a single RPC transaction.
+        type CreatePostWithRelationsResult = {
+          success?: boolean;
+          post_id?: string;
+          status?: string;
+          collaborators_added?: number;
+          mentions_added?: number;
+          error?: string;
         };
 
-        // Build metadata for journals
-        const postMetadata = selectedType === 'journal' && Object.keys(journalMetadata).length > 0
-          ? journalMetadata
-          : null;
-
-        const { data: post, error: postError } = await supabase
-          .from("posts")
-          .insert({
-            author_id: user.id,
-            type: selectedType,
-            title: titleText || null,
-            content: content.trim(),
-            visibility: postVisibility,
-            content_warning: hasContentWarning ? contentWarning.trim() || null : null,
-            community_id: selectedCommunity?.id || null,
-            flair_id: selectedFlair?.id || null,
-            styling: Object.keys(postStyling).some(k => postStyling[k as keyof PostStyling] !== undefined && postStyling[k as keyof PostStyling] !== 'left' && postStyling[k as keyof PostStyling] !== 'normal' && postStyling[k as keyof PostStyling] !== false) ? postStyling : null,
-            post_location: postLocation.trim() || null,
-            metadata: postMetadata,
-            spotify_track: spotifyTrack,
-          })
-          .select()
-          .single();
+        const { data: createdPostResult, error: postError } = await supabase.rpc(
+          "create_post_with_relations",
+          {
+            p_type: selectedType,
+            p_title: titleText || null,
+            p_content: content.trim(),
+            p_visibility: postVisibility,
+            p_content_warning: hasContentWarning ? contentWarning.trim() || null : null,
+            p_community_id: selectedCommunity?.id || null,
+            p_flair_id: selectedFlair?.id || null,
+            p_styling: persistedStyling,
+            p_post_location: postLocation.trim() || null,
+            p_metadata: postMetadata,
+            p_spotify_track: spotifyTrack,
+            p_collaborators: collaborators.map((c) => ({ id: c.id, role: c.role || null })),
+            p_mentions: taggedPeople.map((t) => t.id),
+          }
+        );
 
         if (postError) {
-          console.error("Post creation error:", postError);
+          console.error("Post creation RPC error:", postError);
           throw new Error(`Failed to create post: ${postError.message}`);
         }
 
-        postId = post.id;
+        const rpcResult = createdPostResult as CreatePostWithRelationsResult | null;
+        if (!rpcResult?.success || !rpcResult.post_id) {
+          throw new Error(rpcResult?.error || "Failed to create post");
+        }
+
+        postId = rpcResult.post_id;
       }
 
       // Upload new media files
@@ -1559,6 +1692,7 @@ export default function CreatePost() {
 
           if (uploadError) {
             console.error("Storage upload error:", uploadError);
+            failedMediaUploads += 1;
             continue;
           }
 
@@ -1566,13 +1700,19 @@ export default function CreatePost() {
             .from("post-media")
             .getPublicUrl(fileName);
 
-          await supabase.from("post_media").insert({
+          const { error: mediaInsertError } = await supabase.from("post_media").insert({
             post_id: postId,
             media_url: urlData.publicUrl,
             media_type: item.type,
             caption: item.caption.trim() || null,
             position: startPosition + i,
           });
+
+          if (mediaInsertError) {
+            console.error("Post media insert error:", mediaInsertError);
+            failedMediaUploads += 1;
+            continue;
+          }
         }
       }
 
@@ -1699,14 +1839,36 @@ export default function CreatePost() {
             console.warn("Could not update mentions:", mentionErr);
           }
         } else {
-          // New post - use the existing saveCollaboratorsAndMentions function
-          await saveCollaboratorsAndMentions(
-            postId,
-            user.id,
-            collaborators.map((c) => ({ id: c.id, role: c.role })),
-            taggedPeople.map((t) => t.id),
-            collaborators.length > 0
-          );
+          // New post relations are already saved by RPC; fire notifications as a best-effort side effect.
+          try {
+            if (collaborators.length > 0) {
+              await Promise.all(
+                collaborators.map((collab) =>
+                  createNotification(
+                    collab.id,
+                    user.id,
+                    "collaboration_invite",
+                    postId
+                  )
+                )
+              );
+            }
+
+            if (taggedPeople.length > 0) {
+              await Promise.all(
+                taggedPeople.map((mention) =>
+                  createNotification(
+                    mention.id,
+                    user.id,
+                    "mention",
+                    postId
+                  )
+                )
+              );
+            }
+          } catch (notificationErr) {
+            console.warn("Could not create collaboration/mention notifications:", notificationErr);
+          }
         }
       } else if (isEditing) {
         // If editing and no collaborators/mentions, clear existing ones
@@ -1732,14 +1894,22 @@ export default function CreatePost() {
 
       // Navigate based on context
       if (isEditing) {
-        router.push(`/post/${postId}`);
+        if (failedMediaUploads > 0) {
+          router.push(`/post/${postId}?media_failed=${failedMediaUploads}`);
+        } else {
+          router.push(`/post/${postId}`);
+        }
       } else if (collaborators.length > 0) {
-        // If there are collaborators, the post is in draft - show a message or go home
-        router.push("/?pending=true");
+        // Collaborator posts stay in draft until collaborators accept.
+        router.push("/pending-collaborations?created=1");
       } else if (selectedCommunity) {
         router.push(`/community/${selectedCommunity.slug}`);
       } else {
-        router.push("/");
+        if (failedMediaUploads > 0) {
+          router.push(`/post/${postId}?media_failed=${failedMediaUploads}`);
+        } else {
+          router.push("/");
+        }
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to publish post";
@@ -1750,6 +1920,7 @@ export default function CreatePost() {
   };
 
   const currentVisibility = visibilityOptions.find((v) => v.id === visibility);
+  const flairCommunityId = selectedCommunity?.id || editingCommunityId;
 
   if (!user) {
     return (
@@ -3199,15 +3370,23 @@ export default function CreatePost() {
             {/* Visibility Dropdown */}
             <div className="relative">
               <button
-                onClick={() => setShowVisibilityMenu(!showVisibilityMenu)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white font-ui text-[0.85rem] text-muted hover:border-purple-primary hover:text-purple-primary transition-all"
+                onClick={() => {
+                  if (isCommunityPost) return;
+                  setShowVisibilityMenu(!showVisibilityMenu);
+                }}
+                disabled={isCommunityPost}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border bg-white font-ui text-[0.85rem] transition-all ${
+                  isCommunityPost
+                    ? "border-purple-primary/30 text-purple-primary cursor-not-allowed"
+                    : "border-black/[0.08] text-muted hover:border-purple-primary hover:text-purple-primary"
+                }`}
               >
                 {icons[currentVisibility?.icon || "globe"]}
-                {currentVisibility?.label}
-                {icons.chevronDown}
+                {isCommunityPost ? "Community (Public)" : currentVisibility?.label}
+                {!isCommunityPost && icons.chevronDown}
               </button>
 
-              {showVisibilityMenu && (
+              {showVisibilityMenu && !isCommunityPost && (
                 <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-black/[0.06] overflow-hidden z-10">
                   {visibilityOptions.map((option) => (
                     <button
@@ -3334,10 +3513,10 @@ export default function CreatePost() {
               </div>
             )}
 
-            {/* Flair Picker (only show when a community is selected) */}
-            {selectedCommunity && !isEditing && (
+            {/* Flair Picker (show for community posts, including edit mode) */}
+            {flairCommunityId && (
               <FlairPicker
-                communityId={selectedCommunity.id}
+                communityId={flairCommunityId}
                 selectedFlairId={selectedFlair?.id || null}
                 onSelect={setSelectedFlair}
               />

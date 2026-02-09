@@ -40,16 +40,15 @@ export default function PostingHelpPage() {
 
   const postTypes = [
     { name: "Thought", description: "Short reflections and manifestos", label: "shared a thought" },
+    { name: "Take", description: "Short-form video moments", label: "posted a take" },
     { name: "Poem", description: "Poetry with centered, italic styling", label: "wrote a poem" },
     { name: "Journal", description: "Personal diary-style entries", label: "wrote in their journal" },
     { name: "Essay", description: "Long-form analytical writing", label: "wrote an essay" },
+    { name: "Blog", description: "Editorial-style publishing", label: "published a blog post" },
     { name: "Story", description: "Fiction and narrative pieces", label: "shared a story" },
     { name: "Letter", description: "Letter-format writing", label: "wrote a letter" },
-    { name: "Screenplay", description: "Script and dialogue format", label: "wrote a screenplay" },
     { name: "Quote", description: "Quotations with attribution", label: "shared a quote" },
     { name: "Visual", description: "Image-focused posts", label: "shared a visual story" },
-    { name: "Audio", description: "Voice notes and audio content", label: "recorded a voice note" },
-    { name: "Video", description: "Video content", label: "shared a video" },
   ];
 
   return (
@@ -142,7 +141,7 @@ export default function PostingHelpPage() {
           <section id="post-types" className="scroll-mt-24 mb-16">
             <h2>Post Types</h2>
             <p>
-              PinkQuill offers 11 unique post types, each designed for different creative expressions.
+              PinkQuill offers 10 writing and visual post types, plus Takes for short-form videos.
               The post type affects how your content is displayed and labeled.
             </p>
 
@@ -183,6 +182,7 @@ export default function PostingHelpPage() {
             <h3>Videos</h3>
             <ul>
               <li><strong>Formats:</strong> MP4, WebM, MOV</li>
+              <li><strong>Size limit:</strong> 50MB per file</li>
               <li><strong>Duration:</strong> No strict limit for post videos</li>
               <li><strong>Playback:</strong> Videos auto-play muted in the feed</li>
             </ul>

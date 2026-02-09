@@ -111,6 +111,8 @@ const icons = {
 };
 
 type Tab = "color" | "gradient" | "pattern" | "image";
+const MAX_BACKGROUND_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_BACKGROUND_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export default function BackgroundPicker({ value, onChange, onClose }: BackgroundPickerProps) {
   const [activeTab, setActiveTab] = useState<Tab>("color");
@@ -118,6 +120,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
   const [imagePreview, setImagePreview] = useState<string | null>(value?.type === "image" ? value.imageUrl || null : null);
   const [imageOpacity, setImageOpacity] = useState(value?.opacity ?? 1);
   const [imageBlur, setImageBlur] = useState(value?.blur ?? 0);
+  const [imageError, setImageError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -143,6 +146,17 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!ALLOWED_BACKGROUND_TYPES.includes(file.type)) {
+      setImageError("Only JPG, PNG, or WebP files are allowed.");
+      return;
+    }
+
+    if (file.size > MAX_BACKGROUND_IMAGE_SIZE_BYTES) {
+      setImageError("Background image must be 5MB or smaller.");
+      return;
+    }
+
+    setImageError(null);
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
@@ -419,6 +433,9 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
                   </div>
                   <p className="font-ui text-ink mb-1">Upload Background Image</p>
                   <p className="font-body text-sm text-muted">JPG, PNG, or WebP - Max 5MB</p>
+                  {imageError && (
+                    <p className="mt-2 font-ui text-xs text-red-500">{imageError}</p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -485,6 +502,9 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
                   >
                     Change Image
                   </button>
+                  {imageError && (
+                    <p className="font-ui text-xs text-red-500 text-center">{imageError}</p>
+                  )}
                 </div>
               )}
               <input

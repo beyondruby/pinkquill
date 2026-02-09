@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { PostStyling } from "../types";
+import type {
+  CommunityFlair,
+  JournalMetadata,
+  LineSpacing,
+  PostStyling,
+  SpotifyTrack,
+  TextAlignment,
+} from "../types";
 
 // ============================================================================
 // Types
@@ -30,17 +37,21 @@ export interface DraftMention {
   avatar_url: string | null;
 }
 
+type DraftVisibility = "public" | "followers" | "private";
+
 export interface PostDraft {
   id: string;
   type: string;
   title: string;
   content: string;
-  visibility: "public" | "private";
+  visibility: DraftVisibility;
   contentWarning: string;
   collaborators: DraftCollaborator[];
   mentions: DraftMention[];
+  tags?: string[];
   communityId: string | null;
   communityName?: string;
+  flair?: CommunityFlair | null;
   // Media is stored as metadata only (URLs for previews)
   // Actual files need to be re-uploaded
   mediaMetadata: Array<{
@@ -51,13 +62,24 @@ export interface PostDraft {
   }>;
   // Styling options (uses PostStyling from types)
   styling?: PostStyling;
+  textAlignment?: TextAlignment;
+  lineSpacing?: LineSpacing;
+  dropCap?: boolean;
+  postLocation?: string;
+  journalMetadata?: JournalMetadata;
+  spotifyTrack?: SpotifyTrack | null;
   // Timestamps
   createdAt: string;
   updatedAt: string;
 }
 
-const DRAFTS_STORAGE_KEY = "pinkquill_drafts";
+const LEGACY_DRAFTS_STORAGE_KEY = "pinkquill_drafts";
 const MAX_DRAFTS = 10; // Limit to prevent localStorage bloat
+
+function getDraftsStorageKey(draftScope?: string): string {
+  if (!draftScope) return LEGACY_DRAFTS_STORAGE_KEY;
+  return `${LEGACY_DRAFTS_STORAGE_KEY}:${draftScope}`;
+}
 
 // ============================================================================
 // useDrafts - Manage post drafts in localStorage
@@ -74,32 +96,44 @@ interface UseDraftsReturn {
   quotaExceeded: boolean;
 }
 
-export function useDrafts(): UseDraftsReturn {
+export function useDrafts(draftScope?: string): UseDraftsReturn {
   const [drafts, setDrafts] = useState<PostDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
+  const storageKey = getDraftsStorageKey(draftScope);
 
   // Load drafts from localStorage on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(DRAFTS_STORAGE_KEY);
+      let stored = localStorage.getItem(storageKey);
+
+      // One-time migration path from legacy unscoped storage.
+      if (!stored && draftScope) {
+        stored = localStorage.getItem(LEGACY_DRAFTS_STORAGE_KEY);
+      }
+
       if (stored) {
         const parsed = JSON.parse(stored) as PostDraft[];
         // Sort by updatedAt (most recent first)
         parsed.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
         setDrafts(parsed);
+
+        if (draftScope && !localStorage.getItem(storageKey)) {
+          localStorage.setItem(storageKey, JSON.stringify(parsed));
+          localStorage.removeItem(LEGACY_DRAFTS_STORAGE_KEY);
+        }
       }
     } catch (err) {
       console.error("[useDrafts] Failed to load drafts:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [draftScope, storageKey]);
 
   // Save drafts to localStorage
   const persistDrafts = useCallback((newDrafts: PostDraft[]) => {
     try {
-      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(newDrafts));
+      localStorage.setItem(storageKey, JSON.stringify(newDrafts));
       setQuotaExceeded(false);
     } catch (err) {
       console.error("[useDrafts] Failed to persist drafts:", err);
@@ -108,16 +142,16 @@ export function useDrafts(): UseDraftsReturn {
         setQuotaExceeded(true);
         const trimmed = newDrafts.slice(0, Math.floor(newDrafts.length / 2));
         try {
-          localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(trimmed));
+          localStorage.setItem(storageKey, JSON.stringify(trimmed));
           setDrafts(trimmed);
         } catch {
           // If still failing, clear all drafts
-          localStorage.removeItem(DRAFTS_STORAGE_KEY);
+          localStorage.removeItem(storageKey);
           setDrafts([]);
         }
       }
     }
-  }, []);
+  }, [storageKey]);
 
   // Save a new draft or update existing
   const saveDraft = useCallback(
@@ -183,8 +217,8 @@ export function useDrafts(): UseDraftsReturn {
   // Clear all drafts
   const clearAllDrafts = useCallback(() => {
     setDrafts([]);
-    localStorage.removeItem(DRAFTS_STORAGE_KEY);
-  }, []);
+    localStorage.removeItem(storageKey);
+  }, [storageKey]);
 
   // Get most recent draft
   const getMostRecentDraft = useCallback((): PostDraft | null => {
@@ -211,6 +245,7 @@ interface UseAutoSaveOptions {
   enabled?: boolean;
   interval?: number; // milliseconds
   onSave?: (draftId: string) => void;
+  saveDraft?: UseDraftsReturn["saveDraft"];
 }
 
 interface UseAutoSaveReturn {
@@ -224,14 +259,15 @@ export function useAutoSave(
   getDraftData: () => Omit<PostDraft, "id" | "createdAt" | "updatedAt"> | null,
   options: UseAutoSaveOptions = {}
 ): UseAutoSaveReturn {
-  const { enabled = true, interval = 30000, onSave } = options; // Default 30 seconds
-  const { saveDraft } = useDrafts();
+  const { enabled = true, interval = 30000, onSave, saveDraft } = options; // Default 30 seconds
 
   const [draftId, setDraftId] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const triggerSave = useCallback(() => {
+    if (!saveDraft) return;
+
     const data = getDraftData();
     if (!data) return;
 

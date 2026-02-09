@@ -18,6 +18,7 @@ import PostTags from "@/components/feed/PostTags";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
+import type { PostBackground, PostStyling } from "@/lib/types";
 
 interface TaggedUser {
   id: string;
@@ -70,6 +71,7 @@ interface SpotifyTrack {
 interface Post {
   id: string;
   author_id: string;
+  status?: string | null;
   type: string;
   title: string | null;
   content: string;
@@ -83,6 +85,7 @@ interface Post {
   post_location?: string | null;
   metadata?: JournalMetadata | null;
   spotify_track?: SpotifyTrack | null;
+  styling?: PostStyling | null;
 }
 
 function getTimeAgo(dateString: string): string {
@@ -121,6 +124,67 @@ function formatWeather(weather: string): string {
 
 function formatMood(mood: string): string {
   return mood.charAt(0).toUpperCase() + mood.slice(1);
+}
+
+function getBackgroundStyle(background?: PostBackground): React.CSSProperties {
+  if (!background) return {};
+
+  switch (background.type) {
+    case "solid":
+      return { backgroundColor: background.value };
+    case "gradient":
+      return { background: background.value };
+    case "pattern":
+      return {
+        background: background.value,
+        backgroundSize: background.value.includes("notebook")
+          ? "100% 24px"
+          : background.value.includes("dots") || background.value.includes("grid")
+          ? "20px 20px"
+          : "auto",
+      };
+    case "image":
+      return {
+        backgroundImage: `url(${background.imageUrl || background.value})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
+    default:
+      return {};
+  }
+}
+
+function getLuminance(hex: string): number {
+  const normalized = hex.replace("#", "");
+  if (normalized.length < 6) return 1;
+  const r = parseInt(normalized.substring(0, 2), 16);
+  const g = parseInt(normalized.substring(2, 4), 16);
+  const b = parseInt(normalized.substring(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+function extractColorsFromGradient(gradient: string): string[] {
+  const hexPattern = /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g;
+  return gradient.match(hexPattern) || [];
+}
+
+function isDarkBackground(background?: PostBackground): boolean {
+  if (!background) return false;
+
+  if (background.type === "solid") {
+    return getLuminance(background.value) < 0.5;
+  }
+
+  if (background.type === "image") return true;
+
+  if (background.type === "gradient" || background.type === "pattern") {
+    const colors = extractColorsFromGradient(background.value);
+    if (colors.length === 0) return false;
+    const average = colors.reduce((sum, color) => sum + getLuminance(color), 0) / colors.length;
+    return average < 0.5;
+  }
+
+  return false;
 }
 
 // Weather icons for journal display
@@ -170,6 +234,7 @@ export default function PostPage() {
   const searchParams = useSearchParams();
   const postId = params.id as string;
   const commentIdFromUrl = searchParams.get('comment');
+  const mediaFailedFromUrl = searchParams.get("media_failed");
   const { user, profile } = useAuth();
 
   const [post, setPost] = useState<Post | null>(null);
@@ -268,6 +333,35 @@ export default function PostPage() {
       // SECURITY CHECK: Blocking (Highest Priority - Rule Set 1)
       // If User A blocks User B, User B CANNOT see User A's posts (even via direct link)
       const isOwner = user?.id === postData.author_id;
+      const postStatus = postData.status || "published";
+      let hasCollaborationAccess = false;
+
+      // Only the author and invited collaborators can view unpublished drafts via direct URL.
+      if (postStatus !== "published" && !isOwner) {
+        if (!user) {
+          setError("Post not found");
+          setLoading(false);
+          return;
+        }
+
+        const { data: collaboration } = await supabase
+          .from("post_collaborators")
+          .select("status")
+          .eq("post_id", postId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        const canViewUnpublished =
+          collaboration?.status === "pending" || collaboration?.status === "accepted";
+
+        if (!canViewUnpublished) {
+          setError("Post not found");
+          setLoading(false);
+          return;
+        }
+
+        hasCollaborationAccess = true;
+      }
 
       if (!isOwner && user) {
         // Check if the post author has blocked the current user
@@ -306,14 +400,14 @@ export default function PostPage() {
 
       if (visibility === "private") {
         // Private posts: only the author can see
-        if (!isOwner) {
+        if (!isOwner && !hasCollaborationAccess) {
           setError("This post is private");
           setLoading(false);
           return;
         }
       } else if (visibility === "followers") {
         // Followers-only posts: only the author or their followers can see
-        if (!isOwner) {
+        if (!isOwner && !hasCollaborationAccess) {
           if (!user) {
             // Not logged in - can't see followers-only content
             setError("You must be logged in to view this post");
@@ -338,7 +432,7 @@ export default function PostPage() {
 
       // SECURITY CHECK: Private account check
       // If the author has a private account, only approved followers can see their posts
-      if (!isOwner) {
+      if (!isOwner && !hasCollaborationAccess) {
         const { data: authorProfile } = await supabase
           .from("profiles")
           .select("is_private")
@@ -723,6 +817,29 @@ export default function PostPage() {
   }
 
   const hasMedia = post.media && post.media.length > 0;
+  const failedMediaCount = mediaFailedFromUrl ? Number(mediaFailedFromUrl) : 0;
+  const hasFailedMediaNotice = Number.isFinite(failedMediaCount) && failedMediaCount > 0;
+  const hasBackground = Boolean(post.styling?.background);
+  const hasDarkBackground = isDarkBackground(post.styling?.background);
+  const titleColorClass = hasDarkBackground ? "text-white" : "text-ink";
+  const bodyColorClass = hasDarkBackground ? "text-white" : "text-ink";
+  const mutedColorClass = hasDarkBackground ? "text-white/70" : "text-muted";
+  const textAlignment = post.styling?.textAlignment || "left";
+  const lineSpacing = post.styling?.lineSpacing || "normal";
+  const dropCapEnabled = Boolean(post.styling?.dropCap);
+
+  const textAlignmentClass = {
+    left: "text-left",
+    center: "text-center",
+    right: "text-right",
+    justify: "text-justify",
+  }[textAlignment];
+
+  const lineSpacingClass = {
+    normal: "leading-relaxed",
+    relaxed: "leading-[2]",
+    loose: "leading-[2.5]",
+  }[lineSpacing];
 
   return (
     <ErrorBoundary
@@ -854,19 +971,46 @@ export default function PostPage() {
               )}
             </div>
 
+            {hasFailedMediaNotice && (
+              <div className="mx-4 md:mx-6 mt-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3">
+                <p className="font-ui text-[0.85rem] text-amber-700">
+                  {failedMediaCount} media file{failedMediaCount === 1 ? "" : "s"} failed to upload when this post was published.
+                </p>
+              </div>
+            )}
+
             {/* Post Content */}
             <div className="p-4 md:p-6">
               {/* Actual Content */}
-              <div className="relative">
+              <div className={`relative ${hasBackground ? "rounded-xl overflow-hidden" : ""}`}>
+                {hasBackground && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      ...getBackgroundStyle(post.styling?.background),
+                      opacity: post.styling?.background?.type === "image"
+                        ? (post.styling.background.opacity ?? 1)
+                        : 1,
+                      filter:
+                        post.styling?.background?.type === "image" && post.styling.background.blur
+                          ? `blur(${post.styling.background.blur}px)`
+                          : undefined,
+                    }}
+                  />
+                )}
+                {post.styling?.background?.type === "image" && (
+                  <div className="absolute inset-0 bg-black/30" />
+                )}
+                <div className={hasBackground ? "relative z-10 p-4 md:p-6" : ""}>
                 {/* Journal Header - Beautiful date, time, and metadata */}
                 {post.type === "journal" && (
                   <div className="journal-header mb-6">
                     {/* Date with Time on same line */}
                     <div className="flex items-center gap-4 mb-4">
-                      <h2 className="font-display text-2xl md:text-3xl font-normal tracking-tight text-purple-primary">
+                      <h2 className={`font-display text-2xl md:text-3xl font-normal tracking-tight ${hasDarkBackground ? "text-white" : "text-purple-primary"}`}>
                         {formatDate(post.created_at)}
                       </h2>
-                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary">
+                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui ${hasDarkBackground ? "bg-white/20 text-white" : "bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary"}`}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <circle cx="12" cy="12" r="10" />
                           <path d="M12 6v6l4 2" />
@@ -877,11 +1021,11 @@ export default function PostPage() {
 
                     {/* Location, Weather, Mood - Same line with creative spacing */}
                     {(post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
-                      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-5 text-ink/70">
+                      <div className={`flex flex-wrap items-center gap-x-6 gap-y-3 mb-5 ${mutedColorClass}`}>
                         {/* Location */}
                         {post.post_location && (
                           <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4 text-purple-primary/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <svg className={`w-4 h-4 ${hasDarkBackground ? "text-white/80" : "text-purple-primary/70"}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                             </svg>
@@ -924,7 +1068,7 @@ export default function PostPage() {
                               {moodIcons[post.metadata.mood] || moodIcons['reflective']}
                             </span>
                             <span className="font-ui text-sm">
-                              <span className="text-muted">Mood:</span>
+                              <span className={mutedColorClass}>Mood:</span>
                               {' '}
                               <span className="italic">{formatMood(post.metadata.mood)}</span>
                             </span>
@@ -953,7 +1097,7 @@ export default function PostPage() {
                         title={`${post.spotify_track.name} by ${post.spotify_track.artist}`}
                       />
                     </div>
-                    <div className="flex items-center justify-center gap-2 mt-2 text-muted">
+                    <div className={`flex items-center justify-center gap-2 mt-2 ${mutedColorClass}`}>
                       <svg className="w-4 h-4 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
                       </svg>
@@ -963,19 +1107,23 @@ export default function PostPage() {
                 )}
 
                 {post.title && (
-                  <h1 className={`font-display text-[1.3rem] md:text-[1.6rem] text-ink mb-3 md:mb-4 leading-tight ${post.type === "poem" ? "text-center" : ""}`}>
+                  <h1
+                    className={`font-display text-[1.3rem] md:text-[1.6rem] ${titleColorClass} mb-3 md:mb-4 leading-tight ${
+                      post.type === "poem" ? "text-center" : textAlignmentClass
+                    }`}
+                  >
                     {post.title}
                   </h1>
                 )}
 
                 {post.type === "poem" ? (
                   <div
-                    className="font-body text-[1rem] md:text-[1.15rem] text-ink leading-loose italic text-center py-3 md:py-4 post-content"
+                    className={`font-body text-[1rem] md:text-[1.15rem] ${bodyColorClass} italic text-center py-3 md:py-4 post-content ${lineSpacingClass} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}
                     dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
                   />
                 ) : (
                   <div
-                    className="font-body text-[0.95rem] md:text-[1.05rem] text-ink leading-relaxed post-content"
+                    className={`font-body text-[0.95rem] md:text-[1.05rem] ${bodyColorClass} post-content ${textAlignmentClass} ${lineSpacingClass} ${dropCapEnabled ? "drop-cap-enabled" : ""}`}
                     dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
                   />
                 )}
@@ -1023,7 +1171,7 @@ export default function PostPage() {
                   </div>
 
                   {post.media[currentMediaIndex].caption && (
-                    <p className="text-center font-body text-[0.9rem] text-muted italic mt-3">
+                    <p className={`text-center font-body text-[0.9rem] italic mt-3 ${mutedColorClass}`}>
                       {post.media[currentMediaIndex].caption}
                     </p>
                   )}
@@ -1048,9 +1196,10 @@ export default function PostPage() {
                 </div>
               )}
 
+                </div>
                 {/* Content Warning Overlay */}
                 {post.content_warning && !showContent && (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center backdrop-blur-2xl bg-white/40 rounded-xl">
+                  <div className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-2xl ${hasDarkBackground ? "bg-black/40" : "bg-white/40"} rounded-xl`}>
                     <div className="relative text-center px-8 py-10">
                       <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-5">
                         <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

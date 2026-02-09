@@ -2522,23 +2522,31 @@ export async function saveCollaboratorsAndMentions(
 
   try {
     if (hasCollaborators && collaborators.length > 0) {
-      await supabase.from('posts').update({ status: 'draft' }).eq('id', postId);
+      const { error: statusError } = await supabase
+        .from('posts')
+        .update({ status: 'draft' })
+        .eq('id', postId);
+      if (statusError) {
+        throw statusError;
+      }
     }
 
     if (collaborators.length > 0) {
       const { error: collabError } = await supabase.from('post_collaborators').insert(collaborators.map(c => ({ post_id: postId, user_id: c.id, status: 'pending' as const, role: c.role || null }))).select();
-      if (!collabError) {
-        collaboratorsAdded = true;
-        const results = await Promise.all(collaborators.map(c => createNotification(c.id, authorId, 'collaboration_invite', postId)));
-        notificationsSent = results.some(r => r === true);
+      if (collabError) {
+        throw collabError;
       }
+      collaboratorsAdded = true;
+      const results = await Promise.all(collaborators.map(c => createNotification(c.id, authorId, 'collaboration_invite', postId)));
+      notificationsSent = results.some(r => r === true);
     }
 
     if (mentionIds.length > 0) {
       const { error: mentionError } = await supabase.from('post_mentions').insert(mentionIds.map(userId => ({ post_id: postId, user_id: userId }))).select();
-      if (!mentionError) {
-        await Promise.all(mentionIds.map(userId => createNotification(userId, authorId, 'mention', postId)));
+      if (mentionError) {
+        throw mentionError;
       }
+      await Promise.all(mentionIds.map(userId => createNotification(userId, authorId, 'mention', postId)));
     }
 
     return { success: true, collaboratorsAdded, notificationsSent };
