@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { usePendingCollaborations } from "@/lib/hooks";
@@ -21,7 +21,7 @@ interface RawCollaborator {
   }[];
 }
 
-export default function PendingCollaborationsPage() {
+function PendingCollaborationsPageContent() {
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { posts, loading } = usePendingCollaborations(user?.id);
@@ -139,5 +139,22 @@ export default function PendingCollaborationsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function PendingCollaborationsFallback() {
+  return (
+    <div className="max-w-[720px] mx-auto py-10 px-6">
+      <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p className="font-body text-muted text-center italic">Loading pending collaborations...</p>
+    </div>
+  );
+}
+
+export default function PendingCollaborationsPage() {
+  return (
+    <Suspense fallback={<PendingCollaborationsFallback />}>
+      <PendingCollaborationsPageContent />
+    </Suspense>
   );
 }

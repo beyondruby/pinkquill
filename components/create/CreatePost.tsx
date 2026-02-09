@@ -24,18 +24,48 @@ import { useAddPostToCollectionItem } from "@/lib/hooks/useCollections";
 import type { Collection, CollectionItem } from "@/lib/types";
 import DOMPurify from "dompurify";
 
-const postTypes = [
-  { id: "thought", label: "Thought", icon: "lightbulb", placeholder: "What's on your mind?" },
-  { id: "take", label: "Take", icon: "video", placeholder: "Share a short video moment..." },
-  { id: "poem", label: "Poem", icon: "feather", placeholder: "Let your verses flow..." },
-  { id: "journal", label: "Journal", icon: "book", placeholder: "Dear diary..." },
-  { id: "essay", label: "Essay", icon: "scroll", placeholder: "Begin your exploration..." },
-  { id: "blog", label: "Blog", icon: "blog", placeholder: "Share your thoughts with the world..." },
-  { id: "story", label: "Story", icon: "bookOpen", placeholder: "Once upon a time..." },
-  { id: "letter", label: "Letter", icon: "envelope", placeholder: "Dear reader..." },
-  { id: "quote", label: "Quote", icon: "quote", placeholder: "Share words that inspire..." },
-  { id: "visual", label: "Visual", icon: "image", placeholder: "Tell the story behind your images..." },
+type PostCategory = "text" | "photo" | "video";
+
+interface PostTypeOption {
+  id: string;
+  label: string;
+  icon: string;
+  placeholder: string;
+  category: PostCategory;
+}
+
+const postTypes: PostTypeOption[] = [
+  { id: "thought", label: "Thought", icon: "lightbulb", placeholder: "What's on your mind?", category: "text" },
+  { id: "take", label: "Take", icon: "video", placeholder: "Share a short video moment...", category: "video" },
+  { id: "poem", label: "Poem", icon: "feather", placeholder: "Let your verses flow...", category: "text" },
+  { id: "journal", label: "Journal", icon: "book", placeholder: "Dear diary...", category: "text" },
+  { id: "essay", label: "Essay", icon: "scroll", placeholder: "Begin your exploration...", category: "text" },
+  { id: "blog", label: "Blog", icon: "blog", placeholder: "Share your thoughts with the world...", category: "text" },
+  { id: "story", label: "Story", icon: "bookOpen", placeholder: "Once upon a time...", category: "text" },
+  { id: "letter", label: "Letter", icon: "envelope", placeholder: "Dear reader...", category: "text" },
+  { id: "quote", label: "Quote", icon: "quote", placeholder: "Share words that inspire...", category: "text" },
+  { id: "visual", label: "Visual", icon: "image", placeholder: "Tell the story behind your images...", category: "photo" },
 ];
+
+const postCategoryMeta: Record<PostCategory, { label: string; description: string; icon: string }> = {
+  text: {
+    label: "Text",
+    description: "Writing-first formats for long and short expression.",
+    icon: "scroll",
+  },
+  photo: {
+    label: "Photo",
+    description: "Image-led storytelling and visual narratives.",
+    icon: "image",
+  },
+  video: {
+    label: "Video",
+    description: "Short-form motion storytelling with Takes.",
+    icon: "video",
+  },
+};
+
+const postCategoryOrder: PostCategory[] = ["text", "photo", "video"];
 
 const contentWarningPresets = [
   "Sensitive content",
@@ -656,6 +686,49 @@ export default function CreatePost() {
     }
   });
   const currentType = postTypes.find((t) => t.id === selectedType);
+  const selectedTypeCategory = currentType?.category || "text";
+  const titleTextForJourney = titleRef.current?.innerText?.trim() || "";
+  const hasCoreContent = isTakeMode
+    ? Boolean(takeVideoFile)
+    : Boolean(titleTextForJourney || charCount > 0 || mediaItems.length > 0);
+  const hasCreativeLayer = isTakeMode
+    ? Boolean(
+        takeCaption.trim() ||
+          takeSelectedFilter !== "none" ||
+          takeSelectedSound ||
+          takeThumbnailPreview ||
+          takeThumbnailFromVideo
+      )
+    : Boolean(
+        mediaItems.length > 0 ||
+          styling.background ||
+          spotifyTrack ||
+          postLocation.trim() ||
+          Object.keys(journalMetadata).length > 0 ||
+          tags.length > 0
+      );
+  const hasAudienceSetup = Boolean(
+    selectedCommunity ||
+      collaborators.length > 0 ||
+      taggedPeople.length > 0 ||
+      hasContentWarning ||
+      visibility !== "public"
+  );
+  const activeJourneyStep = !hasCoreContent
+    ? "compose"
+    : !hasCreativeLayer
+    ? "creative"
+    : !hasAudienceSetup
+    ? "audience"
+    : "publish";
+  const journeySteps = [
+    { id: "format", label: "Choose Format" },
+    { id: "compose", label: "Compose" },
+    { id: "creative", label: "Creative Layer" },
+    { id: "audience", label: "Audience & Collaborators" },
+    { id: "publish", label: "Publish" },
+  ] as const;
+  const activeJourneyIndex = journeySteps.findIndex((step) => step.id === activeJourneyStep);
 
   // Load existing post data when editing
   useEffect(() => {
@@ -2004,37 +2077,154 @@ export default function CreatePost() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="font-display text-[2rem] text-ink mb-2">
-          {isEditing ? "Edit Post" : "Create New Post"}
-        </h1>
-        <p className="font-body text-muted italic">
-          {isEditing ? "Make changes to your creation" : "Share your thoughts with the world"}
-        </p>
+      {/* Header + Journey */}
+      <div className="mb-8 space-y-5">
+        <div className="text-center">
+          <h1 className="font-display text-[2rem] text-ink mb-2">
+            {isEditing ? "Refine Your Post" : "Create Your Post"}
+          </h1>
+          <p className="font-body text-muted italic">
+            {isEditing
+              ? "Polish your draft and prepare it for publishing."
+              : "Move from idea to finished piece with a focused creative workflow."}
+          </p>
+        </div>
+
+        <div className="rounded-3xl border border-black/[0.06] bg-gradient-to-br from-[#fff8fc] via-white to-[#f6fbff] p-4 md:p-5">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <span className="font-ui text-[0.72rem] tracking-[0.14em] uppercase text-muted">
+              Creative Journey
+            </span>
+            <span className="font-ui text-[0.75rem] text-muted">
+              Step {Math.max(activeJourneyIndex + 1, 1)} of {journeySteps.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {journeySteps.map((step, index) => {
+              const isActive = index === activeJourneyIndex;
+              const isDone = index < activeJourneyIndex;
+              return (
+                <div
+                  key={step.id}
+                  className={`rounded-xl px-3 py-2.5 border transition-all ${
+                    isActive
+                      ? "border-purple-primary/40 bg-purple-primary/10"
+                      : isDone
+                      ? "border-emerald-300/60 bg-emerald-50"
+                      : "border-black/[0.08] bg-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center font-ui text-[0.65rem] font-semibold ${
+                        isActive
+                          ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
+                          : isDone
+                          ? "bg-emerald-500 text-white"
+                          : "bg-black/[0.06] text-muted"
+                      }`}
+                    >
+                      {isDone ? "✓" : index + 1}
+                    </span>
+                    <span
+                      className={`font-ui text-[0.76rem] leading-tight ${
+                        isActive ? "text-ink font-medium" : "text-muted"
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      {/* Post Type Selector */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-2 justify-center flex-wrap">
-        {postTypes.map((type) => (
-          <button
-            key={type.id}
-            onClick={() => setSelectedType(type.id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-ui text-[0.85rem] whitespace-nowrap transition-all ${
-              selectedType === type.id
-                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/30"
-                : "bg-white border border-black/[0.08] text-muted hover:border-purple-primary hover:text-purple-primary"
-            }`}
-          >
-            {icons[type.icon]}
-            {type.label}
-          </button>
-        ))}
+      {/* Categorized Format Selector */}
+      <div className="space-y-4 mb-8">
+        {postCategoryOrder.map((category) => {
+          const categoryTypes = postTypes.filter((type) => type.category === category);
+          const meta = postCategoryMeta[category];
+          const isActiveCategory = selectedTypeCategory === category;
+
+          return (
+            <section
+              key={category}
+              className={`rounded-2xl border p-4 md:p-5 transition-all ${
+                isActiveCategory
+                  ? "border-purple-primary/35 bg-gradient-to-r from-purple-primary/[0.06] to-pink-vivid/[0.05]"
+                  : "border-black/[0.06] bg-white"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      isActiveCategory
+                        ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
+                        : "bg-black/[0.04] text-muted"
+                    }`}
+                  >
+                    {icons[meta.icon]}
+                  </div>
+                  <div>
+                    <h2 className="font-ui text-[0.98rem] font-semibold text-ink">{meta.label}</h2>
+                    <p className="font-body text-[0.83rem] text-muted">{meta.description}</p>
+                  </div>
+                </div>
+                <span className="font-ui text-[0.72rem] px-2.5 py-1 rounded-full bg-black/[0.04] text-muted">
+                  {categoryTypes.length} type{categoryTypes.length > 1 ? "s" : ""}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {categoryTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => setSelectedType(type.id)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-ui text-[0.85rem] whitespace-nowrap transition-all ${
+                      selectedType === type.id
+                        ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/25"
+                        : "bg-white border border-black/[0.08] text-muted hover:border-purple-primary hover:text-purple-primary"
+                    }`}
+                  >
+                    {icons[type.icon]}
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
 
-      {/* Collection Selector - Below post types, for organizing posts */}
+      {currentType && (
+        <div className="mb-7 rounded-2xl border border-purple-primary/20 bg-gradient-to-r from-purple-primary/[0.05] to-pink-vivid/[0.04] px-4 py-3.5">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-white border border-purple-primary/20 text-purple-primary flex items-center justify-center">
+              {icons[currentType.icon]}
+            </div>
+            <div>
+              <p className="font-ui text-[0.72rem] tracking-[0.14em] uppercase text-purple-primary/70">
+                Selected Format
+              </p>
+              <p className="font-ui text-[0.95rem] font-semibold text-ink">{currentType.label}</p>
+              <p className="font-body text-[0.83rem] text-muted">{currentType.placeholder}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Collection Selector - Below format selection for organizing posts */}
       {!isEditing && !isTakeMode && (
-        <div className="flex justify-center mb-6">
+        <div className="mb-7 rounded-2xl border border-black/[0.06] bg-white p-4">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <p className="font-ui text-[0.72rem] tracking-[0.14em] uppercase text-muted">Optional Organization</p>
+              <p className="font-body text-[0.83rem] text-muted">Place this post into a collection or series.</p>
+            </div>
+          </div>
           <CollectionSelector
             selectedCollection={selectedCollection}
             selectedItem={selectedCollectionItem}
@@ -2046,6 +2236,25 @@ export default function CreatePost() {
 
       {/* Editor Card */}
       <div className="bg-white rounded-[24px] shadow-sm border border-black/[0.04]">
+        <div className="px-6 pt-5 pb-4 border-b border-black/[0.06] bg-gradient-to-r from-[#fdf7ff] to-[#fff8f5]">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-ui text-[0.7rem] tracking-[0.14em] uppercase text-purple-primary/70">
+                Step 2 · Compose
+              </p>
+              <h2 className="font-display text-[1.25rem] text-ink">
+                {isTakeMode ? "Build Your Take" : "Shape The Core Story"}
+              </h2>
+            </div>
+            {currentType && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-purple-primary/20 text-purple-primary font-ui text-[0.78rem]">
+                {icons[currentType.icon]}
+                {currentType.label}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Take Mode - Enhanced Video Upload Section */}
         {isTakeMode && (
           <div className="p-6">
@@ -2837,6 +3046,19 @@ export default function CreatePost() {
         </div>
         )}
 
+        {!isTakeMode && (
+          <div className="px-6 pb-2">
+            <div className="flex items-center justify-between rounded-xl border border-black/[0.06] bg-[#fcfcfc] px-3.5 py-2.5">
+              <div>
+                <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-purple-primary/70">
+                  Step 3 · Creative Layer
+                </p>
+                <p className="font-ui text-[0.82rem] text-ink">Add visuals, sound, style, and creative context.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Media Upload Section - Hidden in Take mode */}
         {!isTakeMode && (
         <div className="px-6 pb-6">
@@ -3140,6 +3362,17 @@ export default function CreatePost() {
           </div>
         </div>
 
+        <div className="px-6 pb-2">
+          <div className="flex items-center justify-between rounded-xl border border-black/[0.06] bg-[#fcfcfc] px-3.5 py-2.5">
+            <div>
+              <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-purple-primary/70">
+                Step 4 · Audience & Collaboration
+              </p>
+              <p className="font-ui text-[0.82rem] text-ink">Invite people in, tag context, and set boundaries.</p>
+            </div>
+          </div>
+        </div>
+
         {/* Collaborators Section */}
         <div className="px-6 pb-6">
           <div className="flex items-center justify-between mb-3">
@@ -3363,6 +3596,17 @@ export default function CreatePost() {
             </div>
           </div>
         )}
+
+        <div className="px-6 pb-2">
+          <div className="flex items-center justify-between rounded-xl border border-black/[0.06] bg-[#fcfcfc] px-3.5 py-2.5">
+            <div>
+              <p className="font-ui text-[0.68rem] tracking-[0.14em] uppercase text-purple-primary/70">
+                Step 5 · Publish Setup
+              </p>
+              <p className="font-ui text-[0.82rem] text-ink">Finalize visibility, destination, and publish.</p>
+            </div>
+          </div>
+        </div>
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-black/[0.06] bg-[#fafafa]">
