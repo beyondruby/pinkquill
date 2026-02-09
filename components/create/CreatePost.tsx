@@ -1942,32 +1942,56 @@ export default function CreatePost() {
 
   if (!user) {
     return (
-      <div className="max-w-[680px] mx-auto py-10 px-6 text-center">
-        <h1 className="font-display text-[2rem] text-ink mb-4">Create</h1>
-        <p className="font-body text-muted mb-6">
-          You need to sign in to create posts.
-        </p>
-        <button
-          onClick={() => router.push("/login")}
-          className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-white"
-        >
-          Sign In
-        </button>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center px-6">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20 flex items-center justify-center">
+            <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-display font-bold text-ink mb-2">Sign in to create</h2>
+          <p className="text-muted font-body mb-6">Create an account to start sharing your work</p>
+          <button
+            onClick={() => router.push("/login")}
+            className="px-8 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui font-semibold text-white hover:opacity-90 transition-opacity"
+          >
+            Sign In
+          </button>
+        </div>
       </div>
     );
   }
 
   if (loadingPost) {
     return (
-      <div className="max-w-[680px] mx-auto py-10 px-6 text-center">
-        <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="font-body text-muted italic">Loading post...</p>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center px-6">
+          <div className="w-10 h-10 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="font-body text-muted">Loading post...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-[720px] mx-auto py-8 px-4 sm:px-6">
+    <div className="min-h-screen bg-white">
+    <div className="max-w-4xl mx-auto px-6 py-12">
+
+      {/* Header */}
+      <h1 className="text-center text-3xl md:text-4xl font-display font-bold text-ink mb-10">
+        {isEditing ? (
+          <>
+            <span className="bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">Edit</span>{" "}
+            <span className="bg-gradient-to-r from-pink-vivid to-purple-primary bg-clip-text text-transparent">your post</span>
+          </>
+        ) : (
+          <>
+            Let&apos;s{" "}
+            <span className="bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">create</span>{" "}
+            <span className="bg-gradient-to-r from-pink-vivid to-purple-primary bg-clip-text text-transparent">something</span>
+          </>
+        )}
+      </h1>
 
       {/* Draft Recovery Banner */}
       {showDraftRecovery && recoveredDraft && (
@@ -2024,19 +2048,28 @@ export default function CreatePost() {
       )}
 
       {/* Post Type Selector */}
-      <div className="mb-6">
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="mb-10">
+        <p className="text-center text-sm font-ui text-muted uppercase tracking-wider mb-5">Choose a format</p>
+        <div className="flex flex-wrap justify-center gap-3">
           {postTypes.map((type) => (
             <button
               key={type.id}
               onClick={() => setSelectedType(type.id)}
-              className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full font-ui text-[0.85rem] font-medium transition-all ${
+              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-ui text-sm font-medium transition-all duration-300 ${
                 selectedType === type.id
-                  ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md shadow-purple-primary/25"
-                  : "bg-white border border-black/[0.08] text-muted hover:border-purple-primary/30 hover:text-ink"
+                  ? "shadow-xl shadow-pink-vivid/20 text-ink"
+                  : "shadow-md hover:shadow-lg hover:-translate-y-0.5 text-muted"
               }`}
+              style={{
+                border: selectedType === type.id ? "2px solid transparent" : "1px solid rgba(0,0,0,0.05)",
+                backgroundImage: selectedType === type.id
+                  ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+                  : undefined,
+                backgroundOrigin: "border-box",
+                backgroundClip: selectedType === type.id ? "padding-box, border-box" : undefined,
+              }}
             >
-              <span className={selectedType === type.id ? "text-white" : "text-muted"}>
+              <span className={selectedType === type.id ? "text-pink-vivid" : "text-muted"}>
                 {icons[type.icon]}
               </span>
               {type.label}
@@ -2047,8 +2080,10 @@ export default function CreatePost() {
 
       {/* Collection Selector */}
       {!isEditing && !isTakeMode && (
-        <div className="mb-6 rounded-2xl border border-black/[0.06] bg-white p-4">
-          <p className="font-ui text-[0.75rem] text-muted mb-2">Add to collection (optional)</p>
+        <div className="mb-8">
+          <label className="block text-sm font-ui font-semibold text-ink mb-3">
+            Collection <span className="text-muted font-normal">(optional)</span>
+          </label>
           <CollectionSelector
             selectedCollection={selectedCollection}
             selectedItem={selectedCollectionItem}
@@ -2058,8 +2093,8 @@ export default function CreatePost() {
         </div>
       )}
 
-      {/* Editor Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-black/[0.06] overflow-hidden">
+      {/* Editor */}
+      <div>
 
         {/* Take Mode - Enhanced Video Upload Section */}
         {isTakeMode && (
@@ -2404,27 +2439,42 @@ export default function CreatePost() {
 
         {/* Regular Post Mode - Title Input */}
         {!isTakeMode && (
-          <div className="p-6 border-b border-black/[0.06]">
-            <div
-              ref={titleRef}
-              contentEditable
-              onKeyUp={updateFormattingState}
-              onMouseUp={updateFormattingState}
-              onKeyDown={(e) => {
-                if (e.key === "Tab" && !e.shiftKey) {
-                  e.preventDefault();
-                  editorRef.current?.focus();
-                }
-              }}
-              data-placeholder="Give your creation a title..."
-              className="title-editor w-full text-[1.5rem] text-ink bg-transparent border-none outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted/40"
-            />
+          <div className="mb-6">
+            <label className="block text-sm font-ui font-semibold text-ink mb-3">
+              Title <span className="text-pink-vivid">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
+                <div className="w-full h-full rounded-xl bg-white" />
+              </div>
+              <div className="relative flex items-center">
+                <div
+                  ref={titleRef}
+                  contentEditable
+                  onKeyUp={updateFormattingState}
+                  onMouseUp={updateFormattingState}
+                  onKeyDown={(e) => {
+                    if (e.key === "Tab" && !e.shiftKey) {
+                      e.preventDefault();
+                      editorRef.current?.focus();
+                    }
+                  }}
+                  data-placeholder="Give your creation a title..."
+                  className="title-editor w-full px-4 py-3.5 pr-12 rounded-xl text-xl font-display font-bold text-ink bg-transparent outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted/40 empty:before:font-normal"
+                />
+                <div className="absolute right-4 text-orange-warm">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Formatting Toolbar - Hidden in Take mode */}
         {!isTakeMode && (
-        <div className="px-6 py-3 border-b border-black/[0.06] bg-[#fafafa] flex items-center gap-1 flex-wrap">
+        <div className="mb-4 px-4 py-2.5 rounded-xl bg-gray-50/80 border border-black/[0.04] flex items-center gap-1 flex-wrap">
           {/* Text Formatting */}
           <div className="flex items-center gap-1 pr-3 border-r border-black/10">
             <button
@@ -2854,31 +2904,41 @@ export default function CreatePost() {
 
         {/* Content Editor - Hidden in Take mode */}
         {!isTakeMode && (
-        <div className="p-6">
-          <div
-            ref={editorRef}
-            contentEditable
-            onInput={handleEditorInput}
-            onKeyUp={updateFormattingState}
-            onMouseUp={updateFormattingState}
-            data-placeholder={currentType?.placeholder || "Let your thoughts flow freely..."}
-            className={`editor-content w-full min-h-[280px] font-body text-[1.1rem] text-ink outline-none ${
-              textAlignment === 'left' ? 'text-left' :
-              textAlignment === 'center' ? 'text-center' :
-              textAlignment === 'right' ? 'text-right' :
-              'text-justify'
-            } ${
-              lineSpacing === 'normal' ? 'leading-relaxed' :
-              lineSpacing === 'relaxed' ? 'leading-[2]' :
-              'leading-[2.5]'
-            } ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
-          />
+        <div className="mb-6">
+          <label className="block text-sm font-ui font-semibold text-ink mb-3">
+            Content <span className="text-pink-vivid">*</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
+              <div className="w-full h-full rounded-xl bg-white" />
+            </div>
+            <div className="relative">
+              <div
+                ref={editorRef}
+                contentEditable
+                onInput={handleEditorInput}
+                onKeyUp={updateFormattingState}
+                onMouseUp={updateFormattingState}
+                data-placeholder={currentType?.placeholder || "Let your thoughts flow freely..."}
+                className={`editor-content w-full min-h-[320px] px-5 py-4 rounded-xl font-body text-[1.05rem] text-ink bg-transparent outline-none ${
+                  textAlignment === 'left' ? 'text-left' :
+                  textAlignment === 'center' ? 'text-center' :
+                  textAlignment === 'right' ? 'text-right' :
+                  'text-justify'
+                } ${
+                  lineSpacing === 'normal' ? 'leading-relaxed' :
+                  lineSpacing === 'relaxed' ? 'leading-[2]' :
+                  'leading-[2.5]'
+                } ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
+              />
+            </div>
+          </div>
         </div>
         )}
 
-        {/* Media Strip - Compact inline display below editor */}
+        {/* Media Strip */}
         {!isTakeMode && (
-          <div className="px-6 pb-4">
+          <div className="mb-8">
             <input
               ref={fileInputRef}
               type="file"
@@ -2889,70 +2949,76 @@ export default function CreatePost() {
             />
 
             {mediaItems.length > 0 && (
-              <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {mediaItems.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-gray-100 group"
-                  >
-                    <div className="absolute top-1 left-1 w-5 h-5 rounded-full bg-black/60 text-white font-ui text-[0.6rem] font-semibold flex items-center justify-center z-10">
-                      {index + 1}
-                    </div>
-                    <button
-                      onClick={() => handleRemoveMedia(item.id)}
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 z-10"
+              <div>
+                <label className="block text-sm font-ui font-semibold text-ink mb-3">
+                  Media <span className="text-muted font-normal">({mediaItems.length}/20)</span>
+                </label>
+                <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                  {mediaItems.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-100 group shadow-md"
                     >
-                      {icons.x}
-                    </button>
-                    {item.type === "video" ? (
-                      <video src={item.preview} className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={item.preview} alt="" className="w-full h-full object-cover" />
-                    )}
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <input
-                        type="text"
-                        value={item.caption}
-                        onChange={(e) => handleCaptionChange(item.id, e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        placeholder="Caption..."
-                        className="w-full px-1.5 py-0.5 rounded text-[0.6rem] bg-white/90 text-ink outline-none placeholder:text-muted"
-                      />
+                      <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-gradient-to-r from-orange-warm to-pink-vivid text-white font-ui text-[0.6rem] font-bold flex items-center justify-center z-10">
+                        {index + 1}
+                      </div>
+                      <button
+                        onClick={() => handleRemoveMedia(item.id)}
+                        className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 z-10"
+                      >
+                        {icons.x}
+                      </button>
+                      {item.type === "video" ? (
+                        <video src={item.preview} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={item.preview} alt="" className="w-full h-full object-cover" />
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-all">
+                        <input
+                          type="text"
+                          value={item.caption}
+                          onChange={(e) => handleCaptionChange(item.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="Caption..."
+                          className="w-full px-2 py-0.5 rounded text-[0.65rem] bg-white/90 text-ink outline-none placeholder:text-muted"
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {mediaItems.length < 20 && (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-shrink-0 w-20 h-20 rounded-xl border-2 border-dashed border-purple-primary/30 flex flex-col items-center justify-center gap-1 text-muted hover:border-purple-primary/60 hover:text-purple-primary hover:bg-purple-primary/[0.03] transition-all"
-                  >
-                    {icons.plus}
-                    <span className="text-[0.6rem] font-ui">Add</span>
-                  </button>
-                )}
-                <span className="flex-shrink-0 font-ui text-[0.7rem] text-muted self-end pb-1">
-                  {mediaItems.length}/20
-                </span>
+                  ))}
+                  {mediaItems.length < 20 && (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-shrink-0 w-24 h-24 rounded-xl border-2 border-dashed border-pink-vivid/30 flex flex-col items-center justify-center gap-1.5 text-muted hover:border-pink-vivid/60 hover:text-pink-vivid hover:shadow-md transition-all"
+                    >
+                      {icons.plus}
+                      <span className="text-[0.65rem] font-ui font-medium">Add more</span>
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
         )}
 
 
-        {/* Soundtrack - Collapsible */}
+        {/* Extras */}
         {!isTakeMode && (
-        <div className="px-6 pb-3">
-          <button
-            onClick={() => toggleSection('soundtrack')}
-            className="w-full flex items-center justify-between py-2.5 group"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-[#1DB954]">{icons.spotify}</span>
-              <span className="font-ui text-[0.85rem] font-medium text-ink">Soundtrack</span>
-              {spotifyTrack && <span className="w-2 h-2 rounded-full bg-[#1DB954]" />}
-            </div>
-            <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('soundtrack') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-          </button>
+        <div className="mb-8 border-t border-black/[0.06] pt-6">
+          <p className="text-sm font-ui text-muted uppercase tracking-wider mb-4">Extras</p>
+
+          {/* Soundtrack */}
+          <div className="mb-2">
+            <button
+              onClick={() => toggleSection('soundtrack')}
+              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-[#1DB954]">{icons.spotify}</span>
+                <span className="font-ui text-sm font-medium text-ink">Soundtrack</span>
+                {spotifyTrack && <span className="w-2 h-2 rounded-full bg-[#1DB954]" />}
+              </div>
+              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('soundtrack') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+            </button>
 
           {expandedSections.has('soundtrack') && (
           <div className="pb-3">
@@ -3053,332 +3119,292 @@ export default function CreatePost() {
           )}
           </div>
           )}
-        </div>
-        )}
-
-        {/* Journal Metadata - Collapsible, only for journal type */}
-        {!isTakeMode && selectedType === 'journal' && (
-        <div className="px-6 pb-3">
-          <button
-            onClick={() => toggleSection('journal')}
-            className="w-full flex items-center justify-between py-2.5 group"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-purple-primary">{icons.book}</span>
-              <span className="font-ui text-[0.85rem] font-medium text-ink">Journal Mood</span>
-            </div>
-            <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('journal') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          {expandedSections.has('journal') && (
-            <div className="pb-3">
-              <JournalMetadataPanel
-                value={journalMetadata}
-                onChange={setJournalMetadata}
-                location={postLocation}
-                onLocationChange={setPostLocation}
-              />
-            </div>
-          )}
-        </div>
-        )}
-
-        {/* Location - Collapsible, shown for all types except journal */}
-        {!isTakeMode && selectedType !== 'journal' && (
-        <div className="px-6 pb-3">
-          <button
-            onClick={() => toggleSection('location')}
-            className="w-full flex items-center justify-between py-2.5 group"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-pink-vivid">{icons.location}</span>
-              <span className="font-ui text-[0.85rem] font-medium text-ink">Location</span>
-              {postLocation && <span className="w-2 h-2 rounded-full bg-pink-vivid" />}
-            </div>
-            <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('location') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          {expandedSections.has('location') && (
-            <div className="pb-3">
-              <input
-                type="text"
-                value={postLocation}
-                onChange={(e) => setPostLocation(e.target.value)}
-                placeholder="Where are you writing from?"
-                className="w-full px-4 py-2.5 rounded-xl border border-pink-vivid/25 bg-white font-ui text-sm text-ink focus:outline-none focus:border-pink-vivid transition-colors placeholder:text-muted/50"
-              />
-            </div>
-          )}
-        </div>
-        )}
-
-        {/* Tags Section - Always visible */}
-        <div className="px-6 pb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-purple-primary">{icons.tag}</span>
-            <span className="font-ui text-[0.85rem] font-medium text-ink">Tags</span>
-            <span className="font-ui text-[0.75rem] text-muted">({tags.length}/20)</span>
           </div>
 
-          <div className="flex flex-wrap gap-2 px-3 py-2.5 bg-white rounded-xl border border-black/[0.08] focus-within:border-purple-primary/50 transition-all">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-primary/10 text-purple-primary rounded-full font-ui text-[0.85rem]"
-              >
-                #{tag}
-                <button onClick={() => handleRemoveTag(tag)} className="hover:text-pink-vivid transition-colors">
-                  {icons.x}
-                </button>
-              </span>
-            ))}
-            {tags.length < 20 && (
-              <input
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleTagKeyDown}
-                onBlur={handleAddTag}
-                placeholder="Add tags..."
-                className="flex-1 min-w-[100px] font-ui text-[0.9rem] bg-transparent border-none outline-none placeholder:text-muted/40"
-              />
+          {/* Journal Mood */}
+          {selectedType === 'journal' && (
+          <div className="mb-2">
+            <button
+              onClick={() => toggleSection('journal')}
+              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-purple-primary">{icons.book}</span>
+                <span className="font-ui text-sm font-medium text-ink">Journal Mood</span>
+              </div>
+              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('journal') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            {expandedSections.has('journal') && (
+              <div className="pb-2 pl-1">
+                <JournalMetadataPanel
+                  value={journalMetadata}
+                  onChange={setJournalMetadata}
+                  location={postLocation}
+                  onLocationChange={setPostLocation}
+                />
+              </div>
             )}
           </div>
-        </div>
+          )}
 
-        {/* Collaborators - Collapsible */}
-        <div className="px-6 pb-3">
-          <button
-            onClick={() => toggleSection('collaborators')}
-            className="w-full flex items-center justify-between py-2.5 group"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-purple-primary">{icons.collaborators}</span>
-              <span className="font-ui text-[0.85rem] font-medium text-ink">Collaborators</span>
-              {collaborators.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-purple-primary/10 text-purple-primary font-ui text-[0.7rem] font-medium">
-                  {collaborators.length}
+          {/* Location */}
+          {selectedType !== 'journal' && (
+          <div className="mb-2">
+            <button
+              onClick={() => toggleSection('location')}
+              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-pink-vivid">{icons.location}</span>
+                <span className="font-ui text-sm font-medium text-ink">Location</span>
+                {postLocation && <span className="w-2 h-2 rounded-full bg-pink-vivid" />}
+              </div>
+              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('location') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            {expandedSections.has('location') && (
+              <div className="pb-2 pl-1">
+                <input
+                  type="text"
+                  value={postLocation}
+                  onChange={(e) => setPostLocation(e.target.value)}
+                  placeholder="Where are you writing from?"
+                  className="w-full px-4 py-2.5 rounded-xl border border-black/[0.08] bg-white font-ui text-sm text-ink focus:outline-none focus:border-pink-vivid transition-colors placeholder:text-muted/50"
+                />
+              </div>
+            )}
+          </div>
+          )}
+
+        {/* Tags Section */}
+        <div className="mb-8">
+          <label className="block text-sm font-ui font-semibold text-ink mb-3">
+            Tags <span className="text-muted font-normal">({tags.length}/20)</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
+              <div className="w-full h-full rounded-xl bg-white" />
+            </div>
+            <div className="relative flex flex-wrap gap-2 px-4 py-3 rounded-xl">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-pink-vivid rounded-full font-ui text-[0.85rem] font-medium"
+                >
+                  #{tag}
+                  <button onClick={() => handleRemoveTag(tag)} className="hover:text-red-500 transition-colors">
+                    {icons.x}
+                  </button>
                 </span>
+              ))}
+              {tags.length < 20 && (
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  onBlur={handleAddTag}
+                  placeholder="Add tags..."
+                  className="flex-1 min-w-[100px] font-ui text-sm bg-transparent border-none outline-none placeholder:text-muted/50"
+                />
               )}
             </div>
-            <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('collaborators') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-          </button>
+          </div>
+        </div>
 
-          {expandedSections.has('collaborators') && (
-          <div className="pb-3">
-            <div className="flex items-center justify-end mb-2">
-              <button
-                onClick={() => setShowCollaboratorPicker(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-primary/10 text-purple-primary rounded-full font-ui text-[0.8rem] font-medium hover:bg-purple-primary/20 transition-all"
-              >
-                {icons.plus}
-                Add
-              </button>
-            </div>
+          {/* Collaborators */}
+          <div className="mb-2">
+            <button
+              onClick={() => toggleSection('collaborators')}
+              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-purple-primary">{icons.collaborators}</span>
+                <span className="font-ui text-sm font-medium text-ink">Collaborators</span>
+                {collaborators.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-pink-vivid font-ui text-[0.7rem] font-medium">
+                    {collaborators.length}
+                  </span>
+                )}
+              </div>
+              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('collaborators') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+            </button>
 
-            {collaborators.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {collaborators.map((user) => (
-                  <div
-                    key={user.id}
-                    className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-full border border-purple-primary/20 shadow-sm"
-                  >
-                    <div className="relative">
+            {expandedSections.has('collaborators') && (
+            <div className="pb-2 pl-1">
+              <div className="flex items-center justify-end mb-2">
+                <button
+                  onClick={() => setShowCollaboratorPicker(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-primary text-white rounded-full font-ui text-[0.8rem] font-medium hover:bg-purple-primary/90 transition-all"
+                >
+                  {icons.plus}
+                  Add
+                </button>
+              </div>
+
+              {collaborators.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {collaborators.map((user) => (
+                    <div
+                      key={user.id}
+                      className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-full border border-black/[0.08] shadow-sm"
+                    >
                       {user.avatar_url ? (
-                        <img
-                          src={user.avatar_url}
-                          alt={user.display_name || user.username}
-                          className="w-6 h-6 rounded-full object-cover"
-                        />
+                        <img src={user.avatar_url} alt={user.display_name || user.username} className="w-6 h-6 rounded-full object-cover" />
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-purple-primary flex items-center justify-center text-white text-xs font-medium">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-xs font-medium">
                           {(user.display_name || user.username)[0].toUpperCase()}
                         </div>
                       )}
+                      <span className="text-sm font-medium text-ink font-ui">{user.display_name || user.username}</span>
+                      {user.role && (
+                        <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-pink-vivid rounded-full font-ui font-medium">{user.role}</span>
+                      )}
+                      <button onClick={() => setCollaborators(collaborators.filter((c) => c.id !== user.id))} className="w-4 h-4 rounded-full bg-gray-100 hover:bg-red-100 flex items-center justify-center transition-colors">{icons.x}</button>
                     </div>
-                    <span className="text-sm font-medium text-ink font-ui">
-                      {user.display_name || user.username}
-                    </span>
-                    {user.role && (
-                      <span className="text-xs px-2 py-0.5 bg-purple-primary/10 text-purple-primary rounded-full font-ui font-medium">
-                        {user.role}
-                      </span>
-                    )}
-                    <button
-                      onClick={() => setCollaborators(collaborators.filter((c) => c.id !== user.id))}
-                      className="w-4 h-4 rounded-full bg-gray-100 hover:bg-red-100 flex items-center justify-center transition-colors"
-                    >
-                      {icons.x}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted font-ui py-2">Invite people to collaborate on this post</p>
-            )}
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted font-body">Invite people to collaborate on this post</p>
+              )}
 
-            {collaborators.length > 0 && !isEditing && (
-              <p className="mt-2 text-xs text-muted font-ui flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Post will publish after all collaborators accept
-              </p>
-            )}
-          </div>
-          )}
-        </div>
-
-        {/* Tag People - Collapsible */}
-        <div className="px-6 pb-3">
-          <button
-            onClick={() => toggleSection('tagPeople')}
-            className="w-full flex items-center justify-between py-2.5 group"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-pink-vivid">{icons.userTag}</span>
-              <span className="font-ui text-[0.85rem] font-medium text-ink">Tag People</span>
-              {taggedPeople.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-pink-vivid/10 text-pink-vivid font-ui text-[0.7rem] font-medium">
-                  {taggedPeople.length}
-                </span>
+              {collaborators.length > 0 && !isEditing && (
+                <p className="mt-2 text-xs text-muted font-ui">Post will publish after all collaborators accept</p>
               )}
             </div>
-            <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('tagPeople') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-          </button>
+            )}
+          </div>
 
-          {expandedSections.has('tagPeople') && (
-          <div className="pb-3">
-            <div className="flex items-center justify-end mb-2">
-              <button
-                onClick={() => setShowTagPeoplePicker(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-vivid/10 text-pink-vivid rounded-full font-ui text-[0.8rem] font-medium hover:bg-pink-vivid/20 transition-all"
-              >
-                {icons.plus}
-                Add
-              </button>
-            </div>
+          {/* Tag People */}
+          <div className="mb-2">
+            <button
+              onClick={() => toggleSection('tagPeople')}
+              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-pink-vivid">{icons.userTag}</span>
+                <span className="font-ui text-sm font-medium text-ink">Tag People</span>
+                {taggedPeople.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-pink-vivid font-ui text-[0.7rem] font-medium">
+                    {taggedPeople.length}
+                  </span>
+                )}
+              </div>
+              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('tagPeople') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+            </button>
 
-            {taggedPeople.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {taggedPeople.map((user) => (
-                  <div
-                    key={user.id}
-                    className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-full border border-pink-vivid/20 shadow-sm"
-                  >
-                    <div className="relative">
+            {expandedSections.has('tagPeople') && (
+            <div className="pb-2 pl-1">
+              <div className="flex items-center justify-end mb-2">
+                <button
+                  onClick={() => setShowTagPeoplePicker(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-primary text-white rounded-full font-ui text-[0.8rem] font-medium hover:bg-purple-primary/90 transition-all"
+                >
+                  {icons.plus}
+                  Add
+                </button>
+              </div>
+
+              {taggedPeople.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {taggedPeople.map((user) => (
+                    <div key={user.id} className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-full border border-black/[0.08] shadow-sm">
                       {user.avatar_url ? (
-                        <img
-                          src={user.avatar_url}
-                          alt={user.display_name || user.username}
-                          className="w-6 h-6 rounded-full object-cover"
-                        />
+                        <img src={user.avatar_url} alt={user.display_name || user.username} className="w-6 h-6 rounded-full object-cover" />
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-vivid to-purple-primary flex items-center justify-center text-white text-xs font-medium">
                           {(user.display_name || user.username)[0].toUpperCase()}
                         </div>
                       )}
+                      <span className="text-sm font-medium text-ink font-ui">@{user.username}</span>
+                      <button onClick={() => setTaggedPeople(taggedPeople.filter((t) => t.id !== user.id))} className="w-4 h-4 rounded-full bg-gray-100 hover:bg-red-100 flex items-center justify-center transition-colors">{icons.x}</button>
                     </div>
-                    <span className="text-sm font-medium text-ink font-ui">
-                      @{user.username}
-                    </span>
-                    <button
-                      onClick={() => setTaggedPeople(taggedPeople.filter((t) => t.id !== user.id))}
-                      className="w-4 h-4 rounded-full bg-gray-100 hover:bg-red-100 flex items-center justify-center transition-colors"
-                    >
-                      {icons.x}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted font-ui py-2">Tag people mentioned in this post</p>
-            )}
-          </div>
-          )}
-        </div>
-
-        {/* Content Warning - Collapsible */}
-        <div className="px-6 pb-3">
-          <button
-            onClick={() => toggleSection('contentWarning')}
-            className="w-full flex items-center justify-between py-2.5 group"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-red-500">{icons.warning}</span>
-              <span className="font-ui text-[0.85rem] font-medium text-ink">Content Warning</span>
-              {hasContentWarning && <span className="w-2 h-2 rounded-full bg-red-500" />}
-            </div>
-            <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('contentWarning') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-          </button>
-
-          {expandedSections.has('contentWarning') && (
-          <div className="pb-3">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-ui text-[0.8rem] text-muted">Mark as sensitive</span>
-              <button
-                onClick={() => setHasContentWarning(!hasContentWarning)}
-                className={`w-11 h-6 rounded-full transition-all relative ${
-                  hasContentWarning ? "bg-gradient-to-r from-pink-vivid to-purple-primary" : "bg-gray-300"
-                }`}
-              >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${
-                    hasContentWarning ? "left-5" : "left-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-
-            {hasContentWarning && (
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={contentWarning}
-                  onChange={(e) => setContentWarning(e.target.value)}
-                  placeholder="Describe the sensitive content..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-red-200 bg-white font-body text-sm text-ink outline-none focus:border-red-400 transition-all placeholder:text-muted/50"
-                />
-                <div className="flex flex-wrap gap-2">
-                  {contentWarningPresets.map((preset) => (
-                    <button
-                      key={preset}
-                      onClick={() => setContentWarning(preset)}
-                      className="px-3 py-1.5 rounded-full border border-red-200 bg-white font-ui text-[0.75rem] text-red-500 hover:bg-red-50 transition-all"
-                    >
-                      {preset}
-                    </button>
                   ))}
                 </div>
-              </div>
+              ) : (
+                <p className="text-sm text-muted font-body">Tag people mentioned in this post</p>
+              )}
+            </div>
             )}
           </div>
-          )}
+
+          {/* Content Warning */}
+          <div className="mb-2">
+            <button
+              onClick={() => toggleSection('contentWarning')}
+              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-red-500">{icons.warning}</span>
+                <span className="font-ui text-sm font-medium text-ink">Content Warning</span>
+                {hasContentWarning && <span className="w-2 h-2 rounded-full bg-red-500" />}
+              </div>
+              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('contentWarning') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+            </button>
+
+            {expandedSections.has('contentWarning') && (
+            <div className="pb-2 pl-1">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-ui text-sm text-muted">Mark as sensitive</span>
+                <button
+                  onClick={() => setHasContentWarning(!hasContentWarning)}
+                  className={`w-11 h-6 rounded-full transition-all relative ${
+                    hasContentWarning ? "bg-gradient-to-r from-pink-vivid to-purple-primary" : "bg-gray-300"
+                  }`}
+                >
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${hasContentWarning ? "left-5" : "left-0.5"}`} />
+                </button>
+              </div>
+
+              {hasContentWarning && (
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={contentWarning}
+                    onChange={(e) => setContentWarning(e.target.value)}
+                    placeholder="Describe the sensitive content..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-red-200 bg-white font-body text-sm text-ink outline-none focus:border-red-400 transition-all placeholder:text-muted/50"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {contentWarningPresets.map((preset) => (
+                      <button key={preset} onClick={() => setContentWarning(preset)} className="px-3 py-1.5 rounded-full border border-red-200 bg-white font-ui text-[0.75rem] text-red-500 hover:bg-red-50 transition-all">{preset}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            )}
+          </div>
+
         </div>
+        )}
 
         {/* Error Message */}
         {(error || takeError) && (
-          <div className="mx-6 mb-6 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 font-ui text-[0.85rem]">
-            {error || takeError}
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+            <p className="text-sm text-red-600 font-body">{error || takeError}</p>
           </div>
         )}
 
         {/* Take Upload Progress */}
         {isTakeMode && takeUploading && (
-          <div className="mx-6 mb-6">
+          <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-ui text-[0.85rem] text-muted">Uploading your Take...</span>
-              <span className="font-ui text-[0.85rem] font-medium text-[#6b2d8b]">{Math.round(takeProgress)}%</span>
+              <span className="font-ui text-sm text-muted">Uploading your Take...</span>
+              <span className="font-ui text-sm font-medium text-pink-vivid">{Math.round(takeProgress)}%</span>
             </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-[#8e44ad] to-[#ff007f] transition-all duration-300"
+                className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
                 style={{ width: `${takeProgress}%` }}
               />
             </div>
           </div>
         )}
 
+      </div>
+
         {/* Footer Actions */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-black/[0.06] bg-[#fafafa]">
+        <div className="flex items-center justify-between pt-8 border-t border-black/[0.06]">
           <div className="flex items-center gap-3">
             {/* Visibility Dropdown */}
             <div className="relative">
@@ -3536,34 +3562,34 @@ export default function CreatePost() {
             )}
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
             {!isTakeMode && (
               <button
                 onClick={handleSaveDraft}
                 disabled={draftSaveStatus === "saving"}
-                className={`px-5 py-2.5 rounded-full border font-ui text-[0.9rem] transition-all ${
+                className={`flex items-center gap-2 px-6 py-3 rounded-full font-ui font-semibold transition-all ${
                   draftSaveStatus === "saved"
-                    ? "border-green-500 bg-green-50 text-green-600"
+                    ? "bg-green-500 text-white"
                   : draftSaveStatus === "saving"
-                    ? "border-[#8e44ad]/40 bg-[#f3e8f7] text-[#6b2d8b]"
-                    : "border-black/[0.08] bg-white text-muted hover:border-[#8e44ad] hover:text-[#6b2d8b]"
+                    ? "bg-purple-primary/70 text-white cursor-wait"
+                    : "bg-purple-primary text-white hover:bg-purple-primary/90"
                 }`}
               >
                 {draftSaveStatus === "saving" ? (
-                  <span className="flex items-center gap-2">
+                  <>
                     <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                     Saving...
-                  </span>
+                  </>
                 ) : draftSaveStatus === "saved" ? (
-                  <span className="flex items-center gap-2">
+                  <>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     Draft Saved
-                  </span>
+                  </>
                 ) : (
                   "Save Draft"
                 )}
@@ -3572,7 +3598,10 @@ export default function CreatePost() {
             <button
               onClick={handlePublish}
               disabled={loading || takeUploading || (isTakeMode && !takeVideoFile)}
-              className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#8e44ad] to-[#ff007f] font-ui text-[0.9rem] font-medium text-white shadow-lg shadow-[#8e44ad]/30 hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              className="flex items-center gap-2 px-10 py-3 rounded-full border-2 border-transparent font-ui font-semibold text-orange-warm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: "linear-gradient(white, white) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box",
+              }}
             >
               {isTakeMode
                 ? takeUploading
@@ -3588,7 +3617,6 @@ export default function CreatePost() {
             </button>
           </div>
         </div>
-      </div>
 
       {/* Character Count - Hidden in Take mode */}
       {!isTakeMode && (
@@ -3606,6 +3634,8 @@ export default function CreatePost() {
           </span>
         </div>
       )}
+
+      </div>
 
       {/* Collaborators Picker Modal */}
       {user && (
