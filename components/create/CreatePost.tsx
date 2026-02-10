@@ -2936,7 +2936,7 @@ export default function CreatePost() {
         </div>
         )}
 
-        {/* Media Strip */}
+        {/* Media Section */}
         {!isTakeMode && (
           <div className="mb-8">
             <input
@@ -2948,18 +2948,35 @@ export default function CreatePost() {
               className="hidden"
             />
 
-            {mediaItems.length > 0 && (
-              <div>
-                <label className="block text-sm font-ui font-semibold text-ink mb-3">
-                  Media <span className="text-muted font-normal">({mediaItems.length}/20)</span>
-                </label>
-                <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            <label className="block text-sm font-ui font-semibold text-ink mb-3">
+              Media {mediaItems.length > 0 && <span className="text-muted font-normal">({mediaItems.length}/20)</span>}
+            </label>
+
+            {mediaItems.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full rounded-2xl border border-dashed border-pink-vivid/25 bg-gradient-to-br from-pink-50/50 via-white to-purple-50/30 p-8 flex flex-col items-center gap-3 hover:border-pink-vivid/40 hover:shadow-sm transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <svg className="w-6 h-6 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="font-ui text-sm text-ink/70 group-hover:text-ink transition-colors">Add photos or videos</p>
+                  <p className="font-ui text-xs text-muted mt-0.5">Up to 20 files</p>
+                </div>
+              </button>
+            ) : (
+              <div className="rounded-2xl border border-black/[0.06] bg-gradient-to-br from-white via-pink-50/20 to-purple-50/15 p-4">
+                <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
                   {mediaItems.map((item, index) => (
                     <div
                       key={item.id}
-                      className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-100 group shadow-md"
+                      className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-100 group shadow-sm"
                     >
-                      <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-gradient-to-r from-orange-warm to-pink-vivid text-white font-ui text-[0.6rem] font-bold flex items-center justify-center z-10">
+                      <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-[0.6rem] font-bold flex items-center justify-center z-10">
                         {index + 1}
                       </div>
                       <button
@@ -2988,10 +3005,10 @@ export default function CreatePost() {
                   {mediaItems.length < 20 && (
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex-shrink-0 w-24 h-24 rounded-xl border-2 border-dashed border-pink-vivid/30 flex flex-col items-center justify-center gap-1.5 text-muted hover:border-pink-vivid/60 hover:text-pink-vivid hover:shadow-md transition-all"
+                      className="flex-shrink-0 w-24 h-24 rounded-xl border border-dashed border-pink-vivid/25 bg-white/60 flex flex-col items-center justify-center gap-1.5 text-muted hover:border-pink-vivid/50 hover:text-pink-vivid transition-all"
                     >
                       {icons.plus}
-                      <span className="text-[0.65rem] font-ui font-medium">Add more</span>
+                      <span className="text-[0.65rem] font-ui font-medium">Add</span>
                     </button>
                   )}
                 </div>
