@@ -27,31 +27,31 @@ const navItems = [
 const studioCards = [
   {
     icon: faShield,
-    title: "Creator ownership by default",
-    copy: "Your work remains yours. PinkQuill is a publishing home, not a rights grab.",
+    title: "Your work stays yours",
+    copy: "Everything you publish belongs to you. PinkQuill is a home for your art, never a rights grab.",
   },
   {
     icon: faPenNib,
-    title: "Built for every medium",
-    copy: "Poetry, photography, film, music, visuals, movement and more across 11 post types.",
+    title: "Every medium, one home",
+    copy: "Poetry, photography, film, music, essays, letters — 11 post types shaped around how creators actually work.",
   },
   {
     icon: faUsers,
-    title: "Real audience, not noise",
-    copy: "Discover work through taste and connection, not algorithmic chaos.",
+    title: "Found by the right people",
+    copy: "Your audience grows through genuine taste and connection, not algorithmic noise.",
   },
   {
     icon: faHeart,
-    title: "No ads in your creative flow",
-    copy: "The feed is for art and ideas, never interruption-driven clutter.",
+    title: "Art first, always",
+    copy: "No ads, no sponsored posts, no distractions. Just your work and the people who love it.",
   },
 ];
 
 const visionPoints = [
-  "Make discovery feel human again.",
-  "Help creators build sustainable momentum.",
-  "Turn social publishing into a portfolio-quality experience.",
-  "Create a platform where collaboration beats comparison.",
+  "Let every creator be discovered for who they truly are.",
+  "Give artists the tools to grow without burning out.",
+  "Make publishing feel as intentional as the work itself.",
+  "Build a world where collaboration outshines comparison.",
 ];
 
 export default function AboutPageContent() {
@@ -118,14 +118,14 @@ export default function AboutPageContent() {
             <div>
               <p className="mb-5 font-ui text-[0.7rem] uppercase tracking-[0.23em] text-muted">About PinkQuill</p>
               <h1 className="font-display text-[2.85rem] leading-[0.98] text-ink sm:text-[3.8rem] md:text-[4.8rem]">
-                An editorial home
+                Where creators
                 <span className="mt-2 block bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
-                  for creative life.
+                  feel at home.
                 </span>
               </h1>
               <p className="mt-7 max-w-xl font-body text-lg leading-relaxed text-ink/75">
-                Inspired by product clarity and social energy, PinkQuill is where creators publish with intention,
-                connect with people who care, and build a body of work they are proud of.
+                PinkQuill is a space built with love for artists, poets, writers, musicians, and makers.
+                Publish with care, connect with people who truly see your work, and grow at your own pace.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -172,19 +172,19 @@ export default function AboutPageContent() {
 
                 <div className="absolute top-4 left-4 rounded-full border border-white/35 bg-white/18 px-3 py-1.5 backdrop-blur">
                   <span className="font-ui text-[0.62rem] uppercase tracking-[0.16em] text-white/92">
-                    Editorial. Illustrative. Human.
+                    Warm. Honest. Creative.
                   </span>
                 </div>
 
                 <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/30 bg-black/20 p-4 backdrop-blur-sm">
-                  <p className="font-display text-2xl text-white sm:text-3xl">Create work people remember.</p>
+                  <p className="font-display text-2xl text-white sm:text-3xl">Make art that matters to you.</p>
                 </div>
               </div>
 
               <div className="ab-note-card ab-note-card-1 absolute -left-7 top-7 w-[230px] rounded-2xl border border-black/[0.07] bg-white p-4 shadow-xl shadow-black/10">
                 <p className="font-ui text-[0.62rem] uppercase tracking-[0.18em] text-muted">Edition 01</p>
                 <p className="mt-2 font-body text-sm leading-relaxed text-ink/80">
-                  Product calm inspired by Apple. Cultural pulse inspired by Instagram.
+                  Calm enough to think. Alive enough to feel. Built with creators in mind.
                 </p>
               </div>
 
@@ -197,8 +197,8 @@ export default function AboutPageContent() {
                   className="h-28 w-full object-cover"
                 />
                 <div className="p-3.5">
-                  <p className="font-ui text-[0.6rem] uppercase tracking-[0.17em] text-muted">Illustrative Direction</p>
-                  <p className="mt-1 font-body text-sm text-ink/78">Layout with rhythm, texture, and visual storytelling.</p>
+                  <p className="font-ui text-[0.6rem] uppercase tracking-[0.17em] text-muted">Creative Spirit</p>
+                  <p className="mt-1 font-body text-sm text-ink/78">Every detail shaped around how artists think and create.</p>
                 </div>
               </div>
 
@@ -254,20 +254,20 @@ export default function AboutPageContent() {
             <article className="rounded-[2rem] border border-black/[0.06] bg-white/80 p-8 md:p-10">
               <p className="mb-5 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-purple-primary/75">Manifesto</p>
               <h2 className="font-display text-4xl leading-tight text-ink md:text-5xl">
-                A better social web for creators.
+                Creativity deserves more than a scroll.
               </h2>
               <div className="mt-6 space-y-4 font-body text-[1.03rem] leading-[1.9] text-ink/78">
                 <p className="ab-dropcap">
-                  PinkQuill believes creativity deserves depth. We reject a culture where artists are forced to chase
-                  attention loops instead of building meaningful work.
+                  We started PinkQuill because we were tired of watching beautiful work disappear into feeds that
+                  don&apos;t care. Artists deserve a space that honors the time, heart, and soul they pour into what they make.
                 </p>
                 <p>
-                  This website is crafted to feel less like a content treadmill and more like an editorial platform: a
-                  place where your portfolio, personality, and progress can live together beautifully.
+                  This isn&apos;t another place to perform for an algorithm. It&apos;s a quiet corner of the internet where your
+                  poems, paintings, films, and stories can breathe — where creating feels personal again.
                 </p>
                 <p>
-                  We built PinkQuill for creators who care about quality, for communities that care about context, and
-                  for audiences that want to discover art with intention.
+                  PinkQuill is for the writer who shares at midnight, the painter who needs a portfolio that feels like them,
+                  and every creative who wants to be found by people who truly understand their work.
                 </p>
               </div>
             </article>
@@ -282,12 +282,12 @@ export default function AboutPageContent() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/45 via-transparent to-transparent" />
                 <figcaption className="absolute bottom-4 left-4 right-4 font-ui text-[0.62rem] uppercase tracking-[0.16em] text-white/80">
-                  PinkQuill editorial ethos
+                  A home for every creative voice
                 </figcaption>
               </figure>
               <div className="rounded-[1.8rem] border border-black/[0.06] bg-gradient-to-br from-white to-pink-vivid/[0.06] p-6">
                 <p className="font-display text-[1.75rem] leading-snug text-ink">
-                  &quot;Your art is not disposable content. It is identity, effort, and craft.&quot;
+                  &quot;What you create is a piece of who you are. It deserves to be treated that way.&quot;
                 </p>
               </div>
             </div>
@@ -307,16 +307,16 @@ export default function AboutPageContent() {
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/45 via-transparent to-ink/45" />
                 <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/30 bg-white/16 p-4 backdrop-blur-sm">
                   <p className="font-ui text-[0.62rem] uppercase tracking-[0.16em] text-white/82">The PinkQuill Studio</p>
-                  <p className="mt-1 font-display text-2xl text-white">Designed to support expression, not performance theater.</p>
+                  <p className="mt-1 font-display text-2xl text-white">Built to nurture your voice, not drain it.</p>
                 </div>
               </div>
 
               <div className="rounded-[2rem] border border-black/[0.06] bg-white/85 p-8 md:p-10">
                 <p className="mb-4 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-pink-vivid/80">The Studio</p>
-                <h2 className="font-display text-4xl leading-tight text-ink md:text-5xl">A clear product experience with real soul.</h2>
+                <h2 className="font-display text-4xl leading-tight text-ink md:text-5xl">Thoughtfully crafted for the creative mind.</h2>
                 <p className="mt-5 font-body text-base leading-relaxed text-ink/74">
-                  We borrow the best from modern product design: clarity, hierarchy, intentional pacing. Then we layer
-                  in visual warmth and cultural energy so the platform still feels alive and emotional.
+                  Every corner of PinkQuill is designed to feel gentle and inviting — a space where you can
+                  focus on what matters: your art, your words, and the people who resonate with them.
                 </p>
                 <div className="mt-8 grid gap-4 sm:grid-cols-2">
                   {studioCards.map((card) => (
@@ -341,22 +341,22 @@ export default function AboutPageContent() {
           <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
             <article className="rounded-[2rem] border border-black/[0.06] bg-white/82 p-8 md:p-10">
               <p className="mb-4 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-orange-warm">Mission</p>
-              <h2 className="font-display text-4xl text-ink md:text-5xl">Protect creators and elevate their work.</h2>
+              <h2 className="font-display text-4xl text-ink md:text-5xl">Champion the people who create.</h2>
               <div className="mt-5 space-y-4 font-body text-base leading-relaxed text-ink/75">
                 <p>
-                  PinkQuill exists to protect the creator at every stage: ownership, identity, publishing control, and
-                  creative integrity.
+                  We believe creators should feel safe, seen, and supported. PinkQuill is built around a simple
+                  promise: your work, your voice, your terms.
                 </p>
                 <p>
-                  Whether you are releasing your first piece or shaping your tenth chapter, this is a platform built to
-                  respect the depth behind what you make.
+                  Whether you&apos;re sharing your first poem or curating years of visual work, this is a place that
+                  honors the courage it takes to put yourself out there.
                 </p>
               </div>
               <ul className="mt-6 space-y-2.5">
                 {[
-                  "Your rights stay with you, always.",
-                  "Your growth is supported by community, not manipulation.",
-                  "Your work has room to evolve over time.",
+                  "Your creative rights are yours — always, unconditionally.",
+                  "Growth here comes from genuine connection, not tricks.",
+                  "Your work has space to evolve, breathe, and find its people.",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3">
                     <FontAwesomeIcon icon={faCheckCircle} className="mt-1 h-4 w-4 text-purple-primary" />
@@ -376,7 +376,7 @@ export default function AboutPageContent() {
               <div className="absolute inset-0 bg-gradient-to-tr from-ink/55 via-transparent to-pink-vivid/25" />
               <div className="absolute left-5 bottom-5 rounded-full border border-white/30 bg-white/12 px-4 py-2 backdrop-blur-sm">
                 <span className="font-ui text-[0.62rem] uppercase tracking-[0.16em] text-white/90">
-                  Community over competition
+                  Together, not against each other
                 </span>
               </div>
             </div>
@@ -387,11 +387,11 @@ export default function AboutPageContent() {
           <div className="mx-auto w-full max-w-6xl rounded-[2rem] border border-black/[0.06] bg-gradient-to-br from-white via-white to-purple-primary/[0.06] p-8 md:p-10">
             <p className="mb-4 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-purple-primary/80">Vision</p>
             <h2 className="max-w-3xl font-display text-4xl leading-tight text-ink md:text-5xl">
-              Build the most trusted creative platform on the internet.
+              A creative internet that feels like it was made for you.
             </h2>
             <p className="mt-5 max-w-3xl font-body text-base leading-relaxed text-ink/74">
-              Our vision is simple: creators should never have to choose between authenticity and reach. PinkQuill is
-              where discovery feels intimate, publishing feels intentional, and progress feels sustainable.
+              We dream of a world where being authentic and being discovered aren&apos;t at odds. Where sharing your
+              work feels like an act of joy, not a performance. That&apos;s the internet PinkQuill is building.
             </p>
             <div className="mt-8 grid gap-4 md:grid-cols-2">
               {visionPoints.map((point, index) => (
@@ -432,18 +432,18 @@ export default function AboutPageContent() {
 
               <article className="rounded-[2rem] border border-black/[0.06] bg-white/82 p-8 md:p-10">
                 <p className="mb-4 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-pink-vivid/85">Community</p>
-                <h2 className="font-display text-4xl leading-tight text-ink md:text-5xl">A place people genuinely care.</h2>
+                <h2 className="font-display text-4xl leading-tight text-ink md:text-5xl">People who get it.</h2>
                 <div className="mt-5 space-y-4 font-body text-base leading-relaxed text-ink/75">
                   <p>
-                    PinkQuill is designed for creators to be understood, not gamed. The culture here rewards honesty,
-                    consistency, and craft over empty spectacle.
+                    The best part of creating isn&apos;t the likes — it&apos;s finding someone who truly understands what
+                    you made. PinkQuill is built around that feeling.
                   </p>
                   <p>
-                    You can build your audience, meet collaborators, and shape your creative identity without losing your
-                    voice in a sea of distractions.
+                    Here, you&apos;ll find collaborators who share your vision, readers who sit with your words, and a
+                    community that celebrates the process as much as the finished piece.
                   </p>
                   <p>
-                    This is where your story, your work, and your people can finally align.
+                    No posturing. No clout chasing. Just real people making real things together.
                   </p>
                 </div>
               </article>
@@ -460,10 +460,11 @@ export default function AboutPageContent() {
               <div className="relative max-w-3xl">
                 <p className="mb-4 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-white/78">Join PinkQuill</p>
                 <h2 className="font-display text-4xl leading-tight text-white md:text-5xl">
-                  Fall in love with creating again.
+                  Your creative home is waiting.
                 </h2>
                 <p className="mt-5 font-body text-lg leading-relaxed text-white/85">
-                  Bring your voice to a platform designed for depth, beauty, and genuine creative connection.
+                  Bring your poems, your paintings, your music, your stories. Bring whatever makes you, you.
+                  We&apos;ll take care of the rest.
                 </p>
 
                 <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -484,7 +485,7 @@ export default function AboutPageContent() {
                 <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/12 px-4 py-2 backdrop-blur">
                   <FontAwesomeIcon icon={faRocket} className="h-3.5 w-3.5 text-white" />
                   <span className="font-ui text-xs uppercase tracking-[0.14em] text-white/90">
-                    Built for creators. Built to last.
+                    Made with love, for people who make things with love.
                   </span>
                 </div>
               </div>
