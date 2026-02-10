@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { useSellerCommissions } from "@/lib/hooks/useCommissions";
 import { useSellerStats } from "@/lib/hooks/useReviews";
 import { SELLER_LEVEL_LABELS, type Product, type SellerLevel } from "@/lib/types/store";
@@ -55,25 +55,11 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
       ? configuredResponseTimes.reduce((sum, value) => sum + value, 0) / configuredResponseTimes.length
       : null;
 
-    const serviceLabels = Array.from(
-      new Set(
-        commissions
-          .map((item) => {
-            const title = item.title?.trim();
-            const subcategory = item.subcategory?.trim();
-            const category = item.category?.trim();
-            return title || subcategory || category || "";
-          })
-          .filter((label): label is string => Boolean(label))
-      )
-    );
-
     return {
       total: commissions.length,
       active: activeCount,
       inactive: inactiveCount,
       avgConfiguredResponseHours,
-      serviceLabels,
     };
   }, [commissions]);
 
@@ -153,83 +139,36 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <div className="mb-6">
-        <div className="relative overflow-hidden rounded-[28px] border border-black/[0.07] bg-white/90 p-5 sm:p-6">
-          <div className="pointer-events-none absolute -top-24 -left-12 h-52 w-52 rounded-full bg-purple-primary/[0.06] blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 -right-10 h-48 w-48 rounded-full bg-pink-vivid/[0.06] blur-3xl" />
+      <div className="mb-8">
+        <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10 py-6">
+          {/* Quill Score */}
+          <QuillScore
+            rating={sellerStats?.total_reviews ? sellerStats.avg_rating : null}
+            reviews={sellerStats?.total_reviews ?? 0}
+            level={sellerStats?.seller_level as SellerLevel | undefined}
+            loading={sellerStatsLoading}
+          />
 
-          <div className="relative flex flex-col sm:flex-row gap-6">
-            {/* Left: Quill Score */}
-            <div className="flex flex-col items-center justify-center sm:min-w-[160px]">
-              <QuillScore
-                rating={sellerStats?.total_reviews ? sellerStats.avg_rating : null}
-                reviews={sellerStats?.total_reviews ?? 0}
-                level={sellerStats?.seller_level as SellerLevel | undefined}
-                loading={sellerStatsLoading}
-              />
+          {/* Divider */}
+          <div className="hidden sm:block w-px h-16 bg-black/[0.06]" />
+          <div className="sm:hidden w-12 h-px bg-black/[0.06]" />
+
+          {/* Metrics */}
+          <div className="flex items-center gap-8 sm:gap-10">
+            <div className="flex flex-col items-center">
+              <span className="font-display text-2xl font-semibold text-ink">{stats.active}</span>
+              <span className="text-[11px] font-ui text-muted mt-0.5">Active</span>
             </div>
-
-            {/* Right: Stats + Services */}
-            <div className="flex-1 flex flex-col gap-4">
-              <div className="flex flex-wrap gap-x-6 gap-y-2">
-                <StatRow
-                  icon={
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  }
-                  label="Active Services"
-                  value={`${stats.active} of ${stats.total}`}
-                />
-                <StatRow
-                  icon={
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  }
-                  label="Avg Response"
-                  value={formatResponseTime(responseTimeHours)}
-                />
-                {sellerStats && sellerStats.completed_orders > 0 && (
-                  <StatRow
-                    icon={
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                    }
-                    label="Completed"
-                    value={`${sellerStats.completed_orders} order${sellerStats.completed_orders === 1 ? "" : "s"}`}
-                  />
-                )}
+            <div className="flex flex-col items-center">
+              <span className="font-display text-2xl font-semibold text-ink">{formatResponseTime(responseTimeHours)}</span>
+              <span className="text-[11px] font-ui text-muted mt-0.5">Response</span>
+            </div>
+            {sellerStats && sellerStats.completed_orders > 0 && (
+              <div className="flex flex-col items-center">
+                <span className="font-display text-2xl font-semibold text-ink">{sellerStats.completed_orders}</span>
+                <span className="text-[11px] font-ui text-muted mt-0.5">Completed</span>
               </div>
-
-              {/* Services offered */}
-              {stats.serviceLabels.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-ui uppercase tracking-[0.18em] text-muted/70 mb-1.5">Services</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {stats.serviceLabels.slice(0, 5).map((label) => (
-                      <ServiceChip key={label} label={label} />
-                    ))}
-                    {stats.serviceLabels.length > 5 && (
-                      <ServiceChip label={`+${stats.serviceLabels.length - 5} more`} subtle />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {isOwnProfile && (
-                <Link
-                  href="/sell/service"
-                  className="inline-flex items-center gap-2 self-start px-4 py-2 rounded-full text-xs font-ui font-semibold text-pink-vivid border border-pink-vivid/25 bg-white hover:bg-pink-50 transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Service
-                </Link>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -302,8 +241,8 @@ function QuillScore({
   if (loading) {
     return (
       <div className="flex flex-col items-center gap-2">
-        <div className="w-[100px] h-[100px] rounded-full bg-gray-100 animate-pulse" />
-        <div className="h-3 w-16 rounded bg-gray-100 animate-pulse" />
+        <div className="w-20 h-20 rounded-full bg-black/[0.04] animate-pulse" />
+        <div className="h-3 w-14 rounded bg-black/[0.04] animate-pulse" />
       </div>
     );
   }
@@ -311,41 +250,35 @@ function QuillScore({
   const hasRating = rating !== null && reviews > 0;
   const normalized = hasRating ? Math.max(0, Math.min(5, rating)) : 0;
 
-  // SVG arc calculations
-  const size = 100;
-  const strokeWidth = 7;
+  const size = 88;
+  const strokeWidth = 5;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  // Arc spans 270 degrees (3/4 of circle)
   const arcLength = circumference * 0.75;
   const filledLength = hasRating ? arcLength * (normalized / 5) : 0;
-  // Rotation: start at 135deg (bottom-left) so arc goes clockwise around top
   const rotation = 135;
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-2">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          {/* Background arc */}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="rgba(0,0,0,0.06)"
+            stroke="rgba(0,0,0,0.05)"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeDasharray={`${arcLength} ${circumference}`}
             transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
           />
-          {/* Filled arc with gradient */}
           {hasRating && (
             <>
               <defs>
-                <linearGradient id="quill-score-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <linearGradient id="qs-grad" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#8e44ad" />
-                  <stop offset="50%" stopColor="#ff007f" />
-                  <stop offset="100%" stopColor="#ff9f43" />
+                  <stop offset="100%" stopColor="#ff007f" />
                 </linearGradient>
               </defs>
               <circle
@@ -353,80 +286,42 @@ function QuillScore({
                 cy={size / 2}
                 r={radius}
                 fill="none"
-                stroke="url(#quill-score-gradient)"
+                stroke="url(#qs-grad)"
                 strokeWidth={strokeWidth}
                 strokeLinecap="round"
                 strokeDasharray={`${filledLength} ${circumference}`}
                 transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
-                className="transition-all duration-700"
               />
             </>
           )}
         </svg>
-        {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {hasRating ? (
-            <>
-              <span className="font-display text-2xl font-bold leading-none text-ink">
-                {normalized.toFixed(1)}
-              </span>
-              <span className="text-[10px] font-ui text-muted/70 mt-0.5">of 5</span>
-            </>
+            <span className="font-display text-[22px] font-bold leading-none text-ink">
+              {normalized.toFixed(1)}
+            </span>
           ) : (
-            <>
-              <span className="font-display text-sm font-semibold text-muted/60 leading-none">New</span>
-              <span className="text-[9px] font-ui text-muted/50 mt-0.5">Creator</span>
-            </>
+            <span className="font-ui text-xs font-medium text-muted">--</span>
           )}
         </div>
       </div>
-      {hasRating ? (
-        <div className="flex flex-col items-center">
-          <span className="text-[11px] font-ui text-muted">
-            {reviews} review{reviews === 1 ? "" : "s"}
-          </span>
-          {level && level !== "new" && (
-            <span className="text-[10px] font-ui font-medium bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
-              {SELLER_LEVEL_LABELS[level]}
+      <div className="flex flex-col items-center">
+        {hasRating ? (
+          <>
+            <span className="text-[11px] font-ui text-muted">
+              {reviews} review{reviews === 1 ? "" : "s"}
             </span>
-          )}
-        </div>
-      ) : (
-        <span className="text-[10px] font-ui text-muted/60">No reviews yet</span>
-      )}
+            {level && level !== "new" && (
+              <span className="text-[10px] font-ui font-medium text-pink-vivid">
+                {SELLER_LEVEL_LABELS[level]}
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="text-[11px] font-ui text-muted">No reviews yet</span>
+        )}
+      </div>
     </div>
-  );
-}
-
-function StatRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-muted/50">{icon}</span>
-      <span className="text-xs font-ui text-muted">{label}</span>
-      <span className="text-sm font-ui font-semibold text-ink">{value}</span>
-    </div>
-  );
-}
-
-function ServiceChip({ label, subtle = false }: { label: string; subtle?: boolean }) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-ui ${
-        subtle
-          ? "border-black/[0.08] bg-white text-muted"
-          : "border-pink-vivid/20 bg-gradient-to-r from-pink-50/90 to-orange-50/90 text-ink"
-      }`}
-    >
-      <span className="max-w-[220px] truncate">{label}</span>
-    </span>
   );
 }
 

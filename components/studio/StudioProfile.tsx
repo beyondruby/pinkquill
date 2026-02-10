@@ -836,17 +836,17 @@ function StudioTabButton({
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 relative inline-flex items-center gap-2 px-4 py-3 font-ui text-sm font-medium transition-all duration-200 ${
+      className={`flex-1 min-w-0 relative flex items-center justify-center gap-2 py-3 font-ui text-[13px] font-medium transition-colors duration-200 ${
         active
-          ? "text-ink"
-          : "text-muted hover:text-ink/70"
+          ? "text-pink-vivid"
+          : "text-muted hover:text-ink"
       }`}
     >
-      <span className={`transition-colors duration-200 ${active ? "text-pink-vivid" : "text-muted/60"}`}>{icon}</span>
-      <span>{label}</span>
-      {active && (
-        <span className="absolute bottom-0 left-2 right-2 h-[3px] rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid" />
-      )}
+      <span className="shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
+      <span className={`absolute bottom-0 inset-x-0 h-[2px] rounded-full transition-colors duration-200 ${
+        active ? "bg-pink-vivid" : "bg-transparent"
+      }`} />
     </button>
   );
 }
@@ -866,8 +866,8 @@ function StudioSubTabButton({
       onClick={onClick}
       className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
         active
-          ? "bg-ink text-white shadow-sm"
-          : "text-muted hover:text-ink hover:bg-black/[0.04]"
+          ? "bg-pink-vivid/10 text-pink-vivid"
+          : "text-muted hover:text-ink hover:bg-black/[0.03]"
       }`}
     >
       {label}
@@ -1605,10 +1605,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {/* Tabs and Content - Only show for public accounts or if following */}
         {(!isPrivateAccount || isOwnProfile || isFollowing) && (
           <>
-        {/* Tabs - Clean underline style */}
+        {/* Tabs */}
         <div className={`mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-4' : ''}`}>
           <div>
-            <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide border-b border-black/[0.08]">
+            <div className="flex items-stretch overflow-x-auto scrollbar-hide border-b border-black/[0.06]">
               <StudioTabButton
                 label="Posts"
                 icon={icons.feather}
