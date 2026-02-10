@@ -202,7 +202,7 @@ export default function LeftSidebar() {
         </Link>
 
         {/* Search Bar - Only visible when expanded */}
-        <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? "opacity-100 max-h-20 mb-4" : "opacity-0 max-h-0 mb-0"}`}>
+        <div className={`transition-all duration-300 ${isExpanded ? "opacity-100 mb-4" : "opacity-0 h-0 overflow-hidden pointer-events-none"}`}>
           <SearchBar />
         </div>
 
