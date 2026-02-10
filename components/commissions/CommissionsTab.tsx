@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useSellerCommissions } from "@/lib/hooks/useCommissions";
 import { useSellerStats } from "@/lib/hooks/useReviews";
-import { SELLER_LEVEL_LABELS, type Product, type SellerLevel } from "@/lib/types/store";
+import { useDeleteProduct, useUpdateProductStatus } from "@/lib/hooks/useProducts";
+import { SELLER_LEVEL_LABELS, type Product, type ProductStatus, type SellerLevel } from "@/lib/types/store";
 
 interface CommissionsTabProps {
   userId: string;
@@ -31,7 +33,7 @@ const STATUS_STYLES: Record<Product["status"], string> = {
 };
 
 export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: CommissionsTabProps) {
-  const { commissions, loading, error } = useSellerCommissions(userId);
+  const { commissions, loading, error, refetch } = useSellerCommissions(userId);
   const { stats: sellerStats, loading: sellerStatsLoading } = useSellerStats(userId);
   const [filter, setFilter] = useState<StatusFilter>("all");
 
@@ -229,8 +231,8 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filtered.map((commission) => (
-            <CommissionCard key={commission.id} commission={commission} />
+          {filtered.map((commission, index) => (
+            <CommissionCard key={commission.id} commission={commission} isOwnProfile={isOwnProfile} index={index} onRefetch={refetch} />
           ))}
         </div>
       )}
@@ -387,7 +389,25 @@ function FilterButton({
   );
 }
 
-function CommissionCard({ commission }: { commission: Product }) {
+function CommissionCard({
+  commission,
+  isOwnProfile,
+  index,
+  onRefetch,
+}: {
+  commission: Product;
+  isOwnProfile: boolean;
+  index: number;
+  onRefetch: () => Promise<void>;
+}) {
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const { deleteProduct, deleting } = useDeleteProduct();
+  const { updateStatus, updating } = useUpdateProductStatus();
+
   const cover = commission.primary_image_url;
   const headline =
     typeof commission.service_metadata?.headline === "string"
@@ -407,72 +427,236 @@ function CommissionCard({ commission }: { commission: Product }) {
   const packageCount = commission.pricing?.length || 0;
   const startingPrice = commission.min_price;
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+        setConfirmDelete(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/sell/edit/${commission.id}`);
+    setMenuOpen(false);
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/commissions/${commission.id}`;
+    navigator.clipboard.writeText(url);
+    setMenuOpen(false);
+  };
+
+  const handleArchive = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newStatus: ProductStatus = commission.status === "archived" ? "active" : "archived";
+    const success = await updateStatus(commission.id, newStatus);
+    if (success) {
+      await onRefetch();
+    }
+    setMenuOpen(false);
+  };
+
+  const handleActivate = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const success = await updateStatus(commission.id, "active");
+    if (success) {
+      await onRefetch();
+    }
+    setMenuOpen(false);
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+
+    const success = await deleteProduct(commission.id);
+    if (success) {
+      await onRefetch();
+    }
+    setMenuOpen(false);
+    setConfirmDelete(false);
+  };
+
   return (
-    <Link
-      href={`/commissions/${commission.id}`}
-      className="group relative rounded-[24px] border border-black/[0.06] overflow-hidden bg-white shadow-sm hover:shadow-xl hover:shadow-pink-vivid/15 hover:-translate-y-1 transition-all duration-300"
-    >
-      <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="absolute -top-16 -right-14 w-40 h-40 rounded-full bg-pink-vivid/10 blur-2xl" />
-      </div>
-
-      <div className="aspect-[4/3] bg-gradient-to-br from-pink-50 to-orange-50 relative overflow-hidden">
-        {cover ? (
-          <img src={cover} alt={commission.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-pink-vivid/40">
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
-            </svg>
-          </div>
-        )}
-
-        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold bg-white/90 text-purple-primary">
-            Commission
-          </span>
-          <span className={`px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold ${STATUS_STYLES[commission.status]}`}>
-            {STATUS_LABEL[commission.status]}
-          </span>
-        </div>
-      </div>
-
-      <div className="p-4">
-        <p className="text-xs font-ui uppercase tracking-wider text-muted mb-1">{commission.category}</p>
-        <h3 className="font-display text-lg leading-snug text-ink mb-2 line-clamp-2 group-hover:text-pink-vivid transition-colors">
-          {commission.title}
-        </h3>
-        <p className="text-sm font-body text-muted line-clamp-2 min-h-[2.5rem]">
-          {headline || "Outcome-focused service with clear package scope and transparent delivery."}
-        </p>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          <MetaChip label={`${packageCount} package${packageCount === 1 ? "" : "s"}`} />
-          <MetaChip label={minDelivery ? `${minDelivery} day delivery` : "Custom timeline"} />
-          {maxRevisions !== undefined && <MetaChip label={`${maxRevisions} revision${maxRevisions === 1 ? "" : "s"}`} />}
+    <div className="relative group">
+      <Link
+        href={`/commissions/${commission.id}`}
+        className="block rounded-[24px] border border-black/[0.06] overflow-hidden bg-white shadow-sm hover:shadow-xl hover:shadow-pink-vivid/15 hover:-translate-y-1 transition-all duration-300"
+        style={{ animationDelay: `${index * 50}ms` }}
+      >
+        <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute -top-16 -right-14 w-40 h-40 rounded-full bg-pink-vivid/10 blur-2xl" />
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
-          {startingPrice !== undefined ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-body text-muted">Starting at</span>
-              <span className="font-display text-xl font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
-                ${startingPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-              </span>
-            </div>
+        <div className="aspect-[4/3] bg-gradient-to-br from-pink-50 to-orange-50 relative overflow-hidden">
+          {cover ? (
+            <img src={cover} alt={commission.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           ) : (
-            <p className="text-sm font-body text-muted">Price on request</p>
+            <div className="w-full h-full flex items-center justify-center text-pink-vivid/40">
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
+              </svg>
+            </div>
           )}
 
-          <span className="inline-flex items-center gap-1 text-xs font-ui font-semibold text-pink-vivid group-hover:text-orange-warm transition-colors">
-            View Service
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </span>
+          <div className={`absolute top-3 left-3 ${isOwnProfile ? "right-14" : "right-3"} flex items-start justify-between gap-2`}>
+            <span className="px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold bg-white/90 text-purple-primary">
+              Commission
+            </span>
+            <span className={`px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold ${STATUS_STYLES[commission.status]}`}>
+              {STATUS_LABEL[commission.status]}
+            </span>
+          </div>
         </div>
-      </div>
-    </Link>
+
+        <div className="p-4">
+          <p className="text-xs font-ui uppercase tracking-wider text-muted mb-1">{commission.category}</p>
+          <h3 className="font-display text-lg leading-snug text-ink mb-2 line-clamp-2 group-hover:text-pink-vivid transition-colors">
+            {commission.title}
+          </h3>
+          <p className="text-sm font-body text-muted line-clamp-2 min-h-[2.5rem]">
+            {headline || "Outcome-focused service with clear package scope and transparent delivery."}
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <MetaChip label={`${packageCount} package${packageCount === 1 ? "" : "s"}`} />
+            <MetaChip label={minDelivery ? `${minDelivery} day delivery` : "Custom timeline"} />
+            {maxRevisions !== undefined && <MetaChip label={`${maxRevisions} revision${maxRevisions === 1 ? "" : "s"}`} />}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between">
+            {startingPrice !== undefined ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-body text-muted">Starting at</span>
+                <span className="font-display text-xl font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+                  ${startingPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            ) : (
+              <p className="text-sm font-body text-muted">Price on request</p>
+            )}
+
+            <span className="inline-flex items-center gap-1 text-xs font-ui font-semibold text-pink-vivid group-hover:text-orange-warm transition-colors">
+              View Service
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
+          </div>
+        </div>
+      </Link>
+
+      {/* 3-dot menu — positioned same as product cards */}
+      {isOwnProfile && (
+        <div ref={menuRef} className="absolute top-3 right-3 z-10">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMenuOpen(!menuOpen);
+              setConfirmDelete(false);
+            }}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200
+              ${menuOpen
+                ? "bg-white shadow-md"
+                : "bg-black/40 opacity-0 group-hover:opacity-100 hover:bg-black/60"
+              }`}
+          >
+            <svg className={`w-4 h-4 ${menuOpen ? "text-muted" : "text-white"}`} viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="19" cy="12" r="2" />
+            </svg>
+          </button>
+
+          {menuOpen && (
+            <div className="absolute top-full right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-20">
+              {/* Edit */}
+              <button
+                onClick={handleEdit}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+              >
+                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                Edit
+              </button>
+
+              {/* Share */}
+              <button
+                onClick={handleShare}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+              >
+                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Copy Link
+              </button>
+
+              {/* Activate (only for inactive) */}
+              {commission.status !== "active" && commission.status !== "sold" && (
+                <button
+                  onClick={handleActivate}
+                  disabled={updating}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {updating ? "Activating..." : "Activate"}
+                </button>
+              )}
+
+              {/* Archive/Unarchive */}
+              <button
+                onClick={handleArchive}
+                disabled={updating}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors disabled:opacity-50"
+              >
+                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                {updating ? "Updating..." : commission.status === "archived" ? "Unarchive" : "Archive"}
+              </button>
+
+              {/* Delete */}
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors disabled:opacity-50
+                  ${confirmDelete ? "bg-red-50 text-red-600" : "text-red-500 hover:bg-red-50"}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {deleting ? "Deleting..." : confirmDelete ? "Confirm Delete" : "Delete"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
