@@ -520,14 +520,6 @@ function CommissionCard({
             </div>
           )}
 
-          <div className={`absolute top-3 left-3 ${isOwnProfile ? "right-14" : "right-3"} flex items-start justify-between gap-2`}>
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold bg-white/90 text-purple-primary">
-              Commission
-            </span>
-            <span className={`px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold ${STATUS_STYLES[commission.status]}`}>
-              {STATUS_LABEL[commission.status]}
-            </span>
-          </div>
         </div>
 
         <div className="p-4">

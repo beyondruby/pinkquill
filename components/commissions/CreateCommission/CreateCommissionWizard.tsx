@@ -25,17 +25,17 @@ const ACCEPTED_MEDIA_TYPES = [
 ];
 
 const STEP_LABELS = [
-  "Service Positioning",
+  "Your Craft",
   "Packages & Pricing",
-  "Portfolio & Requirements",
+  "Portfolio & Details",
   "Review & Publish",
 ];
 
 const STEP_TITLES: Record<number, { prefix: string; highlight1: string; highlight2: string }> = {
-  1: { prefix: "Let's", highlight1: "position", highlight2: "your service" },
-  2: { prefix: "Build", highlight1: "packages", highlight2: "buyers can trust" },
-  3: { prefix: "Add", highlight1: "proof", highlight2: "and requirements" },
-  4: { prefix: "Review and", highlight1: "publish", highlight2: "your service" },
+  1: { prefix: "Tell us about", highlight1: "your", highlight2: "creative gift" },
+  2: { prefix: "Shape", highlight1: "offerings", highlight2: "people will love" },
+  3: { prefix: "Show", highlight1: "your best", highlight2: "work" },
+  4: { prefix: "Review and", highlight1: "share", highlight2: "with the world" },
 };
 
 const PACKAGE_PRESETS: Array<{ tier: CommissionPackageFormState["tier"]; name: string }> = [
@@ -272,9 +272,9 @@ export default function CreateCommissionWizard() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
-          <h1 className="font-display text-3xl text-ink mb-3">Sign in to offer commissions</h1>
+          <h1 className="font-display text-3xl text-ink mb-3">Sign in to share your creative gifts</h1>
           <p className="font-body text-muted">
-            Create premium service packages, define delivery timelines, and get hired from studio and marketplace.
+            Open commissions, set your own terms, and let people who love your work hire you directly.
           </p>
         </div>
       </div>
@@ -319,7 +319,7 @@ export default function CreateCommissionWizard() {
                   <div className="space-y-6">
                     <SectionCard
                       title="Category"
-                      description="Pick the exact creative domain where buyers will find your service."
+                      description="What kind of creative work do you do best?"
                       tone="rose"
                     >
                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -366,7 +366,7 @@ export default function CreateCommissionWizard() {
                     {selectedCategory && (
                       <SectionCard
                         title="Specialization"
-                        description="Buyers filter by specialization first. Pick the one that matches your strongest outcome."
+                        description="Where does your talent shine the most?"
                         tone="purple"
                       >
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -393,8 +393,8 @@ export default function CreateCommissionWizard() {
                     )}
 
                     <SectionCard
-                      title="Positioning"
-                      description="Lead with promise, clarity, and transformation. Think top Fiverr and Upwork listings."
+                      title="About your service"
+                      description="Help people understand what makes your creative work special."
                       tone="neutral"
                     >
                       <div className="space-y-4">
@@ -407,7 +407,7 @@ export default function CreateCommissionWizard() {
                             maxLength={80}
                             value={state.title}
                             onChange={(event) => updateState({ title: event.target.value })}
-                            placeholder="I will design a conversion-ready landing page for your brand"
+                            placeholder="e.g., Custom watercolor portrait of your pet, family, or loved one"
                             className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid transition-colors"
                           />
                         </div>
@@ -421,7 +421,7 @@ export default function CreateCommissionWizard() {
                             maxLength={100}
                             value={state.headline}
                             onChange={(event) => updateState({ headline: event.target.value })}
-                            placeholder="Fast delivery, strategic UX, and copy-ready handoff"
+                            placeholder="e.g., Handcrafted with love, delivered in high-res with full rights"
                             className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid transition-colors"
                           />
                         </div>
@@ -436,7 +436,7 @@ export default function CreateCommissionWizard() {
                             maxLength={1200}
                             value={state.description}
                             onChange={(event) => updateState({ description: event.target.value })}
-                            placeholder="Describe your process, what buyers get, and why your approach is different."
+                            placeholder="Share your creative process, what inspires your work, and what makes it uniquely yours."
                             className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
                           />
                         </div>
@@ -448,8 +448,8 @@ export default function CreateCommissionWizard() {
                 {step === 2 && (
                   <div className="space-y-6">
                     <SectionCard
-                      title="Package architecture"
-                      description="Offer clear tiers with measurable scope. Buyers should understand differences in 5 seconds."
+                      title="Your creative packages"
+                      description="Give people clear options to commission your work — from a simple piece to something truly custom."
                       tone="purple"
                     >
                       <div className="space-y-4">
@@ -473,7 +473,7 @@ export default function CreateCommissionWizard() {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
-                            Add Package Tier
+                            Add another package
                           </button>
                         )}
                       </div>
@@ -484,8 +484,8 @@ export default function CreateCommissionWizard() {
                 {step === 3 && (
                   <div className="space-y-6">
                     <SectionCard
-                      title="Portfolio media"
-                      description="Lead with proof. Add finished outcomes, not just process screenshots."
+                      title="Portfolio"
+                      description="Show off your finest work — the pieces that make people stop scrolling."
                       tone="rose"
                     >
                       <input
@@ -507,7 +507,7 @@ export default function CreateCommissionWizard() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v16m8-8H4" />
                           </svg>
                         </div>
-                        <p className="font-ui font-semibold text-ink">Upload Portfolio Media</p>
+                        <p className="font-ui font-semibold text-ink">Upload your best work</p>
                         <p className="text-xs font-body text-muted mt-1">{state.mediaPreviews.length} / {MAX_MEDIA} added</p>
                         <p className="text-xs font-body text-muted/80 mt-1">JPG, PNG, WEBP, GIF, MP4, MOV</p>
                       </button>
@@ -542,20 +542,20 @@ export default function CreateCommissionWizard() {
                     </SectionCard>
 
                     <SectionCard
-                      title="Buyer requirements"
-                      description="Ask only the critical inputs needed to begin immediately."
+                      title="What you'll need from them"
+                      description="What should someone share with you before you start creating?"
                       tone="neutral"
                     >
                       <StringListEditor
                         values={state.requirements}
-                        placeholder="e.g., Brand guidelines, references, target audience"
+                        placeholder="e.g., Reference photos, color preferences, style inspiration"
                         onChange={(values) => updateState({ requirements: values })}
                       />
                     </SectionCard>
 
                     <SectionCard
                       title="FAQs"
-                      description="Answer objections before buyers ask."
+                      description="Answer the questions people are most likely to ask about your work."
                       tone="neutral"
                     >
                       <FaqEditor
@@ -565,13 +565,13 @@ export default function CreateCommissionWizard() {
                     </SectionCard>
 
                     <SectionCard
-                      title="Search tags"
-                      description="Improve discoverability across commissions and marketplace filters."
+                      title="Tags"
+                      description="Help people discover your work with a few keywords."
                       tone="neutral"
                     >
                       <StringListEditor
                         values={state.keywords}
-                        placeholder="e.g., landing page, figma, conversion optimization"
+                        placeholder="e.g., watercolor, portrait, fantasy art, pet illustration"
                         onChange={(values) => updateState({ keywords: values })}
                       />
                     </SectionCard>
@@ -581,8 +581,8 @@ export default function CreateCommissionWizard() {
                 {step === 4 && (
                   <div className="space-y-6">
                     <SectionCard
-                      title="Final listing preview"
-                      description="This is the listing buyers will see once your service is live."
+                      title="Your listing preview"
+                      description="This is how your commission will look to the world."
                       tone="neutral"
                     >
                       <ListingPreviewCard
@@ -593,8 +593,8 @@ export default function CreateCommissionWizard() {
                     </SectionCard>
 
                     <SectionCard
-                      title="Launch readiness"
-                      description="Final check before you publish to studio and marketplace."
+                      title="Almost there"
+                      description="A quick look at everything before your commission goes live."
                       tone="purple"
                     >
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -610,8 +610,8 @@ export default function CreateCommissionWizard() {
                     </SectionCard>
 
                     <SectionCard
-                      title="Tier preview"
-                      description="How buyers will compare your offers."
+                      title="Your packages"
+                      description="How your creative offerings will appear side by side."
                       tone="rose"
                     >
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -623,7 +623,7 @@ export default function CreateCommissionWizard() {
                                 {pkg.name || pkg.tier}
                               </span>
                               <p className="font-display text-2xl text-ink mt-3">${pkg.price ?? 0}</p>
-                              <p className="text-xs font-body text-muted mt-1 line-clamp-3">{pkg.description || "No scope added yet."}</p>
+                              <p className="text-xs font-body text-muted mt-1 line-clamp-3">{pkg.description || "Describe what this package includes."}</p>
                               <div className="mt-3 flex flex-wrap gap-2">
                                 <span className={`text-[11px] font-ui font-semibold px-2 py-1 rounded-full ${style.chip}`}>
                                   {pkg.deliveryDays} day{pkg.deliveryDays === 1 ? "" : "s"}
@@ -640,8 +640,7 @@ export default function CreateCommissionWizard() {
 
                     <div className="rounded-2xl border border-purple-primary/15 bg-gradient-to-r from-purple-primary/5 via-pink-vivid/5 to-orange-warm/5 p-5">
                       <p className="text-sm font-body text-ink">
-                        PinkQuill differentiator: every commission shows an outcome-focused listing, transparent package terms, and process clarity.
-                        Buyers can hire faster because expectations are explicit from the first click.
+                        Your commission is a window into your creative world. People who find you here already love what you do — clear packages and beautiful portfolio pieces help them say yes.
                       </p>
                     </div>
                   </div>
@@ -815,19 +814,19 @@ function PackageEditor({
       </div>
 
       <div className="space-y-1.5">
-        <FieldLabel text="Scope and deliverables" required />
+        <FieldLabel text="What's included" required />
         <textarea
           rows={3}
           value={pkg.description}
           onChange={(event) => onChange({ description: event.target.value })}
-          placeholder="Describe scope and deliverables."
+          placeholder="Describe what the person will receive and the creative process involved."
           className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <FieldLabel text="Delivery timeline" required />
+          <FieldLabel text="Delivery (days)" required />
           <input
             type="number"
             min={1}
@@ -851,10 +850,10 @@ function PackageEditor({
       </div>
 
       <div className="pt-1">
-        <FieldLabel text="What is included" />
+        <FieldLabel text="Highlights" />
         <StringListEditor
           values={pkg.features}
-          placeholder="e.g., 3 design concepts, source file, commercial use"
+          placeholder="e.g., High-res file, commercial license, 2 concepts"
           onChange={(features) => onChange({ features })}
           compact
         />
@@ -998,7 +997,7 @@ function ListingPreviewCard({
             )
           ) : (
             <div className="aspect-[4/3] flex items-center justify-center text-xs font-ui text-muted px-4 text-center">
-              Add portfolio media to see your listing cover
+              Add your portfolio to see the cover here
             </div>
           )}
         </div>
@@ -1009,7 +1008,7 @@ function ListingPreviewCard({
             {state.title || "Your service title will appear here"}
           </h3>
           <p className="text-xs font-body text-muted mt-1 line-clamp-2">
-            {state.headline || "Short headline to communicate your unique value."}
+            {state.headline || "A short line that captures what makes your work special."}
           </p>
         </div>
 
@@ -1076,6 +1075,14 @@ function CategoryGlyph({ categoryId }: { categoryId: string }) {
     return (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 16l-4-4 4-4m8 8l4-4-4-4M13 4l-2 16" />
+      </svg>
+    );
+  }
+
+  if (categoryId === "crafts") {
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
       </svg>
     );
   }
