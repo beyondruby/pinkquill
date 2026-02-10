@@ -140,64 +140,50 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
       <div className="mb-8">
-        <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10 py-6">
-          {/* Quill Score */}
-          <QuillScore
-            rating={sellerStats?.total_reviews ? sellerStats.avg_rating : null}
-            reviews={sellerStats?.total_reviews ?? 0}
-            level={sellerStats?.seller_level as SellerLevel | undefined}
-            loading={sellerStatsLoading}
-          />
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2d1b42] via-[#3a1d55] to-[#1e1035] p-6 sm:p-8">
+          {/* Decorative orbs */}
+          <div className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-pink-vivid/20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-purple-primary/25 blur-3xl" />
+          <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-32 w-32 rounded-full bg-orange-warm/10 blur-2xl" />
 
-          {/* Divider */}
-          <div className="hidden sm:block w-px h-16 bg-black/[0.06]" />
-          <div className="sm:hidden w-12 h-px bg-black/[0.06]" />
+          <div className="relative flex flex-col sm:flex-row items-center gap-8">
+            {/* Quill Score */}
+            <QuillScore
+              rating={sellerStats?.total_reviews ? sellerStats.avg_rating : null}
+              reviews={sellerStats?.total_reviews ?? 0}
+              level={sellerStats?.seller_level as SellerLevel | undefined}
+              loading={sellerStatsLoading}
+            />
 
-          {/* Metrics */}
-          <div className="flex items-center gap-8 sm:gap-10">
-            <div className="flex flex-col items-center">
-              <span className="font-display text-2xl font-semibold text-ink">{stats.active}</span>
-              <span className="text-[11px] font-ui text-muted mt-0.5">Active</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="font-display text-2xl font-semibold text-ink">{formatResponseTime(responseTimeHours)}</span>
-              <span className="text-[11px] font-ui text-muted mt-0.5">Response</span>
-            </div>
-            {sellerStats && sellerStats.completed_orders > 0 && (
-              <div className="flex flex-col items-center">
-                <span className="font-display text-2xl font-semibold text-ink">{sellerStats.completed_orders}</span>
-                <span className="text-[11px] font-ui text-muted mt-0.5">Completed</span>
+            {/* Metrics row */}
+            <div className="flex-1 flex items-center justify-center sm:justify-start gap-8 sm:gap-12">
+              <div className="flex flex-col items-center sm:items-start">
+                <span className="font-display text-3xl font-bold text-white leading-none">{stats.active}</span>
+                <span className="text-[11px] font-ui text-white/50 mt-1.5 uppercase tracking-wider">Active</span>
               </div>
-            )}
+              <div className="w-px h-10 bg-white/10 hidden sm:block" />
+              <div className="flex flex-col items-center sm:items-start">
+                <span className="font-display text-3xl font-bold text-white leading-none">{formatResponseTime(responseTimeHours)}</span>
+                <span className="text-[11px] font-ui text-white/50 mt-1.5 uppercase tracking-wider">Avg Response</span>
+              </div>
+              {sellerStats && sellerStats.completed_orders > 0 && (
+                <>
+                  <div className="w-px h-10 bg-white/10 hidden sm:block" />
+                  <div className="flex flex-col items-center sm:items-start">
+                    <span className="font-display text-3xl font-bold text-white leading-none">{sellerStats.completed_orders}</span>
+                    <span className="text-[11px] font-ui text-white/50 mt-1.5 uppercase tracking-wider">Completed</span>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <div className="inline-flex items-center gap-1.5 rounded-2xl border border-black/[0.07] bg-white p-1.5">
-          <FilterButton
-            active={filter === "all"}
-            label="All"
-            count={stats.total}
-            onClick={() => setFilter("all")}
-          />
-          <FilterButton
-            active={filter === "active"}
-            label="Active"
-            count={stats.active}
-            onClick={() => setFilter("active")}
-          />
-          <FilterButton
-            active={filter === "inactive"}
-            label="Inactive"
-            count={stats.inactive}
-            onClick={() => setFilter("inactive")}
-          />
-        </div>
-
-        <p className="text-xs font-ui text-muted">
-          {filtered.length} visible service{filtered.length === 1 ? "" : "s"}
-        </p>
+      <div className="flex items-center gap-1.5 mb-6 overflow-x-auto scrollbar-hide">
+        <FilterButton active={filter === "all"} label="All" count={stats.total} onClick={() => setFilter("all")} />
+        <FilterButton active={filter === "active"} label="Active" count={stats.active} onClick={() => setFilter("active")} />
+        <FilterButton active={filter === "inactive"} label="Inactive" count={stats.inactive} onClick={() => setFilter("inactive")} />
       </div>
 
       {filtered.length === 0 ? (
@@ -240,9 +226,9 @@ function QuillScore({
 }) {
   if (loading) {
     return (
-      <div className="flex flex-col items-center gap-2">
-        <div className="w-20 h-20 rounded-full bg-black/[0.04] animate-pulse" />
-        <div className="h-3 w-14 rounded bg-black/[0.04] animate-pulse" />
+      <div className="flex flex-col items-center gap-2 shrink-0">
+        <div className="w-[88px] h-[88px] rounded-full bg-white/10 animate-pulse" />
+        <div className="h-3 w-14 rounded bg-white/10 animate-pulse" />
       </div>
     );
   }
@@ -259,7 +245,7 @@ function QuillScore({
   const rotation = 135;
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-2 shrink-0">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           <circle
@@ -267,7 +253,7 @@ function QuillScore({
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="rgba(0,0,0,0.05)"
+            stroke="rgba(255,255,255,0.1)"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeDasharray={`${arcLength} ${circumference}`}
@@ -277,8 +263,8 @@ function QuillScore({
             <>
               <defs>
                 <linearGradient id="qs-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#8e44ad" />
-                  <stop offset="100%" stopColor="#ff007f" />
+                  <stop offset="0%" stopColor="#ff007f" />
+                  <stop offset="100%" stopColor="#ff9f43" />
                 </linearGradient>
               </defs>
               <circle
@@ -297,18 +283,18 @@ function QuillScore({
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {hasRating ? (
-            <span className="font-display text-[22px] font-bold leading-none text-ink">
+            <span className="font-display text-[22px] font-bold leading-none text-white">
               {normalized.toFixed(1)}
             </span>
           ) : (
-            <span className="font-ui text-xs font-medium text-muted">--</span>
+            <span className="font-ui text-xs font-medium text-white/40">--</span>
           )}
         </div>
       </div>
       <div className="flex flex-col items-center">
         {hasRating ? (
           <>
-            <span className="text-[11px] font-ui text-muted">
+            <span className="text-[11px] font-ui text-white/50">
               {reviews} review{reviews === 1 ? "" : "s"}
             </span>
             {level && level !== "new" && (
@@ -318,7 +304,7 @@ function QuillScore({
             )}
           </>
         ) : (
-          <span className="text-[11px] font-ui text-muted">No reviews yet</span>
+          <span className="text-[11px] font-ui text-white/40">No reviews yet</span>
         )}
       </div>
     </div>
@@ -340,14 +326,14 @@ function FilterButton({
     <button
       type="button"
       onClick={onClick}
-      className={`px-4 py-2 rounded-xl text-sm font-ui transition-all ${
+      className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
         active
-          ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-sm"
-          : "text-muted hover:text-ink hover:bg-gray-50"
+          ? "bg-pink-vivid/10 text-pink-vivid"
+          : "text-muted hover:text-ink hover:bg-black/[0.03]"
       }`}
     >
       {label}
-      <span className={`ml-1.5 text-xs ${active ? "text-white/80" : "text-muted"}`}>{count}</span>
+      <span className={`ml-1 ${active ? "text-pink-vivid/60" : "text-muted/60"}`}>{count}</span>
     </button>
   );
 }
