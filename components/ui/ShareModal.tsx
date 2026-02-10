@@ -43,19 +43,14 @@ const icons = {
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   ),
-  facebook: (
+  threads: (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+      <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.96-.065-1.17.408-2.22 1.332-2.96.842-.673 2.023-1.058 3.413-1.114 1.028-.042 1.972.027 2.824.2-.078-1.076-.494-1.82-1.005-2.282-.586-.53-1.428-.79-2.504-.774l-.044.001c-.893.011-1.688.283-2.302.785l-1.32-1.56c.96-.812 2.17-1.263 3.59-1.34l.066-.003c1.6-.034 2.924.39 3.836 1.225.838.768 1.369 1.87 1.522 3.258.503.124.974.29 1.406.497 1.162.558 2.07 1.39 2.624 2.413.76 1.4.887 3.823-.876 5.553-1.817 1.782-4.065 2.57-7.261 2.596zm-1.248-7.498c-.052 0-.103.002-.155.004-.957.038-1.704.262-2.228.667-.46.356-.69.823-.665 1.348.04.72.44 1.28 1.155 1.62.578.274 1.31.393 2.057.353 1.094-.06 1.93-.434 2.487-1.128.432-.539.744-1.285.915-2.218-.848-.257-1.818-.409-2.878-.428-.236-.012-.466-.017-.688-.017z" />
     </svg>
   ),
-  linkedin: (
+  bluesky: (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-    </svg>
-  ),
-  pinterest: (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z" />
+      <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.785 2.627 3.601 3.493 6.195 3.147-.392.07-3.857.695-3.857 3.523 0 4.832 6.637 5.124 8.07 1.705.238-.568.348-.568.585-.568h.766c.237 0 .347 0 .585.568 1.433 3.42 8.07 3.127 8.07-1.705 0-2.828-3.465-3.453-3.857-3.523 2.594.346 5.41-.52 6.195-3.147C23.622 9.418 24 4.458 24 3.768c0-.688-.139-1.86-.902-2.203-.659-.3-1.664-.621-4.3 1.24C16.046 4.747 13.087 8.686 12 10.8z" />
     </svg>
   ),
   whatsapp: (
@@ -71,11 +66,6 @@ const icons = {
   email: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-    </svg>
-  ),
-  reddit: (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
     </svg>
   ),
   instagram: (
@@ -151,30 +141,6 @@ export default function ShareModal({
       color: "#000000",
     },
     {
-      name: "Facebook",
-      icon: icons.facebook,
-      url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-      color: "#1877F2",
-    },
-    {
-      name: "LinkedIn",
-      icon: icons.linkedin,
-      url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
-      color: "#0A66C2",
-    },
-    {
-      name: "Reddit",
-      icon: icons.reddit,
-      url: `https://reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}`,
-      color: "#FF4500",
-    },
-    {
-      name: "Pinterest",
-      icon: icons.pinterest,
-      url: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedText}`,
-      color: "#E60023",
-    },
-    {
       name: "WhatsApp",
       icon: icons.whatsapp,
       url: `https://api.whatsapp.com/send?text=${encodedText}%20${encodedUrl}`,
@@ -185,6 +151,18 @@ export default function ShareModal({
       icon: icons.telegram,
       url: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
       color: "#0088CC",
+    },
+    {
+      name: "Threads",
+      icon: icons.threads,
+      url: `https://www.threads.net/intent/post?text=${encodedText}%20${encodedUrl}`,
+      color: "#000000",
+    },
+    {
+      name: "Bluesky",
+      icon: icons.bluesky,
+      url: `https://bsky.app/intent/compose?text=${encodedText}%20${encodedUrl}`,
+      color: "#0085FF",
     },
     {
       name: "Email",
@@ -570,54 +548,72 @@ export default function ShareModal({
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
         {activeTab === "share" && (
-          <>
-            {/* Send as Message - Primary CTA */}
+          <div className="px-5 py-5 space-y-5">
+            {/* Send as Message */}
             {onSendToDM && (
-              <div className="px-5 pb-4">
-                <button
-                  onClick={() => {
-                    onClose();
-                    onSendToDM();
-                  }}
-                  className="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold text-sm shadow-lg shadow-purple-primary/25 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  Send as Message
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  onClose();
+                  onSendToDM();
+                }}
+                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold text-[0.85rem] hover:shadow-lg hover:shadow-pink-vivid/20 active:scale-[0.98] transition-all"
+              >
+                <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Send as Message
+              </button>
             )}
 
             {/* Copy Link */}
-            <div className="share-copy-section">
-              <div className="share-link-input">
-                <input type="text" value={url} readOnly />
-                <button
-                  className={`share-copy-btn ${copied ? "copied" : ""}`}
-                  onClick={handleCopyLink}
-                >
-                  {copied ? icons.check : icons.copy}
-                  <span>{copied ? "Copied!" : "Copy"}</span>
-                </button>
-              </div>
+            <div className="flex items-center gap-2 rounded-xl bg-black/[0.03] p-1.5">
+              <input
+                type="text"
+                value={url}
+                readOnly
+                className="flex-1 min-w-0 px-3 py-2 font-body text-[0.8rem] text-muted bg-transparent border-none outline-none truncate"
+              />
+              <button
+                onClick={handleCopyLink}
+                className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg font-ui text-[0.8rem] font-medium transition-all ${
+                  copied
+                    ? "bg-emerald-500 text-white"
+                    : "bg-ink text-white hover:bg-ink/85"
+                }`}
+              >
+                {copied ? icons.check : icons.copy}
+                <span>{copied ? "Copied!" : "Copy link"}</span>
+              </button>
             </div>
 
-            {/* Social Share Grid */}
-            <div className="share-social-grid">
+            {/* Social Share */}
+            <div className="flex items-center justify-center gap-3">
               {socialLinks.map((social) => (
                 <button
                   key={social.name}
-                  className="share-social-btn"
                   onClick={() => handleSocialClick(social.url)}
-                  style={{ "--social-color": social.color } as React.CSSProperties}
+                  className="group flex flex-col items-center gap-1.5"
+                  title={`Share on ${social.name}`}
                 >
-                  <span className="share-social-icon">{social.icon}</span>
-                  <span className="share-social-name">{social.name}</span>
+                  <span
+                    className="w-11 h-11 flex items-center justify-center rounded-full bg-black/[0.04] text-muted transition-all group-hover:scale-110 group-hover:text-white group-hover:shadow-lg"
+                    style={{
+                      "--hover-bg": social.color,
+                    } as React.CSSProperties}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.backgroundColor = social.color;
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                    }}
+                  >
+                    {social.icon}
+                  </span>
+                  <span className="font-ui text-[0.65rem] font-medium text-muted/70">{social.name}</span>
                 </button>
               ))}
             </div>
-          </>
+          </div>
         )}
 
         {activeTab === "instagram" && (
