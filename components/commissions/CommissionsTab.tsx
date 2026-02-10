@@ -55,11 +55,25 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
       ? configuredResponseTimes.reduce((sum, value) => sum + value, 0) / configuredResponseTimes.length
       : null;
 
+    const serviceLabels = Array.from(
+      new Set(
+        commissions
+          .map((item) => {
+            const title = item.title?.trim();
+            const subcategory = item.subcategory?.trim();
+            const category = item.category?.trim();
+            return title || subcategory || category || "";
+          })
+          .filter((label): label is string => Boolean(label))
+      )
+    );
+
     return {
       total: commissions.length,
       active: activeCount,
       inactive: inactiveCount,
       avgConfiguredResponseHours,
+      serviceLabels,
     };
   }, [commissions]);
 
@@ -140,42 +154,65 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
       <div className="mb-8">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2d1b42] via-[#3a1d55] to-[#1e1035] p-6 sm:p-8">
-          {/* Decorative orbs */}
-          <div className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-pink-vivid/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-purple-primary/25 blur-3xl" />
-          <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-32 w-32 rounded-full bg-orange-warm/10 blur-2xl" />
+        <div className="relative overflow-hidden rounded-3xl border border-black/[0.06] bg-gradient-to-br from-white via-pink-50/40 to-purple-50/30 p-6 sm:p-8">
+          <div className="pointer-events-none absolute -top-20 -right-20 h-48 w-48 rounded-full bg-pink-vivid/[0.06] blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-purple-primary/[0.06] blur-3xl" />
 
-          <div className="relative flex flex-col sm:flex-row items-center gap-8">
-            {/* Quill Score */}
-            <QuillScore
-              rating={sellerStats?.total_reviews ? sellerStats.avg_rating : null}
-              reviews={sellerStats?.total_reviews ?? 0}
-              level={sellerStats?.seller_level as SellerLevel | undefined}
-              loading={sellerStatsLoading}
-            />
+          <div className="relative">
+            {/* Top row: Score + Metrics */}
+            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
+              {/* Quill Score */}
+              <QuillScore
+                rating={sellerStats?.total_reviews ? sellerStats.avg_rating : null}
+                reviews={sellerStats?.total_reviews ?? 0}
+                level={sellerStats?.seller_level as SellerLevel | undefined}
+                loading={sellerStatsLoading}
+              />
 
-            {/* Metrics row */}
-            <div className="flex-1 flex items-center justify-center sm:justify-start gap-8 sm:gap-12">
-              <div className="flex flex-col items-center sm:items-start">
-                <span className="font-display text-3xl font-bold text-white leading-none">{stats.active}</span>
-                <span className="text-[11px] font-ui text-white/50 mt-1.5 uppercase tracking-wider">Active</span>
-              </div>
-              <div className="w-px h-10 bg-white/10 hidden sm:block" />
-              <div className="flex flex-col items-center sm:items-start">
-                <span className="font-display text-3xl font-bold text-white leading-none">{formatResponseTime(responseTimeHours)}</span>
-                <span className="text-[11px] font-ui text-white/50 mt-1.5 uppercase tracking-wider">Avg Response</span>
-              </div>
-              {sellerStats && sellerStats.completed_orders > 0 && (
-                <>
-                  <div className="w-px h-10 bg-white/10 hidden sm:block" />
-                  <div className="flex flex-col items-center sm:items-start">
-                    <span className="font-display text-3xl font-bold text-white leading-none">{sellerStats.completed_orders}</span>
-                    <span className="text-[11px] font-ui text-white/50 mt-1.5 uppercase tracking-wider">Completed</span>
+              {/* Metrics */}
+              <div className="flex items-center gap-8 sm:gap-10">
+                <div className="flex flex-col items-center">
+                  <span className="font-display text-2xl font-bold text-ink leading-none">{stats.active}</span>
+                  <span className="text-[10px] font-ui text-muted mt-1 uppercase tracking-wider">Active</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="font-display text-2xl font-bold text-ink leading-none">{formatResponseTime(responseTimeHours)}</span>
+                  <span className="text-[10px] font-ui text-muted mt-1 uppercase tracking-wider">Response</span>
+                </div>
+                {sellerStats && sellerStats.completed_orders > 0 && (
+                  <div className="flex flex-col items-center">
+                    <span className="font-display text-2xl font-bold text-ink leading-none">{sellerStats.completed_orders}</span>
+                    <span className="text-[10px] font-ui text-muted mt-1 uppercase tracking-wider">Completed</span>
                   </div>
-                </>
-              )}
+                )}
+                <div className="flex flex-col items-center">
+                  <span className="font-display text-2xl font-bold text-ink leading-none">{stats.total}</span>
+                  <span className="text-[10px] font-ui text-muted mt-1 uppercase tracking-wider">Services</span>
+                </div>
+              </div>
             </div>
+
+            {/* Services offered */}
+            {stats.serviceLabels.length > 0 && (
+              <div className="mt-5 pt-5 border-t border-black/[0.05]">
+                <p className="text-[10px] font-ui uppercase tracking-[0.16em] text-muted mb-2">Offered</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {stats.serviceLabels.slice(0, 6).map((label) => (
+                    <span
+                      key={label}
+                      className="inline-flex items-center rounded-full border border-pink-vivid/15 bg-white px-3 py-1 text-xs font-ui text-ink/80"
+                    >
+                      <span className="max-w-[200px] truncate">{label}</span>
+                    </span>
+                  ))}
+                  {stats.serviceLabels.length > 6 && (
+                    <span className="inline-flex items-center rounded-full border border-black/[0.06] bg-white px-3 py-1 text-xs font-ui text-muted">
+                      +{stats.serviceLabels.length - 6} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -227,8 +264,8 @@ function QuillScore({
   if (loading) {
     return (
       <div className="flex flex-col items-center gap-2 shrink-0">
-        <div className="w-[88px] h-[88px] rounded-full bg-white/10 animate-pulse" />
-        <div className="h-3 w-14 rounded bg-white/10 animate-pulse" />
+        <div className="w-[80px] h-[80px] rounded-full bg-black/[0.04] animate-pulse" />
+        <div className="h-3 w-14 rounded bg-black/[0.04] animate-pulse" />
       </div>
     );
   }
@@ -236,16 +273,42 @@ function QuillScore({
   const hasRating = rating !== null && reviews > 0;
   const normalized = hasRating ? Math.max(0, Math.min(5, rating)) : 0;
 
-  const size = 88;
-  const strokeWidth = 5;
+  const size = 80;
+  const strokeWidth = 4.5;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const arcLength = circumference * 0.75;
   const filledLength = hasRating ? arcLength * (normalized / 5) : 0;
   const rotation = 135;
 
+  if (!hasRating) {
+    return (
+      <div className="flex flex-col items-center gap-1.5 shrink-0">
+        <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke="rgba(0,0,0,0.05)"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={`${arcLength} ${circumference}`}
+              transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
+            />
+          </svg>
+          <svg className="w-5 h-5 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          </svg>
+        </div>
+        <span className="text-[11px] font-ui text-muted">New creator</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center gap-2 shrink-0">
+    <div className="flex flex-col items-center gap-1.5 shrink-0">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           <circle
@@ -253,58 +316,44 @@ function QuillScore({
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="rgba(255,255,255,0.1)"
+            stroke="rgba(0,0,0,0.05)"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeDasharray={`${arcLength} ${circumference}`}
             transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
           />
-          {hasRating && (
-            <>
-              <defs>
-                <linearGradient id="qs-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#ff007f" />
-                  <stop offset="100%" stopColor="#ff9f43" />
-                </linearGradient>
-              </defs>
-              <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke="url(#qs-grad)"
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeDasharray={`${filledLength} ${circumference}`}
-                transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
-              />
-            </>
-          )}
+          <defs>
+            <linearGradient id="qs-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#8e44ad" />
+              <stop offset="100%" stopColor="#ff007f" />
+            </linearGradient>
+          </defs>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="url(#qs-grad)"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={`${filledLength} ${circumference}`}
+            transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
+          />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          {hasRating ? (
-            <span className="font-display text-[22px] font-bold leading-none text-white">
-              {normalized.toFixed(1)}
-            </span>
-          ) : (
-            <span className="font-ui text-xs font-medium text-white/40">--</span>
-          )}
+          <span className="font-display text-xl font-bold leading-none text-ink">
+            {normalized.toFixed(1)}
+          </span>
         </div>
       </div>
       <div className="flex flex-col items-center">
-        {hasRating ? (
-          <>
-            <span className="text-[11px] font-ui text-white/50">
-              {reviews} review{reviews === 1 ? "" : "s"}
-            </span>
-            {level && level !== "new" && (
-              <span className="text-[10px] font-ui font-medium text-pink-vivid">
-                {SELLER_LEVEL_LABELS[level]}
-              </span>
-            )}
-          </>
-        ) : (
-          <span className="text-[11px] font-ui text-white/40">No reviews yet</span>
+        <span className="text-[11px] font-ui text-muted">
+          {reviews} review{reviews === 1 ? "" : "s"}
+        </span>
+        {level && level !== "new" && (
+          <span className="text-[10px] font-ui font-medium text-pink-vivid">
+            {SELLER_LEVEL_LABELS[level]}
+          </span>
         )}
       </div>
     </div>
