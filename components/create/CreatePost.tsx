@@ -2876,16 +2876,8 @@ export default function CreatePost() {
             {icons.dropCap}
           </button>
 
-          {/* Media & Background */}
+          {/* Background */}
           <div className="flex items-center gap-1 pl-3 border-l border-black/10 ml-2">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-purple-primary/10 text-muted hover:text-purple-primary transition-all"
-              title="Add Media"
-            >
-              {icons.image}
-              <span className="font-ui text-[0.8rem] hidden sm:inline">Media</span>
-            </button>
             <button
               onClick={() => setShowBackgroundPicker(true)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
@@ -2956,60 +2948,66 @@ export default function CreatePost() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full rounded-2xl border border-dashed border-pink-vivid/25 bg-gradient-to-br from-pink-50/50 via-white to-purple-50/30 p-8 flex flex-col items-center gap-3 hover:border-pink-vivid/40 hover:shadow-sm transition-all group"
+                className="w-full rounded-2xl border border-dashed border-pink-vivid/25 bg-gradient-to-br from-pink-50/50 via-white to-purple-50/30 p-10 flex flex-col items-center gap-4 hover:border-pink-vivid/40 hover:shadow-sm transition-all group"
               >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <svg className="w-6 h-6 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <svg className="w-7 h-7 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <div className="text-center">
-                  <p className="font-ui text-sm text-ink/70 group-hover:text-ink transition-colors">Add photos or videos</p>
-                  <p className="font-ui text-xs text-muted mt-0.5">Up to 20 files</p>
+                  <p className="font-ui text-sm font-medium text-ink/70 group-hover:text-ink transition-colors">Add photos or videos</p>
+                  <p className="font-ui text-xs text-muted mt-1">Drag & drop or click to browse — up to 20 files</p>
                 </div>
               </button>
             ) : (
-              <div className="rounded-2xl border border-black/[0.06] bg-gradient-to-br from-white via-pink-50/20 to-purple-50/15 p-4">
-                <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
+              <div className="rounded-2xl border border-black/[0.06] bg-gradient-to-br from-white via-pink-50/20 to-purple-50/15 p-5">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {mediaItems.map((item, index) => (
                     <div
                       key={item.id}
-                      className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-100 group shadow-sm"
+                      className="relative rounded-xl overflow-hidden bg-gray-100 group shadow-sm"
                     >
-                      <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-[0.6rem] font-bold flex items-center justify-center z-10">
-                        {index + 1}
+                      <div className="aspect-square">
+                        <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-[0.65rem] font-bold flex items-center justify-center z-10 shadow-sm">
+                          {index + 1}
+                        </div>
+                        <button
+                          onClick={() => handleRemoveMedia(item.id)}
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 z-10"
+                        >
+                          {icons.x}
+                        </button>
+                        {item.type === "video" ? (
+                          <video src={item.preview} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={item.preview} alt="" className="w-full h-full object-cover" />
+                        )}
                       </div>
-                      <button
-                        onClick={() => handleRemoveMedia(item.id)}
-                        className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 z-10"
-                      >
-                        {icons.x}
-                      </button>
-                      {item.type === "video" ? (
-                        <video src={item.preview} className="w-full h-full object-cover" />
-                      ) : (
-                        <img src={item.preview} alt="" className="w-full h-full object-cover" />
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-all">
+                      <div className="px-2.5 py-2 bg-white">
                         <input
                           type="text"
                           value={item.caption}
                           onChange={(e) => handleCaptionChange(item.id, e.target.value)}
                           onClick={(e) => e.stopPropagation()}
-                          placeholder="Caption..."
-                          className="w-full px-2 py-0.5 rounded text-[0.65rem] bg-white/90 text-ink outline-none placeholder:text-muted"
+                          placeholder="Add a caption..."
+                          className="w-full font-ui text-xs text-ink bg-transparent outline-none placeholder:text-muted/50"
                         />
                       </div>
                     </div>
                   ))}
                   {mediaItems.length < 20 && (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex-shrink-0 w-24 h-24 rounded-xl border border-dashed border-pink-vivid/25 bg-white/60 flex flex-col items-center justify-center gap-1.5 text-muted hover:border-pink-vivid/50 hover:text-pink-vivid transition-all"
-                    >
-                      {icons.plus}
-                      <span className="text-[0.65rem] font-ui font-medium">Add</span>
-                    </button>
+                    <div className="relative rounded-xl overflow-hidden">
+                      <div className="aspect-square">
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full h-full rounded-xl border border-dashed border-pink-vivid/25 bg-white/60 flex flex-col items-center justify-center gap-2 text-muted hover:border-pink-vivid/50 hover:text-pink-vivid transition-all"
+                        >
+                          {icons.plus}
+                          <span className="text-xs font-ui font-medium">Add more</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
