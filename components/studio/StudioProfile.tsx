@@ -822,6 +822,58 @@ function formatCount(num: number): string {
   return num.toString();
 }
 
+function StudioTabButton({
+  label,
+  icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 font-ui text-sm font-semibold transition-all duration-200 ${
+        active
+          ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm text-white shadow-md shadow-pink-vivid/25"
+          : "text-muted hover:text-ink hover:bg-black/[0.04]"
+      }`}
+    >
+      <span className={`transition-colors ${active ? "text-white" : "text-pink-vivid/70"}`}>{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function StudioSubTabButton({
+  label,
+  active,
+  onClick,
+  accentClass,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  accentClass: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-xl font-ui text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+        active
+          ? "bg-white text-ink shadow-sm ring-1 ring-pink-vivid/25"
+          : "text-muted hover:text-ink hover:bg-white/70"
+      }`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-pink-vivid" : accentClass}`} />
+      <span>{label}</span>
+    </button>
+  );
+}
+
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -1553,43 +1605,48 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {(!isPrivateAccount || isOwnProfile || isFollowing) && (
           <>
         {/* Tabs - Enhanced */}
-        <div className={`studio-tabs-container flex mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-4' : ''}`}>
-          <button
-            onClick={() => setActiveTab("posts")}
-            className={`studio-tab-btn ${activeTab === "posts" ? "active" : ""}`}
-          >
-            {icons.feather} Posts
-          </button>
-          <button
-            onClick={() => setActiveTab("takes")}
-            className={`studio-tab-btn ${activeTab === "takes" ? "active" : ""}`}
-          >
-            {icons.take} Takes
-          </button>
-          <button
-            onClick={() => setActiveTab("relays")}
-            className={`studio-tab-btn ${activeTab === "relays" ? "active" : ""}`}
-          >
-            {icons.relay} Relays
-          </button>
-          <button
-            onClick={() => setActiveTab("store")}
-            className={`studio-tab-btn ${activeTab === "store" ? "active" : ""}`}
-          >
-            {icons.store} Store
-          </button>
-          <button
-            onClick={() => setActiveTab("commissions")}
-            className={`studio-tab-btn ${activeTab === "commissions" ? "active" : ""}`}
-          >
-            {icons.briefcase} Commissions
-          </button>
-          <button
-            onClick={() => setActiveTab("collections")}
-            className={`studio-tab-btn ${activeTab === "collections" ? "active" : ""}`}
-          >
-            {icons.collection} Collections
-          </button>
+        <div className={`mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-4' : ''}`}>
+          <div className="relative overflow-hidden rounded-[26px] border border-black/[0.07] bg-white/85 p-2 backdrop-blur-sm shadow-[0_20px_45px_-35px_rgba(120,45,180,0.6)]">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-orange-50/80 via-white/0 to-pink-50/80" />
+            <div className="relative flex items-center gap-1.5 overflow-x-auto">
+              <StudioTabButton
+                label="Posts"
+                icon={icons.feather}
+                active={activeTab === "posts"}
+                onClick={() => setActiveTab("posts")}
+              />
+              <StudioTabButton
+                label="Takes"
+                icon={icons.take}
+                active={activeTab === "takes"}
+                onClick={() => setActiveTab("takes")}
+              />
+              <StudioTabButton
+                label="Relays"
+                icon={icons.relay}
+                active={activeTab === "relays"}
+                onClick={() => setActiveTab("relays")}
+              />
+              <StudioTabButton
+                label="Store"
+                icon={icons.store}
+                active={activeTab === "store"}
+                onClick={() => setActiveTab("store")}
+              />
+              <StudioTabButton
+                label="Commissions"
+                icon={icons.briefcase}
+                active={activeTab === "commissions"}
+                onClick={() => setActiveTab("commissions")}
+              />
+              <StudioTabButton
+                label="Collections"
+                icon={icons.collection}
+                active={activeTab === "collections"}
+                onClick={() => setActiveTab("collections")}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Posts Section */}
@@ -1597,67 +1654,46 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
             {/* View Mode Tabs */}
             <div className="flex items-center justify-start mb-8">
-              <div className="flex items-center gap-1 p-1.5 bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl overflow-x-auto">
-                <button
-                  onClick={() => setPostViewMode("all")}
-                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
-                    postViewMode === "all"
-                      ? "bg-white text-pink-vivid shadow-sm font-medium"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setPostViewMode("blog")}
-                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
-                    postViewMode === "blog"
-                      ? "bg-white text-pink-vivid shadow-sm font-medium"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  Blog
-                </button>
-                <button
-                  onClick={() => setPostViewMode("gallery")}
-                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
-                    postViewMode === "gallery"
-                      ? "bg-white text-pink-vivid shadow-sm font-medium"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  Gallery
-                </button>
-                <button
-                  onClick={() => setPostViewMode("poems")}
-                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
-                    postViewMode === "poems"
-                      ? "bg-white text-pink-vivid shadow-sm font-medium"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  Poems
-                </button>
-                <button
-                  onClick={() => setPostViewMode("journals")}
-                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
-                    postViewMode === "journals"
-                      ? "bg-white text-pink-vivid shadow-sm font-medium"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  Journals
-                </button>
-                <button
-                  onClick={() => setPostViewMode("communities")}
-                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 whitespace-nowrap ${
-                    postViewMode === "communities"
-                      ? "bg-white text-pink-vivid shadow-sm font-medium"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  Communities
-                </button>
+              <div className="relative overflow-hidden rounded-2xl border border-black/[0.06] bg-gradient-to-r from-orange-50/90 via-white to-pink-50/90 p-1.5">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_40%,rgba(255,255,255,0.8),transparent_50%)]" />
+                <div className="relative flex items-center gap-1 overflow-x-auto">
+                  <StudioSubTabButton
+                    label="All"
+                    active={postViewMode === "all"}
+                    onClick={() => setPostViewMode("all")}
+                    accentClass="bg-pink-vivid/60"
+                  />
+                  <StudioSubTabButton
+                    label="Blog"
+                    active={postViewMode === "blog"}
+                    onClick={() => setPostViewMode("blog")}
+                    accentClass="bg-purple-primary/60"
+                  />
+                  <StudioSubTabButton
+                    label="Gallery"
+                    active={postViewMode === "gallery"}
+                    onClick={() => setPostViewMode("gallery")}
+                    accentClass="bg-orange-warm/60"
+                  />
+                  <StudioSubTabButton
+                    label="Poems"
+                    active={postViewMode === "poems"}
+                    onClick={() => setPostViewMode("poems")}
+                    accentClass="bg-pink-vivid/50"
+                  />
+                  <StudioSubTabButton
+                    label="Journals"
+                    active={postViewMode === "journals"}
+                    onClick={() => setPostViewMode("journals")}
+                    accentClass="bg-purple-primary/50"
+                  />
+                  <StudioSubTabButton
+                    label="Communities"
+                    active={postViewMode === "communities"}
+                    onClick={() => setPostViewMode("communities")}
+                    accentClass="bg-emerald-500/60"
+                  />
+                </div>
               </div>
             </div>
 
@@ -2506,27 +2542,22 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
             {/* Relay Type Tabs */}
             <div className="flex items-center justify-start mb-8">
-              <div className="flex items-center gap-1 p-1.5 bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl">
-                <button
-                  onClick={() => setRelaySubTab("posts")}
-                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 ${
-                    relaySubTab === "posts"
-                      ? "bg-white text-pink-vivid shadow-sm font-medium"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  Posts
-                </button>
-                <button
-                  onClick={() => setRelaySubTab("takes")}
-                  className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 ${
-                    relaySubTab === "takes"
-                      ? "bg-white text-pink-vivid shadow-sm font-medium"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  Takes
-                </button>
+              <div className="relative overflow-hidden rounded-2xl border border-black/[0.06] bg-gradient-to-r from-orange-50/90 via-white to-pink-50/90 p-1.5">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_40%,rgba(255,255,255,0.8),transparent_50%)]" />
+                <div className="relative flex items-center gap-1">
+                  <StudioSubTabButton
+                    label="Posts"
+                    active={relaySubTab === "posts"}
+                    onClick={() => setRelaySubTab("posts")}
+                    accentClass="bg-pink-vivid/60"
+                  />
+                  <StudioSubTabButton
+                    label="Takes"
+                    active={relaySubTab === "takes"}
+                    onClick={() => setRelaySubTab("takes")}
+                    accentClass="bg-purple-primary/60"
+                  />
+                </div>
               </div>
             </div>
 

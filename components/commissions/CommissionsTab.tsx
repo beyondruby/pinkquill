@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useSellerCommissions } from "@/lib/hooks/useCommissions";
+import { useSellerStats } from "@/lib/hooks/useReviews";
 import type { Product } from "@/lib/types/store";
 
 interface CommissionsTabProps {
@@ -31,6 +32,7 @@ const STATUS_STYLES: Record<Product["status"], string> = {
 
 export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: CommissionsTabProps) {
   const { commissions, loading, error } = useSellerCommissions(userId);
+  const { stats: sellerStats, loading: sellerStatsLoading } = useSellerStats(userId);
   const [filter, setFilter] = useState<StatusFilter>("all");
 
   const filtered = useMemo(() => {
@@ -45,27 +47,40 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
     const activeCount = commissions.filter((item) => item.status === "active").length;
     const inactiveCount = commissions.filter((item) => ["draft", "paused", "archived"].includes(item.status)).length;
 
-    const prices = commissions
-      .map((item) => item.min_price)
+    const configuredResponseTimes = commissions
+      .map((item) => item.service_metadata?.response_time_hours)
       .filter((value): value is number => typeof value === "number" && value > 0);
 
-    const avgMinPrice = prices.length ? Math.round(prices.reduce((sum, value) => sum + value, 0) / prices.length) : null;
+    const avgConfiguredResponseHours = configuredResponseTimes.length
+      ? configuredResponseTimes.reduce((sum, value) => sum + value, 0) / configuredResponseTimes.length
+      : null;
 
-    const deliveryDays = commissions
-      .flatMap((item) => item.pricing || [])
-      .map((pkg) => pkg.delivery_days)
-      .filter((value): value is number => typeof value === "number" && value > 0);
-
-    const avgDelivery = deliveryDays.length ? Math.round(deliveryDays.reduce((sum, value) => sum + value, 0) / deliveryDays.length) : null;
+    const serviceLabels = Array.from(
+      new Set(
+        commissions
+          .map((item) => {
+            const title = item.title?.trim();
+            const subcategory = item.subcategory?.trim();
+            const category = item.category?.trim();
+            return title || subcategory || category || "";
+          })
+          .filter((label): label is string => Boolean(label))
+      )
+    );
 
     return {
       total: commissions.length,
       active: activeCount,
       inactive: inactiveCount,
-      avgMinPrice,
-      avgDelivery,
+      avgConfiguredResponseHours,
+      serviceLabels,
     };
   }, [commissions]);
+
+  const responseTimeHours =
+    sellerStats && sellerStats.avg_response_time_hours > 0
+      ? sellerStats.avg_response_time_hours
+      : stats.avgConfiguredResponseHours;
 
   if (loading) {
     return (
@@ -138,33 +153,67 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <div className="mb-6 border-b border-black/[0.08] pb-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <InlineStat label="Total Services" value={stats.total.toString()} />
-              <InlineStat label="Active Listings" value={stats.active.toString()} />
-              <InlineStat label="Avg Starting Price" value={stats.avgMinPrice ? `$${stats.avgMinPrice}` : "--"} />
-              <InlineStat label="Avg Delivery" value={stats.avgDelivery ? `${stats.avgDelivery} days` : "--"} />
-            </div>
-            <p className="text-sm font-body text-muted mt-2">
-              {isOwnProfile
-                ? "Your services here are visible across studio and marketplace."
-                : "Published services this creator currently offers."}
-            </p>
-          </div>
+      <div className="mb-6">
+        <div className="relative overflow-hidden rounded-[28px] border border-black/[0.07] bg-white/90 p-5 sm:p-6">
+          <div className="pointer-events-none absolute -top-20 -left-10 h-48 w-48 rounded-full bg-pink-vivid/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 -right-10 h-56 w-56 rounded-full bg-orange-warm/10 blur-3xl" />
 
-          {isOwnProfile && (
-            <Link
-              href="/sell/service"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-ui font-semibold text-pink-vivid border border-pink-vivid/30 bg-white hover:bg-pink-50 transition-colors self-start"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Service
-            </Link>
-          )}
+          <div className="relative flex flex-col gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <MetricPill label="Total Services" value={stats.total.toString()} />
+                  <MetricPill label="Active Listings" value={stats.active.toString()} />
+                  <MetricPill
+                    label="Creator Rating"
+                    value={
+                      <CreativePulse
+                        rating={sellerStats?.total_reviews ? sellerStats.avg_rating : null}
+                        reviews={sellerStats?.total_reviews ?? 0}
+                        loading={sellerStatsLoading}
+                      />
+                    }
+                  />
+                  <MetricPill label="Avg Response Time" value={formatResponseTime(responseTimeHours)} />
+                </div>
+                <p className="text-sm font-body text-muted mt-3">
+                  {isOwnProfile
+                    ? "Your services here are visible across studio and marketplace."
+                    : "Published services this creator currently offers."}
+                </p>
+              </div>
+
+              {isOwnProfile && (
+                <Link
+                  href="/sell/service"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-ui font-semibold text-pink-vivid border border-pink-vivid/30 bg-white hover:bg-pink-50 transition-colors self-start"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Service
+                </Link>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-black/[0.06]">
+              <p className="text-[11px] font-ui uppercase tracking-[0.16em] text-muted mb-2">Services Offered</p>
+              <div className="flex flex-wrap gap-2">
+                {stats.serviceLabels.length > 0 ? (
+                  <>
+                    {stats.serviceLabels.slice(0, 5).map((label) => (
+                      <ServiceChip key={label} label={label} />
+                    ))}
+                    {stats.serviceLabels.length > 5 && <ServiceChip label={`+${stats.serviceLabels.length - 5} more`} subtle />}
+                  </>
+                ) : (
+                  <p className="text-xs font-body text-muted">
+                    Service specializations will appear here as this creator publishes listings.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -210,11 +259,78 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   );
 }
 
-function InlineStat({ label, value }: { label: string; value: string }) {
+function formatResponseTime(hours: number | null): string {
+  if (!hours || hours <= 0) return "--";
+  if (hours < 1) return "<1 hour";
+  if (hours < 24) {
+    const roundedHours = Math.round(hours);
+    return `${roundedHours} hour${roundedHours === 1 ? "" : "s"}`;
+  }
+
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"}`;
+}
+
+function MetricPill({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <p className="text-xs font-ui text-muted">
-      {label}: <span className="text-ink font-semibold">{value}</span>
-    </p>
+    <div className="inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white/80 px-3.5 py-1.5">
+      <span className="text-[11px] font-ui uppercase tracking-[0.12em] text-muted">{label}</span>
+      <span className="text-sm font-ui font-semibold text-ink">{value}</span>
+    </div>
+  );
+}
+
+function CreativePulse({
+  rating,
+  reviews,
+  loading,
+}: {
+  rating: number | null;
+  reviews: number;
+  loading: boolean;
+}) {
+  if (loading) {
+    return <span className="inline-block h-4 w-14 rounded bg-gray-200/90 animate-pulse" />;
+  }
+
+  if (rating === null || reviews === 0) {
+    return <span className="text-xs font-ui text-muted">New</span>;
+  }
+
+  const normalized = Math.max(0, Math.min(5, rating));
+  const filledPulses = Math.round(normalized);
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="inline-flex items-end gap-1">
+        {Array.from({ length: 5 }).map((_, index) => {
+          const active = index < filledPulses;
+          return (
+            <span
+              key={index}
+              className={`w-[5px] rounded-full ${active ? "bg-gradient-to-t from-purple-primary via-pink-vivid to-orange-warm" : "bg-black/[0.15]"}`}
+              style={{ height: `${8 + index * 2}px` }}
+            />
+          );
+        })}
+      </span>
+      <span>{normalized.toFixed(1)}</span>
+      <span className="text-xs text-muted">({reviews})</span>
+    </span>
+  );
+}
+
+function ServiceChip({ label, subtle = false }: { label: string; subtle?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-ui ${
+        subtle
+          ? "border-black/[0.08] bg-white text-muted"
+          : "border-pink-vivid/20 bg-gradient-to-r from-pink-50/90 to-orange-50/90 text-ink"
+      }`}
+    >
+      <span className="max-w-[220px] truncate">{label}</span>
+    </span>
   );
 }
 
