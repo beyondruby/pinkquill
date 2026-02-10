@@ -836,14 +836,17 @@ function StudioTabButton({
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 font-ui text-sm font-semibold transition-all duration-200 ${
+      className={`shrink-0 relative inline-flex items-center gap-2 px-4 py-3 font-ui text-sm font-medium transition-all duration-200 ${
         active
-          ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm text-white shadow-md shadow-pink-vivid/25"
-          : "text-muted hover:text-ink hover:bg-black/[0.04]"
+          ? "text-ink"
+          : "text-muted hover:text-ink/70"
       }`}
     >
-      <span className={`transition-colors ${active ? "text-white" : "text-pink-vivid/70"}`}>{icon}</span>
+      <span className={`transition-colors duration-200 ${active ? "text-pink-vivid" : "text-muted/60"}`}>{icon}</span>
       <span>{label}</span>
+      {active && (
+        <span className="absolute bottom-0 left-2 right-2 h-[3px] rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid" />
+      )}
     </button>
   );
 }
@@ -852,24 +855,22 @@ function StudioSubTabButton({
   label,
   active,
   onClick,
-  accentClass,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
-  accentClass: string;
+  accentClass?: string;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-xl font-ui text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+      className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
         active
-          ? "bg-white text-ink shadow-sm ring-1 ring-pink-vivid/25"
-          : "text-muted hover:text-ink hover:bg-white/70"
+          ? "bg-ink text-white shadow-sm"
+          : "text-muted hover:text-ink hover:bg-black/[0.04]"
       }`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-pink-vivid" : accentClass}`} />
-      <span>{label}</span>
+      {label}
     </button>
   );
 }
@@ -1604,11 +1605,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {/* Tabs and Content - Only show for public accounts or if following */}
         {(!isPrivateAccount || isOwnProfile || isFollowing) && (
           <>
-        {/* Tabs - Enhanced */}
+        {/* Tabs - Clean underline style */}
         <div className={`mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-4' : ''}`}>
-          <div className="relative overflow-hidden rounded-[26px] border border-black/[0.07] bg-white/85 p-2 backdrop-blur-sm shadow-[0_20px_45px_-35px_rgba(120,45,180,0.6)]">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-orange-50/80 via-white/0 to-pink-50/80" />
-            <div className="relative flex items-center gap-1.5 overflow-x-auto">
+          <div>
+            <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide border-b border-black/[0.08]">
               <StudioTabButton
                 label="Posts"
                 icon={icons.feather}
@@ -1653,48 +1653,37 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {activeTab === "posts" && (
           <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
             {/* View Mode Tabs */}
-            <div className="flex items-center justify-start mb-8">
-              <div className="relative overflow-hidden rounded-2xl border border-black/[0.06] bg-gradient-to-r from-orange-50/90 via-white to-pink-50/90 p-1.5">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_40%,rgba(255,255,255,0.8),transparent_50%)]" />
-                <div className="relative flex items-center gap-1 overflow-x-auto">
-                  <StudioSubTabButton
-                    label="All"
-                    active={postViewMode === "all"}
-                    onClick={() => setPostViewMode("all")}
-                    accentClass="bg-pink-vivid/60"
-                  />
-                  <StudioSubTabButton
-                    label="Blog"
-                    active={postViewMode === "blog"}
-                    onClick={() => setPostViewMode("blog")}
-                    accentClass="bg-purple-primary/60"
-                  />
-                  <StudioSubTabButton
-                    label="Gallery"
-                    active={postViewMode === "gallery"}
-                    onClick={() => setPostViewMode("gallery")}
-                    accentClass="bg-orange-warm/60"
-                  />
-                  <StudioSubTabButton
-                    label="Poems"
-                    active={postViewMode === "poems"}
-                    onClick={() => setPostViewMode("poems")}
-                    accentClass="bg-pink-vivid/50"
-                  />
-                  <StudioSubTabButton
-                    label="Journals"
-                    active={postViewMode === "journals"}
-                    onClick={() => setPostViewMode("journals")}
-                    accentClass="bg-purple-primary/50"
-                  />
-                  <StudioSubTabButton
-                    label="Communities"
-                    active={postViewMode === "communities"}
-                    onClick={() => setPostViewMode("communities")}
-                    accentClass="bg-emerald-500/60"
-                  />
-                </div>
-              </div>
+            <div className="flex items-center gap-1.5 mb-8 overflow-x-auto scrollbar-hide">
+              <StudioSubTabButton
+                label="All"
+                active={postViewMode === "all"}
+                onClick={() => setPostViewMode("all")}
+              />
+              <StudioSubTabButton
+                label="Blog"
+                active={postViewMode === "blog"}
+                onClick={() => setPostViewMode("blog")}
+              />
+              <StudioSubTabButton
+                label="Gallery"
+                active={postViewMode === "gallery"}
+                onClick={() => setPostViewMode("gallery")}
+              />
+              <StudioSubTabButton
+                label="Poems"
+                active={postViewMode === "poems"}
+                onClick={() => setPostViewMode("poems")}
+              />
+              <StudioSubTabButton
+                label="Journals"
+                active={postViewMode === "journals"}
+                onClick={() => setPostViewMode("journals")}
+              />
+              <StudioSubTabButton
+                label="Communities"
+                active={postViewMode === "communities"}
+                onClick={() => setPostViewMode("communities")}
+              />
             </div>
 
             {(() => {
@@ -2541,24 +2530,17 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {activeTab === "relays" && (
           <div className={`studio-works-section studio-section-animated ${pageLoaded ? 'loaded delay-5' : ''}`}>
             {/* Relay Type Tabs */}
-            <div className="flex items-center justify-start mb-8">
-              <div className="relative overflow-hidden rounded-2xl border border-black/[0.06] bg-gradient-to-r from-orange-50/90 via-white to-pink-50/90 p-1.5">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_40%,rgba(255,255,255,0.8),transparent_50%)]" />
-                <div className="relative flex items-center gap-1">
-                  <StudioSubTabButton
-                    label="Posts"
-                    active={relaySubTab === "posts"}
-                    onClick={() => setRelaySubTab("posts")}
-                    accentClass="bg-pink-vivid/60"
-                  />
-                  <StudioSubTabButton
-                    label="Takes"
-                    active={relaySubTab === "takes"}
-                    onClick={() => setRelaySubTab("takes")}
-                    accentClass="bg-purple-primary/60"
-                  />
-                </div>
-              </div>
+            <div className="flex items-center gap-1.5 mb-8 overflow-x-auto scrollbar-hide">
+              <StudioSubTabButton
+                label="Posts"
+                active={relaySubTab === "posts"}
+                onClick={() => setRelaySubTab("posts")}
+              />
+              <StudioSubTabButton
+                label="Takes"
+                active={relaySubTab === "takes"}
+                onClick={() => setRelaySubTab("takes")}
+              />
             </div>
 
             {/* Relayed Posts */}

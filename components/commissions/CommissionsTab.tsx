@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { useSellerCommissions } from "@/lib/hooks/useCommissions";
 import { useSellerStats } from "@/lib/hooks/useReviews";
-import type { Product } from "@/lib/types/store";
+import { SELLER_LEVEL_LABELS, type Product, type SellerLevel } from "@/lib/types/store";
 
 interface CommissionsTabProps {
   userId: string;
@@ -155,63 +155,80 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
       <div className="mb-6">
         <div className="relative overflow-hidden rounded-[28px] border border-black/[0.07] bg-white/90 p-5 sm:p-6">
-          <div className="pointer-events-none absolute -top-20 -left-10 h-48 w-48 rounded-full bg-pink-vivid/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 -right-10 h-56 w-56 rounded-full bg-orange-warm/10 blur-3xl" />
+          <div className="pointer-events-none absolute -top-24 -left-12 h-52 w-52 rounded-full bg-purple-primary/[0.06] blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 -right-10 h-48 w-48 rounded-full bg-pink-vivid/[0.06] blur-3xl" />
 
-          <div className="relative flex flex-col gap-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <MetricPill label="Total Services" value={stats.total.toString()} />
-                  <MetricPill label="Active Listings" value={stats.active.toString()} />
-                  <MetricPill
-                    label="Creator Rating"
-                    value={
-                      <CreativePulse
-                        rating={sellerStats?.total_reviews ? sellerStats.avg_rating : null}
-                        reviews={sellerStats?.total_reviews ?? 0}
-                        loading={sellerStatsLoading}
-                      />
+          <div className="relative flex flex-col sm:flex-row gap-6">
+            {/* Left: Quill Score */}
+            <div className="flex flex-col items-center justify-center sm:min-w-[160px]">
+              <QuillScore
+                rating={sellerStats?.total_reviews ? sellerStats.avg_rating : null}
+                reviews={sellerStats?.total_reviews ?? 0}
+                level={sellerStats?.seller_level as SellerLevel | undefined}
+                loading={sellerStatsLoading}
+              />
+            </div>
+
+            {/* Right: Stats + Services */}
+            <div className="flex-1 flex flex-col gap-4">
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                <StatRow
+                  icon={
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  }
+                  label="Active Services"
+                  value={`${stats.active} of ${stats.total}`}
+                />
+                <StatRow
+                  icon={
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  }
+                  label="Avg Response"
+                  value={formatResponseTime(responseTimeHours)}
+                />
+                {sellerStats && sellerStats.completed_orders > 0 && (
+                  <StatRow
+                    icon={
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
                     }
+                    label="Completed"
+                    value={`${sellerStats.completed_orders} order${sellerStats.completed_orders === 1 ? "" : "s"}`}
                   />
-                  <MetricPill label="Avg Response Time" value={formatResponseTime(responseTimeHours)} />
-                </div>
-                <p className="text-sm font-body text-muted mt-3">
-                  {isOwnProfile
-                    ? "Your services here are visible across studio and marketplace."
-                    : "Published services this creator currently offers."}
-                </p>
+                )}
               </div>
+
+              {/* Services offered */}
+              {stats.serviceLabels.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-ui uppercase tracking-[0.18em] text-muted/70 mb-1.5">Services</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {stats.serviceLabels.slice(0, 5).map((label) => (
+                      <ServiceChip key={label} label={label} />
+                    ))}
+                    {stats.serviceLabels.length > 5 && (
+                      <ServiceChip label={`+${stats.serviceLabels.length - 5} more`} subtle />
+                    )}
+                  </div>
+                </div>
+              )}
 
               {isOwnProfile && (
                 <Link
                   href="/sell/service"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-ui font-semibold text-pink-vivid border border-pink-vivid/30 bg-white hover:bg-pink-50 transition-colors self-start"
+                  className="inline-flex items-center gap-2 self-start px-4 py-2 rounded-full text-xs font-ui font-semibold text-pink-vivid border border-pink-vivid/25 bg-white hover:bg-pink-50 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   Add Service
                 </Link>
               )}
-            </div>
-
-            <div className="pt-4 border-t border-black/[0.06]">
-              <p className="text-[11px] font-ui uppercase tracking-[0.16em] text-muted mb-2">Services Offered</p>
-              <div className="flex flex-wrap gap-2">
-                {stats.serviceLabels.length > 0 ? (
-                  <>
-                    {stats.serviceLabels.slice(0, 5).map((label) => (
-                      <ServiceChip key={label} label={label} />
-                    ))}
-                    {stats.serviceLabels.length > 5 && <ServiceChip label={`+${stats.serviceLabels.length - 5} more`} subtle />}
-                  </>
-                ) : (
-                  <p className="text-xs font-body text-muted">
-                    Service specializations will appear here as this creator publishes listings.
-                  </p>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -271,52 +288,131 @@ function formatResponseTime(hours: number | null): string {
   return `${days} day${days === 1 ? "" : "s"}`;
 }
 
-function MetricPill({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white/80 px-3.5 py-1.5">
-      <span className="text-[11px] font-ui uppercase tracking-[0.12em] text-muted">{label}</span>
-      <span className="text-sm font-ui font-semibold text-ink">{value}</span>
-    </div>
-  );
-}
-
-function CreativePulse({
+function QuillScore({
   rating,
   reviews,
+  level,
   loading,
 }: {
   rating: number | null;
   reviews: number;
+  level?: SellerLevel;
   loading: boolean;
 }) {
   if (loading) {
-    return <span className="inline-block h-4 w-14 rounded bg-gray-200/90 animate-pulse" />;
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-[100px] h-[100px] rounded-full bg-gray-100 animate-pulse" />
+        <div className="h-3 w-16 rounded bg-gray-100 animate-pulse" />
+      </div>
+    );
   }
 
-  if (rating === null || reviews === 0) {
-    return <span className="text-xs font-ui text-muted">New</span>;
-  }
+  const hasRating = rating !== null && reviews > 0;
+  const normalized = hasRating ? Math.max(0, Math.min(5, rating)) : 0;
 
-  const normalized = Math.max(0, Math.min(5, rating));
-  const filledPulses = Math.round(normalized);
+  // SVG arc calculations
+  const size = 100;
+  const strokeWidth = 7;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  // Arc spans 270 degrees (3/4 of circle)
+  const arcLength = circumference * 0.75;
+  const filledLength = hasRating ? arcLength * (normalized / 5) : 0;
+  // Rotation: start at 135deg (bottom-left) so arc goes clockwise around top
+  const rotation = 135;
 
   return (
-    <span className="inline-flex items-center gap-2">
-      <span className="inline-flex items-end gap-1">
-        {Array.from({ length: 5 }).map((_, index) => {
-          const active = index < filledPulses;
-          return (
-            <span
-              key={index}
-              className={`w-[5px] rounded-full ${active ? "bg-gradient-to-t from-purple-primary via-pink-vivid to-orange-warm" : "bg-black/[0.15]"}`}
-              style={{ height: `${8 + index * 2}px` }}
-            />
-          );
-        })}
-      </span>
-      <span>{normalized.toFixed(1)}</span>
-      <span className="text-xs text-muted">({reviews})</span>
-    </span>
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          {/* Background arc */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="rgba(0,0,0,0.06)"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={`${arcLength} ${circumference}`}
+            transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
+          />
+          {/* Filled arc with gradient */}
+          {hasRating && (
+            <>
+              <defs>
+                <linearGradient id="quill-score-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#8e44ad" />
+                  <stop offset="50%" stopColor="#ff007f" />
+                  <stop offset="100%" stopColor="#ff9f43" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke="url(#quill-score-gradient)"
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeDasharray={`${filledLength} ${circumference}`}
+                transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
+                className="transition-all duration-700"
+              />
+            </>
+          )}
+        </svg>
+        {/* Center text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          {hasRating ? (
+            <>
+              <span className="font-display text-2xl font-bold leading-none text-ink">
+                {normalized.toFixed(1)}
+              </span>
+              <span className="text-[10px] font-ui text-muted/70 mt-0.5">of 5</span>
+            </>
+          ) : (
+            <>
+              <span className="font-display text-sm font-semibold text-muted/60 leading-none">New</span>
+              <span className="text-[9px] font-ui text-muted/50 mt-0.5">Creator</span>
+            </>
+          )}
+        </div>
+      </div>
+      {hasRating ? (
+        <div className="flex flex-col items-center">
+          <span className="text-[11px] font-ui text-muted">
+            {reviews} review{reviews === 1 ? "" : "s"}
+          </span>
+          {level && level !== "new" && (
+            <span className="text-[10px] font-ui font-medium bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+              {SELLER_LEVEL_LABELS[level]}
+            </span>
+          )}
+        </div>
+      ) : (
+        <span className="text-[10px] font-ui text-muted/60">No reviews yet</span>
+      )}
+    </div>
+  );
+}
+
+function StatRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-muted/50">{icon}</span>
+      <span className="text-xs font-ui text-muted">{label}</span>
+      <span className="text-sm font-ui font-semibold text-ink">{value}</span>
+    </div>
   );
 }
 
