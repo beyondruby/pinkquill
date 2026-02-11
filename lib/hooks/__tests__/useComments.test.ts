@@ -44,6 +44,9 @@ const createMockQueryBuilder = (resolvedData: unknown = [], error: unknown = nul
 };
 
 let mockQueryBuilder: ReturnType<typeof createMockQueryBuilder>;
+const { mockCreateNotification } = vi.hoisted(() => ({
+  mockCreateNotification: vi.fn(),
+}));
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -53,7 +56,7 @@ vi.mock("@/lib/supabase", () => ({
 
 // Mock createNotification
 vi.mock("../useNotifications", () => ({
-  createNotification: vi.fn(),
+  createNotification: mockCreateNotification,
 }));
 
 const mockComments = [
@@ -89,6 +92,7 @@ describe("useComments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockQueryBuilder = createMockQueryBuilder(mockComments, null);
+    mockCreateNotification.mockResolvedValue(true);
   });
 
   it("should fetch comments on mount", async () => {
@@ -184,6 +188,47 @@ describe("useComments", () => {
       const response = await result.current.addComment("user-1", "This is a reply", "comment-1");
       expect(response.success).toBe(true);
     });
+  });
+
+  it("should pass reply comment id as notification comment_id (not community_id)", async () => {
+    const newReply = {
+      id: "new-reply",
+      content: "This is a reply",
+      parent_id: "comment-1",
+      created_at: new Date().toISOString(),
+      author: { username: "testuser", display_name: "Test", avatar_url: null },
+    };
+
+    mockQueryBuilder.insert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({ data: newReply, error: null }),
+      }),
+    });
+    mockQueryBuilder.single = vi.fn().mockResolvedValue({
+      data: { user_id: "parent-user" },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useComments("post-1", "user-1"));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      const response = await result.current.addComment("user-1", "This is a reply", "comment-1");
+      expect(response.success).toBe(true);
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      "parent-user",
+      "user-1",
+      "reply",
+      "post-1",
+      "This is a reply",
+      undefined,
+      "comment-1"
+    );
   });
 
   it("should delete comment", async () => {

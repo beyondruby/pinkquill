@@ -298,6 +298,7 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
             "reply",
             postId,
             content.substring(0, 100),
+            undefined,
             parentId // Pass the parent comment ID for scroll-to functionality
           );
         }
@@ -362,6 +363,7 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
             "comment_like",
             postId,
             comment.content?.substring(0, 100),
+            undefined,
             commentId // Pass the comment ID for scroll-to functionality
           );
         }

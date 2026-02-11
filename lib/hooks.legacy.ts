@@ -2280,6 +2280,20 @@ export function useCollaborationInvites(userId?: string) {
       const { error } = await supabase.from('post_collaborators').update({ status: 'accepted', responded_at: new Date().toISOString() }).eq('post_id', postId).eq('user_id', userId);
       if (error) throw error;
       await createNotification(authorId, userId, 'collaboration_accepted', postId);
+
+      const { error: markReadError } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", userId)
+        .eq("actor_id", authorId)
+        .eq("post_id", postId)
+        .eq("type", "collaboration_invite")
+        .eq("read", false);
+
+      if (markReadError) {
+        console.warn("[useCollaborationInvites.accept] Failed to mark invite notification as read:", markReadError.message);
+      }
+
       return { success: true };
     } catch (err) {
       console.error('[accept] Error:', err);
@@ -2293,6 +2307,20 @@ export function useCollaborationInvites(userId?: string) {
       const { error } = await supabase.from('post_collaborators').update({ status: 'declined', responded_at: new Date().toISOString() }).eq('post_id', postId).eq('user_id', userId);
       if (error) throw error;
       await createNotification(authorId, userId, 'collaboration_declined', postId);
+
+      const { error: markReadError } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", userId)
+        .eq("actor_id", authorId)
+        .eq("post_id", postId)
+        .eq("type", "collaboration_invite")
+        .eq("read", false);
+
+      if (markReadError) {
+        console.warn("[useCollaborationInvites.decline] Failed to mark invite notification as read:", markReadError.message);
+      }
+
       return { success: true };
     } catch (err) {
       console.error('[decline] Error:', err);

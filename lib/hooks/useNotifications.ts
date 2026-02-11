@@ -649,7 +649,11 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
       }
 
       // Ignore events not relevant to this user
-      if (!conversationIdsRef.current.has(conversationId)) return;
+      if (!conversationIdsRef.current.has(conversationId)) {
+        // New conversation: refresh participant list + unread totals.
+        debouncedFetch();
+        return;
+      }
       if (senderId === userId) return;
       if (blockedUsersRef.current.has(senderId)) return;
 
@@ -675,7 +679,10 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
         debouncedFetch();
         return;
       }
-      if (!conversationIdsRef.current.has(conversationId)) return;
+      if (!conversationIdsRef.current.has(conversationId)) {
+        debouncedFetch();
+        return;
+      }
       if (senderId === userId) return;
       if (blockedUsersRef.current.has(senderId)) return;
 
@@ -703,7 +710,10 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
         debouncedFetch();
         return;
       }
-      if (!conversationIdsRef.current.has(conversationId)) return;
+      if (!conversationIdsRef.current.has(conversationId)) {
+        debouncedFetch();
+        return;
+      }
       if (senderId === userId) return;
       if (blockedUsersRef.current.has(senderId)) return;
 
@@ -745,6 +755,16 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
           table: "messages",
         },
         handleDelete
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "conversation_participants",
+          filter: `user_id=eq.${userId}`,
+        },
+        debouncedFetch
       )
       .subscribe();
 

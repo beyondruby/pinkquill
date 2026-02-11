@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type MouseEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useNotifications, useMarkAsRead, useCollaborationInvites, useFollowRequests, Notification } from "@/lib/hooks";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { NotificationSkeleton } from "@/components/ui/Skeleton";
+import { supabase } from "@/lib/supabase";
 import CollaborationInviteCard from "./CollaborationInviteCard";
 import FollowRequestCard from "./FollowRequestCard";
 
@@ -790,9 +792,10 @@ function NotificationItem({
   onClose
 }: {
   notification: Notification;
-  onMarkAsRead: (id: string) => void;
+  onMarkAsRead: (id: string) => Promise<void>;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const opensCommunityInbox =
     notification.type === "community_join_approved" ||
     notification.type === "community_role_change" ||
@@ -853,18 +856,22 @@ function NotificationItem({
     return `/studio/${notification.actor?.username}`;
   };
 
-  const handleClick = () => {
+  const notificationLink = getNotificationLink();
+
+  const handleClick = async (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
     if (!notification.read) {
-      onMarkAsRead(notification.id);
+      await onMarkAsRead(notification.id);
     }
     onClose();
+    router.push(notificationLink);
   };
 
   const message = getNotificationMessage(notification);
 
   return (
     <Link
-      href={getNotificationLink()}
+      href={notificationLink}
       onClick={handleClick}
       className={`group relative flex gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-300 block ${
         notification.read
@@ -977,6 +984,10 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
   // Filter out invites where post or author is null (e.g., deleted posts)
   const invites = rawInvites.filter(invite => invite.post && invite.post.author);
   const { requests: followRequests, accept: acceptFollowRequest, decline: declineFollowRequest, refetch: refetchFollowRequests } = useFollowRequests(user?.id);
+  const regularNotifications = notifications.filter(
+    (n) => n.type !== "collaboration_invite" && n.type !== "follow_request"
+  );
+  const regularUnreadCount = regularNotifications.filter((n) => !n.read).length;
 
   const handleAcceptFollowRequest = async (requesterId: string) => {
     await acceptFollowRequest(requesterId);
@@ -1014,8 +1025,27 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length + invites.length + followRequests.length;
-  const hasContent = notifications.length > 0 || invites.length > 0 || followRequests.length > 0;
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const markHiddenNotificationsAsRead = async () => {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .eq("read", false)
+        .in("type", ["follow_request", "collaboration_invite"]);
+
+      if (error) {
+        console.warn("[NotificationPanel] Failed to clear hidden invite/request notifications:", error.message);
+      }
+    };
+
+    markHiddenNotificationsAsRead();
+  }, [user?.id, followRequests.length, invites.length]);
+
+  const unreadCount = regularUnreadCount + invites.length + followRequests.length;
+  const hasContent = regularNotifications.length > 0 || invites.length > 0 || followRequests.length > 0;
 
   return (
     <>
@@ -1044,7 +1074,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
+              {regularUnreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-purple-primary font-ui text-[0.78rem] font-medium hover:bg-purple-primary/10 transition-all"
@@ -1143,7 +1173,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
               )}
 
               {/* Regular Notifications */}
-              {notifications.filter(n => n.type !== 'collaboration_invite' && n.type !== 'follow_request').map((notification) => (
+              {regularNotifications.map((notification) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}

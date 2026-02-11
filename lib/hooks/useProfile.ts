@@ -594,6 +594,18 @@ export function useFollowRequests(userId?: string) {
 
       await createNotification(requesterId, userId, "follow_request_accepted");
 
+      const { error: markReadError } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", userId)
+        .eq("actor_id", requesterId)
+        .eq("type", "follow_request")
+        .eq("read", false);
+
+      if (markReadError) {
+        console.warn("[useFollowRequests] Failed to mark follow request notification as read:", markReadError.message);
+      }
+
       setRequests((prev) => prev.filter((r) => r.follower_id !== requesterId));
       setCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
@@ -607,6 +619,18 @@ export function useFollowRequests(userId?: string) {
     try {
       const { error } = await supabase.from("follows").delete().eq("follower_id", requesterId).eq("following_id", userId);
       if (error) throw error;
+
+      const { error: markReadError } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", userId)
+        .eq("actor_id", requesterId)
+        .eq("type", "follow_request")
+        .eq("read", false);
+
+      if (markReadError) {
+        console.warn("[useFollowRequests] Failed to mark declined follow request notification as read:", markReadError.message);
+      }
 
       setRequests((prev) => prev.filter((r) => r.follower_id !== requesterId));
       setCount((prev) => Math.max(0, prev - 1));
@@ -652,10 +676,16 @@ export function useFollowRequests(userId?: string) {
         },
         (payload) => {
           const newData = payload.new as { status?: string } | null;
+          const oldData = payload.old as { status?: string } | null;
           if (payload.eventType === "INSERT" && newData?.status === "pending") {
-            // Use ref to get latest fetchRequests
             fetchRequestsRef.current();
-          } else if (payload.eventType === "DELETE") {
+            return;
+          }
+          if (payload.eventType === "UPDATE" && (oldData?.status !== newData?.status)) {
+            fetchRequestsRef.current();
+            return;
+          }
+          if (payload.eventType === "DELETE") {
             fetchRequestsRef.current();
           }
         }

@@ -452,6 +452,15 @@ export default function ChatView({
         setMessages((prev) =>
           prev.map((m) => (m.id === optimisticId ? data : m))
         );
+
+        const { error: touchError } = await supabase
+          .from("conversations")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", conversationId);
+
+        if (touchError) {
+          console.warn("Failed to update conversation timestamp:", touchError.message);
+        }
       }
     } catch (err) {
       console.error("Failed to send message:", err);

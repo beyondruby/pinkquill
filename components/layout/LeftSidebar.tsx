@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFeatherPointed } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useUnreadCount, useMarkAsRead, useUnreadMessagesCount } from "@/lib/hooks";
+import { useUnreadCount, useUnreadMessagesCount } from "@/lib/hooks";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
 import SearchBar from "@/components/search/SearchBar";
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
@@ -105,7 +105,6 @@ export default function LeftSidebar() {
   const shouldFetchCounts = !loading && !!user;
   const { count: unreadCount } = useUnreadCount(shouldFetchCounts ? user?.id : undefined);
   const { count: unreadMessagesCount } = useUnreadMessagesCount(shouldFetchCounts ? user?.id : undefined);
-  const { markAllAsRead } = useMarkAsRead();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -171,12 +170,8 @@ export default function LeftSidebar() {
     };
   }, [showMenu, showCreateMenu]);
 
-  const handleOpenNotifications = async () => {
+  const handleOpenNotifications = () => {
     setShowNotifications(true);
-    // Mark all as read when opening
-    if (user && unreadCount > 0) {
-      await markAllAsRead(user.id);
-    }
   };
 
   return (

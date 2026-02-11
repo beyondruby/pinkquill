@@ -591,7 +591,7 @@ export default function PostPage() {
 
     // Create notification for reaction
     if (!isSameReaction && post.author_id !== user.id) {
-      await createNotification(post.author_id, user.id, "admire", post.id);
+      await createNotification(post.author_id, user.id, reactionType, post.id);
     }
   };
 
