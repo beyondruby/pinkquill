@@ -125,6 +125,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
                 created_at
               ),
               admires:admires(count),
+              reactions:reactions(count),
               comments:comments(count),
               relays:relays(count)
             `,
@@ -316,7 +317,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
           comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
           relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-          reactions_count: getAggregateCount(post.admires as AggregateCount[] | null),
+          reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
           // User flags
           user_has_admired: userAdmires.has(post.id),
           user_has_saved: userSaves.has(post.id),
@@ -429,6 +430,48 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
                   ...post,
                   admires_count: Math.max(0, post.admires_count - 1),
                   user_has_admired: oldData?.user_id === userIdRef.current ? false : post.user_has_admired,
+                };
+              }
+              return post;
+            })
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reactions" },
+        (payload) => {
+          const newData = payload.new as { post_id?: string; user_id?: string; reaction_type?: string } | null;
+          const oldData = payload.old as { post_id?: string; user_id?: string } | null;
+          const postId = newData?.post_id || oldData?.post_id;
+          if (!postId) return;
+
+          setPosts((current) =>
+            current.map((post) => {
+              if (post.id !== postId) return post;
+
+              if (payload.eventType === "INSERT") {
+                return {
+                  ...post,
+                  reactions_count: post.reactions_count + 1,
+                  user_reaction_type: newData?.user_id === userIdRef.current
+                    ? (newData?.reaction_type as ReactionType) || null
+                    : post.user_reaction_type,
+                };
+              } else if (payload.eventType === "DELETE") {
+                return {
+                  ...post,
+                  reactions_count: Math.max(0, post.reactions_count - 1),
+                  user_reaction_type: oldData?.user_id === userIdRef.current
+                    ? null
+                    : post.user_reaction_type,
+                };
+              } else if (payload.eventType === "UPDATE") {
+                return {
+                  ...post,
+                  user_reaction_type: newData?.user_id === userIdRef.current
+                    ? (newData?.reaction_type as ReactionType) || null
+                    : post.user_reaction_type,
                 };
               }
               return post;
@@ -573,6 +616,7 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
               created_at
             ),
             admires:admires(count),
+            reactions:reactions(count),
             comments:comments(count),
             relays:relays(count)
           `
@@ -599,7 +643,7 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
         admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
         comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
         relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-        reactions_count: getAggregateCount(post.admires as AggregateCount[] | null),
+        reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: true,
         user_has_relayed: userRelays.has(post.id),
@@ -717,6 +761,7 @@ export function useRelays(username: string) {
                 position
               ),
               admires:admires(count),
+              reactions:reactions(count),
               comments:comments(count),
               relays:relays(count)
             )
@@ -753,6 +798,7 @@ export function useRelays(username: string) {
             position: number;
           }[];
           admires: { count: number }[] | null;
+          reactions: { count: number }[] | null;
           comments: { count: number }[] | null;
           relays: { count: number }[] | null;
         }
@@ -794,7 +840,7 @@ export function useRelays(username: string) {
               admires_count: getCount(post.admires),
               comments_count: getCount(post.comments),
               relays_count: getCount(post.relays),
-              reactions_count: getCount(post.admires),
+              reactions_count: getCount(post.reactions),
               user_has_admired: false,
               user_has_saved: false,
               user_has_relayed: false,

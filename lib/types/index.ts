@@ -799,6 +799,7 @@ export interface RawPostQueryResult {
   community?: PostCommunity | null;
   // Aggregate counts come as array with single object
   admires: AggregateCount[] | null;
+  reactions: AggregateCount[] | null;
   comments: AggregateCount[] | null;
   relays: AggregateCount[] | null;
 }

@@ -259,6 +259,7 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
             position
           ),
           admires:admires(count),
+          reactions:reactions(count),
           comments:comments(count),
           relays:relays(count)
         `)
@@ -333,7 +334,7 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
         admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
         comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
         relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-        reactions_count: getAggregateCount(post.admires as AggregateCount[] | null),
+        reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: userSaves.has(post.id),
         user_has_relayed: userRelays.has(post.id),
