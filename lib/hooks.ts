@@ -91,6 +91,7 @@ export {
   useCommunityAnnouncements,
   useCommunityChatOverview,
   useCommunityChatUnreadCount,
+  useCommunityChatMemberSearch,
   useCommunityChatActions,
 } from "./hooks/useCommunityChat";
 

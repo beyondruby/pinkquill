@@ -14,7 +14,10 @@ AS $$
   WITH accessible_communities AS (
     SELECT DISTINCT cm.community_id, cm.role
     FROM community_members cm
+    JOIN communities c
+      ON c.id = cm.community_id
     WHERE cm.user_id = p_user_id
+      AND c.community_chat_enabled = TRUE
       AND (
         (
           cm.role = 'member'

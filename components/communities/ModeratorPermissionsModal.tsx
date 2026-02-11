@@ -89,6 +89,17 @@ const permissionOptions: PermissionOption[] = [
     ),
     color: "blue",
   },
+  {
+    key: "can_send_community_chat_messages",
+    label: "Community Chat Broadcasts",
+    description: "Send announcements in the community-wide chat thread",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-3 3v-3z" />
+      </svg>
+    ),
+    color: "purple",
+  },
 ];
 
 const colorClasses: Record<string, { bg: string; border: string; text: string; ring: string }> = {
@@ -129,6 +140,7 @@ export default function ModeratorPermissionsModal({
       can_delete_comments: true,
       can_pin_posts: true,
       can_manage_rules: true,
+      can_send_community_chat_messages: true,
     });
   };
 
@@ -140,6 +152,7 @@ export default function ModeratorPermissionsModal({
       can_delete_comments: false,
       can_pin_posts: false,
       can_manage_rules: false,
+      can_send_community_chat_messages: false,
     });
   };
 

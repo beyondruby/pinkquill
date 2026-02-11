@@ -27,6 +27,10 @@ interface UseCommunityChatThreadsReturn {
   refetch: () => Promise<void>;
 }
 
+interface UseCommunityChatThreadsOptions {
+  includeStaffThreads?: boolean;
+}
+
 interface UseCommunityChatMessagesReturn {
   messages: CommunityChatMessage[];
   loading: boolean;
@@ -90,6 +94,17 @@ interface CommunityChatOverviewRow {
   unread_count: number | string | null;
   last_message_at: string | null;
   last_message_preview: string | null;
+}
+
+export interface CommunityChatMemberSearchResult {
+  user_id: string;
+  status: "active" | "muted" | "banned";
+  profile: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
 }
 
 function normalizeSenderProfile(row: {
@@ -391,6 +406,123 @@ export function useCommunityChatUnreadCount(userId?: string): UseCommunityChatUn
   };
 }
 
+export function useCommunityChatMemberSearch(
+  communityId: string,
+  query: string,
+  enabled = true,
+  limit = 20
+): {
+  results: CommunityChatMemberSearchResult[];
+  loading: boolean;
+  error: string | null;
+} {
+  const [results, setResults] = useState<CommunityChatMemberSearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  const trimmedQuery = query.trim();
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || !communityId) {
+      setResults([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    if (trimmedQuery.length < 2) {
+      setResults([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    let cancelled = false;
+    const debounceTimer = setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const likePattern = `%${trimmedQuery.replace(/[%_,()]/g, "")}%`;
+
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, username, display_name, avatar_url")
+          .or(`username.ilike.${likePattern},display_name.ilike.${likePattern}`)
+          .limit(Math.max(limit * 3, 30));
+
+        if (profilesError) throw profilesError;
+        if (!profiles || profiles.length === 0 || cancelled || !mountedRef.current) {
+          setResults([]);
+          return;
+        }
+
+        const profileIds = profiles.map((profile) => profile.id);
+        const { data: memberships, error: membersError } = await supabase
+          .from("community_members")
+          .select(`
+            user_id,
+            status,
+            profile:profiles!community_members_user_id_fkey (
+              id,
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .eq("community_id", communityId)
+          .eq("role", "member")
+          .in("status", ["active", "muted", "banned"])
+          .in("user_id", profileIds)
+          .limit(limit);
+
+        if (membersError) throw membersError;
+        if (cancelled || !mountedRef.current) return;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mapped = (memberships || []).map((row: any) => ({
+          user_id: row.user_id,
+          status: row.status as "active" | "muted" | "banned",
+          profile: Array.isArray(row.profile) ? row.profile[0] : row.profile,
+        })) as CommunityChatMemberSearchResult[];
+
+        mapped.sort((a, b) => {
+          const aName = a.profile?.display_name || a.profile?.username || "";
+          const bName = b.profile?.display_name || b.profile?.username || "";
+          return aName.localeCompare(bName);
+        });
+
+        setResults(mapped.slice(0, limit));
+      } catch (err) {
+        console.error("[useCommunityChatMemberSearch] Error:", err);
+        if (!cancelled && mountedRef.current) {
+          setError("Failed to search community members");
+          setResults([]);
+        }
+      } finally {
+        if (!cancelled && mountedRef.current) {
+          setLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(debounceTimer);
+    };
+  }, [communityId, enabled, limit, trimmedQuery]);
+
+  return { results, loading, error };
+}
+
 export function useCommunityChatMemberships(userId?: string): UseCommunityChatMembershipsReturn {
   const [memberships, setMemberships] = useState<CommunityChatMembership[]>([]);
   const [loading, setLoading] = useState(true);
@@ -416,12 +548,16 @@ export function useCommunityChatMemberships(userId?: string): UseCommunityChatMe
           status,
           mute_reason,
           ban_reason,
+          permissions,
           community:communities!community_members_community_id_fkey (
             id,
             slug,
             name,
             avatar_url,
-            welcome_message
+            welcome_message,
+            community_chat_enabled,
+            community_chat_allow_member_messages,
+            community_chat_allow_modmail
           )
         `)
         .eq("user_id", userId)
@@ -438,10 +574,17 @@ export function useCommunityChatMemberships(userId?: string): UseCommunityChatMe
         status: row.status,
         mute_reason: row.mute_reason || null,
         ban_reason: row.ban_reason || null,
+        permissions: row.permissions || null,
         community: Array.isArray(row.community) ? row.community[0] : row.community,
       })) as CommunityChatMembership[];
 
-      setMemberships(mapped.filter((m) => !!m.community));
+      setMemberships(
+        mapped.filter(
+          (membership) =>
+            !!membership.community &&
+            membership.community.community_chat_enabled !== false
+        )
+      );
     } catch (err) {
       console.error("[useCommunityChatMemberships] Error:", err);
       if (mountedRef.current) {
@@ -467,12 +610,14 @@ export function useCommunityChatMemberships(userId?: string): UseCommunityChatMe
 export function useCommunityChatThreads(
   communityId: string,
   userId?: string,
-  isStaff = false
+  isStaff = false,
+  options?: UseCommunityChatThreadsOptions
 ): UseCommunityChatThreadsReturn {
   const [threads, setThreads] = useState<CommunityChatThread[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const includeStaffThreads = options?.includeStaffThreads ?? true;
 
   const fetchThreads = useCallback(async () => {
     if (!communityId || !userId) {
@@ -486,6 +631,11 @@ export function useCommunityChatThreads(
 
     try {
       if (isStaff) {
+        if (!includeStaffThreads) {
+          setThreads([]);
+          return;
+        }
+
         const { data, error: fetchError } = await supabase
           .from("community_chat_threads")
           .select(`
@@ -561,7 +711,7 @@ export function useCommunityChatThreads(
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [communityId, userId, isStaff]);
+  }, [communityId, userId, isStaff, includeStaffThreads]);
 
   useEffect(() => {
     mountedRef.current = true;

@@ -1323,6 +1323,9 @@ export function useUpdateCommunity() {
     avatar_url: string;
     cover_url: string;
     welcome_message: string | null;
+    community_chat_enabled: boolean;
+    community_chat_allow_member_messages: boolean;
+    community_chat_allow_modmail: boolean;
   }>) => {
     setUpdating(true);
     setError(null);

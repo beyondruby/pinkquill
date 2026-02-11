@@ -510,12 +510,16 @@ export interface CommunityChatMembership {
   status: "active" | "muted" | "banned";
   mute_reason: string | null;
   ban_reason: string | null;
+  permissions?: ModeratorPermissions | null;
   community: {
     id: string;
     slug: string;
     name: string;
     avatar_url: string | null;
     welcome_message?: string | null;
+    community_chat_enabled?: boolean;
+    community_chat_allow_member_messages?: boolean;
+    community_chat_allow_modmail?: boolean;
   };
 }
 
@@ -533,6 +537,9 @@ export interface Community {
   privacy: "public" | "private";
   topics: string[];
   welcome_message?: string | null;
+  community_chat_enabled?: boolean;
+  community_chat_allow_member_messages?: boolean;
+  community_chat_allow_modmail?: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -578,6 +585,7 @@ export interface ModeratorPermissions {
   can_delete_comments: boolean;
   can_pin_posts: boolean;
   can_manage_rules: boolean;
+  can_send_community_chat_messages: boolean;
 }
 
 // Default permissions for new moderators
@@ -588,6 +596,7 @@ export const DEFAULT_MODERATOR_PERMISSIONS: ModeratorPermissions = {
   can_delete_comments: true,
   can_pin_posts: true,
   can_manage_rules: false,
+  can_send_community_chat_messages: true,
 };
 
 // Full permissions (for admins or full moderators)
@@ -598,6 +607,7 @@ export const FULL_MODERATOR_PERMISSIONS: ModeratorPermissions = {
   can_delete_comments: true,
   can_pin_posts: true,
   can_manage_rules: true,
+  can_send_community_chat_messages: true,
 };
 
 export interface CommunityMember {
