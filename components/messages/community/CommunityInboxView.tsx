@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -53,14 +53,20 @@ function DateDivider({ date }: { date: string }) {
   );
 }
 
-const STAFF_GENERAL_THREAD_ID = "__community_general__";
+const COMMUNITY_THREAD_ID = "__community_chat__";
+const STAFF_RECENT_THREADS_LIMIT = 40;
 
 interface StaffThreadTarget {
+  threadId: string;
   memberId: string;
   status: "active" | "muted" | "banned";
   username: string;
   displayName: string | null;
   avatarUrl: string | null;
+}
+
+function getRecentThreadsStorageKey(userId: string, communityId: string): string {
+  return `community-chat-staff-recents:${userId}:${communityId}`;
 }
 
 export default function CommunityInboxView() {
@@ -72,6 +78,7 @@ export default function CommunityInboxView() {
     memberships,
     loading: membershipsLoading,
     error: membershipsError,
+    refetch: refetchMemberships,
   } = useCommunityChatMemberships(user?.id);
   const {
     overviewByCommunity,
@@ -82,6 +89,7 @@ export default function CommunityInboxView() {
   const [selectedCommunityIdState, setSelectedCommunityIdState] = useState<string | null>(null);
   const [selectedThreadIdState, setSelectedThreadIdState] = useState<string | null>(null);
   const [selectedStaffTarget, setSelectedStaffTarget] = useState<StaffThreadTarget | null>(null);
+  const [staffRecentThreads, setStaffRecentThreads] = useState<StaffThreadTarget[]>([]);
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [draft, setDraft] = useState("");
   const [sendAsAppeal, setSendAsAppeal] = useState(false);
@@ -140,6 +148,7 @@ export default function CommunityInboxView() {
     selectedMembership?.role === "admin" ||
     (selectedMembership?.role === "moderator" &&
       selectedMembership?.permissions?.can_send_community_chat_messages !== false);
+  const isCommunityChatJoined = selectedMembership?.community_chat_joined === true;
 
   const {
     threads,
@@ -164,23 +173,28 @@ export default function CommunityInboxView() {
     !!(isStaff && selectedCommunityId && isChatEnabled)
   );
 
+  const memberDirectThreadId = threads[0]?.id || null;
+
   const selectedThreadId = useMemo(() => {
     if (!selectedCommunityId) return null;
 
     if (isStaff) {
-      return selectedThreadIdState || STAFF_GENERAL_THREAD_ID;
+      return selectedThreadIdState || COMMUNITY_THREAD_ID;
     }
 
-    if (threads.length === 0) return null;
-    if (selectedThreadIdState && threads.some((thread) => thread.id === selectedThreadIdState)) {
-      return selectedThreadIdState;
+    if (selectedThreadIdState === COMMUNITY_THREAD_ID) {
+      return COMMUNITY_THREAD_ID;
     }
 
-    return threads[0].id;
-  }, [selectedCommunityId, isStaff, threads, selectedThreadIdState]);
+    if (selectedThreadIdState && memberDirectThreadId && selectedThreadIdState === memberDirectThreadId) {
+      return memberDirectThreadId;
+    }
 
-  const isGeneralThreadSelected = isStaff && selectedThreadId === STAFF_GENERAL_THREAD_ID;
-  const directThreadId = !selectedThreadId || isGeneralThreadSelected ? "" : selectedThreadId;
+    return COMMUNITY_THREAD_ID;
+  }, [selectedCommunityId, isStaff, selectedThreadIdState, memberDirectThreadId]);
+
+  const isCommunityThreadSelected = selectedThreadId === COMMUNITY_THREAD_ID;
+  const directThreadId = !selectedThreadId || isCommunityThreadSelected ? "" : selectedThreadId;
 
   const {
     messages: directMessages,
@@ -191,19 +205,26 @@ export default function CommunityInboxView() {
   } = useCommunityChatMessages(directThreadId, user?.id);
 
   const {
-    messages: announcementMessages,
-    loading: announcementsLoading,
-    error: announcementsError,
+    messages: communityMessages,
+    loading: communityMessagesLoading,
+    error: communityMessagesError,
   } = useCommunityAnnouncements(selectedCommunityId || "", user?.id);
 
-  const { broadcasting, broadcastToCommunity } = useCommunityChatActions();
+  const {
+    broadcasting,
+    postingToCommunity,
+    updatingJoinState,
+    broadcastToCommunity,
+    postCommunityMessage,
+    setCommunityChatJoinState,
+  } = useCommunityChatActions();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const activeMessages = isGeneralThreadSelected ? announcementMessages : directMessages;
-  const activeMessagesLoading = isGeneralThreadSelected ? announcementsLoading : directMessagesLoading;
-  const activeError = isGeneralThreadSelected ? announcementsError : directMessagesError;
-  const isSending = isGeneralThreadSelected ? broadcasting : sending;
+  const activeMessages = isCommunityThreadSelected ? communityMessages : directMessages;
+  const activeMessagesLoading = isCommunityThreadSelected ? communityMessagesLoading : directMessagesLoading;
+  const activeError = isCommunityThreadSelected ? communityMessagesError : directMessagesError;
+  const isSending = isCommunityThreadSelected ? broadcasting || postingToCommunity : sending;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -212,23 +233,31 @@ export default function CommunityInboxView() {
   const canAppeal =
     !!selectedMembership &&
     selectedMembership.role === "member" &&
-    !isGeneralThreadSelected &&
+    !isCommunityThreadSelected &&
     allowMemberModmail &&
     (selectedMembership.status === "muted" || selectedMembership.status === "banned");
 
   const canSendInCurrentThread = useMemo(() => {
     if (!selectedMembership || !isChatEnabled) return false;
-    if (isGeneralThreadSelected) return canSendCommunityBroadcast;
+    if (isCommunityThreadSelected) {
+      if (isStaff) return canSendCommunityBroadcast;
+      if (selectedMembership.status !== "active") return false;
+      if (!isCommunityChatJoined) return false;
+      return allowMemberMessages;
+    }
     if (isStaff) return true;
     if (!allowMemberModmail) return false;
-    if (sendAsAppeal) return true;
-    return allowMemberMessages;
+    if (sendAsAppeal) {
+      return selectedMembership.status === "muted" || selectedMembership.status === "banned";
+    }
+    return true;
   }, [
     selectedMembership,
     isChatEnabled,
-    isGeneralThreadSelected,
+    isCommunityThreadSelected,
     canSendCommunityBroadcast,
     isStaff,
+    isCommunityChatJoined,
     allowMemberModmail,
     sendAsAppeal,
     allowMemberMessages,
@@ -241,6 +270,57 @@ export default function CommunityInboxView() {
     setSendAsAppeal(false);
     setDraft("");
   }, [selectedCommunityId]);
+
+  useEffect(() => {
+    if (!isStaff || !selectedCommunityId || !user?.id) {
+      setStaffRecentThreads([]);
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+
+    const storageKey = getRecentThreadsStorageKey(user.id, selectedCommunityId);
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) {
+        setStaffRecentThreads([]);
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as StaffThreadTarget[];
+      if (!Array.isArray(parsed)) {
+        setStaffRecentThreads([]);
+        return;
+      }
+
+      const normalized = parsed
+        .filter((item) => item && typeof item.memberId === "string" && typeof item.threadId === "string")
+        .slice(0, STAFF_RECENT_THREADS_LIMIT);
+
+      setStaffRecentThreads(normalized);
+    } catch {
+      setStaffRecentThreads([]);
+    }
+  }, [isStaff, selectedCommunityId, user?.id]);
+
+  const saveStaffRecentThreads = useCallback(
+    (nextThreads: StaffThreadTarget[]) => {
+      setStaffRecentThreads(nextThreads);
+      if (!user?.id || !selectedCommunityId || typeof window === "undefined") return;
+      const storageKey = getRecentThreadsStorageKey(user.id, selectedCommunityId);
+      window.localStorage.setItem(storageKey, JSON.stringify(nextThreads));
+    },
+    [selectedCommunityId, user?.id]
+  );
+
+  const upsertStaffRecentThread = useCallback(
+    (target: StaffThreadTarget) => {
+      const next = [target, ...staffRecentThreads.filter((thread) => thread.memberId !== target.memberId)]
+        .slice(0, STAFF_RECENT_THREADS_LIMIT);
+      saveStaffRecentThreads(next);
+    },
+    [staffRecentThreads, saveStaffRecentThreads]
+  );
 
   const openStaffThreadForMember = async (
     member: {
@@ -263,14 +343,18 @@ export default function CommunityInboxView() {
 
       if (error || !data) throw error || new Error("Thread not found");
 
-      setSelectedThreadIdState(data as string);
-      setSelectedStaffTarget({
+      const target: StaffThreadTarget = {
+        threadId: data as string,
         memberId: member.user_id,
         status: member.status,
         username: member.profile.username,
         displayName: member.profile.display_name,
         avatarUrl: member.profile.avatar_url,
-      });
+      };
+
+      setSelectedThreadIdState(target.threadId);
+      setSelectedStaffTarget(target);
+      upsertStaffRecentThread(target);
       setSendAsAppeal(false);
       setMemberSearchQuery("");
     } catch (err) {
@@ -279,22 +363,52 @@ export default function CommunityInboxView() {
     }
   };
 
+  const handleJoinCommunityChat = async (joined: boolean) => {
+    if (!selectedMembership) return;
+
+    const result = await setCommunityChatJoinState(selectedMembership.community_id, joined);
+    if (!result.success) {
+      showToast.error("Unable to update participation", result.error || "Please try again.");
+      return;
+    }
+
+    await refetchMemberships();
+    showToast.success(
+      joined ? "Joined community chat" : "Left community chat",
+      joined
+        ? "You will now see and receive community chat messages."
+        : "You can rejoin anytime from this thread."
+    );
+  };
+
   const handleSend = async () => {
     if (!draft.trim()) return;
     if (!selectedMembership) return;
     if (!canSendInCurrentThread) return;
 
-    if (isGeneralThreadSelected) {
-      const result = await broadcastToCommunity(selectedMembership.community_id, draft);
-      if (!result.success) {
-        showToast.error("Broadcast failed", result.error);
+    if (isCommunityThreadSelected) {
+      if (isStaff) {
+        const result = await broadcastToCommunity(selectedMembership.community_id, draft);
+        if (!result.success) {
+          showToast.error("Broadcast failed", result.error);
+          return;
+        }
+
+        showToast.success(
+          "Broadcast sent",
+          `Delivered to ${result.sentCount || 0} member${result.sentCount === 1 ? "" : "s"}`
+        );
+        setDraft("");
         return;
       }
 
-      showToast.success(
-        "Broadcast sent",
-        `Delivered to ${result.sentCount || 0} member${result.sentCount === 1 ? "" : "s"}`
-      );
+      const result = await postCommunityMessage(selectedMembership.community_id, draft);
+      if (!result.success) {
+        showToast.error("Message failed", result.error);
+        return;
+      }
+
+      showToast.success("Sent", "Your message was posted to community chat.");
       setDraft("");
       return;
     }
@@ -429,20 +543,21 @@ export default function CommunityInboxView() {
         )}
       </aside>
 
-      {/* Thread list for staff */}
-      {selectedMembership && isStaff && (
+      {/* Thread list */}
+      {selectedMembership && (
         <aside className="hidden md:flex w-[280px] border-r border-black/[0.06] bg-white flex-col">
           <div className="px-4 py-3 border-b border-black/[0.06]">
             <p className="font-ui text-xs uppercase tracking-wide text-muted">Threads</p>
           </div>
+
           <button
             onClick={() => {
-              setSelectedThreadIdState(STAFF_GENERAL_THREAD_ID);
+              setSelectedThreadIdState(COMMUNITY_THREAD_ID);
               setSelectedStaffTarget(null);
               setSendAsAppeal(false);
             }}
             className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
-              selectedThreadId === STAFF_GENERAL_THREAD_ID
+              selectedThreadId === COMMUNITY_THREAD_ID
                 ? "bg-purple-primary/8"
                 : "hover:bg-black/[0.02]"
             }`}
@@ -454,80 +569,156 @@ export default function CommunityInboxView() {
                 </svg>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-ui text-sm text-ink font-medium truncate">General</p>
-                <p className="font-ui text-xs text-muted truncate">Message all members</p>
+                <p className="font-ui text-sm text-ink font-medium truncate">Community Chat</p>
+                <p className="font-ui text-xs text-muted truncate">
+                  {isStaff ? "Community-wide updates and discussion" : "Join to participate"}
+                </p>
               </div>
             </div>
           </button>
-          <div className="px-4 py-3 border-b border-black/[0.06]">
-            <label className="block font-ui text-[11px] uppercase tracking-wide text-muted mb-2">
-              Find Member Thread
-            </label>
-            <input
-              type="text"
-              value={memberSearchQuery}
-              onChange={(event) => setMemberSearchQuery(event.target.value)}
-              placeholder="Search by name or @username"
-              className="w-full px-3 py-2 rounded-lg bg-[#f5f5f5] border border-black/[0.06] font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
-            />
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {memberSearchQuery.trim().length < 2 ? (
-              <div className="p-4">
-                <p className="font-ui text-sm text-muted">
-                  Type at least 2 characters to find a member thread.
-                </p>
-              </div>
-            ) : memberSearchLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="w-6 h-6 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin" />
-              </div>
-            ) : memberSearchResults.length === 0 ? (
-              <div className="p-4">
-                <p className="font-ui text-sm text-muted">No members matched your search.</p>
-              </div>
-            ) : (
-              memberSearchResults.map((member) => {
-                const username = member.profile?.username || "unknown";
-                const displayName =
-                  member.profile?.display_name || member.profile?.username || "Member";
-                const isSelected =
-                  selectedThreadId !== STAFF_GENERAL_THREAD_ID &&
-                  selectedStaffTarget?.memberId === member.user_id;
 
-                return (
-                  <button
-                    key={member.user_id}
-                    onClick={() => openStaffThreadForMember(member)}
-                    className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
-                      isSelected ? "bg-purple-primary/8" : "hover:bg-black/[0.02]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={member.profile?.avatar_url || DEFAULT_AVATAR}
-                        alt={username}
-                        className="w-9 h-9 rounded-full object-cover"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-ui text-sm text-ink truncate">{displayName}</p>
-                        <p className="font-ui text-xs text-muted truncate">@{username}</p>
-                      </div>
-                      {member.status !== "active" && (
-                        <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-ui uppercase ${getStatusBadgeClass(
-                            member.status
-                          )}`}
+          {!isStaff && (
+            <button
+              onClick={() => {
+                if (memberDirectThreadId) {
+                  setSelectedThreadIdState(memberDirectThreadId);
+                  setSendAsAppeal(false);
+                }
+              }}
+              className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
+                selectedThreadId === memberDirectThreadId
+                  ? "bg-purple-primary/8"
+                  : "hover:bg-black/[0.02]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-purple-primary/10 text-purple-primary flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-ui text-sm text-ink font-medium truncate">Moderation Team</p>
+                  <p className="font-ui text-xs text-muted truncate">Private thread with moderators</p>
+                </div>
+              </div>
+            </button>
+          )}
+
+          {isStaff && (
+            <>
+              <div className="px-4 py-3 border-b border-black/[0.06]">
+                <label className="block font-ui text-[11px] uppercase tracking-wide text-muted mb-2">
+                  Find Member Thread
+                </label>
+                <input
+                  type="text"
+                  value={memberSearchQuery}
+                  onChange={(event) => setMemberSearchQuery(event.target.value)}
+                  placeholder="Search by name or @username"
+                  className="w-full px-3 py-2 rounded-lg bg-[#f5f5f5] border border-black/[0.06] font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+                />
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {staffRecentThreads.length > 0 && (
+                  <div className="border-b border-black/[0.06]">
+                    <p className="px-4 py-2 font-ui text-[11px] uppercase tracking-wide text-muted">
+                      Recent Threads
+                    </p>
+                    {staffRecentThreads.map((thread) => {
+                      const isSelected =
+                        selectedThreadId !== COMMUNITY_THREAD_ID &&
+                        selectedStaffTarget?.memberId === thread.memberId;
+
+                      return (
+                        <button
+                          key={`recent-${thread.memberId}`}
+                          onClick={() => {
+                            setSelectedThreadIdState(thread.threadId);
+                            setSelectedStaffTarget(thread);
+                            setSendAsAppeal(false);
+                          }}
+                          className={`w-full text-left px-4 py-3 border-t border-black/[0.04] transition-colors ${
+                            isSelected ? "bg-purple-primary/8" : "hover:bg-black/[0.02]"
+                          }`}
                         >
-                          {member.status}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={thread.avatarUrl || DEFAULT_AVATAR}
+                              alt={thread.username}
+                              className="w-9 h-9 rounded-full object-cover"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-ui text-sm text-ink truncate">
+                                {thread.displayName || thread.username}
+                              </p>
+                              <p className="font-ui text-xs text-muted truncate">@{thread.username}</p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {memberSearchQuery.trim().length < 2 ? (
+                  <div className="p-4">
+                    <p className="font-ui text-sm text-muted">
+                      Search a member to start a new direct thread.
+                    </p>
+                  </div>
+                ) : memberSearchLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin" />
+                  </div>
+                ) : memberSearchResults.length === 0 ? (
+                  <div className="p-4">
+                    <p className="font-ui text-sm text-muted">No members matched your search.</p>
+                  </div>
+                ) : (
+                  memberSearchResults.map((member) => {
+                    const username = member.profile?.username || "unknown";
+                    const displayName =
+                      member.profile?.display_name || member.profile?.username || "Member";
+                    const isSelected =
+                      selectedThreadId !== COMMUNITY_THREAD_ID &&
+                      selectedStaffTarget?.memberId === member.user_id;
+
+                    return (
+                      <button
+                        key={member.user_id}
+                        onClick={() => openStaffThreadForMember(member)}
+                        className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
+                          isSelected ? "bg-purple-primary/8" : "hover:bg-black/[0.02]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={member.profile?.avatar_url || DEFAULT_AVATAR}
+                            alt={username}
+                            className="w-9 h-9 rounded-full object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-ui text-sm text-ink truncate">{displayName}</p>
+                            <p className="font-ui text-xs text-muted truncate">@{username}</p>
+                          </div>
+                          {member.status !== "active" && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-ui uppercase ${getStatusBadgeClass(
+                                member.status
+                              )}`}
+                            >
+                              {member.status}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
         </aside>
       )}
 
@@ -564,8 +755,8 @@ export default function CommunityInboxView() {
                   {selectedMembership.community.name}
                 </p>
                 <h2 className="font-display text-lg text-ink">
-                  {isGeneralThreadSelected
-                    ? "General Announcements"
+                  {isCommunityThreadSelected
+                    ? "Community Chat"
                     : isStaff
                     ? selectedStaffTarget?.displayName ||
                       selectedStaffTarget?.username ||
@@ -573,61 +764,101 @@ export default function CommunityInboxView() {
                     : "Moderation Team"}
                 </h2>
               </div>
-              {isGeneralThreadSelected && (
+              {isCommunityThreadSelected && (
                 <span className="px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-xs font-ui font-medium">
-                  All Members
+                  {isStaff ? "All Joined Members" : isCommunityChatJoined ? "Joined" : "Not Joined"}
                 </span>
               )}
             </div>
 
-            {isStaff && (
+            {selectedMembership && (
               <div className="md:hidden px-4 py-2 bg-white border-b border-black/[0.06]">
                 <button
                   onClick={() => {
-                    setSelectedThreadIdState(STAFF_GENERAL_THREAD_ID);
+                    setSelectedThreadIdState(COMMUNITY_THREAD_ID);
                     setSelectedStaffTarget(null);
                     setSendAsAppeal(false);
                   }}
                   className={`w-full mb-2 px-3 py-2 rounded-lg border font-ui text-sm transition-colors ${
-                    selectedThreadId === STAFF_GENERAL_THREAD_ID
+                    selectedThreadId === COMMUNITY_THREAD_ID
                       ? "bg-purple-primary/10 border-purple-primary/30 text-purple-primary"
                       : "bg-[#f5f5f5] border-black/[0.06] text-ink"
                   }`}
                 >
-                  General (All Members)
+                  Community Chat
                 </button>
-                <input
-                  type="text"
-                  value={memberSearchQuery}
-                  onChange={(event) => setMemberSearchQuery(event.target.value)}
-                  placeholder="Search member thread..."
-                  className="w-full px-3 py-2 rounded-lg bg-[#f5f5f5] border border-black/[0.06] font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
-                />
-                {memberSearchQuery.trim().length >= 2 && (
-                  <div className="mt-2 rounded-lg border border-black/[0.06] bg-white max-h-44 overflow-y-auto">
-                    {memberSearchLoading ? (
-                      <div className="py-3 flex justify-center">
-                        <div className="w-5 h-5 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin" />
+                {isStaff ? (
+                  <>
+                    <input
+                      type="text"
+                      value={memberSearchQuery}
+                      onChange={(event) => setMemberSearchQuery(event.target.value)}
+                      placeholder="Search member thread..."
+                      className="w-full px-3 py-2 rounded-lg bg-[#f5f5f5] border border-black/[0.06] font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+                    />
+                    {staffRecentThreads.length > 0 && (
+                      <div className="mt-2 rounded-lg border border-black/[0.06] bg-white">
+                        {staffRecentThreads.slice(0, 5).map((thread) => (
+                          <button
+                            key={`mobile-recent-${thread.memberId}`}
+                            onClick={() => {
+                              setSelectedThreadIdState(thread.threadId);
+                              setSelectedStaffTarget(thread);
+                              setSendAsAppeal(false);
+                            }}
+                            className="w-full text-left px-3 py-2 border-b border-black/[0.04] last:border-b-0 hover:bg-black/[0.02]"
+                          >
+                            <p className="font-ui text-sm text-ink truncate">
+                              {thread.displayName || thread.username}
+                            </p>
+                            <p className="font-ui text-xs text-muted truncate">@{thread.username}</p>
+                          </button>
+                        ))}
                       </div>
-                    ) : memberSearchResults.length === 0 ? (
-                      <p className="px-3 py-2 font-ui text-xs text-muted">No matching members.</p>
-                    ) : (
-                      memberSearchResults.slice(0, 5).map((member) => (
-                        <button
-                          key={member.user_id}
-                          onClick={() => openStaffThreadForMember(member)}
-                          className="w-full text-left px-3 py-2 border-b border-black/[0.04] last:border-b-0 hover:bg-black/[0.02]"
-                        >
-                          <p className="font-ui text-sm text-ink truncate">
-                            {member.profile?.display_name || member.profile?.username || "Member"}
-                          </p>
-                          <p className="font-ui text-xs text-muted truncate">
-                            @{member.profile?.username || "unknown"}
-                          </p>
-                        </button>
-                      ))
                     )}
-                  </div>
+                    {memberSearchQuery.trim().length >= 2 && (
+                      <div className="mt-2 rounded-lg border border-black/[0.06] bg-white max-h-44 overflow-y-auto">
+                        {memberSearchLoading ? (
+                          <div className="py-3 flex justify-center">
+                            <div className="w-5 h-5 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin" />
+                          </div>
+                        ) : memberSearchResults.length === 0 ? (
+                          <p className="px-3 py-2 font-ui text-xs text-muted">No matching members.</p>
+                        ) : (
+                          memberSearchResults.slice(0, 5).map((member) => (
+                            <button
+                              key={member.user_id}
+                              onClick={() => openStaffThreadForMember(member)}
+                              className="w-full text-left px-3 py-2 border-b border-black/[0.04] last:border-b-0 hover:bg-black/[0.02]"
+                            >
+                              <p className="font-ui text-sm text-ink truncate">
+                                {member.profile?.display_name || member.profile?.username || "Member"}
+                              </p>
+                              <p className="font-ui text-xs text-muted truncate">
+                                @{member.profile?.username || "unknown"}
+                              </p>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (memberDirectThreadId) {
+                        setSelectedThreadIdState(memberDirectThreadId);
+                        setSendAsAppeal(false);
+                      }
+                    }}
+                    className={`w-full px-3 py-2 rounded-lg border font-ui text-sm transition-colors ${
+                      selectedThreadId === memberDirectThreadId
+                        ? "bg-purple-primary/10 border-purple-primary/30 text-purple-primary"
+                        : "bg-[#f5f5f5] border-black/[0.06] text-ink"
+                    }`}
+                  >
+                    Moderation Team
+                  </button>
                 )}
               </div>
             )}
@@ -639,15 +870,21 @@ export default function CommunityInboxView() {
             )}
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {activeMessagesLoading ? (
+              {isCommunityThreadSelected && !isStaff && !isCommunityChatJoined ? (
+                <div className="h-full flex items-center justify-center">
+                  <p className="font-body text-muted max-w-sm text-center">
+                    Join this community chat thread to start receiving and sending community messages.
+                  </p>
+                </div>
+              ) : activeMessagesLoading ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="w-7 h-7 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin" />
                 </div>
               ) : activeMessages.length === 0 ? (
                 <div className="h-full flex items-center justify-center">
                   <p className="font-body text-muted">
-                    {isGeneralThreadSelected
-                      ? "No announcements yet."
+                    {isCommunityThreadSelected
+                      ? "No community messages yet."
                       : "No messages yet."}
                   </p>
                 </div>
@@ -691,7 +928,7 @@ export default function CommunityInboxView() {
                             <p className="font-ui text-xs text-muted mb-1">
                               {message.sender_profile?.display_name ||
                                 message.sender_profile?.username ||
-                                "Moderator"}
+                                (message.sender_role === "member" ? "Community Member" : "Moderator")}
                             </p>
                           )}
                           {message.message_type === "appeal" && (
@@ -759,15 +996,47 @@ export default function CommunityInboxView() {
                 </div>
               )}
 
-              {isGeneralThreadSelected && (
+              {isCommunityThreadSelected && (
                 <div className="mb-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2">
                   <p className="font-ui text-xs text-blue-700">
-                    Messages in this thread are sent to all community members.
+                    {isStaff
+                      ? "Messages in this thread are shared with joined community members."
+                      : "This is the community-wide chat thread."}
                   </p>
                 </div>
               )}
 
-              {isGeneralThreadSelected && !canSendCommunityBroadcast && (
+              {isCommunityThreadSelected && !isStaff && !isCommunityChatJoined && (
+                <div className="mb-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 flex items-center justify-between gap-2">
+                  <p className="font-ui text-xs text-blue-700">
+                    Join community chat to view and participate in this thread.
+                  </p>
+                  <button
+                    onClick={() => handleJoinCommunityChat(true)}
+                    disabled={updatingJoinState || selectedMembership.status !== "active"}
+                    className="px-2.5 py-1 rounded-full bg-blue-600 text-white text-[11px] font-ui disabled:opacity-50"
+                  >
+                    {updatingJoinState ? "Joining..." : "Join"}
+                  </button>
+                </div>
+              )}
+
+              {isCommunityThreadSelected && !isStaff && isCommunityChatJoined && (
+                <div className="mb-2 rounded-lg bg-black/[0.03] border border-black/[0.06] px-3 py-2 flex items-center justify-between gap-2">
+                  <p className="font-ui text-xs text-muted">
+                    You are participating in community chat.
+                  </p>
+                  <button
+                    onClick={() => handleJoinCommunityChat(false)}
+                    disabled={updatingJoinState}
+                    className="px-2.5 py-1 rounded-full bg-white text-ink border border-black/10 text-[11px] font-ui disabled:opacity-50"
+                  >
+                    {updatingJoinState ? "Updating..." : "Leave"}
+                  </button>
+                </div>
+              )}
+
+              {isCommunityThreadSelected && isStaff && !canSendCommunityBroadcast && (
                 <div className="mb-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
                   <p className="font-ui text-xs text-amber-800">
                     You do not have permission to send community-wide chat messages.
@@ -775,7 +1044,7 @@ export default function CommunityInboxView() {
                 </div>
               )}
 
-              {!isStaff && !allowMemberModmail && (
+              {!isStaff && !isCommunityThreadSelected && !allowMemberModmail && (
                 <div className="mb-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
                   <p className="font-ui text-xs text-amber-800">
                     Messaging the moderation team is currently disabled for members.
@@ -783,10 +1052,18 @@ export default function CommunityInboxView() {
                 </div>
               )}
 
-              {!isStaff && allowMemberModmail && !allowMemberMessages && !sendAsAppeal && (
+              {!isStaff && isCommunityThreadSelected && isCommunityChatJoined && !allowMemberMessages && (
                 <div className="mb-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
                   <p className="font-ui text-xs text-amber-800">
-                    Regular member messages are disabled. Appeals are still available for muted or banned members.
+                    Members can currently read community chat, but posting is disabled.
+                  </p>
+                </div>
+              )}
+
+              {!isStaff && !isCommunityThreadSelected && allowMemberModmail && !sendAsAppeal && (
+                <div className="mb-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                  <p className="font-ui text-xs text-amber-800">
+                    This thread goes directly to the moderation team.
                   </p>
                 </div>
               )}
@@ -805,8 +1082,10 @@ export default function CommunityInboxView() {
                   placeholder={
                     !canSendInCurrentThread
                       ? "Messaging is disabled for this thread."
-                      : isGeneralThreadSelected
-                      ? "Write an announcement for all members..."
+                      : isCommunityThreadSelected
+                      ? isStaff
+                        ? "Write an update for community chat..."
+                        : "Write a message for community chat..."
                       : sendAsAppeal
                       ? "Write your appeal..."
                       : "Write a message..."

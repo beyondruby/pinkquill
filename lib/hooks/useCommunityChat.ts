@@ -40,12 +40,26 @@ interface UseCommunityChatMessagesReturn {
   refetch: () => Promise<void>;
 }
 
+interface UseCommunityChatMessagesOptions {
+  includeCommunityChannelMessages?: boolean;
+}
+
 interface UseCommunityChatActionsReturn {
   broadcasting: boolean;
+  postingToCommunity: boolean;
+  updatingJoinState: boolean;
   broadcastToCommunity: (
     communityId: string,
     content: string
   ) => Promise<{ success: boolean; sentCount?: number; error?: string }>;
+  postCommunityMessage: (
+    communityId: string,
+    content: string
+  ) => Promise<{ success: boolean; sentCount?: number; error?: string }>;
+  setCommunityChatJoinState: (
+    communityId: string,
+    joined: boolean
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 export interface CommunityChatOverview {
@@ -140,6 +154,18 @@ function dedupeAnnouncements(messages: CommunityChatMessage[]): CommunityChatMes
   return Array.from(deduped.values()).sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
+}
+
+function isCommunityChannelMessage(message: {
+  message_type: CommunityChatMessageType;
+  metadata?: Record<string, unknown> | null;
+}): boolean {
+  const metadata = message.metadata || null;
+  const broadcast = metadata && metadata.broadcast === true;
+  const channel = metadata && metadata.channel === "community";
+
+  if (!broadcast && !channel) return false;
+  return message.message_type === "announcement" || message.message_type === "message";
 }
 
 export function useCommunityChatOverview(userId?: string): UseCommunityChatOverviewReturn {
@@ -546,6 +572,7 @@ export function useCommunityChatMemberships(userId?: string): UseCommunityChatMe
           community_id,
           role,
           status,
+          community_chat_joined,
           mute_reason,
           ban_reason,
           permissions,
@@ -572,6 +599,7 @@ export function useCommunityChatMemberships(userId?: string): UseCommunityChatMe
         community_id: row.community_id,
         role: row.role,
         status: row.status,
+        community_chat_joined: row.community_chat_joined === true,
         mute_reason: row.mute_reason || null,
         ban_reason: row.ban_reason || null,
         permissions: row.permissions || null,
@@ -726,13 +754,15 @@ export function useCommunityChatThreads(
 
 export function useCommunityChatMessages(
   threadId: string,
-  userId?: string
+  userId?: string,
+  options?: UseCommunityChatMessagesOptions
 ): UseCommunityChatMessagesReturn {
   const [messages, setMessages] = useState<CommunityChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  const includeCommunityChannelMessages = options?.includeCommunityChannelMessages ?? false;
 
   const markRead = useCallback(async () => {
     if (!threadId || !userId) return;
@@ -782,10 +812,14 @@ export function useCommunityChatMessages(
       if (fetchError) throw fetchError;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped = (data || []).map((row: any) => ({
+      let mapped = (data || []).map((row: any) => ({
         ...row,
         sender_profile: Array.isArray(row.sender_profile) ? row.sender_profile[0] : row.sender_profile,
       })) as CommunityChatMessage[];
+
+      if (!includeCommunityChannelMessages) {
+        mapped = mapped.filter((message) => !isCommunityChannelMessage(message));
+      }
 
       setMessages(mapped);
       await markRead();
@@ -798,7 +832,7 @@ export function useCommunityChatMessages(
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [threadId, markRead]);
+  }, [threadId, markRead, includeCommunityChannelMessages]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -837,6 +871,10 @@ export function useCommunityChatMessages(
 
           if (!mountedRef.current) return;
 
+          if (!includeCommunityChannelMessages && isCommunityChannelMessage(row)) {
+            return;
+          }
+
           setMessages((prev) => {
             if (prev.some((m) => m.id === row.id)) return prev;
             return [...prev, { ...row, sender_profile: senderProfile }];
@@ -852,7 +890,7 @@ export function useCommunityChatMessages(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [threadId, userId, markRead]);
+  }, [threadId, userId, markRead, includeCommunityChannelMessages]);
 
   const sendMessage = useCallback(
     async (
@@ -945,7 +983,7 @@ export function useCommunityAnnouncements(
             community_id
           )
         `)
-        .eq("message_type", "announcement")
+        .contains("metadata", { broadcast: true })
         .eq("thread.community_id", communityId)
         .order("created_at", { ascending: true });
 
@@ -963,7 +1001,8 @@ export function useCommunityAnnouncements(
         metadata: row.metadata,
         created_at: row.created_at,
         sender_profile: normalizeSenderProfile(row),
-      }));
+      }))
+      .filter((message) => isCommunityChannelMessage(message));
 
       setMessages(dedupeAnnouncements(mapped));
     } catch (err) {
@@ -1022,7 +1061,7 @@ export function useCommunityAnnouncements(
               )
             `)
             .eq("id", inserted.id)
-            .eq("message_type", "announcement")
+            .contains("metadata", { broadcast: true })
             .eq("thread.community_id", communityId)
             .maybeSingle();
 
@@ -1040,6 +1079,8 @@ export function useCommunityAnnouncements(
             created_at: row.created_at,
             sender_profile: normalizeSenderProfile(row),
           };
+
+          if (!isCommunityChannelMessage(mapped)) return;
 
           setMessages((prev) => dedupeAnnouncements([...prev, mapped]));
         }
@@ -1061,6 +1102,8 @@ export function useCommunityAnnouncements(
 
 export function useCommunityChatActions(): UseCommunityChatActionsReturn {
   const [broadcasting, setBroadcasting] = useState(false);
+  const [postingToCommunity, setPostingToCommunity] = useState(false);
+  const [updatingJoinState, setUpdatingJoinState] = useState(false);
 
   const broadcastToCommunity = useCallback(
     async (
@@ -1093,8 +1136,72 @@ export function useCommunityChatActions(): UseCommunityChatActionsReturn {
     []
   );
 
+  const postCommunityMessage = useCallback(
+    async (
+      communityId: string,
+      content: string
+    ): Promise<{ success: boolean; sentCount?: number; error?: string }> => {
+      const trimmed = content.trim();
+      if (!communityId || !trimmed) {
+        return { success: false, error: "Message cannot be empty" };
+      }
+
+      setPostingToCommunity(true);
+      try {
+        const { data, error } = await supabase.rpc("community_chat_broadcast", {
+          p_community_id: communityId,
+          p_content: trimmed,
+          p_message_type: "message",
+        });
+
+        if (error) throw error;
+        return { success: true, sentCount: Number(data || 0) };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to send community message";
+        console.error("[useCommunityChatActions] postCommunityMessage error:", err);
+        return { success: false, error: message };
+      } finally {
+        setPostingToCommunity(false);
+      }
+    },
+    []
+  );
+
+  const setCommunityChatJoinState = useCallback(
+    async (
+      communityId: string,
+      joined: boolean
+    ): Promise<{ success: boolean; error?: string }> => {
+      if (!communityId) {
+        return { success: false, error: "Missing community context" };
+      }
+
+      setUpdatingJoinState(true);
+      try {
+        const { error } = await supabase.rpc("set_community_chat_join_state", {
+          p_community_id: communityId,
+          p_joined: joined,
+        });
+
+        if (error) throw error;
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to update chat participation";
+        console.error("[useCommunityChatActions] setCommunityChatJoinState error:", err);
+        return { success: false, error: message };
+      } finally {
+        setUpdatingJoinState(false);
+      }
+    },
+    []
+  );
+
   return {
     broadcasting,
+    postingToCommunity,
+    updatingJoinState,
     broadcastToCommunity,
+    postCommunityMessage,
+    setCommunityChatJoinState,
   };
 }

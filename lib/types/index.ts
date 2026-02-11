@@ -508,6 +508,7 @@ export interface CommunityChatMembership {
   community_id: string;
   role: "admin" | "moderator" | "member";
   status: "active" | "muted" | "banned";
+  community_chat_joined?: boolean;
   mute_reason: string | null;
   ban_reason: string | null;
   permissions?: ModeratorPermissions | null;
