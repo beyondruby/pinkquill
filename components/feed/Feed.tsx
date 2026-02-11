@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, type ReactNode } from "react";
 import Link from "next/link";
 import { useInView } from "react-intersection-observer";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -89,6 +89,130 @@ function transformPostForCard(post: Post) {
   };
 }
 
+function FeedFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="home-feed-modern w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
+      {children}
+      <style jsx global>{`
+        .home-feed-modern .post {
+          border-radius: 22px;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          background: linear-gradient(180deg, #ffffff 0%, #ffffff 72%, #fdfbff 100%);
+          box-shadow: 0 8px 22px rgba(15, 15, 15, 0.04);
+          margin-bottom: 1.3rem;
+          transition: box-shadow 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
+        }
+
+        .home-feed-modern .post:hover {
+          border-color: rgba(142, 68, 173, 0.16);
+          box-shadow: 0 16px 34px rgba(142, 68, 173, 0.12);
+          transform: translateY(-1px);
+        }
+
+        .home-feed-modern .author-header {
+          margin-bottom: 1.05rem;
+        }
+
+        .home-feed-modern .author-avatar {
+          border-width: 1px;
+          border-color: rgba(0, 0, 0, 0.06);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .home-feed-modern .author-info {
+          min-width: 0;
+        }
+
+        .home-feed-modern .author-name-line {
+          row-gap: 2px;
+        }
+
+        .home-feed-modern .post-time,
+        .home-feed-modern .post-type-label,
+        .home-feed-modern .posted-by-label,
+        .home-feed-modern .posted-by-author {
+          color: rgba(30, 30, 30, 0.6);
+        }
+
+        .home-feed-modern .unified-post-title {
+          margin-bottom: 0.65rem;
+          letter-spacing: -0.01em;
+        }
+
+        .home-feed-modern .unified-media-grid {
+          gap: 6px;
+          border-radius: 16px;
+        }
+
+        .home-feed-modern .unified-media-item {
+          border-radius: 10px;
+        }
+
+        .home-feed-modern .actions {
+          margin-top: 1.05rem;
+          padding-top: 0.95rem;
+          border-top-color: rgba(0, 0, 0, 0.07);
+        }
+
+        .home-feed-modern .actions-left,
+        .home-feed-modern .actions-right {
+          gap: 0.35rem;
+        }
+
+        .home-feed-modern .action-btn {
+          gap: 0.4rem;
+          padding: 0.5rem 0.65rem;
+          border-radius: 999px;
+          border: 1px solid transparent;
+          line-height: 1;
+        }
+
+        .home-feed-modern .action-btn:hover {
+          border-color: rgba(142, 68, 173, 0.18);
+          background: rgba(142, 68, 173, 0.08);
+        }
+
+        .home-feed-modern .action-count {
+          font-variant-numeric: tabular-nums;
+        }
+
+        .home-feed-modern .post-menu-btn {
+          width: 34px;
+          height: 34px;
+          border: 1px solid transparent;
+        }
+
+        .home-feed-modern .post-menu-btn:hover {
+          border-color: rgba(0, 0, 0, 0.08);
+        }
+
+        @media (max-width: 640px) {
+          .home-feed-modern .post {
+            border-radius: 18px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+          }
+
+          .home-feed-modern .actions-left,
+          .home-feed-modern .actions-right {
+            gap: 0.25rem;
+          }
+
+          .home-feed-modern .action-btn {
+            padding: 0.45rem 0.55rem;
+          }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+          .home-feed-modern .post:hover {
+            transform: none;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function Feed() {
   const { user, loading: authLoading } = useAuth();
   const { subscribeToDeletes } = useModal();
@@ -149,17 +273,17 @@ export default function Feed() {
   // Show skeletons while loading (only on initial load)
   if (authLoading || (postsLoading && posts.length === 0)) {
     return (
-      <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
+      <FeedFrame>
         {[...Array(3)].map((_, i) => (
           <PostSkeleton key={i} />
         ))}
-      </div>
+      </FeedFrame>
     );
   }
 
   if (error) {
     return (
-      <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
+      <FeedFrame>
         <div className="text-center">
           <p className="font-body text-red-500 mb-4">{error}</p>
           <button
@@ -169,13 +293,13 @@ export default function Feed() {
             Try Again
           </button>
         </div>
-      </div>
+      </FeedFrame>
     );
   }
 
   if (posts.length === 0) {
     return (
-      <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
+      <FeedFrame>
         <div className="text-center">
           <h2 className="font-display text-2xl text-ink mb-4">
             The canvas awaits
@@ -190,12 +314,12 @@ export default function Feed() {
             Create Something
           </Link>
         </div>
-      </div>
+      </FeedFrame>
     );
   }
 
   return (
-    <div className="w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
+    <FeedFrame>
       {/* PERFORMANCE: Using memoized transformed posts */}
       {transformedPosts.map(({ original, transformed }) => (
         <ErrorBoundary
@@ -229,6 +353,6 @@ export default function Feed() {
           </p>
         </div>
       )}
-    </div>
+    </FeedFrame>
   );
 }
