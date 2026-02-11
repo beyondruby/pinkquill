@@ -100,7 +100,6 @@ function FeedFrame({ children }: { children: ReactNode }) {
           background: linear-gradient(180deg, #ffffff 0%, #ffffff 72%, #fdfbff 100%);
           box-shadow: 0 8px 22px rgba(15, 15, 15, 0.04);
           margin-bottom: 1.3rem;
-          padding: 1.6rem 1.65rem;
           transition: box-shadow 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
         }
 
@@ -111,10 +110,6 @@ function FeedFrame({ children }: { children: ReactNode }) {
         }
 
         .home-feed-modern .author-header {
-          display: grid;
-          grid-template-columns: auto minmax(0, 1fr) auto;
-          align-items: center;
-          column-gap: 0.75rem;
           margin-bottom: 1.05rem;
         }
 
@@ -154,10 +149,6 @@ function FeedFrame({ children }: { children: ReactNode }) {
         }
 
         .home-feed-modern .actions {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          align-items: center;
-          column-gap: 0.55rem;
           margin-top: 1.05rem;
           padding-top: 0.95rem;
           border-top-color: rgba(0, 0, 0, 0.07);
@@ -168,11 +159,6 @@ function FeedFrame({ children }: { children: ReactNode }) {
           gap: 0.35rem;
         }
 
-        .home-feed-modern .actions-left {
-          min-width: 0;
-          flex-wrap: wrap;
-        }
-
         .home-feed-modern .action-btn {
           gap: 0.4rem;
           padding: 0.5rem 0.65rem;
@@ -181,24 +167,9 @@ function FeedFrame({ children }: { children: ReactNode }) {
           line-height: 1;
         }
 
-        .home-feed-modern .action-btn svg {
-          width: 1.04rem;
-          height: 1.04rem;
-        }
-
         .home-feed-modern .action-btn:hover {
           border-color: rgba(142, 68, 173, 0.18);
           background: rgba(142, 68, 173, 0.08);
-        }
-
-        .home-feed-modern .reaction-picker-trigger > span:first-child {
-          border-radius: 999px;
-          background: radial-gradient(circle at 25% 20%, rgba(142, 68, 173, 0.1), rgba(255, 0, 127, 0.04));
-          box-shadow: inset 0 0 0 1px rgba(142, 68, 173, 0.08);
-        }
-
-        .home-feed-modern .reaction-picker-trigger.active > span:first-child {
-          box-shadow: inset 0 0 0 1px rgba(142, 68, 173, 0.2);
         }
 
         .home-feed-modern .action-count {
@@ -209,42 +180,10 @@ function FeedFrame({ children }: { children: ReactNode }) {
           width: 34px;
           height: 34px;
           border: 1px solid transparent;
-          margin-top: -1px;
         }
 
         .home-feed-modern .post-menu-btn:hover {
           border-color: rgba(0, 0, 0, 0.08);
-        }
-
-        .home-feed-modern .actions-right .action-btn {
-          width: 2.1rem;
-          height: 2.1rem;
-          padding: 0;
-          justify-content: center;
-          border-color: rgba(0, 0, 0, 0.05);
-          background: rgba(0, 0, 0, 0.015);
-        }
-
-        .home-feed-modern .actions-right .action-btn:hover {
-          background: rgba(142, 68, 173, 0.09);
-        }
-
-        .home-feed-modern .actions-right .action-btn .action-count {
-          display: none;
-        }
-
-        .home-feed-modern .mentions-display {
-          padding-top: 0.15rem;
-          padding-bottom: 0.05rem;
-        }
-
-        .home-feed-modern .hashtags-display {
-          padding-top: 0.2rem;
-          padding-bottom: 0.1rem;
-        }
-
-        .home-feed-modern .hashtag-link {
-          border: 1px solid rgba(142, 68, 173, 0.1);
         }
 
         @media (max-width: 640px) {
@@ -254,10 +193,6 @@ function FeedFrame({ children }: { children: ReactNode }) {
             margin-bottom: 1rem;
           }
 
-          .home-feed-modern .author-header {
-            column-gap: 0.65rem;
-          }
-
           .home-feed-modern .actions-left,
           .home-feed-modern .actions-right {
             gap: 0.25rem;
@@ -265,11 +200,6 @@ function FeedFrame({ children }: { children: ReactNode }) {
 
           .home-feed-modern .action-btn {
             padding: 0.45rem 0.55rem;
-          }
-
-          .home-feed-modern .actions-right .action-btn {
-            width: 2rem;
-            height: 2rem;
           }
         }
 
