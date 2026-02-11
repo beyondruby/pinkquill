@@ -1,85 +1,40 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
+import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
+import { finalizeOrderPayment, markOrderPaymentFailed } from "@/lib/payments-server";
 import { getPaymentProvider } from "@/lib/payments";
+import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 type OrderForPayment = {
   id: string;
   buyer_id: string;
   status: string;
-  listing_type: "product" | "service";
-  shipping_address: Record<string, unknown> | null;
-  amount: number;
-  platform_fee: number;
-  seller_amount: number;
-  currency: string;
-  payment_provider: string | null;
-  payment_status: string;
+  payment_reference: string | null;
+  payment_intent_id: string | null;
 };
 
-async function createCompletedTransactions(order: OrderForPayment) {
-  await supabaseAdmin.from("transactions").insert([
-    {
-      order_id: order.id,
-      type: "payment",
-      amount: order.amount,
-      currency: order.currency,
-      status: "completed",
-      metadata: { provider: "placeholder" },
-    },
-    {
-      order_id: order.id,
-      type: "platform_fee",
-      amount: order.platform_fee,
-      currency: order.currency,
-      status: "completed",
-      metadata: { provider: "placeholder" },
-    },
-    {
-      order_id: order.id,
-      type: "seller_payout",
-      amount: order.seller_amount,
-      currency: order.currency,
-      status: "completed",
-      metadata: { provider: "placeholder" },
-    },
-  ]);
-}
-
-async function createAuthorizedTransactions(order: OrderForPayment) {
-  await supabaseAdmin.from("transactions").insert([
-    {
-      order_id: order.id,
-      type: "payment",
-      amount: order.amount,
-      currency: order.currency,
-      status: "pending",
-      metadata: { provider: "placeholder", escrow: "held" },
-    },
-    {
-      order_id: order.id,
-      type: "platform_fee",
-      amount: order.platform_fee,
-      currency: order.currency,
-      status: "pending",
-      metadata: { provider: "placeholder", escrow: "held" },
-    },
-    {
-      order_id: order.id,
-      type: "seller_payout",
-      amount: order.seller_amount,
-      currency: order.currency,
-      status: "pending",
-      metadata: { provider: "placeholder", escrow: "held" },
-    },
-  ]);
-}
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    const originError = enforceSameOrigin(request);
+    if (originError) return originError;
+
     const user = await getAuthUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimit({
+      request,
+      scope: "payments.confirm",
+      limit: 45,
+      windowSeconds: 60,
+      userId: user.id,
+    });
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit, 60);
     }
 
     const body = await request.json();
@@ -90,7 +45,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, status, listing_type, shipping_address, amount, platform_fee, seller_amount, currency, payment_provider, payment_status")
+      .select("id, buyer_id, status, payment_reference, payment_intent_id")
       .eq("id", orderId)
       .single<OrderForPayment>();
 
@@ -111,59 +66,75 @@ export async function POST(request: Request) {
       });
     }
 
-    if (getPaymentProvider() === "stripe") {
+    const provider = getPaymentProvider();
+    if (provider === "stripe") {
+      if (!order.payment_intent_id || !order.payment_intent_id.startsWith("pi_")) {
+        return NextResponse.json({ error: "Missing Stripe payment intent for this order" }, { status: 400 });
+      }
+
+      const stripe = getStripeServer();
+      const paymentIntent = await stripe.paymentIntents.retrieve(order.payment_intent_id);
+
+      if (paymentIntent.status === "succeeded") {
+        const result = await finalizeOrderPayment({
+          orderId: order.id,
+          provider: "stripe",
+          paymentReference: paymentIntent.id,
+          actorId: user.id,
+          source: "api.payments.confirm",
+        });
+
+        return NextResponse.json({
+          success: true,
+          provider: "stripe",
+          already_processed: result.already_processed,
+          status: result.status,
+          payment_status: result.payment_status,
+        });
+      }
+
+      if (paymentIntent.status === "canceled" || paymentIntent.status === "requires_payment_method") {
+        await markOrderPaymentFailed({
+          orderId: order.id,
+          provider: "stripe",
+          paymentReference: paymentIntent.id,
+          reason: paymentIntent.last_payment_error?.message || "Stripe payment failed",
+          source: "api.payments.confirm",
+        });
+
+        return NextResponse.json(
+          {
+            error: paymentIntent.last_payment_error?.message || "Payment failed. Please try again.",
+            payment_intent_status: paymentIntent.status,
+          },
+          { status: 402 }
+        );
+      }
+
       return NextResponse.json(
         {
-          error: "Stripe setup is pending. Switch PAYMENTS_PROVIDER to placeholder to continue.",
+          error: `Payment is not complete yet (status: ${paymentIntent.status})`,
+          payment_intent_status: paymentIntent.status,
         },
-        { status: 503 }
+        { status: 409 }
       );
     }
 
-    const isService = order.listing_type === "service";
-    const isDigitalProduct = order.listing_type === "product" && !order.shipping_address;
-    const now = new Date().toISOString();
-
-    await supabaseAdmin
-      .from("orders")
-      .update({
-        status: isDigitalProduct ? "delivered" : "paid",
-        payment_status: isService ? "authorized" : "paid",
-        payment_provider: "placeholder",
-        delivered_at: isDigitalProduct ? now : null,
-      })
-      .eq("id", order.id);
-
-    if (isService) {
-      await createAuthorizedTransactions(order);
-    } else {
-      await createCompletedTransactions(order);
-    }
-
-    await supabaseAdmin.from("order_events").insert({
-      order_id: order.id,
-      actor_id: user.id,
-      event_type: "payment",
-      metadata: {
-        action: "payment_confirmed",
-        provider: "placeholder",
-        payment_status: isService ? "authorized" : "paid",
-      },
-    });
-
-    await supabaseAdmin.from("order_messages").insert({
-      order_id: order.id,
-      sender_id: user.id,
-      content: isDigitalProduct
-        ? "Payment confirmed. Your digital order is now delivered."
-        : "Payment confirmed. The order is now active.",
-      message_type: "system",
+    const paymentReference = order.payment_reference || `placeholder:${order.id}`;
+    const result = await finalizeOrderPayment({
+      orderId: order.id,
+      provider: "placeholder",
+      paymentReference,
+      actorId: user.id,
+      source: "api.payments.confirm",
     });
 
     return NextResponse.json({
       success: true,
       provider: "placeholder",
-      status: isDigitalProduct ? "delivered" : "paid",
+      already_processed: result.already_processed,
+      status: result.status,
+      payment_status: result.payment_status,
     });
   } catch (error) {
     console.error("[Payments Confirm]", error);

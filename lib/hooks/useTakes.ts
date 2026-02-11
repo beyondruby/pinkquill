@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
+import { sanitizePostgrestSearchTerm } from "../utils/postgrest";
 
 // Request timeout in milliseconds - reduced from 15s to 8s for faster fallback
 const REQUEST_TIMEOUT_MS = 8000;
@@ -1690,7 +1691,10 @@ export function useSounds(userId?: string, options: UseSoundsOptions = {}) {
       }
 
       if (search) {
-        query = query.or(`name.ilike.%${search}%,artist.ilike.%${search}%`);
+        const sanitizedSearch = sanitizePostgrestSearchTerm(search);
+        if (sanitizedSearch) {
+          query = query.or(`name.ilike.%${sanitizedSearch}%,artist.ilike.%${sanitizedSearch}%`);
+        }
       }
 
       const { data, error: fetchError } = await query;

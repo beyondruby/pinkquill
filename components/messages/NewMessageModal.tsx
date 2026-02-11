@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 
 interface User {
   id: string;
@@ -75,6 +76,12 @@ export default function NewMessageModal({
         return;
       }
 
+      const sanitizedQuery = sanitizePostgrestSearchTerm(searchQuery);
+      if (!sanitizedQuery) {
+        setUsers([]);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
@@ -82,7 +89,7 @@ export default function NewMessageModal({
           .from("profiles")
           .select("id, username, display_name, avatar_url")
           .neq("id", currentUserId)
-          .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
+          .or(`username.ilike.%${sanitizedQuery}%,display_name.ilike.%${sanitizedQuery}%`)
           .limit(10);
 
         if (searchError) {

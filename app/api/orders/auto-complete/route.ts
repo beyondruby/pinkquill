@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     // Release escrow for completed commission orders.
     const { data: pendingEscrow, error: escrowQueryError } = await supabaseAdmin
       .from("orders")
-      .select("id")
+      .select("id, payment_provider")
       .eq("status", "completed")
       .eq("escrow_released", false)
       .eq("listing_type", "service")
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
         await supabaseAdmin.from("order_events").insert({
           order_id: order.id,
           event_type: "payment",
-          metadata: { action: "escrow_released_auto", provider: "placeholder" },
+          metadata: { action: "escrow_released_auto", provider: order.payment_provider || "placeholder" },
         });
       }
     }

@@ -41,7 +41,19 @@ function CheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
         return;
       }
 
-      // Payment succeeded (no redirect needed)
+      const confirmResponse = await fetch("/api/payments/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: order.id }),
+      });
+      if (!confirmResponse.ok) {
+        const confirmData = await confirmResponse.json().catch(() => ({}));
+        setError(confirmData.error || "Payment confirmation failed");
+        setProcessing(false);
+        return;
+      }
+
+      // Payment succeeded and backend state was finalized
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");

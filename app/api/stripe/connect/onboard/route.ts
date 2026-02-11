@@ -1,13 +1,28 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
+import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
 import { getPaymentProvider } from "@/lib/payments";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export async function POST(request: Request) {
   try {
+    const originError = enforceSameOrigin(request);
+    if (originError) return originError;
+
     const user = await getAuthUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimit({
+      request,
+      scope: "payments.connect_onboard",
+      limit: 15,
+      windowSeconds: 60,
+      userId: user.id,
+    });
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit, 60);
     }
 
     if (getPaymentProvider() !== "stripe") {

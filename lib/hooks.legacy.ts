@@ -14,6 +14,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
 import { createNotification } from "./hooks/useNotifications";
+import { sanitizePostgrestSearchTerm } from "./utils/postgrest";
 import type {
   Post,
   Community,
@@ -1928,7 +1929,14 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
 
     const timeoutId = setTimeout(async () => {
       try {
-        const searchQuery = query.trim();
+        const searchQuery = sanitizePostgrestSearchTerm(query.trim());
+        if (!searchQuery) {
+          if (mountedRef.current) {
+            setResults({ profiles: [], communities: [], tags: [] });
+            setLoading(false);
+          }
+          return;
+        }
 
         // Run all searches in parallel
         const [profilesResult, communitiesResult, tagsResult] = await Promise.all([
@@ -2488,7 +2496,12 @@ export function useUserSearch(currentUserId?: string) {
           (blockedBy.data || []).forEach(b => blockedUsers.add(b.blocker_id));
           (iBlocked.data || []).forEach(b => blockedUsers.add(b.blocked_id));
         }
-        const { data, error } = await supabase.from('profiles').select('id, username, display_name, avatar_url, is_verified').or(`username.ilike.%${query.toLowerCase()}%,display_name.ilike.%${query.toLowerCase()}%`).limit(20);
+        const sanitizedQuery = sanitizePostgrestSearchTerm(query.toLowerCase());
+        if (!sanitizedQuery) {
+          setResults([]);
+          return;
+        }
+        const { data, error } = await supabase.from('profiles').select('id, username, display_name, avatar_url, is_verified').or(`username.ilike.%${sanitizedQuery}%,display_name.ilike.%${sanitizedQuery}%`).limit(20);
         if (!mountedRef.current) return;
         if (error) throw error;
         setResults((data || []).filter(u => u.id !== currentUserId && !blockedUsers.has(u.id)));

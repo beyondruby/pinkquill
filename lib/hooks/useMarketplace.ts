@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
+import { sanitizePostgrestSearchTerm } from "../utils/postgrest";
 import type {
   ListingType,
   MarketplaceFilters,
@@ -164,10 +165,12 @@ export function useMarketplace(
 
         // Apply keyword search server-side via title/description ilike
         if (filters.keywords && filters.keywords.length > 0) {
-          const searchTerm = filters.keywords.join(" ");
-          query = query.or(
-            `title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
-          );
+          const searchTerm = sanitizePostgrestSearchTerm(filters.keywords.join(" "));
+          if (searchTerm) {
+            query = query.or(
+              `title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
+            );
+          }
         }
 
         // Apply sorting

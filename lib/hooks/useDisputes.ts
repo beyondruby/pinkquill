@@ -82,9 +82,11 @@ export function useOrderDispute(orderId: string | undefined) {
     setLoading(false);
   }, [orderId]);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- async query updates hook state when order changes */
   useEffect(() => {
     fetch();
   }, [fetch]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Real-time updates on disputes
   useEffect(() => {

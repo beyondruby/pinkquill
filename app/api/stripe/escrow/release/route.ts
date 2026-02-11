@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
+import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 type EscrowOrder = {
@@ -8,15 +9,30 @@ type EscrowOrder = {
   seller_id: string;
   status: string;
   listing_type: string;
+  payment_provider: string | null;
   payment_status: string;
   escrow_released: boolean | null;
 };
 
 export async function POST(request: Request) {
   try {
+    const originError = enforceSameOrigin(request);
+    if (originError) return originError;
+
     const user = await getAuthUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimit({
+      request,
+      scope: "payments.escrow_release",
+      limit: 20,
+      windowSeconds: 60,
+      userId: user.id,
+    });
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit, 60);
     }
 
     const body = await request.json();
@@ -28,7 +44,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, seller_id, status, listing_type, payment_status, escrow_released")
+      .select("id, buyer_id, seller_id, status, listing_type, payment_provider, payment_status, escrow_released")
       .eq("id", orderId)
       .single<EscrowOrder>();
 
@@ -83,7 +99,7 @@ export async function POST(request: Request) {
       order_id: order.id,
       actor_id: user.id,
       event_type: "payment",
-      metadata: { action: "escrow_released", provider: "placeholder" },
+      metadata: { action: "escrow_released", provider: order.payment_provider || "placeholder" },
     });
 
     await supabaseAdmin.from("order_messages").insert({
@@ -93,7 +109,7 @@ export async function POST(request: Request) {
       message_type: "system",
     });
 
-    return NextResponse.json({ success: true, provider: "placeholder" });
+    return NextResponse.json({ success: true, provider: order.payment_provider || "placeholder" });
   } catch (error) {
     console.error("[Escrow Release]", error);
     const message = error instanceof Error ? error.message : "Failed to release escrow";

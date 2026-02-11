@@ -42,11 +42,13 @@ export function useStudioQueue() {
   const [items, setItems] = useState<StudioQueueItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- hydrating localStorage-backed queue after mount */
   useEffect(() => {
     const initial = readQueueFromStorage();
     setItems(initial);
     setHydrated(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const addItem = useCallback((item: Omit<StudioQueueItem, "id" | "added_at">) => {
     setItems((prev) => {

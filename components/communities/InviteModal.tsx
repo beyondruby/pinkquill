@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useCommunityModeration } from "@/lib/hooks";
+import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 
 interface User {
   id: string;
@@ -43,12 +44,18 @@ export default function InviteModal({
         return;
       }
 
+      const sanitizedQuery = sanitizePostgrestSearchTerm(searchQuery);
+      if (!sanitizedQuery) {
+        setSearchResults([]);
+        return;
+      }
+
       setLoading(true);
       try {
         const { data, error } = await supabase
           .from("profiles")
           .select("id, username, display_name, avatar_url")
-          .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
+          .or(`username.ilike.%${sanitizedQuery}%,display_name.ilike.%${sanitizedQuery}%`)
           .limit(10);
 
         if (error) throw error;

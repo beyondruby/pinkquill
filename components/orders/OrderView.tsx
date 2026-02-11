@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -26,17 +26,36 @@ export default function OrderView({ orderId }: OrderViewProps) {
   const { order, loading, error, refetch } = useOrder(orderId);
   const searchParams = useSearchParams();
   const [showCheckout, setShowCheckout] = useState(false);
+  const paymentSyncTriggeredRef = useRef(false);
 
   // Auto-open checkout if redirected back with payment=success
   const paymentParam = searchParams.get("payment");
+  /* eslint-disable react-hooks/set-state-in-effect -- intentionally opens checkout modal from URL state */
   useEffect(() => {
     if (paymentParam === "start" && order?.status === "pending_payment" && user?.id === order.buyer_id) {
       setShowCheckout(true);
     }
-    if (paymentParam === "success") {
-      refetch();
+
+    if (paymentParam === "success" && order?.id && user?.id === order.buyer_id && !paymentSyncTriggeredRef.current) {
+      paymentSyncTriggeredRef.current = true;
+      void (async () => {
+        try {
+          await fetch("/api/payments/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ order_id: order.id }),
+          });
+        } finally {
+          await refetch();
+        }
+      })();
     }
-  }, [paymentParam, order?.status, order?.buyer_id, user?.id, refetch]);
+
+    if (paymentParam !== "success") {
+      paymentSyncTriggeredRef.current = false;
+    }
+  }, [paymentParam, order?.id, order?.status, order?.buyer_id, user?.id, refetch]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handlePaymentSuccess = useCallback(() => {
     setShowCheckout(false);

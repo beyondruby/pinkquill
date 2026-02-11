@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useShareToDM } from "@/lib/hooks";
 import type { Post } from "@/lib/types";
 import { DEFAULT_AVATAR } from "@/lib/utils/image";
+import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 
 interface SendToDMModalProps {
   isOpen: boolean;
@@ -135,6 +136,12 @@ export default function SendToDMModal({
         return;
       }
 
+      const sanitizedQuery = sanitizePostgrestSearchTerm(query);
+      if (!sanitizedQuery) {
+        setSearchResults([]);
+        return;
+      }
+
       setSearching(true);
 
       try {
@@ -142,7 +149,7 @@ export default function SendToDMModal({
           .from("profiles")
           .select("id, username, display_name, avatar_url, is_verified")
           .neq("id", currentUserId)
-          .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
+          .or(`username.ilike.%${sanitizedQuery}%,display_name.ilike.%${sanitizedQuery}%`)
           .limit(15);
 
         setSearchResults(data || []);
