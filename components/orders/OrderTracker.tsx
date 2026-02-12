@@ -21,6 +21,9 @@ function getSteps(orderStatus: OrderStatus, listingType: string): Step[] {
       cancelled: -1,
       declined: -1,
       refunded: -1,
+      disputed: -1,
+      refund_requested: -1,
+      resolved: -1,
     };
     const currentIdx = statusMap[orderStatus] ?? -1;
     return steps.map((label, i) => ({
@@ -36,8 +39,8 @@ function getSteps(orderStatus: OrderStatus, listingType: string): Step[] {
     : ["Placed", "Paid", "Processing", "Shipped", "Delivered"];
 
   const statusMap: Record<string, number> = isDigital
-    ? { pending_acceptance: 0, pending_payment: 0, paid: 1, processing: 2, in_progress: 2, completed: 3, delivered: 3, cancelled: -1, declined: -1, refunded: -1 }
-    : { pending_acceptance: 0, pending_payment: 0, paid: 1, processing: 2, in_progress: 2, shipped: 3, delivered: 4, completed: 4, cancelled: -1, declined: -1, refunded: -1 };
+    ? { pending_acceptance: 0, pending_payment: 0, paid: 1, processing: 2, in_progress: 2, completed: 3, delivered: 3, cancelled: -1, declined: -1, refunded: -1, disputed: -1, refund_requested: -1, resolved: -1 }
+    : { pending_acceptance: 0, pending_payment: 0, paid: 1, processing: 2, in_progress: 2, shipped: 3, delivered: 4, completed: 4, cancelled: -1, declined: -1, refunded: -1, disputed: -1, refund_requested: -1, resolved: -1 };
 
   const currentIdx = statusMap[orderStatus] ?? -1;
   return steps.map((label, i) => ({
@@ -53,7 +56,7 @@ export default function OrderTracker({
   status: OrderStatus;
   listingType: string;
 }) {
-  const terminal = ["cancelled", "declined", "refunded"];
+  const terminal = ["cancelled", "declined", "refunded", "disputed", "refund_requested", "resolved"];
   if (terminal.includes(status)) {
     return (
       <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200/50">

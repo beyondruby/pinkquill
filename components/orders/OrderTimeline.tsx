@@ -57,6 +57,7 @@ export default function OrderTimeline({ order }: OrderTimelineProps) {
         : "md:grid-cols-4";
 
   const isCancelled = order.status === "cancelled" || order.status === "refunded";
+  const isDisputed = order.status === "disputed" || order.status === "refund_requested";
   const isRevisionRequested = order.status === "revision_requested";
 
   return (
@@ -71,6 +72,19 @@ export default function OrderTimeline({ order }: OrderTimelineProps) {
           {order.cancel_reason && (
             <p className="text-xs font-body text-red-500 mt-1">{order.cancel_reason}</p>
           )}
+        </div>
+      )}
+
+      {isDisputed && (
+        <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
+          <p className="text-sm font-ui font-semibold text-red-600">
+            {order.status === "disputed" ? "Order Under Dispute" : "Refund Requested"}
+          </p>
+          <p className="text-xs font-body text-red-500 mt-1">
+            {order.status === "disputed"
+              ? "This order is being reviewed. Actions are paused until the dispute is resolved."
+              : "A refund has been requested for this order and is being processed."}
+          </p>
         </div>
       )}
 

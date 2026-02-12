@@ -31,6 +31,7 @@ export function useOrderDownloads(orderId?: string): UseOrderDownloadsReturn {
       setLoading(true);
       setError(null);
 
+      const now = new Date().toISOString();
       const { data, error: queryError } = await supabase
         .from("product_download_tokens")
         .select(`
@@ -38,6 +39,7 @@ export function useOrderDownloads(orderId?: string): UseOrderDownloadsReturn {
           file:product_files!file_id (file_url, file_name, file_type, file_size)
         `)
         .eq("order_id", orderId)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order("created_at");
 
       if (queryError) throw queryError;

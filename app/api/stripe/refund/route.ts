@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit({
       request,
       scope: "payments.refund",
-      limit: 12,
+      limit: 5,
       windowSeconds: 60,
       userId: user.id,
     });
@@ -120,12 +120,12 @@ export async function POST(request: Request) {
       })
       .eq("id", orderId);
 
-    // Mark existing pending transactions as refunded
+    // Mark existing pending/completed transactions as refunded
     await supabaseAdmin
       .from("transactions")
       .update({ status: "refunded" })
       .eq("order_id", order.id)
-      .eq("status", "pending");
+      .in("status", ["pending", "completed"]);
 
     const { data: existingRefund } = await supabaseAdmin
       .from("transactions")

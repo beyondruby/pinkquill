@@ -39,6 +39,7 @@ export interface CaptureResult {
   alreadyProcessed?: boolean;
   status?: string;
   paymentStatus?: string;
+  paymentReference?: string;
 }
 
 export interface RefundResult {
@@ -82,6 +83,9 @@ export interface PaymentProviderInterface {
 // ============================================================================
 
 import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
+import { PayPalProvider } from "@/lib/providers/paypal-provider";
+import { PlaceholderProvider } from "@/lib/providers/placeholder-provider";
+import { StripeProvider } from "@/lib/providers/stripe-provider";
 
 let _providerInstance: PaymentProviderInterface | null = null;
 let _providerName: PaymentProvider | null = null;
@@ -89,15 +93,12 @@ let _providerName: PaymentProvider | null = null;
 function createProviderInstance(providerName: PaymentProvider): PaymentProviderInterface {
   switch (providerName) {
     case "stripe": {
-      const { StripeProvider } = require("@/lib/providers/stripe-provider");
       return new StripeProvider();
     }
     case "paypal": {
-      const { PayPalProvider } = require("@/lib/providers/paypal-provider");
       return new PayPalProvider();
     }
     default: {
-      const { PlaceholderProvider } = require("@/lib/providers/placeholder-provider");
       return new PlaceholderProvider();
     }
   }

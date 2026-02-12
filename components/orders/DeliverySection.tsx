@@ -36,7 +36,7 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
   const [uploading, setUploading] = useState(false);
 
   const isDelivered = ["submitted", "completed", "delivered"].includes(order.status);
-  const canDeliver = isSeller && ["in_progress", "revision_requested"].includes(order.status);
+  const canDeliver = isSeller && ["paid", "in_progress", "revision_requested"].includes(order.status);
   const canAcceptOrRevise = !isSeller && order.status === "submitted";
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -205,12 +205,24 @@ export async function POST(request: Request) {
         }
 
         if (order) {
+          const failReason = event.summary || "PayPal payment capture denied";
           await markOrderPaymentFailed({
             orderId: order.id,
             provider: "paypal",
             paymentReference: paypalOrderId || order.paypal_order_id || order.payment_reference || event.resource.id || "",
-            reason: event.summary || "PayPal payment capture denied",
+            reason: failReason,
             source: "webhook.paypal.capture_denied",
+          });
+
+          await supabaseAdmin.from("order_events").insert({
+            order_id: order.id,
+            event_type: "payment",
+            metadata: {
+              action: "payment_failed",
+              provider: "paypal",
+              reason: failReason,
+              webhook_event_id: event.id,
+            },
           });
         }
         break;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useUpdateOrderStatus } from "@/lib/hooks/useOrders";
+import { useUpdateOrderStatus, useAcceptOrder, useDeclineOrder } from "@/lib/hooks/useOrders";
 import { useRequestRefund } from "@/lib/hooks/useDisputes";
 import DisputeModal from "./DisputeModal";
 import type { Order, OrderStatus } from "@/lib/types/store";
@@ -15,8 +15,12 @@ interface OrderActionsProps {
 export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
   const { user } = useAuth();
   const { updateStatus, updating, error } = useUpdateOrderStatus();
+  const { acceptOrder, accepting } = useAcceptOrder();
+  const { declineOrder, declining } = useDeclineOrder();
   const { requestRefund, loading: refunding, error: refundError } = useRequestRefund();
   const [deliveryNote, setDeliveryNote] = useState("");
+  const [declineReason, setDeclineReason] = useState("");
+  const [showDecline, setShowDecline] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancel, setShowCancel] = useState(false);
   const [showDispute, setShowDispute] = useState(false);
@@ -103,8 +107,80 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
         </section>
       );
     }
-    // Seller sees accept/decline inline here (in addition to dashboard)
-    return null;
+    // Seller sees accept/decline inline
+    return (
+      <section className="rounded-2xl border-2 border-purple-primary/20 bg-purple-50/40 p-5 sm:p-6 space-y-4">
+        <div className="flex items-center gap-2 mb-1">
+          <svg className="w-5 h-5 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="font-display text-lg text-purple-primary">New Order Request</h2>
+        </div>
+        <p className="text-sm font-body text-ink/70">
+          A buyer has placed an order that requires your approval before proceeding.
+        </p>
+        {order.brief && (
+          <div className="p-3 rounded-xl border border-black/[0.08] bg-white/80">
+            <p className="text-xs font-ui uppercase tracking-wider text-muted mb-1">Brief</p>
+            <p className="text-sm font-body text-ink whitespace-pre-wrap">{order.brief}</p>
+          </div>
+        )}
+        {order.seller_response_deadline && (
+          <p className="text-xs font-body text-muted">
+            Respond by {new Date(order.seller_response_deadline).toLocaleString()} or the order will auto-decline.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={async () => {
+              const success = await acceptOrder(order.id);
+              if (success && onUpdate) onUpdate({ ...order, status: "pending_payment" });
+            }}
+            disabled={accepting || declining}
+            className="px-5 py-3 rounded-xl text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid disabled:opacity-60"
+          >
+            {accepting ? "Accepting..." : "Accept Order"}
+          </button>
+          {!showDecline ? (
+            <button
+              onClick={() => setShowDecline(true)}
+              disabled={accepting || declining}
+              className="px-5 py-3 rounded-xl text-sm font-ui font-semibold text-red-600 border border-red-200 bg-red-50 disabled:opacity-60"
+            >
+              Decline
+            </button>
+          ) : (
+            <div className="w-full space-y-2">
+              <textarea
+                rows={2}
+                value={declineReason}
+                onChange={(e) => setDeclineReason(e.target.value)}
+                placeholder="Reason for declining (optional)"
+                className="w-full px-4 py-2.5 rounded-xl border border-red-200 text-sm font-body focus:outline-none focus:ring-2 focus:ring-red-200"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    const success = await declineOrder(order.id, declineReason || undefined);
+                    if (success && onUpdate) onUpdate({ ...order, status: "declined", seller_decline_reason: declineReason || null });
+                  }}
+                  disabled={declining}
+                  className="px-4 py-2.5 rounded-xl text-sm font-ui font-semibold text-white bg-red-500 disabled:opacity-60"
+                >
+                  {declining ? "Declining..." : "Confirm Decline"}
+                </button>
+                <button
+                  onClick={() => { setShowDecline(false); setDeclineReason(""); }}
+                  className="px-4 py-2.5 rounded-xl text-sm font-ui text-muted"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    );
   }
 
   // Disputed state
@@ -215,15 +291,14 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
             </div>
           )}
 
-          {/* Mark Delivered (physical product) */}
-          {order.listing_type === "product" && order.status === "shipped" && (
-            <button
-              onClick={() => handleAction("delivered")}
-              disabled={updating}
-              className="px-5 py-3 rounded-xl text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid disabled:opacity-60"
-            >
-              Mark as Delivered
-            </button>
+          {/* Physical product shipped: seller sees status, buyer confirms delivery via ConfirmDeliveryBanner */}
+          {order.listing_type === "product" && order.shipping_address && order.status === "shipped" && (
+            <div className="p-4 rounded-xl border border-blue-200 bg-blue-50">
+              <p className="text-sm font-ui font-semibold text-blue-700">Order Shipped</p>
+              <p className="text-xs font-body text-blue-600/80 mt-1">
+                Waiting for the buyer to confirm delivery.
+              </p>
+            </div>
           )}
         </>
       )}
@@ -241,7 +316,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
               >
                 Accept Delivery
               </button>
-              {(order.max_revisions === null || order.revision_count < (order.max_revisions || 0)) && (
+              {(order.max_revisions == null || order.revision_count < order.max_revisions) && (
                 <button
                   onClick={() => handleAction("revision_requested")}
                   disabled={updating}

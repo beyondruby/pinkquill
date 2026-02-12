@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useStudioCart, type StudioQueueItem } from "@/lib/hooks/useStudioQueue";
-import type { ShippingAddress } from "@/lib/types/store";
 
 type ServiceFields = {
   brief: string;
@@ -35,20 +34,8 @@ export default function StudioCartPage() {
   const { items, hydrated, removeItem, clearCart } = useStudioCart();
 
   const [serviceDrafts, setServiceDrafts] = useState<Record<string, ServiceFields>>({});
-  const [physicalShipping, setPhysicalShipping] = useState<Partial<ShippingAddress>>({
-    name: "",
-    line1: "",
-    city: "",
-    postal_code: "",
-    country: "",
-  });
   const [actionError, setActionError] = useState<string | null>(null);
   const [submittingItemId, setSubmittingItemId] = useState<string | null>(null);
-
-  const hasPhysicalItems = useMemo(
-    () => items.some((item) => item.listing_type === "product" && item.delivery_type !== "digital"),
-    [items]
-  );
 
   const updateServiceField = (itemId: string, field: keyof ServiceFields, value: string | number) => {
     setServiceDrafts((prev) => ({
@@ -100,24 +87,6 @@ export default function StudioCartPage() {
         return;
       }
 
-      const needsShipping = item.delivery_type !== "digital";
-      const hasShippingProfile =
-        !!physicalShipping.name?.trim()
-        && !!physicalShipping.line1?.trim()
-        && !!physicalShipping.city?.trim()
-        && !!physicalShipping.country?.trim();
-      const shippingAddress = hasShippingProfile
-        ? {
-            name: (physicalShipping.name || "").trim(),
-            line1: (physicalShipping.line1 || "").trim(),
-            line2: (physicalShipping.line2 || "").trim() || undefined,
-            city: (physicalShipping.city || "").trim(),
-            state: (physicalShipping.state || "").trim() || undefined,
-            postal_code: (physicalShipping.postal_code || "").trim(),
-            country: (physicalShipping.country || "").trim(),
-          }
-        : undefined;
-
       const order = await createOrder({
         product_id: item.product_id,
         pricing_id: item.pricing_id,
@@ -126,7 +95,6 @@ export default function StudioCartPage() {
         platform_fee: 0,
         seller_amount: 0,
         currency: item.currency,
-        shipping_address: needsShipping ? (shippingAddress as ShippingAddress | undefined) : undefined,
       });
 
       if (order) {
@@ -176,47 +144,6 @@ export default function StudioCartPage() {
             )}
           </div>
         </section>
-
-        {hasPhysicalItems && (
-          <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
-            <h2 className="font-display text-xl text-ink mb-3">Shipping Profile</h2>
-            <p className="text-xs font-body text-muted mb-3">
-              Optional here. If filled, it will prefill checkout for physical products.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                placeholder="Full name"
-                value={physicalShipping.name || ""}
-                onChange={(e) => setPhysicalShipping((prev) => ({ ...prev, name: e.target.value }))}
-                className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
-              />
-              <input
-                placeholder="Address line 1"
-                value={physicalShipping.line1 || ""}
-                onChange={(e) => setPhysicalShipping((prev) => ({ ...prev, line1: e.target.value }))}
-                className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
-              />
-              <input
-                placeholder="City"
-                value={physicalShipping.city || ""}
-                onChange={(e) => setPhysicalShipping((prev) => ({ ...prev, city: e.target.value }))}
-                className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
-              />
-              <input
-                placeholder="Postal code"
-                value={physicalShipping.postal_code || ""}
-                onChange={(e) => setPhysicalShipping((prev) => ({ ...prev, postal_code: e.target.value }))}
-                className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
-              />
-              <input
-                placeholder="Country"
-                value={physicalShipping.country || ""}
-                onChange={(e) => setPhysicalShipping((prev) => ({ ...prev, country: e.target.value }))}
-                className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body sm:col-span-2"
-              />
-            </div>
-          </section>
-        )}
 
         {items.length === 0 ? (
           <section className="rounded-2xl border border-dashed border-black/[0.12] bg-white p-10 text-center">

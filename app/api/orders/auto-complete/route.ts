@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
+import { capturePayPalEscrowAuthorization } from "@/lib/paypal-escrow";
 import { supabaseAdmin } from "@/lib/supabase-server";
+
+type PendingEscrowOrder = {
+  id: string;
+  payment_provider: string | null;
+  payment_status: string;
+  payment_reference: string | null;
+  paypal_order_id: string | null;
+};
 
 export async function POST(request: Request) {
   try {
@@ -26,11 +35,12 @@ export async function POST(request: Request) {
     // Release escrow for completed commission orders.
     const { data: pendingEscrow, error: escrowQueryError } = await supabaseAdmin
       .from("orders")
-      .select("id, payment_provider")
+      .select("id, payment_provider, payment_status, payment_reference, paypal_order_id")
       .eq("status", "completed")
       .eq("escrow_released", false)
       .eq("listing_type", "service")
-      .in("payment_status", ["authorized", "paid"]);
+      .in("payment_status", ["authorized", "paid"])
+      .returns<PendingEscrowOrder[]>();
 
     if (escrowQueryError) {
       console.error("[Auto-Complete] Escrow query error:", escrowQueryError);
@@ -38,37 +48,73 @@ export async function POST(request: Request) {
     }
 
     let escrowReleased = 0;
+    let escrowReleaseFailures = 0;
 
     for (const order of pendingEscrow || []) {
-      await supabaseAdmin
-        .from("transactions")
-        .update({ status: "completed" })
-        .eq("order_id", order.id)
-        .eq("status", "pending");
+      try {
+        const providerName = order.payment_provider || "placeholder";
+        let paymentReference = order.payment_reference || order.paypal_order_id || null;
 
-      const { error: updateError } = await supabaseAdmin
-        .from("orders")
-        .update({
-          escrow_released: true,
-          escrow_released_at: new Date().toISOString(),
-          payment_status: "paid",
-        })
-        .eq("id", order.id);
+        if (providerName === "paypal" && order.payment_status === "authorized") {
+          if (!order.paypal_order_id) {
+            throw new Error("Missing PayPal order ID for auto escrow release");
+          }
 
-      if (!updateError) {
-        escrowReleased += 1;
-        await supabaseAdmin.from("order_events").insert({
+          const captureResult = await capturePayPalEscrowAuthorization({
+            paypalOrderId: order.paypal_order_id,
+            authorizationReference: order.payment_reference,
+            idempotencyKey: `escrow_release_auto_${order.id}`,
+          });
+
+          paymentReference = captureResult.paymentReference;
+        }
+
+        const { error: txError } = await supabaseAdmin
+          .from("transactions")
+          .update({ status: "completed" })
+          .eq("order_id", order.id)
+          .eq("status", "pending");
+        if (txError) {
+          throw new Error(txError.message);
+        }
+
+        const { error: updateError } = await supabaseAdmin
+          .from("orders")
+          .update({
+            escrow_released: true,
+            escrow_released_at: new Date().toISOString(),
+            payment_status: "paid",
+            payment_reference: paymentReference,
+          })
+          .eq("id", order.id);
+        if (updateError) {
+          throw new Error(updateError.message);
+        }
+
+        const { error: eventError } = await supabaseAdmin.from("order_events").insert({
           order_id: order.id,
           event_type: "payment",
-          metadata: { action: "escrow_released_auto", provider: order.payment_provider || "placeholder" },
+          metadata: {
+            action: "escrow_released_auto",
+            provider: providerName,
+            payment_reference: paymentReference,
+          },
         });
+        if (eventError) {
+          throw new Error(eventError.message);
+        }
+
+        escrowReleased += 1;
+      } catch (releaseError) {
+        escrowReleaseFailures += 1;
+        console.error(`[Auto-Complete] Escrow release failed for order ${order.id}:`, releaseError);
       }
     }
 
     return NextResponse.json({
       auto_completed: count ?? 0,
       escrow_released: escrowReleased,
-      provider: "placeholder",
+      escrow_release_failures: escrowReleaseFailures,
     });
   } catch (error) {
     console.error("[Auto-Complete]", error);

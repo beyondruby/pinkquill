@@ -171,6 +171,12 @@ export async function POST(request: Request) {
             stripe_charge_id: charge.id,
           },
         });
+
+        await supabaseAdmin.from("order_messages").insert({
+          order_id: order.id,
+          content: "Your payment has been refunded.",
+          message_type: "system",
+        });
         break;
       }
 

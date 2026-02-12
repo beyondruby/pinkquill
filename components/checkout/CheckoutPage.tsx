@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
@@ -349,42 +349,49 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const { updateDraft, updating: updatingDraft, error: updateDraftError } = useUpdateOrderDraft();
 
   const [stripeReady, setStripeReady] = useState(false);
-  const [displayAmount, setDisplayAmount] = useState<number | null>(null);
-  const [discountAmount, setDiscountAmount] = useState(0);
+  const [promoOverrides, setPromoOverrides] = useState<Record<string, { amount: number; discount: number }>>({});
   const [confirmingZeroTotal, setConfirmingZeroTotal] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [shippingError, setShippingError] = useState<string | null>(null);
-  const [shippingSavedNotice, setShippingSavedNotice] = useState<string | null>(null);
-  const [shippingDraft, setShippingDraft] = useState<Partial<ShippingAddress>>({
-    name: "",
-    line1: "",
-    line2: "",
-    city: "",
-    state: "",
-    postal_code: "",
-    country: "",
-  });
+  const [shippingSavedNotices, setShippingSavedNotices] = useState<Record<string, string>>({});
+  const [shippingDraftEdits, setShippingDraftEdits] = useState<Record<string, Partial<ShippingAddress>>>({});
 
-  useEffect(() => {
-    setShippingSavedNotice(null);
+  const promoOverride = promoOverrides[orderId];
+  const shippingSavedNotice = shippingSavedNotices[orderId] || null;
+  const shippingDraft = useMemo<Partial<ShippingAddress>>(() => {
+    const shippingAddress = order?.shipping_address;
+    const edits = shippingDraftEdits[orderId] || {};
+    return {
+      name: edits.name ?? shippingAddress?.name ?? "",
+      line1: edits.line1 ?? shippingAddress?.line1 ?? "",
+      line2: edits.line2 ?? shippingAddress?.line2 ?? "",
+      city: edits.city ?? shippingAddress?.city ?? "",
+      state: edits.state ?? shippingAddress?.state ?? "",
+      postal_code: edits.postal_code ?? shippingAddress?.postal_code ?? "",
+      country: edits.country ?? shippingAddress?.country ?? "",
+    };
+  }, [order?.shipping_address, orderId, shippingDraftEdits]);
+
+  const setShippingField = useCallback((field: keyof ShippingAddress, value: string) => {
+    setShippingDraftEdits((prev) => ({
+      ...prev,
+      [orderId]: {
+        ...(prev[orderId] || {}),
+        [field]: value,
+      },
+    }));
   }, [orderId]);
 
-  useEffect(() => {
-    if (order) {
-      setDisplayAmount(Number(order.amount));
-      setDiscountAmount(Number(order.discount_amount || 0));
-      setShippingDraft({
-        name: order.shipping_address?.name || "",
-        line1: order.shipping_address?.line1 || "",
-        line2: order.shipping_address?.line2 || "",
-        city: order.shipping_address?.city || "",
-        state: order.shipping_address?.state || "",
-        postal_code: order.shipping_address?.postal_code || "",
-        country: order.shipping_address?.country || "",
-      });
-      setShippingError(null);
-    }
-  }, [order]);
+  const setShippingSavedNotice = useCallback((message: string | null) => {
+    setShippingSavedNotices((prev) => {
+      if (!message) {
+        const next = { ...prev };
+        delete next[orderId];
+        return next;
+      }
+      return { ...prev, [orderId]: message };
+    });
+  }, [orderId]);
 
   useEffect(() => {
     if (!order || order.status !== "pending_payment") return;
@@ -442,8 +449,14 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     }
 
     setOrder((prev) => (prev ? { ...prev, shipping_address: payload } : prev));
+    setShippingDraftEdits((prev) => {
+      if (!(orderId in prev)) return prev;
+      const next = { ...prev };
+      delete next[orderId];
+      return next;
+    });
     setShippingSavedNotice("Shipping details saved.");
-  }, [order, setOrder, shippingDraft, updateDraft, updateDraftError]);
+  }, [order, orderId, setOrder, setShippingSavedNotice, shippingDraft, updateDraft, updateDraftError]);
 
   if (authLoading || orderLoading) {
     return (
@@ -481,16 +494,18 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     return null;
   }
 
-  const amount = Math.max(displayAmount ?? Number(order.amount), 0);
+  const amount = Math.max(promoOverride?.amount ?? Number(order.amount), 0);
   const shippingCost = Number(order.shipping_cost || 0);
   const originalAmount = Number(order.original_amount ?? Number(order.amount) + Number(order.discount_amount || 0));
-  const effectiveDiscount = Math.max(discountAmount || Number(order.discount_amount || 0), 0);
+  const effectiveDiscount = Math.max(promoOverride?.discount ?? Number(order.discount_amount || 0), 0);
   const subtotal = Math.max(originalAmount - shippingCost, 0);
   const zeroTotal = amount <= 0;
   const isPhysicalProduct =
     order.listing_type === "product"
     && order.product?.delivery_type !== "digital";
   const requiresShippingDetails = isPhysicalProduct && !order.shipping_address;
+  const shippingReady = !isPhysicalProduct || !!order.shipping_address;
+  const paymentReady = !requiresShippingDetails;
   const paymentStepLabel = isPhysicalProduct ? "Step 3" : "Step 2";
 
   const productImage =
@@ -514,19 +529,53 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     : undefined;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#fff4fb_0%,#ffffff_45%,#fff9f0_100%)]">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-        <header className="mb-6 sm:mb-8">
-          <p className="text-xs font-ui uppercase tracking-[0.16em] text-pink-vivid">Checkout</p>
-          <h1 className="mt-2 text-3xl sm:text-4xl font-display text-ink">Complete Your Order</h1>
-          <p className="mt-2 max-w-2xl text-sm font-body text-muted">
-            Apply promo codes, review your total, and finish payment securely.
-          </p>
+    <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(170deg,#fff7fc_0%,#ffffff_42%,#fff8ef_100%)]">
+      <div className="pointer-events-none absolute -top-28 -left-16 h-72 w-72 rounded-full bg-pink-vivid/10 blur-3xl" />
+      <div className="pointer-events-none absolute top-28 -right-24 h-80 w-80 rounded-full bg-purple-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-orange-warm/10 blur-3xl" />
+
+      <div className="relative mx-auto max-w-6xl px-4 py-8 sm:py-10">
+        <header className="mb-6 sm:mb-8 rounded-3xl border border-black/[0.08] bg-white/80 backdrop-blur px-5 py-5 sm:px-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-ui uppercase tracking-[0.16em] text-pink-vivid">Checkout</p>
+              <h1 className="mt-2 text-3xl sm:text-4xl font-display text-ink">Complete Your Order</h1>
+              <p className="mt-2 max-w-2xl text-sm font-body text-muted">
+                A single flow for promo, delivery details, and secure payment.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full border border-pink-vivid/25 bg-pink-vivid/10 px-3 py-1 text-[11px] font-ui uppercase tracking-[0.12em] text-pink-vivid">
+                1 Promo
+              </span>
+              {isPhysicalProduct && (
+                <span
+                  className={`rounded-full border px-3 py-1 text-[11px] font-ui uppercase tracking-[0.12em] ${
+                    shippingReady
+                      ? "border-green-300 bg-green-50 text-green-700"
+                      : "border-amber-300 bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  2 Shipping
+                </span>
+              )}
+              <span
+                className={`rounded-full border px-3 py-1 text-[11px] font-ui uppercase tracking-[0.12em] ${
+                  paymentReady
+                    ? "border-purple-primary/25 bg-purple-primary/10 text-purple-primary"
+                    : "border-black/[0.12] bg-black/[0.03] text-muted"
+                }`}
+              >
+                {isPhysicalProduct ? "3 Payment" : "2 Payment"}
+              </span>
+            </div>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.05fr)_380px]">
-          <section className="rounded-3xl border border-black/[0.08] bg-white/90 backdrop-blur p-5 sm:p-6 space-y-6">
-            <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(135deg,rgba(142,68,173,0.08),rgba(255,0,127,0.06),rgba(255,159,67,0.08))] p-4">
+          <section className="rounded-3xl border border-black/[0.08] bg-white/90 backdrop-blur p-5 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.05)] space-y-6">
+            <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(130deg,rgba(255,255,255,0.97),rgba(255,246,252,0.95),rgba(255,251,246,0.95))] p-4 sm:p-5">
               <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Step 1</p>
               <h2 className="mt-1 text-lg font-display text-ink">Promo Code</h2>
               <p className="text-sm font-body text-muted mt-1">If you have a code, apply it before payment.</p>
@@ -537,8 +586,13 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                   listingType={order.listing_type}
                   currency={currency}
                   onApplied={(discount, final) => {
-                    setDiscountAmount(discount);
-                    setDisplayAmount(final);
+                    setPromoOverrides((prev) => ({
+                      ...prev,
+                      [order.id]: {
+                        amount: final,
+                        discount,
+                      },
+                    }));
                     setActionError(null);
                   }}
                   onCheckoutRefresh={() => (requiresShippingDetails ? undefined : createCheckout(order.id))}
@@ -547,7 +601,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
             </div>
 
             {isPhysicalProduct && (
-              <div className="rounded-2xl border border-black/[0.06] p-4 sm:p-5">
+              <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(245,250,255,0.94))] p-4 sm:p-5">
                 <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Step 2</p>
                 <h2 className="mt-1 text-lg font-display text-ink">Shipping Details</h2>
                 <p className="mt-1 text-sm font-body text-muted">
@@ -559,62 +613,62 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                     type="text"
                     value={shippingDraft.name || ""}
                     onChange={(event) => {
-                      setShippingDraft((prev) => ({ ...prev, name: event.target.value }));
+                      setShippingField("name", event.target.value);
                       if (shippingError) setShippingError(null);
                     }}
                     placeholder="Full name"
-                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                    className="rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
                   />
                   <input
                     type="text"
                     value={shippingDraft.line1 || ""}
                     onChange={(event) => {
-                      setShippingDraft((prev) => ({ ...prev, line1: event.target.value }));
+                      setShippingField("line1", event.target.value);
                       if (shippingError) setShippingError(null);
                     }}
                     placeholder="Address line 1"
-                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                    className="rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
                   />
                   <input
                     type="text"
                     value={shippingDraft.line2 || ""}
-                    onChange={(event) => setShippingDraft((prev) => ({ ...prev, line2: event.target.value }))}
+                    onChange={(event) => setShippingField("line2", event.target.value)}
                     placeholder="Address line 2 (optional)"
-                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                    className="rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
                   />
                   <input
                     type="text"
                     value={shippingDraft.city || ""}
                     onChange={(event) => {
-                      setShippingDraft((prev) => ({ ...prev, city: event.target.value }));
+                      setShippingField("city", event.target.value);
                       if (shippingError) setShippingError(null);
                     }}
                     placeholder="City"
-                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                    className="rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
                   />
                   <input
                     type="text"
                     value={shippingDraft.state || ""}
-                    onChange={(event) => setShippingDraft((prev) => ({ ...prev, state: event.target.value }))}
+                    onChange={(event) => setShippingField("state", event.target.value)}
                     placeholder="State / Region (optional)"
-                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                    className="rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
                   />
                   <input
                     type="text"
                     value={shippingDraft.postal_code || ""}
-                    onChange={(event) => setShippingDraft((prev) => ({ ...prev, postal_code: event.target.value }))}
+                    onChange={(event) => setShippingField("postal_code", event.target.value)}
                     placeholder="Postal code (optional)"
-                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                    className="rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
                   />
                   <input
                     type="text"
                     value={shippingDraft.country || ""}
                     onChange={(event) => {
-                      setShippingDraft((prev) => ({ ...prev, country: event.target.value }));
+                      setShippingField("country", event.target.value);
                       if (shippingError) setShippingError(null);
                     }}
                     placeholder="Country"
-                    className="sm:col-span-2 rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                    className="sm:col-span-2 rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
                   />
                 </div>
 
@@ -651,7 +705,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
               </div>
             )}
 
-            <div className="rounded-2xl border border-black/[0.06] p-4 sm:p-5">
+            <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(160deg,rgba(255,255,255,0.98),rgba(249,248,255,0.95))] p-4 sm:p-5">
               <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">{paymentStepLabel}</p>
               <h2 className="mt-1 text-lg font-display text-ink">Payment</h2>
 
@@ -665,7 +719,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
               )}
 
               {checkoutLoading && !requiresShippingDetails && (
-                <div className="flex items-center justify-center py-10">
+                <div className="flex items-center justify-center rounded-xl border border-black/[0.06] bg-white/80 py-10">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-black/20 border-t-[var(--color-purple-primary)]" />
                 </div>
               )}
@@ -760,8 +814,13 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
             </div>
           </section>
 
-          <aside className="rounded-3xl border border-black/[0.08] bg-white/95 p-5 sm:p-6 xl:sticky xl:top-8 h-fit">
-            <h2 className="text-lg font-display text-ink">Order Summary</h2>
+          <aside className="rounded-3xl border border-black/[0.08] bg-[linear-gradient(165deg,rgba(255,255,255,0.98),rgba(254,249,255,0.97))] p-5 sm:p-6 xl:sticky xl:top-8 h-fit shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-display text-ink">Order Summary</h2>
+              <span className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-ui uppercase tracking-[0.14em] text-muted">
+                {order.order_number}
+              </span>
+            </div>
 
             <div className="mt-4 flex gap-3">
               {productImage && (
@@ -784,7 +843,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-black/[0.06] bg-black/[0.02] p-4 space-y-2 text-sm font-body">
+            <div className="mt-5 rounded-2xl border border-black/[0.06] bg-white/90 p-4 space-y-2 text-sm font-body">
               <div className="flex justify-between">
                 <span className="text-muted">Subtotal</span>
                 <span className="text-ink">{formatCurrency(subtotal, currency)}</span>
@@ -819,6 +878,12 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
               <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs font-body text-green-800">
                 Your promo covered the full total. Complete order to continue.
               </div>
+            )}
+
+            {!zeroTotal && (
+              <p className="mt-4 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3 text-xs font-body text-muted">
+                Secure checkout: your payment details are processed by trusted providers and never stored in plain text.
+              </p>
             )}
 
             {order.listing_type === "service" && (

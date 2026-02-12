@@ -178,22 +178,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Missing PayPal order reference" }, { status: 400 });
       }
 
+      let paymentReference = paypalRef;
+
       try {
         const captureResult = await provider.capturePayment(order.id, paypalRef);
-
-        if (captureResult.alreadyProcessed) {
-          return NextResponse.json({
-            success: true,
-            provider: "paypal",
-            already_processed: true,
-            status: order.status,
-          });
-        }
+        paymentReference = captureResult.paymentReference || paypalRef;
 
         const result = await finalizeOrderPayment({
           orderId: order.id,
           provider: "paypal",
-          paymentReference: paypalRef,
+          paymentReference,
           actorId: user.id,
           source: "api.payments.confirm",
         });
@@ -201,7 +195,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
           success: true,
           provider: "paypal",
-          already_processed: result.already_processed,
+          already_processed: Boolean(captureResult.alreadyProcessed || result.already_processed),
           status: result.status,
           payment_status: result.payment_status,
         });
@@ -210,7 +204,7 @@ export async function POST(request: Request) {
         await markOrderPaymentFailed({
           orderId: order.id,
           provider: "paypal",
-          paymentReference: paypalRef,
+          paymentReference,
           reason,
           source: "api.payments.confirm",
         });

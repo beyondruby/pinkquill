@@ -46,6 +46,14 @@ interface PayPalMerchantStatus {
   oauth_integrations?: Array<{ oauth_third_party: Array<{ partner_client_id: string }> }>;
 }
 
+function getFirstAuthorizationId(order: PayPalOrder): string | null {
+  return order.purchase_units?.[0]?.payments?.authorizations?.[0]?.id ?? null;
+}
+
+function getFirstCaptureId(order: PayPalOrder): string | null {
+  return order.purchase_units?.[0]?.payments?.captures?.[0]?.id ?? null;
+}
+
 export class PayPalProvider implements PaymentProviderInterface {
   readonly name = "paypal" as const;
 
@@ -272,26 +280,35 @@ export class PayPalProvider implements PaymentProviderInterface {
     if (sellerOrder?.seller_id) {
       const { data: sellerAccount } = await supabaseAdmin
         .from("seller_accounts")
-        .select("paypal_merchant_id")
+        .select("paypal_merchant_id, onboarding_complete, charges_enabled, payouts_enabled")
         .eq("user_id", sellerOrder.seller_id)
         .single();
 
-      if (sellerAccount?.paypal_merchant_id) {
-        payee = { merchant_id: sellerAccount.paypal_merchant_id };
+      if (
+        !sellerAccount?.paypal_merchant_id
+        || !sellerAccount.onboarding_complete
+        || !sellerAccount.charges_enabled
+        || !sellerAccount.payouts_enabled
+      ) {
+        throw new Error(
+          "Seller PayPal account is not ready to receive payments. Ask the seller to complete PayPal onboarding."
+        );
+      }
 
-        const platformFeeValue = Number(sellerOrder.platform_fee);
-        if (
-          Number.isFinite(platformFeeValue)
-          && platformFeeValue > 0
-          && platformFeeValue < orderAmount
-        ) {
-          platformFee = {
-            amount: {
-              currency_code: currency,
-              value: platformFeeValue.toFixed(2),
-            },
-          };
-        }
+      payee = { merchant_id: sellerAccount.paypal_merchant_id };
+
+      const platformFeeValue = Number(sellerOrder.platform_fee);
+      if (
+        Number.isFinite(platformFeeValue)
+        && platformFeeValue > 0
+        && platformFeeValue < orderAmount
+      ) {
+        platformFee = {
+          amount: {
+            currency_code: currency,
+            value: platformFeeValue.toFixed(2),
+          },
+        };
       }
     }
 
@@ -356,46 +373,85 @@ export class PayPalProvider implements PaymentProviderInterface {
     // Determine intent (authorize vs capture) by checking the order
     const { data: order } = await supabaseAdmin
       .from("orders")
-      .select("listing_type, status, payment_status")
+      .select("listing_type, status, payment_status, paypal_order_id, payment_reference")
       .eq("id", orderId)
       .single();
 
     if (!order) throw new Error("Order not found");
 
-    // Check PayPal order status first
-    const ppOrder = await paypalFetch<PayPalOrder>(`/v2/checkout/orders/${paymentRef}`);
-
-    if (ppOrder.status === "COMPLETED") {
-      return { success: true, alreadyProcessed: true };
+    const paypalOrderId = order.paypal_order_id || paymentRef;
+    if (!paypalOrderId) {
+      throw new Error("Missing PayPal order reference");
     }
 
-    if (ppOrder.status !== "APPROVED") {
-      throw new Error(`PayPal order is not approved (status: ${ppOrder.status})`);
-    }
+    // Check PayPal order state first so retries are idempotent.
+    const ppOrder = await paypalFetch<PayPalOrder>(`/v2/checkout/orders/${paypalOrderId}`);
+    const existingAuthId = getFirstAuthorizationId(ppOrder);
+    const existingCaptureId = getFirstCaptureId(ppOrder);
 
     const isService = order.listing_type === "service";
 
     if (isService) {
+      // Services are authorized at checkout and captured later during escrow release.
+      if (existingAuthId) {
+        return {
+          success: true,
+          alreadyProcessed: true,
+          status: "paid",
+          paymentStatus: "authorized",
+          paymentReference: existingAuthId,
+        };
+      }
+
+      if (ppOrder.status !== "APPROVED") {
+        throw new Error(`PayPal order is not approved for authorization (status: ${ppOrder.status})`);
+      }
+
       // AUTHORIZE for escrow
-      const authResult = await paypalFetch<PayPalOrder>(`/v2/checkout/orders/${paymentRef}/authorize`, {
+      const authResult = await paypalFetch<PayPalOrder>(`/v2/checkout/orders/${paypalOrderId}/authorize`, {
         method: "POST",
+        idempotencyKey: `authorize_${orderId}`,
       });
+
+      const authorizationId = getFirstAuthorizationId(authResult) || getFirstAuthorizationId(ppOrder);
+      if (!authorizationId) {
+        throw new Error("PayPal authorization was created without an authorization reference");
+      }
 
       return {
         success: true,
         status: "paid",
         paymentStatus: "authorized",
+        paymentReference: authorizationId,
       };
     } else {
+      if (existingCaptureId || ppOrder.status === "COMPLETED") {
+        return {
+          success: true,
+          alreadyProcessed: true,
+          status: "paid",
+          paymentStatus: "paid",
+          paymentReference: existingCaptureId || paymentRef,
+        };
+      }
+
+      if (ppOrder.status !== "APPROVED") {
+        throw new Error(`PayPal order is not approved for capture (status: ${ppOrder.status})`);
+      }
+
       // CAPTURE for products
-      const captureResult = await paypalFetch<PayPalOrder>(`/v2/checkout/orders/${paymentRef}/capture`, {
+      const captureResult = await paypalFetch<PayPalOrder>(`/v2/checkout/orders/${paypalOrderId}/capture`, {
         method: "POST",
+        idempotencyKey: `capture_${orderId}`,
       });
+
+      const captureId = getFirstCaptureId(captureResult);
 
       return {
         success: true,
         status: "paid",
         paymentStatus: "paid",
+        paymentReference: captureId || paymentRef,
       };
     }
   }

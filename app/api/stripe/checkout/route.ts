@@ -179,6 +179,9 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[Checkout Prepare]", error);
     const message = error instanceof Error ? error.message : "Failed to prepare checkout";
+    if (message.includes("Seller PayPal account is not ready")) {
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
