@@ -11,25 +11,29 @@ type OrderForConfirm = {
   buyer_id: string;
   status: string;
   listing_type: string;
+  shipping_address: Record<string, unknown> | null;
   payment_provider: string | null;
   payment_reference: string | null;
   payment_intent_id: string | null;
   paypal_order_id: string | null;
+  product: {
+    delivery_type: string;
+  } | null;
 };
 
 export const runtime = "nodejs";
 
 function resolveProviderForOrder(order: OrderForConfirm): PaymentProvider {
+  if (order.payment_provider === "placeholder" || order.payment_reference?.startsWith("placeholder:")) {
+    return "placeholder";
+  }
+
   if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
     return "stripe";
   }
 
   if (order.paypal_order_id || order.payment_provider === "paypal") {
     return "paypal";
-  }
-
-  if (order.payment_reference && order.payment_reference.startsWith("placeholder:")) {
-    return "placeholder";
   }
 
   return getPaymentProvider();
@@ -64,7 +68,18 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, status, listing_type, payment_provider, payment_reference, payment_intent_id, paypal_order_id")
+      .select(`
+        id,
+        buyer_id,
+        status,
+        listing_type,
+        shipping_address,
+        payment_provider,
+        payment_reference,
+        payment_intent_id,
+        paypal_order_id,
+        product:products (delivery_type)
+      `)
       .eq("id", orderId)
       .single<OrderForConfirm>();
 
@@ -83,6 +98,18 @@ export async function POST(request: Request) {
         already_processed: true,
         status: order.status,
       });
+    }
+
+    const requiresShippingDetails =
+      order.listing_type === "product"
+      && order.product?.delivery_type !== "digital"
+      && !order.shipping_address;
+
+    if (requiresShippingDetails) {
+      return NextResponse.json(
+        { error: "Shipping details are required before payment confirmation." },
+        { status: 400 }
+      );
     }
 
     const providerName = resolveProviderForOrder(order);

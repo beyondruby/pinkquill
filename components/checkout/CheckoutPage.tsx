@@ -351,7 +351,14 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   }, [order]);
 
   useEffect(() => {
-    if (order && order.status === "pending_payment") {
+    if (!order || order.status !== "pending_payment") return;
+
+    const requiresShippingDetails =
+      order.listing_type === "product"
+      && order.product?.delivery_type !== "digital"
+      && !order.shipping_address;
+
+    if (!requiresShippingDetails) {
       createCheckout(order.id);
     }
   }, [order, createCheckout]);
@@ -409,6 +416,10 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const effectiveDiscount = Math.max(discountAmount || Number(order.discount_amount || 0), 0);
   const subtotal = Math.max(originalAmount - shippingCost, 0);
   const zeroTotal = amount <= 0;
+  const requiresShippingDetails =
+    order.listing_type === "product"
+    && order.product?.delivery_type !== "digital"
+    && !order.shipping_address;
 
   const productImage =
     order.product?.media?.find((item: { is_primary: boolean }) => item.is_primary)?.media_url ||
@@ -467,13 +478,28 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
               <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Step 2</p>
               <h2 className="mt-1 text-lg font-display text-ink">Payment</h2>
 
-              {checkoutLoading && (
+              {requiresShippingDetails && (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm font-ui font-semibold text-amber-900">Shipping details required</p>
+                  <p className="mt-1 text-xs font-body text-amber-800">
+                    Add your shipping address on the order page before checkout.
+                  </p>
+                  <button
+                    onClick={() => router.push(`/orders/${order.id}`)}
+                    className="mt-3 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-ui font-semibold text-amber-800 hover:bg-amber-100"
+                  >
+                    Back to Order
+                  </button>
+                </div>
+              )}
+
+              {checkoutLoading && !requiresShippingDetails && (
                 <div className="flex items-center justify-center py-10">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-black/20 border-t-[var(--color-purple-primary)]" />
                 </div>
               )}
 
-              {checkoutError && (
+              {checkoutError && !requiresShippingDetails && (
                 <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
                   <p className="text-sm font-body text-red-700">{checkoutError}</p>
                   <button
@@ -488,9 +514,9 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 </div>
               )}
 
-              {actionError && <p className="mt-4 text-sm text-red-600">{actionError}</p>}
+              {actionError && !requiresShippingDetails && <p className="mt-4 text-sm text-red-600">{actionError}</p>}
 
-              {mode === "stripe" && clientSecret && stripeReady && elementsOptions && !checkoutLoading && !checkoutError && (
+              {!requiresShippingDetails && mode === "stripe" && clientSecret && stripeReady && elementsOptions && !checkoutLoading && !checkoutError && (
                 <div className="mt-4">
                   <Elements stripe={getStripe()} options={elementsOptions}>
                     <StripeInlineForm
@@ -503,7 +529,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 </div>
               )}
 
-              {mode === "paypal" && paypalOrderId && paypalClientId && !checkoutLoading && !checkoutError && (
+              {!requiresShippingDetails && mode === "paypal" && paypalOrderId && paypalClientId && !checkoutLoading && !checkoutError && (
                 <div className="mt-4">
                   <PayPalScriptProvider
                     options={{
@@ -521,7 +547,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 </div>
               )}
 
-              {mode === "placeholder" && !checkoutLoading && !checkoutError && (
+              {!requiresShippingDetails && mode === "placeholder" && !checkoutLoading && !checkoutError && (
                 <div className="mt-4 space-y-4">
                   {zeroTotal ? (
                     <div className="rounded-xl border border-green-200 bg-green-50 p-4">

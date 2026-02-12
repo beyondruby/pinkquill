@@ -357,18 +357,27 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 )}
 
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    if (!activePricing) return;
                     if (!user) {
                       router.push("/login");
                       return;
                     }
                     setCheckoutError(null);
-                    setShowBuyModal(true);
+                    const order = await createOrder({
+                      product_id: product.id,
+                      pricing_id: activePricing.id,
+                      listing_type: "product",
+                    });
+
+                    if (order) {
+                      router.push(`/orders/${order.id}`);
+                    }
                   }}
-                  disabled={!activePricing || activePricing.stock === 0}
+                  disabled={!activePricing || activePricing.stock === 0 || buying}
                   className="w-full py-3.5 rounded-full text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Start Order
+                  {buying ? "Starting..." : "Start Order"}
                 </button>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

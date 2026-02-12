@@ -12,15 +12,32 @@ type OrderForCheckout = {
   buyer_id: string;
   status: string;
   listing_type: string;
+  shipping_address: Record<string, unknown> | null;
   amount: number;
   currency: string;
   payment_provider: string | null;
   payment_reference: string | null;
   payment_intent_id: string | null;
   paypal_order_id: string | null;
+  product: {
+    delivery_type: string;
+  } | null;
 };
 
-function resolveProviderForCheckout(order: OrderForCheckout): PaymentProvider {
+function resolveProviderForCheckout(order: OrderForCheckout, orderAmount: number): PaymentProvider {
+  // For payable orders, ignore stale placeholder references and use real providers.
+  if (orderAmount > 0) {
+    if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
+      return "stripe";
+    }
+
+    if (order.paypal_order_id || (order.payment_provider === "paypal" && order.payment_reference)) {
+      return "paypal";
+    }
+
+    return getPaymentProvider();
+  }
+
   if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
     return "stripe";
   }
@@ -66,7 +83,20 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, status, listing_type, amount, currency, payment_provider, payment_reference, payment_intent_id, paypal_order_id")
+      .select(`
+        id,
+        buyer_id,
+        status,
+        listing_type,
+        shipping_address,
+        amount,
+        currency,
+        payment_provider,
+        payment_reference,
+        payment_intent_id,
+        paypal_order_id,
+        product:products (delivery_type)
+      `)
       .eq("id", orderId)
       .single<OrderForCheckout>();
 
@@ -88,6 +118,18 @@ export async function POST(request: Request) {
     const orderAmount = Number(order.amount);
     if (!Number.isFinite(orderAmount) || orderAmount < 0) {
       return NextResponse.json({ error: "Invalid order amount" }, { status: 400 });
+    }
+
+    const requiresShippingDetails =
+      order.listing_type === "product"
+      && order.product?.delivery_type !== "digital"
+      && !order.shipping_address;
+
+    if (requiresShippingDetails) {
+      return NextResponse.json(
+        { error: "Complete shipping details on the order page before checkout." },
+        { status: 400 }
+      );
     }
 
     // Free orders should bypass external payment providers.
@@ -114,7 +156,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const providerName = resolveProviderForCheckout(order);
+    const providerName = resolveProviderForCheckout(order, orderAmount);
     const provider = getProviderByName(providerName);
     const result = await provider.createCheckoutSession({
       id: order.id,
