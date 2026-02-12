@@ -224,7 +224,6 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
     hasMore: true,
   });
 
-  const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const userInterestsRef = useRef<UserInterests | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -297,11 +296,9 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         abortControllerRef.current.abort();
       }
 
-      if (fetchingRef.current) return;
-      fetchingRef.current = true;
-
       // Create new abort controller for this request
-      abortControllerRef.current = new AbortController();
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
 
       try {
         if (!append) {
@@ -401,8 +398,9 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           .order("created_at", { ascending: false })
           .range(rangeStart, rangeEnd);
 
+        // Check if request was aborted or component unmounted
+        if (abortController.signal.aborted || !mountedRef.current) return;
         if (queryError) throw queryError;
-        if (!mountedRef.current) return;
 
         // Get post IDs for batch fetching
         const postIds = (postsData || []).map((p) => p.id);
@@ -420,6 +418,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
             supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
             supabase.from("reactions").select("post_id, reaction_type").eq("user_id", userId).in("post_id", postIds),
           ]);
+
+          if (abortController.signal.aborted || !mountedRef.current) return;
 
           userAdmires = new Set((admiresResult.data || []).map((a) => a.post_id));
           userSaves = new Set((savesResult.data || []).map((s) => s.post_id));
@@ -507,6 +507,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
               hashtagsByPost.get(t.post_id)!.push(tagName);
             }
           });
+
+          if (abortController.signal.aborted || !mountedRef.current) return;
         }
 
         // Transform posts with all data
@@ -639,7 +641,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         // Take only pageSize posts from the scored/sorted results
         const paginatedPosts = transformedPosts.slice(0, pageSize) as Post[];
 
-        if (!mountedRef.current) return;
+        // Final abort/mount check before state update
+        if (abortController.signal.aborted || !mountedRef.current) return;
 
         // Update state
         if (append) {
@@ -661,13 +664,17 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           total: dbTotal,
         });
       } catch (err) {
+        // Ignore abort errors - they're expected when cancelling requests
+        if ((err instanceof Error && err.name === "AbortError") || abortController.signal.aborted) {
+          return;
+        }
         console.error("[useExplore] Error:", err);
         if (mountedRef.current) {
           setError(err instanceof Error ? err.message : "Failed to fetch posts");
         }
       } finally {
-        fetchingRef.current = false;
-        if (mountedRef.current) {
+        // Only update loading state if this is still the active request
+        if (!abortController.signal.aborted && mountedRef.current) {
           setLoading(false);
         }
       }
@@ -677,9 +684,9 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
 
   // Load more posts
   const loadMore = useCallback(async () => {
-    if (!pagination.hasMore || fetchingRef.current) return;
+    if (!pagination.hasMore || loading) return;
     await fetchPosts(pagination.page + 1, true);
-  }, [fetchPosts, pagination.hasMore, pagination.page]);
+  }, [fetchPosts, pagination.hasMore, pagination.page, loading]);
 
   // Refresh posts
   const refresh = useCallback(async () => {

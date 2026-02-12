@@ -178,59 +178,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // We have a local session - use it immediately for fast UI
+        // CRITICAL: Set user + loading=false so child components can start
+        // fetching data immediately. The Supabase client already has the JWT
+        // in its internal store from getSession(), so queries will work.
         setUser(localSession.user);
         setLoading(false);
         completeAuth();
 
-        // Step 2: Validate session with server in background
-        // This ensures the token is still valid (not revoked, not expired)
-        const { data: { user: validatedUser }, error: validateError } = await supabase.auth.getUser();
-
-        if (!isMounted) return;
-
-        if (validateError || !validatedUser) {
-          // Session was invalid - clear state and sign out
-          console.warn("Session validation failed, signing out:", validateError?.message);
-          setUser(null);
-          setProfile(null);
-          await supabase.auth.signOut();
-          return;
-        }
-
-        // Session is valid - update user if it changed (e.g., email verified)
-        setUser(validatedUser);
-
-        // Step 3: Fetch profile in background
-        // Use a local variable to track the user we're fetching for to prevent race conditions
-        const userIdToFetch = validatedUser.id;
+        // Step 2: Fetch profile immediately (doesn't need getUser validation)
+        const userIdToFetch = localSession.user.id;
         if (fetchingProfileRef.current !== userIdToFetch) {
           fetchingProfileRef.current = userIdToFetch;
 
           let userProfile = await fetchProfile(userIdToFetch);
 
-          // Check if we're still fetching for the same user (prevents race condition)
-          if (fetchingProfileRef.current !== userIdToFetch) {
-            // User changed during fetch, abort
-            return;
-          }
+          if (fetchingProfileRef.current !== userIdToFetch) return;
 
           if (!userProfile && isMounted) {
-            userProfile = await createProfile(validatedUser);
+            userProfile = await createProfile(localSession.user);
           }
 
-          // Final check before setting state
           if (isMounted && fetchingProfileRef.current === userIdToFetch) {
             setProfile(userProfile);
           }
           fetchingProfileRef.current = null;
         }
+
+        // Step 3: Session validation is handled PASSIVELY, not here.
+        // We do NOT call getUser() during init because it:
+        //   1. Acquires the Supabase internal auth lock for its entire network call
+        //   2. ALL concurrent data queries (useFeed, useExplore, etc.) also need this lock
+        //   3. If getUser() takes >5s (slow network), data queries are blocked and can time out
+        // Instead, we rely on:
+        //   - autoRefreshToken: true (automatically refreshes expired tokens)
+        //   - onAuthStateChange: catches TOKEN_REFRESHED and SIGNED_OUT events
+        //   - If the token is revoked, the next auto-refresh will fail and fire SIGNED_OUT
       } catch (err) {
         console.error("Auth init error:", err);
         if (isMounted) {
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-          completeAuth();
+          // Only clear user if we never set one (loading is still true)
+          if (!authCompleted) {
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+            completeAuth();
+          }
+          // If auth already completed (user was set from local session),
+          // don't clear it — the local session is still usable
         }
       }
     };
