@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 /**
  * Creates a Supabase client bound to the current request's cookies.
@@ -30,11 +31,33 @@ export async function createSupabaseServerClient() {
   );
 }
 
+function getBearerToken(request?: Request): string | null {
+  if (!request) return null;
+
+  const header = request.headers.get("authorization");
+  if (!header) return null;
+
+  const [scheme, token] = header.split(" ");
+  if (scheme?.toLowerCase() !== "bearer") return null;
+  const normalizedToken = token?.trim();
+  return normalizedToken || null;
+}
+
 /**
  * Gets the authenticated user from the current request.
- * Returns null if not authenticated.
+ * Prefers an Authorization bearer token (current client session) and
+ * falls back to server-side auth cookies.
  */
-export async function getAuthUser() {
+export async function getAuthUser(request?: Request) {
+  const bearerToken = getBearerToken(request);
+
+  if (bearerToken) {
+    const { data, error } = await supabaseAdmin.auth.getUser(bearerToken);
+    if (!error && data.user) {
+      return data.user;
+    }
+  }
+
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   return user;

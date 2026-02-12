@@ -18,6 +18,7 @@ import DigitalDownloadSection from "./DigitalDownloadSection";
 import ShippingTracker from "./ShippingTracker";
 import TrackingInput from "./TrackingInput";
 import DeliverySection from "./DeliverySection";
+import { supabase } from "@/lib/supabase";
 import type { Order } from "@/lib/types/store";
 import { DISPUTE_REASON_LABELS, DISPUTE_RESOLUTION_LABELS } from "@/lib/types/store";
 
@@ -62,9 +63,13 @@ export default function OrderView({ orderId }: OrderViewProps) {
       paymentSyncTriggeredRef.current = true;
       void (async () => {
         try {
+          const { data: { session } } = await supabase.auth.getSession();
           await fetch("/api/payments/confirm", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+            },
             body: JSON.stringify({ order_id: order.id }),
           });
         } finally {

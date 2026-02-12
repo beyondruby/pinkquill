@@ -22,6 +22,15 @@ function formatCurrency(amount: number, currency = "USD") {
   }).format(amount);
 }
 
+async function buildAuthHeaders(initial?: HeadersInit): Promise<Headers> {
+  const headers = new Headers(initial);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    headers.set("Authorization", `Bearer ${session.access_token}`);
+  }
+  return headers;
+}
+
 // ============================================================================
 // ORDER LOADING
 // ============================================================================
@@ -228,7 +237,7 @@ function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: s
 
       const res = await fetch("/api/payments/confirm", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ order_id: orderId }),
       });
 
@@ -288,7 +297,7 @@ function PayPalInlineButtons({
           try {
             const res = await fetch("/api/payments/confirm", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
               body: JSON.stringify({ order_id: orderId }),
             });
             const data = await res.json();

@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { getActiveProvider } from "@/lib/payment-provider";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

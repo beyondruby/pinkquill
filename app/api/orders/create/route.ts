@@ -13,6 +13,12 @@ interface CreateOrderPayload {
   shipping_address?: Record<string, unknown>;
 }
 
+interface ProductOrderSnapshot {
+  id: string;
+  seller_id: string;
+  status: string;
+}
+
 function mapCreateOrderError(message: string): number {
   const normalized = message.toLowerCase();
   if (normalized.includes("product not found") || normalized.includes("pricing option not found")) return 404;
@@ -33,7 +39,7 @@ export async function POST(request: Request) {
     const originError = enforceSameOrigin(request);
     if (originError) return originError;
 
-    const user = await getAuthUser();
+    const user = await getAuthUser(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -59,6 +65,34 @@ export async function POST(request: Request) {
         { error: "product_id and pricing_id are required" },
         { status: 400 }
       );
+    }
+
+    const { data: product, error: productError } = await supabaseAdmin
+      .from("products")
+      .select("id, seller_id, status")
+      .eq("id", productId)
+      .maybeSingle<ProductOrderSnapshot>();
+
+    if (productError) {
+      console.error("[Order Create] failed to load product", productError);
+      return NextResponse.json({ error: "Failed to load product" }, { status: 500 });
+    }
+
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    if (product.status !== "active") {
+      return NextResponse.json({ error: "This listing is not available" }, { status: 400 });
+    }
+
+    if (product.seller_id === user.id) {
+      console.warn("[Order Create] own listing blocked", {
+        buyerId: user.id,
+        sellerId: product.seller_id,
+        productId,
+      });
+      return NextResponse.json({ error: "You cannot purchase your own listing" }, { status: 400 });
     }
 
     const parsedDueDate = body.due_date ? new Date(body.due_date) : null;

@@ -259,12 +259,16 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   <div>
                     <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Shipping</h3>
                     <dl className="mt-3 space-y-2 max-w-3xl">
-                      {shippingCost > 0 && (
+                      <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                        <dt className="text-sm font-body text-muted">Shipping price</dt>
+                        <dd className="text-sm font-ui text-ink text-right">
+                          {shippingCost > 0 ? formatPrice(shippingCost, activePricing?.currency || "USD") : "Free"}
+                        </dd>
+                      </div>
+                      {product.shipping.shipping_services?.length > 0 && (
                         <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
-                          <dt className="text-sm font-body text-muted">Shipping price</dt>
-                          <dd className="text-sm font-ui text-ink text-right">
-                            {formatPrice(shippingCost, activePricing?.currency || "USD")}
-                          </dd>
+                          <dt className="text-sm font-body text-muted">Shipping service</dt>
+                          <dd className="text-sm font-ui text-ink text-right">{product.shipping.shipping_services.join(", ")}</dd>
                         </div>
                       )}
                       {product.shipping.shipping_locations?.length > 0 && (

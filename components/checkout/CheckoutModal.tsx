@@ -7,12 +7,22 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getStripe } from "@/lib/stripe-client";
 import { getPayPalClientId } from "@/lib/paypal-client";
 import { useCheckout } from "@/lib/hooks/usePayments";
+import { supabase } from "@/lib/supabase";
 import type { Order } from "@/lib/types/store";
 
 interface CheckoutModalProps {
   order: Order;
   onSuccess: () => void;
   onClose: () => void;
+}
+
+async function buildAuthHeaders(initial?: HeadersInit): Promise<Headers> {
+  const headers = new Headers(initial);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    headers.set("Authorization", `Bearer ${session.access_token}`);
+  }
+  return headers;
 }
 
 // ============================================================================
@@ -82,7 +92,7 @@ function StripeCheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
 
       const confirmResponse = await fetch("/api/payments/confirm", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ order_id: order.id }),
       });
       if (!confirmResponse.ok) {
@@ -156,7 +166,7 @@ function PayPalCheckout({ order, onSuccess, onClose, paypalOrderId }: CheckoutMo
               // After buyer approves on PayPal, call our confirm endpoint to capture
               const res = await fetch("/api/payments/confirm", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
                 body: JSON.stringify({ order_id: order.id }),
               });
               const data = await res.json();

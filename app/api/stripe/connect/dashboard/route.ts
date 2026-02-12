@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const originError = enforceSameOrigin(request);
     if (originError) return originError;
 
-    const user = await getAuthUser();
+    const user = await getAuthUser(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

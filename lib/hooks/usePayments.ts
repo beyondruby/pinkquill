@@ -4,6 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import type { SellerAccount, SellerEarnings, Transaction } from "../types/store";
 
+async function buildAuthHeaders(initial?: HeadersInit): Promise<Headers> {
+  const headers = new Headers(initial);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    headers.set("Authorization", `Bearer ${session.access_token}`);
+  }
+  return headers;
+}
+
 // ============================================================================
 // SELLER ONBOARDING
 // ============================================================================
@@ -25,7 +34,9 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
   const checkStatus = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch("/api/payments/connect/status");
+      const res = await fetch("/api/payments/connect/status", {
+        headers: await buildAuthHeaders(),
+      });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error);
@@ -63,7 +74,10 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
       setError(null);
       setLoading(true);
 
-      const res = await fetch("/api/payments/connect/onboard", { method: "POST" });
+      const res = await fetch("/api/payments/connect/onboard", {
+        method: "POST",
+        headers: await buildAuthHeaders(),
+      });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error);
@@ -81,7 +95,10 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
     try {
       setError(null);
 
-      const res = await fetch("/api/payments/connect/dashboard", { method: "POST" });
+      const res = await fetch("/api/payments/connect/dashboard", {
+        method: "POST",
+        headers: await buildAuthHeaders(),
+      });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error);
@@ -134,7 +151,7 @@ export function useCheckout(): UseCheckoutReturn {
 
       const res = await fetch("/api/payments/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ order_id: orderId }),
       });
 
@@ -164,7 +181,7 @@ export function useCheckout(): UseCheckoutReturn {
 
       const res = await fetch("/api/payments/confirm", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ order_id: orderId }),
       });
 
