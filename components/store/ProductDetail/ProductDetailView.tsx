@@ -256,9 +256,9 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 {dimensions.length > 0 && (
                   <div>
                     <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Dimensions</h3>
-                    <dl className="mt-3 space-y-2 max-w-3xl">
+                    <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
                       {dimensions.map((item) => (
-                        <div key={item.label} className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                        <div key={item.label} className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
                           <dt className="text-sm font-body text-muted">{item.label}</dt>
                           <dd className="text-sm font-ui text-ink text-right">
                             {item.value} {item.unit}
@@ -273,37 +273,37 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   <div>
                     <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Shipping</h3>
                     {product.shipping ? (
-                      <dl className="mt-3 space-y-2 max-w-3xl">
-                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                      <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+                        <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
                           <dt className="text-sm font-body text-muted">Shipping price</dt>
                           <dd className="text-sm font-ui text-ink text-right">
                             {shippingCost > 0 ? formatPrice(shippingCost, activePricing?.currency || "USD") : "Free"}
                           </dd>
                         </div>
-                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                        <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
                           <dt className="text-sm font-body text-muted">Coverage</dt>
                           <dd className="text-sm font-ui text-ink text-right">{shippingCoverageLabel}</dd>
                         </div>
                         {shippingServices.length > 0 && (
-                          <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
                             <dt className="text-sm font-body text-muted">Shipping service</dt>
                             <dd className="text-sm font-ui text-ink text-right">{shippingServices.join(", ")}</dd>
                           </div>
                         )}
                         {shippingLocations.length > 0 && (
-                          <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
                             <dt className="text-sm font-body text-muted">Ships to</dt>
                             <dd className="text-sm font-ui text-ink text-right">{shippingLocations.join(", ")}</dd>
                           </div>
                         )}
                         {product.shipping.processing_days && (
-                          <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
                             <dt className="text-sm font-body text-muted">Processing</dt>
                             <dd className="text-sm font-ui text-ink text-right">{product.shipping.processing_days} business days</dd>
                           </div>
                         )}
                         {normalizedPackaging && (
-                          <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
                             <dt className="text-sm font-body text-muted">Packaging</dt>
                             <dd className="text-sm font-ui text-ink text-right capitalize">{normalizedPackaging}</dd>
                           </div>
