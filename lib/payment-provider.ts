@@ -86,32 +86,38 @@ import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
 let _providerInstance: PaymentProviderInterface | null = null;
 let _providerName: PaymentProvider | null = null;
 
+function createProviderInstance(providerName: PaymentProvider): PaymentProviderInterface {
+  switch (providerName) {
+    case "stripe": {
+      const { StripeProvider } = require("@/lib/providers/stripe-provider");
+      return new StripeProvider();
+    }
+    case "paypal": {
+      const { PayPalProvider } = require("@/lib/providers/paypal-provider");
+      return new PayPalProvider();
+    }
+    default: {
+      const { PlaceholderProvider } = require("@/lib/providers/placeholder-provider");
+      return new PlaceholderProvider();
+    }
+  }
+}
+
+/**
+ * Returns a payment provider instance for a specific provider name.
+ * Cached per process and refreshed if requested provider changes.
+ */
+export function getProviderByName(providerName: PaymentProvider): PaymentProviderInterface {
+  if (_providerInstance && _providerName === providerName) return _providerInstance;
+  _providerInstance = createProviderInstance(providerName);
+  _providerName = providerName;
+  return _providerInstance;
+}
+
 /**
  * Returns the active payment provider instance based on PAYMENTS_PROVIDER env var.
  * Lazy-instantiated and cached for the lifetime of the process.
  */
 export function getActiveProvider(): PaymentProviderInterface {
-  const current = getPaymentProvider();
-  if (_providerInstance && _providerName === current) return _providerInstance;
-
-  switch (current) {
-    case "stripe": {
-      const { StripeProvider } = require("@/lib/providers/stripe-provider");
-      _providerInstance = new StripeProvider();
-      break;
-    }
-    case "paypal": {
-      const { PayPalProvider } = require("@/lib/providers/paypal-provider");
-      _providerInstance = new PayPalProvider();
-      break;
-    }
-    default: {
-      const { PlaceholderProvider } = require("@/lib/providers/placeholder-provider");
-      _providerInstance = new PlaceholderProvider();
-      break;
-    }
-  }
-
-  _providerName = current;
-  return _providerInstance!;
+  return getProviderByName(getPaymentProvider());
 }

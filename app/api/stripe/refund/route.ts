@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
-import { getPaymentProvider } from "@/lib/payments";
-import { getActiveProvider } from "@/lib/payment-provider";
+import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
+import { getProviderByName } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 type RefundableOrder = {
@@ -10,6 +10,7 @@ type RefundableOrder = {
   buyer_id: string;
   status: string;
   payment_status: string;
+  payment_provider: string | null;
   payment_intent_id: string | null;
   paypal_order_id: string | null;
   payment_reference: string | null;
@@ -18,6 +19,22 @@ type RefundableOrder = {
 };
 
 export const runtime = "nodejs";
+
+function resolveProviderForRefund(order: RefundableOrder): PaymentProvider {
+  if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
+    return "stripe";
+  }
+
+  if (order.paypal_order_id || order.payment_provider === "paypal") {
+    return "paypal";
+  }
+
+  if (order.payment_reference && order.payment_reference.startsWith("placeholder:")) {
+    return "placeholder";
+  }
+
+  return getPaymentProvider();
+}
 
 export async function POST(request: Request) {
   try {
@@ -49,7 +66,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, status, payment_status, payment_intent_id, paypal_order_id, payment_reference, amount, currency")
+      .select("id, buyer_id, status, payment_status, payment_provider, payment_intent_id, paypal_order_id, payment_reference, amount, currency")
       .eq("id", orderId)
       .single<RefundableOrder>();
 
@@ -72,8 +89,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const providerName = getPaymentProvider();
-    const provider = getActiveProvider();
+    const providerName = resolveProviderForRefund(order);
+    const provider = getProviderByName(providerName);
 
     // Determine the payment reference for the active provider
     const paymentRef = providerName === "stripe"
@@ -81,6 +98,10 @@ export async function POST(request: Request) {
       : providerName === "paypal"
         ? (order.paypal_order_id || order.payment_reference)
         : order.payment_reference;
+
+    if (providerName !== "placeholder" && !paymentRef) {
+      return NextResponse.json({ error: "Missing payment reference for refund" }, { status: 400 });
+    }
 
     // Issue refund via provider (if not placeholder)
     if (providerName !== "placeholder" && paymentRef) {

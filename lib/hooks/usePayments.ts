@@ -25,7 +25,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
   const checkStatus = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch("/api/stripe/connect/status");
+      const res = await fetch("/api/payments/connect/status");
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error);
@@ -63,7 +63,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
       setError(null);
       setLoading(true);
 
-      const res = await fetch("/api/stripe/connect/onboard", { method: "POST" });
+      const res = await fetch("/api/payments/connect/onboard", { method: "POST" });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error);
@@ -81,7 +81,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
     try {
       setError(null);
 
-      const res = await fetch("/api/stripe/connect/dashboard", { method: "POST" });
+      const res = await fetch("/api/payments/connect/dashboard", { method: "POST" });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error);
@@ -132,7 +132,7 @@ export function useCheckout(): UseCheckoutReturn {
       setLoading(true);
       setError(null);
 
-      const res = await fetch("/api/stripe/checkout", {
+      const res = await fetch("/api/payments/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ order_id: orderId }),

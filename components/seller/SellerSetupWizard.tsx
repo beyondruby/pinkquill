@@ -30,6 +30,8 @@ interface WizardState {
   experienceLevel: "beginner" | "intermediate" | "expert" | "professional" | "";
   responseTimeHours: number;
   isAcceptingCommissions: boolean;
+  requireApproval: boolean;
+  autoDeclineHours: number;
   languages: string[];
   location: string;
 }
@@ -44,6 +46,8 @@ const initialState: WizardState = {
   experienceLevel: "",
   responseTimeHours: 24,
   isAcceptingCommissions: true,
+  requireApproval: false,
+  autoDeclineHours: 72,
   languages: [],
   location: "",
 };
@@ -276,6 +280,45 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
         </button>
       </div>
 
+      <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
+        <div>
+          <p className="text-sm font-medium text-gray-800">Require Approval Before Payment</p>
+          <p className="text-xs text-gray-500">
+            Applies to commissions and physical product orders only. Buyers pay only after you accept.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setState({ ...state, requireApproval: !state.requireApproval })}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            state.requireApproval ? "bg-[var(--color-purple-primary)]" : "bg-gray-300"
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+              state.requireApproval ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
+      </div>
+
+      {state.requireApproval && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Auto-decline timeout (hours)</label>
+          <input
+            type="number"
+            min={1}
+            max={720}
+            value={state.autoDeclineHours}
+            onChange={(e) => setState({ ...state, autoDeclineHours: Math.max(1, Math.min(720, Number(e.target.value || 72))) })}
+            className="w-40 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Orders without a response in this window are automatically declined.
+          </p>
+        </div>
+      )}
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Typical Response Time</label>
         <select
@@ -393,6 +436,8 @@ export default function SellerSetupWizard() {
       experience_level: state.experienceLevel || null,
       response_time_hours: state.responseTimeHours,
       is_accepting_commissions: state.isAcceptingCommissions,
+      require_approval: state.requireApproval,
+      auto_decline_hours: state.autoDeclineHours,
       languages: state.languages,
       location: state.location.trim() || null,
       setup_completed: true,

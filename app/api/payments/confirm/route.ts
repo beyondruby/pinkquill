@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
 import { finalizeOrderPayment, markOrderPaymentFailed } from "@/lib/payments-server";
-import { getPaymentProvider } from "@/lib/payments";
-import { getActiveProvider } from "@/lib/payment-provider";
+import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
+import { getProviderByName } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 type OrderForConfirm = {
@@ -18,6 +18,22 @@ type OrderForConfirm = {
 };
 
 export const runtime = "nodejs";
+
+function resolveProviderForOrder(order: OrderForConfirm): PaymentProvider {
+  if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
+    return "stripe";
+  }
+
+  if (order.paypal_order_id || order.payment_provider === "paypal") {
+    return "paypal";
+  }
+
+  if (order.payment_reference && order.payment_reference.startsWith("placeholder:")) {
+    return "placeholder";
+  }
+
+  return getPaymentProvider();
+}
 
 export async function POST(request: Request) {
   try {
@@ -69,8 +85,8 @@ export async function POST(request: Request) {
       });
     }
 
-    const providerName = getPaymentProvider();
-    const provider = getActiveProvider();
+    const providerName = resolveProviderForOrder(order);
+    const provider = getProviderByName(providerName);
 
     // For Stripe: verify PaymentIntent status via provider
     if (providerName === "stripe") {

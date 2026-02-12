@@ -12,21 +12,24 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { finalizeOrderPayment, markOrderPaymentFailed } from "@/lib/payments-server";
+import { paypalFetch } from "@/lib/paypal";
 
 export const runtime = "nodejs";
 
 interface PayPalWebhookEvent {
   id: string;
   event_type: string;
+  create_time?: string;
   resource: {
     id?: string;
     status?: string;
+    supplementary_data?: {
+      related_ids?: {
+        order_id?: string;
+      };
+    };
     purchase_units?: Array<{
       reference_id?: string;
-      payments?: {
-        captures?: Array<{ id: string; status: string }>;
-        authorizations?: Array<{ id: string; status: string }>;
-      };
     }>;
     merchant_id?: string;
     tracking_id?: string;
@@ -34,95 +37,191 @@ interface PayPalWebhookEvent {
   summary?: string;
 }
 
+interface VerifyWebhookResponse {
+  verification_status?: string;
+}
+
+interface OrderWebhookLookup {
+  id: string;
+  status: string;
+  paypal_order_id: string | null;
+  payment_reference: string | null;
+}
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+async function verifyWebhookSignature(
+  request: Request,
+  event: PayPalWebhookEvent
+): Promise<boolean> {
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+
+  // In non-production environments, allow unsigned webhooks when webhook id is not configured.
+  if (!webhookId) {
+    if (isProduction()) {
+      console.error("[PayPal Webhook] PAYPAL_WEBHOOK_ID is required in production");
+      return false;
+    }
+    return true;
+  }
+
+  const authAlgo = request.headers.get("paypal-auth-algo");
+  const certUrl = request.headers.get("paypal-cert-url");
+  const transmissionId = request.headers.get("paypal-transmission-id");
+  const transmissionSig = request.headers.get("paypal-transmission-sig");
+  const transmissionTime = request.headers.get("paypal-transmission-time");
+
+  if (!authAlgo || !certUrl || !transmissionId || !transmissionSig || !transmissionTime) {
+    console.error("[PayPal Webhook] Missing signature headers");
+    return false;
+  }
+
+  try {
+    const result = await paypalFetch<VerifyWebhookResponse>("/v1/notifications/verify-webhook-signature", {
+      method: "POST",
+      body: {
+        auth_algo: authAlgo,
+        cert_url: certUrl,
+        transmission_id: transmissionId,
+        transmission_sig: transmissionSig,
+        transmission_time: transmissionTime,
+        webhook_id: webhookId,
+        webhook_event: event,
+      },
+    });
+
+    return result.verification_status === "SUCCESS";
+  } catch (error) {
+    console.error("[PayPal Webhook] signature verification failed", error);
+    return false;
+  }
+}
+
+async function findOrderByPayPalOrderId(paypalOrderId: string): Promise<OrderWebhookLookup | null> {
+  const { data, error } = await supabaseAdmin
+    .from("orders")
+    .select("id, status, paypal_order_id, payment_reference")
+    .or(`paypal_order_id.eq.${paypalOrderId},payment_reference.eq.${paypalOrderId}`)
+    .limit(1)
+    .maybeSingle<OrderWebhookLookup>();
+
+  if (error) {
+    console.error("[PayPal Webhook] order lookup error", error);
+    return null;
+  }
+
+  return data ?? null;
+}
+
+async function findOrderByReferenceId(referenceId: string): Promise<OrderWebhookLookup | null> {
+  const { data, error } = await supabaseAdmin
+    .from("orders")
+    .select("id, status, paypal_order_id, payment_reference")
+    .eq("id", referenceId)
+    .maybeSingle<OrderWebhookLookup>();
+
+  if (error) {
+    console.error("[PayPal Webhook] reference order lookup error", error);
+    return null;
+  }
+
+  return data ?? null;
+}
+
 export async function POST(request: Request) {
   try {
-    const body = await request.text();
+    const rawBody = await request.text();
     let event: PayPalWebhookEvent;
 
     try {
-      event = JSON.parse(body);
+      event = JSON.parse(rawBody);
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    // Note: In production, verify the webhook signature using PayPal's verification API.
-    // For now, we process the event and rely on idempotent operations.
+    const isSignatureValid = await verifyWebhookSignature(request, event);
+    if (!isSignatureValid) {
+      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 400 });
+    }
 
     console.log(`[PayPal Webhook] ${event.event_type}`, event.id);
 
     switch (event.event_type) {
       case "CHECKOUT.ORDER.APPROVED": {
-        // Buyer approved the order — we can capture it.
-        // In our flow, the client calls /api/payments/confirm after approval,
-        // so this is mostly a fallback to ensure we don't miss it.
-        const orderId = event.resource.purchase_units?.[0]?.reference_id;
-        if (orderId) {
-          const { data: order } = await supabaseAdmin
-            .from("orders")
-            .select("id, status")
-            .eq("id", orderId)
-            .single();
-
-          if (order && order.status === "pending_payment") {
-            console.log(`[PayPal Webhook] Order ${orderId} approved, waiting for client capture`);
+        const paypalOrderId = event.resource.id;
+        if (paypalOrderId) {
+          const order = await findOrderByPayPalOrderId(paypalOrderId);
+          if (order?.status === "pending_payment") {
+            console.log(`[PayPal Webhook] Order ${order.id} approved, waiting for capture`);
           }
         }
         break;
       }
 
       case "PAYMENT.CAPTURE.COMPLETED": {
-        // Payment captured successfully
         const captureId = event.resource.id;
-        // Find the order by PayPal order reference
-        const { data: orders } = await supabaseAdmin
-          .from("orders")
-          .select("id, status, paypal_order_id, payment_reference")
-          .eq("status", "pending_payment")
-          .limit(50);
+        const paypalOrderId = event.resource.supplementary_data?.related_ids?.order_id;
+        const referenceId = event.resource.purchase_units?.[0]?.reference_id;
 
-        if (orders && captureId) {
-          // The capture is nested, try to match by payment_reference
-          for (const order of orders) {
-            if (order.paypal_order_id || order.payment_reference) {
-              await finalizeOrderPayment({
-                orderId: order.id,
-                provider: "paypal",
-                paymentReference: order.paypal_order_id || order.payment_reference!,
-                actorId: null,
-                source: "webhook.paypal.capture_completed",
-              }).catch((err) => {
-                console.error(`[PayPal Webhook] Failed to finalize order ${order.id}:`, err);
-              });
-              break;
-            }
-          }
+        let order: OrderWebhookLookup | null = null;
+        if (paypalOrderId) {
+          order = await findOrderByPayPalOrderId(paypalOrderId);
         }
+        if (!order && referenceId) {
+          order = await findOrderByReferenceId(referenceId);
+        }
+
+        if (!order) {
+          console.warn("[PayPal Webhook] No local order found for capture", {
+            paypalOrderId,
+            referenceId,
+            captureId,
+          });
+          break;
+        }
+
+        await finalizeOrderPayment({
+          orderId: order.id,
+          provider: "paypal",
+          paymentReference: paypalOrderId || order.paypal_order_id || order.payment_reference || captureId || "",
+          actorId: null,
+          source: "webhook.paypal.capture_completed",
+        });
         break;
       }
 
       case "PAYMENT.CAPTURE.DENIED": {
-        // Payment capture failed
+        const paypalOrderId = event.resource.supplementary_data?.related_ids?.order_id;
         const referenceId = event.resource.purchase_units?.[0]?.reference_id;
-        if (referenceId) {
+
+        let order: OrderWebhookLookup | null = null;
+        if (paypalOrderId) {
+          order = await findOrderByPayPalOrderId(paypalOrderId);
+        }
+        if (!order && referenceId) {
+          order = await findOrderByReferenceId(referenceId);
+        }
+
+        if (order) {
           await markOrderPaymentFailed({
-            orderId: referenceId,
+            orderId: order.id,
             provider: "paypal",
-            paymentReference: event.resource.id || "",
+            paymentReference: paypalOrderId || order.paypal_order_id || order.payment_reference || event.resource.id || "",
             reason: event.summary || "PayPal payment capture denied",
             source: "webhook.paypal.capture_denied",
-          }).catch(() => {});
+          });
         }
         break;
       }
 
       case "PAYMENT.AUTHORIZATION.CREATED": {
-        // For commission escrow — authorization created
         console.log(`[PayPal Webhook] Authorization created: ${event.resource.id}`);
         break;
       }
 
       case "MERCHANT.ONBOARDING.COMPLETED": {
-        // Seller completed PayPal onboarding
         const merchantId = event.resource.merchant_id;
         const trackingId = event.resource.tracking_id;
 

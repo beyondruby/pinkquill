@@ -163,6 +163,7 @@ export {
 export {
   useValidatePromoCode,
   useApplyPromoCode,
+  useRemovePromoCode,
 } from "./usePromoCode";
 
 // Reviews

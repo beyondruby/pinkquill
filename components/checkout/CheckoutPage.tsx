@@ -9,7 +9,7 @@ import { getStripe } from "@/lib/stripe-client";
 import { getPayPalClientId } from "@/lib/paypal-client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCheckout, type CheckoutMode } from "@/lib/hooks/usePayments";
-import { useValidatePromoCode, useApplyPromoCode } from "@/lib/hooks/usePromoCode";
+import { useValidatePromoCode, useApplyPromoCode, useRemovePromoCode } from "@/lib/hooks/usePromoCode";
 import { supabase } from "@/lib/supabase";
 import type { Order } from "@/lib/types/store";
 
@@ -69,7 +69,8 @@ function PromoCodeSection({
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number } | null>(null);
   const { loading: validating, error: validateError, validate, clear } = useValidatePromoCode();
-  const { loading: applying, apply } = useApplyPromoCode();
+  const { loading: applying, error: applyError, apply } = useApplyPromoCode();
+  const { loading: removing, error: removeError, remove } = useRemovePromoCode();
 
   const handleApply = async () => {
     if (!code.trim()) return;
@@ -85,27 +86,35 @@ function PromoCodeSection({
     }
   };
 
-  const isLoading = validating || applying;
+  const isLoading = validating || applying || removing;
+  const promoError = validateError || applyError || removeError;
 
   if (applied) {
     return (
-      <div className="flex items-center justify-between rounded-lg bg-green-50 border border-green-200 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
-            {applied.code}
-          </span>
-          <span className="text-sm text-green-700">-${applied.discount.toFixed(2)}</span>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between rounded-lg bg-green-50 border border-green-200 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
+              {applied.code}
+            </span>
+            <span className="text-sm text-green-700">-${applied.discount.toFixed(2)}</span>
+          </div>
+          <button
+            onClick={async () => {
+              const result = await remove(orderId);
+              if (!result?.success) return;
+              setApplied(null);
+              setCode("");
+              clear();
+              onApplied(0, result.final_amount ?? orderAmount);
+            }}
+            disabled={removing}
+            className="text-xs text-green-600 hover:underline disabled:opacity-60"
+          >
+            {removing ? "Removing..." : "Remove"}
+          </button>
         </div>
-        <button
-          onClick={() => {
-            setApplied(null);
-            setCode("");
-            clear();
-          }}
-          className="text-xs text-green-600 hover:underline"
-        >
-          Remove
-        </button>
+        {removeError && <p className="text-xs text-red-600">{removeError}</p>}
       </div>
     );
   }
@@ -116,7 +125,7 @@ function PromoCodeSection({
         <input
           type="text"
           value={code}
-          onChange={(e) => { setCode(e.target.value); if (validateError) clear(); }}
+          onChange={(e) => { setCode(e.target.value); if (promoError) clear(); }}
           placeholder="Promo code"
           disabled={isLoading}
           className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[var(--color-purple-primary)] outline-none disabled:opacity-50"
@@ -130,7 +139,7 @@ function PromoCodeSection({
           {isLoading ? "..." : "Apply"}
         </button>
       </div>
-      {validateError && <p className="text-xs text-red-600">{validateError}</p>}
+      {promoError && <p className="text-xs text-red-600">{promoError}</p>}
     </div>
   );
 }
@@ -205,7 +214,15 @@ function StripeInlineForm({ orderId, onSuccess }: { orderId: string; onSuccess: 
 // PAYPAL INLINE BUTTONS
 // ============================================================================
 
-function PayPalInlineButtons({ orderId, onSuccess }: { orderId: string; onSuccess: () => void }) {
+function PayPalInlineButtons({
+  orderId,
+  paypalOrderId,
+  onSuccess,
+}: {
+  orderId: string;
+  paypalOrderId: string;
+  onSuccess: () => void;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
@@ -214,14 +231,7 @@ function PayPalInlineButtons({ orderId, onSuccess }: { orderId: string; onSucces
       <PayPalButtons
         style={{ layout: "vertical", color: "gold", shape: "rect", label: "pay", height: 50 }}
         createOrder={async () => {
-          const res = await fetch("/api/stripe/checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ order_id: orderId }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error);
-          return data.payment_reference || data.client_secret;
+          return paypalOrderId;
         }}
         onApprove={async () => {
           setProcessing(true);
@@ -397,7 +407,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
             {/* PayPal */}
             {mode === "paypal" && paypalOrderId && paypalClientId && !checkoutLoading && !checkoutError && (
               <PayPalScriptProvider options={{ clientId: paypalClientId, currency: (order.currency || "USD").toUpperCase() }}>
-                <PayPalInlineButtons orderId={order.id} onSuccess={handleSuccess} />
+                <PayPalInlineButtons orderId={order.id} paypalOrderId={paypalOrderId} onSuccess={handleSuccess} />
               </PayPalScriptProvider>
             )}
 

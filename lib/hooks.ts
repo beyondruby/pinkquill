@@ -172,7 +172,7 @@ export { useStudioCart, useStudioQueue } from "./hooks/useStudioQueue";
 export { useSellerProfile, useUpdateSellerProfile, useSellerSetupStatus } from "./hooks/useSellerProfile";
 
 // Promo Codes
-export { useValidatePromoCode, useApplyPromoCode } from "./hooks/usePromoCode";
+export { useValidatePromoCode, useApplyPromoCode, useRemovePromoCode } from "./hooks/usePromoCode";
 
 // Marketplace Browser
 export { useMarketplace, useFeaturedProducts } from "./hooks/useMarketplace";

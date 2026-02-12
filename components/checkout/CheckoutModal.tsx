@@ -129,7 +129,7 @@ function StripeCheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
 // PAYPAL CHECKOUT
 // ============================================================================
 
-function PayPalCheckout({ order, onSuccess, onClose }: CheckoutModalProps & { paypalOrderId: string }) {
+function PayPalCheckout({ order, onSuccess, onClose, paypalOrderId }: CheckoutModalProps & { paypalOrderId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
@@ -147,17 +147,7 @@ function PayPalCheckout({ order, onSuccess, onClose }: CheckoutModalProps & { pa
             height: 45,
           }}
           createOrder={async () => {
-            // We already created the PayPal order on the server via createCheckout.
-            // Re-call to get the order ID if needed.
-            const res = await fetch("/api/stripe/checkout", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ order_id: order.id }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            // PayPal Buttons expects the PayPal order ID returned here
-            return data.payment_reference || data.client_secret;
+            return paypalOrderId;
           }}
           onApprove={async () => {
             setProcessing(true);

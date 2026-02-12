@@ -67,7 +67,10 @@ export default function EarningsOverview() {
   const { user } = useAuth();
   const { earnings, loading: earningsLoading } = useSellerEarnings(user?.id);
   const { transactions, loading: txLoading, hasMore, loadMore } = useTransactionHistory(user?.id);
-  const { openDashboard } = useSellerOnboarding();
+  const { openDashboard, account } = useSellerOnboarding();
+  const provider = account?.provider || "placeholder";
+  const providerLabel = provider === "paypal" ? "PayPal" : provider === "stripe" ? "Stripe" : "Payment";
+  const isPlaceholder = Boolean(account?.placeholder_mode);
 
   if (earningsLoading) {
     return (
@@ -90,7 +93,7 @@ export default function EarningsOverview() {
           onClick={openDashboard}
           className="px-4 py-2 bg-white border border-black/[0.08] rounded-xl text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors inline-flex items-center gap-2"
         >
-          Stripe Dashboard
+          {isPlaceholder ? "Payment Setup" : `${providerLabel} Dashboard`}
           <FontAwesomeIcon icon={faExternalLinkAlt} className="text-xs text-muted" />
         </button>
       </div>
@@ -118,8 +121,12 @@ export default function EarningsOverview() {
 
       {/* Fee Info */}
       <div className="rounded-xl bg-purple-50 border border-purple-100 p-4 text-sm font-body text-purple-900">
-        <strong>Fee structure:</strong> 8% on product sales, 10% on commissions. Stripe processing fees (2.9% + $0.30) are additional.
-        Payouts are managed through your Stripe Express dashboard.
+        <strong>Fee structure:</strong> 8% on product sales, 10% on commissions.
+        {isPlaceholder
+          ? " Payments are currently in placeholder mode while live provider setup is pending."
+          : provider === "paypal"
+            ? " PayPal processing fees depend on your merchant account and region. Payouts are managed in your PayPal account."
+            : " Payment processing fees depend on your provider account and region."}
       </div>
 
       {/* Transaction History */}

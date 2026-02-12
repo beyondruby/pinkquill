@@ -172,7 +172,7 @@ export default function SellerSettings() {
             <p className="text-sm font-ui font-medium text-ink">Require Approval for Orders</p>
             <p className="text-xs font-body text-muted mt-0.5">
               When enabled, new orders require your acceptance before the buyer is asked to pay.
-              This gives you a chance to review commission briefs before committing.
+              This gives you a chance to review commission briefs and physical product requests before committing.
             </p>
           </div>
           <button

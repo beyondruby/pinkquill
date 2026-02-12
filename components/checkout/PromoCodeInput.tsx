@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useValidatePromoCode, useApplyPromoCode } from "@/lib/hooks/usePromoCode";
+import { useValidatePromoCode, useApplyPromoCode, useRemovePromoCode } from "@/lib/hooks/usePromoCode";
 
 interface PromoCodeInputProps {
   orderId: string;
@@ -29,6 +29,7 @@ export default function PromoCodeInput({
 
   const { result, loading: validating, error: validateError, validate, clear } = useValidatePromoCode();
   const { loading: applying, error: applyError, apply } = useApplyPromoCode();
+  const { loading: removing, error: removeError, remove } = useRemovePromoCode();
 
   const handleApply = useCallback(async () => {
     if (!code.trim()) return;
@@ -54,16 +55,19 @@ export default function PromoCodeInput({
     }
   }, [code, orderAmount, listingType, orderId, validate, apply, onApplied]);
 
-  const handleRemove = useCallback(() => {
+  const handleRemove = useCallback(async () => {
+    const result = await remove(orderId);
+    if (!result?.success) return;
+
     setAppliedCode(null);
     setDiscountInfo(null);
     setCode("");
     clear();
     onRemoved?.();
-  }, [clear, onRemoved]);
+  }, [clear, onRemoved, orderId, remove]);
 
-  const isLoading = validating || applying;
-  const error = validateError || applyError;
+  const isLoading = validating || applying || removing;
+  const error = validateError || applyError || removeError;
 
   // Applied state
   if (appliedCode && discountInfo) {
@@ -82,9 +86,10 @@ export default function PromoCodeInput({
           </div>
           <button
             onClick={handleRemove}
+            disabled={removing}
             className="text-xs text-green-600 hover:text-green-800 underline"
           >
-            Remove
+            {removing ? "Removing..." : "Remove"}
           </button>
         </div>
         <div className="mt-1 text-xs text-green-600">

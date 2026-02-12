@@ -26,6 +26,14 @@ export interface ApplyPromoResult {
   final_amount?: number;
 }
 
+export interface RemovePromoResult {
+  success: boolean;
+  error?: string;
+  original_amount?: number;
+  discount_amount?: number;
+  final_amount?: number;
+}
+
 interface UseValidatePromoCodeReturn {
   result: PromoCodeResult | null;
   loading: boolean;
@@ -132,4 +140,47 @@ export function useApplyPromoCode(): UseApplyPromoCodeReturn {
   }, []);
 
   return { loading, error, apply };
+}
+
+// ============================================================================
+// REMOVE PROMO CODE FROM ORDER
+// ============================================================================
+
+interface UseRemovePromoCodeReturn {
+  loading: boolean;
+  error: string | null;
+  remove: (orderId: string) => Promise<RemovePromoResult | null>;
+}
+
+export function useRemovePromoCode(): UseRemovePromoCodeReturn {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const remove = useCallback(async (orderId: string): Promise<RemovePromoResult | null> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error: rpcError } = await supabase.rpc("remove_promo_from_order", {
+        p_order_id: orderId,
+      });
+
+      if (rpcError) throw rpcError;
+
+      const result = data as RemovePromoResult;
+      if (!result.success) {
+        setError(result.error || "Failed to remove promo code");
+      }
+
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to remove promo code";
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { loading, error, remove };
 }

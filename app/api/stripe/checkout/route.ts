@@ -2,9 +2,39 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { getActiveProvider } from "@/lib/payment-provider";
+import { getProviderByName } from "@/lib/payment-provider";
+import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
 
 export const runtime = "nodejs";
+
+type OrderForCheckout = {
+  id: string;
+  buyer_id: string;
+  status: string;
+  listing_type: string;
+  amount: number;
+  currency: string;
+  payment_provider: string | null;
+  payment_reference: string | null;
+  payment_intent_id: string | null;
+  paypal_order_id: string | null;
+};
+
+function resolveProviderForCheckout(order: OrderForCheckout): PaymentProvider {
+  if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
+    return "stripe";
+  }
+
+  if (order.paypal_order_id || (order.payment_provider === "paypal" && order.payment_reference)) {
+    return "paypal";
+  }
+
+  if (order.payment_reference && order.payment_reference.startsWith("placeholder:")) {
+    return "placeholder";
+  }
+
+  return getPaymentProvider();
+}
 
 export async function POST(request: Request) {
   try {
@@ -38,7 +68,7 @@ export async function POST(request: Request) {
       .from("orders")
       .select("id, buyer_id, status, listing_type, amount, currency, payment_provider, payment_reference, payment_intent_id, paypal_order_id")
       .eq("id", orderId)
-      .single();
+      .single<OrderForCheckout>();
 
     if (orderError || !order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -55,7 +85,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const provider = getActiveProvider();
+    const providerName = resolveProviderForCheckout(order);
+    const provider = getProviderByName(providerName);
     const result = await provider.createCheckoutSession({
       id: order.id,
       buyerId: user.id,
@@ -68,6 +99,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       mode: result.mode,
+      provider: providerName,
       client_secret: result.clientToken,
       payment_reference: result.paymentReference,
       approval_url: result.approvalUrl || null,
