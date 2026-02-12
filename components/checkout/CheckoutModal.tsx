@@ -172,7 +172,7 @@ function PayPalCheckout({ order, onSuccess, onClose, paypalOrderId }: CheckoutMo
           }}
           onError={(err) => {
             console.error("[PayPal Error]", err);
-            setError("PayPal encountered an error. Please try again.");
+            setError(err instanceof Error ? err.message : "PayPal encountered an error. Please try again.");
           }}
           disabled={processing}
         />
@@ -331,7 +331,13 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
 
         {/* PAYPAL MODE */}
         {mode === "paypal" && paypalOrderId && paypalClientId && !loading && !checkoutError && (
-          <PayPalScriptProvider options={{ clientId: paypalClientId, currency: (order.currency || "USD").toUpperCase() }}>
+          <PayPalScriptProvider
+            options={{
+              clientId: paypalClientId,
+              currency: (order.currency || "USD").toUpperCase(),
+              intent: order.listing_type === "service" ? "authorize" : "capture",
+            }}
+          >
             <PayPalCheckout order={order} onSuccess={onSuccess} onClose={onClose} paypalOrderId={paypalOrderId} />
           </PayPalScriptProvider>
         )}

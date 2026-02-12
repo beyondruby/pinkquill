@@ -251,7 +251,10 @@ function PayPalInlineButtons({
           }
         }}
         onCancel={() => setError("Payment was cancelled.")}
-        onError={() => setError("PayPal encountered an error.")}
+        onError={(err) => {
+          console.error("[PayPal Error]", err);
+          setError(err instanceof Error ? err.message : "PayPal encountered an error.");
+        }}
         disabled={processing}
       />
       {processing && (
@@ -406,8 +409,18 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
             {/* PayPal */}
             {mode === "paypal" && paypalOrderId && paypalClientId && !checkoutLoading && !checkoutError && (
-              <PayPalScriptProvider options={{ clientId: paypalClientId, currency: (order.currency || "USD").toUpperCase() }}>
-                <PayPalInlineButtons orderId={order.id} paypalOrderId={paypalOrderId} onSuccess={handleSuccess} />
+              <PayPalScriptProvider
+                options={{
+                  clientId: paypalClientId,
+                  currency: (order.currency || "USD").toUpperCase(),
+                  intent: order.listing_type === "service" ? "authorize" : "capture",
+                }}
+              >
+                <PayPalInlineButtons
+                  orderId={order.id}
+                  paypalOrderId={paypalOrderId}
+                  onSuccess={handleSuccess}
+                />
               </PayPalScriptProvider>
             )}
 
