@@ -16,6 +16,7 @@ import type {
   ProductMedia,
   ProductPricing,
   ProductSeller,
+  ShippingAddress,
 } from "../types/store";
 
 // ============================================================================
@@ -144,6 +145,58 @@ export function useCreateOrder(): UseCreateOrderReturn {
   }, []);
 
   return { createOrder, creating, error };
+}
+
+// ============================================================================
+// useUpdateOrderDraft — Update buyer-provided details before payment
+// ============================================================================
+
+interface UpdateOrderDraftPayload {
+  order_id: string;
+  shipping_address?: ShippingAddress;
+  brief?: string;
+  requirements?: Record<string, unknown>;
+  due_date?: string;
+}
+
+interface UseUpdateOrderDraftReturn {
+  updateDraft: (payload: UpdateOrderDraftPayload) => Promise<boolean>;
+  updating: boolean;
+  error: string | null;
+}
+
+export function useUpdateOrderDraft(): UseUpdateOrderDraftReturn {
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateDraft = useCallback(async (payload: UpdateOrderDraftPayload): Promise<boolean> => {
+    setUpdating(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/orders/update-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to update order details");
+      }
+
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useUpdateOrderDraft] Error:", message);
+      setError(message || "Failed to update order details");
+      return false;
+    } finally {
+      setUpdating(false);
+    }
+  }, []);
+
+  return { updateDraft, updating, error };
 }
 
 // ============================================================================

@@ -8,10 +8,19 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getStripe } from "@/lib/stripe-client";
 import { getPayPalClientId } from "@/lib/paypal-client";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCheckout, type CheckoutMode } from "@/lib/hooks/usePayments";
+import { useCheckout } from "@/lib/hooks/usePayments";
 import { useValidatePromoCode, useApplyPromoCode, useRemovePromoCode } from "@/lib/hooks/usePromoCode";
 import { supabase } from "@/lib/supabase";
 import type { Order } from "@/lib/types/store";
+
+function formatCurrency(amount: number, currency = "USD") {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
 
 // ============================================================================
 // ORDER LOADING
@@ -59,20 +68,28 @@ function PromoCodeSection({
   orderId,
   orderAmount,
   listingType,
+  currency,
   onApplied,
   onCheckoutRefresh,
 }: {
   orderId: string;
   orderAmount: number;
   listingType?: string;
+  currency: string;
   onApplied: (discount: number, finalAmount: number) => void;
   onCheckoutRefresh?: () => Promise<unknown> | unknown;
 }) {
   const [code, setCode] = useState("");
-  const [applied, setApplied] = useState<{ code: string; discount: number } | null>(null);
+  const [applied, setApplied] = useState<{
+    code: string;
+    discount: number;
+    originalAmount: number;
+    finalAmount: number;
+  } | null>(null);
   const { loading: validating, error: validateError, validate, clear } = useValidatePromoCode();
   const { loading: applying, error: applyError, apply } = useApplyPromoCode();
   const { loading: removing, error: removeError, remove } = useRemovePromoCode();
+
   const asAmount = useCallback((value: unknown, fallback: number): number => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -80,17 +97,26 @@ function PromoCodeSection({
 
   const handleApply = useCallback(async () => {
     if (!code.trim()) return;
+
     const result = await validate(code, orderAmount, listingType);
     if (!result?.valid || !result.promo_code_id) return;
 
     const applyResult = await apply(orderId, result.promo_code_id);
-    if (applyResult?.success) {
-      const discount = asAmount(applyResult.discount_amount ?? result.discount_amount, 0);
-      const final = asAmount(applyResult.final_amount ?? result.final_amount, orderAmount);
-      setApplied({ code: code.trim().toUpperCase(), discount });
-      onApplied(discount, final);
-      await onCheckoutRefresh?.();
-    }
+    if (!applyResult?.success) return;
+
+    const discount = asAmount(applyResult.discount_amount ?? result.discount_amount, 0);
+    const finalAmount = asAmount(applyResult.final_amount ?? result.final_amount, orderAmount);
+    const originalAmount = asAmount(applyResult.original_amount, orderAmount);
+
+    setApplied({
+      code: code.trim().toUpperCase(),
+      discount,
+      originalAmount,
+      finalAmount,
+    });
+
+    onApplied(discount, finalAmount);
+    await onCheckoutRefresh?.();
   }, [apply, asAmount, code, listingType, onApplied, onCheckoutRefresh, orderAmount, orderId, validate]);
 
   const isLoading = validating || applying || removing;
@@ -98,30 +124,38 @@ function PromoCodeSection({
 
   if (applied) {
     return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between rounded-lg bg-green-50 border border-green-200 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
-              {applied.code}
-            </span>
-            <span className="text-sm text-green-700">-${applied.discount.toFixed(2)}</span>
+      <div className="rounded-2xl border border-green-300 bg-green-50 p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-ui font-semibold text-green-800">Promo applied successfully</p>
+            <p className="text-xs font-body text-green-700 mt-1">
+              Code <span className="font-semibold">{applied.code}</span> saved you {formatCurrency(applied.discount, currency)}
+            </p>
           </div>
           <button
             onClick={async () => {
               const result = await remove(orderId);
               if (!result?.success) return;
+              const finalAmount = asAmount(result.final_amount, orderAmount);
               setApplied(null);
               setCode("");
               clear();
-              onApplied(0, asAmount(result.final_amount, orderAmount));
+              onApplied(0, finalAmount);
               await onCheckoutRefresh?.();
             }}
             disabled={removing}
-            className="text-xs text-green-600 hover:underline disabled:opacity-60"
+            className="rounded-full border border-green-300 px-3 py-1 text-xs font-ui font-semibold text-green-700 hover:bg-green-100 disabled:opacity-60"
           >
             {removing ? "Removing..." : "Remove"}
           </button>
         </div>
+
+        <div className="rounded-xl bg-white/80 border border-green-200 px-3 py-2 text-sm font-body text-green-900">
+          <span className="text-green-700">Total updated:</span>{" "}
+          <span className="line-through opacity-70">{formatCurrency(applied.originalAmount, currency)}</span>{" "}
+          <span className="font-semibold">{formatCurrency(applied.finalAmount, currency)}</span>
+        </div>
+
         {removeError && <p className="text-xs text-red-600">{removeError}</p>}
       </div>
     );
@@ -133,18 +167,26 @@ function PromoCodeSection({
         <input
           type="text"
           value={code}
-          onChange={(e) => { setCode(e.target.value); if (promoError) clear(); }}
+          onChange={(event) => {
+            setCode(event.target.value);
+            if (promoError) clear();
+          }}
           placeholder="Promo code"
           disabled={isLoading}
-          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[var(--color-purple-primary)] outline-none disabled:opacity-50"
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleApply(); } }}
+          className="flex-1 rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)] disabled:opacity-60"
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              handleApply();
+            }
+          }}
         />
         <button
           onClick={handleApply}
           disabled={isLoading || !code.trim()}
-          className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+          className="rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid px-5 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
         >
-          {isLoading ? "..." : "Apply"}
+          {isLoading ? "Applying..." : "Apply"}
         </button>
       </div>
       {promoError && <p className="text-xs text-red-600">{promoError}</p>}
@@ -156,14 +198,14 @@ function PromoCodeSection({
 // STRIPE INLINE FORM
 // ============================================================================
 
-function StripeInlineForm({ orderId, onSuccess }: { orderId: string; onSuccess: () => void }) {
+function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: string; amount: number; currency: string; onSuccess: () => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!stripe || !elements) return;
 
     setProcessing(true);
@@ -189,6 +231,7 @@ function StripeInlineForm({ orderId, onSuccess }: { orderId: string; onSuccess: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ order_id: orderId }),
       });
+
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setError(data.error || "Payment confirmation failed");
@@ -204,15 +247,15 @@ function StripeInlineForm({ orderId, onSuccess }: { orderId: string; onSuccess: 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <PaymentElement />
       {error && <p className="text-red-600 text-sm">{error}</p>}
       <button
         type="submit"
         disabled={!stripe || processing}
-        className="w-full px-6 py-3 bg-[var(--color-purple-primary)] text-white rounded-xl font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+        className="w-full rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm px-6 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
       >
-        {processing ? "Processing..." : "Pay Now"}
+        {processing ? "Processing..." : `Pay ${formatCurrency(amount, currency)}`}
       </button>
     </form>
   );
@@ -238,9 +281,7 @@ function PayPalInlineButtons({
     <div className="space-y-4">
       <PayPalButtons
         style={{ layout: "vertical", color: "gold", shape: "rect", label: "pay", height: 50 }}
-        createOrder={async () => {
-          return paypalOrderId;
-        }}
+        createOrder={async () => paypalOrderId}
         onApprove={async () => {
           setProcessing(true);
           setError(null);
@@ -265,12 +306,14 @@ function PayPalInlineButtons({
         }}
         disabled={processing}
       />
+
       {processing && (
-        <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-[var(--color-purple-primary)]" />
+        <div className="flex items-center justify-center gap-2 text-sm text-muted">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-[var(--color-purple-primary)]" />
           Processing...
         </div>
       )}
+
       {error && <p className="text-red-600 text-sm">{error}</p>}
     </div>
   );
@@ -284,46 +327,50 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { order, loading: orderLoading, error: orderError } = useOrderData(orderId);
-  const { mode, clientSecret, paypalOrderId, loading: checkoutLoading, error: checkoutError, createCheckout } = useCheckout();
+  const {
+    mode,
+    clientSecret,
+    paypalOrderId,
+    loading: checkoutLoading,
+    error: checkoutError,
+    createCheckout,
+    confirmPayment,
+  } = useCheckout();
+
   const [stripeReady, setStripeReady] = useState(false);
   const [displayAmount, setDisplayAmount] = useState<number | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [confirmingZeroTotal, setConfirmingZeroTotal] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  // Start checkout session
+  useEffect(() => {
+    if (order) {
+      setDisplayAmount(Number(order.amount));
+      setDiscountAmount(Number(order.discount_amount || 0));
+    }
+  }, [order]);
+
   useEffect(() => {
     if (order && order.status === "pending_payment") {
       createCheckout(order.id);
     }
   }, [order, createCheckout]);
 
-  // Load stripe when needed
   useEffect(() => {
     if (mode !== "stripe") return;
-    getStripe().then((s) => { if (s) setStripeReady(true); });
+    getStripe().then((stripe) => {
+      if (stripe) setStripeReady(true);
+    });
   }, [mode]);
-
-  // Set display amount from order
-  useEffect(() => {
-    if (order) setDisplayAmount(Number(order.amount));
-  }, [order]);
 
   const handleSuccess = useCallback(() => {
     router.push(`/orders/${orderId}?payment=success`);
   }, [router, orderId]);
 
-  const handlePlaceholderConfirm = useCallback(async () => {
-    const res = await fetch("/api/payments/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ order_id: orderId }),
-    });
-    if (res.ok) handleSuccess();
-  }, [orderId, handleSuccess]);
-
   if (authLoading || orderLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-[var(--color-purple-primary)]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-black/20 border-t-[var(--color-purple-primary)]" />
       </div>
     );
   }
@@ -335,18 +382,18 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
   if (orderError || !order) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16">
-        <h2 className="text-xl font-bold mb-2">Order Not Found</h2>
-        <p className="text-gray-600 text-sm">{orderError || "This order does not exist."}</p>
+      <div className="mx-auto max-w-lg py-16 text-center">
+        <h2 className="mb-2 text-xl font-display text-ink">Order Not Found</h2>
+        <p className="text-sm font-body text-muted">{orderError || "This order does not exist."}</p>
       </div>
     );
   }
 
   if (order.buyer_id !== user.id) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16">
-        <h2 className="text-xl font-bold mb-2">Not Authorized</h2>
-        <p className="text-gray-600 text-sm">You do not have access to this order.</p>
+      <div className="mx-auto max-w-lg py-16 text-center">
+        <h2 className="mb-2 text-xl font-display text-ink">Not Authorized</h2>
+        <p className="text-sm font-body text-muted">You do not have access to this order.</p>
       </div>
     );
   }
@@ -356,155 +403,233 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     return null;
   }
 
-  const amount = displayAmount ?? Number(order.amount);
-  const productImage = order.product?.media?.find((m: { is_primary: boolean })=> m.is_primary)?.media_url
-    || order.product?.media?.[0]?.media_url;
+  const amount = Math.max(displayAmount ?? Number(order.amount), 0);
+  const shippingCost = Number(order.shipping_cost || 0);
+  const originalAmount = Number(order.original_amount ?? Number(order.amount) + Number(order.discount_amount || 0));
+  const effectiveDiscount = Math.max(discountAmount || Number(order.discount_amount || 0), 0);
+  const subtotal = Math.max(originalAmount - shippingCost, 0);
+  const zeroTotal = amount <= 0;
+
+  const productImage =
+    order.product?.media?.find((item: { is_primary: boolean }) => item.is_primary)?.media_url ||
+    order.product?.media?.[0]?.media_url;
+
   const paypalClientId = getPayPalClientId();
+  const currency = order.currency || "USD";
 
   const elementsOptions: StripeElementsOptions | undefined = clientSecret
     ? {
         clientSecret,
-        appearance: { theme: "stripe", variables: { colorPrimary: "#8e44ad", borderRadius: "8px" } },
+        appearance: {
+          theme: "stripe",
+          variables: {
+            colorPrimary: "#8e44ad",
+            borderRadius: "10px",
+          },
+        },
       }
     : undefined;
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-8">Checkout</h1>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#fff4fb_0%,#ffffff_45%,#fff9f0_100%)]">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+        <header className="mb-6 sm:mb-8">
+          <p className="text-xs font-ui uppercase tracking-[0.16em] text-pink-vivid">Checkout</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-display text-ink">Complete Your Order</h1>
+          <p className="mt-2 max-w-2xl text-sm font-body text-muted">
+            Apply promo codes, review your total, and finish payment securely.
+          </p>
+        </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Left: Payment */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Promo Code */}
-          <div className="bg-white rounded-2xl border border-black/[0.06] p-5">
-            <h3 className="font-semibold text-sm text-gray-700 mb-3">Promo Code</h3>
-            <PromoCodeSection
-              orderId={order.id}
-              orderAmount={Number(order.original_amount || order.amount)}
-              listingType={order.listing_type}
-              onApplied={(discount, final) => {
-                setDiscountAmount(discount);
-                setDisplayAmount(final);
-              }}
-              onCheckoutRefresh={() => createCheckout(order.id)}
-            />
-          </div>
-
-          {/* Payment Method */}
-          <div className="bg-white rounded-2xl border border-black/[0.06] p-5">
-            <h3 className="font-semibold text-sm text-gray-700 mb-4">Payment Method</h3>
-
-            {checkoutLoading && (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-[var(--color-purple-primary)]" />
-              </div>
-            )}
-
-            {checkoutError && (
-              <div className="text-center py-4">
-                <p className="text-red-600 text-sm mb-2">{checkoutError}</p>
-                <button onClick={() => createCheckout(order.id)} className="text-sm text-[var(--color-purple-primary)] hover:underline">
-                  Try again
-                </button>
-              </div>
-            )}
-
-            {/* Stripe */}
-            {mode === "stripe" && clientSecret && stripeReady && elementsOptions && (
-              <Elements stripe={getStripe()} options={elementsOptions}>
-                <StripeInlineForm orderId={order.id} onSuccess={handleSuccess} />
-              </Elements>
-            )}
-
-            {/* PayPal */}
-            {mode === "paypal" && paypalOrderId && paypalClientId && !checkoutLoading && !checkoutError && (
-              <PayPalScriptProvider
-                options={{
-                  clientId: paypalClientId,
-                  currency: (order.currency || "USD").toUpperCase(),
-                  intent: order.listing_type === "service" ? "authorize" : "capture",
-                }}
-              >
-                <PayPalInlineButtons
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.05fr)_380px]">
+          <section className="rounded-3xl border border-black/[0.08] bg-white/90 backdrop-blur p-5 sm:p-6 space-y-6">
+            <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(135deg,rgba(142,68,173,0.08),rgba(255,0,127,0.06),rgba(255,159,67,0.08))] p-4">
+              <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Step 1</p>
+              <h2 className="mt-1 text-lg font-display text-ink">Promo Code</h2>
+              <p className="text-sm font-body text-muted mt-1">If you have a code, apply it before payment.</p>
+              <div className="mt-4">
+                <PromoCodeSection
                   orderId={order.id}
-                  paypalOrderId={paypalOrderId}
-                  onSuccess={handleSuccess}
+                  orderAmount={originalAmount}
+                  listingType={order.listing_type}
+                  currency={currency}
+                  onApplied={(discount, final) => {
+                    setDiscountAmount(discount);
+                    setDisplayAmount(final);
+                    setActionError(null);
+                  }}
+                  onCheckoutRefresh={() => createCheckout(order.id)}
                 />
-              </PayPalScriptProvider>
-            )}
-
-            {/* Placeholder */}
-            {mode === "placeholder" && !checkoutLoading && !checkoutError && (
-              <div className="space-y-4">
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                  <p className="font-semibold">Test Mode</p>
-                  <p className="mt-0.5 text-xs">No real payment will be charged.</p>
-                </div>
-                <button
-                  onClick={handlePlaceholderConfirm}
-                  className="w-full px-6 py-3 bg-[var(--color-purple-primary)] text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
-                >
-                  Confirm Payment
-                </button>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Right: Order Summary */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl border border-black/[0.06] p-5 sticky top-8">
-            <h3 className="font-semibold text-gray-700 mb-4">Order Summary</h3>
+            <div className="rounded-2xl border border-black/[0.06] p-4 sm:p-5">
+              <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Step 2</p>
+              <h2 className="mt-1 text-lg font-display text-ink">Payment</h2>
 
-            {/* Product */}
-            <div className="flex gap-3 mb-4">
+              {checkoutLoading && (
+                <div className="flex items-center justify-center py-10">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-black/20 border-t-[var(--color-purple-primary)]" />
+                </div>
+              )}
+
+              {checkoutError && (
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+                  <p className="text-sm font-body text-red-700">{checkoutError}</p>
+                  <button
+                    onClick={() => {
+                      setActionError(null);
+                      createCheckout(order.id);
+                    }}
+                    className="mt-2 text-sm font-ui font-semibold text-red-700 underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+
+              {actionError && <p className="mt-4 text-sm text-red-600">{actionError}</p>}
+
+              {mode === "stripe" && clientSecret && stripeReady && elementsOptions && !checkoutLoading && !checkoutError && (
+                <div className="mt-4">
+                  <Elements stripe={getStripe()} options={elementsOptions}>
+                    <StripeInlineForm
+                      orderId={order.id}
+                      amount={amount}
+                      currency={currency}
+                      onSuccess={handleSuccess}
+                    />
+                  </Elements>
+                </div>
+              )}
+
+              {mode === "paypal" && paypalOrderId && paypalClientId && !checkoutLoading && !checkoutError && (
+                <div className="mt-4">
+                  <PayPalScriptProvider
+                    options={{
+                      clientId: paypalClientId,
+                      currency: currency.toUpperCase(),
+                      intent: order.listing_type === "service" ? "authorize" : "capture",
+                    }}
+                  >
+                    <PayPalInlineButtons
+                      orderId={order.id}
+                      paypalOrderId={paypalOrderId}
+                      onSuccess={handleSuccess}
+                    />
+                  </PayPalScriptProvider>
+                </div>
+              )}
+
+              {mode === "placeholder" && !checkoutLoading && !checkoutError && (
+                <div className="mt-4 space-y-4">
+                  {zeroTotal ? (
+                    <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                      <p className="text-sm font-ui font-semibold text-green-800">
+                        {effectiveDiscount > 0 ? "Promo applied. Your total is now $0.00." : "No payment required for this order."}
+                      </p>
+                      <p className="mt-1 text-xs font-body text-green-700">
+                        Complete the order and continue normally.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-sm font-ui font-semibold text-amber-900">Payment provider fallback</p>
+                      <p className="mt-1 text-xs font-body text-amber-800">
+                        We couldn&apos;t initialize a card/wallet checkout for this order. Use secure fallback confirmation to continue.
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={async () => {
+                      setActionError(null);
+                      setConfirmingZeroTotal(true);
+                      const success = await confirmPayment(order.id);
+                      setConfirmingZeroTotal(false);
+                      if (success) {
+                        handleSuccess();
+                      } else {
+                        setActionError("Unable to confirm payment right now. Please try again.");
+                      }
+                    }}
+                    disabled={confirmingZeroTotal}
+                    className="w-full rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm px-6 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
+                  >
+                    {confirmingZeroTotal ? "Confirming..." : zeroTotal ? "Complete Order" : "Confirm Payment"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="rounded-3xl border border-black/[0.08] bg-white/95 p-5 sm:p-6 xl:sticky xl:top-8 h-fit">
+            <h2 className="text-lg font-display text-ink">Order Summary</h2>
+
+            <div className="mt-4 flex gap-3">
               {productImage && (
                 <img
                   src={productImage as string}
                   alt=""
-                  className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                  className="h-16 w-16 rounded-xl object-cover flex-shrink-0"
                 />
               )}
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{order.product?.title || "Order"}</p>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-sm font-ui font-semibold text-ink truncate">{order.product?.title || "Order"}</p>
+                <p className="mt-0.5 text-xs font-body text-muted">
                   {order.listing_type === "service" ? "Commission" : "Product"}
                 </p>
                 {order.product?.seller && (
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="mt-0.5 text-xs font-body text-muted">
                     by @{(order.product.seller as { username: string }).username}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="border-t pt-3 space-y-2 text-sm">
+            <div className="mt-5 rounded-2xl border border-black/[0.06] bg-black/[0.02] p-4 space-y-2 text-sm font-body">
               <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                <span>${Number(order.original_amount || order.amount).toFixed(2)}</span>
+                <span className="text-muted">Subtotal</span>
+                <span className="text-ink">{formatCurrency(subtotal, currency)}</span>
               </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount</span>
-                  <span>-${discountAmount.toFixed(2)}</span>
+
+              {shippingCost > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted">Shipping</span>
+                  <span className="text-ink">{formatCurrency(shippingCost, currency)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-xs text-gray-400">
+
+              {effectiveDiscount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount</span>
+                  <span>-{formatCurrency(effectiveDiscount, currency)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-xs text-muted">
                 <span>Platform fee</span>
-                <span>${Number(order.platform_fee).toFixed(2)}</span>
+                <span>{formatCurrency(Number(order.platform_fee), currency)}</span>
               </div>
-              <div className="border-t pt-2 flex justify-between font-semibold text-base">
+
+              <div className="border-t border-black/[0.08] pt-2 flex justify-between text-base font-ui font-semibold text-ink">
                 <span>Total</span>
-                <span>${amount.toFixed(2)}</span>
+                <span>{formatCurrency(amount, currency)}</span>
               </div>
             </div>
 
+            {zeroTotal && effectiveDiscount > 0 && (
+              <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs font-body text-green-800">
+                Your promo covered the full total. Complete order to continue.
+              </div>
+            )}
+
             {order.listing_type === "service" && (
-              <p className="text-xs text-gray-500 mt-3 bg-gray-50 rounded-lg p-2.5">
-                Payment is held in escrow and released after you approve the delivery.
+              <p className="mt-4 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3 text-xs font-body text-muted">
+                Commission payments are held in escrow and released after you approve delivery.
               </p>
             )}
-          </div>
+          </aside>
         </div>
       </div>
     </div>

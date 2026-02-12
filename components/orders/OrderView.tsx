@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useOrder } from "@/lib/hooks/useOrders";
+import { useOrder, useUpdateOrderDraft } from "@/lib/hooks/useOrders";
 import { useOrderReviews } from "@/lib/hooks/useReviews";
 import { useOrderDispute } from "@/lib/hooks/useDisputes";
 import { useConfirmDelivery } from "@/lib/hooks/useShipping";
@@ -29,8 +29,23 @@ export default function OrderView({ orderId }: OrderViewProps) {
   const { user } = useAuth();
   const router = useRouter();
   const { order, loading, error, refetch } = useOrder(orderId);
+  const { updateDraft, updating: updatingDraft, error: updateDraftError } = useUpdateOrderDraft();
   const searchParams = useSearchParams();
   const paymentSyncTriggeredRef = useRef(false);
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
+  const [draftValidationError, setDraftValidationError] = useState<string | null>(null);
+  const [shippingDraft, setShippingDraft] = useState({
+    name: "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "",
+  });
+  const [briefDraft, setBriefDraft] = useState("");
+  const [notesDraft, setNotesDraft] = useState("");
+  const [dueDateDraft, setDueDateDraft] = useState("");
 
   const paymentParam = searchParams.get("payment");
 
@@ -62,6 +77,30 @@ export default function OrderView({ orderId }: OrderViewProps) {
       paymentSyncTriggeredRef.current = false;
     }
   }, [paymentParam, order?.id, order?.buyer_id, user?.id, refetch]);
+
+  useEffect(() => {
+    if (!order) return;
+    setShippingDraft({
+      name: order.shipping_address?.name || "",
+      line1: order.shipping_address?.line1 || "",
+      line2: order.shipping_address?.line2 || "",
+      city: order.shipping_address?.city || "",
+      state: order.shipping_address?.state || "",
+      postal_code: order.shipping_address?.postal_code || "",
+      country: order.shipping_address?.country || "",
+    });
+    setBriefDraft(order.brief || "");
+    setNotesDraft(typeof order.requirements?.notes === "string" ? order.requirements.notes : "");
+    if (order.due_date) {
+      const dueDate = new Date(order.due_date);
+      const year = dueDate.getFullYear();
+      const month = String(dueDate.getMonth() + 1).padStart(2, "0");
+      const day = String(dueDate.getDate()).padStart(2, "0");
+      setDueDateDraft(`${year}-${month}-${day}`);
+    } else {
+      setDueDateDraft("");
+    }
+  }, [order]);
 
   if (loading) {
     return (
@@ -98,6 +137,67 @@ export default function OrderView({ orderId }: OrderViewProps) {
   const isBuyer = user?.id === order.buyer_id;
   const counterparty = isBuyer ? order.seller : order.buyer;
   const isCommission = order.listing_type === "service";
+  const isPhysicalProduct = !isCommission && order.product?.delivery_type !== "digital";
+  const shippingCost = Number(order.shipping_cost || 0);
+  const originalAmount = Number(order.original_amount ?? order.amount);
+  const discountAmount = Number(order.discount_amount || 0);
+  const subtotalAmount = Math.max(originalAmount - shippingCost, 0);
+
+  const handleSaveDraftDetails = async () => {
+    if (!isBuyer) return;
+    setDraftValidationError(null);
+    setDraftNotice(null);
+
+    const payload: {
+      order_id: string;
+      shipping_address?: typeof shippingDraft;
+      brief?: string;
+      requirements?: Record<string, unknown>;
+      due_date?: string;
+    } = { order_id: order.id };
+
+    if (isPhysicalProduct) {
+      if (!shippingDraft.name.trim() || !shippingDraft.line1.trim() || !shippingDraft.city.trim() || !shippingDraft.country.trim()) {
+        setDraftValidationError("Shipping details are incomplete. Name, address, city, and country are required.");
+        return;
+      }
+      payload.shipping_address = {
+        name: shippingDraft.name.trim(),
+        line1: shippingDraft.line1.trim(),
+        line2: shippingDraft.line2.trim(),
+        city: shippingDraft.city.trim(),
+        state: shippingDraft.state.trim(),
+        postal_code: shippingDraft.postal_code.trim(),
+        country: shippingDraft.country.trim(),
+      };
+    }
+
+    if (isCommission) {
+      if (!briefDraft.trim()) {
+        setDraftValidationError("Commission brief cannot be empty.");
+        return;
+      }
+      payload.brief = briefDraft.trim();
+      payload.requirements = {
+        ...(order.requirements || {}),
+        notes: notesDraft.trim(),
+      };
+      if (dueDateDraft) {
+        const parsedDueDate = new Date(`${dueDateDraft}T12:00:00Z`);
+        if (Number.isNaN(parsedDueDate.getTime())) {
+          setDraftValidationError("Please enter a valid due date.");
+          return;
+        }
+        payload.due_date = parsedDueDate.toISOString();
+      }
+    }
+
+    const success = await updateDraft(payload);
+    if (!success) return;
+
+    setDraftNotice("Order details saved.");
+    await refetch();
+  };
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
@@ -186,6 +286,31 @@ export default function OrderView({ orderId }: OrderViewProps) {
               />
             )}
           </div>
+
+          {(shippingCost > 0 || discountAmount > 0) && (
+            <div className="mt-4 rounded-xl border border-black/[0.06] bg-black/[0.02] p-4 space-y-2 text-sm font-body">
+              <div className="flex justify-between">
+                <span className="text-muted">Subtotal</span>
+                <span className="text-ink">${subtotalAmount.toFixed(2)}</span>
+              </div>
+              {shippingCost > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted">Shipping</span>
+                  <span className="text-ink">${shippingCost.toFixed(2)}</span>
+                </div>
+              )}
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount</span>
+                  <span>-${discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="border-t border-black/[0.06] pt-2 flex justify-between font-semibold text-ink">
+                <span>Total</span>
+                <span>${Number(order.amount).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Pending Acceptance Banner */}
@@ -220,6 +345,103 @@ export default function OrderView({ orderId }: OrderViewProps) {
           </section>
         )}
 
+        {order.status === "pending_payment" && isBuyer && (
+          <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6 space-y-4">
+            <h2 className="font-display text-xl text-ink">Order Details</h2>
+            <p className="text-sm font-body text-muted">
+              Confirm your details here before you continue to checkout.
+            </p>
+
+            {isPhysicalProduct && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  placeholder="Full name"
+                  value={shippingDraft.name}
+                  onChange={(event) => setShippingDraft((prev) => ({ ...prev, name: event.target.value }))}
+                  className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
+                />
+                <input
+                  placeholder="Address line 1"
+                  value={shippingDraft.line1}
+                  onChange={(event) => setShippingDraft((prev) => ({ ...prev, line1: event.target.value }))}
+                  className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
+                />
+                <input
+                  placeholder="Address line 2 (optional)"
+                  value={shippingDraft.line2}
+                  onChange={(event) => setShippingDraft((prev) => ({ ...prev, line2: event.target.value }))}
+                  className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
+                />
+                <input
+                  placeholder="City"
+                  value={shippingDraft.city}
+                  onChange={(event) => setShippingDraft((prev) => ({ ...prev, city: event.target.value }))}
+                  className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
+                />
+                <input
+                  placeholder="State / Region"
+                  value={shippingDraft.state}
+                  onChange={(event) => setShippingDraft((prev) => ({ ...prev, state: event.target.value }))}
+                  className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
+                />
+                <input
+                  placeholder="Postal code"
+                  value={shippingDraft.postal_code}
+                  onChange={(event) => setShippingDraft((prev) => ({ ...prev, postal_code: event.target.value }))}
+                  className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
+                />
+                <input
+                  placeholder="Country"
+                  value={shippingDraft.country}
+                  onChange={(event) => setShippingDraft((prev) => ({ ...prev, country: event.target.value }))}
+                  className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body sm:col-span-2"
+                />
+              </div>
+            )}
+
+            {isCommission && (
+              <div className="space-y-3">
+                <textarea
+                  rows={5}
+                  value={briefDraft}
+                  onChange={(event) => setBriefDraft(event.target.value)}
+                  placeholder="Describe project goals, style, references, and deliverables."
+                  className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="date"
+                    value={dueDateDraft}
+                    onChange={(event) => setDueDateDraft(event.target.value)}
+                    className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
+                  />
+                  <input
+                    value={notesDraft}
+                    onChange={(event) => setNotesDraft(event.target.value)}
+                    placeholder="Extra notes (optional)"
+                    className="px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body"
+                  />
+                </div>
+              </div>
+            )}
+
+            {(draftValidationError || updateDraftError) && (
+              <p className="text-sm font-body text-red-500">{draftValidationError || updateDraftError}</p>
+            )}
+            {draftNotice && (
+              <p className="text-sm font-body text-green-600">{draftNotice}</p>
+            )}
+
+            <button
+              onClick={handleSaveDraftDetails}
+              disabled={updatingDraft}
+              className="px-5 py-3 rounded-xl text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid disabled:opacity-60"
+            >
+              {updatingDraft ? "Saving..." : "Save Details"}
+            </button>
+          </section>
+        )}
+
         {order.status === "pending_payment" && !isBuyer && (
           <section className="rounded-2xl border border-yellow-300/50 bg-yellow-50 p-5 sm:p-6 text-center">
             <h2 className="font-display text-lg text-ink mb-1">Awaiting Payment</h2>
@@ -233,7 +455,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
         <OrderTimeline order={order} />
 
         {/* Brief (commissions) */}
-        {isCommission && order.brief && (
+        {isCommission && order.brief && (order.status !== "pending_payment" || !isBuyer) && (
           <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
             <h2 className="font-display text-xl text-ink mb-3">Brief</h2>
             <p className="font-body text-sm text-ink/90 whitespace-pre-wrap">{order.brief}</p>
@@ -252,7 +474,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
         )}
 
         {/* Shipping Address (physical products) */}
-        {order.shipping_address && (
+        {order.shipping_address && (order.status !== "pending_payment" || !isBuyer) && (
           <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
             <h2 className="font-display text-xl text-ink mb-3">Shipping Address</h2>
             <div className="font-body text-sm text-ink/90">

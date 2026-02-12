@@ -146,11 +146,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
     if (order) {
       setShowHireModal(false);
-      if (order.status === "pending_acceptance") {
-        router.push(`/orders/${order.id}`);
-      } else {
-        router.push(`/checkout/${order.id}`);
-      }
+      router.push(`/orders/${order.id}`);
     }
   };
 

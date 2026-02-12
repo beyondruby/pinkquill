@@ -389,6 +389,7 @@ export function useCreateProduct(): UseCreateProductReturn {
             shipping_locations: wizardState.shipping.shipping_locations || [],
             packaging: wizardState.shipping.packaging || null,
             processing_days: wizardState.shipping.processing_days || null,
+            shipping_cost: wizardState.shipping.shipping_cost || 0,
           });
 
         if (shippingError) throw shippingError;

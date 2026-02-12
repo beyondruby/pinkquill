@@ -241,6 +241,7 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
     : undefined;
 
   const paypalClientId = getPayPalClientId();
+  const zeroTotal = Number(order.amount) <= 0;
 
   return (
     <div
@@ -281,10 +282,19 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
         {mode === "placeholder" && !checkoutError && !loading && (
           <div className="space-y-6">
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              <p className="font-semibold">Placeholder payment mode is active.</p>
-              <p className="mt-1">
-                Payment setup is pending. Confirm payment with the temporary flow so order work can continue.
-              </p>
+              {zeroTotal ? (
+                <>
+                  <p className="font-semibold">No payment due for this order.</p>
+                  <p className="mt-1">Your current total is $0.00. Complete the order to continue.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold">Payment provider fallback is active.</p>
+                  <p className="mt-1">
+                    We could not initialize card/wallet checkout for this order. Confirm payment with fallback to continue.
+                  </p>
+                </>
+              )}
             </div>
             <div className="rounded-xl border border-black/[0.06] p-4 space-y-2 text-sm">
               <div className="flex justify-between">
@@ -316,7 +326,7 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
                 disabled={confirmingPlaceholder}
                 className="flex-1 px-4 py-2.5 bg-[var(--color-purple-primary)] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
-                {confirmingPlaceholder ? "Confirming..." : "Confirm Placeholder Payment"}
+                {confirmingPlaceholder ? "Confirming..." : zeroTotal ? "Complete Order" : "Confirm Payment"}
               </button>
             </div>
           </div>

@@ -124,6 +124,7 @@ export interface ProductShipping {
   shipping_locations: string[];
   packaging: string | null;
   processing_days: number | null;
+  shipping_cost: number;
   created_at: string;
 }
 
@@ -689,6 +690,7 @@ export interface CreateShippingData {
   shipping_locations?: string[];
   packaging?: string;
   processing_days?: number;
+  shipping_cost?: number;
 }
 
 export interface UpdateProductData extends Partial<CreateProductData> {
@@ -815,6 +817,7 @@ export const initialWizardState: ProductWizardState = {
     weight_unit: 'kg',
     shipping_locations: [],
     shipping_services: [],
+    shipping_cost: 0,
   },
   keywords: [],
 };

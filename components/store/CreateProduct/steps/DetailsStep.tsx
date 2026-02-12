@@ -218,40 +218,172 @@ export default function DetailsStep({
       {deliveryType !== "digital" && (
         <div className="pt-6 border-t border-gray-100">
           <SectionHeader>Shipping:</SectionHeader>
-          <div>
-            <label className="block text-sm font-ui font-semibold text-ink mb-3">
-              Shipping services
-            </label>
-            <div className="relative">
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                <div className="w-full h-full rounded-xl bg-white" />
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-ui font-semibold text-ink mb-3">
+                Shipping services
+              </label>
+              <div className="relative">
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+                  <div className="w-full h-full rounded-xl bg-white" />
+                </div>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    value={wizardState.shipping.shipping_services?.join(", ") || ""}
+                    onChange={(e) =>
+                      updateState({
+                        shipping: {
+                          ...wizardState.shipping,
+                          shipping_services: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                        },
+                      })
+                    }
+                    placeholder="DHL, FedEx, UPS"
+                    className="w-full px-4 py-3.5 pr-12 rounded-xl
+                      bg-transparent
+                      outline-none transition-all duration-300
+                      font-body text-ink placeholder:text-gray-400"
+                  />
+                  <div className="absolute right-4 text-orange-warm">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  value={wizardState.shipping.shipping_services?.join(", ") || ""}
-                  onChange={(e) =>
-                    updateState({
-                      shipping: {
-                        ...wizardState.shipping,
-                        shipping_services: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                      },
-                    })
-                  }
-                  placeholder="DHL, FedEx, UPS"
-                  className="w-full px-4 py-3.5 pr-12 rounded-xl
-                    bg-transparent
-                    outline-none transition-all duration-300
-                    font-body text-ink placeholder:text-gray-400"
-                />
-                <div className="absolute right-4 text-orange-warm">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
+              <p className="text-xs text-muted mt-2">Separate with commas</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-ui font-semibold text-ink mb-3">
+                  Shipping locations
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+                    <div className="w-full h-full rounded-xl bg-white" />
+                  </div>
+                  <input
+                    type="text"
+                    value={wizardState.shipping.shipping_locations?.join(", ") || ""}
+                    onChange={(e) =>
+                      updateState({
+                        shipping: {
+                          ...wizardState.shipping,
+                          shipping_locations: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                        },
+                      })
+                    }
+                    placeholder="United States, Canada, International"
+                    className="relative w-full px-4 py-3 rounded-xl
+                      bg-transparent
+                      outline-none transition-all duration-300
+                      font-body text-ink placeholder:text-gray-400"
+                  />
+                </div>
+                <p className="text-xs text-muted mt-2">Separate with commas</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-ui font-semibold text-ink mb-3">
+                  Packaging
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+                    <div className="w-full h-full rounded-xl bg-white" />
+                  </div>
+                  <select
+                    value={wizardState.shipping.packaging || ""}
+                    onChange={(e) =>
+                      updateState({
+                        shipping: {
+                          ...wizardState.shipping,
+                          packaging: e.target.value || undefined,
+                        },
+                      })
+                    }
+                    className="relative w-full px-4 py-3 rounded-xl
+                      bg-transparent
+                      outline-none transition-all duration-300
+                      font-body text-ink appearance-none"
+                  >
+                    <option value="">Select packaging</option>
+                    <option value="box">Box</option>
+                    <option value="wood_crate">Wood crate</option>
+                    <option value="tube">Tube</option>
+                    <option value="envelope">Envelope</option>
+                    <option value="padded_envelope">Padded envelope</option>
+                    <option value="custom">Custom</option>
+                  </select>
                 </div>
               </div>
             </div>
-            <p className="text-xs text-muted mt-2">Separate with commas</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-ui font-semibold text-ink mb-3">
+                  Shipping price (USD)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+                    <div className="w-full h-full rounded-xl bg-white" />
+                  </div>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-4 text-pink-vivid font-medium">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={wizardState.shipping.shipping_cost ?? ""}
+                      onChange={(e) =>
+                        updateState({
+                          shipping: {
+                            ...wizardState.shipping,
+                            shipping_cost: e.target.value ? parseFloat(e.target.value) : 0,
+                          },
+                        })
+                      }
+                      placeholder="0.00"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl
+                        bg-transparent
+                        outline-none transition-all duration-300 font-body
+                        [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-ui font-semibold text-ink mb-3">
+                  Processing days
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
+                    <div className="w-full h-full rounded-xl bg-white" />
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={wizardState.shipping.processing_days ?? ""}
+                    onChange={(e) =>
+                      updateState({
+                        shipping: {
+                          ...wizardState.shipping,
+                          processing_days: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                        },
+                      })
+                    }
+                    placeholder="3"
+                    className="relative w-full px-4 py-3 rounded-xl
+                      bg-transparent
+                      outline-none transition-all duration-300
+                      font-body text-ink"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

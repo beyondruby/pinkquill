@@ -107,6 +107,9 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   const categoryConfig = getCategoryConfig(product.category);
   const activePricing = selectedPricing || product.pricing?.[0];
   const isQueued = activePricing ? hasItem(product.id, activePricing.id) : false;
+  const shippingCost = product.delivery_type !== "digital"
+    ? Number(product.shipping?.shipping_cost || 0)
+    : 0;
 
   const formatPrice = (price: number, currency = "USD") => {
     return new Intl.NumberFormat("en-US", {
@@ -256,6 +259,14 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   <div>
                     <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Shipping</h3>
                     <dl className="mt-3 space-y-2 max-w-3xl">
+                      {shippingCost > 0 && (
+                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <dt className="text-sm font-body text-muted">Shipping price</dt>
+                          <dd className="text-sm font-ui text-ink text-right">
+                            {formatPrice(shippingCost, activePricing?.currency || "USD")}
+                          </dd>
+                        </div>
+                      )}
                       {product.shipping.shipping_locations?.length > 0 && (
                         <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
                           <dt className="text-sm font-body text-muted">Ships to</dt>
@@ -448,6 +459,12 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   <span className="text-muted">Subtotal</span>
                   <span className="text-ink font-semibold">{formatPrice(activePricing.price, activePricing.currency)}</span>
                 </div>
+                {shippingCost > 0 && (
+                  <div className="flex justify-between text-sm font-body">
+                    <span className="text-muted">Shipping</span>
+                    <span className="text-ink font-semibold">{formatPrice(shippingCost, activePricing.currency)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm font-body">
                   <span className="text-muted">Platform fee ({Math.round(PLATFORM_FEES.product * 100)}%)</span>
                   <span className="text-ink">
@@ -457,7 +474,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 <div className="border-t border-black/[0.06] pt-2 flex justify-between">
                   <span className="font-ui font-semibold text-ink">Total</span>
                   <span className="font-display text-xl font-semibold text-ink">
-                    {formatPrice(activePricing.price, activePricing.currency)}
+                    {formatPrice(activePricing.price + shippingCost, activePricing.currency)}
                   </span>
                 </div>
               </div>
@@ -520,36 +537,25 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                     return;
                   }
 
-                  const platformFee = Math.round(activePricing.price * PLATFORM_FEES.product * 100) / 100;
-                  const sellerAmount = Math.round((activePricing.price - platformFee) * 100) / 100;
-
                   const order = await createOrder({
                     product_id: product.id,
                     pricing_id: activePricing.id,
                     listing_type: "product",
-                    amount: activePricing.price,
-                    platform_fee: platformFee,
-                    seller_amount: sellerAmount,
-                    currency: activePricing.currency,
                     shipping_address: isPhysical ? (shippingAddress as ShippingAddress) : undefined,
                   });
 
                   if (order) {
                     setShowBuyModal(false);
-                    if (order.status === "pending_acceptance") {
-                      router.push(`/orders/${order.id}`);
-                    } else {
-                      router.push(`/checkout/${order.id}`);
-                    }
+                    router.push(`/orders/${order.id}`);
                   }
                 }}
                 disabled={buying}
                 className="w-full py-3.5 rounded-xl text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60"
               >
-                {buying ? "Creating..." : "Create Order Draft"}
+                {buying ? "Creating..." : "Start Order"}
               </button>
 
-              <p className="text-xs text-center font-body text-muted">Payment confirmation happens in the next step</p>
+              <p className="text-xs text-center font-body text-muted">Next: review details on the order page, then complete payment.</p>
             </div>
           </div>
         </div>

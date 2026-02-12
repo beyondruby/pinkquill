@@ -95,11 +95,7 @@ export default function StudioCartPage() {
 
         if (order) {
           removeItem(item.id);
-          if (order.status === "pending_acceptance") {
-            router.push(`/orders/${order.id}`);
-          } else {
-            router.push(`/checkout/${order.id}`);
-          }
+          router.push(`/orders/${order.id}`);
         }
         return;
       }
@@ -123,11 +119,7 @@ export default function StudioCartPage() {
 
       if (order) {
         removeItem(item.id);
-        if (order.status === "pending_acceptance") {
-          router.push(`/orders/${order.id}`);
-        } else {
-          router.push(`/checkout/${order.id}`);
-        }
+        router.push(`/orders/${order.id}`);
       }
     } finally {
       setSubmittingItemId(null);
