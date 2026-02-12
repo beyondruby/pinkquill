@@ -156,6 +156,86 @@ ALTER TABLE promo_codes
 ALTER TABLE promo_codes
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
+-- Map legacy promo schema columns (if present) into the normalized shape used below.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'promo_codes'
+      AND column_name = 'listing_type'
+  ) THEN
+    EXECUTE $sql$
+      UPDATE promo_codes
+      SET applicable_listing_type = LOWER(listing_type)
+      WHERE LOWER(COALESCE(listing_type, '')) IN ('product', 'service')
+        AND COALESCE(applicable_listing_type, 'all') = 'all'
+    $sql$;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'promo_codes'
+      AND column_name = 'min_order_amount'
+  ) THEN
+    EXECUTE $sql$
+      UPDATE promo_codes
+      SET minimum_amount = min_order_amount
+      WHERE min_order_amount IS NOT NULL
+        AND min_order_amount > 0
+        AND COALESCE(minimum_amount, 0) = 0
+    $sql$;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'promo_codes'
+      AND column_name = 'max_uses'
+  ) THEN
+    EXECUTE $sql$
+      UPDATE promo_codes
+      SET max_redemptions = max_uses
+      WHERE max_uses IS NOT NULL
+        AND max_redemptions IS NULL
+    $sql$;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'promo_codes'
+      AND column_name = 'valid_from'
+  ) THEN
+    EXECUTE $sql$
+      UPDATE promo_codes
+      SET starts_at = valid_from
+      WHERE starts_at IS NULL
+        AND valid_from IS NOT NULL
+    $sql$;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'promo_codes'
+      AND column_name = 'valid_until'
+  ) THEN
+    EXECUTE $sql$
+      UPDATE promo_codes
+      SET expires_at = valid_until
+      WHERE expires_at IS NULL
+        AND valid_until IS NOT NULL
+    $sql$;
+  END IF;
+END $$;
+
 ALTER TABLE promo_code_redemptions
   ADD COLUMN IF NOT EXISTS promo_code_id UUID REFERENCES promo_codes(id) ON DELETE CASCADE;
 ALTER TABLE promo_code_redemptions
@@ -205,29 +285,44 @@ BEGIN
     per_user_limit = 1000,
     is_active = TRUE,
     updated_at = NOW()
-  WHERE code = 'TEST100';
+  WHERE UPPER(code) = 'TEST100';
 
   IF NOT FOUND THEN
-    INSERT INTO promo_codes (
-      code,
-      discount_type,
-      discount_value,
-      applicable_listing_type,
-      minimum_amount,
-      max_redemptions,
-      per_user_limit,
-      is_active
-    )
-    VALUES (
-      'TEST100',
-      'percentage',
-      100,
-      'all',
-      0,
-      NULL,
-      1000,
-      TRUE
-    );
+    BEGIN
+      INSERT INTO promo_codes (
+        code,
+        discount_type,
+        discount_value,
+        applicable_listing_type,
+        minimum_amount,
+        max_redemptions,
+        per_user_limit,
+        is_active
+      )
+      VALUES (
+        'TEST100',
+        'percentage',
+        100,
+        'all',
+        0,
+        NULL,
+        1000,
+        TRUE
+      );
+    EXCEPTION
+      WHEN unique_violation THEN
+        UPDATE promo_codes
+        SET
+          discount_type = 'percentage',
+          discount_value = 100,
+          applicable_listing_type = 'all',
+          minimum_amount = 0,
+          max_redemptions = NULL,
+          per_user_limit = 1000,
+          is_active = TRUE,
+          updated_at = NOW()
+        WHERE UPPER(code) = 'TEST100';
+    END;
   END IF;
 END $$;
 
@@ -602,6 +697,10 @@ GRANT EXECUTE ON FUNCTION create_marketplace_order(UUID, UUID, UUID, INTEGER, TE
 -- ORDER APPROVAL RPCs
 -- ============================================
 
+-- Existing installations may have these functions with different return types.
+DROP FUNCTION IF EXISTS accept_order(UUID);
+DROP FUNCTION IF EXISTS decline_order(UUID, TEXT);
+
 CREATE OR REPLACE FUNCTION accept_order(p_order_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -815,6 +914,10 @@ GRANT EXECUTE ON FUNCTION auto_decline_expired_orders() TO service_role;
 -- ============================================
 -- SHIPPING RPCs
 -- ============================================
+
+-- Existing installations may have these functions with different return types.
+DROP FUNCTION IF EXISTS add_order_tracking(UUID, TEXT, TEXT);
+DROP FUNCTION IF EXISTS confirm_order_delivery(UUID);
 
 CREATE OR REPLACE FUNCTION add_order_tracking(
   p_order_id UUID,
