@@ -48,7 +48,7 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
 
   const fetchTrendingTags = useCallback(async () => {
     // Prevent duplicate fetches on initial load
-    if (fetchedRef.current && tags.length > 0) {
+    if (fetchedRef.current) {
       setLoading(false);
       return;
     }
@@ -151,7 +151,7 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
         setLoading(false);
       }
     }
-  }, [limit, tags.length]);
+  }, [limit]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -183,6 +183,10 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
 
   const pageRef = useRef(0);
   const fetchingRef = useRef(false);
+
+  // Use ref for userId to avoid re-fetching all posts when auth resolves
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
   const fetchPosts = useCallback(async (page: number, append: boolean = false) => {
     if (!tagName || fetchingRef.current) return;
@@ -275,13 +279,14 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
       let userSaves = new Set<string>();
       let userRelays = new Set<string>();
       const userReactions = new Map<string, ReactionType>();
+      const currentUserId = userIdRef.current;
 
-      if (userId && postIds.length > 0) {
+      if (currentUserId && postIds.length > 0) {
         const [admiresResult, savesResult, relaysResult, reactionsResult] = await Promise.all([
-          supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
-          supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
-          supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
-          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", userId).in("post_id", postIds),
+          supabase.from("admires").select("post_id").eq("user_id", currentUserId).in("post_id", postIds),
+          supabase.from("saves").select("post_id").eq("user_id", currentUserId).in("post_id", postIds),
+          supabase.from("relays").select("post_id").eq("user_id", currentUserId).in("post_id", postIds),
+          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", currentUserId).in("post_id", postIds),
         ]);
 
         userAdmires = new Set((admiresResult.data || []).map((a) => a.post_id));
@@ -358,7 +363,7 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
       setLoading(false);
       fetchingRef.current = false;
     }
-  }, [tagName, userId]);
+  }, [tagName]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || fetchingRef.current) return;

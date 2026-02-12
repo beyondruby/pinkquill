@@ -44,6 +44,10 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
   const pageRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Use ref for userId to avoid re-fetching all comments when auth resolves
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+
   // Fetch only top-level comments with pagination
   const fetchComments = useCallback(async (page: number = 0, append: boolean = false) => {
     // Abort any in-flight request
@@ -95,13 +99,14 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
       const commentIds = data.map((c) => c.id);
 
       // Batch fetch likes and reply counts
+      const currentUserId = userIdRef.current;
       const [likesResult, userLikesResult, repliesCountResult] = await Promise.all([
         supabase.from("comment_likes").select("comment_id").in("comment_id", commentIds),
-        userId
+        currentUserId
           ? supabase
               .from("comment_likes")
               .select("comment_id")
-              .eq("user_id", userId)
+              .eq("user_id", currentUserId)
               .in("comment_id", commentIds)
           : Promise.resolve({ data: [] }),
         supabase.from("comments").select("parent_id").in("parent_id", commentIds),
@@ -151,7 +156,7 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         setLoading(false);
       }
     }
-  }, [postId, userId]);
+  }, [postId]);
 
   // Load more comments
   const loadMore = useCallback(async () => {
@@ -184,13 +189,14 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         const replyIds = data.map((c) => c.id);
 
         // Fetch likes for replies
+        const currentUserId = userIdRef.current;
         const [likesResult, userLikesResult] = await Promise.all([
           supabase.from("comment_likes").select("comment_id").in("comment_id", replyIds),
-          userId
+          currentUserId
             ? supabase
                 .from("comment_likes")
                 .select("comment_id")
-                .eq("user_id", userId)
+                .eq("user_id", currentUserId)
                 .in("comment_id", replyIds)
             : Promise.resolve({ data: [] }),
         ]);
@@ -229,7 +235,7 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         return [];
       }
     },
-    [userId]
+    []
   );
 
   // Add a new comment or reply

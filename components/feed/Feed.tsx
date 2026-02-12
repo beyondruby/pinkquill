@@ -225,7 +225,7 @@ export default function Feed() {
     pagination,
     loadMore,
     refresh,
-  } = useFeed(user?.id, { pageSize: 10 });
+  } = useFeed(user?.id, { pageSize: 10, enabled: !authLoading });
 
   // Local state for filtering deleted posts
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());

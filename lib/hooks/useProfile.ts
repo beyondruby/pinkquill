@@ -31,6 +31,10 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Use ref for viewerId to avoid re-fetching entire profile when auth resolves
+  const viewerIdRef = useRef(viewerId);
+  viewerIdRef.current = viewerId;
+
   const fetchProfile = useCallback(async () => {
     if (!username) return;
 
@@ -64,40 +68,38 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         return;
       }
 
-      const isOwnProfile = viewerId && viewerId === profileData.id;
+      const currentViewerId = viewerIdRef.current;
+      const isOwnProfile = currentViewerId && currentViewerId === profileData.id;
 
-      // Check if blocked
-      if (viewerId && !isOwnProfile) {
-        const { data: blockData } = await supabase
-          .from("blocks")
-          .select("id")
-          .eq("blocker_id", profileData.id)
-          .eq("blocked_id", viewerId)
-          .maybeSingle();
+      // Check block status and follow status in parallel (both are independent)
+      let viewerFollowsProfile = false;
+      if (currentViewerId && !isOwnProfile) {
+        const [blockResult, followResult] = await Promise.all([
+          supabase
+            .from("blocks")
+            .select("id")
+            .eq("blocker_id", profileData.id)
+            .eq("blocked_id", currentViewerId)
+            .maybeSingle(),
+          supabase
+            .from("follows")
+            .select("status")
+            .eq("follower_id", currentViewerId)
+            .eq("following_id", profileData.id)
+            .eq("status", "accepted")
+            .maybeSingle(),
+        ]);
 
         if (!mountedRef.current) return;
 
-        if (blockData) {
+        if (blockResult.data) {
           setIsBlockedByUser(true);
           setError("blocked");
           setLoading(false);
           return;
         }
-      }
 
-      if (!mountedRef.current) return;
-
-      // Check follow status
-      let viewerFollowsProfile = false;
-      if (viewerId && !isOwnProfile) {
-        const { data: followCheck } = await supabase
-          .from("follows")
-          .select("status")
-          .eq("follower_id", viewerId)
-          .eq("following_id", profileData.id)
-          .eq("status", "accepted")
-          .maybeSingle();
-        viewerFollowsProfile = !!followCheck;
+        viewerFollowsProfile = !!followResult.data;
       }
 
       // Handle private accounts
@@ -213,6 +215,29 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         admires_count: totalAdmires,
       });
 
+      // Fetch user interaction data for profile posts
+      const postIds = (postsData.data || []).map((p) => p.id);
+      let userAdmires = new Set<string>();
+      let userSaves = new Set<string>();
+      let userRelays = new Set<string>();
+      const userReactions = new Map<string, string>();
+
+      if (currentViewerId && postIds.length > 0) {
+        const [admiresRes, savesRes, relaysRes, reactionsRes] = await Promise.all([
+          supabase.from("admires").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds),
+          supabase.from("saves").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds),
+          supabase.from("relays").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds),
+          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", currentViewerId).in("post_id", postIds),
+        ]);
+
+        userAdmires = new Set((admiresRes.data || []).map((a) => a.post_id));
+        userSaves = new Set((savesRes.data || []).map((s) => s.post_id));
+        userRelays = new Set((relaysRes.data || []).map((r) => r.post_id));
+        (reactionsRes.data || []).forEach((r) => {
+          if (r.post_id && r.reaction_type) userReactions.set(r.post_id, r.reaction_type);
+        });
+      }
+
       // Transform posts
       const postsWithStats = (postsData.data || []).map((post) => ({
         ...post,
@@ -221,10 +246,10 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
         relays_count: 0,
         reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
-        user_has_admired: false,
-        user_has_saved: false,
-        user_has_relayed: false,
-        user_reaction_type: null,
+        user_has_admired: userAdmires.has(post.id),
+        user_has_saved: userSaves.has(post.id),
+        user_has_relayed: userRelays.has(post.id),
+        user_reaction_type: userReactions.get(post.id) || null,
         // Creative styling fields
         styling: post.styling || null,
         post_location: post.post_location || null,
@@ -247,7 +272,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         setLoading(false);
       }
     }
-  }, [username, viewerId]);
+  }, [username]);
 
   useEffect(() => {
     mountedRef.current = true;

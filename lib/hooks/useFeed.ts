@@ -19,6 +19,7 @@ const DEFAULT_PAGE_SIZE = 20;
 interface UseFeedOptions {
   pageSize?: number;
   communityId?: string;
+  enabled?: boolean;
 }
 
 interface UseFeedReturn {
@@ -42,7 +43,7 @@ interface UseFeedReturn {
  * 6. Stable realtime channel names (no connection leaks)
  */
 export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedReturn {
-  const { pageSize = DEFAULT_PAGE_SIZE, communityId } = options;
+  const { pageSize = DEFAULT_PAGE_SIZE, communityId, enabled = true } = options;
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -381,7 +382,9 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
   // Initial fetch and cleanup
   useEffect(() => {
     mountedRef.current = true;
-    fetchPosts(0);
+    if (enabled) {
+      fetchPosts(0);
+    }
 
     return () => {
       mountedRef.current = false;
@@ -390,7 +393,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchPosts]);
+  }, [fetchPosts, enabled]);
 
   // Real-time subscriptions for interactions
   // CRITICAL: Use stable channel name to prevent connection leaks

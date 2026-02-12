@@ -330,17 +330,18 @@ function transformPostForCard(post: {
 }
 
 export default function ExplorePageContent() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const {
     posts,
-    loading,
+    loading: exploreLoading,
     error,
     pagination,
     loadMore,
     refresh,
     activeTab,
     setActiveTab,
-  } = useExplore(user?.id);
+  } = useExplore(user?.id, { enabled: !authLoading });
+  const loading = authLoading || exploreLoading;
 
   const [showCategories, setShowCategories] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);

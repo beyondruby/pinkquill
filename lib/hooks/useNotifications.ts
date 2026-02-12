@@ -127,12 +127,13 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
     }
   }, [userId]);
 
-  // Initial fetch
+  // Initial fetch - only depends on userId to prevent double-fetch
   useEffect(() => {
     if (userId) {
       fetchNotifications();
     }
-  }, [userId, fetchNotifications]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // Track the userId for which we have a subscription
   const subscribedUserIdRef = useRef<string | null>(null);
@@ -252,7 +253,7 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
         subscribedUserIdRef.current = null;
       }
     };
-  }, [userId, fetchNotifications]);
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { notifications, loading, refetch: fetchNotifications };
 }

@@ -52,7 +52,7 @@ function MetricCard({
 }
 
 export default function BuyerDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [activeTabIdx, setActiveTabIdx] = useState(0);
 
   const activeTab = STATUS_TABS[activeTabIdx];
@@ -61,11 +61,12 @@ export default function BuyerDashboard() {
   const singleFilter: OrderFilters | undefined =
     activeTab.statuses?.length === 1 ? { status: activeTab.statuses[0] } : undefined;
 
-  const { orders, loading, error, hasMore, loadMore } = useBuyerOrders(
+  const { orders, loading: ordersLoading, error, hasMore, loadMore } = useBuyerOrders(
     user?.id,
     singleFilter
   );
   const { stats, loading: statsLoading } = useBuyerOrderStats(user?.id);
+  const loading = authLoading || ordersLoading;
 
   const filteredOrders =
     activeTab.statuses && activeTab.statuses.length > 1
@@ -73,6 +74,23 @@ export default function BuyerDashboard() {
       : activeTab.statuses?.length === 1
         ? orders
         : orders;
+
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="font-display text-2xl text-ink mb-2">Sign in to view orders</h2>
+          <p className="font-body text-muted mb-6">You need to be logged in to see your orders.</p>
+          <Link
+            href="/login"
+            className="inline-flex px-5 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid"
+          >
+            Sign In
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">

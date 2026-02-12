@@ -26,6 +26,7 @@ export type ExploreTab =
 interface UseExploreOptions {
   pageSize?: number;
   tab?: ExploreTab;
+  enabled?: boolean;
 }
 
 interface UseExploreReturn {
@@ -211,7 +212,7 @@ function calculatePostScore(
 // ============================================================================
 
 export function useExplore(userId?: string, options: UseExploreOptions = {}): UseExploreReturn {
-  const { pageSize = DEFAULT_PAGE_SIZE, tab: initialTab = "for-you" } = options;
+  const { pageSize = DEFAULT_PAGE_SIZE, tab: initialTab = "for-you", enabled = true } = options;
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -696,7 +697,9 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
   // Initial fetch and refetch on tab change
   useEffect(() => {
     mountedRef.current = true;
-    fetchPosts(0);
+    if (enabled) {
+      fetchPosts(0);
+    }
 
     return () => {
       mountedRef.current = false;
@@ -705,7 +708,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchPosts, activeTab]);
+  }, [fetchPosts, activeTab, enabled]);
 
   return {
     posts,

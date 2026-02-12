@@ -61,7 +61,7 @@ const icons = {
 export default function MessagesView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { count: communityUnreadCount } = useCommunityChatUnreadCount(user?.id);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
@@ -314,6 +314,15 @@ export default function MessagesView() {
     // Then refresh conversations list in the background
     fetchConversations(false);
   };
+
+  // Show loading while auth is resolving
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   // Redirect if not logged in
   if (!user) {

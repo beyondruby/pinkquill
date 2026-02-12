@@ -307,7 +307,12 @@ export function useBuyerOrders(
   const fetchingRef = useRef(false);
 
   const fetchOrders = useCallback(async (page: number, append = false) => {
-    if (!userId || fetchingRef.current) return;
+    if (!userId) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+    if (fetchingRef.current) return;
     fetchingRef.current = true;
 
     try {
@@ -384,7 +389,12 @@ export function useSellerOrders(
   const fetchingRef = useRef(false);
 
   const fetchOrders = useCallback(async (page: number, append = false) => {
-    if (!userId || fetchingRef.current) return;
+    if (!userId) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+    if (fetchingRef.current) return;
     fetchingRef.current = true;
 
     try {
