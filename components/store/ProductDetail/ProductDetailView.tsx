@@ -256,15 +256,16 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 {dimensions.length > 0 && (
                   <div>
                     <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Dimensions</h3>
-                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <dl className="mt-3 space-y-2 max-w-3xl">
                       {dimensions.map((item) => (
-                        <div key={item.label}>
-                          <p className="text-xl font-display text-ink leading-none">{item.value}</p>
-                          <p className="text-xs font-body text-muted mt-1">{item.label}</p>
-                          <p className="text-xs font-body text-muted">{item.unit}</p>
+                        <div key={item.label} className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <dt className="text-sm font-body text-muted">{item.label}</dt>
+                          <dd className="text-sm font-ui text-ink text-right">
+                            {item.value} {item.unit}
+                          </dd>
                         </div>
                       ))}
-                    </div>
+                    </dl>
                   </div>
                 )}
 
