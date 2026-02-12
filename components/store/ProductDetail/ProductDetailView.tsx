@@ -272,68 +272,42 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   <div>
                     <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Shipping</h3>
                     {product.shipping ? (
-                      <div className="mt-3 rounded-2xl border border-black/[0.08] overflow-hidden max-w-3xl">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-black/[0.06]">
-                          <div className="bg-[linear-gradient(140deg,rgba(255,159,67,0.2),rgba(255,0,127,0.15))] p-4">
-                            <p className="text-[11px] font-ui uppercase tracking-[0.14em] text-muted">Shipping Cost</p>
-                            <p className="mt-1 text-lg font-display text-ink">
-                              {shippingCost > 0 ? formatPrice(shippingCost, activePricing?.currency || "USD") : "Free"}
-                            </p>
-                          </div>
-                          <div className="bg-[linear-gradient(140deg,rgba(142,68,173,0.14),rgba(255,0,127,0.12))] p-4">
-                            <p className="text-[11px] font-ui uppercase tracking-[0.14em] text-muted">Coverage</p>
-                            <p className="mt-1 text-sm font-ui text-ink">
-                              {shippingCoverageLabel}
-                            </p>
-                          </div>
-                          <div className="bg-[linear-gradient(140deg,rgba(255,184,108,0.2),rgba(255,255,255,0.8))] p-4">
-                            <p className="text-[11px] font-ui uppercase tracking-[0.14em] text-muted">Processing</p>
-                            <p className="mt-1 text-sm font-ui text-ink">
-                              {product.shipping.processing_days ? `${product.shipping.processing_days} business days` : "Not specified"}
-                            </p>
-                          </div>
+                      <dl className="mt-3 space-y-2 max-w-3xl">
+                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <dt className="text-sm font-body text-muted">Shipping price</dt>
+                          <dd className="text-sm font-ui text-ink text-right">
+                            {shippingCost > 0 ? formatPrice(shippingCost, activePricing?.currency || "USD") : "Free"}
+                          </dd>
                         </div>
-
-                        <div className="p-4 space-y-4 bg-white">
-                          {shippingServices.length > 0 && (
-                            <div>
-                              <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Carriers</p>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {shippingServices.map((service) => (
-                                  <span
-                                    key={service}
-                                    className="px-2.5 py-1 rounded-full border border-black/[0.08] bg-black/[0.02] text-xs font-ui text-ink"
-                                  >
-                                    {service}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {shippingLocations.length > 0 && (
-                            <div>
-                              <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Ships To</p>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {shippingLocations.map((location) => (
-                                  <span
-                                    key={location}
-                                    className="px-2.5 py-1 rounded-full border border-pink-vivid/20 bg-pink-vivid/5 text-xs font-ui text-ink"
-                                  >
-                                    {location}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {normalizedPackaging && (
-                            <p className="text-sm font-body text-muted">
-                              <span className="font-ui text-ink">Packaging:</span> {normalizedPackaging}
-                            </p>
-                          )}
+                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                          <dt className="text-sm font-body text-muted">Coverage</dt>
+                          <dd className="text-sm font-ui text-ink text-right">{shippingCoverageLabel}</dd>
                         </div>
-                      </div>
+                        {shippingServices.length > 0 && (
+                          <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                            <dt className="text-sm font-body text-muted">Shipping service</dt>
+                            <dd className="text-sm font-ui text-ink text-right">{shippingServices.join(", ")}</dd>
+                          </div>
+                        )}
+                        {shippingLocations.length > 0 && (
+                          <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                            <dt className="text-sm font-body text-muted">Ships to</dt>
+                            <dd className="text-sm font-ui text-ink text-right">{shippingLocations.join(", ")}</dd>
+                          </div>
+                        )}
+                        {product.shipping.processing_days && (
+                          <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                            <dt className="text-sm font-body text-muted">Processing</dt>
+                            <dd className="text-sm font-ui text-ink text-right">{product.shipping.processing_days} business days</dd>
+                          </div>
+                        )}
+                        {normalizedPackaging && (
+                          <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
+                            <dt className="text-sm font-body text-muted">Packaging</dt>
+                            <dd className="text-sm font-ui text-ink text-right capitalize">{normalizedPackaging}</dd>
+                          </div>
+                        )}
+                      </dl>
                     ) : (
                       <p className="mt-3 text-sm font-body text-muted">
                         Shipping details will be provided by the seller.
@@ -417,6 +391,10 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                       return;
                     }
                     setCheckoutError(null);
+                    if (product.delivery_type !== "digital") {
+                      setShowBuyModal(true);
+                      return;
+                    }
                     const order = await createOrder({
                       product_id: product.id,
                       pricing_id: activePricing.id,
@@ -478,7 +456,9 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   <p className="text-xs font-body text-muted">Instant digital access after payment confirmation.</p>
                 )}
 
-                {buyError && <p className="text-sm font-body text-red-500">{buyError}</p>}
+                {(checkoutError || buyError) && (
+                  <p className="text-sm font-body text-red-500">{checkoutError || buyError}</p>
+                )}
               </div>
             ) : (
               <p className="text-sm font-body text-muted">No available pricing options.</p>
