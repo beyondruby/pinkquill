@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import type {
+  BuyerOrderStats,
   CreateOrderData,
   ListingType,
   Order,
@@ -479,6 +480,153 @@ export function useUpdateOrderStatus(): UseUpdateOrderStatusReturn {
 }
 
 // ============================================================================
+// useAcceptOrder — Seller accepts a pending_acceptance order
+// ============================================================================
+
+interface UseAcceptOrderReturn {
+  acceptOrder: (orderId: string) => Promise<boolean>;
+  accepting: boolean;
+  error: string | null;
+}
+
+export function useAcceptOrder(): UseAcceptOrderReturn {
+  const [accepting, setAccepting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const acceptOrder = useCallback(async (orderId: string): Promise<boolean> => {
+    setAccepting(true);
+    setError(null);
+
+    try {
+      const { error: rpcError } = await supabase.rpc("accept_order", { p_order_id: orderId });
+      if (rpcError) throw rpcError;
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useAcceptOrder] Error:", message);
+      setError(message || "Failed to accept order");
+      return false;
+    } finally {
+      setAccepting(false);
+    }
+  }, []);
+
+  return { acceptOrder, accepting, error };
+}
+
+// ============================================================================
+// useDeclineOrder — Seller declines a pending_acceptance order
+// ============================================================================
+
+interface UseDeclineOrderReturn {
+  declineOrder: (orderId: string, reason?: string) => Promise<boolean>;
+  declining: boolean;
+  error: string | null;
+}
+
+export function useDeclineOrder(): UseDeclineOrderReturn {
+  const [declining, setDeclining] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const declineOrder = useCallback(async (orderId: string, reason?: string): Promise<boolean> => {
+    setDeclining(true);
+    setError(null);
+
+    try {
+      const { error: rpcError } = await supabase.rpc("decline_order", {
+        p_order_id: orderId,
+        p_reason: reason || null,
+      });
+      if (rpcError) throw rpcError;
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useDeclineOrder] Error:", message);
+      setError(message || "Failed to decline order");
+      return false;
+    } finally {
+      setDeclining(false);
+    }
+  }, []);
+
+  return { declineOrder, declining, error };
+}
+
+// ============================================================================
+// usePendingAcceptanceOrders — Fetch orders pending seller acceptance
+// ============================================================================
+
+interface UsePendingAcceptanceOrdersReturn {
+  orders: Order[];
+  loading: boolean;
+  count: number;
+  refetch: () => Promise<void>;
+}
+
+export function usePendingAcceptanceOrders(userId?: string): UsePendingAcceptanceOrdersReturn {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+
+  const fetchOrders = useCallback(async () => {
+    if (!userId) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { data, error: queryError } = await supabase
+        .from("orders")
+        .select(ORDER_SELECT)
+        .eq("seller_id", userId)
+        .eq("status", "pending_acceptance")
+        .order("created_at", { ascending: true });
+
+      if (queryError) throw queryError;
+      if (!mountedRef.current) return;
+
+      setOrders((data || []).map(transformOrder));
+    } catch (err) {
+      console.error("[usePendingAcceptanceOrders] Error:", err);
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchOrders();
+
+    if (!userId) return;
+
+    // Real-time: listen for new pending_acceptance orders
+    const channel = supabase
+      .channel(`pending-orders-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `seller_id=eq.${userId}`,
+        },
+        () => { fetchOrders(); }
+      )
+      .subscribe();
+
+    return () => {
+      mountedRef.current = false;
+      supabase.removeChannel(channel);
+    };
+  }, [userId, fetchOrders]);
+
+  return { orders, loading, count: orders.length, refetch: fetchOrders };
+}
+
+// ============================================================================
 // useOrderMessages — Real-time order messages
 // ============================================================================
 
@@ -751,4 +899,68 @@ export function useOrderStats(userId?: string): UseOrderStatsReturn {
   }, [fetchStats]);
 
   return { stats, loading, error, refetch: fetchStats };
+}
+
+// ============================================================================
+// useBuyerOrderStats — Aggregated stats for buyer dashboard
+// ============================================================================
+
+interface UseBuyerOrderStatsReturn {
+  stats: BuyerOrderStats | null;
+  loading: boolean;
+  refetch: () => Promise<void>;
+}
+
+export function useBuyerOrderStats(userId?: string): UseBuyerOrderStatsReturn {
+  const [stats, setStats] = useState<BuyerOrderStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = useCallback(async () => {
+    if (!userId) {
+      setStats(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { data, error: queryError } = await supabase
+        .from("orders")
+        .select("status, amount")
+        .eq("buyer_id", userId);
+
+      if (queryError) throw queryError;
+
+      const orders = data || [];
+      const active = ["paid", "in_progress", "submitted", "revision_requested", "processing", "shipped"];
+      const pending = ["pending_payment", "pending_acceptance"];
+      const completed = ["completed", "delivered"];
+      const cancelled = ["cancelled", "refunded", "declined"];
+
+      const totalSpent = orders
+        .filter((o) => [...completed, ...active].includes(o.status))
+        .reduce((sum, o) => sum + (o.amount || 0), 0);
+
+      setStats({
+        total_orders: orders.length,
+        active_orders: orders.filter((o) => active.includes(o.status)).length,
+        pending_orders: orders.filter((o) => pending.includes(o.status)).length,
+        completed_orders: orders.filter((o) => completed.includes(o.status)).length,
+        cancelled_orders: orders.filter((o) => cancelled.includes(o.status)).length,
+        total_spent: Math.round(totalSpent * 100) / 100,
+      });
+    } catch (err: unknown) {
+      console.error("[useBuyerOrderStats] Error:", err);
+      setStats(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  return { stats, loading, refetch: fetchStats };
 }

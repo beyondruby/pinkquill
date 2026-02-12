@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase-server";
 
 interface PaymentMutationOptions {
   orderId: string;
-  provider: "stripe" | "placeholder";
+  provider: "stripe" | "paypal" | "placeholder";
   paymentReference: string;
   actorId?: string | null;
   source: string;

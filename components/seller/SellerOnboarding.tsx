@@ -10,9 +10,21 @@ import {
   faExclamationTriangle,
 } from "@fortawesome/free-solid-svg-icons";
 
+const PROVIDER_LABELS: Record<string, string> = {
+  paypal: "PayPal",
+  stripe: "Stripe",
+  placeholder: "Placeholder",
+};
+
+function getProviderLabel(provider?: string): string {
+  return PROVIDER_LABELS[provider || "placeholder"] || "Payment";
+}
+
 export default function SellerOnboarding() {
   const { account, loading, error, startOnboarding, checkStatus, openDashboard } =
     useSellerOnboarding();
+
+  const providerLabel = getProviderLabel(account?.provider);
 
   if (loading) {
     return (
@@ -34,7 +46,7 @@ export default function SellerOnboarding() {
           Share your art, offer commissions, and earn from your creative work.
         </p>
         <p className="text-sm text-gray-500 mb-8">
-          We use Stripe for secure payments. You&apos;ll set up a quick account to start receiving payments.
+          We use secure payment processing to protect both buyers and sellers.
           Quill charges 8% on products and 10% on commissions.
         </p>
 
@@ -61,7 +73,7 @@ export default function SellerOnboarding() {
         </div>
         <h2 className="text-xl font-bold mb-3">Complete Your Setup</h2>
         <p className="text-gray-600 mb-6">
-          Your seller account is almost ready. Please complete the Stripe onboarding to start accepting payments.
+          Your seller account is almost ready. Please complete the {providerLabel} onboarding to start accepting payments.
         </p>
 
         <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
@@ -102,8 +114,8 @@ export default function SellerOnboarding() {
       <h2 className="text-xl font-bold mb-3">Seller Account Active</h2>
       <p className="text-gray-600 mb-6">
         {account.placeholder_mode
-          ? "Placeholder payments are active while Stripe setup is pending."
-          : "Your account is set up and ready to receive payments."}
+          ? "Placeholder payments are active while payment setup is pending."
+          : `Your ${providerLabel} account is set up and ready to receive payments.`}
       </p>
 
       <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
@@ -125,7 +137,7 @@ export default function SellerOnboarding() {
         onClick={openDashboard}
         className="px-6 py-2.5 bg-[var(--color-purple-primary)] text-white rounded-lg font-medium hover:opacity-90 transition-opacity inline-flex items-center gap-2"
       >
-        <span>{account.placeholder_mode ? "Open Placeholder Setup" : "Open Stripe Dashboard"}</span>
+        <span>{account.placeholder_mode ? "Open Placeholder Setup" : `Open ${providerLabel} Dashboard`}</span>
         <FontAwesomeIcon icon={faExternalLinkAlt} className="text-xs" />
       </button>
     </div>

@@ -8,6 +8,7 @@ import {
   faClipboardList,
   faStore,
   faWallet,
+  faCog,
 } from "@fortawesome/free-solid-svg-icons";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
@@ -35,6 +36,12 @@ const navItems: { label: string; href: string; description: string; icon: IconDe
     href: "/seller/earnings",
     description: "Revenue & payouts",
     icon: faWallet,
+  },
+  {
+    label: "Settings",
+    href: "/seller/settings",
+    description: "Store & order preferences",
+    icon: faCog,
   },
 ];
 

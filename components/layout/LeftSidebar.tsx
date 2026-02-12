@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFeatherPointed } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useUnreadCount, useUnreadMessagesCount } from "@/lib/hooks";
+import { useUnreadCount, useUnreadMessagesCount, useStudioCart } from "@/lib/hooks";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
 import SearchBar from "@/components/search/SearchBar";
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
@@ -22,6 +22,7 @@ const authNavItems = [
   { icon: "compass", label: "Explore", href: "/explore" },
   { icon: "users", label: "Communities", href: "/community" },
   { icon: "shop", label: "Marketplace", href: "/shop" },
+  { icon: "cart", label: "Cart", href: "/cart" },
 ];
 
 const icons: Record<string, React.ReactElement> = {
@@ -84,6 +85,11 @@ const icons: Record<string, React.ReactElement> = {
       <line x1="17.5" y1="15" x2="9" y2="15"/>
     </svg>
   ),
+  cart: (
+    <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+    </svg>
+  ),
   logout: (
     <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -105,6 +111,7 @@ export default function LeftSidebar() {
   const shouldFetchCounts = !loading && !!user;
   const { count: unreadCount } = useUnreadCount(shouldFetchCounts ? user?.id : undefined);
   const { count: unreadMessagesCount } = useUnreadMessagesCount(shouldFetchCounts ? user?.id : undefined);
+  const { count: cartCount } = useStudioCart();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -216,7 +223,14 @@ export default function LeftSidebar() {
               }`}
               title={!isExpanded ? item.label : undefined}
             >
-              {icons[item.icon]}
+              <div className="relative flex-shrink-0">
+                {icons[item.icon]}
+                {item.icon === "cart" && cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-pink-vivid text-white font-ui text-[0.65rem] font-semibold rounded-full flex items-center justify-center px-1" aria-hidden="true">
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                )}
+              </div>
               <span className={`font-ui text-[0.95rem] whitespace-nowrap transition-all duration-300 ${
                 isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 overflow-hidden"
               }`}>

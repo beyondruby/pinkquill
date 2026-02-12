@@ -3,15 +3,18 @@ import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
 import { finalizeOrderPayment, markOrderPaymentFailed } from "@/lib/payments-server";
 import { getPaymentProvider } from "@/lib/payments";
-import { getStripeServer } from "@/lib/stripe";
+import { getActiveProvider } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
-type OrderForPayment = {
+type OrderForConfirm = {
   id: string;
   buyer_id: string;
   status: string;
+  listing_type: string;
+  payment_provider: string | null;
   payment_reference: string | null;
   payment_intent_id: string | null;
+  paypal_order_id: string | null;
 };
 
 export const runtime = "nodejs";
@@ -45,9 +48,9 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, status, payment_reference, payment_intent_id")
+      .select("id, buyer_id, status, listing_type, payment_provider, payment_reference, payment_intent_id, paypal_order_id")
       .eq("id", orderId)
-      .single<OrderForPayment>();
+      .single<OrderForConfirm>();
 
     if (orderError || !order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -66,12 +69,17 @@ export async function POST(request: Request) {
       });
     }
 
-    const provider = getPaymentProvider();
-    if (provider === "stripe") {
+    const providerName = getPaymentProvider();
+    const provider = getActiveProvider();
+
+    // For Stripe: verify PaymentIntent status via provider
+    if (providerName === "stripe") {
       if (!order.payment_intent_id || !order.payment_intent_id.startsWith("pi_")) {
         return NextResponse.json({ error: "Missing Stripe payment intent for this order" }, { status: 400 });
       }
 
+      // Use Stripe SDK directly to check status (provider.capturePayment validates)
+      const { getStripeServer } = await import("@/lib/stripe");
       const stripe = getStripeServer();
       const paymentIntent = await stripe.paymentIntents.retrieve(order.payment_intent_id);
 
@@ -120,6 +128,54 @@ export async function POST(request: Request) {
       );
     }
 
+    // For PayPal: capture the approved order
+    if (providerName === "paypal") {
+      const paypalRef = order.paypal_order_id || order.payment_reference;
+      if (!paypalRef) {
+        return NextResponse.json({ error: "Missing PayPal order reference" }, { status: 400 });
+      }
+
+      try {
+        const captureResult = await provider.capturePayment(order.id, paypalRef);
+
+        if (captureResult.alreadyProcessed) {
+          return NextResponse.json({
+            success: true,
+            provider: "paypal",
+            already_processed: true,
+            status: order.status,
+          });
+        }
+
+        const result = await finalizeOrderPayment({
+          orderId: order.id,
+          provider: "paypal",
+          paymentReference: paypalRef,
+          actorId: user.id,
+          source: "api.payments.confirm",
+        });
+
+        return NextResponse.json({
+          success: true,
+          provider: "paypal",
+          already_processed: result.already_processed,
+          status: result.status,
+          payment_status: result.payment_status,
+        });
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : "PayPal capture failed";
+        await markOrderPaymentFailed({
+          orderId: order.id,
+          provider: "paypal",
+          paymentReference: paypalRef,
+          reason,
+          source: "api.payments.confirm",
+        });
+        return NextResponse.json({ error: reason }, { status: 402 });
+      }
+    }
+
+    // Placeholder flow
     const paymentReference = order.payment_reference || `placeholder:${order.id}`;
     const result = await finalizeOrderPayment({
       orderId: order.id,

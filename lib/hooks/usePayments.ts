@@ -34,7 +34,9 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
         setAccount({
           id: data.id || `seller-${data.user_id || "placeholder"}`,
           user_id: data.user_id || "",
-          stripe_account_id: data.stripe_account_id || null,
+          stripe_account_id: data.account_id || null,
+          paypal_merchant_id: data.account_id || null,
+          paypal_email: data.email || null,
           onboarding_complete: Boolean(data.onboarding_complete),
           charges_enabled: Boolean(data.charges_enabled),
           payouts_enabled: Boolean(data.payouts_enabled),
@@ -66,7 +68,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
 
       if (!res.ok) throw new Error(data.error);
 
-      // Redirect to Stripe onboarding
+      // Redirect to provider onboarding (Stripe, PayPal, or placeholder)
       window.location.href = data.url;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to start onboarding";
@@ -102,18 +104,26 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
 // CHECKOUT
 // ============================================================================
 
+export type CheckoutMode = "stripe" | "paypal" | "placeholder";
+
 interface UseCheckoutReturn {
-  mode: "stripe" | "placeholder";
+  mode: CheckoutMode;
   clientSecret: string | null;
+  paypalOrderId: string | null;
+  approvalUrl: string | null;
   loading: boolean;
   error: string | null;
   createCheckout: (orderId: string) => Promise<string | null>;
+  confirmPayment: (orderId: string) => Promise<boolean>;
+  /** @deprecated Use confirmPayment instead */
   confirmPlaceholderPayment: (orderId: string) => Promise<boolean>;
 }
 
 export function useCheckout(): UseCheckoutReturn {
-  const [mode, setMode] = useState<"stripe" | "placeholder">("placeholder");
+  const [mode, setMode] = useState<CheckoutMode>("placeholder");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paypalOrderId, setPaypalOrderId] = useState<string | null>(null);
+  const [approvalUrl, setApprovalUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -132,9 +142,11 @@ export function useCheckout(): UseCheckoutReturn {
 
       if (!res.ok) throw new Error(data.error);
 
-      const checkoutMode = (data.mode || "placeholder") as "stripe" | "placeholder";
+      const checkoutMode = (data.mode || "placeholder") as CheckoutMode;
       setMode(checkoutMode);
       setClientSecret(data.client_secret || null);
+      setPaypalOrderId(checkoutMode === "paypal" ? (data.client_secret || data.payment_reference) : null);
+      setApprovalUrl(data.approval_url || null);
       return data.client_secret || null;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create checkout";
@@ -145,7 +157,7 @@ export function useCheckout(): UseCheckoutReturn {
     }
   }, []);
 
-  const confirmPlaceholderPayment = useCallback(async (orderId: string): Promise<boolean> => {
+  const confirmPayment = useCallback(async (orderId: string): Promise<boolean> => {
     try {
       setLoading(true);
       setError(null);
@@ -168,7 +180,17 @@ export function useCheckout(): UseCheckoutReturn {
     }
   }, []);
 
-  return { mode, clientSecret, loading, error, createCheckout, confirmPlaceholderPayment };
+  return {
+    mode,
+    clientSecret,
+    paypalOrderId,
+    approvalUrl,
+    loading,
+    error,
+    createCheckout,
+    confirmPayment,
+    confirmPlaceholderPayment: confirmPayment,
+  };
 }
 
 // ============================================================================

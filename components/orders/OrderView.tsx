@@ -1,19 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useOrder } from "@/lib/hooks/useOrders";
 import { useOrderReviews } from "@/lib/hooks/useReviews";
 import { useOrderDispute } from "@/lib/hooks/useDisputes";
-import CheckoutModal from "@/components/checkout/CheckoutModal";
+import { useConfirmDelivery } from "@/lib/hooks/useShipping";
 import ReviewForm from "@/components/reviews/ReviewForm";
 import ReviewCard from "@/components/reviews/ReviewCard";
 import OrderTimeline from "./OrderTimeline";
 import OrderMessages from "./OrderMessages";
 import OrderActions from "./OrderActions";
+import DigitalDownloadSection from "./DigitalDownloadSection";
+import ShippingTracker from "./ShippingTracker";
+import TrackingInput from "./TrackingInput";
+import DeliverySection from "./DeliverySection";
 import type { Order } from "@/lib/types/store";
 import { DISPUTE_REASON_LABELS, DISPUTE_RESOLUTION_LABELS } from "@/lib/types/store";
 
@@ -23,19 +27,22 @@ interface OrderViewProps {
 
 export default function OrderView({ orderId }: OrderViewProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const { order, loading, error, refetch } = useOrder(orderId);
   const searchParams = useSearchParams();
-  const [showCheckout, setShowCheckout] = useState(false);
   const paymentSyncTriggeredRef = useRef(false);
 
-  // Auto-open checkout if redirected back with payment=success
   const paymentParam = searchParams.get("payment");
-  /* eslint-disable react-hooks/set-state-in-effect -- intentionally opens checkout modal from URL state */
+
+  // Redirect to dedicated checkout page if payment=start
   useEffect(() => {
     if (paymentParam === "start" && order?.status === "pending_payment" && user?.id === order.buyer_id) {
-      setShowCheckout(true);
+      router.replace(`/checkout/${orderId}`);
     }
+  }, [paymentParam, order?.status, order?.buyer_id, user?.id, orderId, router]);
 
+  // Sync payment if redirected back with payment=success
+  useEffect(() => {
     if (paymentParam === "success" && order?.id && user?.id === order.buyer_id && !paymentSyncTriggeredRef.current) {
       paymentSyncTriggeredRef.current = true;
       void (async () => {
@@ -54,13 +61,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
     if (paymentParam !== "success") {
       paymentSyncTriggeredRef.current = false;
     }
-  }, [paymentParam, order?.id, order?.status, order?.buyer_id, user?.id, refetch]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  const handlePaymentSuccess = useCallback(() => {
-    setShowCheckout(false);
-    refetch();
-  }, [refetch]);
+  }, [paymentParam, order?.id, order?.buyer_id, user?.id, refetch]);
 
   if (loading) {
     return (
@@ -187,6 +188,21 @@ export default function OrderView({ orderId }: OrderViewProps) {
           </div>
         </section>
 
+        {/* Pending Acceptance Banner */}
+        {order.status === "pending_acceptance" && isBuyer && (
+          <section className="rounded-2xl border border-amber-300/50 bg-amber-50 p-5 sm:p-6 text-center">
+            <h2 className="font-display text-xl text-ink mb-2">Awaiting Seller Approval</h2>
+            <p className="text-sm font-body text-muted">
+              The seller needs to review and accept your order before payment. You&apos;ll be notified once they respond.
+              {order.seller_response_deadline && (
+                <span className="block mt-1 text-xs text-amber-700">
+                  Response expected by {new Date(order.seller_response_deadline).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                </span>
+              )}
+            </p>
+          </section>
+        )}
+
         {/* Payment Required Banner */}
         {order.status === "pending_payment" && isBuyer && (
           <section className="rounded-2xl border-2 border-[var(--color-purple-primary)]/30 bg-purple-50 p-5 sm:p-6 text-center">
@@ -195,12 +211,12 @@ export default function OrderView({ orderId }: OrderViewProps) {
               Complete your payment to activate this order.
               {order.listing_type === "service" && " Your payment will be held securely until you approve the delivery."}
             </p>
-            <button
-              onClick={() => setShowCheckout(true)}
-              className="px-8 py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-xl font-ui font-semibold hover:opacity-90 transition-opacity"
+            <Link
+              href={`/checkout/${order.id}`}
+              className="inline-flex px-8 py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-xl font-ui font-semibold hover:opacity-90 transition-opacity"
             >
               Pay ${Number(order.amount).toFixed(2)}
-            </button>
+            </Link>
           </section>
         )}
 
@@ -211,15 +227,6 @@ export default function OrderView({ orderId }: OrderViewProps) {
               The buyer hasn&apos;t completed payment yet. You&apos;ll be notified when the order is active.
             </p>
           </section>
-        )}
-
-        {/* Checkout Modal */}
-        {showCheckout && order && (
-          <CheckoutModal
-            order={order}
-            onSuccess={handlePaymentSuccess}
-            onClose={() => setShowCheckout(false)}
-          />
         )}
 
         {/* Timeline */}
@@ -260,6 +267,35 @@ export default function OrderView({ orderId }: OrderViewProps) {
               <p>{order.shipping_address.country}</p>
             </div>
           </section>
+        )}
+
+        {/* Digital Downloads */}
+        {!isCommission && order.product?.delivery_type === "digital" &&
+          ["completed", "delivered"].includes(order.status) && isBuyer && (
+          <DigitalDownloadSection orderId={order.id} />
+        )}
+
+        {/* Shipping Tracker (physical products) */}
+        {!isCommission && order.product?.delivery_type !== "digital" &&
+          order.tracking_number && (
+          <ShippingTracker order={order} />
+        )}
+
+        {/* Tracking Input (seller: physical products, not yet shipped) */}
+        {!isCommission && order.product?.delivery_type !== "digital" &&
+          !isBuyer && !order.tracking_number &&
+          ["paid", "in_progress", "processing"].includes(order.status) && (
+          <TrackingInput orderId={order.id} onSuccess={refetch} />
+        )}
+
+        {/* Confirm Delivery (buyer: physical shipped orders) */}
+        {!isCommission && order.status === "shipped" && isBuyer && (
+          <ConfirmDeliveryBanner orderId={order.id} onConfirm={refetch} />
+        )}
+
+        {/* Commission Delivery Section */}
+        {isCommission && ["in_progress", "revision_requested", "submitted", "completed", "delivered"].includes(order.status) && (
+          <DeliverySection order={order} isSeller={!isBuyer} onUpdate={refetch} />
         )}
 
         {/* Actions */}
@@ -414,6 +450,43 @@ function DisputeBanner({ orderId, orderStatus }: { orderId: string; orderStatus:
           }
         </p>
       </div>
+    </section>
+  );
+}
+
+function ConfirmDeliveryBanner({ orderId, onConfirm }: { orderId: string; onConfirm: () => void }) {
+  const { confirmDelivery, confirming } = useConfirmDelivery();
+  const [confirmed, setConfirmed] = useState(false);
+
+  const handleConfirm = async () => {
+    const ok = await confirmDelivery(orderId);
+    if (ok) {
+      setConfirmed(true);
+      onConfirm();
+    }
+  };
+
+  if (confirmed) {
+    return (
+      <section className="rounded-2xl border border-green-200 bg-green-50 p-5 text-center">
+        <p className="font-ui font-semibold text-green-700">Delivery confirmed! Order complete.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border-2 border-emerald-300/50 bg-emerald-50 p-5 sm:p-6 text-center">
+      <h2 className="font-display text-xl text-ink mb-2">Package Shipped!</h2>
+      <p className="text-sm font-body text-muted mb-4">
+        Have you received your order? Confirm delivery to complete the order.
+      </p>
+      <button
+        onClick={handleConfirm}
+        disabled={confirming}
+        className="inline-flex px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-ui font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+      >
+        {confirming ? "Confirming..." : "Confirm Delivery"}
+      </button>
     </section>
   );
 }

@@ -17,13 +17,23 @@ export interface StudioQueueItem {
   added_at: string;
 }
 
-const STORAGE_KEY = "pinkquill.studio-queue.v1";
+const STORAGE_KEY = "pinkquill.studio-cart.v1";
+const OLD_STORAGE_KEY = "pinkquill.studio-queue.v1";
 
-function readQueueFromStorage(): StudioQueueItem[] {
+function readCartFromStorage(): StudioQueueItem[] {
   if (typeof window === "undefined") return [];
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    // Migrate from old key if new key doesn't exist yet
+    let raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      const oldRaw = window.localStorage.getItem(OLD_STORAGE_KEY);
+      if (oldRaw) {
+        window.localStorage.setItem(STORAGE_KEY, oldRaw);
+        window.localStorage.removeItem(OLD_STORAGE_KEY);
+        raw = oldRaw;
+      }
+    }
     if (!raw) return [];
     const parsed = JSON.parse(raw) as StudioQueueItem[];
     if (!Array.isArray(parsed)) return [];
@@ -33,18 +43,18 @@ function readQueueFromStorage(): StudioQueueItem[] {
   }
 }
 
-function writeQueueToStorage(items: StudioQueueItem[]) {
+function writeCartToStorage(items: StudioQueueItem[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-export function useStudioQueue() {
+function useStudioCartInternal() {
   const [items, setItems] = useState<StudioQueueItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- hydrating localStorage-backed queue after mount */
+  /* eslint-disable react-hooks/set-state-in-effect -- hydrating localStorage-backed cart after mount */
   useEffect(() => {
-    const initial = readQueueFromStorage();
+    const initial = readCartFromStorage();
     setItems(initial);
     setHydrated(true);
   }, []);
@@ -68,7 +78,7 @@ export function useStudioQueue() {
         next = [nextItem, ...prev];
       }
 
-      writeQueueToStorage(next);
+      writeCartToStorage(next);
       return next;
     });
   }, []);
@@ -76,14 +86,14 @@ export function useStudioQueue() {
   const removeItem = useCallback((itemId: string) => {
     setItems((prev) => {
       const next = prev.filter((item) => item.id !== itemId);
-      writeQueueToStorage(next);
+      writeCartToStorage(next);
       return next;
     });
   }, []);
 
-  const clearQueue = useCallback(() => {
+  const clearCart = useCallback(() => {
     setItems([]);
-    writeQueueToStorage([]);
+    writeCartToStorage([]);
   }, []);
 
   const hasItem = useCallback((productId: string, pricingId: string) => {
@@ -99,7 +109,15 @@ export function useStudioQueue() {
     hydrated,
     addItem,
     removeItem,
-    clearQueue,
+    clearCart,
+    /** @deprecated Use clearCart instead */
+    clearQueue: clearCart,
     hasItem,
   };
 }
+
+/** Primary export — use this for new code */
+export const useStudioCart = useStudioCartInternal;
+
+/** @deprecated Use useStudioCart instead */
+export const useStudioQueue = useStudioCartInternal;

@@ -25,6 +25,8 @@ export type PurchaseStatus =
   | 'cancelled';
 
 export type OrderStatus =
+  | 'pending_acceptance'
+  | 'declined'
   | 'pending_payment'
   | 'paid'
   | 'in_progress'
@@ -300,10 +302,12 @@ export interface ProductPurchase {
 
 export interface DownloadToken {
   id: string;
-  purchase_id: string;
+  purchase_id?: string;
+  order_id?: string;
   file_id: string;
   token: string;
   downloads_used: number;
+  download_limit: number | null;
   expires_at: string | null;
   created_at: string;
 
@@ -330,6 +334,9 @@ export interface Order {
 
   // Financial
   amount: number;
+  original_amount: number | null;
+  discount_amount: number | null;
+  promo_code_id: string | null;
   platform_fee: number;
   seller_amount: number;
   currency: string;
@@ -337,7 +344,8 @@ export interface Order {
   // Status
   status: OrderStatus;
   payment_intent_id: string | null;
-  payment_provider?: "stripe" | "placeholder" | null;
+  paypal_order_id: string | null;
+  payment_provider?: "stripe" | "paypal" | "placeholder" | null;
   payment_reference?: string | null;
   payment_status: PaymentStatus;
   escrow_released: boolean;
@@ -358,13 +366,22 @@ export interface Order {
   // Product fields
   quantity: number;
   shipping_address: ShippingAddress | null;
+  shipping_cost: number;
   tracking_number: string | null;
+  tracking_carrier: string | null;
   shipped_at: string | null;
   delivered_at: string | null;
 
   // Cancellation
   cancelled_by: string | null;
   cancel_reason: string | null;
+
+  // Seller acceptance
+  seller_accepted: boolean | null;
+  seller_accepted_at: string | null;
+  seller_declined_at: string | null;
+  seller_decline_reason: string | null;
+  seller_response_deadline: string | null;
 
   // Auto-completion
   auto_completion_at: string | null;
@@ -450,6 +467,15 @@ export interface OrderStats {
   pending_revenue: number;
 }
 
+export interface BuyerOrderStats {
+  total_orders: number;
+  active_orders: number;
+  pending_orders: number;
+  completed_orders: number;
+  cancelled_orders: number;
+  total_spent: number;
+}
+
 // ============================================================================
 // SELLER ACCOUNTS & TRANSACTIONS
 // ============================================================================
@@ -458,7 +484,9 @@ export interface SellerAccount {
   id: string;
   user_id: string;
   stripe_account_id: string | null;
-  provider?: "stripe" | "placeholder";
+  paypal_merchant_id: string | null;
+  paypal_email: string | null;
+  provider?: "stripe" | "paypal" | "placeholder";
   placeholder_mode?: boolean;
   onboarding_complete: boolean;
   charges_enabled: boolean;
@@ -820,6 +848,32 @@ export const initialCommissionWizardState: CommissionWizardState = {
 // ============================================================================
 
 export type MarketplaceSortOption = 'newest' | 'price_low' | 'price_high' | 'popular';
+
+// ============================================================================
+// PROMO CODES
+// ============================================================================
+
+export type PromoDiscountType = 'percentage' | 'fixed';
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  discount_type: PromoDiscountType;
+  discount_value: number;
+  max_uses: number | null;
+  current_uses: number;
+  min_order_amount: number | null;
+  max_discount: number | null;
+  valid_from: string;
+  valid_until: string | null;
+  listing_type: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+// ============================================================================
+// MARKETPLACE FILTER TYPES
+// ============================================================================
 
 export interface MarketplaceFilters {
   listing_type?: ListingType;

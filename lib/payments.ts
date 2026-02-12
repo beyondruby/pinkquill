@@ -1,7 +1,9 @@
-export type PaymentProvider = "placeholder" | "stripe";
+export type PaymentProvider = "placeholder" | "stripe" | "paypal";
 
 const normalizeProvider = (value?: string | null): PaymentProvider => {
-  if (value?.toLowerCase() === "stripe") return "stripe";
+  const lower = value?.toLowerCase();
+  if (lower === "stripe") return "stripe";
+  if (lower === "paypal") return "paypal";
   return "placeholder";
 };
 

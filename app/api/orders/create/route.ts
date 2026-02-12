@@ -83,9 +83,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: message }, { status: mapCreateOrderError(message) });
     }
 
-    const orderId = typeof data === "object" && data !== null && "order_id" in data
-      ? (data as { order_id?: string }).order_id
-      : undefined;
+    const result = typeof data === "object" && data !== null ? (data as { order_id?: string; status?: string }) : undefined;
+    const orderId = result?.order_id;
 
     if (!orderId) {
       return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
@@ -93,6 +92,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       order_id: orderId,
+      status: result?.status ?? "pending_payment",
     });
   } catch (error) {
     console.error("[Order Create]", error);

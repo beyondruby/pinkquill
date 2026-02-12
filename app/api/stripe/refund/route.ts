@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
 import { getPaymentProvider } from "@/lib/payments";
-import { getStripeServer } from "@/lib/stripe";
+import { getActiveProvider } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 type RefundableOrder = {
@@ -11,6 +11,8 @@ type RefundableOrder = {
   status: string;
   payment_status: string;
   payment_intent_id: string | null;
+  paypal_order_id: string | null;
+  payment_reference: string | null;
   amount: number;
   currency: string;
 };
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, status, payment_status, payment_intent_id, amount, currency")
+      .select("id, buyer_id, status, payment_status, payment_intent_id, paypal_order_id, payment_reference, amount, currency")
       .eq("id", orderId)
       .single<RefundableOrder>();
 
@@ -70,21 +72,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const provider = getPaymentProvider();
-    if (provider === "stripe") {
-      if (!order.payment_intent_id || !order.payment_intent_id.startsWith("pi_")) {
-        return NextResponse.json({ error: "Missing Stripe payment intent for this order" }, { status: 400 });
-      }
+    const providerName = getPaymentProvider();
+    const provider = getActiveProvider();
 
-      const stripe = getStripeServer();
-      await stripe.refunds.create({
-        payment_intent: order.payment_intent_id,
-        reason: "requested_by_customer",
-        metadata: {
-          order_id: order.id,
-          requested_by: user.id,
-        },
-      });
+    // Determine the payment reference for the active provider
+    const paymentRef = providerName === "stripe"
+      ? order.payment_intent_id
+      : providerName === "paypal"
+        ? (order.paypal_order_id || order.payment_reference)
+        : order.payment_reference;
+
+    // Issue refund via provider (if not placeholder)
+    if (providerName !== "placeholder" && paymentRef) {
+      await provider.refundPayment(paymentRef, order.id, order.amount);
     }
 
     const now = new Date().toISOString();
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       })
       .eq("id", orderId);
 
-    // Mark existing pending transactions as refunded first.
+    // Mark existing pending transactions as refunded
     await supabaseAdmin
       .from("transactions")
       .update({ status: "refunded" })
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
         amount: order.amount,
         currency: order.currency,
         status: "completed",
-        metadata: { provider, reason: reason || null },
+        metadata: { provider: providerName, reason: reason || null },
       });
     }
 
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
       event_type: "payment",
       metadata: {
         action: "refund",
-        provider,
+        provider: providerName,
         reason: reason || null,
       },
     });
@@ -144,7 +144,7 @@ export async function POST(request: Request) {
       message_type: "system",
     });
 
-    return NextResponse.json({ success: true, provider });
+    return NextResponse.json({ success: true, provider: providerName });
   } catch (error) {
     console.error("[Refund]", error);
     const message = error instanceof Error ? error.message : "Failed to process refund";

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
-import { getPaymentProvider } from "@/lib/payments";
-import { supabaseAdmin } from "@/lib/supabase-server";
+import { getActiveProvider } from "@/lib/payment-provider";
 
 export async function GET() {
   try {
@@ -10,70 +9,23 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (getPaymentProvider() !== "stripe") {
-      return NextResponse.json({
-        provider: "placeholder",
-        user_id: user.id,
-        has_account: true,
-        onboarding_complete: true,
-        charges_enabled: true,
-        payouts_enabled: false,
-        country: null,
-        placeholder_mode: true,
-      });
-    }
-
-    const { data: account } = await supabaseAdmin
-      .from("seller_accounts")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!account) {
-      return NextResponse.json({
-        has_account: false,
-        onboarding_complete: false,
-        charges_enabled: false,
-        payouts_enabled: false,
-      });
-    }
-
-    // If we have a Stripe account, fetch fresh status
-    if (account.stripe_account_id) {
-      const { stripe } = await import("@/lib/stripe");
-      const stripeAccount = await stripe.accounts.retrieve(account.stripe_account_id);
-
-      const updates = {
-        onboarding_complete: stripeAccount.details_submitted ?? false,
-        charges_enabled: stripeAccount.charges_enabled ?? false,
-        payouts_enabled: stripeAccount.payouts_enabled ?? false,
-        country: stripeAccount.country || account.country,
-        updated_at: new Date().toISOString(),
-      };
-
-      // Sync latest status back to DB
-      await supabaseAdmin
-        .from("seller_accounts")
-        .update(updates)
-        .eq("id", account.id);
-
-      return NextResponse.json({
-        user_id: user.id,
-        has_account: true,
-        stripe_account_id: account.stripe_account_id,
-        ...updates,
-      });
-    }
+    const provider = getActiveProvider();
+    const status = await provider.checkSellerStatus(user.id);
 
     return NextResponse.json({
+      provider: status.provider,
       user_id: user.id,
-      has_account: true,
-      onboarding_complete: account.onboarding_complete,
-      charges_enabled: account.charges_enabled,
-      payouts_enabled: account.payouts_enabled,
+      has_account: status.hasAccount,
+      account_id: status.accountId,
+      onboarding_complete: status.onboardingComplete,
+      charges_enabled: status.chargesEnabled,
+      payouts_enabled: status.payoutsEnabled,
+      country: status.country,
+      email: status.email,
+      placeholder_mode: status.placeholderMode || false,
     });
   } catch (error) {
-    console.error("[Stripe Connect Status]", error);
+    console.error("[Connect Status]", error);
     const message = error instanceof Error ? error.message : "Failed to check account status";
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import BuyerOrdersList from "@/components/orders/BuyerOrdersList";
+import BuyerDashboard from "@/components/orders/BuyerDashboard";
 
 export const metadata: Metadata = {
   title: "My Orders | Quill",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function OrdersPage() {
-  return <BuyerOrdersList />;
+  return <BuyerDashboard />;
 }

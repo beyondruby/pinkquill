@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
-import { useStudioQueue, type StudioQueueItem } from "@/lib/hooks/useStudioQueue";
+import { useStudioCart, type StudioQueueItem } from "@/lib/hooks/useStudioQueue";
 import type { ShippingAddress } from "@/lib/types/store";
 
 type ServiceFields = {
@@ -28,11 +28,11 @@ function formatPrice(amount: number, currency: string) {
   }).format(amount);
 }
 
-export default function StudioQueuePage() {
+export default function StudioCartPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { createOrder, creating, error } = useCreateOrder();
-  const { items, hydrated, removeItem, clearQueue } = useStudioQueue();
+  const { items, hydrated, removeItem, clearCart } = useStudioCart();
 
   const [serviceDrafts, setServiceDrafts] = useState<Record<string, ServiceFields>>({});
   const [physicalShipping, setPhysicalShipping] = useState<Partial<ShippingAddress>>({
@@ -95,7 +95,11 @@ export default function StudioQueuePage() {
 
         if (order) {
           removeItem(item.id);
-          router.push(`/orders/${order.id}?payment=start`);
+          if (order.status === "pending_acceptance") {
+            router.push(`/orders/${order.id}`);
+          } else {
+            router.push(`/checkout/${order.id}`);
+          }
         }
         return;
       }
@@ -119,7 +123,11 @@ export default function StudioQueuePage() {
 
       if (order) {
         removeItem(item.id);
-        router.push(`/orders/${order.id}?payment=start`);
+        if (order.status === "pending_acceptance") {
+          router.push(`/orders/${order.id}`);
+        } else {
+          router.push(`/checkout/${order.id}`);
+        }
       }
     } finally {
       setSubmittingItemId(null);
@@ -143,7 +151,7 @@ export default function StudioQueuePage() {
       <div className="max-w-5xl mx-auto space-y-6">
         <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
           <p className="text-xs font-ui uppercase tracking-wider text-purple-primary mb-2">Creative Checkout</p>
-          <h1 className="font-display text-3xl text-ink">Studio Queue</h1>
+          <h1 className="font-display text-3xl text-ink">Studio Cart</h1>
           <p className="text-sm font-body text-muted mt-2">
             Collect commissions and products here, then launch each order with your brief and delivery details.
           </p>
@@ -156,10 +164,10 @@ export default function StudioQueuePage() {
             </Link>
             {items.length > 0 && (
               <button
-                onClick={clearQueue}
+                onClick={clearCart}
                 className="px-4 py-2 rounded-xl border border-red-200 bg-red-50 text-sm font-ui text-red-600 hover:bg-red-100"
               >
-                Clear Queue
+                Clear Cart
               </button>
             )}
           </div>
@@ -205,7 +213,7 @@ export default function StudioQueuePage() {
 
         {items.length === 0 ? (
           <section className="rounded-2xl border border-dashed border-black/[0.12] bg-white p-10 text-center">
-            <h2 className="font-display text-2xl text-ink mb-2">Your Studio Queue is empty</h2>
+            <h2 className="font-display text-2xl text-ink mb-2">Your Studio Cart is empty</h2>
             <p className="text-sm font-body text-muted mb-6">
               Add creations from product or commission pages to start a guided order flow.
             </p>
@@ -299,6 +307,29 @@ export default function StudioQueuePage() {
               );
             })}
           </div>
+        )}
+
+        {items.length > 0 && (
+          <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-xl text-ink">Order Summary</h2>
+              <span className="text-xs font-ui text-muted">{items.length} {items.length === 1 ? "item" : "items"}</span>
+            </div>
+            <div className="mt-4 space-y-2">
+              {items.map((item) => (
+                <div key={item.id} className="flex justify-between text-sm font-body">
+                  <span className="text-ink truncate max-w-[70%]">{item.title}</span>
+                  <span className="text-ink font-medium">{formatPrice(item.price, item.currency)}</span>
+                </div>
+              ))}
+              <div className="h-px bg-black/[0.06] my-3" />
+              <div className="flex justify-between font-ui text-base font-semibold text-ink">
+                <span>Subtotal</span>
+                <span>{formatPrice(items.reduce((sum, item) => sum + item.price, 0), items[0]?.currency || "usd")}</span>
+              </div>
+              <p className="text-xs font-body text-muted mt-1">Platform fees calculated at checkout.</p>
+            </div>
+          </section>
         )}
 
         {(actionError || error) && (

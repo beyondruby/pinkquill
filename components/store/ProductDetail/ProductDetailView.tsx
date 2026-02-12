@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProduct, useToggleSaveProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
-import { useStudioQueue } from "@/lib/hooks/useStudioQueue";
+import { useStudioCart } from "@/lib/hooks/useStudioQueue";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { ProductPricing, PLATFORM_FEES, ShippingAddress } from "@/lib/types/store";
 import {
@@ -28,7 +28,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   const { product, loading, error } = useProduct(productId);
   const { toggle: toggleSave, checkIsSaved } = useToggleSaveProduct();
   const { createOrder, creating: buying, error: buyError } = useCreateOrder();
-  const { addItem, hasItem } = useStudioQueue();
+  const { addItem, hasItem } = useStudioCart();
 
   const [selectedPricing, setSelectedPricing] = useState<ProductPricing | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -377,13 +377,13 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                     }}
                     className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-pink-vivid/40 transition-colors"
                   >
-                    {isQueued ? "In Studio Queue" : "Add to Studio Queue"}
+                    {isQueued ? "In Cart" : "Add to Cart"}
                   </button>
                   <button
-                    onClick={() => router.push("/queue")}
+                    onClick={() => router.push("/cart")}
                     className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-purple-primary/40 transition-colors"
                   >
-                    Open Studio Queue
+                    Open Cart
                   </button>
                 </div>
 
@@ -536,7 +536,11 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
                   if (order) {
                     setShowBuyModal(false);
-                    router.push(`/orders/${order.id}?payment=start`);
+                    if (order.status === "pending_acceptance") {
+                      router.push(`/orders/${order.id}`);
+                    } else {
+                      router.push(`/checkout/${order.id}`);
+                    }
                   }
                 }}
                 disabled={buying}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
-import { getPaymentProvider } from "@/lib/payments";
+import { getActiveProvider } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export async function POST(request: Request) {
@@ -25,76 +25,25 @@ export async function POST(request: Request) {
       return rateLimitResponse(rateLimit, 60);
     }
 
-    if (getPaymentProvider() !== "stripe") {
-      const { url } = request;
-      const origin = new URL(url).origin;
-      return NextResponse.json({
-        url: `${origin}/seller/onboarding?provider=placeholder`,
-        placeholder_mode: true,
-      });
-    }
-
-    const { stripe, CONNECT_ACCOUNT_TYPE } = await import("@/lib/stripe");
-
-    // Check if seller account already exists
-    const { data: existingAccount } = await supabaseAdmin
-      .from("seller_accounts")
-      .select("*")
-      .eq("user_id", user.id)
+    // Get user profile for display name
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("username, display_name")
+      .eq("id", user.id)
       .single();
 
-    let stripeAccountId = existingAccount?.stripe_account_id;
-
-    if (!stripeAccountId) {
-      // Get user profile for prefill
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("username, display_name")
-        .eq("id", user.id)
-        .single();
-
-      // Create Stripe Connect Express account
-      const account = await stripe.accounts.create({
-        type: CONNECT_ACCOUNT_TYPE,
-        email: user.email,
-        metadata: {
-          user_id: user.id,
-          username: profile?.username || "",
-        },
-        business_profile: {
-          name: profile?.display_name || profile?.username || undefined,
-        },
-      });
-
-      stripeAccountId = account.id;
-
-      // Save to database
-      if (existingAccount) {
-        await supabaseAdmin
-          .from("seller_accounts")
-          .update({ stripe_account_id: stripeAccountId, updated_at: new Date().toISOString() })
-          .eq("user_id", user.id);
-      } else {
-        await supabaseAdmin
-          .from("seller_accounts")
-          .insert({ user_id: user.id, stripe_account_id: stripeAccountId });
-      }
-    }
-
-    // Create onboarding link
-    const { url: returnUrl } = request;
-    const origin = new URL(returnUrl).origin;
-
-    const accountLink = await stripe.accountLinks.create({
-      account: stripeAccountId,
-      refresh_url: `${origin}/seller/onboarding?refresh=true`,
-      return_url: `${origin}/seller/onboarding?success=true`,
-      type: "account_onboarding",
+    const provider = getActiveProvider();
+    const result = await provider.createSellerAccount(user.id, user.email || "", {
+      username: profile?.username || undefined,
+      displayName: profile?.display_name || undefined,
     });
 
-    return NextResponse.json({ url: accountLink.url });
+    return NextResponse.json({
+      url: result.url,
+      placeholder_mode: result.placeholderMode || false,
+    });
   } catch (error) {
-    console.error("[Stripe Connect Onboard]", error);
+    console.error("[Connect Onboard]", error);
     const message = error instanceof Error ? error.message : "Failed to create onboarding link";
     return NextResponse.json({ error: message }, { status: 500 });
   }

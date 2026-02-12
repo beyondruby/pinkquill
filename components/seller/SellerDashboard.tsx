@@ -3,9 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useOrderStats, useSellerOrders } from "@/lib/hooks/useOrders";
+import { useOrderStats, useSellerOrders, usePendingAcceptanceOrders, useAcceptOrder, useDeclineOrder } from "@/lib/hooks/useOrders";
 import { useSellerEarnings } from "@/lib/hooks/usePayments";
 import { useSellerOnboarding } from "@/lib/hooks/usePayments";
+import PendingOrderCard from "./PendingOrderCard";
 import type { Order } from "@/lib/types/store";
 
 function MetricCard({
@@ -40,6 +41,8 @@ function MetricCard({
 
 function RecentOrderRow({ order }: { order: Order }) {
   const statusColors: Record<string, string> = {
+    pending_acceptance: "bg-amber-100 text-amber-700",
+    declined: "bg-red-100 text-red-700",
     pending_payment: "bg-yellow-100 text-yellow-700",
     paid: "bg-blue-100 text-blue-700",
     in_progress: "bg-purple-100 text-purple-700",
@@ -90,9 +93,24 @@ export default function SellerDashboard() {
   const { stats, loading: statsLoading } = useOrderStats(user?.id);
   const { earnings, loading: earningsLoading } = useSellerEarnings(user?.id);
   const { orders: recentOrders, loading: ordersLoading } = useSellerOrders(user?.id, {}, 5);
+  const { orders: pendingOrders, count: pendingCount, refetch: refetchPending } = usePendingAcceptanceOrders(user?.id);
+  const { acceptOrder, accepting } = useAcceptOrder();
+  const { declineOrder, declining } = useDeclineOrder();
   const { account } = useSellerOnboarding();
 
   const loading = statsLoading || earningsLoading;
+
+  const handleAccept = async (orderId: string) => {
+    const success = await acceptOrder(orderId);
+    if (success) refetchPending();
+    return success;
+  };
+
+  const handleDecline = async (orderId: string, reason?: string) => {
+    const success = await declineOrder(orderId, reason);
+    if (success) refetchPending();
+    return success;
+  };
 
   if (loading) {
     return (
@@ -148,12 +166,43 @@ export default function SellerDashboard() {
           value={`${stats?.active_orders ?? 0}`}
           sublabel="In progress"
         />
-        <MetricCard
-          label="Avg. Order"
-          value={`$${(earnings?.avg_order_value ?? 0).toFixed(2)}`}
-          sublabel={`${earnings?.total_orders ?? 0} total orders`}
-        />
+        {pendingCount > 0 ? (
+          <MetricCard
+            label="Pending Approval"
+            value={`${pendingCount}`}
+            sublabel="Awaiting your response"
+            accent
+          />
+        ) : (
+          <MetricCard
+            label="Avg. Order"
+            value={`$${(earnings?.avg_order_value ?? 0).toFixed(2)}`}
+            sublabel={`${earnings?.total_orders ?? 0} total orders`}
+          />
+        )}
       </div>
+
+      {/* Pending Approval Section */}
+      {pendingOrders.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-lg text-ink">Pending Approval</h2>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-primary text-white text-xs font-ui font-bold">
+              {pendingCount}
+            </span>
+          </div>
+          {pendingOrders.map((order) => (
+            <PendingOrderCard
+              key={order.id}
+              order={order}
+              onAccept={handleAccept}
+              onDecline={handleDecline}
+              accepting={accepting}
+              declining={declining}
+            />
+          ))}
+        </section>
+      )}
 
       {/* Quick Actions */}
       <div className="flex gap-3 flex-wrap">

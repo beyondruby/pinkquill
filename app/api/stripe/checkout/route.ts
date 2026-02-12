@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
-import { getPaymentProvider } from "@/lib/payments";
-import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { getActiveProvider } from "@/lib/payment-provider";
 
 export const runtime = "nodejs";
 
@@ -37,7 +36,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, status, listing_type, amount, currency, payment_provider, payment_reference, payment_intent_id")
+      .select("id, buyer_id, status, listing_type, amount, currency, payment_provider, payment_reference, payment_intent_id, paypal_order_id")
       .eq("id", orderId)
       .single();
 
@@ -56,94 +55,23 @@ export async function POST(request: Request) {
       );
     }
 
-    const provider = getPaymentProvider();
-    if (provider === "stripe") {
-      const amountCents = Math.round(Number(order.amount) * 100);
-      if (!Number.isFinite(amountCents) || amountCents <= 0) {
-        return NextResponse.json({ error: "Order amount is invalid" }, { status: 400 });
-      }
-
-      const currency = String(order.currency || "usd").toLowerCase();
-      const stripe = getStripeServer();
-      const paymentIntentId = order.payment_intent_id && order.payment_intent_id.startsWith("pi_")
-        ? order.payment_intent_id
-        : null;
-      let paymentIntent = paymentIntentId
-        ? await stripe.paymentIntents.retrieve(paymentIntentId).catch(() => null)
-        : null;
-
-      const reusableStatuses = new Set([
-        "requires_payment_method",
-        "requires_confirmation",
-        "requires_action",
-        "processing",
-      ]);
-
-      if (paymentIntent?.status === "succeeded") {
-        return NextResponse.json({ error: "Payment has already been completed for this order" }, { status: 409 });
-      }
-
-      if (!paymentIntent || !reusableStatuses.has(paymentIntent.status)) {
-        paymentIntent = await stripe.paymentIntents.create(
-          {
-            amount: amountCents,
-            currency,
-            automatic_payment_methods: { enabled: true },
-            metadata: {
-              order_id: order.id,
-              buyer_id: user.id,
-              listing_type: order.listing_type,
-            },
-            description: `PinkQuill order ${order.id}`,
-            receipt_email: user.email ?? undefined,
-          },
-          { idempotencyKey: `checkout_${order.id}` }
-        );
-      } else if (paymentIntent.amount !== amountCents || paymentIntent.currency !== currency) {
-        paymentIntent = await stripe.paymentIntents.update(paymentIntent.id, {
-          amount: amountCents,
-          currency,
-        });
-      }
-
-      if (!paymentIntent.client_secret) {
-        return NextResponse.json({ error: "Unable to initialize Stripe checkout" }, { status: 500 });
-      }
-
-      await supabaseAdmin
-        .from("orders")
-        .update({
-          payment_provider: "stripe",
-          payment_reference: paymentIntent.id,
-          payment_intent_id: paymentIntent.id,
-          payment_status: "pending",
-        })
-        .eq("id", orderId);
-
-      return NextResponse.json({
-        mode: "stripe",
-        client_secret: paymentIntent.client_secret,
-        payment_reference: paymentIntent.id,
-      });
-    }
-
-    const paymentReference = order.payment_reference || `placeholder:${order.id}`;
-
-    await supabaseAdmin
-      .from("orders")
-      .update({
-        payment_provider: "placeholder",
-        payment_reference: paymentReference,
-        payment_intent_id: paymentReference,
-        payment_status: "pending",
-      })
-      .eq("id", orderId);
+    const provider = getActiveProvider();
+    const result = await provider.createCheckoutSession({
+      id: order.id,
+      buyerId: user.id,
+      buyerEmail: user.email ?? undefined,
+      amount: Number(order.amount),
+      currency: String(order.currency || "usd"),
+      listingType: order.listing_type,
+      existingPaymentRef: order.payment_reference || order.payment_intent_id || order.paypal_order_id,
+    });
 
     return NextResponse.json({
-      mode: "placeholder",
-      client_secret: null,
-      payment_reference: paymentReference,
-      message: "Placeholder payments are active until Stripe setup is complete.",
+      mode: result.mode,
+      client_secret: result.clientToken,
+      payment_reference: result.paymentReference,
+      approval_url: result.approvalUrl || null,
+      message: result.message || null,
     });
   } catch (error) {
     console.error("[Checkout Prepare]", error);

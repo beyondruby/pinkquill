@@ -131,14 +131,18 @@ export {
   useBuyerOrders,
   useSellerOrders,
   useUpdateOrderStatus,
+  useAcceptOrder,
+  useDeclineOrder,
+  usePendingAcceptanceOrders,
   useOrderMessages,
   useSendOrderMessage,
   useOrderEvents,
   useOrderStats,
+  useBuyerOrderStats,
 } from "./useOrders";
 
-// Studio Queue
-export { useStudioQueue } from "./useStudioQueue";
+// Studio Cart (formerly Studio Queue)
+export { useStudioCart, useStudioQueue } from "./useStudioQueue";
 
 // Payments
 export {
@@ -148,6 +152,19 @@ export {
   useTransactionHistory,
 } from "./usePayments";
 
+// Seller Profile
+export {
+  useSellerProfile,
+  useUpdateSellerProfile,
+  useSellerSetupStatus,
+} from "./useSellerProfile";
+
+// Promo Codes
+export {
+  useValidatePromoCode,
+  useApplyPromoCode,
+} from "./usePromoCode";
+
 // Reviews
 export {
   useSubmitReview,
@@ -156,6 +173,19 @@ export {
   useSellerStats,
   useRespondToReview,
 } from "./useReviews";
+
+// Downloads (digital products)
+export {
+  useOrderDownloads,
+  useGenerateDownloads,
+  useDownloadFile,
+} from "./useDownloads";
+
+// Shipping (physical products)
+export {
+  useAddTracking,
+  useConfirmDelivery,
+} from "./useShipping";
 
 // Disputes & Refunds
 export {
@@ -244,6 +274,8 @@ export type {
   Review,
   SellerStats,
   SellerLevel,
+  BuyerOrderStats,
+  DownloadToken,
   Dispute,
   DisputeStatus,
   DisputeReason,

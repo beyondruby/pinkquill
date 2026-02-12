@@ -43,7 +43,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
   if (!isBuyer && !isSeller) return null;
 
   const isTerminal =
-    ["completed", "cancelled", "refunded", "resolved"].includes(order.status)
+    ["completed", "cancelled", "refunded", "resolved", "declined"].includes(order.status)
     || (!isBuyer && order.status === "delivered");
 
   // Terminal states
@@ -65,8 +65,46 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
             Completed on {new Date(order.completed_at).toLocaleDateString()}
           </p>
         )}
+        {order.status === "declined" && (
+          <div className="mt-2">
+            {order.seller_decline_reason && (
+              <p className="text-sm font-body text-muted">
+                <span className="font-semibold">Reason:</span> {order.seller_decline_reason}
+              </p>
+            )}
+            <p className="text-xs font-body text-muted mt-1">
+              Declined on {order.seller_declined_at ? new Date(order.seller_declined_at).toLocaleDateString() : "N/A"}
+            </p>
+          </div>
+        )}
       </section>
     );
+  }
+
+  // Pending acceptance state (buyer sees waiting, seller sees accept/decline via dashboard)
+  if (order.status === "pending_acceptance") {
+    if (isBuyer) {
+      return (
+        <section className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 sm:p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h2 className="font-display text-lg text-amber-700">Awaiting Seller Approval</h2>
+          </div>
+          <p className="text-sm font-body text-amber-600/80">
+            The seller is reviewing your order. You&apos;ll be notified once they accept or decline.
+          </p>
+          {order.seller_response_deadline && (
+            <p className="text-xs font-body text-amber-600/60 mt-2">
+              Response expected by {new Date(order.seller_response_deadline).toLocaleString()}
+            </p>
+          )}
+        </section>
+      );
+    }
+    // Seller sees accept/decline inline here (in addition to dashboard)
+    return null;
   }
 
   // Disputed state

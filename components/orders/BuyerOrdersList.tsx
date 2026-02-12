@@ -54,10 +54,10 @@ export default function BuyerOrdersList() {
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h1 className="font-display text-3xl text-ink">My Orders</h1>
           <Link
-            href="/queue"
+            href="/cart"
             className="px-4 py-2 rounded-xl border border-purple-primary/30 bg-purple-50 text-sm font-ui font-semibold text-purple-primary hover:bg-purple-100"
           >
-            Open Studio Queue
+            Open Studio Cart
           </Link>
         </div>
 

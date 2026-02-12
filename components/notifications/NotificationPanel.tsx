@@ -672,6 +672,12 @@ function getNotificationIcon(type: string) {
       return icons.collaborationDeclined;
     case 'mention':
       return icons.mention;
+    case 'order_pending_acceptance':
+      return icons.orderPlaced;
+    case 'order_accepted':
+      return icons.orderPaid;
+    case 'order_declined':
+      return icons.orderCancelled;
     case 'order_placed':
       return icons.orderPlaced;
     case 'order_paid':
@@ -755,6 +761,12 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
       return { actor: actorName, action: `declined your collaboration invite` };
     case 'mention':
       return { actor: actorName, action: `mentioned you in their ${postType}` };
+    case 'order_pending_acceptance':
+      return { actor: actorName, action: 'placed an order awaiting your approval' };
+    case 'order_accepted':
+      return { actor: actorName, action: 'accepted your order' };
+    case 'order_declined':
+      return { actor: actorName, action: 'declined your order' };
     case 'order_placed':
       return { actor: actorName, action: 'placed a new order' };
     case 'order_paid':
@@ -805,6 +817,9 @@ function NotificationItem({
   const getNotificationLink = (): string => {
     // Order-related notifications link to the order page
     if (notification.order_id && (
+      notification.type === 'order_pending_acceptance' ||
+      notification.type === 'order_accepted' ||
+      notification.type === 'order_declined' ||
       notification.type === 'order_placed' ||
       notification.type === 'order_paid' ||
       notification.type === 'order_started' ||

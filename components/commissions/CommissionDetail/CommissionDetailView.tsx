@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
-import { useStudioQueue } from "@/lib/hooks/useStudioQueue";
+import { useStudioCart } from "@/lib/hooks/useStudioQueue";
 import { getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
 import { PLATFORM_FEES } from "@/lib/types/store";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
@@ -21,7 +21,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
   const { user } = useAuth();
   const { product, loading, error } = useProduct(commissionId);
   const { createOrder, creating: hiring, error: hireError } = useCreateOrder();
-  const { addItem, hasItem } = useStudioQueue();
+  const { addItem, hasItem } = useStudioCart();
 
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [showHireModal, setShowHireModal] = useState(false);
@@ -146,7 +146,11 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
     if (order) {
       setShowHireModal(false);
-      router.push(`/orders/${order.id}?payment=start`);
+      if (order.status === "pending_acceptance") {
+        router.push(`/orders/${order.id}`);
+      } else {
+        router.push(`/checkout/${order.id}`);
+      }
     }
   };
 
@@ -420,13 +424,13 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                     }}
                     className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-pink-vivid/40 transition-colors"
                   >
-                    {isQueued ? "In Studio Queue" : "Add to Studio Queue"}
+                    {isQueued ? "In Cart" : "Add to Cart"}
                   </button>
                   <button
-                    onClick={() => router.push("/queue")}
+                    onClick={() => router.push("/cart")}
                     className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-purple-primary/40 transition-colors"
                   >
-                    Open Studio Queue
+                    Open Cart
                   </button>
                 </div>
 
