@@ -1,0 +1,57 @@
+name: Marketplace Cron
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # Auto-decline
+    - cron: "0 * * * *" # Auto-complete
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketplace-cron
+  cancel-in-progress: false
+
+jobs:
+  run-marketplace-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required secrets
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_BASE_URL}" ]; then
+            echo "Missing required secret: APP_BASE_URL"
+            exit 1
+          fi
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "Missing required secret: CRON_SECRET"
+            exit 1
+          fi
+
+      - name: Trigger auto-decline
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '*/10 * * * *' }}
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          BASE_URL="${APP_BASE_URL%/}"
+          curl --fail-with-body -X POST "${BASE_URL}/api/orders/auto-decline" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json"
+
+      - name: Trigger auto-complete
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '0 * * * *' }}
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          BASE_URL="${APP_BASE_URL%/}"
+          curl --fail-with-body -X POST "${BASE_URL}/api/orders/auto-complete" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json"
