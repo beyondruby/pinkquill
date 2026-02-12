@@ -303,8 +303,10 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
               username,
               display_name,
               avatar_url
-            )
+            ),
+            active_members:community_members(count)
           `)
+          .eq("active_members.status", "active")
           .eq("privacy", "public")
           .limit(limit);
 
@@ -337,28 +339,18 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
           return;
         }
 
-        // Get member counts
-        const communityIds = data.map(c => c.id);
-        const { data: membersData } = await supabase
-          .from("community_members")
-          .select("community_id")
-          .in("community_id", communityIds)
-          .eq("status", "active");
-
-        if (!mountedRef.current) return;
-
-        const memberCounts: Record<string, number> = {};
-        (membersData || []).forEach(m => {
-          memberCounts[m.community_id] = (memberCounts[m.community_id] || 0) + 1;
-        });
-
-        const enrichedCommunities = data.map(c => ({
+        // Extract member counts from aggregate result (no separate query needed)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const enrichedCommunities = data.map((c: any) => ({
           ...c,
-          member_count: memberCounts[c.id] || 0,
+          member_count: Array.isArray(c.active_members) && c.active_members[0]?.count
+            ? c.active_members[0].count
+            : 0,
         }));
 
         // Sort by member count (most popular first)
-        enrichedCommunities.sort((a, b) => (b.member_count || 0) - (a.member_count || 0));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        enrichedCommunities.sort((a: any, b: any) => (b.member_count || 0) - (a.member_count || 0));
 
         setCommunities(enrichedCommunities);
         // Set trending as top 6 by member count

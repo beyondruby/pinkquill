@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useStudioCart } from "@/lib/hooks";
+import { useBadgeCounts } from "@/components/providers/BadgeCountProvider";
 
 const icons: Record<string, React.ReactElement> = {
   home: (
@@ -47,7 +47,7 @@ const icons: Record<string, React.ReactElement> = {
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { user, profile } = useAuth();
-  const { count: cartCount } = useStudioCart();
+  const { cartCount } = useBadgeCounts();
 
   // Hide bottom nav on messages page (it has its own full-screen layout)
   const isMessagesPage = pathname.startsWith("/messages");

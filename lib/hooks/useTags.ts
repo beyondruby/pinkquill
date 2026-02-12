@@ -63,82 +63,24 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
       setLoading(true);
       setError(null);
 
-      // Get all post_tags with their tag names from the last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-      // Fetch tags with post counts - limit to prevent excessive data transfer
-      const { data: tagData, error: tagError } = await supabase
-        .from("post_tags")
-        .select(`
-          tag_id,
-          tags!inner (
-            id,
-            name
-          ),
-          posts!inner (
-            id,
-            created_at,
-            status,
-            visibility
-          )
-        `)
-        .eq("posts.status", "published")
-        .eq("posts.visibility", "public")
-        .gte("posts.created_at", thirtyDaysAgo.toISOString())
-        .limit(500); // Add reasonable limit
+      // Use server-side RPC for efficient GROUP BY aggregation
+      // This replaces fetching 500+ rows and counting client-side
+      const { data, error: rpcError } = await supabase.rpc("get_trending_tags", {
+        p_limit: limit,
+        p_days: 30,
+      });
 
       if (!mountedRef.current) return;
-      if (tagError) throw tagError;
+      if (rpcError) throw rpcError;
 
-      // Count posts per tag efficiently
-      const tagCounts = new Map<string, { name: string; total: number; recent: number }>();
-      const dataArray = tagData || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const trendingTags: TrendingTag[] = (data || []).map((row: any) => ({
+        name: row.name,
+        post_count: Number(row.post_count),
+        recent_posts: Number(row.recent_posts),
+      }));
 
-      for (let i = 0; i < dataArray.length; i++) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const item = dataArray[i] as any;
-        const tags = Array.isArray(item.tags) ? item.tags[0] : item.tags;
-        const posts = Array.isArray(item.posts) ? item.posts[0] : item.posts;
-        const tagName = tags?.name;
-        if (!tagName) continue;
-
-        let existing = tagCounts.get(tagName);
-        if (!existing) {
-          existing = { name: tagName, total: 0, recent: 0 };
-          tagCounts.set(tagName, existing);
-        }
-
-        existing.total += 1;
-
-        // Check if post is from last 7 days
-        const postDate = new Date(posts?.created_at);
-        if (postDate >= sevenDaysAgo) {
-          existing.recent += 1;
-        }
-      }
-
-      // Convert to array and sort by recent posts first, then total
-      const sortedTags = Array.from(tagCounts.values())
-        .map((t) => ({
-          name: t.name,
-          post_count: t.total,
-          recent_posts: t.recent,
-        }))
-        .sort((a, b) => {
-          // Sort by recent posts first, then by total
-          if (b.recent_posts !== a.recent_posts) {
-            return b.recent_posts - a.recent_posts;
-          }
-          return b.post_count - a.post_count;
-        })
-        .slice(0, limit);
-
-      if (!mountedRef.current) return;
-      setTags(sortedTags);
+      setTags(trendingTags);
       fetchedRef.current = true;
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;

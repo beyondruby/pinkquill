@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFeatherPointed } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useUnreadCount, useUnreadMessagesCount, useStudioCart } from "@/lib/hooks";
+import { useBadgeCounts } from "@/components/providers/BadgeCountProvider";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
 import SearchBar from "@/components/search/SearchBar";
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
@@ -106,12 +106,7 @@ export default function LeftSidebar() {
   const sidebarRef = useRef<HTMLElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // CRITICAL: Only fetch notification/message counts AFTER auth is fully loaded
-  // This prevents cascading async operations during auth initialization
-  const shouldFetchCounts = !loading && !!user;
-  const { count: unreadCount } = useUnreadCount(shouldFetchCounts ? user?.id : undefined);
-  const { count: unreadMessagesCount } = useUnreadMessagesCount(shouldFetchCounts ? user?.id : undefined);
-  const { count: cartCount } = useStudioCart();
+  const { unreadNotifications: unreadCount, unreadMessages: unreadMessagesCount, cartCount } = useBadgeCounts();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

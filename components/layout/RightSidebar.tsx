@@ -113,7 +113,11 @@ function WhoToFollowSection() {
 
         let query = supabase
           .from("profiles")
-          .select("id, username, display_name, avatar_url, tagline")
+          .select(`
+            id, username, display_name, avatar_url, tagline,
+            followers:follows!follows_following_id_fkey(count)
+          `)
+          .eq("followers.status", "accepted")
           .limit(3);
 
         if (user) {
@@ -132,15 +136,20 @@ function WhoToFollowSection() {
 
         const { data: users } = await query;
 
-        const usersWithCounts = await Promise.all(
-          (users || []).map(async (u) => {
-            const { count } = await supabase
-              .from("follows")
-              .select("*", { count: "exact", head: true })
-              .eq("following_id", u.id);
-            return { ...u, followers_count: count || 0 };
-          })
-        );
+        // Extract follower counts from aggregate result (no separate queries needed)
+        const usersWithCounts = (users || []).map((u: Record<string, unknown>) => {
+          const followers = u.followers as { count: number }[] | null;
+          return {
+            id: u.id as string,
+            username: u.username as string,
+            display_name: u.display_name as string | null,
+            avatar_url: u.avatar_url as string | null,
+            tagline: u.tagline as string | null,
+            followers_count: Array.isArray(followers) && followers[0]?.count
+              ? followers[0].count
+              : 0,
+          };
+        });
 
         usersWithCounts.sort((a, b) => b.followers_count - a.followers_count);
         setSuggestedUsers(usersWithCounts);

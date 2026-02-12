@@ -6,18 +6,14 @@ import { usePathname } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFeatherPointed } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useUnreadCount, useUnreadMessagesCount } from "@/lib/hooks";
+import { useBadgeCounts } from "@/components/providers/BadgeCountProvider";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
 
 export default function MobileHeader() {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
 
-  // CRITICAL: Only fetch notification/message counts AFTER auth is fully loaded
-  // This prevents cascading async operations during auth initialization
-  const shouldFetchCounts = !loading && !!user;
-  const { count: unreadCount } = useUnreadCount(shouldFetchCounts ? user?.id : undefined);
-  const { count: unreadMessagesCount } = useUnreadMessagesCount(shouldFetchCounts ? user?.id : undefined);
+  const { unreadNotifications: unreadCount, unreadMessages: unreadMessagesCount } = useBadgeCounts();
   const [showNotifications, setShowNotifications] = useState(false);
 
   // Hide header on messages page (it has its own header)
