@@ -127,7 +127,7 @@ export async function POST(request: Request) {
 
     if (requiresShippingDetails) {
       return NextResponse.json(
-        { error: "Complete shipping details on the order page before checkout." },
+        { error: "Complete shipping details before checkout." },
         { status: 400 }
       );
     }

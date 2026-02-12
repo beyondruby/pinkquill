@@ -28,6 +28,13 @@ function generateSlug(title: string): string {
     .substring(0, 50);
 }
 
+function normalizeShippingRelation(
+  shipping: ProductShipping | ProductShipping[] | null | undefined
+): ProductShipping | null {
+  if (!shipping) return null;
+  return Array.isArray(shipping) ? shipping[0] || null : shipping;
+}
+
 // ============================================================================
 // useSellerProducts - Fetch all products for a seller
 // ============================================================================
@@ -92,12 +99,15 @@ export function useSellerProducts(
       if (fetchError) throw fetchError;
 
       // Transform data
-      type RawProduct = Omit<Product, 'keywords'> & { keywords?: { keyword: string }[]; shipping?: ProductShipping[] };
+      type RawProduct = Omit<Product, 'keywords'> & {
+        keywords?: { keyword: string }[];
+        shipping?: ProductShipping | ProductShipping[] | null;
+      };
       const transformedProducts: Product[] = (data || []).map((product: RawProduct) => ({
         ...product,
         media: product.media || [],
         pricing: product.pricing || [],
-        shipping: product.shipping?.[0] || null,
+        shipping: normalizeShippingRelation(product.shipping),
         keywords: (product.keywords || []).map((k: { keyword: string }) => k.keyword),
         primary_image_url: product.media?.find((m: ProductMedia) => m.is_primary)?.media_url
           || product.media?.[0]?.media_url,
@@ -187,7 +197,7 @@ export function useProduct(productId?: string): UseProductReturn {
         ...data,
         media: (data.media || []).sort((a: ProductMedia, b: ProductMedia) => a.position - b.position),
         pricing: data.pricing || [],
-        shipping: data.shipping?.[0] || null,
+        shipping: normalizeShippingRelation(data.shipping as ProductShipping | ProductShipping[] | null | undefined),
         files: data.files || [],
         keywords: (data.keywords || []).map((k: { keyword: string }) => k.keyword),
         primary_image_url: data.media?.find((m: ProductMedia) => m.is_primary)?.media_url

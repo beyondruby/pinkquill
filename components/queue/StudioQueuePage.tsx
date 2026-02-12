@@ -101,10 +101,22 @@ export default function StudioCartPage() {
       }
 
       const needsShipping = item.delivery_type !== "digital";
-      if (needsShipping && (!physicalShipping.name || !physicalShipping.line1 || !physicalShipping.city || !physicalShipping.country)) {
-        setActionError("Fill in the shipping address before starting physical product orders.");
-        return;
-      }
+      const hasShippingProfile =
+        !!physicalShipping.name?.trim()
+        && !!physicalShipping.line1?.trim()
+        && !!physicalShipping.city?.trim()
+        && !!physicalShipping.country?.trim();
+      const shippingAddress = hasShippingProfile
+        ? {
+            name: (physicalShipping.name || "").trim(),
+            line1: (physicalShipping.line1 || "").trim(),
+            line2: (physicalShipping.line2 || "").trim() || undefined,
+            city: (physicalShipping.city || "").trim(),
+            state: (physicalShipping.state || "").trim() || undefined,
+            postal_code: (physicalShipping.postal_code || "").trim(),
+            country: (physicalShipping.country || "").trim(),
+          }
+        : undefined;
 
       const order = await createOrder({
         product_id: item.product_id,
@@ -114,12 +126,12 @@ export default function StudioCartPage() {
         platform_fee: 0,
         seller_amount: 0,
         currency: item.currency,
-        shipping_address: needsShipping ? (physicalShipping as ShippingAddress) : undefined,
+        shipping_address: needsShipping ? (shippingAddress as ShippingAddress | undefined) : undefined,
       });
 
       if (order) {
         removeItem(item.id);
-        router.push(`/orders/${order.id}`);
+        router.push(`/checkout/${order.id}`);
       }
     } finally {
       setSubmittingItemId(null);
@@ -168,6 +180,9 @@ export default function StudioCartPage() {
         {hasPhysicalItems && (
           <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
             <h2 className="font-display text-xl text-ink mb-3">Shipping Profile</h2>
+            <p className="text-xs font-body text-muted mb-3">
+              Optional here. If filled, it will prefill checkout for physical products.
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 placeholder="Full name"
@@ -286,7 +301,11 @@ export default function StudioCartPage() {
                       disabled={creating || submittingItemId === item.id}
                       className="px-5 py-3 rounded-xl text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid disabled:opacity-60"
                     >
-                      {submittingItemId === item.id ? "Starting..." : "Start Order"}
+                      {submittingItemId === item.id
+                        ? "Starting..."
+                        : isService
+                        ? "Start Order"
+                        : "Start Checkout"}
                     </button>
                     <Link
                       href={isService ? `/commissions/${item.product_id}` : `/product/${item.product_id}`}

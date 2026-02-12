@@ -153,6 +153,19 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
           { label: "Weight", value: product.shipping.weight, unit: product.shipping.weight_unit },
         ].filter((item) => item.value)
       : [];
+  const shippingServices = (product.shipping?.shipping_services || []).filter(Boolean);
+  const shippingLocations = (product.shipping?.shipping_locations || []).filter(Boolean);
+  const supportsInternational = shippingLocations.some((location) =>
+    /(international|worldwide|global|all countries)/i.test(location)
+  );
+  const shippingCoverageLabel = supportsInternational
+    ? "International shipping"
+    : shippingLocations.length > 0
+    ? "Regional shipping"
+    : "Coverage not specified";
+  const normalizedPackaging = product.shipping?.packaging
+    ? product.shipping.packaging.replace(/_/g, " ")
+    : null;
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fffefc_45%,#fff9f2_100%)] pb-16">
@@ -255,41 +268,77 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   </div>
                 )}
 
-                {product.delivery_type !== "digital" && product.shipping && (
+                {product.delivery_type !== "digital" && (
                   <div>
                     <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Shipping</h3>
-                    <dl className="mt-3 space-y-2 max-w-3xl">
-                      <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
-                        <dt className="text-sm font-body text-muted">Shipping price</dt>
-                        <dd className="text-sm font-ui text-ink text-right">
-                          {shippingCost > 0 ? formatPrice(shippingCost, activePricing?.currency || "USD") : "Free"}
-                        </dd>
+                    {product.shipping ? (
+                      <div className="mt-3 rounded-2xl border border-black/[0.08] overflow-hidden max-w-3xl">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-black/[0.06]">
+                          <div className="bg-[linear-gradient(140deg,rgba(255,159,67,0.2),rgba(255,0,127,0.15))] p-4">
+                            <p className="text-[11px] font-ui uppercase tracking-[0.14em] text-muted">Shipping Cost</p>
+                            <p className="mt-1 text-lg font-display text-ink">
+                              {shippingCost > 0 ? formatPrice(shippingCost, activePricing?.currency || "USD") : "Free"}
+                            </p>
+                          </div>
+                          <div className="bg-[linear-gradient(140deg,rgba(142,68,173,0.14),rgba(255,0,127,0.12))] p-4">
+                            <p className="text-[11px] font-ui uppercase tracking-[0.14em] text-muted">Coverage</p>
+                            <p className="mt-1 text-sm font-ui text-ink">
+                              {shippingCoverageLabel}
+                            </p>
+                          </div>
+                          <div className="bg-[linear-gradient(140deg,rgba(255,184,108,0.2),rgba(255,255,255,0.8))] p-4">
+                            <p className="text-[11px] font-ui uppercase tracking-[0.14em] text-muted">Processing</p>
+                            <p className="mt-1 text-sm font-ui text-ink">
+                              {product.shipping.processing_days ? `${product.shipping.processing_days} business days` : "Not specified"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-4 bg-white">
+                          {shippingServices.length > 0 && (
+                            <div>
+                              <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Carriers</p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {shippingServices.map((service) => (
+                                  <span
+                                    key={service}
+                                    className="px-2.5 py-1 rounded-full border border-black/[0.08] bg-black/[0.02] text-xs font-ui text-ink"
+                                  >
+                                    {service}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {shippingLocations.length > 0 && (
+                            <div>
+                              <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Ships To</p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {shippingLocations.map((location) => (
+                                  <span
+                                    key={location}
+                                    className="px-2.5 py-1 rounded-full border border-pink-vivid/20 bg-pink-vivid/5 text-xs font-ui text-ink"
+                                  >
+                                    {location}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {normalizedPackaging && (
+                            <p className="text-sm font-body text-muted">
+                              <span className="font-ui text-ink">Packaging:</span> {normalizedPackaging}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {product.shipping.shipping_services?.length > 0 && (
-                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
-                          <dt className="text-sm font-body text-muted">Shipping service</dt>
-                          <dd className="text-sm font-ui text-ink text-right">{product.shipping.shipping_services.join(", ")}</dd>
-                        </div>
-                      )}
-                      {product.shipping.shipping_locations?.length > 0 && (
-                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
-                          <dt className="text-sm font-body text-muted">Ships to</dt>
-                          <dd className="text-sm font-ui text-ink text-right">{product.shipping.shipping_locations.join(", ")}</dd>
-                        </div>
-                      )}
-                      {product.shipping.processing_days && (
-                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
-                          <dt className="text-sm font-body text-muted">Processing</dt>
-                          <dd className="text-sm font-ui text-ink text-right">{product.shipping.processing_days} business days</dd>
-                        </div>
-                      )}
-                      {product.shipping.packaging && (
-                        <div className="flex items-start justify-between gap-4 border-b border-black/[0.06] pb-2">
-                          <dt className="text-sm font-body text-muted">Packaging</dt>
-                          <dd className="text-sm font-ui text-ink text-right capitalize">{product.shipping.packaging.replace(/_/g, " ")}</dd>
-                        </div>
-                      )}
-                    </dl>
+                    ) : (
+                      <p className="mt-3 text-sm font-body text-muted">
+                        Shipping details will be provided by the seller.
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -375,13 +424,13 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                     });
 
                     if (order) {
-                      router.push(`/orders/${order.id}`);
+                      router.push(`/checkout/${order.id}`);
                     }
                   }}
                   disabled={!activePricing || activePricing.stock === 0 || buying}
                   className="w-full py-3.5 rounded-full text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {buying ? "Starting..." : "Start Order"}
+                  {buying ? "Starting Checkout..." : "Start Checkout"}
                 </button>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -559,16 +608,16 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
 
                   if (order) {
                     setShowBuyModal(false);
-                    router.push(`/orders/${order.id}`);
+                    router.push(`/checkout/${order.id}`);
                   }
                 }}
                 disabled={buying}
                 className="w-full py-3.5 rounded-xl text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60"
               >
-                {buying ? "Creating..." : "Start Order"}
+                {buying ? "Creating..." : "Start Checkout"}
               </button>
 
-              <p className="text-xs text-center font-body text-muted">Next: review details on the order page, then complete payment.</p>
+              <p className="text-xs text-center font-body text-muted">Next: complete payment and then continue to your order page.</p>
             </div>
           </div>
         </div>

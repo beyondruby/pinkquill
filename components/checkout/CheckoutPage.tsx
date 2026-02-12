@@ -9,9 +9,10 @@ import { getStripe } from "@/lib/stripe-client";
 import { getPayPalClientId } from "@/lib/paypal-client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCheckout } from "@/lib/hooks/usePayments";
+import { useUpdateOrderDraft } from "@/lib/hooks/useOrders";
 import { useValidatePromoCode, useApplyPromoCode, useRemovePromoCode } from "@/lib/hooks/usePromoCode";
 import { supabase } from "@/lib/supabase";
-import type { Order } from "@/lib/types/store";
+import type { Order, ShippingAddress } from "@/lib/types/store";
 
 function formatCurrency(amount: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
@@ -335,7 +336,7 @@ function PayPalInlineButtons({
 export default function CheckoutPage({ orderId }: { orderId: string }) {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { order, loading: orderLoading, error: orderError } = useOrderData(orderId);
+  const { order, loading: orderLoading, error: orderError, setOrder } = useOrderData(orderId);
   const {
     mode,
     clientSecret,
@@ -345,17 +346,43 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     createCheckout,
     confirmPayment,
   } = useCheckout();
+  const { updateDraft, updating: updatingDraft, error: updateDraftError } = useUpdateOrderDraft();
 
   const [stripeReady, setStripeReady] = useState(false);
   const [displayAmount, setDisplayAmount] = useState<number | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [confirmingZeroTotal, setConfirmingZeroTotal] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [shippingError, setShippingError] = useState<string | null>(null);
+  const [shippingSavedNotice, setShippingSavedNotice] = useState<string | null>(null);
+  const [shippingDraft, setShippingDraft] = useState<Partial<ShippingAddress>>({
+    name: "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "",
+  });
+
+  useEffect(() => {
+    setShippingSavedNotice(null);
+  }, [orderId]);
 
   useEffect(() => {
     if (order) {
       setDisplayAmount(Number(order.amount));
       setDiscountAmount(Number(order.discount_amount || 0));
+      setShippingDraft({
+        name: order.shipping_address?.name || "",
+        line1: order.shipping_address?.line1 || "",
+        line2: order.shipping_address?.line2 || "",
+        city: order.shipping_address?.city || "",
+        state: order.shipping_address?.state || "",
+        postal_code: order.shipping_address?.postal_code || "",
+        country: order.shipping_address?.country || "",
+      });
+      setShippingError(null);
     }
   }, [order]);
 
@@ -382,6 +409,41 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const handleSuccess = useCallback(() => {
     router.push(`/orders/${orderId}?payment=success`);
   }, [router, orderId]);
+
+  const handleSaveShippingDetails = useCallback(async () => {
+    if (!order) return;
+
+    const payload: ShippingAddress = {
+      name: (shippingDraft.name || "").trim(),
+      line1: (shippingDraft.line1 || "").trim(),
+      line2: (shippingDraft.line2 || "").trim() || undefined,
+      city: (shippingDraft.city || "").trim(),
+      state: (shippingDraft.state || "").trim() || undefined,
+      postal_code: (shippingDraft.postal_code || "").trim(),
+      country: (shippingDraft.country || "").trim(),
+    };
+
+    if (!payload.name || !payload.line1 || !payload.city || !payload.country) {
+      setShippingError("Name, address, city, and country are required for shipping.");
+      return;
+    }
+
+    setShippingError(null);
+    setShippingSavedNotice(null);
+
+    const success = await updateDraft({
+      order_id: order.id,
+      shipping_address: payload,
+    });
+
+    if (!success) {
+      setShippingError(updateDraftError || "Unable to save shipping details right now.");
+      return;
+    }
+
+    setOrder((prev) => (prev ? { ...prev, shipping_address: payload } : prev));
+    setShippingSavedNotice("Shipping details saved.");
+  }, [order, setOrder, shippingDraft, updateDraft, updateDraftError]);
 
   if (authLoading || orderLoading) {
     return (
@@ -425,10 +487,11 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const effectiveDiscount = Math.max(discountAmount || Number(order.discount_amount || 0), 0);
   const subtotal = Math.max(originalAmount - shippingCost, 0);
   const zeroTotal = amount <= 0;
-  const requiresShippingDetails =
+  const isPhysicalProduct =
     order.listing_type === "product"
-    && order.product?.delivery_type !== "digital"
-    && !order.shipping_address;
+    && order.product?.delivery_type !== "digital";
+  const requiresShippingDetails = isPhysicalProduct && !order.shipping_address;
+  const paymentStepLabel = isPhysicalProduct ? "Step 3" : "Step 2";
 
   const productImage =
     order.product?.media?.find((item: { is_primary: boolean }) => item.is_primary)?.media_url ||
@@ -478,27 +541,126 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                     setDisplayAmount(final);
                     setActionError(null);
                   }}
-                  onCheckoutRefresh={() => createCheckout(order.id)}
+                  onCheckoutRefresh={() => (requiresShippingDetails ? undefined : createCheckout(order.id))}
                 />
               </div>
             </div>
 
+            {isPhysicalProduct && (
+              <div className="rounded-2xl border border-black/[0.06] p-4 sm:p-5">
+                <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Step 2</p>
+                <h2 className="mt-1 text-lg font-display text-ink">Shipping Details</h2>
+                <p className="mt-1 text-sm font-body text-muted">
+                  Where should this piece be delivered?
+                </p>
+
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={shippingDraft.name || ""}
+                    onChange={(event) => {
+                      setShippingDraft((prev) => ({ ...prev, name: event.target.value }));
+                      if (shippingError) setShippingError(null);
+                    }}
+                    placeholder="Full name"
+                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                  />
+                  <input
+                    type="text"
+                    value={shippingDraft.line1 || ""}
+                    onChange={(event) => {
+                      setShippingDraft((prev) => ({ ...prev, line1: event.target.value }));
+                      if (shippingError) setShippingError(null);
+                    }}
+                    placeholder="Address line 1"
+                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                  />
+                  <input
+                    type="text"
+                    value={shippingDraft.line2 || ""}
+                    onChange={(event) => setShippingDraft((prev) => ({ ...prev, line2: event.target.value }))}
+                    placeholder="Address line 2 (optional)"
+                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                  />
+                  <input
+                    type="text"
+                    value={shippingDraft.city || ""}
+                    onChange={(event) => {
+                      setShippingDraft((prev) => ({ ...prev, city: event.target.value }));
+                      if (shippingError) setShippingError(null);
+                    }}
+                    placeholder="City"
+                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                  />
+                  <input
+                    type="text"
+                    value={shippingDraft.state || ""}
+                    onChange={(event) => setShippingDraft((prev) => ({ ...prev, state: event.target.value }))}
+                    placeholder="State / Region (optional)"
+                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                  />
+                  <input
+                    type="text"
+                    value={shippingDraft.postal_code || ""}
+                    onChange={(event) => setShippingDraft((prev) => ({ ...prev, postal_code: event.target.value }))}
+                    placeholder="Postal code (optional)"
+                    className="rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                  />
+                  <input
+                    type="text"
+                    value={shippingDraft.country || ""}
+                    onChange={(event) => {
+                      setShippingDraft((prev) => ({ ...prev, country: event.target.value }));
+                      if (shippingError) setShippingError(null);
+                    }}
+                    placeholder="Country"
+                    className="sm:col-span-2 rounded-xl border border-black/[0.12] bg-white px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                  />
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleSaveShippingDetails}
+                    disabled={updatingDraft}
+                    className="rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid px-5 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
+                  >
+                    {updatingDraft
+                      ? "Saving..."
+                      : order.shipping_address
+                      ? "Update Shipping Details"
+                      : "Save Shipping Details"}
+                  </button>
+                  {order.shipping_address && (
+                    <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-ui font-semibold text-green-700">
+                      Saved
+                    </span>
+                  )}
+                </div>
+
+                {requiresShippingDetails && (
+                  <p className="mt-3 text-xs font-body text-amber-700">
+                    Save your shipping details to unlock payment methods.
+                  </p>
+                )}
+                {shippingSavedNotice && (
+                  <p className="mt-3 text-xs font-body text-green-700">{shippingSavedNotice}</p>
+                )}
+                {(shippingError || updateDraftError) && (
+                  <p className="mt-3 text-xs font-body text-red-600">{shippingError || updateDraftError}</p>
+                )}
+              </div>
+            )}
+
             <div className="rounded-2xl border border-black/[0.06] p-4 sm:p-5">
-              <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Step 2</p>
+              <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">{paymentStepLabel}</p>
               <h2 className="mt-1 text-lg font-display text-ink">Payment</h2>
 
               {requiresShippingDetails && (
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
                   <p className="text-sm font-ui font-semibold text-amber-900">Shipping details required</p>
                   <p className="mt-1 text-xs font-body text-amber-800">
-                    Add your shipping address on the order page before checkout.
+                    Save your shipping details above to continue with payment.
                   </p>
-                  <button
-                    onClick={() => router.push(`/orders/${order.id}`)}
-                    className="mt-3 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-ui font-semibold text-amber-800 hover:bg-amber-100"
-                  >
-                    Back to Order
-                  </button>
                 </div>
               )}
 
