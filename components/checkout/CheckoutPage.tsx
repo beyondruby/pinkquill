@@ -71,20 +71,24 @@ function PromoCodeSection({
   const { loading: validating, error: validateError, validate, clear } = useValidatePromoCode();
   const { loading: applying, error: applyError, apply } = useApplyPromoCode();
   const { loading: removing, error: removeError, remove } = useRemovePromoCode();
+  const asAmount = useCallback((value: unknown, fallback: number): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }, []);
 
-  const handleApply = async () => {
+  const handleApply = useCallback(async () => {
     if (!code.trim()) return;
     const result = await validate(code, orderAmount, listingType);
     if (!result?.valid || !result.promo_code_id) return;
 
     const applyResult = await apply(orderId, result.promo_code_id);
     if (applyResult?.success) {
-      const discount = applyResult.discount_amount || result.discount_amount || 0;
-      const final = applyResult.final_amount || result.final_amount || orderAmount;
+      const discount = asAmount(applyResult.discount_amount ?? result.discount_amount, 0);
+      const final = asAmount(applyResult.final_amount ?? result.final_amount, orderAmount);
       setApplied({ code: code.trim().toUpperCase(), discount });
       onApplied(discount, final);
     }
-  };
+  }, [apply, asAmount, code, listingType, onApplied, orderAmount, orderId, validate]);
 
   const isLoading = validating || applying || removing;
   const promoError = validateError || applyError || removeError;
@@ -106,7 +110,7 @@ function PromoCodeSection({
               setApplied(null);
               setCode("");
               clear();
-              onApplied(0, result.final_amount ?? orderAmount);
+              onApplied(0, asAmount(result.final_amount, orderAmount));
             }}
             disabled={removing}
             className="text-xs text-green-600 hover:underline disabled:opacity-60"

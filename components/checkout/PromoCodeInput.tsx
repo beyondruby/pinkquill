@@ -30,6 +30,10 @@ export default function PromoCodeInput({
   const { result, loading: validating, error: validateError, validate, clear } = useValidatePromoCode();
   const { loading: applying, error: applyError, apply } = useApplyPromoCode();
   const { loading: removing, error: removeError, remove } = useRemovePromoCode();
+  const asAmount = useCallback((value: unknown, fallback: number): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }, []);
 
   const handleApply = useCallback(async () => {
     if (!code.trim()) return;
@@ -41,19 +45,19 @@ export default function PromoCodeInput({
     // Then apply to order
     const applyResult = await apply(orderId, validation.promo_code_id);
     if (applyResult?.success) {
+      const discountAmount = asAmount(applyResult.discount_amount ?? validation.discount_amount, 0);
+      const finalAmount = asAmount(applyResult.final_amount ?? validation.final_amount, orderAmount);
+
       setAppliedCode(code.trim().toUpperCase());
       setDiscountInfo({
-        discountAmount: applyResult.discount_amount || validation.discount_amount || 0,
-        finalAmount: applyResult.final_amount || validation.final_amount || orderAmount,
+        discountAmount,
+        finalAmount,
         discountType: validation.discount_type || "percentage",
         discountValue: validation.discount_value || 0,
       });
-      onApplied?.(
-        applyResult.discount_amount || validation.discount_amount || 0,
-        applyResult.final_amount || validation.final_amount || orderAmount
-      );
+      onApplied?.(discountAmount, finalAmount);
     }
-  }, [code, orderAmount, listingType, orderId, validate, apply, onApplied]);
+  }, [apply, asAmount, code, listingType, onApplied, orderAmount, orderId, validate]);
 
   const handleRemove = useCallback(async () => {
     const result = await remove(orderId);
