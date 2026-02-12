@@ -246,7 +246,12 @@ export class PayPalProvider implements PaymentProviderInterface {
   // ========== CHECKOUT ==========
 
   async createCheckoutSession(order: OrderForPayment): Promise<CheckoutResult> {
-    const amountStr = order.amount.toFixed(2);
+    const orderAmount = Number(order.amount);
+    if (!Number.isFinite(orderAmount) || orderAmount <= 0) {
+      throw new Error("Order total must be greater than 0.00 for PayPal checkout");
+    }
+
+    const amountStr = orderAmount.toFixed(2);
     const currency = (order.currency || "usd").toUpperCase();
     const isService = order.listingType === "service";
 
@@ -274,11 +279,16 @@ export class PayPalProvider implements PaymentProviderInterface {
       if (sellerAccount?.paypal_merchant_id) {
         payee = { merchant_id: sellerAccount.paypal_merchant_id };
 
-        if (sellerOrder.platform_fee) {
+        const platformFeeValue = Number(sellerOrder.platform_fee);
+        if (
+          Number.isFinite(platformFeeValue)
+          && platformFeeValue > 0
+          && platformFeeValue < orderAmount
+        ) {
           platformFee = {
             amount: {
               currency_code: currency,
-              value: Number(sellerOrder.platform_fee).toFixed(2),
+              value: platformFeeValue.toFixed(2),
             },
           };
         }
@@ -317,7 +327,7 @@ export class PayPalProvider implements PaymentProviderInterface {
           },
         },
       },
-      idempotencyKey: `checkout_${order.id}`,
+      idempotencyKey: `checkout_${order.id}_${Math.round(orderAmount * 100)}_${currency}`,
     });
 
     const approvalUrl = ppOrder.links.find((l) => l.rel === "payer-action")?.href

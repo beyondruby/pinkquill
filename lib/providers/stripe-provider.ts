@@ -160,6 +160,10 @@ export class StripeProvider implements PaymentProviderInterface {
 
     const reusableStatuses = new Set(["requires_payment_method", "requires_confirmation", "requires_action", "processing"]);
 
+    if (paymentIntent && paymentIntent.amount !== amountCents) {
+      paymentIntent = null;
+    }
+
     if (paymentIntent?.status === "succeeded") {
       return {
         mode: "stripe",
@@ -179,7 +183,7 @@ export class StripeProvider implements PaymentProviderInterface {
           description: `PinkQuill order ${order.id}`,
           receipt_email: order.buyerEmail ?? undefined,
         },
-        { idempotencyKey: `checkout_${order.id}` }
+        { idempotencyKey: `checkout_${order.id}_${amountCents}_${currency}` }
       );
     }
 

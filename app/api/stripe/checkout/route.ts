@@ -85,13 +85,42 @@ export async function POST(request: Request) {
       );
     }
 
+    const orderAmount = Number(order.amount);
+    if (!Number.isFinite(orderAmount) || orderAmount < 0) {
+      return NextResponse.json({ error: "Invalid order amount" }, { status: 400 });
+    }
+
+    // Free orders should bypass external payment providers.
+    if (orderAmount <= 0) {
+      const providerName: PaymentProvider = "placeholder";
+      const provider = getProviderByName(providerName);
+      const result = await provider.createCheckoutSession({
+        id: order.id,
+        buyerId: user.id,
+        buyerEmail: user.email ?? undefined,
+        amount: 0,
+        currency: String(order.currency || "usd"),
+        listingType: order.listing_type,
+        existingPaymentRef: null,
+      });
+
+      return NextResponse.json({
+        mode: result.mode,
+        provider: providerName,
+        client_secret: result.clientToken,
+        payment_reference: result.paymentReference,
+        approval_url: result.approvalUrl || null,
+        message: result.message || "No payment required for this order.",
+      });
+    }
+
     const providerName = resolveProviderForCheckout(order);
     const provider = getProviderByName(providerName);
     const result = await provider.createCheckoutSession({
       id: order.id,
       buyerId: user.id,
       buyerEmail: user.email ?? undefined,
-      amount: Number(order.amount),
+      amount: orderAmount,
       currency: String(order.currency || "usd"),
       listingType: order.listing_type,
       existingPaymentRef: order.payment_reference || order.payment_intent_id || order.paypal_order_id,

@@ -100,8 +100,17 @@ export async function paypalFetch<T = unknown>(
   const data = await res.json();
 
   if (!res.ok) {
-    const message = data?.message || data?.error_description || JSON.stringify(data);
-    throw new Error(`PayPal API error (${res.status}): ${message}`);
+    const message = data?.message || data?.error_description || "PayPal request failed";
+    const details = Array.isArray(data?.details)
+      ? data.details
+          .map((detail: { issue?: string; description?: string }) =>
+            [detail.issue, detail.description].filter(Boolean).join(": ")
+          )
+          .filter(Boolean)
+          .join(" | ")
+      : "";
+    const debugId = data?.debug_id ? ` [debug_id=${data.debug_id}]` : "";
+    throw new Error(`PayPal API error (${res.status}): ${message}${details ? ` — ${details}` : ""}${debugId}`);
   }
 
   return data as T;

@@ -60,11 +60,13 @@ function PromoCodeSection({
   orderAmount,
   listingType,
   onApplied,
+  onCheckoutRefresh,
 }: {
   orderId: string;
   orderAmount: number;
   listingType?: string;
   onApplied: (discount: number, finalAmount: number) => void;
+  onCheckoutRefresh?: () => Promise<unknown> | unknown;
 }) {
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number } | null>(null);
@@ -87,8 +89,9 @@ function PromoCodeSection({
       const final = asAmount(applyResult.final_amount ?? result.final_amount, orderAmount);
       setApplied({ code: code.trim().toUpperCase(), discount });
       onApplied(discount, final);
+      await onCheckoutRefresh?.();
     }
-  }, [apply, asAmount, code, listingType, onApplied, orderAmount, orderId, validate]);
+  }, [apply, asAmount, code, listingType, onApplied, onCheckoutRefresh, orderAmount, orderId, validate]);
 
   const isLoading = validating || applying || removing;
   const promoError = validateError || applyError || removeError;
@@ -111,6 +114,7 @@ function PromoCodeSection({
               setCode("");
               clear();
               onApplied(0, asAmount(result.final_amount, orderAmount));
+              await onCheckoutRefresh?.();
             }}
             disabled={removing}
             className="text-xs text-green-600 hover:underline disabled:opacity-60"
@@ -382,6 +386,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 setDiscountAmount(discount);
                 setDisplayAmount(final);
               }}
+              onCheckoutRefresh={() => createCheckout(order.id)}
             />
           </div>
 
