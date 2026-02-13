@@ -38,7 +38,7 @@ export class PlaceholderProvider implements PaymentProviderInterface {
         .eq("user_id", userId);
     }
 
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "production" ? "https://pinkquill.com" : "http://localhost:3000");
     return { url: `${origin}/seller/onboarding?provider=placeholder`, placeholderMode: true };
   }
 

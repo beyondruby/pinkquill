@@ -66,7 +66,7 @@ export class StripeProvider implements PaymentProviderInterface {
       }
     }
 
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "production" ? "https://pinkquill.com" : "http://localhost:3000");
     const accountLink = await stripe.accountLinks.create({
       account: stripeAccountId,
       refresh_url: `${origin}/seller/onboarding?refresh=true`,
@@ -148,7 +148,7 @@ export class StripeProvider implements PaymentProviderInterface {
 
     if (!account?.stripe_account_id) {
       // No Stripe account linked — redirect to onboarding
-      const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+      const origin = process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "production" ? "https://pinkquill.com" : "http://localhost:3000");
       return { url: `${origin}/seller/onboarding` };
     }
 
