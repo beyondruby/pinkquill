@@ -25,6 +25,22 @@ type IdleWindow = Window & {
   cancelIdleCallback?: (handle: number) => void;
 };
 
+interface PostImpressionInsertRow {
+  post_id: string;
+  viewer_id: string | null;
+  session_id: string | null;
+  source: string;
+}
+
+const POST_IMPRESSION_BATCH_WINDOW_MS = 750;
+const POST_IMPRESSION_BATCH_SIZE = 30;
+const POST_IMPRESSION_RETRY_DELAY_MS = 2500;
+
+let queuedPostImpressions: PostImpressionInsertRow[] = [];
+let postImpressionFlushTimer: number | null = null;
+let postImpressionFlushInFlight: Promise<void> | null = null;
+let postImpressionFlushListenersBound = false;
+
 function getCachedBoolean(
   cache: Map<string, BooleanCacheEntry>,
   key: string
@@ -64,6 +80,75 @@ function runWhenIdle(task: () => void, timeout: number = 1200): () => void {
 
   const timer = window.setTimeout(task, 0);
   return () => window.clearTimeout(timer);
+}
+
+function schedulePostImpressionFlush(delayMs: number = POST_IMPRESSION_BATCH_WINDOW_MS) {
+  if (typeof window === "undefined") {
+    void flushPostImpressions();
+    return;
+  }
+
+  if (postImpressionFlushTimer !== null) return;
+  postImpressionFlushTimer = window.setTimeout(() => {
+    postImpressionFlushTimer = null;
+    void flushPostImpressions();
+  }, delayMs);
+}
+
+async function flushPostImpressions() {
+  if (postImpressionFlushInFlight) return;
+  if (queuedPostImpressions.length === 0) return;
+
+  const batch = queuedPostImpressions.splice(0, POST_IMPRESSION_BATCH_SIZE);
+
+  postImpressionFlushInFlight = (async () => {
+    const { error } = await supabase.from("post_impressions").insert(batch);
+
+    if (error) {
+      queuedPostImpressions = batch.concat(queuedPostImpressions);
+      console.warn("[tracking] post impression batch insert failed:", error.message);
+      schedulePostImpressionFlush(POST_IMPRESSION_RETRY_DELAY_MS);
+    }
+  })();
+
+  try {
+    await postImpressionFlushInFlight;
+  } finally {
+    postImpressionFlushInFlight = null;
+  }
+
+  if (queuedPostImpressions.length > 0) {
+    if (queuedPostImpressions.length >= POST_IMPRESSION_BATCH_SIZE) {
+      void flushPostImpressions();
+      return;
+    }
+    schedulePostImpressionFlush();
+  }
+}
+
+function enqueuePostImpression(row: PostImpressionInsertRow) {
+  queuedPostImpressions.push(row);
+  if (queuedPostImpressions.length >= POST_IMPRESSION_BATCH_SIZE) {
+    void flushPostImpressions();
+    return;
+  }
+  schedulePostImpressionFlush();
+}
+
+function ensurePostImpressionFlushListeners() {
+  if (postImpressionFlushListenersBound || typeof window === "undefined") return;
+  postImpressionFlushListenersBound = true;
+
+  const flush = () => {
+    void flushPostImpressions();
+  };
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      flush();
+    }
+  });
+  window.addEventListener("pagehide", flush);
 }
 
 function generateSessionId(): string {
@@ -180,23 +265,19 @@ export function useTrackPostImpression(
     if (!postId || tracked.current) return;
     tracked.current = true;
 
-    const recordImpression = async () => {
+    const queueImpression = () => {
       const sessionId = getSessionId();
-
-      const { error } = await supabase.from("post_impressions").insert({
+      enqueuePostImpression({
         post_id: postId,
         viewer_id: user?.id || null,
         session_id: user?.id ? null : sessionId,
         source,
       });
-
-      if (error) {
-        console.warn("[tracking] post impression insert failed:", error.message);
-      }
     };
 
+    ensurePostImpressionFlushListeners();
     const cancelIdle = runWhenIdle(() => {
-      void recordImpression();
+      queueImpression();
     });
 
     return () => {

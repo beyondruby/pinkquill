@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 import type {
   CommunityChatMembership,
   CommunityChatMessage,
@@ -477,7 +478,12 @@ export function useCommunityChatMemberSearch(
       setError(null);
 
       try {
-        const likePattern = `%${trimmedQuery.replace(/[%_,()]/g, "")}%`;
+        const sanitizedQuery = sanitizePostgrestSearchTerm(trimmedQuery);
+        if (!sanitizedQuery) {
+          setResults([]);
+          return;
+        }
+        const likePattern = `%${sanitizedQuery}%`;
 
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")

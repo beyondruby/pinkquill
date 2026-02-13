@@ -110,6 +110,27 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
                 caption,
                 position
               ),
+              collaborators:post_collaborators (
+                status,
+                role,
+                user:profiles!post_collaborators_user_id_fkey (
+                  id,
+                  username,
+                  display_name,
+                  avatar_url
+                )
+              ),
+              mentions:post_mentions (
+                user:profiles!post_mentions_user_id_fkey (
+                  id,
+                  username,
+                  display_name,
+                  avatar_url
+                )
+              ),
+              tags:post_tags (
+                tag:tags(name)
+              ),
               community:communities (
                 id,
                 slug,
@@ -158,67 +179,16 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         // Get post IDs for batch fetching user interactions
         const postIds = (postsData || []).map((p) => p.id);
 
-        // Batch fetch ALL auxiliary data in a single Promise.all for efficiency
-        // This prevents waterfall delays by running all queries concurrently
+        // Batch fetch user interaction data in parallel.
+        // Collaborators/mentions/tags are embedded directly in the posts query.
         let userAdmires = new Set<string>();
         let userSaves = new Set<string>();
         let userRelays = new Set<string>();
         const userReactions = new Map<string, string>();
-        const collaboratorsByPost = new Map<string, { status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null }[]>();
-        const mentionsByPost = new Map<string, { user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null }[]>();
-        const hashtagsByPost = new Map<string, string[]>();
 
         if (postIds.length > 0) {
-          // Build all queries - executed concurrently for efficiency
-          const baseQueries = [
-            // Collaborators
-            supabase
-              .from("post_collaborators")
-              .select(
-                `
-                post_id,
-                status,
-                role,
-                user:profiles!post_collaborators_user_id_fkey (
-                  id,
-                  username,
-                  display_name,
-                  avatar_url
-                )
-              `
-              )
-              .in("post_id", postIds)
-              .eq("status", "accepted"),
-            // Mentions
-            supabase
-              .from("post_mentions")
-              .select(
-                `
-                post_id,
-                user:profiles!post_mentions_user_id_fkey (
-                  id,
-                  username,
-                  display_name,
-                  avatar_url
-                )
-              `
-              )
-              .in("post_id", postIds),
-            // Tags
-            supabase
-              .from("post_tags")
-              .select(
-                `
-                post_id,
-                tag:tags(name)
-              `
-              )
-              .in("post_id", postIds),
-          ];
-
-          // Add user interaction queries if logged in
-          const userQueries = userId
-            ? [
+          const results = userId
+            ? await Promise.all([
                 supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
                 supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
                 supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
@@ -227,62 +197,17 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
                   .select("post_id, reaction_type")
                   .eq("user_id", userId)
                   .in("post_id", postIds),
-              ]
+              ])
             : [];
-
-          // Execute all queries concurrently
-          const results = await Promise.all([...baseQueries, ...userQueries]);
 
           // Check abort after await
           if (abortController.signal.aborted || !mountedRef.current) return;
 
-          // Process base results (collaborators, mentions, tags)
-          const collaboratorsResult = results[0];
-          const mentionsResult = results[1];
-          const tagsResult = results[2];
-
-          // Process collaborators
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (collaboratorsResult.data || []).forEach((c: any) => {
-            if (!collaboratorsByPost.has(c.post_id)) {
-              collaboratorsByPost.set(c.post_id, []);
-            }
-            const u = Array.isArray(c.user) ? c.user[0] : c.user;
-            collaboratorsByPost.get(c.post_id)!.push({
-              status: c.status,
-              role: c.role,
-              user: u,
-            });
-          });
-
-          // Process mentions
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (mentionsResult.data || []).forEach((m: any) => {
-            if (!mentionsByPost.has(m.post_id)) {
-              mentionsByPost.set(m.post_id, []);
-            }
-            const u = Array.isArray(m.user) ? m.user[0] : m.user;
-            mentionsByPost.get(m.post_id)!.push({ user: u });
-          });
-
-          // Process tags
-          type TagRow = { post_id: string; tag?: { name: string } | null };
-          (tagsResult.data || []).forEach((t: TagRow) => {
-            const tagName = t.tag?.name;
-            if (tagName) {
-              if (!hashtagsByPost.has(t.post_id)) {
-                hashtagsByPost.set(t.post_id, []);
-              }
-              hashtagsByPost.get(t.post_id)!.push(tagName);
-            }
-          });
-
-          // Process user interactions if logged in (results[3-6])
-          if (userId && results.length === 7) {
-            const admiresResult = results[3];
-            const savesResult = results[4];
-            const relaysResult = results[5];
-            const reactionsResult = results[6];
+          if (userId && results.length === 4) {
+            const admiresResult = results[0];
+            const savesResult = results[1];
+            const relaysResult = results[2];
+            const reactionsResult = results[3];
             userAdmires = new Set((admiresResult.data || []).map((a: { post_id: string }) => a.post_id));
             userSaves = new Set((savesResult.data || []).map((s: { post_id: string }) => s.post_id));
             userRelays = new Set((relaysResult.data || []).map((r: { post_id: string }) => r.post_id));
@@ -295,40 +220,66 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
 
         // Transform posts with all data
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const transformedPosts = (postsData as any[] || []).map((post) => ({
-          id: post.id,
-          author_id: post.author_id,
-          type: post.type,
-          title: post.title,
-          content: post.content,
-          visibility: post.visibility,
-          status: post.status,
-          content_warning: post.content_warning,
-          created_at: post.created_at,
-          community_id: post.community_id,
-          // Creative styling fields
-          styling: post.styling || null,
-          post_location: post.post_location || null,
-          metadata: post.metadata || null,
-          spotify_track: post.spotify_track || null,
-          author: post.author,
-          media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-          community: post.community,
-          // Extract counts from aggregation
-          admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
-          comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
-          relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-          reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
-          // User flags
-          user_has_admired: userAdmires.has(post.id),
-          user_has_saved: userSaves.has(post.id),
-          user_has_relayed: userRelays.has(post.id),
-          user_reaction_type: (userReactions.get(post.id) as ReactionType | undefined) || null,
-          // Collaborators and mentions
-          collaborators: collaboratorsByPost.get(post.id) || [],
-          mentions: mentionsByPost.get(post.id) || [],
-          hashtags: hashtagsByPost.get(post.id) || [],
-        }));
+        const transformedPosts = (postsData as any[] || []).map((post) => {
+          const collaborators = (post.collaborators || [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((c: any) => c.status === "accepted")
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((c: any) => ({
+              status: c.status,
+              role: c.role,
+              user: Array.isArray(c.user) ? c.user[0] : c.user,
+            }))
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((c: any) => c.user);
+
+          const mentions = (post.mentions || [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((m: any) => ({
+              user: Array.isArray(m.user) ? m.user[0] : m.user,
+            }))
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((m: any) => m.user);
+
+          const hashtags = (post.tags || [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((t: any) => t.tag?.name)
+            .filter((tag: unknown): tag is string => typeof tag === "string" && tag.length > 0);
+
+          return {
+            id: post.id,
+            author_id: post.author_id,
+            type: post.type,
+            title: post.title,
+            content: post.content,
+            visibility: post.visibility,
+            status: post.status,
+            content_warning: post.content_warning,
+            created_at: post.created_at,
+            community_id: post.community_id,
+            // Creative styling fields
+            styling: post.styling || null,
+            post_location: post.post_location || null,
+            metadata: post.metadata || null,
+            spotify_track: post.spotify_track || null,
+            author: post.author,
+            media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
+            community: post.community,
+            // Extract counts from aggregation
+            admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
+            comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
+            relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
+            reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
+            // User flags
+            user_has_admired: userAdmires.has(post.id),
+            user_has_saved: userSaves.has(post.id),
+            user_has_relayed: userRelays.has(post.id),
+            user_reaction_type: (userReactions.get(post.id) as ReactionType | undefined) || null,
+            collaborators,
+            mentions,
+            hashtags,
+          };
+        });
 
         // Final abort/mount check before state update
         if (abortController.signal.aborted || !mountedRef.current) return;

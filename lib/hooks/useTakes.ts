@@ -1382,7 +1382,12 @@ export function useUserTakes(username: string, viewerId?: string) {
 
     if (username) {
       fetchUserTakes();
+      return;
     }
+
+    setTakes([]);
+    setError(null);
+    setLoading(false);
   }, [username, viewerId]);
 
   return { takes, loading, error };
@@ -1515,7 +1520,12 @@ export function useRelayedTakes(username: string, viewerId?: string) {
 
     if (username) {
       fetchRelayedTakes();
+      return;
     }
+
+    setTakes([]);
+    setError(null);
+    setLoading(false);
   }, [username, viewerId]);
 
   return { takes, loading, error };

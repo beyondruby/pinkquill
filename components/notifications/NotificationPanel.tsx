@@ -7,6 +7,7 @@ import { useNotifications, useMarkAsRead, useCollaborationInvites, useFollowRequ
 import { useAuth } from "@/components/providers/AuthProvider";
 import { NotificationSkeleton } from "@/components/ui/Skeleton";
 import { supabase } from "@/lib/supabase";
+import { setRequestMetricsScope } from "@/lib/utils/requestMetrics";
 import CollaborationInviteCard from "./CollaborationInviteCard";
 import FollowRequestCard from "./FollowRequestCard";
 
@@ -995,10 +996,10 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const { notifications, loading } = useNotifications(user?.id);
   const { markAsRead, markAllAsRead } = useMarkAsRead();
-  const { invites: rawInvites, refetch: refetchInvites } = useCollaborationInvites(user?.id || "");
+  const { invites: rawInvites, accept: acceptInvite, decline: declineInvite } = useCollaborationInvites(user?.id || "");
   // Filter out invites where post or author is null (e.g., deleted posts)
   const invites = rawInvites.filter(invite => invite.post && invite.post.author);
-  const { requests: followRequests, accept: acceptFollowRequest, decline: declineFollowRequest, refetch: refetchFollowRequests } = useFollowRequests(user?.id);
+  const { requests: followRequests, accept: acceptFollowRequest, decline: declineFollowRequest } = useFollowRequests(user?.id);
   const regularNotifications = notifications.filter(
     (n) => n.type !== "collaboration_invite" && n.type !== "follow_request"
   );
@@ -1006,12 +1007,18 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
 
   const handleAcceptFollowRequest = async (requesterId: string) => {
     await acceptFollowRequest(requesterId);
-    refetchFollowRequests();
   };
 
   const handleDeclineFollowRequest = async (requesterId: string) => {
     await declineFollowRequest(requesterId);
-    refetchFollowRequests();
+  };
+
+  const handleAcceptInvite = async (postId: string, authorId: string) => {
+    await acceptInvite(postId, authorId);
+  };
+
+  const handleDeclineInvite = async (postId: string, authorId: string) => {
+    await declineInvite(postId, authorId);
   };
 
   // Use a ref for onClose to avoid stale closure in event listener
@@ -1021,6 +1028,8 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   useEffect(() => {
+    setRequestMetricsScope("notifications");
+
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCloseRef.current();
     };
@@ -1029,6 +1038,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
     document.body.style.overflow = 'hidden';
 
     return () => {
+      setRequestMetricsScope(null);
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
@@ -1056,8 +1066,8 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
       }
     };
 
-    markHiddenNotificationsAsRead();
-  }, [user?.id, followRequests.length, invites.length]);
+    void markHiddenNotificationsAsRead();
+  }, [user?.id]);
 
   const unreadCount = regularUnreadCount + invites.length + followRequests.length;
   const hasContent = regularNotifications.length > 0 || invites.length > 0 || followRequests.length > 0;
@@ -1175,12 +1185,10 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
                   <div className="space-y-3">
                     {invites.map((invite) => (
                       <CollaborationInviteCard
-                        key={`${invite.post_id}-${invite.post.author.id}`}
+                        key={invite.id}
                         invite={invite}
-                        userId={user?.id || ""}
-                        onRespond={() => {
-                          refetchInvites();
-                        }}
+                        onAccept={handleAcceptInvite}
+                        onDecline={handleDeclineInvite}
                       />
                     ))}
                   </div>

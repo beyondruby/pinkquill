@@ -9,12 +9,12 @@ import {
   faSpinner,
   faEye,
 } from "@fortawesome/free-solid-svg-icons";
-import { CollaborationInvite, useCollaborationInvites } from "@/lib/hooks";
+import { CollaborationInvite } from "@/lib/hooks";
 
 interface CollaborationInviteCardProps {
   invite: CollaborationInvite;
-  userId: string;
-  onRespond?: () => void;
+  onAccept: (postId: string, authorId: string) => Promise<void>;
+  onDecline: (postId: string, authorId: string) => Promise<void>;
 }
 
 // Helper to get post type label
@@ -60,31 +60,30 @@ function formatTimeAgo(dateString: string): string {
 
 export default function CollaborationInviteCard({
   invite,
-  userId,
-  onRespond,
+  onAccept,
+  onDecline,
 }: CollaborationInviteCardProps) {
   const [responding, setResponding] = useState(false);
   const [responseType, setResponseType] = useState<"accept" | "decline" | null>(null);
-  const { accept, decline } = useCollaborationInvites(userId);
 
   const handleAccept = async () => {
     setResponding(true);
     setResponseType("accept");
-    const result = await accept(invite.post_id, invite.post.author.id);
-    if (result.success) {
-      onRespond?.();
+    try {
+      await onAccept(invite.post_id, invite.post.author.id);
+    } finally {
+      setResponding(false);
     }
-    setResponding(false);
   };
 
   const handleDecline = async () => {
     setResponding(true);
     setResponseType("decline");
-    const result = await decline(invite.post_id, invite.post.author.id);
-    if (result.success) {
-      onRespond?.();
+    try {
+      await onDecline(invite.post_id, invite.post.author.id);
+    } finally {
+      setResponding(false);
     }
-    setResponding(false);
   };
 
   const author = invite.post.author;

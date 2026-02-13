@@ -308,6 +308,12 @@ export function useBuyerOrders(
   const pageRef = useRef(0);
   const fetchingRef = useRef(false);
 
+  // Stabilize filter values to avoid infinite re-fetch from new object refs
+  const statusFilter = filters?.status;
+  const listingTypeFilter = filters?.listing_type;
+  const dateFrom = filters?.date_from;
+  const dateTo = filters?.date_to;
+
   const fetchOrders = useCallback(async (page: number, append = false) => {
     if (!userId) {
       setOrders([]);
@@ -327,10 +333,10 @@ export function useBuyerOrders(
         .eq("buyer_id", userId)
         .order("created_at", { ascending: false });
 
-      if (filters?.status) query = query.eq("status", filters.status);
-      if (filters?.listing_type) query = query.eq("listing_type", filters.listing_type);
-      if (filters?.date_from) query = query.gte("created_at", filters.date_from);
-      if (filters?.date_to) query = query.lte("created_at", filters.date_to);
+      if (statusFilter) query = query.eq("status", statusFilter);
+      if (listingTypeFilter) query = query.eq("listing_type", listingTypeFilter);
+      if (dateFrom) query = query.gte("created_at", dateFrom);
+      if (dateTo) query = query.lte("created_at", dateTo);
 
       const start = page * pageSize;
       const { data, count, error: queryError } = await query.range(start, start + pageSize - 1);
@@ -355,7 +361,7 @@ export function useBuyerOrders(
       fetchingRef.current = false;
       setLoading(false);
     }
-  }, [userId, filters, pageSize]);
+  }, [userId, statusFilter, listingTypeFilter, dateFrom, dateTo, pageSize]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || fetchingRef.current) return;
@@ -390,6 +396,12 @@ export function useSellerOrders(
   const pageRef = useRef(0);
   const fetchingRef = useRef(false);
 
+  // Stabilize filter values to avoid infinite re-fetch from new object refs
+  const statusFilter = filters?.status;
+  const listingTypeFilter = filters?.listing_type;
+  const dateFrom = filters?.date_from;
+  const dateTo = filters?.date_to;
+
   const fetchOrders = useCallback(async (page: number, append = false) => {
     if (!userId) {
       setOrders([]);
@@ -409,10 +421,10 @@ export function useSellerOrders(
         .eq("seller_id", userId)
         .order("created_at", { ascending: false });
 
-      if (filters?.status) query = query.eq("status", filters.status);
-      if (filters?.listing_type) query = query.eq("listing_type", filters.listing_type);
-      if (filters?.date_from) query = query.gte("created_at", filters.date_from);
-      if (filters?.date_to) query = query.lte("created_at", filters.date_to);
+      if (statusFilter) query = query.eq("status", statusFilter);
+      if (listingTypeFilter) query = query.eq("listing_type", listingTypeFilter);
+      if (dateFrom) query = query.gte("created_at", dateFrom);
+      if (dateTo) query = query.lte("created_at", dateTo);
 
       const start = page * pageSize;
       const { data, count, error: queryError } = await query.range(start, start + pageSize - 1);
@@ -437,7 +449,7 @@ export function useSellerOrders(
       fetchingRef.current = false;
       setLoading(false);
     }
-  }, [userId, filters, pageSize]);
+  }, [userId, statusFilter, listingTypeFilter, dateFrom, dateTo, pageSize]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || fetchingRef.current) return;

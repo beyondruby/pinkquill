@@ -2289,6 +2289,7 @@ export function useCollaborationInvites(userId?: string) {
         console.warn("[useCollaborationInvites.accept] Failed to mark invite notification as read:", markReadError.message);
       }
 
+      setInvites((prev) => prev.filter((invite) => invite.post_id !== postId));
       return { success: true };
     } catch (err) {
       console.error('[accept] Error:', err);
@@ -2316,6 +2317,7 @@ export function useCollaborationInvites(userId?: string) {
         console.warn("[useCollaborationInvites.decline] Failed to mark invite notification as read:", markReadError.message);
       }
 
+      setInvites((prev) => prev.filter((invite) => invite.post_id !== postId));
       return { success: true };
     } catch (err) {
       console.error('[decline] Error:', err);

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { recordRequestMetric } from "./utils/requestMetrics";
 
 // Validate environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -11,8 +12,50 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Timeout configuration (in milliseconds)
-const TIMEOUT_DEFAULT = 15000;    // 15s for regular API calls
+const TIMEOUT_DEFAULT = 25000;    // 25s for regular API calls
 const TIMEOUT_UPLOAD = 300000;    // 5 minutes for file uploads
+const SUPABASE_400_LOG_THROTTLE_MS = 60000;
+const recentBadRequestLogs = new Map<string, number>();
+
+function createTimeoutAbortError(timeoutMs: number): Error {
+  const message = `Request timed out after ${timeoutMs / 1000}s`;
+  if (typeof DOMException !== "undefined") {
+    return new DOMException(message, "AbortError");
+  }
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
+function getRequestMethod(options?: RequestInit): string {
+  return (options?.method || "GET").toUpperCase();
+}
+
+function formatRequestPath(url: RequestInfo | URL): string {
+  try {
+    const raw = typeof url === "string"
+      ? url
+      : url instanceof URL
+      ? url.toString()
+      : url.url;
+    const parsed = new URL(raw, "http://localhost");
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return url.toString();
+  }
+}
+
+function maybeLogBadRequest(url: RequestInfo | URL, options: RequestInit | undefined, status: number) {
+  if (status !== 400 || typeof window === "undefined") return;
+
+  const key = `${getRequestMethod(options)} ${formatRequestPath(url)}`;
+  const now = Date.now();
+  const lastLoggedAt = recentBadRequestLogs.get(key) ?? 0;
+  if (now - lastLoggedAt < SUPABASE_400_LOG_THROTTLE_MS) return;
+
+  recentBadRequestLogs.set(key, now);
+  console.warn(`[supabase][400] ${key}`);
+}
 
 // Check if a request is to the auth API (token refresh, getUser, etc.)
 // These requests should NOT be subject to our custom timeout because:
@@ -63,6 +106,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       const timeout = isUploadRequest(url, options) ? TIMEOUT_UPLOAD : TIMEOUT_DEFAULT;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
+      const startedAt = Date.now();
 
       try {
         const response = await fetch(url, {
@@ -70,12 +114,25 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
+        recordRequestMetric({
+          url,
+          options,
+          status: response.status,
+          durationMs: Date.now() - startedAt,
+        });
+        maybeLogBadRequest(url, options, response.status);
         return response;
       } catch (error) {
         clearTimeout(timeoutId);
-        // Provide clearer error message for timeouts
+        recordRequestMetric({
+          url,
+          options,
+          durationMs: Date.now() - startedAt,
+          errorName: error instanceof Error ? error.name : String(error),
+        });
+        // Preserve AbortError semantics so hooks can correctly handle cancellations/timeouts.
         if (error instanceof Error && error.name === 'AbortError') {
-          throw new Error(`Request timed out after ${timeout / 1000}s`);
+          throw createTimeoutAbortError(timeout);
         }
         throw error;
       }

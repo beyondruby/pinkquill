@@ -92,13 +92,13 @@ export default function SellerDashboard() {
   const { user } = useAuth();
   const { stats, loading: statsLoading } = useOrderStats(user?.id);
   const { earnings, loading: earningsLoading } = useSellerEarnings(user?.id);
-  const { orders: recentOrders, loading: ordersLoading } = useSellerOrders(user?.id, {}, 5);
+  const { orders: recentOrders, loading: ordersLoading, error: ordersError } = useSellerOrders(user?.id, undefined, 5);
   const { orders: pendingOrders, count: pendingCount, refetch: refetchPending } = usePendingAcceptanceOrders(user?.id);
   const { acceptOrder, accepting } = useAcceptOrder();
   const { declineOrder, declining } = useDeclineOrder();
-  const { account } = useSellerOnboarding();
+  const { account, loading: accountLoading } = useSellerOnboarding();
 
-  const loading = statsLoading || earningsLoading;
+  const loading = statsLoading || earningsLoading || accountLoading;
 
   const handleAccept = async (orderId: string) => {
     const success = await acceptOrder(orderId);
@@ -241,6 +241,10 @@ export default function SellerDashboard() {
         {ordersLoading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-purple-primary mx-auto" />
+          </div>
+        ) : ordersError ? (
+          <div className="p-8 text-center">
+            <p className="font-body text-red-500 text-sm">Failed to load orders. Please refresh to try again.</p>
           </div>
         ) : recentOrders.length === 0 ? (
           <div className="p-8 text-center">

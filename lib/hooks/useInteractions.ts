@@ -275,6 +275,11 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchCounts = useCallback(async () => {
+    if (!postId) {
+      setLoading(false);
+      return;
+    }
+
     if (!mountedRef.current) return;
 
     try {
@@ -379,17 +384,23 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
 
   // Initial fetch
   useEffect(() => {
-    if (skipInitialFetch) {
+    if (!postId || skipInitialFetch) {
       setLoading(false);
       return;
     }
     fetchCounts();
-  }, [fetchCounts, skipInitialFetch]);
+  }, [postId, fetchCounts, skipInitialFetch]);
 
   // Real-time subscription - only depends on postId to prevent recreation
   // PERFORMANCE: Skip subscription when disableRealtime is true (e.g., in feed context)
   useEffect(() => {
     mountedRef.current = true;
+
+    if (!postId) {
+      return () => {
+        mountedRef.current = false;
+      };
+    }
 
     // Skip subscription if disabled (parent manages updates)
     if (disableRealtime) {
@@ -459,7 +470,7 @@ export function useUserReaction(postId: string, userId?: string, options?: UseUs
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchReaction = useCallback(async () => {
-    if (!userId) {
+    if (!postId || !userId) {
       setLoading(false);
       return;
     }
@@ -510,19 +521,19 @@ export function useUserReaction(postId: string, userId?: string, options?: UseUs
 
   // Initial fetch
   useEffect(() => {
-    if (skipInitialFetch) {
+    if (!postId || skipInitialFetch) {
       setLoading(false);
       return;
     }
     fetchReaction();
-  }, [fetchReaction, skipInitialFetch]);
+  }, [postId, fetchReaction, skipInitialFetch]);
 
   // Real-time subscription - only depends on postId and userId to prevent recreation
   // PERFORMANCE: Skip subscription when disableRealtime is true (e.g., in feed context)
   useEffect(() => {
     mountedRef.current = true;
 
-    if (!userId) return;
+    if (!postId || !userId) return;
 
     // Skip subscription if disabled (parent manages updates)
     if (disableRealtime) {

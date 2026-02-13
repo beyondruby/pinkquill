@@ -166,6 +166,7 @@ export default function CollectionItemPage() {
             <PostCard
               key={post.id}
               post={post}
+              disableRealtimeSubscriptions={true}
             />
           ))}
         </div>

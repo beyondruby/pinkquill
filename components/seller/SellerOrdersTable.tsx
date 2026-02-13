@@ -86,7 +86,7 @@ export default function SellerOrdersTable() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<OrderStatus | "all">("all");
   const filters = activeTab === "all" ? {} : { status: activeTab };
-  const { orders, loading, hasMore, loadMore } = useSellerOrders(user?.id, filters, 20);
+  const { orders, loading, error, hasMore, loadMore } = useSellerOrders(user?.id, filters, 20);
 
   return (
     <div className="space-y-4">
@@ -127,6 +127,10 @@ export default function SellerOrdersTable() {
         {loading ? (
           <div className="p-12 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-purple-primary mx-auto" />
+          </div>
+        ) : error ? (
+          <div className="p-12 text-center">
+            <p className="font-body text-red-500">Failed to load orders. Please refresh to try again.</p>
           </div>
         ) : orders.length === 0 ? (
           <div className="p-12 text-center">
