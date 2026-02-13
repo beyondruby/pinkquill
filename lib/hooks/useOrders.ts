@@ -158,6 +158,8 @@ export function useCreateOrder(): UseCreateOrderReturn {
 interface UpdateOrderDraftPayload {
   order_id: string;
   shipping_address?: ShippingAddress;
+  buyer_phone?: string;
+  buyer_note?: string;
   brief?: string;
   requirements?: Record<string, unknown>;
   due_date?: string;

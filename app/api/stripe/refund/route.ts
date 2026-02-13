@@ -12,7 +12,6 @@ type RefundableOrder = {
   payment_status: string;
   payment_provider: string | null;
   payment_intent_id: string | null;
-  paypal_order_id: string | null;
   payment_reference: string | null;
   amount: number;
   currency: string;
@@ -23,10 +22,6 @@ export const runtime = "nodejs";
 function resolveProviderForRefund(order: RefundableOrder): PaymentProvider {
   if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
     return "stripe";
-  }
-
-  if (order.paypal_order_id || order.payment_provider === "paypal") {
-    return "paypal";
   }
 
   if (order.payment_reference && order.payment_reference.startsWith("placeholder:")) {
@@ -66,7 +61,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, status, payment_status, payment_provider, payment_intent_id, paypal_order_id, payment_reference, amount, currency")
+      .select("id, buyer_id, status, payment_status, payment_provider, payment_intent_id, payment_reference, amount, currency")
       .eq("id", orderId)
       .single<RefundableOrder>();
 
@@ -95,9 +90,7 @@ export async function POST(request: Request) {
     // Determine the payment reference for the active provider
     const paymentRef = providerName === "stripe"
       ? order.payment_intent_id
-      : providerName === "paypal"
-        ? (order.paypal_order_id || order.payment_reference)
-        : order.payment_reference;
+      : order.payment_reference;
 
     if (providerName !== "placeholder" && !paymentRef) {
       return NextResponse.json({ error: "Missing payment reference for refund" }, { status: 400 });

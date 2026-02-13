@@ -18,7 +18,6 @@ type OrderForCheckout = {
   payment_provider: string | null;
   payment_reference: string | null;
   payment_intent_id: string | null;
-  paypal_order_id: string | null;
   product: {
     delivery_type: string;
   } | null;
@@ -31,19 +30,11 @@ function resolveProviderForCheckout(order: OrderForCheckout, orderAmount: number
       return "stripe";
     }
 
-    if (order.paypal_order_id || (order.payment_provider === "paypal" && order.payment_reference)) {
-      return "paypal";
-    }
-
     return getPaymentProvider();
   }
 
   if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
     return "stripe";
-  }
-
-  if (order.paypal_order_id || (order.payment_provider === "paypal" && order.payment_reference)) {
-    return "paypal";
   }
 
   if (order.payment_reference && order.payment_reference.startsWith("placeholder:")) {
@@ -94,7 +85,6 @@ export async function POST(request: Request) {
         payment_provider,
         payment_reference,
         payment_intent_id,
-        paypal_order_id,
         product:products (delivery_type)
       `)
       .eq("id", orderId)
@@ -151,7 +141,6 @@ export async function POST(request: Request) {
         provider: providerName,
         client_secret: result.clientToken,
         payment_reference: result.paymentReference,
-        approval_url: result.approvalUrl || null,
         message: result.message || "No payment required for this order.",
       });
     }
@@ -165,7 +154,7 @@ export async function POST(request: Request) {
       amount: orderAmount,
       currency: String(order.currency || "usd"),
       listingType: order.listing_type,
-      existingPaymentRef: order.payment_reference || order.payment_intent_id || order.paypal_order_id,
+      existingPaymentRef: order.payment_reference || order.payment_intent_id,
     });
 
     return NextResponse.json({
@@ -173,13 +162,12 @@ export async function POST(request: Request) {
       provider: providerName,
       client_secret: result.clientToken,
       payment_reference: result.paymentReference,
-      approval_url: result.approvalUrl || null,
       message: result.message || null,
     });
   } catch (error) {
     console.error("[Checkout Prepare]", error);
     const message = error instanceof Error ? error.message : "Failed to prepare checkout";
-    if (message.includes("Seller PayPal account is not ready")) {
+    if (message.includes("Seller Stripe account is not ready")) {
       return NextResponse.json({ error: message }, { status: 409 });
     }
     return NextResponse.json({ error: message }, { status: 500 });

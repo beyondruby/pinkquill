@@ -1,9 +1,8 @@
-export type PaymentProvider = "placeholder" | "stripe" | "paypal";
+export type PaymentProvider = "placeholder" | "stripe";
 
 const normalizeProvider = (value?: string | null): PaymentProvider => {
   const lower = value?.toLowerCase();
   if (lower === "stripe") return "stripe";
-  if (lower === "paypal") return "paypal";
   return "placeholder";
 };
 
@@ -17,6 +16,6 @@ export function isPlaceholderPayments(): boolean {
 }
 
 export const PLATFORM_FEE_RATES = {
-  product: 0.08,
-  service: 0.10,
+  product: 0.05,
+  service: 0.05,
 } as const;

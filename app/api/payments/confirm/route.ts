@@ -15,7 +15,6 @@ type OrderForConfirm = {
   payment_provider: string | null;
   payment_reference: string | null;
   payment_intent_id: string | null;
-  paypal_order_id: string | null;
   product: {
     delivery_type: string;
   } | null;
@@ -30,10 +29,6 @@ function resolveProviderForOrder(order: OrderForConfirm): PaymentProvider {
 
   if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
     return "stripe";
-  }
-
-  if (order.paypal_order_id || order.payment_provider === "paypal") {
-    return "paypal";
   }
 
   return getPaymentProvider();
@@ -77,7 +72,6 @@ export async function POST(request: Request) {
         payment_provider,
         payment_reference,
         payment_intent_id,
-        paypal_order_id,
         product:products (delivery_type)
       `)
       .eq("id", orderId)
@@ -126,7 +120,8 @@ export async function POST(request: Request) {
       const stripe = getStripeServer();
       const paymentIntent = await stripe.paymentIntents.retrieve(order.payment_intent_id);
 
-      if (paymentIntent.status === "succeeded") {
+      // succeeded = auto-capture (products), requires_capture = manual capture (commissions/escrow)
+      if (paymentIntent.status === "succeeded" || paymentIntent.status === "requires_capture") {
         const result = await finalizeOrderPayment({
           orderId: order.id,
           provider: "stripe",
@@ -169,47 +164,6 @@ export async function POST(request: Request) {
         },
         { status: 409 }
       );
-    }
-
-    // For PayPal: capture the approved order
-    if (providerName === "paypal") {
-      const paypalRef = order.paypal_order_id || order.payment_reference;
-      if (!paypalRef) {
-        return NextResponse.json({ error: "Missing PayPal order reference" }, { status: 400 });
-      }
-
-      let paymentReference = paypalRef;
-
-      try {
-        const captureResult = await provider.capturePayment(order.id, paypalRef);
-        paymentReference = captureResult.paymentReference || paypalRef;
-
-        const result = await finalizeOrderPayment({
-          orderId: order.id,
-          provider: "paypal",
-          paymentReference,
-          actorId: user.id,
-          source: "api.payments.confirm",
-        });
-
-        return NextResponse.json({
-          success: true,
-          provider: "paypal",
-          already_processed: Boolean(captureResult.alreadyProcessed || result.already_processed),
-          status: result.status,
-          payment_status: result.payment_status,
-        });
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : "PayPal capture failed";
-        await markOrderPaymentFailed({
-          orderId: order.id,
-          provider: "paypal",
-          paymentReference,
-          reason,
-          source: "api.payments.confirm",
-        });
-        return NextResponse.json({ error: reason }, { status: 402 });
-      }
     }
 
     // Placeholder flow

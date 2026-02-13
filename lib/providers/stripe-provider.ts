@@ -1,8 +1,10 @@
 /**
- * Stripe Provider (dormant — kept behind interface for future re-activation)
+ * Stripe Provider — Primary payment provider for Pinkquill marketplace.
  *
- * Wraps existing Stripe Connect logic behind the PaymentProviderInterface.
- * Activated when PAYMENTS_PROVIDER=stripe.
+ * Uses Stripe Connect (Express) with destination charges.
+ * - Products: auto-capture with application_fee_amount
+ * - Commissions: manual capture (escrow) with application_fee_amount
+ *   Funds are held until buyer approves delivery, then captured via releaseEscrow().
  */
 
 import type {
@@ -15,12 +17,15 @@ import type {
   RefundResult,
   OrderForPayment,
 } from "@/lib/payment-provider";
-import { getStripeServer } from "@/lib/stripe";
-import { CONNECT_ACCOUNT_TYPE } from "@/lib/stripe";
+import { getStripeServer, CONNECT_ACCOUNT_TYPE } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export class StripeProvider implements PaymentProviderInterface {
   readonly name = "stripe" as const;
+
+  // ============================================================================
+  // SELLER ONBOARDING
+  // ============================================================================
 
   async createSellerAccount(
     userId: string,
@@ -149,16 +154,55 @@ export class StripeProvider implements PaymentProviderInterface {
     return { url: loginLink.url };
   }
 
+  // ============================================================================
+  // CHECKOUT — Destination charges with platform fee
+  // ============================================================================
+
   async createCheckoutSession(order: OrderForPayment): Promise<CheckoutResult> {
     const stripe = getStripeServer();
     const amountCents = Math.round(order.amount * 100);
     const currency = (order.currency || "usd").toLowerCase();
+    const isService = order.listingType === "service";
 
+    // Look up seller's Stripe Connect account for destination charges
+    const { data: sellerOrder } = await supabaseAdmin
+      .from("orders")
+      .select("seller_id, platform_fee")
+      .eq("id", order.id)
+      .single();
+
+    let transferData: { destination: string } | undefined;
+    let applicationFeeAmount: number | undefined;
+
+    if (sellerOrder?.seller_id) {
+      const { data: sellerAccount } = await supabaseAdmin
+        .from("seller_accounts")
+        .select("stripe_account_id, onboarding_complete, charges_enabled")
+        .eq("user_id", sellerOrder.seller_id)
+        .single();
+
+      if (!sellerAccount?.stripe_account_id || !sellerAccount.charges_enabled) {
+        throw new Error(
+          "Seller Stripe account is not ready to receive payments. Ask the seller to complete Stripe onboarding."
+        );
+      }
+
+      transferData = { destination: sellerAccount.stripe_account_id };
+      const platformFeeCents = Math.round(Number(sellerOrder.platform_fee) * 100);
+      if (platformFeeCents > 0) {
+        applicationFeeAmount = platformFeeCents;
+      }
+    }
+
+    // Check for existing reusable PaymentIntent
     let paymentIntent = order.existingPaymentRef?.startsWith("pi_")
       ? await stripe.paymentIntents.retrieve(order.existingPaymentRef).catch(() => null)
       : null;
 
-    const reusableStatuses = new Set(["requires_payment_method", "requires_confirmation", "requires_action", "processing"]);
+    const reusableStatuses = new Set([
+      "requires_payment_method", "requires_confirmation",
+      "requires_action", "processing",
+    ]);
 
     if (paymentIntent && paymentIntent.amount !== amountCents) {
       paymentIntent = null;
@@ -173,13 +217,32 @@ export class StripeProvider implements PaymentProviderInterface {
       };
     }
 
+    if (paymentIntent?.status === "requires_capture") {
+      return {
+        mode: "stripe",
+        clientToken: null,
+        paymentReference: paymentIntent.id,
+        message: "Payment already authorized (escrow)",
+      };
+    }
+
     if (!paymentIntent || !reusableStatuses.has(paymentIntent.status)) {
       paymentIntent = await stripe.paymentIntents.create(
         {
           amount: amountCents,
           currency,
           automatic_payment_methods: { enabled: true },
-          metadata: { order_id: order.id, buyer_id: order.buyerId, listing_type: order.listingType },
+          // Manual capture for commissions (escrow), auto for products
+          capture_method: isService ? "manual" : "automatic",
+          // Destination charge routes funds to seller's connected account
+          ...(transferData ? { transfer_data: transferData } : {}),
+          // Application fee is Pinkquill's 5% platform cut
+          ...(applicationFeeAmount ? { application_fee_amount: applicationFeeAmount } : {}),
+          metadata: {
+            order_id: order.id,
+            buyer_id: order.buyerId,
+            listing_type: order.listingType,
+          },
           description: `PinkQuill order ${order.id}`,
           receipt_email: order.buyerEmail ?? undefined,
         },
@@ -187,6 +250,7 @@ export class StripeProvider implements PaymentProviderInterface {
       );
     }
 
+    // Persist payment intent on order
     await supabaseAdmin
       .from("orders")
       .update({
@@ -204,7 +268,41 @@ export class StripeProvider implements PaymentProviderInterface {
     };
   }
 
-  async capturePayment(orderId: string, paymentRef: string): Promise<CaptureResult> {
+  // ============================================================================
+  // CAPTURE — Verify payment status after client-side confirmation
+  // ============================================================================
+
+  async capturePayment(_orderId: string, paymentRef: string): Promise<CaptureResult> {
+    const stripe = getStripeServer();
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentRef);
+
+    // Auto-captured payment (products)
+    if (paymentIntent.status === "succeeded") {
+      return { success: true, alreadyProcessed: true };
+    }
+
+    // Manual capture (commissions/escrow) — auth succeeded, awaiting capture
+    if (paymentIntent.status === "requires_capture") {
+      return {
+        success: true,
+        status: "paid",
+        paymentStatus: "authorized",
+        paymentReference: paymentRef,
+      };
+    }
+
+    if (paymentIntent.status === "canceled" || paymentIntent.status === "requires_payment_method") {
+      throw new Error(paymentIntent.last_payment_error?.message || "Payment failed");
+    }
+
+    throw new Error(`Payment not complete (status: ${paymentIntent.status})`);
+  }
+
+  // ============================================================================
+  // ESCROW RELEASE — Capture a manually-held PaymentIntent
+  // ============================================================================
+
+  async releaseEscrow(paymentRef: string, orderId: string): Promise<CaptureResult> {
     const stripe = getStripeServer();
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentRef);
 
@@ -212,21 +310,51 @@ export class StripeProvider implements PaymentProviderInterface {
       return { success: true, alreadyProcessed: true };
     }
 
-    if (paymentIntent.status === "canceled" || paymentIntent.status === "requires_payment_method") {
-      throw new Error(paymentIntent.last_payment_error?.message || "Payment failed");
+    if (paymentIntent.status !== "requires_capture") {
+      throw new Error(`Cannot release escrow: payment status is ${paymentIntent.status}`);
     }
 
-    // Any other non-succeeded status means payment isn't complete
-    throw new Error(`Payment not complete (status: ${paymentIntent.status})`);
+    const captured = await stripe.paymentIntents.capture(
+      paymentRef,
+      {},
+      { idempotencyKey: `escrow_release_${orderId}` }
+    );
+
+    return {
+      success: true,
+      status: "paid",
+      paymentStatus: "paid",
+      paymentReference: captured.id,
+    };
   }
+
+  // ============================================================================
+  // REFUNDS — Handle both captured and uncaptured (escrow void)
+  // ============================================================================
 
   async refundPayment(paymentRef: string, orderId: string, _amount?: number): Promise<RefundResult> {
     const stripe = getStripeServer();
-    await stripe.refunds.create({
-      payment_intent: paymentRef,
-      reason: "requested_by_customer",
-      metadata: { order_id: orderId },
-    });
-    return { success: true };
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentRef);
+
+    // Uncaptured escrow — void the authorization
+    if (paymentIntent.status === "requires_capture") {
+      await stripe.paymentIntents.cancel(paymentRef, {
+        cancellation_reason: "requested_by_customer",
+      });
+      return { success: true };
+    }
+
+    // Captured payment — refund
+    if (paymentIntent.status === "succeeded") {
+      await stripe.refunds.create({
+        payment_intent: paymentRef,
+        reason: "requested_by_customer",
+        metadata: { order_id: orderId },
+      });
+      return { success: true };
+    }
+
+    // Already canceled or refunded
+    return { success: true, alreadyRefunded: true };
   }
 }

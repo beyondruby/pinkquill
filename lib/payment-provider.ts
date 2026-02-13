@@ -3,7 +3,7 @@
  *
  * Strategy pattern for payment providers.
  * Active provider is determined by PAYMENTS_PROVIDER env var.
- * Supports: paypal, stripe, placeholder
+ * Supports: stripe, placeholder
  */
 
 export interface OnboardingResult {
@@ -26,11 +26,9 @@ export interface SellerStatusResult {
 
 export interface CheckoutResult {
   mode: string;
-  /** Stripe: client_secret. PayPal: order ID for approval. Placeholder: null */
+  /** Stripe: client_secret. Placeholder: null */
   clientToken: string | null;
   paymentReference: string;
-  /** PayPal: approval URL to redirect buyer */
-  approvalUrl?: string | null;
   message?: string;
 }
 
@@ -63,7 +61,7 @@ export interface OrderForPayment {
 }
 
 export interface PaymentProviderInterface {
-  readonly name: "stripe" | "paypal" | "placeholder";
+  readonly name: "stripe" | "placeholder";
 
   // Seller onboarding
   createSellerAccount(userId: string, email: string, profile: { username?: string; displayName?: string }): Promise<OnboardingResult>;
@@ -74,6 +72,9 @@ export interface PaymentProviderInterface {
   createCheckoutSession(order: OrderForPayment): Promise<CheckoutResult>;
   capturePayment(orderId: string, paymentRef: string): Promise<CaptureResult>;
 
+  // Escrow
+  releaseEscrow?(paymentRef: string, orderId: string): Promise<CaptureResult>;
+
   // Refunds
   refundPayment(paymentRef: string, orderId: string, amount?: number): Promise<RefundResult>;
 }
@@ -83,7 +84,6 @@ export interface PaymentProviderInterface {
 // ============================================================================
 
 import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
-import { PayPalProvider } from "@/lib/providers/paypal-provider";
 import { PlaceholderProvider } from "@/lib/providers/placeholder-provider";
 import { StripeProvider } from "@/lib/providers/stripe-provider";
 
@@ -94,9 +94,6 @@ function createProviderInstance(providerName: PaymentProvider): PaymentProviderI
   switch (providerName) {
     case "stripe": {
       return new StripeProvider();
-    }
-    case "paypal": {
-      return new PayPalProvider();
     }
     default: {
       return new PlaceholderProvider();

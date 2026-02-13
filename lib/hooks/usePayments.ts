@@ -46,8 +46,6 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
           id: data.id || `seller-${data.user_id || "placeholder"}`,
           user_id: data.user_id || "",
           stripe_account_id: data.account_id || null,
-          paypal_merchant_id: data.account_id || null,
-          paypal_email: data.email || null,
           onboarding_complete: Boolean(data.onboarding_complete),
           charges_enabled: Boolean(data.charges_enabled),
           payouts_enabled: Boolean(data.payouts_enabled),
@@ -82,7 +80,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
 
       if (!res.ok) throw new Error(data.error);
 
-      // Redirect to provider onboarding (Stripe, PayPal, or placeholder)
+      // Redirect to Stripe Connect onboarding
       window.location.href = data.url;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to start onboarding";
@@ -121,13 +119,11 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
 // CHECKOUT
 // ============================================================================
 
-export type CheckoutMode = "stripe" | "paypal" | "placeholder";
+export type CheckoutMode = "stripe" | "placeholder";
 
 interface UseCheckoutReturn {
   mode: CheckoutMode;
   clientSecret: string | null;
-  paypalOrderId: string | null;
-  approvalUrl: string | null;
   loading: boolean;
   error: string | null;
   createCheckout: (orderId: string) => Promise<string | null>;
@@ -139,8 +135,6 @@ interface UseCheckoutReturn {
 export function useCheckout(): UseCheckoutReturn {
   const [mode, setMode] = useState<CheckoutMode>("placeholder");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [paypalOrderId, setPaypalOrderId] = useState<string | null>(null);
-  const [approvalUrl, setApprovalUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -162,8 +156,6 @@ export function useCheckout(): UseCheckoutReturn {
       const checkoutMode = (data.mode || "placeholder") as CheckoutMode;
       setMode(checkoutMode);
       setClientSecret(data.client_secret || null);
-      setPaypalOrderId(checkoutMode === "paypal" ? (data.client_secret || data.payment_reference) : null);
-      setApprovalUrl(data.approval_url || null);
       return data.client_secret || null;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create checkout";
@@ -200,8 +192,6 @@ export function useCheckout(): UseCheckoutReturn {
   return {
     mode,
     clientSecret,
-    paypalOrderId,
-    approvalUrl,
     loading,
     error,
     createCheckout,
@@ -300,8 +290,6 @@ export function useTransactionHistory(
       const from = page * pageSize;
       const to = from + pageSize - 1;
 
-      // Transactions are visible via RLS to order participants
-      // We fetch transactions for orders where the user is buyer or seller
       const { data, error: queryError } = await supabase
         .from("transactions")
         .select(`

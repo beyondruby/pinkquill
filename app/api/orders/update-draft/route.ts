@@ -6,6 +6,8 @@ import { supabaseAdmin } from "@/lib/supabase-server";
 interface UpdateOrderDraftPayload {
   order_id?: string;
   shipping_address?: Record<string, unknown>;
+  buyer_phone?: string;
+  buyer_note?: string;
   brief?: string;
   requirements?: Record<string, unknown>;
   due_date?: string;
@@ -120,6 +122,25 @@ export async function POST(request: Request) {
         updates.shipping_address = shippingAddress;
         hasEditableField = true;
       }
+
+      if (body.buyer_phone !== undefined) {
+        const phone = String(body.buyer_phone || "").trim();
+        if (!phone) {
+          return NextResponse.json({ error: "Phone number is required for physical products." }, { status: 400 });
+        }
+        updates.buyer_phone = phone;
+        hasEditableField = true;
+      }
+    }
+
+    // buyer_note is optional for all order types
+    if (body.buyer_note !== undefined) {
+      const note = String(body.buyer_note || "").trim();
+      if (note.length > 500) {
+        return NextResponse.json({ error: "Note to seller must be 500 characters or less." }, { status: 400 });
+      }
+      updates.buyer_note = note || null;
+      hasEditableField = true;
     }
 
     if (order.listing_type === "service") {

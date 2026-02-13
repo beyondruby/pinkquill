@@ -4,9 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getStripe } from "@/lib/stripe-client";
-import { getPayPalClientId } from "@/lib/paypal-client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCheckout } from "@/lib/hooks/usePayments";
 import { useUpdateOrderDraft } from "@/lib/hooks/useOrders";
@@ -272,64 +270,6 @@ function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: s
 }
 
 // ============================================================================
-// PAYPAL INLINE BUTTONS
-// ============================================================================
-
-function PayPalInlineButtons({
-  orderId,
-  paypalOrderId,
-  onSuccess,
-}: {
-  orderId: string;
-  paypalOrderId: string;
-  onSuccess: () => void;
-}) {
-  const [error, setError] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
-
-  return (
-    <div className="space-y-4">
-      <PayPalButtons
-        style={{ layout: "vertical", color: "gold", shape: "rect", label: "pay", height: 50 }}
-        createOrder={async () => paypalOrderId}
-        onApprove={async () => {
-          setProcessing(true);
-          setError(null);
-          try {
-            const res = await fetch("/api/payments/confirm", {
-              method: "POST",
-              headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
-              body: JSON.stringify({ order_id: orderId }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Capture failed");
-            onSuccess();
-          } catch (err) {
-            setError(err instanceof Error ? err.message : "Payment failed");
-            setProcessing(false);
-          }
-        }}
-        onCancel={() => setError("Payment was cancelled.")}
-        onError={(err) => {
-          console.error("[PayPal Error]", err);
-          setError(err instanceof Error ? err.message : "PayPal encountered an error.");
-        }}
-        disabled={processing}
-      />
-
-      {processing && (
-        <div className="flex items-center justify-center gap-2 text-sm text-muted">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-[var(--color-purple-primary)]" />
-          Processing...
-        </div>
-      )}
-
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-    </div>
-  );
-}
-
-// ============================================================================
 // MAIN CHECKOUT PAGE
 // ============================================================================
 
@@ -340,7 +280,6 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const {
     mode,
     clientSecret,
-    paypalOrderId,
     loading: checkoutLoading,
     error: checkoutError,
     createCheckout,
@@ -355,6 +294,10 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [shippingSavedNotices, setShippingSavedNotices] = useState<Record<string, string>>({});
   const [shippingDraftEdits, setShippingDraftEdits] = useState<Record<string, Partial<ShippingAddress>>>({});
+  const [buyerPhone, setBuyerPhone] = useState("");
+  const [buyerNote, setBuyerNote] = useState("");
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [noteSaved, setNoteSaved] = useState(false);
 
   const promoOverride = promoOverrides[orderId];
   const shippingSavedNotice = shippingSavedNotices[orderId] || null;
@@ -392,6 +335,14 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
       return { ...prev, [orderId]: message };
     });
   }, [orderId]);
+
+  // Initialize phone and note from order data
+  useEffect(() => {
+    if (!order) return;
+    if (order.buyer_phone && !buyerPhone) setBuyerPhone(order.buyer_phone);
+    if (order.buyer_note && !buyerNote) setBuyerNote(order.buyer_note);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.id]);
 
   useEffect(() => {
     if (!order || order.status !== "pending_payment") return;
@@ -435,12 +386,18 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
       return;
     }
 
+    if (!buyerPhone.trim()) {
+      setShippingError("Phone number is required for physical product orders.");
+      return;
+    }
+
     setShippingError(null);
     setShippingSavedNotice(null);
 
     const success = await updateDraft({
       order_id: order.id,
       shipping_address: payload,
+      buyer_phone: buyerPhone.trim(),
     });
 
     if (!success) {
@@ -512,7 +469,6 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     order.product?.media?.find((item: { is_primary: boolean }) => item.is_primary)?.media_url ||
     order.product?.media?.[0]?.media_url;
 
-  const paypalClientId = getPayPalClientId();
   const currency = order.currency || "USD";
 
   const elementsOptions: StripeElementsOptions | undefined = clientSecret
@@ -600,6 +556,48 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
               </div>
             </div>
 
+            <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(135deg,rgba(255,255,255,0.97),rgba(255,252,246,0.95),rgba(255,248,252,0.95))] p-4 sm:p-5">
+              <h2 className="text-lg font-display text-ink">Note to Seller</h2>
+              <p className="text-sm font-body text-muted mt-1">Optional — add a message for the seller about your order.</p>
+              <div className="mt-3">
+                <textarea
+                  value={buyerNote}
+                  onChange={(event) => {
+                    const val = event.target.value;
+                    setBuyerNote(val);
+                    setNoteSaved(false);
+                    if (val.length > 500) {
+                      setNoteError("Note must be 500 characters or less.");
+                    } else {
+                      setNoteError(null);
+                    }
+                  }}
+                  placeholder="Any special requests, details, or instructions..."
+                  maxLength={500}
+                  rows={3}
+                  className="w-full rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)] resize-none"
+                />
+                <div className="mt-2 flex items-center justify-between">
+                  <p className={`text-xs font-body ${buyerNote.length > 500 ? "text-red-500" : "text-muted"}`}>
+                    {buyerNote.length}/500
+                  </p>
+                  <button
+                    onClick={async () => {
+                      if (buyerNote.length > 500 || !order) return;
+                      const success = await updateDraft({ order_id: order.id, buyer_note: buyerNote.trim() });
+                      if (success) setNoteSaved(true);
+                    }}
+                    disabled={updatingDraft || buyerNote.length > 500}
+                    className="rounded-lg border border-black/[0.12] px-3 py-1.5 text-xs font-ui font-semibold text-muted hover:text-ink hover:border-black/20 disabled:opacity-50"
+                  >
+                    {updatingDraft ? "Saving..." : "Save Note"}
+                  </button>
+                </div>
+                {noteError && <p className="text-xs text-red-600 mt-1">{noteError}</p>}
+                {noteSaved && <p className="text-xs text-green-700 mt-1">Note saved.</p>}
+              </div>
+            </div>
+
             {isPhysicalProduct && (
               <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(245,250,255,0.94))] p-4 sm:p-5">
                 <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Step 2</p>
@@ -668,7 +666,17 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       if (shippingError) setShippingError(null);
                     }}
                     placeholder="Country"
-                    className="sm:col-span-2 rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                    className="rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
+                  />
+                  <input
+                    type="tel"
+                    value={buyerPhone}
+                    onChange={(event) => {
+                      setBuyerPhone(event.target.value);
+                      if (shippingError) setShippingError(null);
+                    }}
+                    placeholder="Phone number"
+                    className="rounded-xl border border-black/[0.12] bg-white/95 px-4 py-3 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-pink-vivid)]"
                   />
                 </div>
 
@@ -751,24 +759,6 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       onSuccess={handleSuccess}
                     />
                   </Elements>
-                </div>
-              )}
-
-              {!requiresShippingDetails && mode === "paypal" && paypalOrderId && paypalClientId && !checkoutLoading && !checkoutError && (
-                <div className="mt-4">
-                  <PayPalScriptProvider
-                    options={{
-                      clientId: paypalClientId,
-                      currency: currency.toUpperCase(),
-                      intent: order.listing_type === "service" ? "authorize" : "capture",
-                    }}
-                  >
-                    <PayPalInlineButtons
-                      orderId={order.id}
-                      paypalOrderId={paypalOrderId}
-                      onSuccess={handleSuccess}
-                    />
-                  </PayPalScriptProvider>
                 </div>
               )}
 

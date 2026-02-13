@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getStripe } from "@/lib/stripe-client";
-import { getPayPalClientId } from "@/lib/paypal-client";
 import { useCheckout } from "@/lib/hooks/usePayments";
 import { supabase } from "@/lib/supabase";
 import type { Order } from "@/lib/types/store";
@@ -136,80 +134,6 @@ function StripeCheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
 }
 
 // ============================================================================
-// PAYPAL CHECKOUT
-// ============================================================================
-
-function PayPalCheckout({ order, onSuccess, onClose, paypalOrderId }: CheckoutModalProps & { paypalOrderId: string }) {
-  const [error, setError] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
-
-  return (
-    <div className="space-y-6">
-      <OrderSummary order={order} />
-
-      <div className="min-h-[120px]">
-        <PayPalButtons
-          style={{
-            layout: "vertical",
-            color: "gold",
-            shape: "rect",
-            label: "pay",
-            height: 45,
-          }}
-          createOrder={async () => {
-            return paypalOrderId;
-          }}
-          onApprove={async () => {
-            setProcessing(true);
-            setError(null);
-            try {
-              // After buyer approves on PayPal, call our confirm endpoint to capture
-              const res = await fetch("/api/payments/confirm", {
-                method: "POST",
-                headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
-                body: JSON.stringify({ order_id: order.id }),
-              });
-              const data = await res.json();
-              if (!res.ok) throw new Error(data.error || "Payment confirmation failed");
-              onSuccess();
-            } catch (err) {
-              setError(err instanceof Error ? err.message : "Payment failed");
-              setProcessing(false);
-            }
-          }}
-          onCancel={() => {
-            setError("Payment was cancelled. You can try again.");
-          }}
-          onError={(err) => {
-            console.error("[PayPal Error]", err);
-            setError(err instanceof Error ? err.message : "PayPal encountered an error. Please try again.");
-          }}
-          disabled={processing}
-        />
-      </div>
-
-      {processing && (
-        <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-[var(--color-purple-primary)]" />
-          <span>Processing payment...</span>
-        </div>
-      )}
-
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-
-      <button
-        type="button"
-        onClick={onClose}
-        disabled={processing}
-        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-      >
-        Cancel
-      </button>
-    </div>
-  );
-}
-
-// ============================================================================
 // MAIN CHECKOUT MODAL
 // ============================================================================
 
@@ -217,7 +141,6 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
   const {
     mode,
     clientSecret,
-    paypalOrderId,
     loading,
     error: checkoutError,
     createCheckout,
@@ -250,7 +173,6 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
       }
     : undefined;
 
-  const paypalClientId = getPayPalClientId();
   const zeroTotal = Number(order.amount) <= 0;
 
   return (
@@ -349,18 +271,6 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
           </Elements>
         )}
 
-        {/* PAYPAL MODE */}
-        {mode === "paypal" && paypalOrderId && paypalClientId && !loading && !checkoutError && (
-          <PayPalScriptProvider
-            options={{
-              clientId: paypalClientId,
-              currency: (order.currency || "USD").toUpperCase(),
-              intent: order.listing_type === "service" ? "authorize" : "capture",
-            }}
-          >
-            <PayPalCheckout order={order} onSuccess={onSuccess} onClose={onClose} paypalOrderId={paypalOrderId} />
-          </PayPalScriptProvider>
-        )}
       </div>
     </div>
   );

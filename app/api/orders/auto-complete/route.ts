@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { capturePayPalEscrowAuthorization } from "@/lib/paypal-escrow";
+import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 type PendingEscrowOrder = {
@@ -7,7 +7,6 @@ type PendingEscrowOrder = {
   payment_provider: string | null;
   payment_status: string;
   payment_reference: string | null;
-  paypal_order_id: string | null;
 };
 
 export async function POST(request: Request) {
@@ -35,7 +34,7 @@ export async function POST(request: Request) {
     // Release escrow for completed commission orders.
     const { data: pendingEscrow, error: escrowQueryError } = await supabaseAdmin
       .from("orders")
-      .select("id, payment_provider, payment_status, payment_reference, paypal_order_id")
+      .select("id, payment_provider, payment_status, payment_reference")
       .eq("status", "completed")
       .eq("escrow_released", false)
       .eq("listing_type", "service")
@@ -53,20 +52,17 @@ export async function POST(request: Request) {
     for (const order of pendingEscrow || []) {
       try {
         const providerName = order.payment_provider || "placeholder";
-        let paymentReference = order.payment_reference || order.paypal_order_id || null;
+        let paymentReference = order.payment_reference || null;
 
-        if (providerName === "paypal" && order.payment_status === "authorized") {
-          if (!order.paypal_order_id) {
-            throw new Error("Missing PayPal order ID for auto escrow release");
-          }
-
-          const captureResult = await capturePayPalEscrowAuthorization({
-            paypalOrderId: order.paypal_order_id,
-            authorizationReference: order.payment_reference,
-            idempotencyKey: `escrow_release_auto_${order.id}`,
-          });
-
-          paymentReference = captureResult.paymentReference;
+        // Stripe escrow: capture the manually-held PaymentIntent
+        if (providerName === "stripe" && order.payment_status === "authorized" && paymentReference) {
+          const stripe = getStripeServer();
+          const captured = await stripe.paymentIntents.capture(
+            paymentReference,
+            {},
+            { idempotencyKey: `escrow_release_auto_${order.id}` }
+          );
+          paymentReference = captured.id;
         }
 
         const { error: txError } = await supabaseAdmin

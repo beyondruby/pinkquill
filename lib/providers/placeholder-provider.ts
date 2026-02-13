@@ -75,7 +75,6 @@ export class PlaceholderProvider implements PaymentProviderInterface {
         payment_provider: "placeholder",
         payment_reference: paymentReference,
         payment_intent_id: paymentReference,
-        paypal_order_id: null,
         payment_status: "pending",
       })
       .eq("id", order.id);
@@ -89,6 +88,10 @@ export class PlaceholderProvider implements PaymentProviderInterface {
   }
 
   async capturePayment(): Promise<CaptureResult> {
+    return { success: true };
+  }
+
+  async releaseEscrow(): Promise<CaptureResult> {
     return { success: true };
   }
 

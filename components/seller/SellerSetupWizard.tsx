@@ -372,11 +372,11 @@ function PaymentStep({ onStartOnboarding, onboardingLoading }: { onStartOnboardi
       <div className="bg-gray-50 rounded-lg p-4 text-left text-sm space-y-2">
         <div className="flex items-start gap-2">
           <FontAwesomeIcon icon={faCheck} className="text-green-500 mt-0.5 text-xs" />
-          <span>Quill charges 8% on products and 10% on commissions</span>
+          <span>Quill charges 5% on all sales</span>
         </div>
         <div className="flex items-start gap-2">
           <FontAwesomeIcon icon={faCheck} className="text-green-500 mt-0.5 text-xs" />
-          <span>Secure payment processing via PayPal</span>
+          <span>Secure payment processing via Stripe</span>
         </div>
         <div className="flex items-start gap-2">
           <FontAwesomeIcon icon={faCheck} className="text-green-500 mt-0.5 text-xs" />

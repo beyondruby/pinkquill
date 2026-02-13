@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
-import { capturePayPalEscrowAuthorization } from "@/lib/paypal-escrow";
+import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 type EscrowOrder = {
@@ -13,7 +13,6 @@ type EscrowOrder = {
   payment_provider: string | null;
   payment_status: string;
   payment_reference: string | null;
-  paypal_order_id: string | null;
   escrow_released: boolean | null;
 };
 
@@ -47,7 +46,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, seller_id, status, listing_type, payment_provider, payment_status, payment_reference, paypal_order_id, escrow_released")
+      .select("id, buyer_id, seller_id, status, listing_type, payment_provider, payment_status, payment_reference, escrow_released")
       .eq("id", orderId)
       .single<EscrowOrder>();
 
@@ -81,25 +80,18 @@ export async function POST(request: Request) {
       );
     }
 
-    let paymentReference = order.payment_reference || order.paypal_order_id || null;
+    let paymentReference = order.payment_reference || null;
     const providerName = order.payment_provider || "placeholder";
 
-    if (providerName === "paypal" && order.payment_status === "authorized") {
-      const paypalOrderId = order.paypal_order_id || null;
-      if (!paypalOrderId) {
-        return NextResponse.json(
-          { error: "Missing PayPal order ID for escrow release" },
-          { status: 400 }
-        );
-      }
-
-      const captureResult = await capturePayPalEscrowAuthorization({
-        paypalOrderId,
-        authorizationReference: order.payment_reference,
-        idempotencyKey: `escrow_release_${order.id}`,
-      });
-
-      paymentReference = captureResult.paymentReference;
+    // Stripe escrow: capture the manually-held PaymentIntent
+    if (providerName === "stripe" && order.payment_status === "authorized" && paymentReference) {
+      const stripe = getStripeServer();
+      const captured = await stripe.paymentIntents.capture(
+        paymentReference,
+        {},
+        { idempotencyKey: `escrow_release_${order.id}` }
+      );
+      paymentReference = captured.id;
     }
 
     const now = new Date().toISOString();

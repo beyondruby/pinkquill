@@ -11,7 +11,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 const PROVIDER_LABELS: Record<string, string> = {
-  paypal: "PayPal",
   stripe: "Stripe",
   placeholder: "Placeholder",
 };
@@ -47,7 +46,7 @@ export default function SellerOnboarding() {
         </p>
         <p className="text-sm text-gray-500 mb-8">
           We use secure payment processing to protect both buyers and sellers.
-          Quill charges 8% on products and 10% on commissions.
+          Quill charges 5% on all sales.
         </p>
 
         {error && (

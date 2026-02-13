@@ -1,7 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { finalizeOrderPayment, markOrderPaymentFailed } from "@/lib/payments-server";
-import { getPaymentProvider } from "@/lib/payments";
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
@@ -46,15 +45,6 @@ async function resolveOrder(paymentIntent: Stripe.PaymentIntent): Promise<OrderL
 }
 
 export async function POST(request: Request) {
-  const provider = getPaymentProvider();
-  if (provider !== "stripe") {
-    return NextResponse.json({
-      received: true,
-      skipped: true,
-      reason: "Webhook processing is disabled while placeholder payments are active.",
-    });
-  }
-
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
     return NextResponse.json({ error: "Missing STRIPE_WEBHOOK_SECRET" }, { status: 500 });
@@ -177,6 +167,46 @@ export async function POST(request: Request) {
           content: "Your payment has been refunded.",
           message_type: "system",
         });
+        break;
+      }
+
+      case "account.updated": {
+        const account = event.data.object as Stripe.Account;
+        if (!account.id) break;
+
+        const { data: sellerAccount } = await supabaseAdmin
+          .from("seller_accounts")
+          .select("id, user_id")
+          .eq("stripe_account_id", account.id)
+          .maybeSingle();
+
+        if (sellerAccount) {
+          await supabaseAdmin
+            .from("seller_accounts")
+            .update({
+              onboarding_complete: account.details_submitted ?? false,
+              charges_enabled: account.charges_enabled ?? false,
+              payouts_enabled: account.payouts_enabled ?? false,
+              country: account.country || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", sellerAccount.id);
+        }
+        break;
+      }
+
+      case "payment_intent.amount_capturable_updated": {
+        // Escrow authorization confirmed — update order payment_status to "authorized"
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const order = await resolveOrder(paymentIntent);
+        if (!order) break;
+
+        if (order.payment_status !== "authorized") {
+          await supabaseAdmin
+            .from("orders")
+            .update({ payment_status: "authorized", updated_at: new Date().toISOString() })
+            .eq("id", order.id);
+        }
         break;
       }
 

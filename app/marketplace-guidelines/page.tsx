@@ -654,7 +654,7 @@ export default function MarketplaceGuidelinesPage() {
                 <ul>
                   <li><strong>Digital products:</strong> Funds available 3 days after purchase</li>
                   <li><strong>Physical products:</strong> Funds available 3 days after delivery confirmation or 14 days after shipment (whichever comes first)</li>
-                  <li><strong>Payout methods:</strong> Bank transfer, PayPal, or other supported methods</li>
+                  <li><strong>Payout methods:</strong> Bank transfer via Stripe or other supported methods</li>
                   <li><strong>Minimum payout:</strong> $10 USD (or equivalent)</li>
                   <li><strong>Payout frequency:</strong> Weekly or monthly (your choice)</li>
                 </ul>

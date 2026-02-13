@@ -69,7 +69,7 @@ export default function EarningsOverview() {
   const { transactions, loading: txLoading, hasMore, loadMore } = useTransactionHistory(user?.id);
   const { openDashboard, account } = useSellerOnboarding();
   const provider = account?.provider || "placeholder";
-  const providerLabel = provider === "paypal" ? "PayPal" : provider === "stripe" ? "Stripe" : "Payment";
+  const providerLabel = provider === "stripe" ? "Stripe" : "Payment";
   const isPlaceholder = Boolean(account?.placeholder_mode);
 
   if (earningsLoading) {
@@ -121,12 +121,10 @@ export default function EarningsOverview() {
 
       {/* Fee Info */}
       <div className="rounded-xl bg-purple-50 border border-purple-100 p-4 text-sm font-body text-purple-900">
-        <strong>Fee structure:</strong> 8% on product sales, 10% on commissions.
+        <strong>Fee structure:</strong> 5% on all sales.
         {isPlaceholder
           ? " Payments are currently in placeholder mode while live provider setup is pending."
-          : provider === "paypal"
-            ? " PayPal processing fees depend on your merchant account and region. Payouts are managed in your PayPal account."
-            : " Payment processing fees depend on your provider account and region."}
+          : " Payment processing fees depend on your Stripe account and region."}
       </div>
 
       {/* Transaction History */}

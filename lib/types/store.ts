@@ -345,8 +345,7 @@ export interface Order {
   // Status
   status: OrderStatus;
   payment_intent_id: string | null;
-  paypal_order_id: string | null;
-  payment_provider?: "stripe" | "paypal" | "placeholder" | null;
+  payment_provider?: "stripe" | "placeholder" | null;
   payment_reference?: string | null;
   payment_status: PaymentStatus;
   escrow_released: boolean;
@@ -383,6 +382,10 @@ export interface Order {
   seller_declined_at: string | null;
   seller_decline_reason: string | null;
   seller_response_deadline: string | null;
+
+  // Buyer checkout fields
+  buyer_phone: string | null;
+  buyer_note: string | null;
 
   // Auto-completion
   auto_completion_at: string | null;
@@ -485,9 +488,7 @@ export interface SellerAccount {
   id: string;
   user_id: string;
   stripe_account_id: string | null;
-  paypal_merchant_id: string | null;
-  paypal_email: string | null;
-  provider?: "stripe" | "paypal" | "placeholder";
+  provider?: "stripe" | "placeholder";
   placeholder_mode?: boolean;
   onboarding_complete: boolean;
   charges_enabled: boolean;
@@ -638,8 +639,8 @@ export interface Dispute {
 // ============================================================================
 
 export const PLATFORM_FEES = {
-  product: 0.08,    // 8% for products
-  service: 0.10,    // 10% for commissions
+  product: 0.05,    // 5% flat fee
+  service: 0.05,    // 5% flat fee
 } as const;
 
 export function calculateFees(amount: number, listingType: ListingType) {
