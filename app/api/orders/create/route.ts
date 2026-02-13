@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
-import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
+import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 interface CreateOrderPayload {
@@ -55,7 +55,9 @@ export async function POST(request: Request) {
       return rateLimitResponse(rateLimit, 60);
     }
 
-    const body = (await request.json()) as CreateOrderPayload;
+    const parsed = await safeJsonParse<CreateOrderPayload>(request);
+    if ("error" in parsed) return parsed.error;
+    const body = parsed.data;
     const productId = body.product_id;
     const pricingId = body.pricing_id;
     const requestedQuantity = Number.isFinite(body.quantity) ? Math.max(1, Math.floor(body.quantity!)) : 1;

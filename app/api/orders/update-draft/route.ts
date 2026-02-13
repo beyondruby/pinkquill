@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
-import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
+import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 interface UpdateOrderDraftPayload {
@@ -72,7 +72,9 @@ export async function POST(request: Request) {
       return rateLimitResponse(rateLimit, 60);
     }
 
-    const body = (await request.json()) as UpdateOrderDraftPayload;
+    const parsed = await safeJsonParse<UpdateOrderDraftPayload>(request);
+    if ("error" in parsed) return parsed.error;
+    const body = parsed.data;
     if (!body.order_id) {
       return NextResponse.json({ error: "order_id is required" }, { status: 400 });
     }

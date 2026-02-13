@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
-import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
+import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
 import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
 import { getProviderByName } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
@@ -52,8 +52,9 @@ export async function POST(request: Request) {
       return rateLimitResponse(rateLimit, 60);
     }
 
-    const body = await request.json();
-    const { order_id: orderId, reason } = body as { order_id?: string; reason?: string };
+    const parsed = await safeJsonParse<{ order_id?: string; reason?: string }>(request);
+    if ("error" in parsed) return parsed.error;
+    const { order_id: orderId, reason } = parsed.data;
 
     if (!orderId) {
       return NextResponse.json({ error: "order_id is required" }, { status: 400 });

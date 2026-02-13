@@ -36,13 +36,38 @@ function getRateLimitIdentifier(request: Request, userId?: string): string {
   return `ip:${getClientIp(request)}`;
 }
 
-export function enforceSameOrigin(request: Request): NextResponse | null {
-  const requestOrigin = new URL(request.url).origin;
-  const originHeader = request.headers.get("origin");
+/**
+ * Resolve the public-facing origin for this request.
+ * Behind reverse proxies (Vercel, Cloudflare, nginx) `request.url` may contain
+ * an internal host (e.g. 127.0.0.1:3000). We prefer forwarded headers to get the
+ * origin the client actually targeted.
+ */
+function resolvePublicOrigin(request: Request): string {
+  // x-forwarded-host is the standard proxy header for the original Host
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  if (forwardedHost) {
+    const proto = request.headers.get("x-forwarded-proto") || "https";
+    return `${proto}://${forwardedHost.split(",")[0].trim()}`;
+  }
 
+  // Fall back to the Host header (set by the browser on every request)
+  const host = request.headers.get("host");
+  if (host) {
+    const proto = request.headers.get("x-forwarded-proto") || "https";
+    return `${proto}://${host}`;
+  }
+
+  // Last resort: use request.url directly
+  return new URL(request.url).origin;
+}
+
+export function enforceSameOrigin(request: Request): NextResponse | null {
+  const publicOrigin = resolvePublicOrigin(request);
+
+  const originHeader = request.headers.get("origin");
   if (originHeader) {
     try {
-      if (new URL(originHeader).origin !== requestOrigin) {
+      if (new URL(originHeader).origin !== publicOrigin) {
         return NextResponse.json({ error: "Cross-origin request rejected" }, { status: 403 });
       }
       return null;
@@ -52,19 +77,62 @@ export function enforceSameOrigin(request: Request): NextResponse | null {
   }
 
   const referer = request.headers.get("referer");
-  if (!referer) {
-    return NextResponse.json({ error: "Missing origin and referer headers" }, { status: 403 });
+  if (referer) {
+    try {
+      if (new URL(referer).origin !== publicOrigin) {
+        return NextResponse.json({ error: "Cross-origin request rejected" }, { status: 403 });
+      }
+      return null;
+    } catch {
+      return NextResponse.json({ error: "Invalid referer header" }, { status: 403 });
+    }
+  }
+
+  // Neither origin nor referer present — allow the request through.
+  // Authentication (getAuthUser) still guards access; blocking here only
+  // caused false-positive 403s for mobile webviews, privacy extensions,
+  // and redirect-back flows from Stripe/PayPal.
+  return null;
+}
+
+/**
+ * Safely parse the request body as JSON.
+ * Returns the parsed body or a 400 NextResponse on failure.
+ */
+export async function safeJsonParse<T = unknown>(
+  request: Request
+): Promise<{ data: T } | { error: NextResponse }> {
+  let text: string;
+  try {
+    text = await request.text();
+  } catch {
+    return {
+      error: NextResponse.json(
+        { error: "Failed to read request body" },
+        { status: 400 }
+      ),
+    };
+  }
+
+  if (!text) {
+    return {
+      error: NextResponse.json(
+        { error: "Request body is empty" },
+        { status: 400 }
+      ),
+    };
   }
 
   try {
-    if (new URL(referer).origin !== requestOrigin) {
-      return NextResponse.json({ error: "Cross-origin request rejected" }, { status: 403 });
-    }
+    return { data: JSON.parse(text) as T };
   } catch {
-    return NextResponse.json({ error: "Invalid referer header" }, { status: 403 });
+    return {
+      error: NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      ),
+    };
   }
-
-  return null;
 }
 
 export async function checkRateLimit({

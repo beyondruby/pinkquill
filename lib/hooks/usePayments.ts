@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
+import { safeResponseJson } from "../utils/fetch";
 import type { SellerAccount, SellerEarnings, Transaction } from "../types/store";
 
 async function buildAuthHeaders(initial?: HeadersInit): Promise<Headers> {
@@ -37,9 +38,9 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
       const res = await fetch("/api/payments/connect/status", {
         headers: await buildAuthHeaders(),
       });
-      const data = await res.json();
+      const data = await safeResponseJson<Record<string, unknown>>(res);
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error((data.error as string) || `Request failed (${res.status})`);
 
       if (data.has_account) {
         setAccount({
@@ -74,14 +75,14 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
 
       const res = await fetch("/api/payments/connect/onboard", {
         method: "POST",
-        headers: await buildAuthHeaders(),
+        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
       });
-      const data = await res.json();
+      const data = await safeResponseJson<Record<string, unknown>>(res);
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error((data.error as string) || `Request failed (${res.status})`);
 
       // Redirect to Stripe Connect onboarding
-      window.location.href = data.url;
+      window.location.href = data.url as string;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to start onboarding";
       setError(message);
@@ -95,13 +96,13 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
 
       const res = await fetch("/api/payments/connect/dashboard", {
         method: "POST",
-        headers: await buildAuthHeaders(),
+        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
       });
-      const data = await res.json();
+      const data = await safeResponseJson<Record<string, unknown>>(res);
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error((data.error as string) || `Request failed (${res.status})`);
 
-      window.open(data.url, "_blank");
+      window.open(data.url as string, "_blank");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to open dashboard";
       setError(message);
@@ -149,14 +150,14 @@ export function useCheckout(): UseCheckoutReturn {
         body: JSON.stringify({ order_id: orderId }),
       });
 
-      const data = await res.json();
+      const data = await safeResponseJson<Record<string, unknown>>(res);
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error((data.error as string) || `Request failed (${res.status})`);
 
       const checkoutMode = (data.mode || "placeholder") as CheckoutMode;
       setMode(checkoutMode);
-      setClientSecret(data.client_secret || null);
-      return data.client_secret || null;
+      setClientSecret((data.client_secret as string) || null);
+      return (data.client_secret as string) || null;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create checkout";
       setError(message);
@@ -177,8 +178,8 @@ export function useCheckout(): UseCheckoutReturn {
         body: JSON.stringify({ order_id: orderId }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to confirm payment");
+      const data = await safeResponseJson<Record<string, unknown>>(res);
+      if (!res.ok) throw new Error((data.error as string) || "Failed to confirm payment");
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to confirm payment";

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
+import { safeResponseJson } from "../utils/fetch";
 import type {
   BuyerOrderStats,
   CreateOrderData,
@@ -120,9 +121,9 @@ export function useCreateOrder(): UseCreateOrderReturn {
         body: JSON.stringify(data),
       });
 
-      const payload = await response.json();
+      const payload = await safeResponseJson<Record<string, unknown>>(response);
       if (!response.ok) {
-        throw new Error(payload.error || "Failed to create order");
+        throw new Error((payload.error as string) || "Failed to create order");
       }
 
       const orderId = payload.order_id as string | undefined;
@@ -190,9 +191,9 @@ export function useUpdateOrderDraft(): UseUpdateOrderDraftReturn {
         body: JSON.stringify(payload),
       });
 
-      const result = await response.json().catch(() => ({}));
+      const result = await safeResponseJson<Record<string, unknown>>(response);
       if (!response.ok) {
-        throw new Error(result.error || "Failed to update order details");
+        throw new Error((result.error as string) || "Failed to update order details");
       }
 
       return true;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
-import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-security";
+import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
@@ -37,8 +37,9 @@ export async function POST(request: Request) {
       return rateLimitResponse(rateLimit, 60);
     }
 
-    const body = await request.json();
-    const { order_id: orderId } = body as { order_id?: string };
+    const parsed = await safeJsonParse<{ order_id?: string }>(request);
+    if ("error" in parsed) return parsed.error;
+    const { order_id: orderId } = parsed.data;
 
     if (!orderId) {
       return NextResponse.json({ error: "order_id is required" }, { status: 400 });
