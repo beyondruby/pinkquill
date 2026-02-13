@@ -64,7 +64,8 @@
       "Bash(dig:*)",
       "Bash(node:*)",
       "Bash(NODE_PATH=/Users/hadi/projects/pinkquill/node_modules node:*)",
-      "Bash(supabase:*)"
+      "Bash(supabase:*)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }
