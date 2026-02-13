@@ -126,13 +126,14 @@ export class StripeProvider implements PaymentProviderInterface {
       };
     }
 
+    // No stripe_account_id — seller needs to complete Stripe onboarding
     return {
       provider: "stripe",
       hasAccount: true,
       accountId: null,
-      onboardingComplete: account.onboarding_complete || false,
-      chargesEnabled: account.charges_enabled || false,
-      payoutsEnabled: account.payouts_enabled || false,
+      onboardingComplete: false,
+      chargesEnabled: false,
+      payoutsEnabled: false,
       country: account.country || null,
       email: null,
     };
@@ -146,7 +147,9 @@ export class StripeProvider implements PaymentProviderInterface {
       .single();
 
     if (!account?.stripe_account_id) {
-      throw new Error("Seller account not found");
+      // No Stripe account linked — redirect to onboarding
+      const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+      return { url: `${origin}/seller/onboarding` };
     }
 
     const stripe = getStripeServer();
