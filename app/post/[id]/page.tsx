@@ -364,31 +364,23 @@ export default function PostPage() {
       }
 
       if (!isOwner && user) {
-        // Check if the post author has blocked the current user
-        const { data: blockedByAuthor } = await supabase
-          .from("blocks")
-          .select("id")
-          .eq("blocker_id", postData.author_id)
-          .eq("blocked_id", user.id)
-          .maybeSingle();
+        // Check both block directions in parallel
+        const [{ data: blockedByAuthor }, { data: userBlockedAuthor }] = await Promise.all([
+          supabase
+            .from("blocks")
+            .select("id")
+            .eq("blocker_id", postData.author_id)
+            .eq("blocked_id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("blocks")
+            .select("id")
+            .eq("blocker_id", user.id)
+            .eq("blocked_id", postData.author_id)
+            .maybeSingle(),
+        ]);
 
-        if (blockedByAuthor) {
-          // Author blocked this user - show as if post doesn't exist
-          setError("Post not found");
-          setLoading(false);
-          return;
-        }
-
-        // Check if the current user has blocked the post author
-        const { data: userBlockedAuthor } = await supabase
-          .from("blocks")
-          .select("id")
-          .eq("blocker_id", user.id)
-          .eq("blocked_id", postData.author_id)
-          .maybeSingle();
-
-        if (userBlockedAuthor) {
-          // User blocked the author - show as if post doesn't exist
+        if (blockedByAuthor || userBlockedAuthor) {
           setError("Post not found");
           setLoading(false);
           return;
@@ -461,104 +453,90 @@ export default function PostPage() {
         }
       }
 
-      // Fetch mentions (tagged people)
-      let mentions: TaggedUser[] = [];
-      try {
-        const { data: mentionsData } = await supabase
-          .from("post_mentions")
-          .select(`
-            user:profiles!post_mentions_user_id_fkey (
-              id,
-              username,
-              display_name,
-              avatar_url
-            )
-          `)
-          .eq("post_id", postId);
+      // Fetch mentions, hashtags, collaborators, relays, and saves in parallel
+      const mentionsPromise = supabase
+        .from("post_mentions")
+        .select(`
+          user:profiles!post_mentions_user_id_fkey (
+            id, username, display_name, avatar_url
+          )
+        `)
+        .eq("post_id", postId);
 
-        if (mentionsData) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          mentions = (mentionsData as any[])
+      const tagsPromise = supabase
+        .from("post_tags")
+        .select("tag:tags(name)")
+        .eq("post_id", postId);
+
+      const collabPromise = supabase
+        .from("post_collaborators")
+        .select(`
+          role,
+          user:profiles!post_collaborators_user_id_fkey (
+            id, username, display_name, avatar_url
+          )
+        `)
+        .eq("post_id", postId)
+        .eq("status", "accepted");
+
+      const relaysPromise = supabase.from("relays").select("user_id").eq("post_id", postId);
+
+      const savePromise = user
+        ? supabase
+            .from("saves")
+            .select("user_id")
+            .eq("post_id", postId)
+            .eq("user_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null });
+
+      const [mentionsRes, tagsRes, collabRes, relaysResult, saveResult] = await Promise.all([
+        mentionsPromise, tagsPromise, collabPromise, relaysPromise, savePromise,
+      ]);
+
+      // Process mentions
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mentions: TaggedUser[] = mentionsRes.data
+        ? (mentionsRes.data as any[])
             .map((m) => {
               const u = Array.isArray(m.user) ? m.user[0] : m.user;
               return u as TaggedUser | null;
             })
-            .filter((u): u is TaggedUser => u !== null && u !== undefined);
-        }
-      } catch {
-        // Table might not exist yet
-      }
+            .filter((u): u is TaggedUser => u !== null && u !== undefined)
+        : [];
 
-      // Fetch hashtags
-      let hashtags: string[] = [];
-      try {
-        const { data: tagsData } = await supabase
-          .from("post_tags")
-          .select("tag:tags(name)")
-          .eq("post_id", postId);
-
-        if (tagsData) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          hashtags = (tagsData as any[])
+      // Process hashtags
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hashtags: string[] = tagsRes.data
+        ? (tagsRes.data as any[])
             .map((t) => {
               const tag = Array.isArray(t.tag) ? t.tag[0] : t.tag;
               return tag?.name;
             })
-            .filter((name): name is string => !!name);
-        }
-      } catch {
-        // Table might not exist yet
-      }
+            .filter((name): name is string => !!name)
+        : [];
 
-      // Fetch collaborators
-      let collaborators: CollaboratorUser[] = [];
-      try {
-        const { data: collabData } = await supabase
-          .from("post_collaborators")
-          .select(`
-            role,
-            user:profiles!post_collaborators_user_id_fkey (
-              id,
-              username,
-              display_name,
-              avatar_url
-            )
-          `)
-          .eq("post_id", postId)
-          .eq("status", "accepted");
-
-        if (collabData) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          collaborators = (collabData as any[])
+      // Process collaborators
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const collaborators: CollaboratorUser[] = collabRes.data
+        ? (collabRes.data as any[])
             .map((c) => {
               const u = Array.isArray(c.user) ? c.user[0] : c.user;
               return u ? { role: c.role, user: u } as CollaboratorUser : null;
             })
-            .filter((c): c is CollaboratorUser => c !== null);
-        }
-      } catch {
-        // Table might not exist yet
-      }
+            .filter((c): c is CollaboratorUser => c !== null)
+        : [];
 
       setPost({ ...postData, mentions, hashtags, collaborators });
       setShowContent(!postData.content_warning);
 
-      // Fetch relay count and user interactions
-      const relaysResult = await supabase.from("relays").select("user_id").eq("post_id", postId);
+      // Process relays
       setRelayCount(relaysResult.data?.length || 0);
 
-      // Check if current user has interacted (relays and saves - reactions handled by hooks)
       if (user) {
-        const userRelayed = relaysResult.data?.some(r => r.user_id === user.id) || false;
+        const userRelayed = relaysResult.data?.some((r: { user_id: string }) => r.user_id === user.id) || false;
         setIsRelayed(userRelayed);
-
-        const { data: saveData } = await supabase
-          .from("saves")
-          .select("user_id")
-          .eq("post_id", postId)
-          .eq("user_id", user.id)
-          .maybeSingle();
-        setIsSaved(!!saveData);
+        setIsSaved(!!saveResult.data);
       }
 
       setLoading(false);

@@ -3,6 +3,8 @@ import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
+export const runtime = "nodejs";
+
 interface CreateOrderPayload {
   product_id?: string;
   pricing_id?: string;

@@ -40,8 +40,7 @@ const ORDER_SELECT = `
   ),
   seller:profiles!orders_seller_id_fkey (
     id, username, display_name, avatar_url, is_verified
-  ),
-  pricing:product_pricing (*)
+  )
 `;
 
 function transformOrder(raw: Record<string, unknown>): Order {

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
+export const runtime = "nodejs";
+
 type PendingEscrowOrder = {
   id: string;
   payment_provider: string | null;

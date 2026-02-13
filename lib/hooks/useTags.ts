@@ -145,7 +145,7 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
         .from("tags")
         .select("id, name")
         .ilike("name", tagName)
-        .single();
+        .maybeSingle();
 
       if (tagError || !tagData) {
         setTagInfo(null);

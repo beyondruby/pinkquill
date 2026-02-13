@@ -4,6 +4,8 @@ import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } f
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
+export const runtime = "nodejs";
+
 type EscrowOrder = {
   id: string;
   buyer_id: string;

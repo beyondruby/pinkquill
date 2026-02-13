@@ -158,10 +158,11 @@ export function useCollection(userId?: string, slug?: string): UseCollectionRetu
         `)
         .eq("user_id", userId)
         .eq("slug", slug)
-        .single();
+        .maybeSingle();
 
       if (!mountedRef.current) return;
       if (fetchError) throw fetchError;
+      if (!data) throw new Error("Collection not found");
 
       // Transform data
       const transformedCollection: CollectionWithItems = {
@@ -264,10 +265,11 @@ export function useCollectionItem(
         `)
         .eq("collection_id", collectionData.id)
         .eq("slug", itemSlug)
-        .single();
+        .maybeSingle();
 
       if (!mountedRef.current) return;
       if (itemError) throw itemError;
+      if (!itemData) throw new Error("Item not found");
 
       const transformedItem: CollectionItem = {
         ...itemData,
@@ -367,7 +369,7 @@ export function useCreateCollection(userId?: string): UseCreateCollectionReturn 
             .select("id")
             .eq("user_id", userId)
             .eq("slug", testSlug)
-            .single();
+            .maybeSingle();
 
           if (!existingSlug) {
             slug = testSlug;
@@ -475,7 +477,7 @@ export function useCreateCollectionItem(userId?: string): UseCreateCollectionIte
             .select("id")
             .eq("collection_id", collectionId)
             .eq("slug", testSlug)
-            .single();
+            .maybeSingle();
 
           if (!existingSlug) {
             slug = testSlug;

@@ -271,7 +271,7 @@ export function useCreateProduct(): UseCreateProductReturn {
           .select("id")
           .eq("seller_id", user.id)
           .eq("slug", slug)
-          .single();
+          .maybeSingle();
 
         if (!existing) break;
         counter++;
@@ -662,9 +662,9 @@ export function useToggleSaveProduct(): UseToggleSaveProductReturn {
         .select("id")
         .eq("product_id", productId)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") throw error;
+      if (error) throw error;
       return !!data;
     } catch (err) {
       return false;

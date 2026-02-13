@@ -4,6 +4,8 @@ import { checkRateLimit, enforceSameOrigin, rateLimitResponse } from "@/lib/api-
 import { getActiveProvider } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   try {
     const originError = enforceSameOrigin(request);

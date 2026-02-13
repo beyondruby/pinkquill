@@ -78,7 +78,7 @@ export function useCreateCommission(): UseCreateCommissionReturn {
           .select("id")
           .eq("seller_id", user.id)
           .eq("slug", slug)
-          .single();
+          .maybeSingle();
 
         if (!existing) break;
         counter += 1;
