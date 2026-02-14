@@ -212,47 +212,61 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <section className="relative mb-8 rounded-2xl bg-white/60 backdrop-blur-xl border border-white/40 shadow-lg shadow-black/[0.06] p-6 sm:p-8 overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-[2.5px]" style={{ background: "linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)" }} />
-        <div className="flex flex-col gap-3">
-          <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-muted">Commissions Studio</p>
-          {sellerProfile?.store_tagline && (
-            <h2 className="font-display text-lg text-ink">{sellerProfile.store_tagline}</h2>
-          )}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-            <span className="inline-flex items-center gap-1.5 font-ui">
-              <QuillIcon className="h-4 w-4" gradient={Boolean(sellerStats?.total_reviews)} />
-              <span className="font-semibold text-ink">{sellerStats?.total_reviews ? sellerStats.avg_quill_score.toFixed(1) : "--"}</span>
-              <span className="text-muted text-xs">({sellerStats?.total_reviews ?? 0} reviews)</span>
-            </span>
-            <span className="text-muted/30">|</span>
-            <span className="text-muted">{stats.active} active service{stats.active !== 1 ? "s" : ""}</span>
-            <span className="text-muted/30">|</span>
-            <span className="text-muted">{sellerStats?.completed_orders ?? 0} completed</span>
-            <span className="text-muted/30">|</span>
-            <span className="text-muted">{formatResponseTime(responseTimeHours)} avg response</span>
-          </div>
-          {(sellerProfile?.skills?.length ?? 0) > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {sellerProfile!.skills.slice(0, 6).map((skill) => (
-                <span key={skill} className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-ui text-purple-primary bg-purple-primary/10">
-                  {skill}
-                </span>
-              ))}
-              {sellerProfile!.skills.length > 6 && (
-                <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.skills.length - 6} more</span>
+      <section className="relative mb-8 rounded-2xl border border-black/[0.06] bg-white shadow-sm p-6 sm:p-8">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-muted">Commissions Studio</p>
+              {sellerProfile?.store_tagline && (
+                <h2 className="font-display text-xl text-ink mt-1">{sellerProfile.store_tagline}</h2>
               )}
             </div>
-          )}
-          {(sellerProfile?.services?.length ?? 0) > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {sellerProfile!.services.slice(0, 4).map((service) => (
-                <span key={service} className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-ui text-pink-vivid bg-pink-vivid/10">
-                  {service}
-                </span>
-              ))}
-              {sellerProfile!.services.length > 4 && (
-                <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.services.length - 4} more</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <QuillIcon className="h-5 w-5" gradient={Boolean(sellerStats?.total_reviews)} />
+              <span className="font-display text-xl font-semibold text-ink">{sellerStats?.total_reviews ? sellerStats.avg_quill_score.toFixed(1) : "--"}</span>
+              <span className="text-muted text-xs font-body">({sellerStats?.total_reviews ?? 0})</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] font-body text-muted">
+            <span>{stats.active} active service{stats.active !== 1 ? "s" : ""}</span>
+            <span className="text-black/10">&middot;</span>
+            <span>{sellerStats?.completed_orders ?? 0} completed</span>
+            <span className="text-black/10">&middot;</span>
+            <span>{formatResponseTime(responseTimeHours)} avg response</span>
+          </div>
+
+          {((sellerProfile?.skills?.length ?? 0) > 0 || (sellerProfile?.services?.length ?? 0) > 0) && (
+            <div className="flex flex-col sm:flex-row gap-4 pt-3 border-t border-black/[0.05]">
+              {(sellerProfile?.skills?.length ?? 0) > 0 && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-ui uppercase tracking-[0.15em] text-muted mb-2">Skills</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sellerProfile!.skills.slice(0, 6).map((skill) => (
+                      <span key={skill} className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-ui font-medium text-ink bg-black/[0.04]">
+                        {skill}
+                      </span>
+                    ))}
+                    {sellerProfile!.skills.length > 6 && (
+                      <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.skills.length - 6}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              {(sellerProfile?.services?.length ?? 0) > 0 && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-ui uppercase tracking-[0.15em] text-muted mb-2">Services</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sellerProfile!.services.slice(0, 4).map((service) => (
+                      <span key={service} className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-ui font-medium text-ink bg-black/[0.04]">
+                        {service}
+                      </span>
+                    ))}
+                    {sellerProfile!.services.length > 4 && (
+                      <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.services.length - 4}</span>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -260,50 +274,55 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
       </section>
 
       <section className="mb-6">
-        <div
-          id={tablistId}
-          role="tablist"
-          aria-label="Commissions views"
-          onKeyDown={handleTabKeyDown}
-          className="flex items-center gap-0 overflow-x-auto scrollbar-hide border-b border-black/[0.08]"
-        >
-          {tabConfig.map((item) => {
-            const isActive = panel === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => updateViewState({ panel: item.key })}
-                className={`relative shrink-0 px-5 py-3 font-ui text-[13px] transition-colors ${
-                  isActive ? "text-ink font-medium" : "text-muted hover:text-ink"
-                }`}
-              >
-                {item.label}
-                {isActive && (
-                  <span
-                    className="absolute bottom-0 inset-x-0 h-[2.5px] rounded-t-full"
-                    style={{ background: "linear-gradient(to right, #4F8BD9, #8B5CF6, #EC4899, #F97316, #F59E0B)" }}
-                  />
-                )}
-              </button>
-            );
-          })}
+        <div className="flex items-end border-b border-black/[0.08]">
+          <div
+            id={tablistId}
+            role="tablist"
+            aria-label="Commissions views"
+            onKeyDown={handleTabKeyDown}
+            className="flex gap-0 overflow-x-auto scrollbar-hide flex-1"
+          >
+            {tabConfig.map((item) => {
+              const isActive = panel === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => updateViewState({ panel: item.key })}
+                  className={`relative shrink-0 px-5 py-3 font-ui text-[13px] transition-colors ${
+                    isActive ? "text-ink font-medium" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  {item.label}
+                  {isActive && (
+                    <span
+                      className="absolute bottom-0 inset-x-0 h-[2.5px] rounded-t-full"
+                      style={{ background: "linear-gradient(to right, #4F8BD9, #8B5CF6, #EC4899, #F97316, #F59E0B)" }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
           {panel === "services" && (
-            <div className="relative ml-auto shrink-0" ref={filterMenuRef}>
+            <div className="relative shrink-0 pb-1.5" ref={filterMenuRef}>
               <button
                 type="button"
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
-                className={`p-2 rounded-lg transition-colors ${
-                  filter !== "all" ? "text-pink-vivid bg-pink-vivid/10" : "text-muted hover:text-ink hover:bg-black/[0.04]"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-ui transition-colors ${
+                  filter !== "all"
+                    ? "text-pink-vivid bg-pink-vivid/10"
+                    : "text-muted hover:text-ink hover:bg-black/[0.04]"
                 }`}
                 title="Filter services"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeWidth={1.6} d="M2 4h12M4 8h8M6 12h4" />
                 </svg>
+                {filter !== "all" && <span className="capitalize">{filter}</span>}
               </button>
               {showFilterMenu && (
                 <div className="absolute right-0 top-full mt-1 w-40 rounded-xl bg-white border border-black/[0.06] shadow-lg shadow-black/[0.06] z-20 py-1 animate-fadeIn">
