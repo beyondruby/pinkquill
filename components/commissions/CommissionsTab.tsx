@@ -160,6 +160,8 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
     return tabs;
   }, [isOwnProfile, sellerStats?.total_reviews, stats.total]);
 
+  const activeTabMeta = tabConfig.find((item) => item.key === panel) ?? tabConfig[0];
+
   const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const currentIndex = tabConfig.findIndex((item) => item.key === panel);
     if (currentIndex === -1) return;
@@ -227,7 +229,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <section className="relative mb-6 overflow-hidden rounded-[30px] border border-purple-primary/15 bg-gradient-to-br from-[#fff8ff] via-[#fff4f7] to-[#fff9f2] p-6 sm:p-8">
+      <section className="relative mb-6 overflow-hidden rounded-[30px] border border-purple-primary/15 bg-gradient-to-br from-[#fff8ff] via-[#fff4fb] to-[#f8f4ff] p-6 sm:p-8">
         <div className="pointer-events-none absolute -top-24 -right-16 h-56 w-56 rounded-full bg-pink-vivid/12 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-purple-primary/12 blur-3xl" />
 
@@ -252,7 +254,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
           <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
             <BannerMetric label="Active Services" value={String(stats.active)} tone="rose" />
             <BannerMetric label="Response Time" value={formatResponseTime(responseTimeHours)} tone="violet" />
-            <BannerMetric label="Completed" value={String(sellerStats?.completed_orders ?? 0)} tone="peach" />
+            <BannerMetric label="Completed" value={String(sellerStats?.completed_orders ?? 0)} tone="lilac" />
             <BannerMetric label="Total Services" value={String(stats.total)} tone="pink" />
           </div>
 
@@ -323,9 +325,12 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
             />
           ))}
         </div>
-        <p className="mt-2 px-1.5 text-[11px] font-body text-muted">
-          Swipe on mobile or use arrow keys/controls to move between subtabs.
-        </p>
+        <div className="mt-2 px-1.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+          <p className="text-[11px] font-ui text-purple-primary/80">{activeTabMeta?.helper}</p>
+          <p className="text-[11px] font-body text-muted">
+            Swipe on mobile or use arrow keys/controls to move between subtabs.
+          </p>
+        </div>
       </section>
 
       {panel === "services" && (
@@ -339,9 +344,9 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
           </section>
 
           {!hasServices && (
-            <div className="relative rounded-[32px] border border-pink-vivid/20 bg-gradient-to-br from-pink-50/90 via-white to-orange-50/85 p-10 text-center overflow-hidden">
+            <div className="relative rounded-[32px] border border-pink-vivid/20 bg-gradient-to-br from-pink-50/90 via-white to-violet-50/85 p-10 text-center overflow-hidden">
               <div className="absolute -top-16 -left-14 w-40 h-40 rounded-full bg-purple-primary/12 blur-2xl" />
-              <div className="absolute -bottom-16 -right-14 w-44 h-44 rounded-full bg-orange-warm/16 blur-2xl" />
+              <div className="absolute -bottom-16 -right-14 w-44 h-44 rounded-full bg-pink-vivid/16 blur-2xl" />
 
               <div className="relative">
                 <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center">
@@ -362,7 +367,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                 {isOwnProfile && (
                   <Link
                     href="/sell/service"
-                    className="inline-flex mt-7 items-center gap-2 px-6 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all"
+                    className="inline-flex mt-7 items-center gap-2 px-6 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid hover:shadow-lg hover:shadow-pink-vivid/20 transition-all"
                   >
                     Add Service
                   </Link>
@@ -431,22 +436,22 @@ function SubtabCard({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`snap-start shrink-0 min-w-[220px] sm:min-w-[250px] rounded-2xl px-3.5 py-3 text-left transition-all duration-200 border ${
+      title={helper}
+      className={`snap-start shrink-0 rounded-full px-3.5 py-2 text-left transition-all duration-200 border ${
         active
-          ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white border-transparent shadow-md shadow-pink-vivid/20"
+          ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white border-transparent shadow-sm shadow-pink-vivid/20"
           : "bg-white border-purple-primary/15 text-purple-primary hover:border-pink-vivid/30"
       }`}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-base">{icon}</span>
-          <span className="font-ui text-xs uppercase tracking-wide">{label}</span>
-        </div>
+      <div className="flex items-center justify-between gap-2.5">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-sm">{icon}</span>
+          <span className="font-ui text-[11px] uppercase tracking-wide">{label}</span>
+        </span>
         <span className={`text-[11px] font-ui px-2 py-0.5 rounded-full ${active ? "bg-white/20" : "bg-pink-vivid/10 text-pink-vivid"}`}>
           {count}
         </span>
       </div>
-      <p className={`text-xs font-body mt-1 ${active ? "text-white/85" : "text-muted"}`}>{helper}</p>
     </button>
   );
 }
@@ -478,11 +483,11 @@ function FilterButton({
   );
 }
 
-function BannerMetric({ label, value, tone }: { label: string; value: string; tone: "rose" | "violet" | "peach" | "pink" }) {
+function BannerMetric({ label, value, tone }: { label: string; value: string; tone: "rose" | "violet" | "lilac" | "pink" }) {
   const toneClass = {
     rose: "from-rose-100/80 to-pink-100/70 border-rose-200/60",
     violet: "from-violet-100/80 to-purple-100/70 border-violet-200/60",
-    peach: "from-orange-100/80 to-amber-100/70 border-orange-200/60",
+    lilac: "from-fuchsia-100/80 to-violet-100/70 border-fuchsia-200/60",
     pink: "from-fuchsia-100/80 to-pink-100/70 border-fuchsia-200/60",
   }[tone];
 
@@ -613,7 +618,7 @@ function CommissionCard({
           <div className="absolute -top-16 -right-14 w-40 h-40 rounded-full bg-pink-vivid/10 blur-2xl" />
         </div>
 
-        <div className="aspect-[4/3] bg-gradient-to-br from-pink-50 to-orange-50 relative overflow-hidden">
+        <div className="aspect-[4/3] bg-gradient-to-br from-pink-50 to-violet-50 relative overflow-hidden">
           {cover ? (
             <img src={cover} alt={commission.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           ) : (
@@ -653,7 +658,7 @@ function CommissionCard({
               <p className="text-sm font-body text-muted">Price on request</p>
             )}
 
-            <span className="inline-flex items-center gap-1 text-xs font-ui font-semibold text-pink-vivid group-hover:text-orange-warm transition-colors">
+            <span className="inline-flex items-center gap-1 text-xs font-ui font-semibold text-pink-vivid group-hover:text-purple-primary transition-colors">
               View Service
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
