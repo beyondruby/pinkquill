@@ -53,7 +53,7 @@ export default function ReviewCard({ review }: ReviewCardProps) {
     .replace(/\//g, ".");
 
   return (
-    <article className="rounded-2xl bg-[#f5f5f5] p-6 sm:p-8">
+    <article className="p-6 sm:p-8">
       <div className="flex items-start gap-5 sm:gap-8">
         {/* Avatar + Name */}
         <div className="shrink-0 flex flex-col items-center gap-2 w-16 sm:w-20">

@@ -251,7 +251,6 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
             </div>
           )}
         </div>
-        <div className="mt-5 h-[2.5px] rounded-full" style={{ background: "linear-gradient(to right, #4F8BD9, #8B5CF6, #EC4899, #F97316, #F59E0B)" }} />
       </section>
 
       <section className="mb-6">
@@ -276,7 +275,6 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  <TabIcon icon={item.icon} active={isActive} />
                   <span>{item.label}</span>
                   <span className={`text-[11px] ${isActive ? "text-ink/40" : "text-muted/60"}`}>{item.count}</span>
                 </span>
