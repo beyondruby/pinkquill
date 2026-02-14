@@ -222,7 +222,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <section className="relative mb-8">
+      <section className="relative mb-8 rounded-2xl border border-black/[0.06] bg-[#fafafa] p-6 sm:p-8">
         <div className="flex flex-col gap-3">
           <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-muted">Commissions Studio</p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
@@ -635,8 +635,10 @@ function CommissionCard({
                 onClick={handleShare}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-purple-50/60 transition-colors"
               >
-                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+                  <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+                  <path d="M16 6l-4-4-4 4" />
+                  <path d="M12 2v13" />
                 </svg>
                 Copy Link
               </button>

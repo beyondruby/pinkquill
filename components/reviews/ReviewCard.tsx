@@ -53,7 +53,7 @@ export default function ReviewCard({ review }: ReviewCardProps) {
     .replace(/\//g, ".");
 
   return (
-    <article className="rounded-2xl bg-[#f5f5f5] p-6 sm:p-8 mb-4">
+    <article className="rounded-2xl bg-[#f5f5f5] p-6 sm:p-8">
       <div className="flex items-start gap-5 sm:gap-8">
         {/* Avatar + Name */}
         <div className="shrink-0 flex flex-col items-center gap-2 w-16 sm:w-20">
@@ -84,12 +84,11 @@ export default function ReviewCard({ review }: ReviewCardProps) {
               Anonymous
             </span>
           )}
-          <QuillMeter score={score} />
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-3">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
             <span className="text-xs font-body text-muted">{formattedDate}</span>
             {review.order?.product?.title && (
               <>
@@ -97,6 +96,11 @@ export default function ReviewCard({ review }: ReviewCardProps) {
                 <span className="text-xs font-body text-muted">{review.order.product.title}</span>
               </>
             )}
+          </div>
+
+          <div className="flex items-center gap-2 mb-3">
+            <QuillMeter score={score} />
+            <span className="text-xs font-ui text-muted">{QUILL_TONE[score]}</span>
           </div>
 
           {review.title && (
@@ -121,12 +125,6 @@ export default function ReviewCard({ review }: ReviewCardProps) {
           )}
         </div>
       </div>
-
-      {/* Gradient divider */}
-      <div
-        className="mt-6 h-[2.5px] rounded-full"
-        style={{ background: "linear-gradient(to right, #4F8BD9, #8B5CF6, #EC4899, #F97316, #F59E0B)" }}
-      />
     </article>
   );
 }

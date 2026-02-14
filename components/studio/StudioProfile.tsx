@@ -126,8 +126,11 @@ function WorkCardFooter({ postId, commentsCount, formattedDate, userId }: WorkCa
           disabled={!userId}
         />
         <span className="studio-work-stat">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+            <defs><linearGradient id="cg-sp-stat" x1="2" y1="20" x2="22" y2="4" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset=".5" stopColor="#EC4899" /><stop offset="1" stopColor="#F97316" /></linearGradient></defs>
+            <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" stroke="url(#cg-sp-stat)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" stroke="url(#cg-sp-stat)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12 10.5h6M12 13h4" stroke="url(#cg-sp-stat)" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
           {commentsCount}
         </span>
@@ -376,8 +379,11 @@ const icons = {
     </svg>
   ),
   message: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs><linearGradient id="cg-sp-msg" x1="2" y1="20" x2="22" y2="4" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset=".5" stopColor="#EC4899" /><stop offset="1" stopColor="#F97316" /></linearGradient></defs>
+      <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" stroke="url(#cg-sp-msg)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" stroke="url(#cg-sp-msg)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 10.5h6M12 13h4" stroke="url(#cg-sp-msg)" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   ),
   ellipsis: (
@@ -386,8 +392,10 @@ const icons = {
     </svg>
   ),
   share: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+      <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+      <path d="M16 6l-4-4-4 4" />
+      <path d="M12 2v13" />
     </svg>
   ),
   feather: (
@@ -401,8 +409,11 @@ const icons = {
     </svg>
   ),
   comment: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs><linearGradient id="cg-sp-cmt" x1="2" y1="20" x2="22" y2="4" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset=".5" stopColor="#EC4899" /><stop offset="1" stopColor="#F97316" /></linearGradient></defs>
+      <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" stroke="url(#cg-sp-cmt)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" stroke="url(#cg-sp-cmt)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 10.5h6M12 13h4" stroke="url(#cg-sp-cmt)" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   ),
   relay: (
@@ -2078,8 +2089,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                     {work.admires_count || 0}
                                   </span>
                                   <span className="flex items-center gap-1 text-xs text-muted">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                      <defs><linearGradient id="cg-sp-w1" x1="2" y1="20" x2="22" y2="4" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset=".5" stopColor="#EC4899" /><stop offset="1" stopColor="#F97316" /></linearGradient></defs>
+                                      <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" stroke="url(#cg-sp-w1)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                      <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" stroke="url(#cg-sp-w1)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                      <path d="M12 10.5h6M12 13h4" stroke="url(#cg-sp-w1)" strokeWidth="1.8" strokeLinecap="round" />
                                     </svg>
                                     {work.comments_count || 0}
                                   </span>
@@ -2180,8 +2194,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                   {work.admires_count || 0}
                                 </span>
                                 <span className="flex items-center gap-1.5">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                    <defs><linearGradient id="cg-sp-w2" x1="2" y1="20" x2="22" y2="4" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset=".5" stopColor="#EC4899" /><stop offset="1" stopColor="#F97316" /></linearGradient></defs>
+                                    <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" stroke="url(#cg-sp-w2)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" stroke="url(#cg-sp-w2)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M12 10.5h6M12 13h4" stroke="url(#cg-sp-w2)" strokeWidth="1.8" strokeLinecap="round" />
                                   </svg>
                                   {work.comments_count || 0}
                                 </span>
@@ -2315,8 +2332,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                 {work.admires_count || 0}
                               </span>
                               <span className="flex items-center gap-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                  <defs><linearGradient id="cg-sp-w3" x1="2" y1="20" x2="22" y2="4" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset=".5" stopColor="#EC4899" /><stop offset="1" stopColor="#F97316" /></linearGradient></defs>
+                                  <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" stroke="url(#cg-sp-w3)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                  <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" stroke="url(#cg-sp-w3)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                  <path d="M12 10.5h6M12 13h4" stroke="url(#cg-sp-w3)" strokeWidth="1.8" strokeLinecap="round" />
                                 </svg>
                                 {work.comments_count || 0}
                               </span>
@@ -2485,8 +2505,11 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                   {work.admires_count || 0}
                                 </span>
                                 <span className="flex items-center gap-1 text-xs">
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                                    <defs><linearGradient id="cg-sp-w4" x1="2" y1="20" x2="22" y2="4" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset=".5" stopColor="#EC4899" /><stop offset="1" stopColor="#F97316" /></linearGradient></defs>
+                                    <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" stroke="url(#cg-sp-w4)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" stroke="url(#cg-sp-w4)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M12 10.5h6M12 13h4" stroke="url(#cg-sp-w4)" strokeWidth="1.8" strokeLinecap="round" />
                                   </svg>
                                   {work.comments_count || 0}
                                 </span>

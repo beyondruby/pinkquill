@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useId } from "react";
 import Link from "next/link";
 import TakePlayer from "./TakePlayer";
 import TakeReactionPicker from "./TakeReactionPicker";
@@ -58,6 +58,7 @@ export default function TakeCard({
   onDelete,
   onReport,
 }: TakeCardProps) {
+  const commentGradId = useId();
   const [showHeart, setShowHeart] = useState(false);
   const [heartPosition, setHeartPosition] = useState({ x: 0, y: 0 });
   const [captionExpanded, setCaptionExpanded] = useState(false);
@@ -351,8 +352,17 @@ export default function TakeCard({
         {/* Comments */}
         <button className="tiktok-action-btn" onClick={onOpenComments}>
           <div className="tiktok-action-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            <svg viewBox="0 0 24 24" fill="none">
+              <defs>
+                <linearGradient id={commentGradId} x1="2" y1="20" x2="22" y2="4" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#6366F1" />
+                  <stop offset=".5" stopColor="#EC4899" />
+                  <stop offset="1" stopColor="#F97316" />
+                </linearGradient>
+              </defs>
+              <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" stroke={`url(#${commentGradId})`} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" stroke={`url(#${commentGradId})`} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M12 10.5h6M12 13h4" stroke={`url(#${commentGradId})`} strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </div>
           <span>{formatCount(take.comments_count)}</span>
@@ -392,12 +402,10 @@ export default function TakeCard({
         {/* Share */}
         <button className="tiktok-action-btn" onClick={() => setShowShareModal(true)}>
           <div className="tiktok-action-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+              <path d="M16 6l-4-4-4 4" />
+              <path d="M12 2v13" />
             </svg>
           </div>
           <span>Share</span>

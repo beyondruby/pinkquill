@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { useCommissionReviews } from "@/lib/hooks/useReviews";
 import type { ReviewRole } from "@/lib/types/store";
 import ReviewCard from "@/components/reviews/ReviewCard";
@@ -73,9 +73,19 @@ export default function CommissionReviewsPanel({
       )}
 
       {reviews.length > 0 && (
-        <div>
-          {reviews.map((review) => (
-            <ReviewCard key={review.id} review={review} />
+        <div className="space-y-0">
+          {reviews.map((review, index) => (
+            <React.Fragment key={review.id}>
+              <ReviewCard review={review} />
+              {index < reviews.length - 1 && (
+                <div className="py-3">
+                  <div
+                    className="h-[2px] rounded-full"
+                    style={{ background: "linear-gradient(to right, #4F8BD9, #8B5CF6, #EC4899, #F97316, #F59E0B)" }}
+                  />
+                </div>
+              )}
+            </React.Fragment>
           ))}
         </div>
       )}
