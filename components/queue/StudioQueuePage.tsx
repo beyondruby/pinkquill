@@ -123,7 +123,7 @@ export default function StudioCartPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
           <p className="text-xs font-ui uppercase tracking-wider text-purple-primary mb-2">Creative Checkout</p>
-          <h1 className="font-display text-3xl text-ink">Queue</h1>
+          <h1 className="font-display text-3xl text-ink">Studio Cart</h1>
           <p className="text-sm font-body text-muted mt-2">
             Collect commissions and products here, then launch each order with your brief and delivery details.
           </p>
@@ -147,7 +147,7 @@ export default function StudioCartPage() {
 
         {items.length === 0 ? (
           <section className="rounded-2xl border border-dashed border-black/[0.12] bg-white p-10 text-center">
-            <h2 className="font-display text-2xl text-ink mb-2">Your queue is empty</h2>
+            <h2 className="font-display text-2xl text-ink mb-2">Your Studio Cart is empty</h2>
             <p className="text-sm font-body text-muted mb-6">
               Add creations from product or commission pages to start a guided order flow.
             </p>

@@ -467,7 +467,7 @@ export default function LeftSidebar() {
                       </span>
                     )}
                   </div>
-                  <span className="font-ui text-[0.9rem]">Queue</span>
+                  <span className="font-ui text-[0.9rem]">Studio Cart</span>
                 </Link>
 
                 <Link

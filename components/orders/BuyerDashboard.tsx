@@ -103,7 +103,7 @@ export default function BuyerDashboard() {
               href="/cart"
               className="px-4 py-2 rounded-xl border border-black/[0.08] bg-white text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
             >
-              Queue
+              Studio Cart
             </Link>
             <Link
               href="/shop"
