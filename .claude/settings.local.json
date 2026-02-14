@@ -65,7 +65,8 @@
       "Bash(node:*)",
       "Bash(NODE_PATH=/Users/hadi/projects/pinkquill/node_modules node:*)",
       "Bash(supabase:*)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "mcp__supabase__list_extensions"
     ]
   }
 }
