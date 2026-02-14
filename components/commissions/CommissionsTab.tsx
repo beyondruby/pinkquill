@@ -16,6 +16,7 @@ import { useSellerCommissions } from "@/lib/hooks/useCommissions";
 import { useSellerStats } from "@/lib/hooks/useReviews";
 import { useDeleteProduct, useUpdateProductStatus } from "@/lib/hooks/useProducts";
 import type { Product, ProductStatus } from "@/lib/types/store";
+import QuillIcon from "@/components/reviews/QuillIcon";
 import CommissionReviewsPanel from "./CommissionReviewsPanel";
 
 interface CommissionsTabProps {
@@ -31,7 +32,7 @@ type SubTabConfig = {
   key: PanelTab;
   label: string;
   helper: string;
-  icon: string;
+  icon: "services" | "seller_reviews" | "buyer_reviews";
   count: string;
 };
 
@@ -135,14 +136,14 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
         key: "services",
         label: "Services",
         helper: "Browse active offerings",
-        icon: "🗂",
+        icon: "services",
         count: String(stats.total),
       },
       {
         key: "reviews_seller",
         label: "Reviews as Seller",
         helper: "How clients rate delivery",
-        icon: "🪶",
+        icon: "seller_reviews",
         count: String(sellerStats?.total_reviews ?? 0),
       },
     ];
@@ -152,7 +153,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
         key: "reviews_buyer",
         label: "Reviews as Buyer",
         helper: "Feedback from collaborators",
-        icon: "🕊",
+        icon: "buyer_reviews",
         count: "--",
       });
     }
@@ -225,15 +226,14 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
             <div>
               <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-purple-primary/75">Commissions Studio</p>
-              <h3 className="font-display text-3xl text-ink mt-2">Crafted services with transparent trust</h3>
-              <p className="font-body text-sm text-muted mt-2 max-w-2xl">
-                Explore offerings, switch into role-based reviews, and track reputation with the quill score system.
-              </p>
             </div>
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink/80">
-            <span className="font-ui text-pink-vivid">🪶 {sellerStats?.total_reviews ? `${sellerStats.avg_quill_score.toFixed(1)} / 5` : "No score yet"}</span>
+            <span className="inline-flex items-center gap-1.5 font-ui text-pink-vivid">
+              <QuillIcon className="h-3.5 w-3.5" gradient={Boolean(sellerStats?.total_reviews)} />
+              {sellerStats?.total_reviews ? `${sellerStats.avg_quill_score.toFixed(1)} / 5` : "No score yet"}
+            </span>
             <span className="text-purple-primary/30">•</span>
             <span><span className="text-muted">Active:</span> {stats.active}</span>
             <span className="text-purple-primary/30">•</span>
@@ -276,9 +276,6 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
         </div>
         <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
           <p className="text-[12px] font-ui text-purple-primary/80">{activeTabMeta?.helper}</p>
-          <p className="text-[11px] font-body text-muted">
-            Swipe on mobile or use arrow keys to move between subtabs.
-          </p>
         </div>
       </section>
 
@@ -371,7 +368,7 @@ function SubtabCard({
   active,
   onClick,
 }: {
-  icon: string;
+  icon: "services" | "seller_reviews" | "buyer_reviews";
   label: string;
   count: string;
   active: boolean;
@@ -391,7 +388,7 @@ function SubtabCard({
     >
       <div className="flex items-center gap-1.5">
         <span className="inline-flex items-center gap-1.5">
-          <span className="text-[13px]">{icon}</span>
+          <TabIcon icon={icon} active={active} />
           <span className="font-ui text-xs uppercase tracking-wide">{label}</span>
         </span>
         <span className={`text-[11px] font-ui ${active ? "text-pink-vivid/75" : "text-muted/75"}`}>
@@ -399,6 +396,32 @@ function SubtabCard({
         </span>
       </div>
     </button>
+  );
+}
+
+function TabIcon({ icon, active }: { icon: "services" | "seller_reviews" | "buyer_reviews"; active: boolean }) {
+  const tone = active ? "text-pink-vivid" : "text-purple-primary/55";
+
+  if (icon === "seller_reviews") {
+    return <QuillIcon className="h-3.5 w-3.5" gradient={active} />;
+  }
+
+  if (icon === "buyer_reviews") {
+    return (
+      <svg className={`h-3.5 w-3.5 ${tone}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
+        <circle cx="7" cy="6.5" r="2.5" strokeWidth="1.6" />
+        <circle cx="13" cy="7.5" r="2.1" strokeWidth="1.6" />
+        <path d="M3.5 15.5c.5-2.1 2.3-3.5 4.5-3.5h.8c2.2 0 4 1.4 4.5 3.5" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className={`h-3.5 w-3.5 ${tone}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
+      <path d="M3 6.5h14" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M4 6.5v7.6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6.5" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8 4.5h4l1 2H7l1-2Z" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
   );
 }
 

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useProductReviews } from "@/lib/hooks/useReviews";
 import ReviewCard from "./ReviewCard";
+import QuillIcon from "./QuillIcon";
 
 interface ProductReviewsSectionProps {
   productId: string;
@@ -22,8 +23,9 @@ export default function ProductReviewsSection({ productId }: ProductReviewsSecti
       <div className="pb-3 border-b border-purple-primary/12">
         <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Quill Reviews</h2>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="text-sm font-ui text-pink-vivid">
-            {average > 0 ? `🪶 ${average.toFixed(1)} / 5` : "No score yet"}
+          <span className="inline-flex items-center gap-1.5 text-sm font-ui text-pink-vivid">
+            <QuillIcon className="h-3.5 w-3.5" gradient={average > 0} />
+            {average > 0 ? `${average.toFixed(1)} / 5` : "No score yet"}
           </span>
           <span className="text-sm font-body text-muted">
             {reviews.length} review{reviews.length === 1 ? "" : "s"}

@@ -2,6 +2,7 @@
 
 import { useSellerStats } from "@/lib/hooks/useReviews";
 import { QuillMeter } from "./ReviewCard";
+import QuillIcon from "./QuillIcon";
 
 interface SellerRatingProps {
   sellerId: string;
@@ -23,7 +24,7 @@ export default function SellerRating({ sellerId, compact = false }: SellerRating
   if (compact) {
     return (
       <div className="inline-flex items-center gap-1.5">
-        <span className="text-sm text-pink-vivid">🪶</span>
+        <QuillIcon className="h-3.5 w-3.5" gradient />
         <span className="font-ui text-sm font-semibold text-ink">
           {stats.avg_quill_score.toFixed(1)}
         </span>

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Review } from "@/lib/types/store";
+import QuillIcon from "./QuillIcon";
 
 const QUILL_TONE: Record<number, string> = {
   1: "Rough Draft",
@@ -11,20 +12,18 @@ const QUILL_TONE: Record<number, string> = {
   4: "Polished Piece",
   5: "Masterpiece",
 };
-const REVIEW_ICON = "🪶";
 
 function QuillMeter({ score, size = "sm" }: { score: number; size?: "sm" | "md" }) {
-  const iconSize = size === "md" ? "text-[15px]" : "text-[13px]";
+  const iconSize = size === "md" ? "h-4 w-4" : "h-3.5 w-3.5";
 
   return (
-    <span className={`inline-flex gap-1 ${iconSize}`} aria-label={`${score} out of 5 quills`}>
+    <span className="inline-flex gap-1" aria-label={`${score} out of 5 quills`}>
       {[1, 2, 3, 4, 5].map((value) => (
-        <span
+        <QuillIcon
           key={value}
-          className={value <= score ? "text-pink-vivid" : "text-purple-primary/25"}
-        >
-          {REVIEW_ICON}
-        </span>
+          className={`${iconSize} ${value <= score ? "" : "text-purple-primary/25"}`}
+          gradient={value <= score}
+        />
       ))}
     </span>
   );

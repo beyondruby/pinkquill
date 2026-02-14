@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useCommissionReviews } from "@/lib/hooks/useReviews";
 import type { ReviewRole } from "@/lib/types/store";
 import ReviewCard from "@/components/reviews/ReviewCard";
+import QuillIcon from "@/components/reviews/QuillIcon";
 
 interface CommissionReviewsPanelProps {
   userId: string;
@@ -48,8 +49,9 @@ export default function CommissionReviewsPanel({
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
           <h3 className="font-display text-2xl text-ink">{roleTitle}</h3>
           <span className="text-purple-primary/30">•</span>
-          <span className="text-sm font-ui text-pink-vivid">
-            {average > 0 ? `🪶 ${average.toFixed(1)} / 5` : "No score yet"}
+          <span className="inline-flex items-center gap-1.5 text-sm font-ui text-pink-vivid">
+            <QuillIcon className="h-3.5 w-3.5" gradient={average > 0} />
+            {average > 0 ? `${average.toFixed(1)} / 5` : "No score yet"}
           </span>
           <span className="text-sm font-body text-muted">
             {reviews.length} review{reviews.length === 1 ? "" : "s"}

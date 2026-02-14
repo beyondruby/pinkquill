@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useSubmitReview } from "@/lib/hooks/useReviews";
+import QuillIcon from "./QuillIcon";
 
 interface ReviewFormProps {
   orderId: string;
@@ -24,7 +25,6 @@ const QUILL_COPY: Record<number, string> = {
   4: "Polished Piece",
   5: "Masterpiece",
 };
-const REVIEW_ICON = "🪶";
 
 function QuillInput({ value, onChange }: { value: number; onChange: (score: number) => void }) {
   const [hover, setHover] = useState(0);
@@ -50,7 +50,7 @@ function QuillInput({ value, onChange }: { value: number; onChange: (score: numb
             }`}
             aria-label={`${score} quills`}
           >
-            {REVIEW_ICON}
+            <QuillIcon className="h-4 w-4 mx-auto" gradient={score <= active} />
           </button>
         ))}
         <span className="text-sm font-ui text-ink/80 ml-2 min-w-[110px]">
