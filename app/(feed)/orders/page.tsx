@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import BuyerDashboard from "@/components/orders/BuyerDashboard";
 
 export const metadata: Metadata = {
-  title: "Buyers Dashboard | Quill",
+  title: "Orders | Quill",
   description: "Track your purchases, commission orders, and order history.",
 };
 

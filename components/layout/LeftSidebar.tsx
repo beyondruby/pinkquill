@@ -22,7 +22,6 @@ const authNavItems = [
   { icon: "compass", label: "Explore", href: "/explore" },
   { icon: "users", label: "Communities", href: "/community" },
   { icon: "shop", label: "Marketplace", href: "/shop" },
-  { icon: "cart", label: "Studio Cart", href: "/cart" },
 ];
 
 const icons: Record<string, React.ReactElement> = {
@@ -220,11 +219,6 @@ export default function LeftSidebar() {
             >
               <div className="relative flex-shrink-0">
                 {icons[item.icon]}
-                {item.icon === "cart" && cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 min-w-[16px] h-[16px] bg-pink-vivid text-white font-ui text-[0.55rem] font-semibold rounded-full flex items-center justify-center px-0.5">
-                    {cartCount > 99 ? "99+" : cartCount}
-                  </span>
-                )}
               </div>
               <span className={`font-ui text-[0.95rem] whitespace-nowrap transition-all duration-300 ${
                 isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 overflow-hidden"
@@ -459,6 +453,24 @@ export default function LeftSidebar() {
                 </Link>
 
                 <Link
+                  href="/cart"
+                  onClick={() => setShowMenu(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                >
+                  <div className="relative">
+                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] bg-pink-vivid text-white font-ui text-[0.5rem] font-semibold rounded-full flex items-center justify-center px-0.5">
+                        {cartCount > 99 ? "99+" : cartCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-ui text-[0.9rem]">Queue</span>
+                </Link>
+
+                <Link
                   href="/orders"
                   onClick={() => setShowMenu(false)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
@@ -466,7 +478,7 @@ export default function LeftSidebar() {
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
-                  <span className="font-ui text-[0.9rem]">Buyers Dashboard</span>
+                  <span className="font-ui text-[0.9rem]">Orders</span>
                 </Link>
 
                 <Link

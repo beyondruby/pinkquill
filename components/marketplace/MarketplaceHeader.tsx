@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { useBadgeCounts } from "@/components/providers/BadgeCountProvider";
 import { PRODUCT_CATEGORIES } from "@/lib/store/categories";
 import type { MarketplaceFilters, MarketplaceSortOption } from "@/lib/hooks/useMarketplace";
 import {
@@ -56,6 +58,7 @@ export default function MarketplaceHeader({
   onClearFilters,
   totalProducts,
 }: MarketplaceHeaderProps) {
+  const { cartCount } = useBadgeCounts();
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -200,6 +203,21 @@ export default function MarketplaceHeader({
                 </option>
               ))}
             </select>
+
+            <Link
+              href="/cart"
+              className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-black/[0.08] text-muted hover:text-purple-primary hover:bg-purple-primary/[0.04] transition-all"
+              title="Queue"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-pink-vivid text-white font-ui text-[0.55rem] font-semibold rounded-full flex items-center justify-center px-0.5">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </Link>
 
             <span className="hidden lg:inline text-xs font-ui text-muted px-1">
               {totalProducts.toLocaleString()} results

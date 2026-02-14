@@ -97,13 +97,13 @@ export default function BuyerDashboard() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-          <h1 className="font-display text-3xl text-ink">Buyers Dashboard</h1>
+          <h1 className="font-display text-3xl text-ink">Orders</h1>
           <div className="flex gap-2">
             <Link
               href="/cart"
               className="px-4 py-2 rounded-xl border border-black/[0.08] bg-white text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
             >
-              Studio Cart
+              Queue
             </Link>
             <Link
               href="/shop"

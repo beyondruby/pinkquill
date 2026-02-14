@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, type KeyboardEvent } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerProfile, useUpdateSellerProfile } from "@/lib/hooks/useSellerProfile";
 
@@ -11,6 +11,129 @@ const EXPERIENCE_LEVELS = [
   { value: "professional", label: "Professional" },
 ];
 
+const SKILL_SUGGESTIONS = [
+  "Photoshop", "Illustrator", "Procreate", "Blender",
+  "After Effects", "Premiere Pro", "Figma", "Watercolor",
+  "Oil Painting", "Pencil Drawing", "Ink", "Acrylic",
+  "Digital Sculpture", "Character Rigging", "Motion Graphics",
+];
+
+const SERVICE_SUGGESTIONS = [
+  "Custom Portraits", "Logo Design", "Book Covers", "Album Art",
+  "Character Design", "Concept Art", "Storyboarding", "Editing",
+  "Ghost Writing", "Proofreading", "Voice Over", "Music Production",
+  "Video Editing", "Photography Sessions", "Print Design",
+];
+
+function TagInput({
+  label,
+  tags,
+  onChange,
+  suggestions,
+  placeholder,
+}: {
+  label: string;
+  tags: string[];
+  onChange: (tags: string[]) => void;
+  suggestions: string[];
+  placeholder: string;
+}) {
+  const [input, setInput] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const filtered = suggestions.filter(
+    (s) => !tags.includes(s) && s.toLowerCase().includes(input.toLowerCase())
+  );
+
+  const addTag = (tag: string) => {
+    const trimmed = tag.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      onChange([...tags, trimmed]);
+    }
+    setInput("");
+  };
+
+  const removeTag = (tag: string) => {
+    onChange(tags.filter((t) => t !== tag));
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === "Enter" || e.key === ",") && input.trim()) {
+      e.preventDefault();
+      addTag(input);
+    }
+    if (e.key === "Backspace" && !input && tags.length) {
+      removeTag(tags[tags.length - 1]);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={wrapperRef}>
+      <label className="block text-sm font-ui font-medium text-ink mb-1">{label}</label>
+      <div className="relative">
+        <div className="flex flex-wrap gap-1.5 p-3 rounded-xl border border-black/[0.08] focus-within:ring-2 focus-within:ring-purple-primary/20 min-h-[48px]">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-primary/10 text-purple-primary text-xs font-ui"
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={() => removeTag(tag)}
+                className="hover:text-pink-vivid transition-colors"
+              >
+                &times;
+              </button>
+            </span>
+          ))}
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onKeyDown={handleKeyDown}
+            placeholder={tags.length === 0 ? placeholder : ""}
+            className="flex-1 min-w-[120px] text-sm font-body outline-none bg-transparent"
+          />
+        </div>
+
+        {showSuggestions && filtered.length > 0 && (
+          <div className="absolute left-0 right-0 top-full mt-1 z-10 max-h-40 overflow-y-auto rounded-xl border border-black/[0.06] bg-white shadow-lg shadow-black/[0.06]">
+            {filtered.slice(0, 8).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  addTag(s);
+                  setShowSuggestions(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-body text-ink hover:bg-purple-primary/[0.04] transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function SellerSettings() {
   const { user } = useAuth();
   const { profile, loading, refetch } = useSellerProfile(user?.id);
@@ -19,27 +142,27 @@ export default function SellerSettings() {
 
   // Local state
   const [storeName, setStoreName] = useState("");
-  const [storeTagline, setStoreTagline] = useState("");
-  const [storeDescription, setStoreDescription] = useState("");
+  const [title, setTitle] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [services, setServices] = useState<string[]>([]);
   const [experienceLevel, setExperienceLevel] = useState<string>("");
   const [responseTimeHours, setResponseTimeHours] = useState(24);
   const [isAcceptingCommissions, setIsAcceptingCommissions] = useState(true);
   const [requireApproval, setRequireApproval] = useState(false);
   const [autoDeclineHours, setAutoDeclineHours] = useState(72);
-  const [location, setLocation] = useState("");
 
   // Populate from profile
   useEffect(() => {
     if (profile) {
       setStoreName(profile.store_name || "");
-      setStoreTagline(profile.store_tagline || "");
-      setStoreDescription(profile.store_description || "");
+      setTitle(profile.store_tagline || "");
+      setSkills(profile.skills || []);
+      setServices(profile.services || []);
       setExperienceLevel(profile.experience_level || "");
       setResponseTimeHours(profile.response_time_hours || 24);
       setIsAcceptingCommissions(profile.is_accepting_commissions);
       setRequireApproval(profile.require_approval);
       setAutoDeclineHours(profile.auto_decline_hours || 72);
-      setLocation(profile.location || "");
     }
   }, [profile]);
 
@@ -49,14 +172,14 @@ export default function SellerSettings() {
 
     const result = await update(user.id, {
       store_name: storeName,
-      store_tagline: storeTagline || null,
-      store_description: storeDescription || null,
+      store_tagline: title || null,
+      skills,
+      services,
       experience_level: (experienceLevel || null) as "beginner" | "intermediate" | "expert" | "professional" | null,
       response_time_hours: responseTimeHours,
       is_accepting_commissions: isAcceptingCommissions,
       require_approval: requireApproval,
       auto_decline_hours: autoDeclineHours,
-      location: location || null,
     });
 
     if (result) {
@@ -79,9 +202,12 @@ export default function SellerSettings() {
     <div className="space-y-6">
       <h1 className="font-display text-2xl text-ink">Seller Settings</h1>
 
-      {/* Store Profile */}
+      {/* Commissions Studio */}
       <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6 space-y-4">
-        <h2 className="font-display text-lg text-ink">Store Profile</h2>
+        <div>
+          <h2 className="font-display text-lg text-ink">Commissions Studio</h2>
+          <p className="text-xs font-body text-muted mt-0.5">This info will appear on your Commissions Studio banner</p>
+        </div>
 
         <div>
           <label className="block text-sm font-ui font-medium text-ink mb-1">Store Name</label>
@@ -94,52 +220,45 @@ export default function SellerSettings() {
         </div>
 
         <div>
-          <label className="block text-sm font-ui font-medium text-ink mb-1">Tagline</label>
+          <label className="block text-sm font-ui font-medium text-ink mb-1">Title</label>
           <input
             type="text"
-            value={storeTagline}
-            onChange={(e) => setStoreTagline(e.target.value)}
-            placeholder="Short description of your creative work"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Graphic Designer and Cover Artist"
             className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-ui font-medium text-ink mb-1">Description</label>
-          <textarea
-            rows={4}
-            value={storeDescription}
-            onChange={(e) => setStoreDescription(e.target.value)}
-            placeholder="Tell buyers about your creative practice, experience, and what makes your work unique..."
-            className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
-          />
+          <label className="block text-sm font-ui font-medium text-ink mb-1">Experience Level</label>
+          <select
+            value={experienceLevel}
+            onChange={(e) => setExperienceLevel(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 bg-white"
+          >
+            <option value="">Not specified</option>
+            {EXPERIENCE_LEVELS.map((level) => (
+              <option key={level.value} value={level.value}>{level.label}</option>
+            ))}
+          </select>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-ui font-medium text-ink mb-1">Experience Level</label>
-            <select
-              value={experienceLevel}
-              onChange={(e) => setExperienceLevel(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 bg-white"
-            >
-              <option value="">Not specified</option>
-              {EXPERIENCE_LEVELS.map((level) => (
-                <option key={level.value} value={level.value}>{level.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-ui font-medium text-ink mb-1">Location</label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="City, Country"
-              className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
-            />
-          </div>
-        </div>
+        <TagInput
+          label="Skills"
+          tags={skills}
+          onChange={setSkills}
+          suggestions={SKILL_SUGGESTIONS}
+          placeholder="Type a skill and press Enter"
+        />
+
+        <TagInput
+          label="Services"
+          tags={services}
+          onChange={setServices}
+          suggestions={SERVICE_SUGGESTIONS}
+          placeholder="Type a service and press Enter"
+        />
       </section>
 
       {/* Order Preferences */}

@@ -14,6 +14,7 @@ import {
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useSellerCommissions } from "@/lib/hooks/useCommissions";
 import { useSellerStats } from "@/lib/hooks/useReviews";
+import { useSellerProfile } from "@/lib/hooks/useSellerProfile";
 import { useDeleteProduct, useUpdateProductStatus } from "@/lib/hooks/useProducts";
 import type { Product, ProductStatus } from "@/lib/types/store";
 import QuillIcon from "@/components/reviews/QuillIcon";
@@ -31,9 +32,6 @@ type PanelTab = "services" | "reviews_seller" | "reviews_buyer";
 type SubTabConfig = {
   key: PanelTab;
   label: string;
-  helper: string;
-  icon: "services" | "seller_reviews" | "buyer_reviews";
-  count: string;
 };
 
 function parsePanelTab(value: string | null, isOwnProfile: boolean): PanelTab {
@@ -55,6 +53,20 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tablistId = useId();
+  const { profile: sellerProfile } = useSellerProfile(userId);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showFilterMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target as Node)) {
+        setShowFilterMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showFilterMenu]);
 
   const panel = parsePanelTab(searchParams.get("commissionsView"), isOwnProfile);
   const filter = parseStatusFilter(searchParams.get("commissionsFilter"));
@@ -132,36 +144,14 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   const tabConfig: SubTabConfig[] = useMemo(() => {
     const tabs: SubTabConfig[] = [
-      {
-        key: "services",
-        label: "Services",
-        helper: "Browse active offerings",
-        icon: "services",
-        count: String(stats.total),
-      },
-      {
-        key: "reviews_seller",
-        label: "Reviews as Seller",
-        helper: "How clients rate delivery",
-        icon: "seller_reviews",
-        count: String(sellerStats?.total_reviews ?? 0),
-      },
+      { key: "services", label: "Services" },
+      { key: "reviews_seller", label: "Reviews as Seller" },
     ];
-
     if (isOwnProfile) {
-      tabs.push({
-        key: "reviews_buyer",
-        label: "Reviews as Buyer",
-        helper: "Feedback from collaborators",
-        icon: "buyer_reviews",
-        count: "--",
-      });
+      tabs.push({ key: "reviews_buyer", label: "Reviews as Buyer" });
     }
-
     return tabs;
-  }, [isOwnProfile, sellerStats?.total_reviews, stats.total]);
-
-  const activeTabMeta = tabConfig.find((item) => item.key === panel) ?? tabConfig[0];
+  }, [isOwnProfile]);
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const currentIndex = tabConfig.findIndex((item) => item.key === panel);
@@ -222,9 +212,13 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <section className="relative mb-8 rounded-2xl border border-black/[0.06] bg-[#fafafa] p-6 sm:p-8">
+      <section className="relative mb-8 rounded-2xl bg-white/60 backdrop-blur-xl border border-white/40 shadow-lg shadow-black/[0.06] p-6 sm:p-8 overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-[2.5px]" style={{ background: "linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)" }} />
         <div className="flex flex-col gap-3">
           <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-muted">Commissions Studio</p>
+          {sellerProfile?.store_tagline && (
+            <h2 className="font-display text-lg text-ink">{sellerProfile.store_tagline}</h2>
+          )}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
             <span className="inline-flex items-center gap-1.5 font-ui">
               <QuillIcon className="h-4 w-4" gradient={Boolean(sellerStats?.total_reviews)} />
@@ -238,15 +232,27 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
             <span className="text-muted/30">|</span>
             <span className="text-muted">{formatResponseTime(responseTimeHours)} avg response</span>
           </div>
-          {stats.serviceLabels.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-1">
-              {stats.serviceLabels.slice(0, 4).map((label) => (
-                <span key={label} className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-ui text-muted bg-black/[0.04]">
-                  {label}
+          {(sellerProfile?.skills?.length ?? 0) > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {sellerProfile!.skills.slice(0, 6).map((skill) => (
+                <span key={skill} className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-ui text-purple-primary bg-purple-primary/10">
+                  {skill}
                 </span>
               ))}
-              {stats.serviceLabels.length > 4 && (
-                <span className="text-[11px] font-ui text-muted self-center">+{stats.serviceLabels.length - 4} more</span>
+              {sellerProfile!.skills.length > 6 && (
+                <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.skills.length - 6} more</span>
+              )}
+            </div>
+          )}
+          {(sellerProfile?.services?.length ?? 0) > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {sellerProfile!.services.slice(0, 4).map((service) => (
+                <span key={service} className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-ui text-pink-vivid bg-pink-vivid/10">
+                  {service}
+                </span>
+              ))}
+              {sellerProfile!.services.length > 4 && (
+                <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.services.length - 4} more</span>
               )}
             </div>
           )}
@@ -259,7 +265,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
           role="tablist"
           aria-label="Commissions views"
           onKeyDown={handleTabKeyDown}
-          className="flex gap-0 overflow-x-auto scrollbar-hide border-b border-black/[0.08]"
+          className="flex items-center gap-0 overflow-x-auto scrollbar-hide border-b border-black/[0.08]"
         >
           {tabConfig.map((item) => {
             const isActive = panel === item.key;
@@ -274,10 +280,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                   isActive ? "text-ink font-medium" : "text-muted hover:text-ink"
                 }`}
               >
-                <span className="flex items-center gap-2">
-                  <span>{item.label}</span>
-                  <span className={`text-[11px] ${isActive ? "text-ink/40" : "text-muted/60"}`}>{item.count}</span>
-                </span>
+                {item.label}
                 {isActive && (
                   <span
                     className="absolute bottom-0 inset-x-0 h-[2.5px] rounded-t-full"
@@ -287,20 +290,51 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
               </button>
             );
           })}
+
+          {panel === "services" && (
+            <div className="relative ml-auto shrink-0" ref={filterMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowFilterMenu(!showFilterMenu)}
+                className={`p-2 rounded-lg transition-colors ${
+                  filter !== "all" ? "text-pink-vivid bg-pink-vivid/10" : "text-muted hover:text-ink hover:bg-black/[0.04]"
+                }`}
+                title="Filter services"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+              </button>
+              {showFilterMenu && (
+                <div className="absolute right-0 top-full mt-1 w-40 rounded-xl bg-white border border-black/[0.06] shadow-lg shadow-black/[0.06] z-20 py-1 animate-fadeIn">
+                  {([
+                    { value: "all" as StatusFilter, label: "All services" },
+                    { value: "active" as StatusFilter, label: "Active" },
+                    { value: "inactive" as StatusFilter, label: "Inactive" },
+                  ]).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        updateViewState({ filter: option.value });
+                        setShowFilterMenu(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm font-ui transition-colors ${
+                        filter === option.value ? "text-pink-vivid bg-pink-vivid/[0.06]" : "text-ink hover:bg-black/[0.04]"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <p className="mt-2 text-xs font-body text-muted">{activeTabMeta?.helper}</p>
       </section>
 
       {panel === "services" && (
         <>
-          <section className="mb-6">
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-              <FilterButton active={filter === "all"} label="All services" count={stats.total} onClick={() => updateViewState({ filter: "all" })} />
-              <FilterButton active={filter === "active"} label="Active" count={stats.active} onClick={() => updateViewState({ filter: "active" })} />
-              <FilterButton active={filter === "inactive"} label="Inactive" count={stats.inactive} onClick={() => updateViewState({ filter: "inactive" })} />
-            </div>
-          </section>
-
           {!hasServices && (
             <div className="relative rounded-[32px] border border-pink-vivid/20 bg-gradient-to-br from-pink-50/90 via-white to-violet-50/85 p-10 text-center overflow-hidden">
               <div className="absolute -top-16 -left-14 w-40 h-40 rounded-full bg-purple-primary/12 blur-2xl" />
@@ -371,59 +405,6 @@ function formatResponseTime(hours: number | null): string {
 
   const days = Math.round(hours / 24);
   return `${days}d`;
-}
-
-function TabIcon({ icon, active }: { icon: "services" | "seller_reviews" | "buyer_reviews"; active: boolean }) {
-  const tone = active ? "text-ink" : "text-muted";
-
-  if (icon === "seller_reviews") {
-    return <QuillIcon className="h-3.5 w-3.5" gradient={active} />;
-  }
-
-  if (icon === "buyer_reviews") {
-    return (
-      <svg className={`h-3.5 w-3.5 ${tone}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
-        <circle cx="7" cy="6.5" r="2.5" strokeWidth="1.6" />
-        <circle cx="13" cy="7.5" r="2.1" strokeWidth="1.6" />
-        <path d="M3.5 15.5c.5-2.1 2.3-3.5 4.5-3.5h.8c2.2 0 4 1.4 4.5 3.5" strokeWidth="1.6" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg className={`h-3.5 w-3.5 ${tone}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
-      <path d="M3 6.5h14" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M4 6.5v7.6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6.5" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M8 4.5h4l1 2H7l1-2Z" strokeWidth="1.6" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function FilterButton({
-  label,
-  count,
-  active,
-  onClick,
-}: {
-  label: string;
-  count: number;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs transition-colors whitespace-nowrap ${
-        active
-          ? "bg-ink/[0.07] text-ink font-medium"
-          : "text-muted hover:text-ink hover:bg-black/[0.03]"
-      }`}
-    >
-      {label}
-      <span className={`ml-1 ${active ? "text-ink/50" : "text-muted/60"}`}>{count}</span>
-    </button>
-  );
 }
 
 function CommissionCard({
