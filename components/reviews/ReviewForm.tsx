@@ -24,6 +24,7 @@ const QUILL_COPY: Record<number, string> = {
   4: "Polished Piece",
   5: "Masterpiece",
 };
+const REVIEW_ICON = "🪶";
 
 function QuillInput({ value, onChange }: { value: number; onChange: (score: number) => void }) {
   const [hover, setHover] = useState(0);
@@ -42,14 +43,14 @@ function QuillInput({ value, onChange }: { value: number; onChange: (score: numb
             onMouseEnter={() => setHover(score)}
             onMouseLeave={() => setHover(0)}
             onClick={() => onChange(score)}
-            className={`w-10 h-10 rounded-xl border text-lg transition-all ${
+            className={`w-9 h-9 rounded-full text-[15px] transition-colors ${
               score <= active
-                ? "border-pink-vivid/40 bg-pink-50 text-pink-vivid"
-                : "border-black/[0.08] bg-white text-muted"
+                ? "bg-pink-vivid/12 text-pink-vivid"
+                : "text-purple-primary/35 hover:text-purple-primary/70"
             }`}
             aria-label={`${score} quills`}
           >
-            ✒
+            {REVIEW_ICON}
           </button>
         ))}
         <span className="text-sm font-ui text-ink/80 ml-2 min-w-[110px]">
@@ -123,7 +124,7 @@ export default function ReviewForm({ orderId, onSubmitted }: ReviewFormProps) {
           onChange={(event) => setTitle(event.target.value)}
           placeholder="A quick summary of your experience"
           maxLength={120}
-          className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-pink-vivid/25"
+          className="w-full px-4 py-3 rounded-xl border border-purple-primary/15 text-sm font-body text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-pink-vivid/25"
         />
       </div>
 
@@ -138,7 +139,7 @@ export default function ReviewForm({ orderId, onSubmitted }: ReviewFormProps) {
           placeholder="Describe what was delivered, what stood out, and who this would be great for."
           rows={5}
           maxLength={3000}
-          className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body text-ink placeholder-muted resize-none focus:outline-none focus:ring-2 focus:ring-pink-vivid/25"
+          className="w-full px-4 py-3 rounded-xl border border-purple-primary/15 text-sm font-body text-ink placeholder-muted resize-none focus:outline-none focus:ring-2 focus:ring-pink-vivid/25"
         />
         <p className="text-xs text-muted mt-1">{contentLength}/3000 (minimum 12)</p>
       </div>
@@ -156,7 +157,7 @@ export default function ReviewForm({ orderId, onSubmitted }: ReviewFormProps) {
                 className={`px-3 py-1.5 rounded-full text-xs font-ui border transition-colors ${
                   selected
                     ? "bg-pink-vivid/10 border-pink-vivid/30 text-pink-vivid"
-                    : "bg-white border-black/[0.08] text-muted hover:text-ink"
+                    : "bg-white border-purple-primary/15 text-muted hover:text-ink"
                 }`}
               >
                 {option}

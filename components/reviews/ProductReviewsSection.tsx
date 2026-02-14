@@ -19,60 +19,53 @@ export default function ProductReviewsSection({ productId }: ProductReviewsSecti
 
   return (
     <section className="pt-8 border-t border-purple-primary/12">
-      <div className="rounded-[28px] border border-purple-primary/12 bg-gradient-to-br from-white via-rose-50/20 to-violet-50/20 p-5 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-          <div>
-            <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Quill Reviews</h2>
-            <p className="mt-2 text-sm font-body text-ink/80">
-              Reviews from completed orders only.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-pink-vivid/20 bg-white/85 px-4 py-3">
-            <p className="text-xs font-ui uppercase tracking-wide text-pink-vivid">Average</p>
-            <p className="font-display text-2xl text-ink leading-none mt-1">
-              {average > 0 ? `${average.toFixed(1)} / 5 ✒` : "No score yet"}
-            </p>
-            <p className="text-xs font-ui text-muted mt-1">
-              {reviews.length} review{reviews.length === 1 ? "" : "s"}
-            </p>
-          </div>
+      <div className="pb-3 border-b border-purple-primary/12">
+        <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Quill Reviews</h2>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="text-sm font-ui text-pink-vivid">
+            {average > 0 ? `🪶 ${average.toFixed(1)} / 5` : "No score yet"}
+          </span>
+          <span className="text-sm font-body text-muted">
+            {reviews.length} review{reviews.length === 1 ? "" : "s"}
+          </span>
         </div>
-
-        {loading && (
-          <div className="mt-5 space-y-3">
-            {Array.from({ length: 2 }).map((_, index) => (
-              <div key={index} className="h-28 rounded-2xl bg-purple-100/60 animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {error && <p className="mt-4 text-sm font-body text-red-500">{error}</p>}
-
-        {!loading && !error && reviews.length === 0 && (
-          <p className="mt-4 text-sm font-body text-muted">
-            This product has no completed-order reviews yet.
-          </p>
-        )}
-
-        {reviews.length > 0 && (
-          <div className="mt-5 space-y-3">
-            {reviews.map((review) => (
-              <ReviewCard key={review.id} review={review} />
-            ))}
-          </div>
-        )}
-
-        {hasMore && (
-          <div className="pt-4 text-center">
-            <button
-              onClick={loadMore}
-              className="inline-flex px-4 py-2 rounded-full border border-purple-primary/20 bg-white text-xs font-ui font-semibold text-purple-primary hover:border-pink-vivid/40 hover:text-pink-vivid transition-colors"
-            >
-              Load more reviews
-            </button>
-          </div>
-        )}
+        <p className="mt-1 text-sm font-body text-ink/80">Reviews from completed orders only.</p>
       </div>
+
+      {loading && (
+        <div className="mt-5 space-y-4">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div key={index} className="h-20 rounded-xl bg-purple-100/60 animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {error && <p className="mt-4 text-sm font-body text-red-500">{error}</p>}
+
+      {!loading && !error && reviews.length === 0 && (
+        <p className="mt-4 text-sm font-body text-muted">
+          This product has no completed-order reviews yet.
+        </p>
+      )}
+
+      {reviews.length > 0 && (
+        <div className="mt-2">
+          {reviews.map((review) => (
+            <ReviewCard key={review.id} review={review} />
+          ))}
+        </div>
+      )}
+
+      {hasMore && (
+        <div className="pt-4">
+          <button
+            onClick={loadMore}
+            className="inline-flex px-0 py-1 text-xs font-ui font-semibold text-purple-primary hover:text-pink-vivid transition-colors"
+          >
+            Load more reviews
+          </button>
+        </div>
+      )}
     </section>
   );
 }

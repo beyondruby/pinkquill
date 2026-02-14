@@ -142,7 +142,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
         key: "reviews_seller",
         label: "Reviews as Seller",
         helper: "How clients rate delivery",
-        icon: "✒",
+        icon: "🪶",
         count: String(sellerStats?.total_reviews ?? 0),
       },
     ];
@@ -189,18 +189,6 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
     }
   };
 
-  const cycleTabs = useCallback(
-    (direction: 1 | -1) => {
-      if (tabConfig.length === 0) return;
-
-      const currentIndex = tabConfig.findIndex((item) => item.key === panel);
-      const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-      const nextIndex = (safeIndex + direction + tabConfig.length) % tabConfig.length;
-      updateViewState({ panel: tabConfig[nextIndex].key });
-    },
-    [panel, tabConfig, updateViewState]
-  );
-
   if (loading) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
@@ -242,76 +230,38 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                 Explore offerings, switch into role-based reviews, and track reputation with the quill score system.
               </p>
             </div>
-
-            <div className="rounded-2xl border border-pink-vivid/25 bg-white/80 backdrop-blur px-4 py-3">
-              <p className="text-xs font-ui uppercase tracking-wider text-pink-vivid">Average Quill</p>
-              <p className="font-display text-2xl text-ink leading-none mt-1">
-                {sellerStats?.total_reviews ? `${sellerStats.avg_quill_score.toFixed(1)} / 5` : "No score yet"}
-              </p>
-            </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <BannerMetric label="Active Services" value={String(stats.active)} tone="rose" />
-            <BannerMetric label="Response Time" value={formatResponseTime(responseTimeHours)} tone="violet" />
-            <BannerMetric label="Completed" value={String(sellerStats?.completed_orders ?? 0)} tone="lilac" />
-            <BannerMetric label="Total Services" value={String(stats.total)} tone="pink" />
+          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink/80">
+            <span className="font-ui text-pink-vivid">🪶 {sellerStats?.total_reviews ? `${sellerStats.avg_quill_score.toFixed(1)} / 5` : "No score yet"}</span>
+            <span className="text-purple-primary/30">•</span>
+            <span><span className="text-muted">Active:</span> {stats.active}</span>
+            <span className="text-purple-primary/30">•</span>
+            <span><span className="text-muted">Response:</span> {formatResponseTime(responseTimeHours)}</span>
+            <span className="text-purple-primary/30">•</span>
+            <span><span className="text-muted">Completed:</span> {sellerStats?.completed_orders ?? 0}</span>
+            <span className="text-purple-primary/30">•</span>
+            <span><span className="text-muted">Total:</span> {stats.total}</span>
           </div>
 
           {stats.serviceLabels.length > 0 && (
-            <div className="mt-5">
-              <p className="text-[10px] font-ui uppercase tracking-[0.18em] text-purple-primary/70 mb-2">Specialties</p>
-              <div className="flex flex-wrap gap-2">
-                {stats.serviceLabels.slice(0, 6).map((label) => (
-                  <span key={label} className="inline-flex items-center rounded-full border border-pink-vivid/20 bg-white/80 px-3 py-1 text-xs font-ui text-pink-vivid">
-                    <span className="max-w-[200px] truncate">{label}</span>
-                  </span>
-                ))}
-                {stats.serviceLabels.length > 6 && (
-                  <span className="inline-flex items-center rounded-full border border-purple-primary/20 bg-white/80 px-3 py-1 text-xs font-ui text-purple-primary/80">
-                    +{stats.serviceLabels.length - 6} more
-                  </span>
-                )}
-              </div>
+            <div className="mt-3 text-xs font-body text-muted">
+              <span className="font-ui uppercase tracking-[0.16em] text-purple-primary/70 mr-2">Specialties</span>
+              {stats.serviceLabels.slice(0, 4).join(" · ")}
+              {stats.serviceLabels.length > 4 && ` · +${stats.serviceLabels.length - 4} more`}
             </div>
           )}
         </div>
       </section>
 
-      <section className="mb-6 rounded-[26px] border border-purple-primary/15 bg-white/85 backdrop-blur-sm p-2.5">
-        <div className="mb-2 px-1.5 flex items-center justify-between gap-3">
-          <p className="text-[10px] font-ui uppercase tracking-[0.18em] text-purple-primary/70">
-            Browse Panels
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => cycleTabs(-1)}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-purple-primary/20 bg-white text-purple-primary hover:border-pink-vivid/40 hover:text-pink-vivid transition-colors"
-              aria-label="Previous sub tab"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-                <path d="M12.5 4.5L7 10l5.5 5.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => cycleTabs(1)}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-purple-primary/20 bg-white text-purple-primary hover:border-pink-vivid/40 hover:text-pink-vivid transition-colors"
-              aria-label="Next sub tab"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-                <path d="M7.5 4.5L13 10l-5.5 5.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
+      <section className="mb-6">
+        <p className="text-[10px] font-ui uppercase tracking-[0.18em] text-purple-primary/70 mb-2">Browse Panels</p>
         <div
           id={tablistId}
           role="tablist"
           aria-label="Commissions views"
           onKeyDown={handleTabKeyDown}
-          className="flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory"
+          className="flex gap-4 overflow-x-auto scrollbar-hide border-b border-purple-primary/15"
         >
           {tabConfig.map((item) => (
             <SubtabCard
@@ -319,23 +269,22 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
               active={panel === item.key}
               icon={item.icon}
               label={item.label}
-              helper={item.helper}
               count={item.count}
               onClick={() => updateViewState({ panel: item.key })}
             />
           ))}
         </div>
-        <div className="mt-2 px-1.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
-          <p className="text-[11px] font-ui text-purple-primary/80">{activeTabMeta?.helper}</p>
+        <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+          <p className="text-[12px] font-ui text-purple-primary/80">{activeTabMeta?.helper}</p>
           <p className="text-[11px] font-body text-muted">
-            Swipe on mobile or use arrow keys/controls to move between subtabs.
+            Swipe on mobile or use arrow keys to move between subtabs.
           </p>
         </div>
       </section>
 
       {panel === "services" && (
         <>
-          <section className="mb-6 rounded-[22px] border border-pink-vivid/15 bg-gradient-to-r from-white to-rose-50/40 p-3">
+          <section className="mb-6">
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
               <FilterButton active={filter === "all"} label="All services" count={stats.total} onClick={() => updateViewState({ filter: "all" })} />
               <FilterButton active={filter === "active"} label="Active" count={stats.active} onClick={() => updateViewState({ filter: "active" })} />
@@ -418,14 +367,12 @@ function formatResponseTime(hours: number | null): string {
 function SubtabCard({
   icon,
   label,
-  helper,
   count,
   active,
   onClick,
 }: {
   icon: string;
   label: string;
-  helper: string;
   count: string;
   active: boolean;
   onClick: () => void;
@@ -436,19 +383,18 @@ function SubtabCard({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      title={helper}
-      className={`snap-start shrink-0 rounded-full px-3.5 py-2 text-left transition-all duration-200 border ${
+      className={`snap-start shrink-0 pb-2 text-left transition-colors border-b-2 ${
         active
-          ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white border-transparent shadow-sm shadow-pink-vivid/20"
-          : "bg-white border-purple-primary/15 text-purple-primary hover:border-pink-vivid/30"
+          ? "text-pink-vivid border-pink-vivid"
+          : "text-muted border-transparent hover:text-purple-primary"
       }`}
     >
-      <div className="flex items-center justify-between gap-2.5">
+      <div className="flex items-center gap-1.5">
         <span className="inline-flex items-center gap-1.5">
-          <span className="text-sm">{icon}</span>
-          <span className="font-ui text-[11px] uppercase tracking-wide">{label}</span>
+          <span className="text-[13px]">{icon}</span>
+          <span className="font-ui text-xs uppercase tracking-wide">{label}</span>
         </span>
-        <span className={`text-[11px] font-ui px-2 py-0.5 rounded-full ${active ? "bg-white/20" : "bg-pink-vivid/10 text-pink-vivid"}`}>
+        <span className={`text-[11px] font-ui ${active ? "text-pink-vivid/75" : "text-muted/75"}`}>
           {count}
         </span>
       </div>
@@ -471,31 +417,15 @@ function FilterButton({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 px-3.5 py-2 rounded-full font-ui text-xs font-medium transition-colors whitespace-nowrap border ${
+      className={`shrink-0 px-3 py-1.5 rounded-full font-ui text-xs transition-colors whitespace-nowrap ${
         active
-          ? "border-transparent bg-gradient-to-r from-pink-vivid to-purple-primary text-white"
-          : "border-pink-vivid/20 bg-white text-pink-vivid hover:border-pink-vivid/40"
+          ? "bg-pink-vivid/12 text-pink-vivid"
+          : "text-muted hover:text-purple-primary"
       }`}
     >
       {label}
-      <span className={`ml-1 ${active ? "text-white/80" : "text-pink-vivid/60"}`}>{count}</span>
+      <span className={`ml-1 ${active ? "text-pink-vivid/80" : "text-muted/70"}`}>{count}</span>
     </button>
-  );
-}
-
-function BannerMetric({ label, value, tone }: { label: string; value: string; tone: "rose" | "violet" | "lilac" | "pink" }) {
-  const toneClass = {
-    rose: "from-rose-100/80 to-pink-100/70 border-rose-200/60",
-    violet: "from-violet-100/80 to-purple-100/70 border-violet-200/60",
-    lilac: "from-fuchsia-100/80 to-violet-100/70 border-fuchsia-200/60",
-    pink: "from-fuchsia-100/80 to-pink-100/70 border-fuchsia-200/60",
-  }[tone];
-
-  return (
-    <div className={`rounded-2xl border bg-gradient-to-br ${toneClass} px-3 py-3`}> 
-      <p className="text-[10px] font-ui uppercase tracking-wider text-purple-primary/80">{label}</p>
-      <p className="font-display text-2xl leading-none text-ink mt-1">{value}</p>
-    </div>
   );
 }
 

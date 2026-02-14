@@ -11,18 +11,19 @@ const QUILL_TONE: Record<number, string> = {
   4: "Polished Piece",
   5: "Masterpiece",
 };
+const REVIEW_ICON = "🪶";
 
 function QuillMeter({ score, size = "sm" }: { score: number; size?: "sm" | "md" }) {
-  const iconSize = size === "md" ? "text-base" : "text-sm";
+  const iconSize = size === "md" ? "text-[15px]" : "text-[13px]";
 
   return (
-    <span className={`inline-flex gap-0.5 ${iconSize}`} aria-label={`${score} out of 5 quills`}>
+    <span className={`inline-flex gap-1 ${iconSize}`} aria-label={`${score} out of 5 quills`}>
       {[1, 2, 3, 4, 5].map((value) => (
         <span
           key={value}
-          className={value <= score ? "text-pink-vivid" : "text-purple-primary/20"}
+          className={value <= score ? "text-pink-vivid" : "text-purple-primary/25"}
         >
-          ✒
+          {REVIEW_ICON}
         </span>
       ))}
     </span>
@@ -38,7 +39,7 @@ export default function ReviewCard({ review }: ReviewCardProps) {
   const score = Math.max(1, Math.min(5, Math.round(review.quill_score || 0)));
 
   return (
-    <article className="rounded-2xl border border-purple-primary/12 bg-white/95 p-4 sm:p-5 shadow-[0_10px_28px_-24px_rgba(232,121,249,0.9)]">
+    <article className="py-4 border-b border-purple-primary/12 last:border-b-0">
       <div className="flex items-start gap-3">
         {reviewer?.avatar_url ? (
           <Image src={reviewer.avatar_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full" />
@@ -82,18 +83,18 @@ export default function ReviewCard({ review }: ReviewCardProps) {
         <h3 className="mt-3 font-ui font-semibold text-sm text-ink">{review.title}</h3>
       )}
 
-      <p className="mt-2 rounded-xl border border-rose-100/80 bg-rose-50/55 px-3.5 py-3 font-body text-sm text-ink/90 whitespace-pre-wrap">
+      <p className="mt-2 font-body text-sm leading-relaxed text-ink/90 whitespace-pre-wrap">
         {review.content}
       </p>
 
       {(review.highlights || []).length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex flex-wrap gap-2">
           {(review.highlights || []).map((highlight) => (
             <span
               key={`${review.id}-${highlight}`}
-              className="inline-flex items-center rounded-full border border-pink-vivid/20 bg-pink-50 px-2.5 py-1 text-[11px] font-ui text-pink-vivid"
+              className="inline-flex items-center text-[11px] font-ui text-purple-primary/80"
             >
-              {highlight}
+              #{highlight}
             </span>
           ))}
         </div>

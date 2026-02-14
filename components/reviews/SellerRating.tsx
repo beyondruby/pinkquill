@@ -23,7 +23,7 @@ export default function SellerRating({ sellerId, compact = false }: SellerRating
   if (compact) {
     return (
       <div className="inline-flex items-center gap-1.5">
-        <span className="text-sm text-pink-vivid">✒</span>
+        <span className="text-sm text-pink-vivid">🪶</span>
         <span className="font-ui text-sm font-semibold text-ink">
           {stats.avg_quill_score.toFixed(1)}
         </span>
