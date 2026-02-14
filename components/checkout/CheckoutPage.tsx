@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Elements, ExpressCheckoutElement, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import type { StripeElementsOptions, StripeExpressCheckoutElementConfirmEvent } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCheckout } from "@/lib/hooks/usePayments";
@@ -212,53 +212,6 @@ function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: s
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const confirmAndFinalize = useCallback(async () => {
-    const res = await fetch("/api/payments/confirm", {
-      method: "POST",
-      headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ order_id: orderId }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "Payment confirmation failed");
-    }
-  }, [orderId]);
-
-  // Express Checkout (Apple Pay / Google Pay) confirm handler
-  const handleExpressCheckoutConfirm = useCallback(
-    async (event: StripeExpressCheckoutElementConfirmEvent) => {
-      if (!stripe || !elements) return;
-
-      setProcessing(true);
-      setError(null);
-
-      try {
-        const { error: stripeError } = await stripe.confirmPayment({
-          elements,
-          confirmParams: {
-            return_url: `${window.location.origin}/orders/${orderId}?payment=success`,
-          },
-          redirect: "if_required",
-        });
-
-        if (stripeError) {
-          setError(stripeError.message || "Payment failed");
-          setProcessing(false);
-          return;
-        }
-
-        await confirmAndFinalize();
-        onSuccess();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Payment failed");
-        setProcessing(false);
-      }
-    },
-    [stripe, elements, orderId, onSuccess, confirmAndFinalize]
-  );
-
-  // Standard form submit handler (card, etc.)
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!stripe || !elements) return;
@@ -281,7 +234,19 @@ function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: s
         return;
       }
 
-      await confirmAndFinalize();
+      const res = await fetch("/api/payments/confirm", {
+        method: "POST",
+        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ order_id: orderId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Payment confirmation failed");
+        setProcessing(false);
+        return;
+      }
+
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
@@ -290,36 +255,17 @@ function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: s
   };
 
   return (
-    <div className="space-y-5">
-      {/* Apple Pay / Google Pay express buttons */}
-      <ExpressCheckoutElement
-        onConfirm={handleExpressCheckoutConfirm}
-        options={{
-          buttonType: { applePay: "buy", googlePay: "buy" },
-        }}
-      />
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-black/[0.08]" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-white px-3 text-xs font-ui text-muted">Or pay with card</span>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <PaymentElement options={{ wallets: { applePay: "never", googlePay: "never" } }} />
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button
-          type="submit"
-          disabled={!stripe || processing}
-          className="w-full rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm px-6 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
-        >
-          {processing ? "Processing..." : `Pay ${formatCurrency(amount, currency)}`}
-        </button>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <PaymentElement />
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+      <button
+        type="submit"
+        disabled={!stripe || processing}
+        className="w-full rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm px-6 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
+      >
+        {processing ? "Processing..." : `Pay ${formatCurrency(amount, currency)}`}
+      </button>
+    </form>
   );
 }
 
