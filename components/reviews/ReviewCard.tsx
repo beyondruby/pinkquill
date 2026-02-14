@@ -20,7 +20,7 @@ function QuillMeter({ score, size = "sm" }: { score: number; size?: "sm" | "md" 
       {[1, 2, 3, 4, 5].map((value) => (
         <span
           key={value}
-          className={value <= score ? "text-pink-vivid" : "text-black/20"}
+          className={value <= score ? "text-pink-vivid" : "text-purple-primary/20"}
         >
           ✒
         </span>
@@ -38,7 +38,7 @@ export default function ReviewCard({ review }: ReviewCardProps) {
   const score = Math.max(1, Math.min(5, Math.round(review.quill_score || 0)));
 
   return (
-    <article className="rounded-2xl border border-black/[0.06] bg-white p-4 sm:p-5">
+    <article className="rounded-2xl border border-purple-primary/12 bg-white/95 p-4 sm:p-5 shadow-[0_10px_28px_-24px_rgba(232,121,249,0.9)]">
       <div className="flex items-start gap-3">
         {reviewer?.avatar_url ? (
           <Image src={reviewer.avatar_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full" />
@@ -62,7 +62,7 @@ export default function ReviewCard({ review }: ReviewCardProps) {
             ) : (
               <span className="font-ui text-sm font-semibold text-ink">Community Member</span>
             )}
-            <span className="text-black/20">•</span>
+            <span className="text-purple-primary/25">•</span>
             <QuillMeter score={score} />
             <span className="text-xs font-ui text-muted">
               {score}/5 {QUILL_TONE[score]}
@@ -82,7 +82,7 @@ export default function ReviewCard({ review }: ReviewCardProps) {
         <h3 className="mt-3 font-ui font-semibold text-sm text-ink">{review.title}</h3>
       )}
 
-      <p className="mt-2 font-body text-sm text-ink/90 whitespace-pre-wrap">
+      <p className="mt-2 rounded-xl border border-rose-100/80 bg-rose-50/55 px-3.5 py-3 font-body text-sm text-ink/90 whitespace-pre-wrap">
         {review.content}
       </p>
 

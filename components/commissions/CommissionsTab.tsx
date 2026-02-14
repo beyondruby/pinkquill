@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useMemo,
+  useRef,
+  useEffect,
+  useCallback,
+  useId,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useSellerCommissions } from "@/lib/hooks/useCommissions";
 import { useSellerStats } from "@/lib/hooks/useReviews";
 import { useDeleteProduct, useUpdateProductStatus } from "@/lib/hooks/useProducts";
@@ -18,12 +27,36 @@ interface CommissionsTabProps {
 type StatusFilter = "all" | "active" | "inactive";
 type PanelTab = "services" | "reviews_seller" | "reviews_buyer";
 
+type SubTabConfig = {
+  key: PanelTab;
+  label: string;
+  helper: string;
+  icon: string;
+  count: string;
+};
+
+function parsePanelTab(value: string | null, isOwnProfile: boolean): PanelTab {
+  if (value === "reviews_seller") return "reviews_seller";
+  if (value === "reviews_buyer" && isOwnProfile) return "reviews_buyer";
+  return "services";
+}
+
+function parseStatusFilter(value: string | null): StatusFilter {
+  if (value === "active") return "active";
+  if (value === "inactive") return "inactive";
+  return "all";
+}
+
 export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: CommissionsTabProps) {
   const { commissions, loading, error, refetch } = useSellerCommissions(userId);
-  const { stats: sellerStats, loading: sellerStatsLoading } = useSellerStats(userId);
-  const [filter, setFilter] = useState<StatusFilter>("all");
-  const [panel, setPanel] = useState<PanelTab>("services");
-  const activePanel = !isOwnProfile && panel === "reviews_buyer" ? "services" : panel;
+  const { stats: sellerStats } = useSellerStats(userId);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tablistId = useId();
+
+  const panel = parsePanelTab(searchParams.get("commissionsView"), isOwnProfile);
+  const filter = parseStatusFilter(searchParams.get("commissionsFilter"));
 
   const filtered = useMemo(() => {
     return commissions.filter((item) => {
@@ -72,22 +105,110 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
       ? sellerStats.avg_response_time_hours
       : stats.avgConfiguredResponseHours;
 
+  const hasServices = commissions.length > 0;
+
+  const updateViewState = useCallback((next: { panel?: PanelTab; filter?: StatusFilter }) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    const nextPanel = next.panel ?? panel;
+    const nextFilter = next.filter ?? filter;
+
+    if (nextPanel === "services") {
+      params.delete("commissionsView");
+    } else {
+      params.set("commissionsView", nextPanel);
+    }
+
+    if (nextFilter === "all") {
+      params.delete("commissionsFilter");
+    } else {
+      params.set("commissionsFilter", nextFilter);
+    }
+
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [filter, panel, pathname, router, searchParams]);
+
+  const tabConfig: SubTabConfig[] = useMemo(() => {
+    const tabs: SubTabConfig[] = [
+      {
+        key: "services",
+        label: "Services",
+        helper: "Browse active offerings",
+        icon: "🗂",
+        count: String(stats.total),
+      },
+      {
+        key: "reviews_seller",
+        label: "Reviews as Seller",
+        helper: "How clients rate delivery",
+        icon: "✒",
+        count: String(sellerStats?.total_reviews ?? 0),
+      },
+    ];
+
+    if (isOwnProfile) {
+      tabs.push({
+        key: "reviews_buyer",
+        label: "Reviews as Buyer",
+        helper: "Feedback from collaborators",
+        icon: "🕊",
+        count: "--",
+      });
+    }
+
+    return tabs;
+  }, [isOwnProfile, sellerStats?.total_reviews, stats.total]);
+
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const currentIndex = tabConfig.findIndex((item) => item.key === panel);
+    if (currentIndex === -1) return;
+
+    if (event.key === "ArrowRight") {
+      const next = tabConfig[(currentIndex + 1) % tabConfig.length];
+      updateViewState({ panel: next.key });
+      event.preventDefault();
+    }
+
+    if (event.key === "ArrowLeft") {
+      const prev = tabConfig[(currentIndex - 1 + tabConfig.length) % tabConfig.length];
+      updateViewState({ panel: prev.key });
+      event.preventDefault();
+    }
+
+    if (event.key === "Home") {
+      updateViewState({ panel: tabConfig[0].key });
+      event.preventDefault();
+    }
+
+    if (event.key === "End") {
+      updateViewState({ panel: tabConfig[tabConfig.length - 1].key });
+      event.preventDefault();
+    }
+  };
+
+  const cycleTabs = useCallback(
+    (direction: 1 | -1) => {
+      if (tabConfig.length === 0) return;
+
+      const currentIndex = tabConfig.findIndex((item) => item.key === panel);
+      const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+      const nextIndex = (safeIndex + direction + tabConfig.length) % tabConfig.length;
+      updateViewState({ panel: tabConfig[nextIndex].key });
+    },
+    [panel, tabConfig, updateViewState]
+  );
+
   if (loading) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="rounded-3xl border border-black/[0.06] bg-white/90 p-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="rounded-2xl border border-black/[0.06] bg-gray-50/60 p-4 animate-pulse">
-                <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-purple-50 to-pink-50" />
-                <div className="mt-4 space-y-2">
-                  <div className="h-3 w-1/3 rounded bg-gray-200" />
-                  <div className="h-4 w-3/4 rounded bg-gray-200" />
-                  <div className="h-4 w-1/2 rounded bg-gray-200" />
-                </div>
-              </div>
+        <div className="rounded-[30px] border border-purple-primary/15 bg-gradient-to-br from-white via-rose-50/40 to-violet-50/40 p-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-20 rounded-2xl bg-gradient-to-br from-pink-100/70 to-purple-100/60 animate-pulse" />
             ))}
           </div>
+          <div className="h-12 rounded-2xl bg-gradient-to-r from-pink-100/70 to-purple-100/60 animate-pulse" />
         </div>
       </div>
     );
@@ -96,7 +217,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   if (error) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="rounded-3xl border border-red-200 bg-red-50/60 p-10 text-center">
+        <div className="rounded-3xl border border-red-200 bg-red-50/70 p-10 text-center">
           <p className="font-ui text-red-600">Failed to load commissions</p>
           <p className="text-sm font-body text-red-500/90 mt-1">{error}</p>
         </div>
@@ -104,108 +225,126 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
     );
   }
 
-  const hasServices = commissions.length > 0;
-
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <div className="mb-8">
-        <div className="relative overflow-hidden rounded-3xl border border-black/[0.06] bg-gradient-to-br from-white via-pink-50/40 to-purple-50/30 p-6 sm:p-8">
-          <div className="pointer-events-none absolute -top-20 -right-20 h-48 w-48 rounded-full bg-pink-vivid/[0.06] blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-purple-primary/[0.06] blur-3xl" />
+      <section className="relative mb-6 overflow-hidden rounded-[30px] border border-purple-primary/15 bg-gradient-to-br from-[#fff8ff] via-[#fff4f7] to-[#fff9f2] p-6 sm:p-8">
+        <div className="pointer-events-none absolute -top-24 -right-16 h-56 w-56 rounded-full bg-pink-vivid/12 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-purple-primary/12 blur-3xl" />
 
-          <div className="relative">
-            {/* Top row: Score + Metrics */}
-            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
-              {/* Quill Score */}
-              <QuillScore
-                avgQuill={sellerStats?.total_reviews ? sellerStats.avg_quill_score : null}
-                reviews={sellerStats?.total_reviews ?? 0}
-                loading={sellerStatsLoading}
-              />
-
-              {/* Metrics */}
-              <div className="flex items-center gap-8 sm:gap-10">
-                <div className="flex flex-col items-center">
-                  <span className="font-display text-2xl font-bold text-ink leading-none">{stats.active}</span>
-                  <span className="text-[10px] font-ui text-muted mt-1 uppercase tracking-wider">Active</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="font-display text-2xl font-bold text-ink leading-none">{formatResponseTime(responseTimeHours)}</span>
-                  <span className="text-[10px] font-ui text-muted mt-1 uppercase tracking-wider">Response</span>
-                </div>
-                {sellerStats && sellerStats.completed_orders > 0 && (
-                  <div className="flex flex-col items-center">
-                    <span className="font-display text-2xl font-bold text-ink leading-none">{sellerStats.completed_orders}</span>
-                    <span className="text-[10px] font-ui text-muted mt-1 uppercase tracking-wider">Completed</span>
-                  </div>
-                )}
-                <div className="flex flex-col items-center">
-                  <span className="font-display text-2xl font-bold text-ink leading-none">{stats.total}</span>
-                  <span className="text-[10px] font-ui text-muted mt-1 uppercase tracking-wider">Services</span>
-                </div>
-              </div>
+        <div className="relative">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
+            <div>
+              <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-purple-primary/75">Commissions Studio</p>
+              <h3 className="font-display text-3xl text-ink mt-2">Crafted services with transparent trust</h3>
+              <p className="font-body text-sm text-muted mt-2 max-w-2xl">
+                Explore offerings, switch into role-based reviews, and track reputation with the quill score system.
+              </p>
             </div>
 
-            {/* Services offered */}
-            {stats.serviceLabels.length > 0 && (
-              <div className="mt-5 pt-5 border-t border-black/[0.05]">
-                <p className="text-[10px] font-ui uppercase tracking-[0.16em] text-muted mb-2">Offered</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {stats.serviceLabels.slice(0, 6).map((label) => (
-                    <span
-                      key={label}
-                      className="inline-flex items-center rounded-full border border-pink-vivid/15 bg-white px-3 py-1 text-xs font-ui text-ink/80"
-                    >
-                      <span className="max-w-[200px] truncate">{label}</span>
-                    </span>
-                  ))}
-                  {stats.serviceLabels.length > 6 && (
-                    <span className="inline-flex items-center rounded-full border border-black/[0.06] bg-white px-3 py-1 text-xs font-ui text-muted">
-                      +{stats.serviceLabels.length - 6} more
-                    </span>
-                  )}
-                </div>
+            <div className="rounded-2xl border border-pink-vivid/25 bg-white/80 backdrop-blur px-4 py-3">
+              <p className="text-xs font-ui uppercase tracking-wider text-pink-vivid">Average Quill</p>
+              <p className="font-display text-2xl text-ink leading-none mt-1">
+                {sellerStats?.total_reviews ? `${sellerStats.avg_quill_score.toFixed(1)} / 5` : "No score yet"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <BannerMetric label="Active Services" value={String(stats.active)} tone="rose" />
+            <BannerMetric label="Response Time" value={formatResponseTime(responseTimeHours)} tone="violet" />
+            <BannerMetric label="Completed" value={String(sellerStats?.completed_orders ?? 0)} tone="peach" />
+            <BannerMetric label="Total Services" value={String(stats.total)} tone="pink" />
+          </div>
+
+          {stats.serviceLabels.length > 0 && (
+            <div className="mt-5">
+              <p className="text-[10px] font-ui uppercase tracking-[0.18em] text-purple-primary/70 mb-2">Specialties</p>
+              <div className="flex flex-wrap gap-2">
+                {stats.serviceLabels.slice(0, 6).map((label) => (
+                  <span key={label} className="inline-flex items-center rounded-full border border-pink-vivid/20 bg-white/80 px-3 py-1 text-xs font-ui text-pink-vivid">
+                    <span className="max-w-[200px] truncate">{label}</span>
+                  </span>
+                ))}
+                {stats.serviceLabels.length > 6 && (
+                  <span className="inline-flex items-center rounded-full border border-purple-primary/20 bg-white/80 px-3 py-1 text-xs font-ui text-purple-primary/80">
+                    +{stats.serviceLabels.length - 6} more
+                  </span>
+                )}
               </div>
-            )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="mb-6 rounded-[26px] border border-purple-primary/15 bg-white/85 backdrop-blur-sm p-2.5">
+        <div className="mb-2 px-1.5 flex items-center justify-between gap-3">
+          <p className="text-[10px] font-ui uppercase tracking-[0.18em] text-purple-primary/70">
+            Browse Panels
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => cycleTabs(-1)}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-purple-primary/20 bg-white text-purple-primary hover:border-pink-vivid/40 hover:text-pink-vivid transition-colors"
+              aria-label="Previous sub tab"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+                <path d="M12.5 4.5L7 10l5.5 5.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => cycleTabs(1)}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-purple-primary/20 bg-white text-purple-primary hover:border-pink-vivid/40 hover:text-pink-vivid transition-colors"
+              aria-label="Next sub tab"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+                <path d="M7.5 4.5L13 10l-5.5 5.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
-      </div>
+        <div
+          id={tablistId}
+          role="tablist"
+          aria-label="Commissions views"
+          onKeyDown={handleTabKeyDown}
+          className="flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory"
+        >
+          {tabConfig.map((item) => (
+            <SubtabCard
+              key={item.key}
+              active={panel === item.key}
+              icon={item.icon}
+              label={item.label}
+              helper={item.helper}
+              count={item.count}
+              onClick={() => updateViewState({ panel: item.key })}
+            />
+          ))}
+        </div>
+        <p className="mt-2 px-1.5 text-[11px] font-body text-muted">
+          Swipe on mobile or use arrow keys/controls to move between subtabs.
+        </p>
+      </section>
 
-      <div className="flex items-center gap-1.5 mb-4 overflow-x-auto scrollbar-hide">
-        <PanelButton
-          active={activePanel === "services"}
-          label="Services"
-          onClick={() => setPanel("services")}
-        />
-        <PanelButton
-          active={activePanel === "reviews_seller"}
-          label="Reviews as Seller"
-          onClick={() => setPanel("reviews_seller")}
-        />
-        {isOwnProfile && (
-          <PanelButton
-            active={activePanel === "reviews_buyer"}
-            label="Reviews as Buyer"
-            onClick={() => setPanel("reviews_buyer")}
-          />
-        )}
-      </div>
-
-      {activePanel === "services" && (
+      {panel === "services" && (
         <>
-          <div className="flex items-center gap-1.5 mb-6 overflow-x-auto scrollbar-hide">
-            <FilterButton active={filter === "all"} label="All" count={stats.total} onClick={() => setFilter("all")} />
-            <FilterButton active={filter === "active"} label="Active" count={stats.active} onClick={() => setFilter("active")} />
-            <FilterButton active={filter === "inactive"} label="Inactive" count={stats.inactive} onClick={() => setFilter("inactive")} />
-          </div>
+          <section className="mb-6 rounded-[22px] border border-pink-vivid/15 bg-gradient-to-r from-white to-rose-50/40 p-3">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+              <FilterButton active={filter === "all"} label="All services" count={stats.total} onClick={() => updateViewState({ filter: "all" })} />
+              <FilterButton active={filter === "active"} label="Active" count={stats.active} onClick={() => updateViewState({ filter: "active" })} />
+              <FilterButton active={filter === "inactive"} label="Inactive" count={stats.inactive} onClick={() => updateViewState({ filter: "inactive" })} />
+            </div>
+          </section>
 
           {!hasServices && (
-            <div className="relative rounded-[32px] border border-pink-100 bg-gradient-to-br from-pink-50/90 via-white to-orange-50/80 p-10 text-center overflow-hidden">
-              <div className="absolute -top-16 -left-14 w-40 h-40 rounded-full bg-purple-primary/10 blur-2xl" />
-              <div className="absolute -bottom-16 -right-14 w-44 h-44 rounded-full bg-orange-warm/15 blur-2xl" />
+            <div className="relative rounded-[32px] border border-pink-vivid/20 bg-gradient-to-br from-pink-50/90 via-white to-orange-50/85 p-10 text-center overflow-hidden">
+              <div className="absolute -top-16 -left-14 w-40 h-40 rounded-full bg-purple-primary/12 blur-2xl" />
+              <div className="absolute -bottom-16 -right-14 w-44 h-44 rounded-full bg-orange-warm/16 blur-2xl" />
 
               <div className="relative">
-                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-purple-primary/15 to-pink-vivid/15 flex items-center justify-center">
+                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center">
                   <svg className="w-8 h-8 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
                   </svg>
@@ -233,8 +372,8 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
           )}
 
           {hasServices && filtered.length === 0 && (
-            <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center">
-              <p className="font-ui text-ink">No services in this filter yet.</p>
+            <div className="rounded-2xl border border-purple-primary/15 bg-white p-8 text-center">
+              <p className="font-ui text-purple-primary">No services in this filter yet.</p>
             </div>
           )}
 
@@ -248,11 +387,11 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
         </>
       )}
 
-      {activePanel === "reviews_seller" && (
+      {panel === "reviews_seller" && (
         <CommissionReviewsPanel userId={userId} role="seller" isOwnProfile={isOwnProfile} />
       )}
 
-      {activePanel === "reviews_buyer" && isOwnProfile && (
+      {panel === "reviews_buyer" && isOwnProfile && (
         <CommissionReviewsPanel userId={userId} role="buyer" isOwnProfile={isOwnProfile} />
       )}
     </div>
@@ -261,137 +400,53 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
 function formatResponseTime(hours: number | null): string {
   if (!hours || hours <= 0) return "--";
-  if (hours < 1) return "<1 hour";
+  if (hours < 1) return "<1h";
   if (hours < 24) {
     const roundedHours = Math.round(hours);
-    return `${roundedHours} hour${roundedHours === 1 ? "" : "s"}`;
+    return `${roundedHours}h`;
   }
 
   const days = Math.round(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"}`;
+  return `${days}d`;
 }
 
-function QuillScore({
-  avgQuill,
-  reviews,
-  loading,
-}: {
-  avgQuill: number | null;
-  reviews: number;
-  loading: boolean;
-}) {
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center gap-2 shrink-0">
-        <div className="w-[80px] h-[80px] rounded-full bg-black/[0.04] animate-pulse" />
-        <div className="h-3 w-14 rounded bg-black/[0.04] animate-pulse" />
-      </div>
-    );
-  }
-
-  const hasRating = avgQuill !== null && reviews > 0;
-  const normalized = hasRating ? Math.max(0, Math.min(5, avgQuill)) : 0;
-
-  const size = 80;
-  const strokeWidth = 4.5;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const arcLength = circumference * 0.75;
-  const filledLength = hasRating ? arcLength * (normalized / 5) : 0;
-  const rotation = 135;
-
-  if (!hasRating) {
-    return (
-      <div className="flex flex-col items-center gap-1.5 shrink-0">
-        <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke="rgba(0,0,0,0.05)"
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              strokeDasharray={`${arcLength} ${circumference}`}
-              transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
-            />
-          </svg>
-          <span className="text-lg text-muted/40">✒</span>
-        </div>
-        <span className="text-[11px] font-ui text-muted">New creator</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center gap-1.5 shrink-0">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="rgba(0,0,0,0.05)"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={`${arcLength} ${circumference}`}
-            transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
-          />
-          <defs>
-            <linearGradient id="qs-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#8e44ad" />
-              <stop offset="100%" stopColor="#ff007f" />
-            </linearGradient>
-          </defs>
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="url(#qs-grad)"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={`${filledLength} ${circumference}`}
-            transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-display text-xl font-bold leading-none text-ink">
-            {normalized.toFixed(1)}
-          </span>
-        </div>
-      </div>
-      <div className="flex flex-col items-center">
-        <span className="text-[11px] font-ui text-muted">
-          {reviews} review{reviews === 1 ? "" : "s"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function PanelButton({
+function SubtabCard({
+  icon,
   label,
+  helper,
+  count,
   active,
   onClick,
 }: {
+  icon: string;
   label: string;
+  helper: string;
+  count: string;
   active: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
-      className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-semibold transition-colors whitespace-nowrap ${
+      className={`snap-start shrink-0 min-w-[220px] sm:min-w-[250px] rounded-2xl px-3.5 py-3 text-left transition-all duration-200 border ${
         active
-          ? "bg-ink text-white"
-          : "text-muted border border-black/[0.08] bg-white hover:text-ink"
+          ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white border-transparent shadow-md shadow-pink-vivid/20"
+          : "bg-white border-purple-primary/15 text-purple-primary hover:border-pink-vivid/30"
       }`}
     >
-      {label}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-base">{icon}</span>
+          <span className="font-ui text-xs uppercase tracking-wide">{label}</span>
+        </div>
+        <span className={`text-[11px] font-ui px-2 py-0.5 rounded-full ${active ? "bg-white/20" : "bg-pink-vivid/10 text-pink-vivid"}`}>
+          {count}
+        </span>
+      </div>
+      <p className={`text-xs font-body mt-1 ${active ? "text-white/85" : "text-muted"}`}>{helper}</p>
     </button>
   );
 }
@@ -411,15 +466,31 @@ function FilterButton({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
+      className={`shrink-0 px-3.5 py-2 rounded-full font-ui text-xs font-medium transition-colors whitespace-nowrap border ${
         active
-          ? "bg-pink-vivid/10 text-pink-vivid"
-          : "text-muted hover:text-ink hover:bg-black/[0.03]"
+          ? "border-transparent bg-gradient-to-r from-pink-vivid to-purple-primary text-white"
+          : "border-pink-vivid/20 bg-white text-pink-vivid hover:border-pink-vivid/40"
       }`}
     >
       {label}
-      <span className={`ml-1 ${active ? "text-pink-vivid/60" : "text-muted/60"}`}>{count}</span>
+      <span className={`ml-1 ${active ? "text-white/80" : "text-pink-vivid/60"}`}>{count}</span>
     </button>
+  );
+}
+
+function BannerMetric({ label, value, tone }: { label: string; value: string; tone: "rose" | "violet" | "peach" | "pink" }) {
+  const toneClass = {
+    rose: "from-rose-100/80 to-pink-100/70 border-rose-200/60",
+    violet: "from-violet-100/80 to-purple-100/70 border-violet-200/60",
+    peach: "from-orange-100/80 to-amber-100/70 border-orange-200/60",
+    pink: "from-fuchsia-100/80 to-pink-100/70 border-fuchsia-200/60",
+  }[tone];
+
+  return (
+    <div className={`rounded-2xl border bg-gradient-to-br ${toneClass} px-3 py-3`}> 
+      <p className="text-[10px] font-ui uppercase tracking-wider text-purple-primary/80">{label}</p>
+      <p className="font-display text-2xl leading-none text-ink mt-1">{value}</p>
+    </div>
   );
 }
 
@@ -461,7 +532,6 @@ function CommissionCard({
   const packageCount = commission.pricing?.length || 0;
   const startingPrice = commission.min_price;
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -479,14 +549,14 @@ function CommissionCard({
     };
   }, [menuOpen]);
 
-  const handleEdit = (e: React.MouseEvent) => {
+  const handleEdit = (e: ReactMouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     router.push(`/sell/edit/${commission.id}`);
     setMenuOpen(false);
   };
 
-  const handleShare = (e: React.MouseEvent) => {
+  const handleShare = (e: ReactMouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     const url = `${window.location.origin}/commissions/${commission.id}`;
@@ -494,7 +564,7 @@ function CommissionCard({
     setMenuOpen(false);
   };
 
-  const handleArchive = async (e: React.MouseEvent) => {
+  const handleArchive = async (e: ReactMouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     const newStatus: ProductStatus = commission.status === "archived" ? "active" : "archived";
@@ -505,7 +575,7 @@ function CommissionCard({
     setMenuOpen(false);
   };
 
-  const handleActivate = async (e: React.MouseEvent) => {
+  const handleActivate = async (e: ReactMouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     const success = await updateStatus(commission.id, "active");
@@ -515,7 +585,7 @@ function CommissionCard({
     setMenuOpen(false);
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleDelete = async (e: ReactMouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -536,7 +606,7 @@ function CommissionCard({
     <div className="relative group">
       <Link
         href={`/commissions/${commission.id}`}
-        className="block rounded-[24px] border border-black/[0.06] overflow-hidden bg-white shadow-sm hover:shadow-xl hover:shadow-pink-vivid/15 hover:-translate-y-1 transition-all duration-300"
+        className="block rounded-[24px] border border-purple-primary/12 overflow-hidden bg-white shadow-sm hover:shadow-xl hover:shadow-pink-vivid/15 hover:-translate-y-1 transition-all duration-300"
         style={{ animationDelay: `${index * 50}ms` }}
       >
         <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
@@ -593,7 +663,6 @@ function CommissionCard({
         </div>
       </Link>
 
-      {/* 3-dot menu — positioned same as product cards */}
       {isOwnProfile && (
         <div ref={menuRef} className="absolute top-3 right-3 z-10">
           <button
@@ -606,7 +675,7 @@ function CommissionCard({
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200
               ${menuOpen
                 ? "bg-white shadow-md"
-                : "bg-black/40 opacity-0 group-hover:opacity-100 hover:bg-black/60"
+                : "bg-purple-primary/45 opacity-0 group-hover:opacity-100 hover:bg-pink-vivid/60"
               }`}
           >
             <svg className={`w-4 h-4 ${menuOpen ? "text-muted" : "text-white"}`} viewBox="0 0 24 24" fill="currentColor">
@@ -617,11 +686,10 @@ function CommissionCard({
           </button>
 
           {menuOpen && (
-            <div className="absolute top-full right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-20">
-              {/* Edit */}
+            <div className="absolute top-full right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-purple-primary/15 overflow-hidden z-20">
               <button
                 onClick={handleEdit}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-purple-50/60 transition-colors"
               >
                 <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -629,10 +697,9 @@ function CommissionCard({
                 Edit
               </button>
 
-              {/* Share */}
               <button
                 onClick={handleShare}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-purple-50/60 transition-colors"
               >
                 <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -640,7 +707,6 @@ function CommissionCard({
                 Copy Link
               </button>
 
-              {/* Activate (only for inactive) */}
               {commission.status !== "active" && commission.status !== "sold" && (
                 <button
                   onClick={handleActivate}
@@ -654,11 +720,10 @@ function CommissionCard({
                 </button>
               )}
 
-              {/* Archive/Unarchive */}
               <button
                 onClick={handleArchive}
                 disabled={updating}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors disabled:opacity-50"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-purple-50/60 transition-colors disabled:opacity-50"
               >
                 <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -666,7 +731,6 @@ function CommissionCard({
                 {updating ? "Updating..." : commission.status === "archived" ? "Unarchive" : "Archive"}
               </button>
 
-              {/* Delete */}
               <button
                 onClick={handleDelete}
                 disabled={deleting}
@@ -688,7 +752,7 @@ function CommissionCard({
 
 function MetaChip({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-ui font-medium bg-gray-100 text-gray-700">
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-ui font-medium bg-rose-50 text-rose-700 border border-rose-100">
       {label}
     </span>
   );
