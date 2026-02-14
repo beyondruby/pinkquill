@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
-import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
-import { getProviderByName } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 type RefundableOrder = {
@@ -10,26 +8,9 @@ type RefundableOrder = {
   buyer_id: string;
   status: string;
   payment_status: string;
-  payment_provider: string | null;
-  payment_intent_id: string | null;
-  payment_reference: string | null;
-  amount: number;
-  currency: string;
 };
 
 export const runtime = "nodejs";
-
-function resolveProviderForRefund(order: RefundableOrder): PaymentProvider {
-  if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
-    return "stripe";
-  }
-
-  if (order.payment_reference && order.payment_reference.startsWith("placeholder:")) {
-    return "placeholder";
-  }
-
-  return getPaymentProvider();
-}
 
 export async function POST(request: Request) {
   try {
@@ -62,7 +43,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, status, payment_status, payment_provider, payment_intent_id, payment_reference, amount, currency")
+      .select("id, buyer_id, status, payment_status")
       .eq("id", orderId)
       .single<RefundableOrder>();
 
@@ -74,8 +55,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
-    if (order.payment_status === "refunded") {
+    if (order.payment_status === "refunded" || order.status === "refunded") {
       return NextResponse.json({ success: true, already_refunded: true });
+    }
+
+    if (order.status === "refund_requested") {
+      return NextResponse.json({ success: true, already_requested: true, status: "refund_requested" });
     }
 
     if (!["authorized", "paid", "partially_refunded"].includes(order.payment_status)) {
@@ -85,72 +70,33 @@ export async function POST(request: Request) {
       );
     }
 
-    const providerName = resolveProviderForRefund(order);
-    const provider = getProviderByName(providerName);
-
-    // Determine the payment reference for the active provider
-    const paymentRef = providerName === "stripe"
-      ? order.payment_intent_id
-      : order.payment_reference;
-
-    if (providerName !== "placeholder" && !paymentRef) {
-      return NextResponse.json({ error: "Missing payment reference for refund" }, { status: 400 });
-    }
-
-    // Issue refund via provider (if not placeholder)
-    if (providerName !== "placeholder" && paymentRef) {
-      await provider.refundPayment(paymentRef, order.id, order.amount);
-    }
-
     const now = new Date().toISOString();
-
-    await supabaseAdmin
+    const { error: orderUpdateError } = await supabaseAdmin
       .from("orders")
       .update({
-        status: "refunded",
-        payment_status: "refunded",
+        status: "refund_requested",
         cancel_reason: reason || "Refund requested by buyer",
         updated_at: now,
       })
       .eq("id", orderId);
-
-    // Mark existing pending/completed transactions as refunded
-    await supabaseAdmin
-      .from("transactions")
-      .update({ status: "refunded" })
-      .eq("order_id", order.id)
-      .in("status", ["pending", "completed"]);
-
-    const { data: existingRefund } = await supabaseAdmin
-      .from("transactions")
-      .select("id")
-      .eq("order_id", order.id)
-      .eq("type", "refund")
-      .maybeSingle();
-
-    if (!existingRefund) {
-      await supabaseAdmin.from("transactions").insert({
-        order_id: order.id,
-        type: "refund",
-        amount: order.amount,
-        currency: order.currency,
-        status: "completed",
-        metadata: { provider: providerName, reason: reason || null },
-      });
+    if (orderUpdateError) {
+      return NextResponse.json({ error: orderUpdateError.message || "Failed to request refund" }, { status: 500 });
     }
 
-    await supabaseAdmin.from("order_events").insert({
+    const { error: eventError } = await supabaseAdmin.from("order_events").insert({
       order_id: order.id,
       actor_id: user.id,
       event_type: "payment",
       metadata: {
-        action: "refund",
-        provider: providerName,
+        action: "refund_requested",
         reason: reason || null,
       },
     });
+    if (eventError) {
+      return NextResponse.json({ error: eventError.message || "Failed to log refund request" }, { status: 500 });
+    }
 
-    await supabaseAdmin.from("order_messages").insert({
+    const { error: messageError } = await supabaseAdmin.from("order_messages").insert({
       order_id: order.id,
       sender_id: user.id,
       content: reason
@@ -158,8 +104,11 @@ export async function POST(request: Request) {
         : "Refund requested by buyer.",
       message_type: "system",
     });
+    if (messageError) {
+      return NextResponse.json({ error: messageError.message || "Failed to log refund request" }, { status: 500 });
+    }
 
-    return NextResponse.json({ success: true, provider: providerName });
+    return NextResponse.json({ success: true, status: "refund_requested" });
   } catch (error) {
     console.error("[Refund]", error);
     const message = error instanceof Error ? error.message : "Failed to process refund";

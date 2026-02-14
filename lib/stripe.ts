@@ -26,8 +26,8 @@ export const stripe = new Proxy({} as Stripe, {
 
 // Platform fee rates
 export const STRIPE_FEES = {
-  product: 0.05, // 5% flat on products
-  service: 0.05, // 5% flat on commissions
+  product: 0.08, // 8% flat on products
+  service: 0.10, // 10% flat on commissions
 } as const;
 
 // Stripe Connect account type

@@ -24,13 +24,9 @@ type OrderForCheckout = {
 };
 
 function resolveProviderForCheckout(order: OrderForCheckout, orderAmount: number): PaymentProvider {
-  // For payable orders, ignore stale placeholder references and use real providers.
+  // Payable orders must use Stripe. Placeholder is only for zero-total orders.
   if (orderAmount > 0) {
-    if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {
-      return "stripe";
-    }
-
-    return getPaymentProvider();
+    return "stripe";
   }
 
   if (order.payment_intent_id && order.payment_intent_id.startsWith("pi_")) {

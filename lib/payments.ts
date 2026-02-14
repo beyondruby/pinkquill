@@ -16,6 +16,6 @@ export function isPlaceholderPayments(): boolean {
 }
 
 export const PLATFORM_FEE_RATES = {
-  product: 0.05,
-  service: 0.05,
+  product: 0.08,
+  service: 0.10,
 } as const;

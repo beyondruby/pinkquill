@@ -10,6 +10,7 @@ export const runtime = "nodejs";
 interface OrderLookup {
   id: string;
   buyer_id: string;
+  status: string;
   payment_status: string;
   amount: number;
   currency: string;
@@ -18,7 +19,7 @@ interface OrderLookup {
 async function findOrderByPaymentIntent(paymentIntentId: string): Promise<OrderLookup | null> {
   const { data } = await supabaseAdmin
     .from("orders")
-    .select("id, buyer_id, payment_status, amount, currency")
+    .select("id, buyer_id, status, payment_status, amount, currency")
     .eq("payment_intent_id", paymentIntentId)
     .maybeSingle<OrderLookup>();
 
@@ -28,7 +29,7 @@ async function findOrderByPaymentIntent(paymentIntentId: string): Promise<OrderL
 async function findOrderById(orderId: string): Promise<OrderLookup | null> {
   const { data } = await supabaseAdmin
     .from("orders")
-    .select("id, buyer_id, payment_status, amount, currency")
+    .select("id, buyer_id, status, payment_status, amount, currency")
     .eq("id", orderId)
     .maybeSingle<OrderLookup>();
 
@@ -111,62 +112,117 @@ export async function POST(request: Request) {
         if (!paymentIntentId) break;
 
         const order = await findOrderByPaymentIntent(paymentIntentId);
-        if (!order || order.payment_status === "refunded") break;
+        if (!order) break;
 
-        await supabaseAdmin
+        const now = new Date().toISOString();
+        const refundedAmount = Number(charge.amount_refunded || 0) / 100;
+        const chargeAmount = Number(charge.amount || 0) / 100;
+        const isFullyRefunded = Boolean(
+          charge.refunded || (charge.amount_refunded || 0) >= (charge.amount || 0)
+        );
+        const refundAmountForLedger = refundedAmount > 0
+          ? refundedAmount
+          : (isFullyRefunded ? Number(order.amount) : 0);
+
+        if (isFullyRefunded && order.payment_status === "refunded") break;
+
+        const { error: orderUpdateError } = await supabaseAdmin
           .from("orders")
           .update({
-            status: "refunded",
-            payment_status: "refunded",
-            updated_at: new Date().toISOString(),
+            ...(isFullyRefunded ? { status: "refunded" } : {}),
+            payment_status: isFullyRefunded ? "refunded" : "partially_refunded",
+            updated_at: now,
           })
           .eq("id", order.id);
+        if (orderUpdateError) {
+          throw new Error(orderUpdateError.message);
+        }
 
-        await supabaseAdmin
-          .from("transactions")
-          .update({ status: "refunded" })
-          .eq("order_id", order.id)
-          .in("status", ["pending", "completed"]);
+        if (isFullyRefunded) {
+          const { error: txStatusError } = await supabaseAdmin
+            .from("transactions")
+            .update({ status: "refunded" })
+            .eq("order_id", order.id)
+            .in("status", ["pending", "completed"]);
+          if (txStatusError) {
+            throw new Error(txStatusError.message);
+          }
+        }
 
-        const { data: existingRefund } = await supabaseAdmin
+        const { data: existingRefund, error: existingRefundError } = await supabaseAdmin
           .from("transactions")
-          .select("id")
+          .select("id, amount")
           .eq("order_id", order.id)
           .eq("type", "refund")
-          .maybeSingle();
+          .maybeSingle<{ id: string; amount: number }>();
+        if (existingRefundError) {
+          throw new Error(existingRefundError.message);
+        }
 
-        if (!existingRefund) {
-          await supabaseAdmin.from("transactions").insert({
+        if (existingRefund && refundAmountForLedger > 0) {
+          const { error: updateRefundTxError } = await supabaseAdmin
+            .from("transactions")
+            .update({
+              amount: Math.max(Number(existingRefund.amount || 0), refundAmountForLedger),
+              status: "completed",
+              metadata: {
+                provider: "stripe",
+                stripe_charge_id: charge.id,
+                source: "stripe.webhook.charge_refunded",
+                refund_type: isFullyRefunded ? "full" : "partial",
+              },
+            })
+            .eq("id", existingRefund.id);
+          if (updateRefundTxError) {
+            throw new Error(updateRefundTxError.message);
+          }
+        } else if (!existingRefund && refundAmountForLedger > 0) {
+          const { error: insertRefundTxError } = await supabaseAdmin.from("transactions").insert({
             order_id: order.id,
             type: "refund",
-            amount: order.amount,
+            amount: refundAmountForLedger,
             currency: order.currency,
             status: "completed",
             metadata: {
               provider: "stripe",
               stripe_charge_id: charge.id,
               source: "stripe.webhook.charge_refunded",
+              refund_type: isFullyRefunded ? "full" : "partial",
             },
           });
+          if (insertRefundTxError) {
+            throw new Error(insertRefundTxError.message);
+          }
         }
 
-        await supabaseAdmin.from("order_events").insert({
+        const { error: orderEventError } = await supabaseAdmin.from("order_events").insert({
           order_id: order.id,
           actor_id: order.buyer_id,
           event_type: "payment",
           metadata: {
-            action: "refund",
+            action: isFullyRefunded ? "refund" : "partial_refund",
             provider: "stripe",
             source: "stripe.webhook.charge_refunded",
             stripe_charge_id: charge.id,
+            refunded_amount: refundAmountForLedger,
+            charge_amount: chargeAmount,
           },
         });
+        if (orderEventError) {
+          throw new Error(orderEventError.message);
+        }
 
-        await supabaseAdmin.from("order_messages").insert({
+        const { error: orderMessageError } = await supabaseAdmin.from("order_messages").insert({
           order_id: order.id,
-          content: "Your payment has been refunded.",
+          sender_id: order.buyer_id,
+          content: isFullyRefunded
+            ? "Your payment has been refunded."
+            : "A partial refund has been issued for your payment.",
           message_type: "system",
         });
+        if (orderMessageError) {
+          throw new Error(orderMessageError.message);
+        }
         break;
       }
 

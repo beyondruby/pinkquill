@@ -3,7 +3,6 @@ import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
 import { finalizeOrderPayment, markOrderPaymentFailed } from "@/lib/payments-server";
 import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
-import { getProviderByName } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 type OrderForConfirm = {
@@ -12,6 +11,8 @@ type OrderForConfirm = {
   status: string;
   listing_type: string;
   shipping_address: Record<string, unknown> | null;
+  amount: number;
+  currency: string;
   payment_provider: string | null;
   payment_reference: string | null;
   payment_intent_id: string | null;
@@ -22,7 +23,12 @@ type OrderForConfirm = {
 
 export const runtime = "nodejs";
 
-function resolveProviderForOrder(order: OrderForConfirm): PaymentProvider {
+function resolveProviderForOrder(order: OrderForConfirm, orderAmount: number): PaymentProvider {
+  // Payable orders must always use a real provider-backed confirmation path.
+  if (orderAmount > 0) {
+    return "stripe";
+  }
+
   if (order.payment_provider === "placeholder" || order.payment_reference?.startsWith("placeholder:")) {
     return "placeholder";
   }
@@ -70,6 +76,8 @@ export async function POST(request: Request) {
         status,
         listing_type,
         shipping_address,
+        amount,
+        currency,
         payment_provider,
         payment_reference,
         payment_intent_id,
@@ -107,8 +115,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const providerName = resolveProviderForOrder(order);
-    const provider = getProviderByName(providerName);
+    const orderAmount = Number(order.amount);
+    if (!Number.isFinite(orderAmount) || orderAmount < 0) {
+      return NextResponse.json({ error: "Invalid order amount" }, { status: 400 });
+    }
+
+    const providerName = resolveProviderForOrder(order, orderAmount);
 
     // For Stripe: verify PaymentIntent status via provider
     if (providerName === "stripe") {
@@ -120,6 +132,23 @@ export async function POST(request: Request) {
       const { getStripeServer } = await import("@/lib/stripe");
       const stripe = getStripeServer();
       const paymentIntent = await stripe.paymentIntents.retrieve(order.payment_intent_id);
+      const expectedAmount = Math.round(orderAmount * 100);
+      const orderCurrency = String(order.currency || "usd").toLowerCase();
+      const intentCurrency = String(paymentIntent.currency || "").toLowerCase();
+
+      if (paymentIntent.metadata?.order_id && paymentIntent.metadata.order_id !== order.id) {
+        return NextResponse.json(
+          { error: "Payment intent does not belong to this order. Please restart checkout." },
+          { status: 409 }
+        );
+      }
+
+      if (paymentIntent.amount !== expectedAmount || intentCurrency !== orderCurrency) {
+        return NextResponse.json(
+          { error: "Payment intent does not match this order total. Please restart checkout." },
+          { status: 409 }
+        );
+      }
 
       // succeeded = auto-capture (products), requires_capture = manual capture (commissions/escrow)
       if (paymentIntent.status === "succeeded" || paymentIntent.status === "requires_capture") {
@@ -163,6 +192,13 @@ export async function POST(request: Request) {
           error: `Payment is not complete yet (status: ${paymentIntent.status})`,
           payment_intent_status: paymentIntent.status,
         },
+        { status: 409 }
+      );
+    }
+
+    if (orderAmount > 0) {
+      return NextResponse.json(
+        { error: "Payable orders must be confirmed through Stripe checkout." },
         { status: 409 }
       );
     }
