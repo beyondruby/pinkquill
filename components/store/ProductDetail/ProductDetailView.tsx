@@ -16,6 +16,7 @@ import {
 import ProductGallery from "./ProductGallery";
 import SellerCard from "./SellerCard";
 import SellerRating from "@/components/reviews/SellerRating";
+import ProductReviewsSection from "@/components/reviews/ProductReviewsSection";
 import ShareModal from "@/components/ui/ShareModal";
 
 interface ProductDetailViewProps {
@@ -329,6 +330,8 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 )}
               </section>
             )}
+
+            <ProductReviewsSection productId={product.id} />
 
             {product.seller && (
               <div className="lg:hidden pt-8 border-t border-black/[0.08]">

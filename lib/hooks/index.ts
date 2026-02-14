@@ -170,9 +170,10 @@ export {
 export {
   useSubmitReview,
   useOrderReviews,
+  useProductReviews,
+  useCommissionReviews,
   useSellerReviews,
   useSellerStats,
-  useRespondToReview,
 } from "./useReviews";
 
 // Downloads (digital products)
@@ -274,7 +275,6 @@ export type {
   Transaction,
   Review,
   SellerStats,
-  SellerLevel,
   BuyerOrderStats,
   DownloadToken,
   Dispute,
@@ -283,4 +283,4 @@ export type {
   DisputeResolution,
 } from "../types/store";
 
-export { SELLER_LEVEL_LABELS, DISPUTE_REASON_LABELS, DISPUTE_RESOLUTION_LABELS } from "../types/store";
+export { DISPUTE_REASON_LABELS, DISPUTE_RESOLUTION_LABELS } from "../types/store";

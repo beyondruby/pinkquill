@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useSellerCommissions } from "@/lib/hooks/useCommissions";
 import { useSellerStats } from "@/lib/hooks/useReviews";
 import { useDeleteProduct, useUpdateProductStatus } from "@/lib/hooks/useProducts";
-import { SELLER_LEVEL_LABELS, type Product, type ProductStatus, type SellerLevel } from "@/lib/types/store";
+import type { Product, ProductStatus } from "@/lib/types/store";
+import CommissionReviewsPanel from "./CommissionReviewsPanel";
 
 interface CommissionsTabProps {
   userId: string;
@@ -15,27 +16,14 @@ interface CommissionsTabProps {
 }
 
 type StatusFilter = "all" | "active" | "inactive";
-
-const STATUS_LABEL: Record<Product["status"], string> = {
-  draft: "Draft",
-  active: "Active",
-  sold: "Sold",
-  paused: "Paused",
-  archived: "Archived",
-};
-
-const STATUS_STYLES: Record<Product["status"], string> = {
-  draft: "bg-slate-100 text-slate-700",
-  active: "bg-emerald-100 text-emerald-700",
-  sold: "bg-blue-100 text-blue-700",
-  paused: "bg-amber-100 text-amber-700",
-  archived: "bg-gray-100 text-gray-700",
-};
+type PanelTab = "services" | "reviews_seller" | "reviews_buyer";
 
 export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: CommissionsTabProps) {
   const { commissions, loading, error, refetch } = useSellerCommissions(userId);
   const { stats: sellerStats, loading: sellerStatsLoading } = useSellerStats(userId);
   const [filter, setFilter] = useState<StatusFilter>("all");
+  const [panel, setPanel] = useState<PanelTab>("services");
+  const activePanel = !isOwnProfile && panel === "reviews_buyer" ? "services" : panel;
 
   const filtered = useMemo(() => {
     return commissions.filter((item) => {
@@ -116,42 +104,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
     );
   }
 
-  if (commissions.length === 0) {
-    return (
-      <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="relative rounded-[32px] border border-pink-100 bg-gradient-to-br from-pink-50/90 via-white to-orange-50/80 p-10 text-center overflow-hidden">
-          <div className="absolute -top-16 -left-14 w-40 h-40 rounded-full bg-purple-primary/10 blur-2xl" />
-          <div className="absolute -bottom-16 -right-14 w-44 h-44 rounded-full bg-orange-warm/15 blur-2xl" />
-
-          <div className="relative">
-            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-purple-primary/15 to-pink-vivid/15 flex items-center justify-center">
-              <svg className="w-8 h-8 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
-              </svg>
-            </div>
-
-            <h3 className="font-display text-2xl text-ink mb-3">
-              {isOwnProfile ? "Launch your first commission" : "No commissions yet"}
-            </h3>
-            <p className="font-body text-muted max-w-md mx-auto">
-              {isOwnProfile
-                ? "Package your expertise into clear service tiers and turn your studio into a high-conversion storefront."
-                : "This creator has not published commission services yet."}
-            </p>
-
-            {isOwnProfile && (
-              <Link
-                href="/sell/service"
-                className="inline-flex mt-7 items-center gap-2 px-6 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all"
-              >
-                Add Service
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const hasServices = commissions.length > 0;
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
@@ -165,9 +118,8 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
             <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
               {/* Quill Score */}
               <QuillScore
-                rating={sellerStats?.total_reviews ? sellerStats.avg_rating : null}
+                avgQuill={sellerStats?.total_reviews ? sellerStats.avg_quill_score : null}
                 reviews={sellerStats?.total_reviews ?? 0}
-                level={sellerStats?.seller_level as SellerLevel | undefined}
                 loading={sellerStatsLoading}
               />
 
@@ -219,22 +171,89 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 mb-6 overflow-x-auto scrollbar-hide">
-        <FilterButton active={filter === "all"} label="All" count={stats.total} onClick={() => setFilter("all")} />
-        <FilterButton active={filter === "active"} label="Active" count={stats.active} onClick={() => setFilter("active")} />
-        <FilterButton active={filter === "inactive"} label="Inactive" count={stats.inactive} onClick={() => setFilter("inactive")} />
+      <div className="flex items-center gap-1.5 mb-4 overflow-x-auto scrollbar-hide">
+        <PanelButton
+          active={activePanel === "services"}
+          label="Services"
+          onClick={() => setPanel("services")}
+        />
+        <PanelButton
+          active={activePanel === "reviews_seller"}
+          label="Reviews as Seller"
+          onClick={() => setPanel("reviews_seller")}
+        />
+        {isOwnProfile && (
+          <PanelButton
+            active={activePanel === "reviews_buyer"}
+            label="Reviews as Buyer"
+            onClick={() => setPanel("reviews_buyer")}
+          />
+        )}
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center">
-          <p className="font-ui text-ink">No services in this filter yet.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filtered.map((commission, index) => (
-            <CommissionCard key={commission.id} commission={commission} isOwnProfile={isOwnProfile} index={index} onRefetch={refetch} />
-          ))}
-        </div>
+      {activePanel === "services" && (
+        <>
+          <div className="flex items-center gap-1.5 mb-6 overflow-x-auto scrollbar-hide">
+            <FilterButton active={filter === "all"} label="All" count={stats.total} onClick={() => setFilter("all")} />
+            <FilterButton active={filter === "active"} label="Active" count={stats.active} onClick={() => setFilter("active")} />
+            <FilterButton active={filter === "inactive"} label="Inactive" count={stats.inactive} onClick={() => setFilter("inactive")} />
+          </div>
+
+          {!hasServices && (
+            <div className="relative rounded-[32px] border border-pink-100 bg-gradient-to-br from-pink-50/90 via-white to-orange-50/80 p-10 text-center overflow-hidden">
+              <div className="absolute -top-16 -left-14 w-40 h-40 rounded-full bg-purple-primary/10 blur-2xl" />
+              <div className="absolute -bottom-16 -right-14 w-44 h-44 rounded-full bg-orange-warm/15 blur-2xl" />
+
+              <div className="relative">
+                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-purple-primary/15 to-pink-vivid/15 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
+                  </svg>
+                </div>
+
+                <h3 className="font-display text-2xl text-ink mb-3">
+                  {isOwnProfile ? "Launch your first commission" : "No commissions yet"}
+                </h3>
+                <p className="font-body text-muted max-w-md mx-auto">
+                  {isOwnProfile
+                    ? "Package your expertise into clear service tiers and turn your studio into a high-conversion storefront."
+                    : "This creator has not published commission services yet."}
+                </p>
+
+                {isOwnProfile && (
+                  <Link
+                    href="/sell/service"
+                    className="inline-flex mt-7 items-center gap-2 px-6 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all"
+                  >
+                    Add Service
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+
+          {hasServices && filtered.length === 0 && (
+            <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center">
+              <p className="font-ui text-ink">No services in this filter yet.</p>
+            </div>
+          )}
+
+          {hasServices && filtered.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filtered.map((commission, index) => (
+                <CommissionCard key={commission.id} commission={commission} isOwnProfile={isOwnProfile} index={index} onRefetch={refetch} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {activePanel === "reviews_seller" && (
+        <CommissionReviewsPanel userId={userId} role="seller" isOwnProfile={isOwnProfile} />
+      )}
+
+      {activePanel === "reviews_buyer" && isOwnProfile && (
+        <CommissionReviewsPanel userId={userId} role="buyer" isOwnProfile={isOwnProfile} />
       )}
     </div>
   );
@@ -253,14 +272,12 @@ function formatResponseTime(hours: number | null): string {
 }
 
 function QuillScore({
-  rating,
+  avgQuill,
   reviews,
-  level,
   loading,
 }: {
-  rating: number | null;
+  avgQuill: number | null;
   reviews: number;
-  level?: SellerLevel;
   loading: boolean;
 }) {
   if (loading) {
@@ -272,8 +289,8 @@ function QuillScore({
     );
   }
 
-  const hasRating = rating !== null && reviews > 0;
-  const normalized = hasRating ? Math.max(0, Math.min(5, rating)) : 0;
+  const hasRating = avgQuill !== null && reviews > 0;
+  const normalized = hasRating ? Math.max(0, Math.min(5, avgQuill)) : 0;
 
   const size = 80;
   const strokeWidth = 4.5;
@@ -300,9 +317,7 @@ function QuillScore({
               transform={`rotate(${rotation} ${size / 2} ${size / 2})`}
             />
           </svg>
-          <svg className="w-5 h-5 text-muted/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-          </svg>
+          <span className="text-lg text-muted/40">✒</span>
         </div>
         <span className="text-[11px] font-ui text-muted">New creator</span>
       </div>
@@ -352,13 +367,32 @@ function QuillScore({
         <span className="text-[11px] font-ui text-muted">
           {reviews} review{reviews === 1 ? "" : "s"}
         </span>
-        {level && level !== "new" && (
-          <span className="text-[10px] font-ui font-medium text-pink-vivid">
-            {SELLER_LEVEL_LABELS[level]}
-          </span>
-        )}
       </div>
     </div>
+  );
+}
+
+function PanelButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-semibold transition-colors whitespace-nowrap ${
+        active
+          ? "bg-ink text-white"
+          : "text-muted border border-black/[0.08] bg-white hover:text-ink"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

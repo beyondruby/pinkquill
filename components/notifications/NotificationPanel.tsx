@@ -527,7 +527,8 @@ const icons = {
           <stop offset="100%" stopColor="#ff007f" />
         </linearGradient>
       </defs>
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="url(#reviewGrad)" />
+      <path d="M4 20l1.5-4.8 8.7-8.7a2 2 0 012.8 0l1.2 1.2a2 2 0 010 2.8l-8.7 8.7L4 20z" stroke="url(#reviewGrad)" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M13.5 7.5l3 3" stroke="url(#reviewGrad)" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   ),
   orderMessage: (

@@ -527,50 +527,42 @@ export interface SellerEarnings {
 // REVIEWS & SELLER TRUST
 // ============================================================================
 
-export type SellerLevel = 'new' | 'rising' | 'established' | 'top' | 'pro';
+export type ReviewRole = 'buyer' | 'seller';
 
 export interface Review {
   id: string;
   order_id: string;
+  product_id: string;
+  listing_type: ListingType;
   reviewer_id: string;
   reviewee_id: string;
-  rating: number;
-  communication_rating: number | null;
-  quality_rating: number | null;
-  value_rating: number | null;
-  content: string | null;
+  reviewer_role: ReviewRole;
+  reviewee_role: ReviewRole;
+  quill_score: number;
+  title: string | null;
+  content: string;
+  highlights: string[];
   is_public: boolean;
-  is_revealed: boolean;
-  seller_response: string | null;
-  seller_responded_at: string | null;
   created_at: string;
+  updated_at: string;
 
   // Joined
   reviewer?: ProductSeller;
-  order?: { order_number: string; product?: { title: string } };
+  reviewee?: ProductSeller;
+  order?: { order_number: string; product?: { id: string; title: string } };
 }
 
 export interface SellerStats {
   user_id: string;
-  avg_rating: number;
+  avg_quill_score: number;
   total_reviews: number;
   total_orders: number;
   completed_orders: number;
   completion_rate: number;
   avg_response_time_hours: number;
   repeat_buyer_rate: number;
-  seller_level: SellerLevel;
-  member_since: string | null;
   updated_at: string;
 }
-
-export const SELLER_LEVEL_LABELS: Record<SellerLevel, string> = {
-  new: 'New Creator',
-  rising: 'Rising Creator',
-  established: 'Established Creator',
-  top: 'Top Creator',
-  pro: 'Pro Creator',
-};
 
 // ============================================================================
 // DISPUTES & REFUNDS

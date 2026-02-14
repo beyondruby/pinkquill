@@ -2,19 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
-import type { Review, SellerStats, ProductSeller } from "../types/store";
+import type { Review, ReviewRole, SellerStats } from "../types/store";
 
 // ============================================================================
-// useSubmitReview — Submit a review for a completed order
+// useSubmitReview — Submit a quill review for a completed order
 // ============================================================================
 
 interface SubmitReviewData {
   order_id: string;
-  rating: number;
-  communication_rating?: number;
-  quality_rating?: number;
-  value_rating?: number;
-  content?: string;
+  quill_score: number;
+  title?: string;
+  content: string;
+  highlights?: string[];
   is_public?: boolean;
 }
 
@@ -33,13 +32,12 @@ export function useSubmitReview(): UseSubmitReviewReturn {
     setError(null);
 
     try {
-      const { data: reviewId, error: rpcError } = await supabase.rpc("submit_review", {
+      const { data: reviewId, error: rpcError } = await supabase.rpc("submit_order_review", {
         p_order_id: data.order_id,
-        p_rating: data.rating,
-        p_communication_rating: data.communication_rating ?? null,
-        p_quality_rating: data.quality_rating ?? null,
-        p_value_rating: data.value_rating ?? null,
-        p_content: data.content ?? null,
+        p_quill_score: data.quill_score,
+        p_title: data.title?.trim() || null,
+        p_content: data.content.trim(),
+        p_highlights: data.highlights || [],
         p_is_public: data.is_public ?? true,
       });
 
@@ -84,11 +82,18 @@ export function useOrderReviews(orderId?: string, userId?: string): UseOrderRevi
       setLoading(true);
 
       const { data, error } = await supabase
-        .from("reviews")
+        .from("order_reviews")
         .select(`
           *,
-          reviewer:profiles!reviews_reviewer_id_fkey (
+          reviewer:profiles!order_reviews_reviewer_id_fkey (
             id, username, display_name, avatar_url, is_verified
+          ),
+          reviewee:profiles!order_reviews_reviewee_id_fkey (
+            id, username, display_name, avatar_url, is_verified
+          ),
+          order:orders (
+            order_number,
+            product:products ( id, title )
           )
         `)
         .eq("order_id", orderId)
@@ -119,7 +124,175 @@ export function useOrderReviews(orderId?: string, userId?: string): UseOrderRevi
 }
 
 // ============================================================================
-// useSellerReviews — Get all public reviews for a seller (paginated)
+// useProductReviews — Public product reviews for a product page
+// ============================================================================
+
+interface UseProductReviewsReturn {
+  reviews: Review[];
+  loading: boolean;
+  error: string | null;
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
+}
+
+export function useProductReviews(productId?: string, pageSize = 8): UseProductReviewsReturn {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const pageRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  const fetchPage = useCallback(async (page: number) => {
+    if (!productId) {
+      setReviews([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (page === 0) setLoading(true);
+      setError(null);
+
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, error: queryError } = await supabase
+        .from("order_reviews")
+        .select(`
+          *,
+          reviewer:profiles!order_reviews_reviewer_id_fkey (
+            id, username, display_name, avatar_url, is_verified
+          ),
+          order:orders (
+            order_number,
+            product:products ( id, title )
+          )
+        `)
+        .eq("product_id", productId)
+        .eq("listing_type", "product")
+        .eq("reviewee_role", "seller")
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (queryError) throw queryError;
+      if (!mountedRef.current) return;
+
+      const fetched = (data || []) as Review[];
+      setReviews((prev) => (page === 0 ? fetched : [...prev, ...fetched]));
+      setHasMore(fetched.length === pageSize);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to fetch product reviews";
+      if (mountedRef.current) setError(message);
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [productId, pageSize]);
+
+  const loadMore = useCallback(async () => {
+    pageRef.current += 1;
+    await fetchPage(pageRef.current);
+  }, [fetchPage]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    pageRef.current = 0;
+    fetchPage(0);
+    return () => { mountedRef.current = false; };
+  }, [fetchPage]);
+
+  return { reviews, loading, error, hasMore, loadMore };
+}
+
+// ============================================================================
+// useCommissionReviews — Public commission reviews by reviewee role
+// ============================================================================
+
+interface UseCommissionReviewsReturn {
+  reviews: Review[];
+  loading: boolean;
+  error: string | null;
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
+}
+
+export function useCommissionReviews(
+  revieweeId?: string,
+  role: ReviewRole = "seller",
+  pageSize = 8
+): UseCommissionReviewsReturn {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const pageRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  const fetchPage = useCallback(async (page: number) => {
+    if (!revieweeId) {
+      setReviews([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (page === 0) setLoading(true);
+      setError(null);
+
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, error: queryError } = await supabase
+        .from("order_reviews")
+        .select(`
+          *,
+          reviewer:profiles!order_reviews_reviewer_id_fkey (
+            id, username, display_name, avatar_url, is_verified
+          ),
+          order:orders (
+            order_number,
+            product:products ( id, title )
+          )
+        `)
+        .eq("reviewee_id", revieweeId)
+        .eq("listing_type", "service")
+        .eq("reviewee_role", role)
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (queryError) throw queryError;
+      if (!mountedRef.current) return;
+
+      const fetched = (data || []) as Review[];
+      setReviews((prev) => (page === 0 ? fetched : [...prev, ...fetched]));
+      setHasMore(fetched.length === pageSize);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to fetch commission reviews";
+      if (mountedRef.current) setError(message);
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [revieweeId, role, pageSize]);
+
+  const loadMore = useCallback(async () => {
+    pageRef.current += 1;
+    await fetchPage(pageRef.current);
+  }, [fetchPage]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    pageRef.current = 0;
+    fetchPage(0);
+    return () => { mountedRef.current = false; };
+  }, [fetchPage]);
+
+  return { reviews, loading, error, hasMore, loadMore };
+}
+
+// ============================================================================
+// useSellerReviews — Get all public reviews for a seller (all listing types)
 // ============================================================================
 
 interface UseSellerReviewsReturn {
@@ -153,20 +326,20 @@ export function useSellerReviews(sellerId?: string, pageSize = 10): UseSellerRev
       const to = from + pageSize - 1;
 
       const { data, error: queryError } = await supabase
-        .from("reviews")
+        .from("order_reviews")
         .select(`
           *,
-          reviewer:profiles!reviews_reviewer_id_fkey (
+          reviewer:profiles!order_reviews_reviewer_id_fkey (
             id, username, display_name, avatar_url, is_verified
           ),
           order:orders (
             order_number,
-            product:products ( title )
+            product:products ( id, title )
           )
         `)
         .eq("reviewee_id", sellerId)
+        .eq("reviewee_role", "seller")
         .eq("is_public", true)
-        .eq("is_revealed", true)
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -200,13 +373,24 @@ export function useSellerReviews(sellerId?: string, pageSize = 10): UseSellerRev
 }
 
 // ============================================================================
-// useSellerStats — Get cached seller stats
+// useSellerStats — Aggregated seller quill stats
 // ============================================================================
 
 interface UseSellerStatsReturn {
   stats: SellerStats | null;
   loading: boolean;
 }
+
+type SellerOrderRow = {
+  status: string;
+  buyer_id: string;
+  created_at: string;
+  started_at: string | null;
+};
+
+type SellerReviewRow = {
+  quill_score: number;
+};
 
 export function useSellerStats(sellerId?: string): UseSellerStatsReturn {
   const [stats, setStats] = useState<SellerStats | null>(null);
@@ -215,6 +399,7 @@ export function useSellerStats(sellerId?: string): UseSellerStatsReturn {
 
   useEffect(() => {
     mountedRef.current = true;
+    setLoading(true);
 
     if (!sellerId) {
       setStats(null);
@@ -224,16 +409,85 @@ export function useSellerStats(sellerId?: string): UseSellerStatsReturn {
 
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from("seller_stats")
-          .select("*")
-          .eq("user_id", sellerId)
-          .single();
+        const [ordersResult, reviewsResult] = await Promise.all([
+          supabase
+            .from("orders")
+            .select("status, buyer_id, created_at, started_at")
+            .eq("seller_id", sellerId)
+            .returns<SellerOrderRow[]>(),
+          supabase
+            .from("order_reviews")
+            .select("quill_score")
+            .eq("reviewee_id", sellerId)
+            .eq("reviewee_role", "seller")
+            .returns<SellerReviewRow[]>(),
+        ]);
 
-        if (error && error.code !== "PGRST116") throw error;
-        if (mountedRef.current) setStats(data as SellerStats | null);
+        if (ordersResult.error) throw ordersResult.error;
+        if (reviewsResult.error) throw reviewsResult.error;
+
+        const orders = ordersResult.data || [];
+        const reviews = reviewsResult.data || [];
+
+        const totalOrders = orders.length;
+        const completedOrders = orders.filter((order) => order.status === "completed").length;
+        const completionRate = totalOrders > 0
+          ? Math.round((completedOrders / totalOrders) * 100)
+          : 0;
+
+        const quillScores = reviews
+          .map((review) => Number(review.quill_score || 0))
+          .filter((value) => value >= 1 && value <= 5);
+        const avgQuillScore = quillScores.length > 0
+          ? Math.round((quillScores.reduce((sum, score) => sum + score, 0) / quillScores.length) * 10) / 10
+          : 0;
+
+        const responseHours = orders
+          .filter((order) => order.started_at)
+          .map((order) => {
+            const startedAt = new Date(order.started_at as string).getTime();
+            const createdAt = new Date(order.created_at).getTime();
+            const diff = (startedAt - createdAt) / (1000 * 60 * 60);
+            return Number.isFinite(diff) && diff >= 0 ? diff : null;
+          })
+          .filter((value): value is number => value !== null);
+
+        const avgResponseTimeHours = responseHours.length > 0
+          ? Math.round((responseHours.reduce((sum, hours) => sum + hours, 0) / responseHours.length) * 10) / 10
+          : 0;
+
+        const completedOrdersByBuyer = new Map<string, number>();
+        orders
+          .filter((order) => order.status === "completed")
+          .forEach((order) => {
+            completedOrdersByBuyer.set(order.buyer_id, (completedOrdersByBuyer.get(order.buyer_id) || 0) + 1);
+          });
+
+        let repeatOrderCount = 0;
+        completedOrdersByBuyer.forEach((count) => {
+          if (count > 1) repeatOrderCount += count;
+        });
+
+        const repeatBuyerRate = completedOrders > 0
+          ? Math.round((repeatOrderCount / completedOrders) * 100)
+          : 0;
+
+        if (mountedRef.current) {
+          setStats({
+            user_id: sellerId,
+            avg_quill_score: avgQuillScore,
+            total_reviews: reviews.length,
+            total_orders: totalOrders,
+            completed_orders: completedOrders,
+            completion_rate: completionRate,
+            avg_response_time_hours: avgResponseTimeHours,
+            repeat_buyer_rate: repeatBuyerRate,
+            updated_at: new Date().toISOString(),
+          });
+        }
       } catch (err) {
         console.error("[useSellerStats] Error:", err);
+        if (mountedRef.current) setStats(null);
       } finally {
         if (mountedRef.current) setLoading(false);
       }
@@ -243,42 +497,4 @@ export function useSellerStats(sellerId?: string): UseSellerStatsReturn {
   }, [sellerId]);
 
   return { stats, loading };
-}
-
-// ============================================================================
-// useRespondToReview — Seller responds to a review
-// ============================================================================
-
-interface UseRespondToReviewReturn {
-  respond: (reviewId: string, response: string) => Promise<boolean>;
-  responding: boolean;
-  error: string | null;
-}
-
-export function useRespondToReview(): UseRespondToReviewReturn {
-  const [responding, setResponding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const respond = useCallback(async (reviewId: string, response: string): Promise<boolean> => {
-    setResponding(true);
-    setError(null);
-
-    try {
-      const { error: rpcError } = await supabase.rpc("respond_to_review", {
-        p_review_id: reviewId,
-        p_response: response,
-      });
-
-      if (rpcError) throw rpcError;
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to respond";
-      setError(message);
-      return false;
-    } finally {
-      setResponding(false);
-    }
-  }, []);
-
-  return { respond, responding, error };
 }

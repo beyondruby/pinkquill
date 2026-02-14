@@ -544,7 +544,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
   );
 }
 
-const REVIEWABLE_STATUSES = new Set(["completed", "delivered", "resolved"]);
+const REVIEWABLE_STATUSES = new Set(["completed"]);
 
 function OrderReviewSection({ order, userId }: { order: Order; userId?: string }) {
   const { reviews, myReview, loading, refetch } = useOrderReviews(
@@ -556,36 +556,40 @@ function OrderReviewSection({ order, userId }: { order: Order; userId?: string }
   if (!REVIEWABLE_STATUSES.has(order.status) || !userId) return null;
   if (loading) return null;
 
+  const isBuyer = userId === order.buyer_id;
+  const isSeller = userId === order.seller_id;
+  const canLeaveReview = order.listing_type === "product" ? isBuyer : (isBuyer || isSeller);
   const hasReviewed = !!myReview;
 
   return (
-    <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
-      <h2 className="font-display text-xl text-ink mb-4">Reviews</h2>
+    <section id="reviews" className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
+      <h2 className="font-display text-xl text-ink mb-1">Quill Reviews</h2>
+      <p className="text-sm font-body text-muted mb-4">
+        {order.listing_type === "product"
+          ? "Buyers can leave a review after this order is completed."
+          : "After completion, both buyer and seller can review each other."}
+      </p>
 
       {/* Existing reviews */}
       {reviews.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-4 space-y-3">
           {reviews.map((review) => (
-            <ReviewCard
-              key={review.id}
-              review={review}
-              onResponseSubmitted={refetch}
-            />
+            <ReviewCard key={review.id} review={review} />
           ))}
         </div>
       )}
 
       {/* Leave a review */}
-      {!hasReviewed && !showForm && (
+      {canLeaveReview && !hasReviewed && !showForm && (
         <button
           onClick={() => setShowForm(true)}
           className="w-full py-3 rounded-xl border-2 border-dashed border-purple-primary/30 text-purple-primary font-ui font-semibold text-sm hover:bg-purple-50/50 transition-colors"
         >
-          Leave a Review
+          Leave a Quill Review
         </button>
       )}
 
-      {!hasReviewed && showForm && (
+      {canLeaveReview && !hasReviewed && showForm && (
         <ReviewForm
           orderId={order.id}
           onSubmitted={() => {
@@ -595,9 +599,15 @@ function OrderReviewSection({ order, userId }: { order: Order; userId?: string }
         />
       )}
 
-      {hasReviewed && reviews.length === 0 && (
+      {!canLeaveReview && (
         <p className="text-sm font-body text-muted">
-          Your review has been submitted. It will be visible once the other party also reviews (or after 14 days).
+          Only the buyer can review completed product orders.
+        </p>
+      )}
+
+      {hasReviewed && canLeaveReview && (
+        <p className="text-sm font-body text-muted">
+          Your review is live on this order.
         </p>
       )}
     </section>

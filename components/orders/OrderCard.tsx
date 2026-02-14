@@ -41,8 +41,7 @@ function quickAction(order: Order): { label: string; href: string } | null {
     case "submitted":
       return { label: "Review Delivery", href: `/orders/${order.id}` };
     case "completed":
-    case "delivered":
-      return { label: "Leave Review", href: `/orders/${order.id}#reviews` };
+      return { label: "Leave Quill Review", href: `/orders/${order.id}#reviews` };
     default:
       return null;
   }

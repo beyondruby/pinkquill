@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSubmitReview } from "@/lib/hooks/useReviews";
 
 interface ReviewFormProps {
@@ -8,43 +8,53 @@ interface ReviewFormProps {
   onSubmitted: () => void;
 }
 
-function StarInput({
-  label,
-  value,
-  onChange,
-  required,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  required?: boolean;
-}) {
+const HIGHLIGHT_OPTIONS = [
+  "Creative Vision",
+  "Communication",
+  "Craftsmanship",
+  "Speed",
+  "Reliability",
+  "Value",
+] as const;
+
+const QUILL_COPY: Record<number, string> = {
+  1: "Rough Draft",
+  2: "Early Sketch",
+  3: "Solid Work",
+  4: "Polished Piece",
+  5: "Masterpiece",
+};
+
+function QuillInput({ value, onChange }: { value: number; onChange: (score: number) => void }) {
   const [hover, setHover] = useState(0);
+  const active = hover || value;
 
   return (
     <div>
-      <label className="block text-sm font-ui font-medium text-ink mb-1">
-        {label} {required && <span className="text-red-400">*</span>}
+      <label className="block text-sm font-ui font-medium text-ink mb-2">
+        Quill Score <span className="text-red-500">*</span>
       </label>
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
+      <div className="flex items-center gap-1.5">
+        {[1, 2, 3, 4, 5].map((score) => (
           <button
-            key={star}
+            key={score}
             type="button"
-            onMouseEnter={() => setHover(star)}
+            onMouseEnter={() => setHover(score)}
             onMouseLeave={() => setHover(0)}
-            onClick={() => onChange(star)}
-            className="text-2xl transition-colors"
-            aria-label={`${star} star${star !== 1 ? "s" : ""}`}
+            onClick={() => onChange(score)}
+            className={`w-10 h-10 rounded-xl border text-lg transition-all ${
+              score <= active
+                ? "border-pink-vivid/40 bg-pink-50 text-pink-vivid"
+                : "border-black/[0.08] bg-white text-muted"
+            }`}
+            aria-label={`${score} quills`}
           >
-            <span className={star <= (hover || value) ? "text-yellow-400" : "text-gray-300"}>
-              &#9733;
-            </span>
+            ✒
           </button>
         ))}
-        {value > 0 && (
-          <span className="text-sm text-muted ml-2 self-center">{value}/5</span>
-        )}
+        <span className="text-sm font-ui text-ink/80 ml-2 min-w-[110px]">
+          {value > 0 ? `${value}/5 · ${QUILL_COPY[value]}` : "Select a score"}
+        </span>
       </div>
     </div>
   );
@@ -53,46 +63,68 @@ function StarInput({
 export default function ReviewForm({ orderId, onSubmitted }: ReviewFormProps) {
   const { submitReview, submitting, error } = useSubmitReview();
 
-  const [rating, setRating] = useState(0);
-  const [communication, setCommunication] = useState(0);
-  const [quality, setQuality] = useState(0);
-  const [value, setValue] = useState(0);
+  const [quillScore, setQuillScore] = useState(0);
+  const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [highlights, setHighlights] = useState<string[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
+  const contentLength = useMemo(() => content.trim().length, [content]);
+
+  const toggleHighlight = (value: string) => {
+    setHighlights((prev) => {
+      if (prev.includes(value)) return prev.filter((item) => item !== value);
+      if (prev.length >= 6) return prev;
+      return [...prev, value];
+    });
+  };
+
+  const handleSubmit = useCallback(async (event: React.FormEvent) => {
+    event.preventDefault();
     setLocalError(null);
 
-    if (rating === 0) {
-      setLocalError("Please select an overall rating.");
+    if (quillScore === 0) {
+      setLocalError("Pick a quill score before submitting.");
+      return;
+    }
+
+    if (content.trim().length < 12) {
+      setLocalError("Write at least 12 characters so your review is useful.");
       return;
     }
 
     const reviewId = await submitReview({
       order_id: orderId,
-      rating,
-      communication_rating: communication || undefined,
-      quality_rating: quality || undefined,
-      value_rating: value || undefined,
-      content: content.trim() || undefined,
+      quill_score: quillScore,
+      title: title.trim() || undefined,
+      content,
+      highlights,
     });
 
     if (reviewId) {
       onSubmitted();
     }
-  }, [orderId, rating, communication, quality, value, content, submitReview, onSubmitted]);
+  }, [quillScore, content, submitReview, orderId, title, highlights, onSubmitted]);
 
   const displayError = localError || error;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <StarInput label="Overall Rating" value={rating} onChange={setRating} required />
+      <QuillInput value={quillScore} onChange={setQuillScore} />
 
-      <div className="grid grid-cols-3 gap-4">
-        <StarInput label="Communication" value={communication} onChange={setCommunication} />
-        <StarInput label="Quality" value={quality} onChange={setQuality} />
-        <StarInput label="Value" value={value} onChange={setValue} />
+      <div>
+        <label htmlFor="review-title" className="block text-sm font-ui font-medium text-ink mb-1">
+          Short Title
+        </label>
+        <input
+          id="review-title"
+          type="text"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="A quick summary of your experience"
+          maxLength={120}
+          className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-pink-vivid/25"
+        />
       </div>
 
       <div>
@@ -102,29 +134,46 @@ export default function ReviewForm({ orderId, onSubmitted }: ReviewFormProps) {
         <textarea
           id="review-content"
           value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Share your experience..."
-          rows={4}
-          maxLength={2000}
-          className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body text-ink placeholder-muted resize-none focus:outline-none focus:ring-2 focus:ring-purple-primary/30"
+          onChange={(event) => setContent(event.target.value)}
+          placeholder="Describe what was delivered, what stood out, and who this would be great for."
+          rows={5}
+          maxLength={3000}
+          className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body text-ink placeholder-muted resize-none focus:outline-none focus:ring-2 focus:ring-pink-vivid/25"
         />
-        <p className="text-xs text-muted mt-1">{content.length}/2000</p>
+        <p className="text-xs text-muted mt-1">{contentLength}/3000 (minimum 12)</p>
       </div>
 
-      <p className="text-xs text-muted">
-        Your review is blind &mdash; the other party won&apos;t see it until they also leave a review (or 14 days pass).
-      </p>
+      <div>
+        <p className="text-sm font-ui font-medium text-ink mb-2">Highlights</p>
+        <div className="flex flex-wrap gap-2">
+          {HIGHLIGHT_OPTIONS.map((option) => {
+            const selected = highlights.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => toggleHighlight(option)}
+                className={`px-3 py-1.5 rounded-full text-xs font-ui border transition-colors ${
+                  selected
+                    ? "bg-pink-vivid/10 border-pink-vivid/30 text-pink-vivid"
+                    : "bg-white border-black/[0.08] text-muted hover:text-ink"
+                }`}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-      {displayError && (
-        <p className="text-red-600 text-sm">{displayError}</p>
-      )}
+      {displayError && <p className="text-red-600 text-sm">{displayError}</p>}
 
       <button
         type="submit"
-        disabled={submitting || rating === 0}
+        disabled={submitting || quillScore === 0}
         className="w-full py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-xl font-ui font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
       >
-        {submitting ? "Submitting..." : "Submit Review"}
+        {submitting ? "Publishing..." : "Publish Review"}
       </button>
     </form>
   );
