@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -19,16 +19,44 @@ import ShippingTracker from "./ShippingTracker";
 import TrackingInput from "./TrackingInput";
 import DeliverySection from "./DeliverySection";
 import { supabase } from "@/lib/supabase";
-import type { Order } from "@/lib/types/store";
+import type { Order, OrderStatus } from "@/lib/types/store";
 import { DISPUTE_REASON_LABELS, DISPUTE_RESOLUTION_LABELS } from "@/lib/types/store";
 
 interface OrderViewProps {
   orderId: string;
 }
 
+type CommissionWorkspaceTab = "overview" | "requirements" | "delivery" | "activity" | "reviews";
+
+const COMMISSION_WORKSPACE_TABS: Array<{ key: CommissionWorkspaceTab; label: string; hint: string }> = [
+  { key: "overview", label: "Overview", hint: "Status, milestones, and next step" },
+  { key: "requirements", label: "Requirements", hint: "Brief, scope, and due date" },
+  { key: "delivery", label: "Delivery", hint: "Submit work and handle revisions" },
+  { key: "activity", label: "Activity", hint: "Messages and order updates" },
+  { key: "reviews", label: "Reviews", hint: "Mutual feedback after completion" },
+];
+
+function parseCommissionWorkspaceTab(value: string | null): CommissionWorkspaceTab | null {
+  if (value === "overview") return "overview";
+  if (value === "requirements") return "requirements";
+  if (value === "delivery") return "delivery";
+  if (value === "activity") return "activity";
+  if (value === "reviews") return "reviews";
+  return null;
+}
+
+function getDefaultCommissionTab(status: OrderStatus): CommissionWorkspaceTab {
+  if (["pending_acceptance", "pending_payment", "paid"].includes(status)) return "requirements";
+  if (["in_progress", "submitted", "revision_requested"].includes(status)) return "delivery";
+  if (["disputed", "refund_requested", "resolved", "cancelled", "refunded"].includes(status)) return "activity";
+  if (status === "completed") return "reviews";
+  return "overview";
+}
+
 export default function OrderView({ orderId }: OrderViewProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const { order, loading, error, refetch } = useOrder(orderId);
   const { updateDraft, updating: updatingDraft, error: updateDraftError } = useUpdateOrderDraft();
   const searchParams = useSearchParams();
@@ -49,6 +77,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
   const [dueDateDraft, setDueDateDraft] = useState("");
 
   const paymentParam = searchParams.get("payment");
+  const commissionTabParam = parseCommissionWorkspaceTab(searchParams.get("stage"));
 
   // Redirect to dedicated checkout page if payment=start
   useEffect(() => {
@@ -147,6 +176,25 @@ export default function OrderView({ orderId }: OrderViewProps) {
   const originalAmount = Number(order.original_amount ?? order.amount);
   const discountAmount = Number(order.discount_amount || 0);
   const subtotalAmount = Math.max(originalAmount - shippingCost, 0);
+  const activeCommissionTab = isCommission
+    ? commissionTabParam ?? getDefaultCommissionTab(order.status)
+    : null;
+  const activeCommissionTabMeta = activeCommissionTab
+    ? COMMISSION_WORKSPACE_TABS.find((tab) => tab.key === activeCommissionTab) ?? null
+    : null;
+  const isCommissionDeliveryState = isCommission && ["in_progress", "revision_requested", "submitted", "completed", "delivered"].includes(order.status);
+  const revisionRemaining = order.max_revisions == null
+    ? null
+    : Math.max(order.max_revisions - order.revision_count, 0);
+
+  const updateCommissionTab = (nextTab: CommissionWorkspaceTab) => {
+    if (!isCommission) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("stage", nextTab);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
 
   const handleSaveDraftDetails = async () => {
     if (!isBuyer) return;
@@ -320,12 +368,16 @@ export default function OrderView({ orderId }: OrderViewProps) {
 
         {/* Pending Acceptance Banner */}
         {order.status === "pending_acceptance" && isBuyer && (
-          <section className="rounded-2xl border border-amber-300/50 bg-amber-50 p-5 sm:p-6 text-center">
+          <section className={`rounded-2xl p-5 sm:p-6 text-center ${
+            isCommission
+              ? "border border-purple-primary/25 bg-purple-50/60"
+              : "border border-amber-300/50 bg-amber-50"
+          }`}>
             <h2 className="font-display text-xl text-ink mb-2">Awaiting Seller Approval</h2>
             <p className="text-sm font-body text-muted">
               The seller needs to review and accept your order before payment. You&apos;ll be notified once they respond.
               {order.seller_response_deadline && (
-                <span className="block mt-1 text-xs text-amber-700">
+                <span className={`block mt-1 text-xs ${isCommission ? "text-purple-primary/80" : "text-amber-700"}`}>
                   Response expected by {new Date(order.seller_response_deadline).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                 </span>
               )}
@@ -350,7 +402,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
           </section>
         )}
 
-        {order.status === "pending_payment" && isBuyer && (
+        {order.status === "pending_payment" && isBuyer && (!isCommission || activeCommissionTab === "requirements") && (
           <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6 space-y-4">
             <h2 className="font-display text-xl text-ink">Order Details</h2>
             <p className="text-sm font-body text-muted">
@@ -448,7 +500,11 @@ export default function OrderView({ orderId }: OrderViewProps) {
         )}
 
         {order.status === "pending_payment" && !isBuyer && (
-          <section className="rounded-2xl border border-yellow-300/50 bg-yellow-50 p-5 sm:p-6 text-center">
+          <section className={`rounded-2xl p-5 sm:p-6 text-center ${
+            isCommission
+              ? "border border-purple-primary/25 bg-purple-50/60"
+              : "border border-yellow-300/50 bg-yellow-50"
+          }`}>
             <h2 className="font-display text-lg text-ink mb-1">Awaiting Payment</h2>
             <p className="text-sm font-body text-muted">
               The buyer hasn&apos;t completed payment yet. You&apos;ll be notified when the order is active.
@@ -456,11 +512,50 @@ export default function OrderView({ orderId }: OrderViewProps) {
           </section>
         )}
 
+        {isCommission && activeCommissionTab && (
+          <>
+            <section className="rounded-2xl border border-black/[0.06] bg-white p-4 sm:p-5">
+              <p className="text-[10px] font-ui uppercase tracking-[0.18em] text-purple-primary/70 mb-3">
+                Order Workspace
+              </p>
+              <div className="flex items-center gap-5 overflow-x-auto scrollbar-hide border-b border-black/[0.08]">
+                {COMMISSION_WORKSPACE_TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => updateCommissionTab(tab.key)}
+                    className={`shrink-0 pb-2 text-sm font-ui transition-colors border-b-2 ${
+                      activeCommissionTab === tab.key
+                        ? "text-pink-vivid border-pink-vivid"
+                        : "text-muted border-transparent hover:text-purple-primary"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs font-body text-muted">
+                {activeCommissionTabMeta?.hint}
+              </p>
+            </section>
+
+            <CommissionProcessGuide
+              order={order}
+              isBuyer={isBuyer}
+              revisionRemaining={revisionRemaining}
+              activeTab={activeCommissionTab}
+              onOpenTab={updateCommissionTab}
+            />
+          </>
+        )}
+
         {/* Timeline */}
-        <OrderTimeline order={order} />
+        {(!isCommission || activeCommissionTab === "overview") && (
+          <OrderTimeline order={order} />
+        )}
 
         {/* Brief (commissions) */}
-        {isCommission && order.brief && (order.status !== "pending_payment" || !isBuyer) && (
+        {isCommission && activeCommissionTab === "requirements" && order.brief && (order.status !== "pending_payment" || !isBuyer) && (
           <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
             <h2 className="font-display text-xl text-ink mb-3">Brief</h2>
             <p className="font-body text-sm text-ink/90 whitespace-pre-wrap">{order.brief}</p>
@@ -475,6 +570,15 @@ export default function OrderView({ orderId }: OrderViewProps) {
                 ))}
               </div>
             )}
+          </section>
+        )}
+
+        {isCommission && activeCommissionTab === "requirements" && !order.brief && (order.status !== "pending_payment" || !isBuyer) && (
+          <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
+            <h2 className="font-display text-xl text-ink mb-2">Requirements</h2>
+            <p className="text-sm font-body text-muted">
+              The order brief has not been provided yet. Ask for project details in the Activity tab before continuing.
+            </p>
           </section>
         )}
 
@@ -521,26 +625,157 @@ export default function OrderView({ orderId }: OrderViewProps) {
         )}
 
         {/* Commission Delivery Section */}
-        {isCommission && ["in_progress", "revision_requested", "submitted", "completed", "delivered"].includes(order.status) && (
+        {isCommission && activeCommissionTab === "delivery" && isCommissionDeliveryState && (
           <DeliverySection order={order} isSeller={!isBuyer} onUpdate={refetch} />
         )}
 
         {/* Actions */}
-        <OrderActions
-          order={order}
-          onUpdate={() => refetch()}
-        />
+        {(!isCommission || activeCommissionTab === "overview" || (activeCommissionTab === "delivery" && !isCommissionDeliveryState)) && (
+          <OrderActions
+            order={order}
+            onUpdate={() => refetch()}
+          />
+        )}
 
         {/* Dispute Banner */}
-        <DisputeBanner orderId={order.id} orderStatus={order.status} />
+        {(!isCommission || activeCommissionTab === "overview" || activeCommissionTab === "activity") && (
+          <DisputeBanner orderId={order.id} orderStatus={order.status} />
+        )}
 
         {/* Reviews */}
-        <OrderReviewSection order={order} userId={user?.id} />
+        {(!isCommission || activeCommissionTab === "reviews") && (
+          <OrderReviewSection order={order} userId={user?.id} />
+        )}
 
         {/* Messages */}
-        <OrderMessages orderId={orderId} />
+        {(!isCommission || activeCommissionTab === "activity") && (
+          <OrderMessages orderId={orderId} />
+        )}
       </div>
     </div>
+  );
+}
+
+function CommissionProcessGuide({
+  order,
+  isBuyer,
+  revisionRemaining,
+  activeTab,
+  onOpenTab,
+}: {
+  order: Order;
+  isBuyer: boolean;
+  revisionRemaining: number | null;
+  activeTab: CommissionWorkspaceTab;
+  onOpenTab: (tab: CommissionWorkspaceTab) => void;
+}) {
+  const phaseIndex = (() => {
+    if (["pending_acceptance", "pending_payment"].includes(order.status)) return 0;
+    if (["paid", "in_progress", "revision_requested"].includes(order.status)) return 1;
+    if (order.status === "submitted") return 2;
+    if (order.status === "completed") return 3;
+    return 1;
+  })();
+
+  const nextStep = (() => {
+    if (order.status === "pending_acceptance") {
+      return {
+        title: isBuyer ? "Waiting for seller approval" : "Review this order request",
+        description: isBuyer
+          ? "The seller needs to accept before payment starts the order."
+          : "Accept or decline this request in Overview after checking the brief.",
+        tab: "overview" as CommissionWorkspaceTab,
+      };
+    }
+    if (order.status === "pending_payment") {
+      return {
+        title: isBuyer ? "Confirm requirements and pay" : "Waiting for buyer payment",
+        description: isBuyer
+          ? "Service platforms keep this step explicit so scope is locked before kickoff."
+          : "Once payment clears, work starts and due dates begin.",
+        tab: "requirements" as CommissionWorkspaceTab,
+      };
+    }
+    if (["paid", "in_progress", "revision_requested"].includes(order.status)) {
+      return {
+        title: isBuyer ? "Track progress and clarify details" : "Deliver against the brief",
+        description: isBuyer
+          ? "Use Activity for questions and Delivery to review submissions."
+          : "Use Delivery to submit files and notes clearly for buyer approval.",
+        tab: isBuyer ? ("activity" as CommissionWorkspaceTab) : ("delivery" as CommissionWorkspaceTab),
+      };
+    }
+    if (order.status === "submitted") {
+      return {
+        title: isBuyer ? "Review submission now" : "Await buyer review",
+        description: isBuyer
+          ? "Accept delivery or request revision from the Delivery tab."
+          : "Stay available for revision requests and feedback in Activity.",
+        tab: isBuyer ? ("delivery" as CommissionWorkspaceTab) : ("activity" as CommissionWorkspaceTab),
+      };
+    }
+    if (order.status === "completed") {
+      return {
+        title: "Closeout and feedback",
+        description: "Leave a review to complete the service workflow.",
+        tab: "reviews" as CommissionWorkspaceTab,
+      };
+    }
+    return {
+      title: "Track order updates",
+      description: "Use Activity for the latest messages and order events.",
+      tab: "activity" as CommissionWorkspaceTab,
+    };
+  })();
+
+  const phases = ["Requirements", "Workroom", "Delivery", "Closeout"];
+
+  return (
+    <section className="rounded-2xl border border-purple-primary/15 bg-white p-5 sm:p-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-ui uppercase tracking-[0.18em] text-purple-primary/70">Process Guide</p>
+          <h2 className="font-display text-xl text-ink mt-1">{nextStep.title}</h2>
+          <p className="text-sm font-body text-muted mt-1">{nextStep.description}</p>
+        </div>
+        {activeTab !== nextStep.tab && (
+          <button
+            type="button"
+            onClick={() => onOpenTab(nextStep.tab)}
+            className="inline-flex px-4 py-2 rounded-full text-xs font-ui font-semibold text-purple-primary border border-purple-primary/25 hover:border-pink-vivid/40 hover:text-pink-vivid transition-colors"
+          >
+            Open {COMMISSION_WORKSPACE_TABS.find((tab) => tab.key === nextStep.tab)?.label}
+          </button>
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {phases.map((label, index) => {
+          const isDone = index < phaseIndex;
+          const isCurrent = index === phaseIndex;
+          return (
+            <div
+              key={label}
+              className={`rounded-xl border px-3 py-2 text-xs font-ui ${
+                isDone
+                  ? "border-pink-vivid/30 bg-pink-50/50 text-pink-vivid"
+                  : isCurrent
+                    ? "border-purple-primary/30 bg-purple-50/60 text-purple-primary"
+                    : "border-black/[0.08] text-muted"
+              }`}
+            >
+              {label}
+            </div>
+          );
+        })}
+      </div>
+
+      {order.max_revisions != null && (
+        <p className="mt-3 text-xs font-body text-muted">
+          Revisions remaining: {revisionRemaining}
+        </p>
+      )}
+    </section>
   );
 }
 
