@@ -174,11 +174,10 @@ export default function CommunityModerationSettingsPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                             </svg>
                           ) : (
-                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
-                              <defs><linearGradient id="cg-mod-cmt" x1="2" y1="20" x2="22" y2="4" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset=".5" stopColor="#EC4899" /><stop offset="1" stopColor="#F97316" /></linearGradient></defs>
-                              <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" stroke="url(#cg-mod-cmt)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                              <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" stroke="url(#cg-mod-cmt)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                              <path d="M12 10.5h6M12 13h4" stroke="url(#cg-mod-cmt)" strokeWidth="1.8" strokeLinecap="round" />
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                              <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                              <path d="M12 10.5h6M12 13h4" strokeWidth="1.8" strokeLinecap="round" />
                             </svg>
                           )}
                           {entry.content_type === 'post' ? 'Post' : 'Comment'}
