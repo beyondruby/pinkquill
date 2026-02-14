@@ -29,51 +29,51 @@ export default function CommissionReviewsPanel({
 
   if (loading) {
     return (
-      <div className="py-2">
-        <div className="h-6 w-44 rounded bg-pink-100/70 animate-pulse" />
-        <div className="mt-4 space-y-4">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-20 rounded-xl bg-purple-100/60 animate-pulse" />
-          ))}
-        </div>
+      <div className="py-2 space-y-4">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="rounded-2xl bg-[#f5f5f5] p-6 sm:p-8 animate-pulse">
+            <div className="flex items-start gap-5 sm:gap-8">
+              <div className="shrink-0 flex flex-col items-center gap-2 w-16 sm:w-20">
+                <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full bg-black/[0.06]" />
+                <div className="h-3 w-12 rounded bg-black/[0.06]" />
+              </div>
+              <div className="flex-1 space-y-3">
+                <div className="h-3 w-24 rounded bg-black/[0.06]" />
+                <div className="h-4 w-full rounded bg-black/[0.06]" />
+                <div className="h-4 w-3/4 rounded bg-black/[0.06]" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
 
   return (
     <section>
-      <div className="pb-3 border-b border-purple-primary/12">
-        <p className="text-[10px] font-ui uppercase tracking-[0.2em] text-purple-primary/75">
-          {role === "seller" ? "Delivery Reputation" : "Collaboration Reputation"}
-        </p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h3 className="font-display text-2xl text-ink">{roleTitle}</h3>
-          <span className="text-purple-primary/30">•</span>
-          <span className="inline-flex items-center gap-1.5 text-sm font-ui text-pink-vivid">
-            <QuillIcon className="h-3.5 w-3.5" gradient={average > 0} />
-            {average > 0 ? `${average.toFixed(1)} / 5` : "No score yet"}
-          </span>
-          <span className="text-sm font-body text-muted">
-            {reviews.length} review{reviews.length === 1 ? "" : "s"}
-          </span>
-        </div>
-        <p className="text-sm font-body text-muted mt-1">
-          {role === "seller" ? "Client to creator feedback" : "Creator to client feedback"} from completed commissions.
-        </p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6">
+        <h3 className="font-display text-lg text-ink">{roleTitle}</h3>
+        <span className="inline-flex items-center gap-1.5 text-sm font-ui">
+          <QuillIcon className="h-4 w-4" gradient={average > 0} />
+          <span className="font-semibold text-ink">{average > 0 ? average.toFixed(1) : "--"}</span>
+          <span className="text-muted text-xs">({reviews.length} review{reviews.length !== 1 ? "s" : ""})</span>
+        </span>
       </div>
 
-      {error && <p className="text-sm font-body text-red-500 mt-4">{error}</p>}
+      {error && <p className="text-sm font-body text-red-500">{error}</p>}
 
       {!error && reviews.length === 0 && (
-        <p className="text-sm font-body text-muted mt-4">
-          {isOwnProfile
-            ? `You do not have any ${role === "seller" ? "seller" : "buyer"} reviews yet.`
-            : "No commission reviews available yet."}
-        </p>
+        <div className="rounded-2xl bg-[#f5f5f5] p-8 text-center">
+          <p className="text-sm font-body text-muted">
+            {isOwnProfile
+              ? `No ${role === "seller" ? "seller" : "buyer"} reviews yet.`
+              : "No commission reviews available yet."}
+          </p>
+        </div>
       )}
 
       {reviews.length > 0 && (
-        <div className="mt-2">
+        <div>
           {reviews.map((review) => (
             <ReviewCard key={review.id} review={review} />
           ))}
@@ -81,10 +81,10 @@ export default function CommissionReviewsPanel({
       )}
 
       {hasMore && (
-        <div className="pt-4">
+        <div className="pt-2">
           <button
             onClick={loadMore}
-            className="inline-flex px-0 py-1 text-xs font-ui font-semibold text-purple-primary hover:text-pink-vivid transition-colors"
+            className="inline-flex px-0 py-1 text-xs font-ui font-semibold text-muted hover:text-ink transition-colors"
           >
             Load more reviews
           </button>

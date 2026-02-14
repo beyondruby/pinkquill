@@ -193,13 +193,17 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   if (loading) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="rounded-[30px] border border-purple-primary/15 bg-gradient-to-br from-white via-rose-50/40 to-violet-50/40 p-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-20 rounded-2xl bg-gradient-to-br from-pink-100/70 to-purple-100/60 animate-pulse" />
-            ))}
-          </div>
-          <div className="h-12 rounded-2xl bg-gradient-to-r from-pink-100/70 to-purple-100/60 animate-pulse" />
+        <div className="space-y-3 mb-8">
+          <div className="h-3 w-32 rounded bg-black/[0.05] animate-pulse" />
+          <div className="h-4 w-80 rounded bg-black/[0.05] animate-pulse" />
+          <div className="mt-5 h-[2.5px] rounded-full bg-black/[0.05] animate-pulse" />
+        </div>
+        <div className="flex gap-0 border-b border-black/[0.05] mb-6">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="px-5 py-3">
+              <div className="h-4 w-24 rounded bg-black/[0.05] animate-pulse" />
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -218,65 +222,75 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <section className="relative mb-6 overflow-hidden rounded-[30px] border border-purple-primary/15 bg-gradient-to-br from-[#fff8ff] via-[#fff4fb] to-[#f8f4ff] p-6 sm:p-8">
-        <div className="pointer-events-none absolute -top-24 -right-16 h-56 w-56 rounded-full bg-pink-vivid/12 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-purple-primary/12 blur-3xl" />
-
-        <div className="relative">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
-            <div>
-              <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-purple-primary/75">Commissions Studio</p>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink/80">
-            <span className="inline-flex items-center gap-1.5 font-ui text-pink-vivid">
-              <QuillIcon className="h-3.5 w-3.5" gradient={Boolean(sellerStats?.total_reviews)} />
-              {sellerStats?.total_reviews ? `${sellerStats.avg_quill_score.toFixed(1)} / 5` : "No score yet"}
+      <section className="relative mb-8">
+        <div className="flex flex-col gap-3">
+          <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-muted">Commissions Studio</p>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <span className="inline-flex items-center gap-1.5 font-ui">
+              <QuillIcon className="h-4 w-4" gradient={Boolean(sellerStats?.total_reviews)} />
+              <span className="font-semibold text-ink">{sellerStats?.total_reviews ? sellerStats.avg_quill_score.toFixed(1) : "--"}</span>
+              <span className="text-muted text-xs">({sellerStats?.total_reviews ?? 0} reviews)</span>
             </span>
-            <span className="text-purple-primary/30">•</span>
-            <span><span className="text-muted">Active:</span> {stats.active}</span>
-            <span className="text-purple-primary/30">•</span>
-            <span><span className="text-muted">Response:</span> {formatResponseTime(responseTimeHours)}</span>
-            <span className="text-purple-primary/30">•</span>
-            <span><span className="text-muted">Completed:</span> {sellerStats?.completed_orders ?? 0}</span>
-            <span className="text-purple-primary/30">•</span>
-            <span><span className="text-muted">Total:</span> {stats.total}</span>
+            <span className="text-muted/30">|</span>
+            <span className="text-muted">{stats.active} active service{stats.active !== 1 ? "s" : ""}</span>
+            <span className="text-muted/30">|</span>
+            <span className="text-muted">{sellerStats?.completed_orders ?? 0} completed</span>
+            <span className="text-muted/30">|</span>
+            <span className="text-muted">{formatResponseTime(responseTimeHours)} avg response</span>
           </div>
-
           {stats.serviceLabels.length > 0 && (
-            <div className="mt-3 text-xs font-body text-muted">
-              <span className="font-ui uppercase tracking-[0.16em] text-purple-primary/70 mr-2">Specialties</span>
-              {stats.serviceLabels.slice(0, 4).join(" · ")}
-              {stats.serviceLabels.length > 4 && ` · +${stats.serviceLabels.length - 4} more`}
+            <div className="flex flex-wrap gap-2 mt-1">
+              {stats.serviceLabels.slice(0, 4).map((label) => (
+                <span key={label} className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-ui text-muted bg-black/[0.04]">
+                  {label}
+                </span>
+              ))}
+              {stats.serviceLabels.length > 4 && (
+                <span className="text-[11px] font-ui text-muted self-center">+{stats.serviceLabels.length - 4} more</span>
+              )}
             </div>
           )}
         </div>
+        <div className="mt-5 h-[2.5px] rounded-full" style={{ background: "linear-gradient(to right, #4F8BD9, #8B5CF6, #EC4899, #F97316, #F59E0B)" }} />
       </section>
 
       <section className="mb-6">
-        <p className="text-[10px] font-ui uppercase tracking-[0.18em] text-purple-primary/70 mb-2">Browse Panels</p>
         <div
           id={tablistId}
           role="tablist"
           aria-label="Commissions views"
           onKeyDown={handleTabKeyDown}
-          className="flex gap-4 overflow-x-auto scrollbar-hide border-b border-purple-primary/15"
+          className="flex gap-0 overflow-x-auto scrollbar-hide border-b border-black/[0.08]"
         >
-          {tabConfig.map((item) => (
-            <SubtabCard
-              key={item.key}
-              active={panel === item.key}
-              icon={item.icon}
-              label={item.label}
-              count={item.count}
-              onClick={() => updateViewState({ panel: item.key })}
-            />
-          ))}
+          {tabConfig.map((item) => {
+            const isActive = panel === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => updateViewState({ panel: item.key })}
+                className={`relative shrink-0 px-5 py-3 font-ui text-[13px] transition-colors ${
+                  isActive ? "text-ink font-medium" : "text-muted hover:text-ink"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <TabIcon icon={item.icon} active={isActive} />
+                  <span>{item.label}</span>
+                  <span className={`text-[11px] ${isActive ? "text-ink/40" : "text-muted/60"}`}>{item.count}</span>
+                </span>
+                {isActive && (
+                  <span
+                    className="absolute bottom-0 inset-x-0 h-[2.5px] rounded-t-full"
+                    style={{ background: "linear-gradient(to right, #4F8BD9, #8B5CF6, #EC4899, #F97316, #F59E0B)" }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
-        <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
-          <p className="text-[12px] font-ui text-purple-primary/80">{activeTabMeta?.helper}</p>
-        </div>
+        <p className="mt-2 text-xs font-body text-muted">{activeTabMeta?.helper}</p>
       </section>
 
       {panel === "services" && (
@@ -361,46 +375,8 @@ function formatResponseTime(hours: number | null): string {
   return `${days}d`;
 }
 
-function SubtabCard({
-  icon,
-  label,
-  count,
-  active,
-  onClick,
-}: {
-  icon: "services" | "seller_reviews" | "buyer_reviews";
-  label: string;
-  count: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={`snap-start shrink-0 pb-2 text-left transition-colors border-b-2 ${
-        active
-          ? "text-pink-vivid border-pink-vivid"
-          : "text-muted border-transparent hover:text-purple-primary"
-      }`}
-    >
-      <div className="flex items-center gap-1.5">
-        <span className="inline-flex items-center gap-1.5">
-          <TabIcon icon={icon} active={active} />
-          <span className="font-ui text-xs uppercase tracking-wide">{label}</span>
-        </span>
-        <span className={`text-[11px] font-ui ${active ? "text-pink-vivid/75" : "text-muted/75"}`}>
-          {count}
-        </span>
-      </div>
-    </button>
-  );
-}
-
 function TabIcon({ icon, active }: { icon: "services" | "seller_reviews" | "buyer_reviews"; active: boolean }) {
-  const tone = active ? "text-pink-vivid" : "text-purple-primary/55";
+  const tone = active ? "text-ink" : "text-muted";
 
   if (icon === "seller_reviews") {
     return <QuillIcon className="h-3.5 w-3.5" gradient={active} />;
@@ -440,14 +416,14 @@ function FilterButton({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-full font-ui text-xs transition-colors whitespace-nowrap ${
+      className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs transition-colors whitespace-nowrap ${
         active
-          ? "bg-pink-vivid/12 text-pink-vivid"
-          : "text-muted hover:text-purple-primary"
+          ? "bg-ink/[0.07] text-ink font-medium"
+          : "text-muted hover:text-ink hover:bg-black/[0.03]"
       }`}
     >
       {label}
-      <span className={`ml-1 ${active ? "text-pink-vivid/80" : "text-muted/70"}`}>{count}</span>
+      <span className={`ml-1 ${active ? "text-ink/50" : "text-muted/60"}`}>{count}</span>
     </button>
   );
 }
