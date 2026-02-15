@@ -4,6 +4,7 @@ import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } f
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getProviderByName } from "@/lib/payment-provider";
 import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
+import { getStripeServer } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,75 @@ type OrderForCheckout = {
 };
 
 const REQUIRED_SHIPPING_FIELDS = ["name", "line1", "city", "country"] as const;
+const applePayDomainRegistrationCache = new Set<string>();
+
+function normalizeDomainCandidate(raw: string | null | undefined): string | null {
+  const value = String(raw || "").trim().toLowerCase();
+  if (!value) return null;
+
+  const host = value.split(",")[0].trim().replace(/:\d+$/, "").replace(/\.$/, "");
+  if (!host || host === "localhost" || host === "127.0.0.1" || host === "::1") return null;
+  if (!host.includes(".")) return null;
+  return host;
+}
+
+function collectApplePayDomains(request: Request): string[] {
+  const configuredDomains = (process.env.STRIPE_APPLE_PAY_DOMAINS || "")
+    .split(",")
+    .map((domain) => normalizeDomainCandidate(domain))
+    .filter((domain): domain is string => Boolean(domain));
+
+  const requestHost = normalizeDomainCandidate(
+    request.headers.get("x-forwarded-host") || request.headers.get("host")
+  );
+
+  const siteHost = normalizeDomainCandidate(
+    process.env.NEXT_PUBLIC_SITE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SITE_URL).hostname
+      : null
+  );
+
+  const baseHosts = new Set<string>([
+    ...configuredDomains,
+    ...(requestHost ? [requestHost] : []),
+    ...(siteHost ? [siteHost] : []),
+  ]);
+
+  const finalHosts = new Set<string>();
+  for (const host of baseHosts) {
+    finalHosts.add(host);
+    if (host.startsWith("www.")) {
+      finalHosts.add(host.slice(4));
+    } else {
+      finalHosts.add(`www.${host}`);
+    }
+  }
+
+  return Array.from(finalHosts).filter((host) => normalizeDomainCandidate(host) !== null);
+}
+
+async function ensureApplePayDomainsRegistered(request: Request): Promise<void> {
+  const stripe = getStripeServer();
+  const domains = collectApplePayDomains(request);
+
+  for (const domain of domains) {
+    if (applePayDomainRegistrationCache.has(domain)) continue;
+
+    try {
+      await stripe.applePayDomains.create({ domain_name: domain });
+      applePayDomainRegistrationCache.add(domain);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to register Apple Pay domain";
+      if (message.includes("already been registered")) {
+        applePayDomainRegistrationCache.add(domain);
+        continue;
+      }
+
+      // Apple Pay setup should never block checkout preparation.
+      console.warn("[Checkout Prepare] Apple Pay domain registration warning", { domain, message });
+    }
+  }
+}
 
 function hasRequiredShippingAddress(address: Record<string, unknown> | null): boolean {
   if (!address) return false;
@@ -183,6 +253,9 @@ export async function POST(request: Request) {
     }
 
     const providerName = resolveProviderForCheckout(order, orderAmount);
+    if (providerName === "stripe") {
+      await ensureApplePayDomainsRegistered(request);
+    }
     const provider = getProviderByName(providerName);
     const result = await provider.createCheckoutSession({
       id: order.id,
