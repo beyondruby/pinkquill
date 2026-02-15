@@ -7,6 +7,7 @@ import { getStripe } from "@/lib/stripe-client";
 import { useCheckout } from "@/lib/hooks/usePayments";
 import { supabase } from "@/lib/supabase";
 import type { Order } from "@/lib/types/store";
+import TurnstileCaptcha from "@/components/security/TurnstileCaptcha";
 
 interface CheckoutModalProps {
   order: Order;
@@ -60,7 +61,18 @@ function OrderSummary({ order }: { order: Order }) {
 // STRIPE CHECKOUT FORM
 // ============================================================================
 
-function StripeCheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
+interface StripeCheckoutFormProps extends CheckoutModalProps {
+  captchaToken: string | null;
+  onCaptchaConsumed: () => void;
+}
+
+function StripeCheckoutForm({
+  order,
+  onSuccess,
+  onClose,
+  captchaToken,
+  onCaptchaConsumed,
+}: StripeCheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -74,6 +86,12 @@ function StripeCheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
     setError(null);
 
     try {
+      if (!captchaToken) {
+        setError("Complete the security check before payment.");
+        setProcessing(false);
+        return;
+      }
+
       const { error: stripeError } = await stripe.confirmPayment({
         elements,
         confirmParams: {
@@ -88,11 +106,17 @@ function StripeCheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
         return;
       }
 
-      const confirmResponse = await fetch("/api/payments/confirm", {
-        method: "POST",
-        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ order_id: order.id }),
-      });
+      const confirmResponse = await (async () => {
+        try {
+          return await fetch("/api/payments/confirm", {
+            method: "POST",
+            headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ order_id: order.id, captcha_token: captchaToken }),
+          });
+        } finally {
+          onCaptchaConsumed();
+        }
+      })();
       if (!confirmResponse.ok) {
         const confirmData = await confirmResponse.json().catch(() => ({}));
         setError(confirmData.error || "Payment confirmation failed");
@@ -105,7 +129,7 @@ function StripeCheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
       setError(err instanceof Error ? err.message : "Payment failed");
       setProcessing(false);
     }
-  }, [stripe, elements, order.id, onSuccess]);
+  }, [stripe, elements, order.id, onCaptchaConsumed, captchaToken, onSuccess]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -123,7 +147,7 @@ function StripeCheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
         </button>
         <button
           type="submit"
-          disabled={!stripe || processing}
+          disabled={!stripe || processing || !captchaToken}
           className="flex-1 px-4 py-2.5 bg-[var(--color-purple-primary)] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {processing ? "Processing..." : `Pay $${Number(order.amount).toFixed(2)}`}
@@ -138,6 +162,7 @@ function StripeCheckoutForm({ order, onSuccess, onClose }: CheckoutModalProps) {
 // ============================================================================
 
 export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutModalProps) {
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
   const {
     mode,
     clientSecret,
@@ -148,10 +173,17 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
   } = useCheckout();
   const [stripeReady, setStripeReady] = useState(false);
   const [confirmingPlaceholder, setConfirmingPlaceholder] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   useEffect(() => {
     createCheckout(order.id);
   }, [order.id, createCheckout]);
+
+  useEffect(() => {
+    setCaptchaToken(null);
+    setCaptchaResetKey((prev) => prev + 1);
+  }, [order.id]);
 
   useEffect(() => {
     if (mode !== "stripe") return;
@@ -174,6 +206,8 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
     : undefined;
 
   const zeroTotal = Number(order.amount) <= 0;
+  const captchaEnabled = Boolean(turnstileSiteKey);
+  const captchaReady = captchaEnabled ? Boolean(captchaToken) : process.env.NODE_ENV !== "production";
 
   return (
     <div
@@ -213,6 +247,26 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
         {/* PLACEHOLDER MODE */}
         {mode === "placeholder" && !checkoutError && !loading && (
           <div className="space-y-6">
+            <div className="rounded-xl border border-black/[0.06] bg-white/80 p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-gray-500">Security Check</p>
+              <p className="mt-1 text-xs text-gray-500">
+                Complete this step to protect checkout from automated payment abuse.
+              </p>
+              {captchaEnabled ? (
+                <TurnstileCaptcha
+                  siteKey={turnstileSiteKey}
+                  action="payments_confirm"
+                  resetKey={captchaResetKey}
+                  onTokenChange={setCaptchaToken}
+                  className="mt-3"
+                />
+              ) : (
+                <p className="mt-3 text-xs text-red-600">
+                  Security check is not configured. Set `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
+                </p>
+              )}
+            </div>
+
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               {zeroTotal ? (
                 <>
@@ -250,12 +304,15 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
               <button
                 type="button"
                 onClick={async () => {
+                  if (!captchaReady) return;
                   setConfirmingPlaceholder(true);
-                  const success = await confirmPayment(order.id);
+                  const success = await confirmPayment(order.id, captchaToken);
+                  setCaptchaToken(null);
+                  setCaptchaResetKey((prev) => prev + 1);
                   setConfirmingPlaceholder(false);
                   if (success) onSuccess();
                 }}
-                disabled={confirmingPlaceholder}
+                disabled={confirmingPlaceholder || !captchaReady}
                 className="flex-1 px-4 py-2.5 bg-[var(--color-purple-primary)] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
                 {confirmingPlaceholder ? "Confirming..." : zeroTotal ? "Complete Order" : "Confirm Payment"}
@@ -266,9 +323,39 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
 
         {/* STRIPE MODE */}
         {mode === "stripe" && clientSecret && stripeReady && elementsOptions && (
-          <Elements stripe={getStripe()} options={elementsOptions}>
-            <StripeCheckoutForm order={order} onSuccess={onSuccess} onClose={onClose} />
-          </Elements>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-black/[0.06] bg-white/80 p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-gray-500">Security Check</p>
+              <p className="mt-1 text-xs text-gray-500">
+                Complete this step to protect checkout from automated payment abuse.
+              </p>
+              {captchaEnabled ? (
+                <TurnstileCaptcha
+                  siteKey={turnstileSiteKey}
+                  action="payments_confirm"
+                  resetKey={captchaResetKey}
+                  onTokenChange={setCaptchaToken}
+                  className="mt-3"
+                />
+              ) : (
+                <p className="mt-3 text-xs text-red-600">
+                  Security check is not configured. Set `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
+                </p>
+              )}
+            </div>
+            <Elements stripe={getStripe()} options={elementsOptions}>
+              <StripeCheckoutForm
+                order={order}
+                onSuccess={onSuccess}
+                onClose={onClose}
+                captchaToken={captchaToken}
+                onCaptchaConsumed={() => {
+                  setCaptchaToken(null);
+                  setCaptchaResetKey((prev) => prev + 1);
+                }}
+              />
+            </Elements>
+          </div>
         )}
 
       </div>

@@ -11,6 +11,7 @@ import { useUpdateOrderDraft } from "@/lib/hooks/useOrders";
 import { useValidatePromoCode, useApplyPromoCode, useRemovePromoCode } from "@/lib/hooks/usePromoCode";
 import { supabase } from "@/lib/supabase";
 import type { Order, ShippingAddress } from "@/lib/types/store";
+import TurnstileCaptcha from "@/components/security/TurnstileCaptcha";
 
 function formatCurrency(amount: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
@@ -227,7 +228,21 @@ function PromoCodeSection({
 // STRIPE INLINE FORM
 // ============================================================================
 
-function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: string; amount: number; currency: string; onSuccess: () => void }) {
+function StripeInlineForm({
+  orderId,
+  amount,
+  currency,
+  onSuccess,
+  captchaToken,
+  onCaptchaConsumed,
+}: {
+  orderId: string;
+  amount: number;
+  currency: string;
+  onSuccess: () => void;
+  captchaToken: string | null;
+  onCaptchaConsumed: () => void;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -241,6 +256,12 @@ function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: s
     setError(null);
 
     try {
+      if (!captchaToken) {
+        setError("Complete the security check before payment.");
+        setProcessing(false);
+        return;
+      }
+
       const { error: stripeError } = await stripe.confirmPayment({
         elements,
         confirmParams: {
@@ -255,11 +276,17 @@ function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: s
         return;
       }
 
-      const res = await fetch("/api/payments/confirm", {
-        method: "POST",
-        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ order_id: orderId }),
-      });
+      const res = await (async () => {
+        try {
+          return await fetch("/api/payments/confirm", {
+            method: "POST",
+            headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ order_id: orderId, captcha_token: captchaToken }),
+          });
+        } finally {
+          onCaptchaConsumed();
+        }
+      })();
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -281,7 +308,7 @@ function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: s
       {error && <p className="text-red-600 text-sm">{error}</p>}
       <button
         type="submit"
-        disabled={!stripe || processing}
+        disabled={!stripe || processing || !captchaToken}
         className="w-full rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm px-6 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
       >
         {processing ? "Processing..." : `Pay ${formatCurrency(amount, currency)}`}
@@ -295,6 +322,7 @@ function StripeInlineForm({ orderId, amount, currency, onSuccess }: { orderId: s
 // ============================================================================
 
 export default function CheckoutPage({ orderId }: { orderId: string }) {
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { order, loading: orderLoading, error: orderError, setOrder } = useOrderData(orderId);
@@ -321,6 +349,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const [noteError, setNoteError] = useState<string | null>(null);
   const [noteSaveError, setNoteSaveError] = useState<string | null>(null);
   const [noteSaved, setNoteSaved] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const promoOverride = promoOverrides[orderId];
   const shippingSavedNotice = shippingSavedNotices[orderId] || null;
@@ -359,6 +389,11 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     });
   }, [orderId]);
 
+  const resetCaptcha = useCallback(() => {
+    setCaptchaToken(null);
+    setCaptchaResetKey((prev) => prev + 1);
+  }, []);
+
   const handleShippingFieldChange = useCallback((field: keyof ShippingAddress, value: string) => {
     setShippingField(field, value);
     setShippingSavedNotice(null);
@@ -394,6 +429,10 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     setNoteSaveError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.id]);
+
+  useEffect(() => {
+    resetCaptcha();
+  }, [order?.id, resetCaptcha]);
 
   useEffect(() => {
     if (!order || order.status !== "pending_payment") return;
@@ -537,6 +576,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const shippingReady = !isPhysicalProduct || (shippingAddressComplete && shippingPhoneComplete);
   const paymentReady = !requiresShippingDetails;
   const paymentStepLabel = isPhysicalProduct ? "Step 3" : "Step 2";
+  const captchaEnabled = Boolean(turnstileSiteKey);
+  const captchaReady = captchaEnabled ? Boolean(captchaToken) : process.env.NODE_ENV !== "production";
   const noteHasChanges = buyerNote.trim() !== String(order.buyer_note || "").trim();
   const shippingHasChanges = isPhysicalProduct
     ? (
@@ -916,6 +957,28 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 </div>
               )}
 
+              {!requiresShippingDetails && (
+                <div className="mt-4 rounded-xl border border-black/[0.06] bg-white/80 p-4">
+                  <p className="text-xs font-ui uppercase tracking-[0.12em] text-muted">Security Check</p>
+                  <p className="mt-1 text-xs font-body text-muted">
+                    Complete this step to protect your checkout from automated card testing.
+                  </p>
+                  {captchaEnabled ? (
+                    <TurnstileCaptcha
+                      siteKey={turnstileSiteKey}
+                      action="payments_confirm"
+                      resetKey={captchaResetKey}
+                      onTokenChange={setCaptchaToken}
+                      className="mt-3"
+                    />
+                  ) : (
+                    <p className="mt-3 text-xs text-red-600">
+                      Security check is not configured. Set `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {checkoutLoading && !requiresShippingDetails && (
                 <div className="flex items-center justify-center rounded-xl border border-black/[0.06] bg-white/80 py-10">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-black/20 border-t-[var(--color-purple-primary)]" />
@@ -947,6 +1010,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       amount={amount}
                       currency={currency}
                       onSuccess={handleSuccess}
+                      captchaToken={captchaToken}
+                      onCaptchaConsumed={resetCaptcha}
                     />
                   </Elements>
                 </div>
@@ -974,9 +1039,15 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
                   <button
                     onClick={async () => {
+                      if (!captchaReady) {
+                        setActionError("Complete the security check before confirming payment.");
+                        return;
+                      }
+
                       setActionError(null);
                       setConfirmingZeroTotal(true);
-                      const success = await confirmPayment(order.id);
+                      const success = await confirmPayment(order.id, captchaToken);
+                      resetCaptcha();
                       setConfirmingZeroTotal(false);
                       if (success) {
                         handleSuccess();
@@ -984,7 +1055,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                         setActionError("Unable to confirm payment right now. Please try again.");
                       }
                     }}
-                    disabled={confirmingZeroTotal}
+                    disabled={confirmingZeroTotal || !captchaReady}
                     className="w-full rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm px-6 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
                   >
                     {confirmingZeroTotal ? "Confirming..." : zeroTotal ? "Complete Order" : "Confirm Payment"}

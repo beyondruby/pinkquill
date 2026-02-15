@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit({
       request,
       scope: "payments.checkout",
-      limit: 30,
+      limit: 10,
       windowSeconds: 60,
       userId: user.id,
     });
@@ -147,11 +147,11 @@ export async function POST(request: Request) {
     const ipRateLimit = await checkRateLimit({
       request,
       scope: "payments.checkout.ip",
-      limit: 90,
-      windowSeconds: 300,
+      limit: 30,
+      windowSeconds: 600,
     });
     if (!ipRateLimit.allowed) {
-      return rateLimitResponse(ipRateLimit, 300);
+      return rateLimitResponse(ipRateLimit, 600);
     }
 
     const parsed = await safeJsonParse<{ order_id?: string }>(request);
@@ -165,12 +165,23 @@ export async function POST(request: Request) {
     const orderRateLimit = await checkRateLimit({
       request,
       scope: "payments.checkout.order",
-      limit: 12,
-      windowSeconds: 300,
+      limit: 4,
+      windowSeconds: 900,
       identifier: `user:${user.id}:order:${orderId}`,
     });
     if (!orderRateLimit.allowed) {
-      return rateLimitResponse(orderRateLimit, 300);
+      return rateLimitResponse(orderRateLimit, 900);
+    }
+
+    const orderDailyRateLimit = await checkRateLimit({
+      request,
+      scope: "payments.checkout.order.daily",
+      limit: 8,
+      windowSeconds: 86400,
+      identifier: `user:${user.id}:order:${orderId}`,
+    });
+    if (!orderDailyRateLimit.allowed) {
+      return rateLimitResponse(orderDailyRateLimit, 86400);
     }
 
     const { data: order, error: orderError } = await supabaseAdmin

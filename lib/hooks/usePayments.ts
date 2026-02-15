@@ -128,9 +128,9 @@ interface UseCheckoutReturn {
   loading: boolean;
   error: string | null;
   createCheckout: (orderId: string) => Promise<string | null>;
-  confirmPayment: (orderId: string) => Promise<boolean>;
+  confirmPayment: (orderId: string, captchaToken?: string | null) => Promise<boolean>;
   /** @deprecated Use confirmPayment instead */
-  confirmPlaceholderPayment: (orderId: string) => Promise<boolean>;
+  confirmPlaceholderPayment: (orderId: string, captchaToken?: string | null) => Promise<boolean>;
 }
 
 export function useCheckout(): UseCheckoutReturn {
@@ -167,7 +167,7 @@ export function useCheckout(): UseCheckoutReturn {
     }
   }, []);
 
-  const confirmPayment = useCallback(async (orderId: string): Promise<boolean> => {
+  const confirmPayment = useCallback(async (orderId: string, captchaToken?: string | null): Promise<boolean> => {
     try {
       setLoading(true);
       setError(null);
@@ -175,7 +175,10 @@ export function useCheckout(): UseCheckoutReturn {
       const res = await fetch("/api/payments/confirm", {
         method: "POST",
         headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ order_id: orderId }),
+        body: JSON.stringify({
+          order_id: orderId,
+          captcha_token: captchaToken || null,
+        }),
       });
 
       const data = await safeResponseJson<Record<string, unknown>>(res);

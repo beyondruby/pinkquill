@@ -5,6 +5,7 @@ import { finalizeOrderPayment, markOrderPaymentFailed } from "@/lib/payments-ser
 import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { extractStripeDeclineDetails } from "@/lib/stripe-decline-details";
+import { verifyTurnstileToken } from "@/lib/turnstile-server";
 
 type OrderForConfirm = {
   id: string;
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
     const rateLimit = await checkRateLimit({
       request,
       scope: "payments.confirm",
-      limit: 45,
+      limit: 12,
       windowSeconds: 60,
       userId: user.id,
     });
@@ -78,16 +79,16 @@ export async function POST(request: Request) {
     const ipRateLimit = await checkRateLimit({
       request,
       scope: "payments.confirm.ip",
-      limit: 120,
-      windowSeconds: 300,
+      limit: 36,
+      windowSeconds: 600,
     });
     if (!ipRateLimit.allowed) {
-      return rateLimitResponse(ipRateLimit, 300);
+      return rateLimitResponse(ipRateLimit, 600);
     }
 
-    const parsed = await safeJsonParse<{ order_id?: string }>(request);
+    const parsed = await safeJsonParse<{ order_id?: string; captcha_token?: string }>(request);
     if ("error" in parsed) return parsed.error;
-    const { order_id: orderId } = parsed.data;
+    const { order_id: orderId, captcha_token: captchaToken } = parsed.data;
     if (!orderId) {
       return NextResponse.json({ error: "order_id is required" }, { status: 400 });
     }
@@ -95,12 +96,23 @@ export async function POST(request: Request) {
     const orderRateLimit = await checkRateLimit({
       request,
       scope: "payments.confirm.order",
-      limit: 18,
-      windowSeconds: 300,
+      limit: 4,
+      windowSeconds: 900,
       identifier: `user:${user.id}:order:${orderId}`,
     });
     if (!orderRateLimit.allowed) {
-      return rateLimitResponse(orderRateLimit, 300);
+      return rateLimitResponse(orderRateLimit, 900);
+    }
+
+    const orderDailyRateLimit = await checkRateLimit({
+      request,
+      scope: "payments.confirm.order.daily",
+      limit: 8,
+      windowSeconds: 86400,
+      identifier: `user:${user.id}:order:${orderId}`,
+    });
+    if (!orderDailyRateLimit.allowed) {
+      return rateLimitResponse(orderDailyRateLimit, 86400);
     }
 
     const { data: order, error: orderError } = await supabaseAdmin
@@ -158,6 +170,23 @@ export async function POST(request: Request) {
     }
 
     const providerName = resolveProviderForOrder(order, orderAmount);
+    let captchaVerified = false;
+    const requireCaptcha = async (): Promise<NextResponse | null> => {
+      if (captchaVerified) return null;
+      const verification = await verifyTurnstileToken({
+        request,
+        token: captchaToken,
+        action: "payments_confirm",
+      });
+      if (!verification.ok) {
+        return verification.response || NextResponse.json(
+          { error: "Security verification failed." },
+          { status: 403 }
+        );
+      }
+      captchaVerified = true;
+      return null;
+    };
 
     // For Stripe: verify PaymentIntent status via provider
     if (providerName === "stripe") {
@@ -209,6 +238,9 @@ export async function POST(request: Request) {
       }
 
       if (paymentIntent.status === "canceled" || paymentIntent.status === "requires_payment_method") {
+        const captchaError = await requireCaptcha();
+        if (captchaError) return captchaError;
+
         const declineDetails = extractStripeDeclineDetails(paymentIntent);
         await markOrderPaymentFailed({
           orderId: order.id,
@@ -229,6 +261,9 @@ export async function POST(request: Request) {
         );
       }
 
+      const captchaError = await requireCaptcha();
+      if (captchaError) return captchaError;
+
       return NextResponse.json(
         {
           error: `Payment is not complete yet (status: ${paymentIntent.status})`,
@@ -246,6 +281,9 @@ export async function POST(request: Request) {
     }
 
     // Placeholder flow
+    const captchaError = await requireCaptcha();
+    if (captchaError) return captchaError;
+
     const paymentReference = order.payment_reference || `placeholder:${order.id}`;
     const result = await finalizeOrderPayment({
       orderId: order.id,
