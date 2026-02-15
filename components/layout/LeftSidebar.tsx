@@ -459,7 +459,7 @@ export default function LeftSidebar() {
                 >
                   <div className="relative">
                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
                     {cartCount > 0 && (
                       <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] bg-pink-vivid text-white font-ui text-[0.5rem] font-semibold rounded-full flex items-center justify-center px-0.5">
