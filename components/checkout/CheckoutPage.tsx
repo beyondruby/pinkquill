@@ -202,7 +202,7 @@ function PromoCodeSection({
           }}
           placeholder="Promo code"
           disabled={isLoading}
-          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] disabled:opacity-60"
+          className="flex-1 border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] disabled:opacity-60"
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
@@ -668,8 +668,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                   maxLength={500}
                   rows={3}
                   aria-invalid={!!noteError}
-                  className={`mt-2 w-full rounded-lg border bg-white px-3 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] resize-none ${
-                    noteError ? "border-red-300" : "border-gray-200"
+                  className={`mt-2 w-full border-0 border-b bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] resize-none ${
+                    noteError ? "border-red-400" : "border-gray-300"
                   }`}
                 />
                 <div className="mt-2 flex items-center justify-between">
@@ -726,8 +726,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       onChange={(event) => handleShippingFieldChange("name", event.target.value)}
                       placeholder="Full name"
                       aria-invalid={!!shippingFieldErrors.name}
-                      className={`rounded-lg border bg-white px-3 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
-                        shippingFieldErrors.name ? "border-red-300" : "border-gray-200"
+                      className={`w-full border-0 border-b bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
+                        shippingFieldErrors.name ? "border-red-400" : "border-gray-300"
                       }`}
                     />
                     {shippingFieldErrors.name && <p className="text-xs text-red-600">{shippingFieldErrors.name}</p>}
@@ -745,8 +745,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       onChange={(event) => handleShippingFieldChange("line1", event.target.value)}
                       placeholder="Street address"
                       aria-invalid={!!shippingFieldErrors.line1}
-                      className={`rounded-lg border bg-white px-3 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
-                        shippingFieldErrors.line1 ? "border-red-300" : "border-gray-200"
+                      className={`w-full border-0 border-b bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
+                        shippingFieldErrors.line1 ? "border-red-400" : "border-gray-300"
                       }`}
                     />
                     {shippingFieldErrors.line1 && <p className="text-xs text-red-600">{shippingFieldErrors.line1}</p>}
@@ -763,7 +763,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       value={shippingDraft.line2 || ""}
                       onChange={(event) => handleShippingFieldChange("line2", event.target.value)}
                       placeholder="Apartment, suite, etc. (optional)"
-                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)]"
+                      className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)]"
                     />
                   </div>
 
@@ -779,8 +779,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       onChange={(event) => handleShippingFieldChange("city", event.target.value)}
                       placeholder="City"
                       aria-invalid={!!shippingFieldErrors.city}
-                      className={`rounded-lg border bg-white px-3 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
-                        shippingFieldErrors.city ? "border-red-300" : "border-gray-200"
+                      className={`w-full border-0 border-b bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
+                        shippingFieldErrors.city ? "border-red-400" : "border-gray-300"
                       }`}
                     />
                     {shippingFieldErrors.city && <p className="text-xs text-red-600">{shippingFieldErrors.city}</p>}
@@ -797,7 +797,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       value={shippingDraft.state || ""}
                       onChange={(event) => handleShippingFieldChange("state", event.target.value)}
                       placeholder="State / Region (optional)"
-                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)]"
+                      className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)]"
                     />
                   </div>
 
@@ -812,7 +812,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       value={shippingDraft.postal_code || ""}
                       onChange={(event) => handleShippingFieldChange("postal_code", event.target.value)}
                       placeholder="Postal code (optional)"
-                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)]"
+                      className="w-full border-0 border-b border-gray-300 bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)]"
                     />
                   </div>
 
@@ -828,8 +828,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       onChange={(event) => handleShippingFieldChange("country", event.target.value)}
                       placeholder="Country"
                       aria-invalid={!!shippingFieldErrors.country}
-                      className={`rounded-lg border bg-white px-3 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
-                        shippingFieldErrors.country ? "border-red-300" : "border-gray-200"
+                      className={`w-full border-0 border-b bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
+                        shippingFieldErrors.country ? "border-red-400" : "border-gray-300"
                       }`}
                     />
                     {shippingFieldErrors.country && <p className="text-xs text-red-600">{shippingFieldErrors.country}</p>}
@@ -847,8 +847,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       onChange={(event) => handlePhoneChange(event.target.value)}
                       placeholder="Phone number"
                       aria-invalid={!!shippingFieldErrors.buyer_phone}
-                      className={`rounded-lg border bg-white px-3 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
-                        shippingFieldErrors.buyer_phone ? "border-red-300" : "border-gray-200"
+                      className={`w-full border-0 border-b bg-transparent px-0 py-2 text-sm font-body text-ink placeholder:text-muted outline-none focus:border-[var(--color-purple-primary)] ${
+                        shippingFieldErrors.buyer_phone ? "border-red-400" : "border-gray-300"
                       }`}
                     />
                     {shippingFieldErrors.buyer_phone && <p className="text-xs text-red-600">{shippingFieldErrors.buyer_phone}</p>}
