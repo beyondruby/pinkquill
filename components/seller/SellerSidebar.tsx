@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faChartLine,
   faClipboardList,
+  faUsers,
   faStore,
   faWallet,
   faCog,
@@ -24,6 +25,12 @@ const navItems: { label: string; href: string; description: string; icon: IconDe
     href: "/seller/orders",
     description: "Manage incoming orders",
     icon: faClipboardList,
+  },
+  {
+    label: "Customers",
+    href: "/seller/customers",
+    description: "Your buyer CRM",
+    icon: faUsers,
   },
   {
     label: "Listings",
