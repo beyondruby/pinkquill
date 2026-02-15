@@ -65,15 +65,24 @@ function normalizeCountryCode(rawCountry: string | null | undefined): string | n
 }
 
 function normalizeDescriptorSuffix(orderNumber: string | null | undefined): string | undefined {
-  const fallback = String(orderNumber || "").trim() || "PINKQUILL";
-  const suffix = fallback
+  const fallback = String(orderNumber || "").trim();
+  let suffix = (fallback || "PINKQUILL")
     .replace(/[^A-Za-z0-9 ]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .toUpperCase()
-    .slice(-12);
+    .toUpperCase();
 
-  return suffix || undefined;
+  // Stripe requires at least one Latin character in the descriptor/suffix.
+  if (!/[A-Z]/.test(suffix)) {
+    suffix = `${suffix} PQ`.trim();
+  }
+
+  suffix = suffix.slice(-12).trim();
+  if (!suffix || !/[A-Z]/.test(suffix)) {
+    return "PINKQUILL";
+  }
+
+  return suffix;
 }
 
 function buildStripeShipping(
