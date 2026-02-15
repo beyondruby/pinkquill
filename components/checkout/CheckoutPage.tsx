@@ -389,6 +389,30 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     };
   }, [order?.shipping_address, orderId, shippingDraftEdits]);
 
+  // Build billing details from auth profile and order shipping address.
+  // Passing these to Stripe enables AVS (Address Verification) which reduces bank declines.
+  const billingDetails = useMemo<BillingDetails>(() => {
+    const details: BillingDetails = {};
+    if (profile?.display_name) details.name = profile.display_name;
+    if (user?.email) details.email = user.email;
+    if (order?.buyer_phone) details.phone = order.buyer_phone;
+    const addr = order?.shipping_address;
+    if (addr && typeof addr === "object") {
+      const line1 = String(addr.line1 || "").trim();
+      if (line1) {
+        details.address = {
+          line1,
+          line2: String(addr.line2 || "").trim() || undefined,
+          city: String(addr.city || "").trim() || undefined,
+          state: String(addr.state || "").trim() || undefined,
+          postal_code: String(addr.postal_code || "").trim() || undefined,
+          country: String(addr.country || "").trim() || undefined,
+        };
+      }
+    }
+    return details;
+  }, [profile?.display_name, user?.email, order?.buyer_phone, order?.shipping_address]);
+
   const setShippingField = useCallback((field: keyof ShippingAddress, value: string) => {
     setShippingDraftEdits((prev) => ({
       ...prev,
@@ -629,30 +653,6 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
         },
       }
     : undefined;
-
-  // Build billing details from auth profile and order shipping address.
-  // Passing these to Stripe enables AVS (Address Verification) which reduces bank declines.
-  const billingDetails = useMemo<BillingDetails>(() => {
-    const details: BillingDetails = {};
-    if (profile?.display_name) details.name = profile.display_name;
-    if (user?.email) details.email = user.email;
-    if (order?.buyer_phone) details.phone = order.buyer_phone;
-    const addr = order?.shipping_address;
-    if (addr && typeof addr === "object") {
-      const line1 = String(addr.line1 || "").trim();
-      if (line1) {
-        details.address = {
-          line1,
-          line2: String(addr.line2 || "").trim() || undefined,
-          city: String(addr.city || "").trim() || undefined,
-          state: String(addr.state || "").trim() || undefined,
-          postal_code: String(addr.postal_code || "").trim() || undefined,
-          country: String(addr.country || "").trim() || undefined,
-        };
-      }
-    }
-    return details;
-  }, [profile?.display_name, user?.email, order?.buyer_phone, order?.shipping_address]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(170deg,#fff7fc_0%,#ffffff_42%,#fff8ef_100%)]">
