@@ -263,6 +263,13 @@ export async function POST(request: Request) {
       });
     }
 
+    // Fetch buyer display name for Stripe Customer creation and billing details
+    const { data: buyerProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single();
+
     const providerName = resolveProviderForCheckout(order, orderAmount);
     if (providerName === "stripe") {
       await ensureApplePayDomainsRegistered(request);
@@ -272,6 +279,7 @@ export async function POST(request: Request) {
       id: order.id,
       buyerId: user.id,
       buyerEmail: user.email ?? undefined,
+      buyerName: buyerProfile?.display_name || undefined,
       amount: orderAmount,
       currency: String(order.currency || "usd"),
       listingType: order.listing_type,

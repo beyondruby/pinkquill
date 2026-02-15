@@ -1,13 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { useCheckout } from "@/lib/hooks/usePayments";
 import { supabase } from "@/lib/supabase";
 import type { Order } from "@/lib/types/store";
 import TurnstileCaptcha from "@/components/security/TurnstileCaptcha";
+
+interface BillingDetails {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    postal_code?: string;
+    country?: string;
+  };
+}
 
 interface CheckoutModalProps {
   order: Order;
@@ -64,6 +79,7 @@ function OrderSummary({ order }: { order: Order }) {
 interface StripeCheckoutFormProps extends CheckoutModalProps {
   captchaToken: string | null;
   onCaptchaConsumed: () => void;
+  billingDetails?: BillingDetails;
 }
 
 function StripeCheckoutForm({
@@ -72,6 +88,7 @@ function StripeCheckoutForm({
   onClose,
   captchaToken,
   onCaptchaConsumed,
+  billingDetails,
 }: StripeCheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -96,6 +113,11 @@ function StripeCheckoutForm({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/orders/${order.id}?payment=success`,
+          ...(billingDetails ? {
+            payment_method_data: {
+              billing_details: billingDetails,
+            },
+          } : {}),
         },
         redirect: "if_required",
       });
@@ -163,6 +185,7 @@ function StripeCheckoutForm({
 
 export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutModalProps) {
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
+  const { user, profile } = useAuth();
   const {
     mode,
     clientSecret,
@@ -191,6 +214,27 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
       if (s) setStripeReady(true);
     });
   }, [mode]);
+
+  const billingDetails = useMemo<BillingDetails>(() => {
+    const details: BillingDetails = {};
+    if (profile?.display_name) details.name = profile.display_name;
+    if (user?.email) details.email = user.email;
+    const addr = order.shipping_address as Record<string, unknown> | null | undefined;
+    if (addr && typeof addr === "object") {
+      const line1 = String(addr.line1 || "").trim();
+      if (line1) {
+        details.address = {
+          line1,
+          line2: String(addr.line2 || "").trim() || undefined,
+          city: String(addr.city || "").trim() || undefined,
+          state: String(addr.state || "").trim() || undefined,
+          postal_code: String(addr.postal_code || "").trim() || undefined,
+          country: String(addr.country || "").trim() || undefined,
+        };
+      }
+    }
+    return details;
+  }, [profile?.display_name, user?.email, order.shipping_address]);
 
   const elementsOptions: StripeElementsOptions | undefined = clientSecret
     ? {
@@ -353,6 +397,7 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
                   setCaptchaToken(null);
                   setCaptchaResetKey((prev) => prev + 1);
                 }}
+                billingDetails={billingDetails}
               />
             </Elements>
           </div>

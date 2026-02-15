@@ -55,6 +55,7 @@ export interface OrderForPayment {
   orderNumber?: string | null;
   buyerId: string;
   buyerEmail?: string;
+  buyerName?: string;
   buyerPhone?: string | null;
   amount: number;
   currency: string;

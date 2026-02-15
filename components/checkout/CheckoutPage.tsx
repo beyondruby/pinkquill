@@ -228,6 +228,20 @@ function PromoCodeSection({
 // STRIPE INLINE FORM
 // ============================================================================
 
+interface BillingDetails {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    postal_code?: string;
+    country?: string;
+  };
+}
+
 function StripeInlineForm({
   orderId,
   amount,
@@ -235,6 +249,7 @@ function StripeInlineForm({
   onSuccess,
   captchaToken,
   onCaptchaConsumed,
+  billingDetails,
 }: {
   orderId: string;
   amount: number;
@@ -242,6 +257,7 @@ function StripeInlineForm({
   onSuccess: () => void;
   captchaToken: string | null;
   onCaptchaConsumed: () => void;
+  billingDetails?: BillingDetails;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -266,6 +282,11 @@ function StripeInlineForm({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/orders/${orderId}?payment=success`,
+          ...(billingDetails ? {
+            payment_method_data: {
+              billing_details: billingDetails,
+            },
+          } : {}),
         },
         redirect: "if_required",
       });
@@ -324,7 +345,7 @@ function StripeInlineForm({
 export default function CheckoutPage({ orderId }: { orderId: string }) {
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { order, loading: orderLoading, error: orderError, setOrder } = useOrderData(orderId);
   const {
     mode,
@@ -608,6 +629,30 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
         },
       }
     : undefined;
+
+  // Build billing details from auth profile and order shipping address.
+  // Passing these to Stripe enables AVS (Address Verification) which reduces bank declines.
+  const billingDetails = useMemo<BillingDetails>(() => {
+    const details: BillingDetails = {};
+    if (profile?.display_name) details.name = profile.display_name;
+    if (user?.email) details.email = user.email;
+    if (order?.buyer_phone) details.phone = order.buyer_phone;
+    const addr = order?.shipping_address;
+    if (addr && typeof addr === "object") {
+      const line1 = String(addr.line1 || "").trim();
+      if (line1) {
+        details.address = {
+          line1,
+          line2: String(addr.line2 || "").trim() || undefined,
+          city: String(addr.city || "").trim() || undefined,
+          state: String(addr.state || "").trim() || undefined,
+          postal_code: String(addr.postal_code || "").trim() || undefined,
+          country: String(addr.country || "").trim() || undefined,
+        };
+      }
+    }
+    return details;
+  }, [profile?.display_name, user?.email, order?.buyer_phone, order?.shipping_address]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(170deg,#fff7fc_0%,#ffffff_42%,#fff8ef_100%)]">
@@ -1012,6 +1057,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       onSuccess={handleSuccess}
                       captchaToken={captchaToken}
                       onCaptchaConsumed={resetCaptcha}
+                      billingDetails={billingDetails}
                     />
                   </Elements>
                 </div>

@@ -116,6 +116,36 @@ function buildStripeShipping(
   };
 }
 
+async function getOrCreateStripeCustomer(
+  stripe: Stripe,
+  buyerId: string,
+  buyerEmail?: string,
+  buyerName?: string,
+): Promise<string> {
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("stripe_customer_id")
+    .eq("id", buyerId)
+    .single();
+
+  if (profile?.stripe_customer_id) {
+    return profile.stripe_customer_id;
+  }
+
+  const customer = await stripe.customers.create({
+    ...(buyerEmail ? { email: buyerEmail } : {}),
+    ...(buyerName ? { name: buyerName } : {}),
+    metadata: { user_id: buyerId },
+  });
+
+  await supabaseAdmin
+    .from("profiles")
+    .update({ stripe_customer_id: customer.id })
+    .eq("id", buyerId);
+
+  return customer.id;
+}
+
 export class StripeProvider implements PaymentProviderInterface {
   readonly name = "stripe" as const;
 
@@ -333,10 +363,20 @@ export class StripeProvider implements PaymentProviderInterface {
     }
 
     if (!paymentIntent || !reusableStatuses.has(paymentIntent.status)) {
+      // Create or reuse a Stripe Customer for the buyer.
+      // This gives Stripe Radar transaction history and improves bank acceptance rates.
+      const customerId = await getOrCreateStripeCustomer(
+        stripe,
+        order.buyerId,
+        order.buyerEmail,
+        order.buyerName,
+      );
+
       paymentIntent = await stripe.paymentIntents.create(
         {
           amount: amountCents,
           currency,
+          customer: customerId,
           automatic_payment_methods: { enabled: true },
           payment_method_options: {
             card: {
@@ -350,6 +390,7 @@ export class StripeProvider implements PaymentProviderInterface {
           // Application fee is Pinkquill's 5% platform cut
           ...(applicationFeeAmount ? { application_fee_amount: applicationFeeAmount } : {}),
           ...(shipping ? { shipping } : {}),
+          statement_descriptor: "PINKQUILL",
           ...(descriptorSuffix ? { statement_descriptor_suffix: descriptorSuffix } : {}),
           metadata: {
             order_id: order.id,
