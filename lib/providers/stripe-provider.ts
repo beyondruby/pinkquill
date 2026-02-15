@@ -7,6 +7,7 @@
  *   Funds are held until buyer approves delivery, then captured via releaseEscrow().
  */
 
+import Stripe from "stripe";
 import type {
   PaymentProviderInterface,
   OnboardingResult,
@@ -19,6 +20,92 @@ import type {
 } from "@/lib/payment-provider";
 import { getStripeServer, CONNECT_ACCOUNT_TYPE } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
+
+const COUNTRY_ALIAS_TO_ISO2: Record<string, string> = {
+  "united states": "US",
+  "united kingdom": "GB",
+  "great britain": "GB",
+  "england": "GB",
+  "canada": "CA",
+  "australia": "AU",
+  "new zealand": "NZ",
+  "germany": "DE",
+  "france": "FR",
+  "italy": "IT",
+  "spain": "ES",
+  "netherlands": "NL",
+  "sweden": "SE",
+  "norway": "NO",
+  "denmark": "DK",
+  "finland": "FI",
+  "ireland": "IE",
+  "switzerland": "CH",
+  "austria": "AT",
+  "belgium": "BE",
+  "portugal": "PT",
+  "japan": "JP",
+  "south korea": "KR",
+  "singapore": "SG",
+  "india": "IN",
+  "united arab emirates": "AE",
+  "saudi arabia": "SA",
+  "mexico": "MX",
+  "brazil": "BR",
+};
+
+function normalizeCountryCode(rawCountry: string | null | undefined): string | null {
+  const value = String(rawCountry || "").trim();
+  if (!value) return null;
+
+  if (/^[a-z]{2}$/i.test(value)) {
+    return value.toUpperCase();
+  }
+
+  return COUNTRY_ALIAS_TO_ISO2[value.toLowerCase()] || null;
+}
+
+function normalizeDescriptorSuffix(orderNumber: string | null | undefined): string | undefined {
+  const fallback = String(orderNumber || "").trim() || "PINKQUILL";
+  const suffix = fallback
+    .replace(/[^A-Za-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase()
+    .slice(-12);
+
+  return suffix || undefined;
+}
+
+function buildStripeShipping(
+  rawAddress: Record<string, unknown> | null | undefined,
+  rawPhone: string | null | undefined
+): Stripe.PaymentIntentCreateParams.Shipping | undefined {
+  if (!rawAddress || typeof rawAddress !== "object") return undefined;
+
+  const name = String(rawAddress.name || "").trim();
+  const line1 = String(rawAddress.line1 || "").trim();
+  const line2 = String(rawAddress.line2 || "").trim();
+  const city = String(rawAddress.city || "").trim();
+  const state = String(rawAddress.state || "").trim();
+  const postalCode = String(rawAddress.postal_code || "").trim();
+  const countryCode = normalizeCountryCode(String(rawAddress.country || "").trim());
+  const phone = String(rawPhone || "").trim();
+
+  if (!name || !line1 || !city || !countryCode) return undefined;
+
+  return {
+    name,
+    phone: phone || undefined,
+    address: {
+      line1,
+      ...(line2 ? { line2 } : {}),
+      city,
+      ...(state ? { state } : {}),
+      ...(postalCode ? { postal_code: postalCode } : {}),
+      country: countryCode,
+    },
+  };
+}
 
 export class StripeProvider implements PaymentProviderInterface {
   readonly name = "stripe" as const;
@@ -166,6 +253,13 @@ export class StripeProvider implements PaymentProviderInterface {
     const amountCents = Math.round(order.amount * 100);
     const currency = (order.currency || "usd").toLowerCase();
     const isService = order.listingType === "service";
+    const shipping = buildStripeShipping(order.shippingAddress, order.buyerPhone);
+    const descriptorSuffix = normalizeDescriptorSuffix(order.orderNumber);
+    const orderReference = order.orderNumber || order.id;
+    const compactTitle = String(order.productTitle || "").trim().slice(0, 80);
+    const description = compactTitle
+      ? `PinkQuill ${orderReference} • ${compactTitle}`
+      : `PinkQuill order ${orderReference}`;
 
     // Look up seller's Stripe Connect account for destination charges
     const { data: sellerOrder } = await supabaseAdmin
@@ -235,18 +329,27 @@ export class StripeProvider implements PaymentProviderInterface {
           amount: amountCents,
           currency,
           automatic_payment_methods: { enabled: true },
+          payment_method_options: {
+            card: {
+              request_three_d_secure: "automatic",
+            },
+          },
           // Manual capture for commissions (escrow), auto for products
           capture_method: isService ? "manual" : "automatic",
           // Destination charge routes funds to seller's connected account
           ...(transferData ? { transfer_data: transferData } : {}),
           // Application fee is Pinkquill's 5% platform cut
           ...(applicationFeeAmount ? { application_fee_amount: applicationFeeAmount } : {}),
+          ...(shipping ? { shipping } : {}),
+          ...(descriptorSuffix ? { statement_descriptor_suffix: descriptorSuffix } : {}),
           metadata: {
             order_id: order.id,
+            order_number: order.orderNumber || "",
             buyer_id: order.buyerId,
             listing_type: order.listingType,
+            product_title: compactTitle,
           },
-          description: `PinkQuill order ${order.id}`,
+          description,
           receipt_email: order.buyerEmail ?? undefined,
         },
         { idempotencyKey: `checkout_${order.id}_${amountCents}_${currency}` }

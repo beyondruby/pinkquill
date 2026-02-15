@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 /**
  * Registers the platform domain with Stripe for Apple Pay.
- * Only needs to be called once. Idempotent — safe to call multiple times.
+ * Registers both apex + www by default. Idempotent — safe to call multiple times.
  */
 export async function POST(request: Request) {
   try {
@@ -20,25 +20,52 @@ export async function POST(request: Request) {
     }
 
     const stripe = getStripeServer();
-    const domain = process.env.NEXT_PUBLIC_SITE_URL
+    const configuredDomains = process.env.STRIPE_APPLE_PAY_DOMAINS
+      ?.split(",")
+      .map((domain) => domain.trim())
+      .filter(Boolean);
+
+    const primaryHost = process.env.NEXT_PUBLIC_SITE_URL
       ? new URL(process.env.NEXT_PUBLIC_SITE_URL).hostname
       : "pinkquill.com";
 
-    const applePayDomain = await stripe.applePayDomains.create({
-      domain_name: domain,
-    });
+    const derivedHosts = primaryHost.startsWith("www.")
+      ? [primaryHost, primaryHost.slice(4)]
+      : [primaryHost, `www.${primaryHost}`];
+
+    const domains = Array.from(new Set([...(configuredDomains || []), ...derivedHosts]));
+    const results: Array<{ domain: string; id: string | null; status: "registered" | "already_registered" }> = [];
+
+    for (const domain of domains) {
+      try {
+        const applePayDomain = await stripe.applePayDomains.create({
+          domain_name: domain,
+        });
+        results.push({
+          domain: applePayDomain.domain_name,
+          id: applePayDomain.id,
+          status: "registered",
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to register domain";
+        if (message.includes("already been registered")) {
+          results.push({
+            domain,
+            id: null,
+            status: "already_registered",
+          });
+          continue;
+        }
+        throw error;
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      domain: applePayDomain.domain_name,
-      id: applePayDomain.id,
+      domains: results,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to register domain";
-    // If already registered, Stripe returns a specific error
-    if (message.includes("already been registered")) {
-      return NextResponse.json({ success: true, already_registered: true });
-    }
     console.error("[Stripe Register Domain]", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }

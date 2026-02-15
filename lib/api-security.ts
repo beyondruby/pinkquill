@@ -7,6 +7,7 @@ interface RateLimitOptions {
   limit: number;
   windowSeconds: number;
   userId?: string;
+  identifier?: string;
 }
 
 interface RateLimitDecision {
@@ -31,7 +32,8 @@ function getClientIp(request: Request): string {
   return "unknown";
 }
 
-function getRateLimitIdentifier(request: Request, userId?: string): string {
+function getRateLimitIdentifier(request: Request, userId?: string, explicitIdentifier?: string): string {
+  if (explicitIdentifier) return explicitIdentifier;
   if (userId) return `user:${userId}`;
   return `ip:${getClientIp(request)}`;
 }
@@ -141,13 +143,14 @@ export async function checkRateLimit({
   limit,
   windowSeconds,
   userId,
+  identifier,
 }: RateLimitOptions): Promise<RateLimitDecision> {
   try {
-    const identifier = getRateLimitIdentifier(request, userId);
+    const resolvedIdentifier = getRateLimitIdentifier(request, userId, identifier);
     const { data, error } = await supabaseAdmin
       .rpc("enforce_api_rate_limit", {
         p_scope: scope,
-        p_identifier: identifier,
+        p_identifier: resolvedIdentifier,
         p_limit: limit,
         p_window_seconds: windowSeconds,
       })

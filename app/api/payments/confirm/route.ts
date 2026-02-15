@@ -4,10 +4,13 @@ import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } f
 import { finalizeOrderPayment, markOrderPaymentFailed } from "@/lib/payments-server";
 import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { extractStripeDeclineDetails } from "@/lib/stripe-decline-details";
 
 type OrderForConfirm = {
   id: string;
+  order_number: string;
   buyer_id: string;
+  buyer_phone: string | null;
   status: string;
   listing_type: string;
   shipping_address: Record<string, unknown> | null;
@@ -18,8 +21,19 @@ type OrderForConfirm = {
   payment_intent_id: string | null;
   product: {
     delivery_type: string;
+    title: string;
   } | null;
 };
+
+const REQUIRED_SHIPPING_FIELDS = ["name", "line1", "city", "country"] as const;
+
+function hasRequiredShippingAddress(address: Record<string, unknown> | null): boolean {
+  if (!address) return false;
+  return REQUIRED_SHIPPING_FIELDS.every((field) => {
+    const value = address[field];
+    return typeof value === "string" && value.trim().length > 0;
+  });
+}
 
 export const runtime = "nodejs";
 
@@ -61,6 +75,16 @@ export async function POST(request: Request) {
       return rateLimitResponse(rateLimit, 60);
     }
 
+    const ipRateLimit = await checkRateLimit({
+      request,
+      scope: "payments.confirm.ip",
+      limit: 120,
+      windowSeconds: 300,
+    });
+    if (!ipRateLimit.allowed) {
+      return rateLimitResponse(ipRateLimit, 300);
+    }
+
     const parsed = await safeJsonParse<{ order_id?: string }>(request);
     if ("error" in parsed) return parsed.error;
     const { order_id: orderId } = parsed.data;
@@ -68,11 +92,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "order_id is required" }, { status: 400 });
     }
 
+    const orderRateLimit = await checkRateLimit({
+      request,
+      scope: "payments.confirm.order",
+      limit: 18,
+      windowSeconds: 300,
+      identifier: `user:${user.id}:order:${orderId}`,
+    });
+    if (!orderRateLimit.allowed) {
+      return rateLimitResponse(orderRateLimit, 300);
+    }
+
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .select(`
         id,
+        order_number,
         buyer_id,
+        buyer_phone,
         status,
         listing_type,
         shipping_address,
@@ -81,7 +118,7 @@ export async function POST(request: Request) {
         payment_provider,
         payment_reference,
         payment_intent_id,
-        product:products (delivery_type)
+        product:products (delivery_type, title)
       `)
       .eq("id", orderId)
       .single<OrderForConfirm>();
@@ -106,7 +143,7 @@ export async function POST(request: Request) {
     const requiresShippingDetails =
       order.listing_type === "product"
       && order.product?.delivery_type !== "digital"
-      && !order.shipping_address;
+      && (!hasRequiredShippingAddress(order.shipping_address) || !String(order.buyer_phone || "").trim());
 
     if (requiresShippingDetails) {
       return NextResponse.json(
@@ -131,7 +168,9 @@ export async function POST(request: Request) {
       // Use Stripe SDK directly to check status (provider.capturePayment validates)
       const { getStripeServer } = await import("@/lib/stripe");
       const stripe = getStripeServer();
-      const paymentIntent = await stripe.paymentIntents.retrieve(order.payment_intent_id);
+      const paymentIntent = await stripe.paymentIntents.retrieve(order.payment_intent_id, {
+        expand: ["latest_charge", "last_payment_error.payment_method"],
+      });
       const expectedAmount = Math.round(orderAmount * 100);
       const orderCurrency = String(order.currency || "usd").toLowerCase();
       const intentCurrency = String(paymentIntent.currency || "").toLowerCase();
@@ -170,11 +209,13 @@ export async function POST(request: Request) {
       }
 
       if (paymentIntent.status === "canceled" || paymentIntent.status === "requires_payment_method") {
+        const declineDetails = extractStripeDeclineDetails(paymentIntent);
         await markOrderPaymentFailed({
           orderId: order.id,
           provider: "stripe",
           paymentReference: paymentIntent.id,
           reason: paymentIntent.last_payment_error?.message || "Stripe payment failed",
+          errorDetails: declineDetails,
           source: "api.payments.confirm",
         });
 
@@ -182,6 +223,7 @@ export async function POST(request: Request) {
           {
             error: paymentIntent.last_payment_error?.message || "Payment failed. Please try again.",
             payment_intent_status: paymentIntent.status,
+            decline_code: paymentIntent.last_payment_error?.decline_code || null,
           },
           { status: 402 }
         );

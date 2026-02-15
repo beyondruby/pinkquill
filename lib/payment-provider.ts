@@ -52,11 +52,15 @@ export interface DashboardResult {
 
 export interface OrderForPayment {
   id: string;
+  orderNumber?: string | null;
   buyerId: string;
   buyerEmail?: string;
+  buyerPhone?: string | null;
   amount: number;
   currency: string;
   listingType: string;
+  productTitle?: string | null;
+  shippingAddress?: Record<string, unknown> | null;
   existingPaymentRef?: string | null;
 }
 

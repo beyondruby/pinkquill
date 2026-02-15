@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { finalizeOrderPayment, markOrderPaymentFailed } from "@/lib/payments-server";
+import { extractStripeDeclineDetails } from "@/lib/stripe-decline-details";
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
@@ -89,7 +90,10 @@ export async function POST(request: Request) {
 
       case "payment_intent.payment_failed":
       case "payment_intent.canceled": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const eventPaymentIntent = event.data.object as Stripe.PaymentIntent;
+        const paymentIntent = await stripe.paymentIntents.retrieve(eventPaymentIntent.id, {
+          expand: ["latest_charge", "last_payment_error.payment_method"],
+        }).catch(() => eventPaymentIntent);
         const order = await resolveOrder(paymentIntent);
         if (!order) {
           console.warn("[Stripe Webhook] No order found for failed payment intent", paymentIntent.id);
@@ -101,6 +105,7 @@ export async function POST(request: Request) {
           provider: "stripe",
           paymentReference: paymentIntent.id,
           reason: paymentIntent.last_payment_error?.message || `Stripe event: ${event.type}`,
+          errorDetails: extractStripeDeclineDetails(paymentIntent),
           source: `stripe.webhook.${event.type}`,
         });
         break;
