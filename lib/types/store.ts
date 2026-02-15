@@ -735,8 +735,21 @@ export interface ProductWizardState {
 
   // Step 2: Media
   mediaFiles: File[];
-  mediaPreviews: { file: File; url: string; isPrimary: boolean }[];
-  digitalFiles: File[];
+  mediaPreviews: {
+    id?: string;
+    file?: File | null;
+    url: string;
+    isPrimary: boolean;
+    mediaType?: 'image' | 'video';
+  }[];
+  digitalFiles: {
+    id?: string;
+    file?: File | null;
+    name: string;
+    type?: string;
+    size: number;
+    url?: string;
+  }[];
 
   // Step 3: Details
   title: string;
@@ -765,6 +778,7 @@ export interface ProductWizardState {
 
 export interface CommissionPackageFormState {
   id: string;
+  pricing_id?: string;
   tier: PackageTier;
   name: string;
   description: string;
@@ -780,7 +794,13 @@ export interface CommissionWizardState {
   title: string;
   headline: string;
   description: string;
-  mediaPreviews: { file: File; url: string; isPrimary: boolean }[];
+  mediaPreviews: {
+    id?: string;
+    file?: File | null;
+    url: string;
+    isPrimary: boolean;
+    mediaType?: 'image' | 'video';
+  }[];
   packages: CommissionPackageFormState[];
   requirements: string[];
   faqs: ServiceFaqItem[];

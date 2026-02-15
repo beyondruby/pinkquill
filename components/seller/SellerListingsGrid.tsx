@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerProducts, useUpdateProductStatus, useDeleteProduct } from "@/lib/hooks";
 import type { Product, ProductStatus } from "@/lib/types/store";
@@ -24,6 +25,7 @@ function ListingCard({
   onStatusChange: (id: string, status: ProductStatus) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const router = useRouter();
   const [showActions, setShowActions] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -88,7 +90,7 @@ function ListingCard({
         {/* Actions */}
         <div className="mt-3 flex gap-2 relative">
           <Link
-            href={isService ? `/product/${product.id}` : `/product/${product.id}`}
+            href={isService ? `/commissions/${product.id}` : `/product/${product.id}`}
             className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-muted border border-black/[0.08] rounded-lg hover:bg-black/[0.02] transition-colors"
           >
             View
@@ -103,6 +105,15 @@ function ListingCard({
 
           {showActions && (
             <div className="absolute right-0 top-full mt-1 z-10 bg-white border border-black/[0.08] rounded-xl shadow-lg py-1 min-w-[140px]">
+              <button
+                onClick={() => {
+                  setShowActions(false);
+                  router.push(`/sell/edit/${product.id}`);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm font-ui text-ink hover:bg-black/[0.02]"
+              >
+                Edit
+              </button>
               {product.status === "active" && (
                 <button
                   onClick={() => handleStatusChange("paused")}

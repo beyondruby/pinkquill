@@ -111,15 +111,17 @@ export function useCreateCommission(): UseCreateCommissionReturn {
 
       if (productError) throw productError;
 
-      if (state.mediaPreviews.length > 0) {
+      const uploadableMedia = state.mediaPreviews.filter((preview) => preview.file instanceof File);
+      if (uploadableMedia.length > 0) {
         const mediaRows = await Promise.all(
-          state.mediaPreviews.map(async (preview, index) => {
-            const fileExt = preview.file.name.split(".").pop();
+          uploadableMedia.map(async (preview, index) => {
+            const sourceFile = preview.file as File;
+            const fileExt = sourceFile.name.split(".").pop();
             const fileName = `${user.id}/${product.id}/${Date.now()}-${index}.${fileExt}`;
 
             const { error: uploadError } = await supabase.storage
               .from("product-images")
-              .upload(fileName, preview.file, { upsert: true });
+              .upload(fileName, sourceFile, { upsert: true });
 
             if (uploadError) throw uploadError;
 
@@ -130,7 +132,7 @@ export function useCreateCommission(): UseCreateCommissionReturn {
             return {
               product_id: product.id,
               media_url: publicUrl,
-              media_type: preview.file.type.startsWith("video/") ? "video" : "image",
+              media_type: preview.mediaType || (sourceFile.type.startsWith("video/") ? "video" : "image"),
               is_primary: preview.isPrimary,
               position: index,
             };
@@ -156,6 +158,7 @@ export function useCreateCommission(): UseCreateCommissionReturn {
             delivery_days: pkg.deliveryDays,
             revisions: pkg.revisions,
             package_features: pkg.features,
+            reproduction_options: { description: pkg.description },
           }))
         );
 
@@ -183,6 +186,338 @@ export function useCreateCommission(): UseCreateCommissionReturn {
   }, []);
 
   return { createCommission, creating, error };
+}
+
+interface UseUpdateCommissionReturn {
+  updateCommission: (productId: string, state: CommissionWizardState) => Promise<boolean>;
+  updating: boolean;
+  error: string | null;
+}
+
+type ExistingCommissionMediaRow = {
+  id: string;
+  media_url: string;
+};
+
+type ExistingCommissionPackageRow = {
+  id: string;
+  package_tier: CommissionPackageFormState["tier"] | null;
+  variant_name: string | null;
+};
+
+function normalizeLabel(value: string | null | undefined): string {
+  return String(value || "").trim().toLowerCase();
+}
+
+export function useUpdateCommission(): UseUpdateCommissionReturn {
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateCommission = useCallback(async (productId: string, state: CommissionWizardState): Promise<boolean> => {
+    setUpdating(true);
+    setError(null);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      if (!state.category) throw new Error("Select a commission category");
+      if (!state.title.trim()) throw new Error("Service title is required");
+      if (!state.description.trim()) throw new Error("Service description is required");
+
+      const normalizedPackages = state.packages
+        .map((pkg) => ({
+          ...pkg,
+          name: pkg.name.trim(),
+          description: pkg.description.trim(),
+          price: pkg.price !== null ? Number(pkg.price) : null,
+          deliveryDays: Math.max(1, Number(pkg.deliveryDays || 1)),
+          revisions: Math.max(0, Number(pkg.revisions || 0)),
+          features: pkg.features.map((feature) => feature.trim()).filter((feature) => feature.length > 0),
+        }))
+        .filter((pkg) => pkg.price !== null && pkg.price > 0 && pkg.name.length > 0);
+
+      if (normalizedPackages.length === 0) {
+        throw new Error("Add at least one package with price and title");
+      }
+
+      const { data: existingProduct, error: existingProductError } = await supabase
+        .from("products")
+        .select("id, service_metadata")
+        .eq("id", productId)
+        .eq("seller_id", user.id)
+        .eq("listing_type", "service")
+        .maybeSingle();
+
+      if (existingProductError) throw existingProductError;
+      if (!existingProduct) throw new Error("Commission not found or not editable");
+
+      const existingServiceMetadata =
+        existingProduct.service_metadata
+        && typeof existingProduct.service_metadata === "object"
+        && !Array.isArray(existingProduct.service_metadata)
+          ? (existingProduct.service_metadata as Record<string, unknown>)
+          : {};
+
+      const normalizedRequirements = state.requirements
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+
+      const normalizedFaqs = state.faqs
+        .map((faq) => ({
+          question: faq.question.trim(),
+          answer: faq.answer.trim(),
+        }))
+        .filter((faq) => faq.question.length > 0 && faq.answer.length > 0);
+
+      const normalizedKeywords = Array.from(
+        new Set(
+          state.keywords
+            .map((keyword) => keyword.trim().toLowerCase())
+            .filter((keyword) => keyword.length > 0)
+        )
+      );
+
+      const { error: productUpdateError } = await supabase
+        .from("products")
+        .update({
+          title: state.title.trim(),
+          description: state.description.trim(),
+          delivery_type: "digital",
+          category: state.category,
+          subcategory: state.subcategory || null,
+          attributes: {
+            requirements: normalizedRequirements,
+          },
+          service_metadata: {
+            ...existingServiceMetadata,
+            headline: state.headline.trim() || null,
+            requirements: normalizedRequirements,
+            faqs: normalizedFaqs,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", productId)
+        .eq("seller_id", user.id);
+      if (productUpdateError) throw productUpdateError;
+
+      const { error: deleteKeywordsError } = await supabase
+        .from("product_keywords")
+        .delete()
+        .eq("product_id", productId);
+      if (deleteKeywordsError) throw deleteKeywordsError;
+
+      if (normalizedKeywords.length > 0) {
+        const { error: insertKeywordsError } = await supabase
+          .from("product_keywords")
+          .insert(normalizedKeywords.map((keyword) => ({ product_id: productId, keyword })));
+        if (insertKeywordsError) throw insertKeywordsError;
+      }
+
+      const { data: existingMediaRows, error: existingMediaError } = await supabase
+        .from("product_media")
+        .select("id, media_url")
+        .eq("product_id", productId);
+      if (existingMediaError) throw existingMediaError;
+
+      const existingMedia = (existingMediaRows || []) as ExistingCommissionMediaRow[];
+      const existingMediaById = new Map(existingMedia.map((row) => [row.id, row]));
+      const keptMediaIds = new Set<string>();
+      const mediaPreviews = state.mediaPreviews.map((preview) => ({ ...preview }));
+      if (mediaPreviews.length > 0 && !mediaPreviews.some((preview) => preview.isPrimary)) {
+        mediaPreviews[0].isPrimary = true;
+      }
+
+      for (let index = 0; index < mediaPreviews.length; index += 1) {
+        const preview = mediaPreviews[index];
+        const mediaType = preview.mediaType
+          || (preview.file?.type?.startsWith("video/") ? "video" : "image");
+
+        if (preview.id && existingMediaById.has(preview.id)) {
+          const { error: updateMediaError } = await supabase
+            .from("product_media")
+            .update({
+              media_url: preview.url,
+              media_type: mediaType,
+              is_primary: preview.isPrimary,
+              position: index,
+            })
+            .eq("id", preview.id);
+          if (updateMediaError) throw updateMediaError;
+          keptMediaIds.add(preview.id);
+          continue;
+        }
+
+        if (preview.file instanceof File) {
+          const fileExt = preview.file.name.split(".").pop();
+          const fileName = `${user.id}/${productId}/${Date.now()}-${index}.${fileExt}`;
+
+          const { error: uploadMediaError } = await supabase.storage
+            .from("product-images")
+            .upload(fileName, preview.file, { upsert: true });
+          if (uploadMediaError) throw uploadMediaError;
+
+          const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(fileName);
+          const { data: insertedMedia, error: insertMediaError } = await supabase
+            .from("product_media")
+            .insert({
+              product_id: productId,
+              media_url: publicUrl,
+              media_type: mediaType,
+              is_primary: preview.isPrimary,
+              position: index,
+            })
+            .select("id")
+            .single();
+          if (insertMediaError) throw insertMediaError;
+          if (insertedMedia?.id) keptMediaIds.add(insertedMedia.id as string);
+          continue;
+        }
+
+        const matchedExisting = existingMedia.find(
+          (row) => row.media_url === preview.url && !keptMediaIds.has(row.id)
+        );
+        if (matchedExisting) {
+          const { error: updateMediaError } = await supabase
+            .from("product_media")
+            .update({
+              is_primary: preview.isPrimary,
+              position: index,
+              media_type: mediaType,
+            })
+            .eq("id", matchedExisting.id);
+          if (updateMediaError) throw updateMediaError;
+          keptMediaIds.add(matchedExisting.id);
+          continue;
+        }
+
+        const { data: insertedMedia, error: insertMediaError } = await supabase
+          .from("product_media")
+          .insert({
+            product_id: productId,
+            media_url: preview.url,
+            media_type: mediaType,
+            is_primary: preview.isPrimary,
+            position: index,
+          })
+          .select("id")
+          .single();
+        if (insertMediaError) throw insertMediaError;
+        if (insertedMedia?.id) keptMediaIds.add(insertedMedia.id as string);
+      }
+
+      const removableMediaIds = existingMedia
+        .map((row) => row.id)
+        .filter((id) => !keptMediaIds.has(id));
+      if (removableMediaIds.length > 0) {
+        const { error: deleteMediaError } = await supabase
+          .from("product_media")
+          .delete()
+          .in("id", removableMediaIds);
+        if (deleteMediaError) throw deleteMediaError;
+      }
+
+      const { data: existingPackagesRows, error: existingPackagesError } = await supabase
+        .from("product_pricing")
+        .select("id, package_tier, variant_name")
+        .eq("product_id", productId)
+        .eq("pricing_type", "service_package");
+      if (existingPackagesError) throw existingPackagesError;
+
+      const remainingPackages = [...((existingPackagesRows || []) as ExistingCommissionPackageRow[])];
+      const packageById = new Map(remainingPackages.map((row) => [row.id, row]));
+
+      for (const pkg of normalizedPackages) {
+        let matched: ExistingCommissionPackageRow | undefined;
+
+        if (pkg.pricing_id && packageById.has(pkg.pricing_id)) {
+          matched = packageById.get(pkg.pricing_id);
+          const index = remainingPackages.findIndex((row) => row.id === pkg.pricing_id);
+          if (index >= 0) remainingPackages.splice(index, 1);
+        }
+
+        if (!matched) {
+          const byTierIndex = remainingPackages.findIndex(
+            (row) =>
+              row.package_tier === pkg.tier
+              || normalizeLabel(row.variant_name) === normalizeLabel(pkg.name)
+          );
+          if (byTierIndex >= 0) {
+            [matched] = remainingPackages.splice(byTierIndex, 1);
+          }
+        }
+
+        if (matched) {
+          const { error: updatePackageError } = await supabase
+            .from("product_pricing")
+            .update({
+              pricing_type: "service_package",
+              variant_name: pkg.name,
+              price: pkg.price,
+              currency: "USD",
+              stock: null,
+              is_available: true,
+              package_tier: pkg.tier,
+              delivery_days: pkg.deliveryDays,
+              revisions: pkg.revisions,
+              package_features: pkg.features,
+              reproduction_options: { description: pkg.description },
+            })
+            .eq("id", matched.id);
+          if (updatePackageError) throw updatePackageError;
+          continue;
+        }
+
+        const { error: insertPackageError } = await supabase
+          .from("product_pricing")
+          .insert({
+            product_id: productId,
+            pricing_type: "service_package",
+            variant_name: pkg.name,
+            price: pkg.price,
+            currency: "USD",
+            stock: null,
+            is_available: true,
+            package_tier: pkg.tier,
+            delivery_days: pkg.deliveryDays,
+            revisions: pkg.revisions,
+            package_features: pkg.features,
+            reproduction_options: { description: pkg.description },
+          });
+        if (insertPackageError) throw insertPackageError;
+      }
+
+      for (const orphanPackage of remainingPackages) {
+        const { error: deletePackageError } = await supabase
+          .from("product_pricing")
+          .delete()
+          .eq("id", orphanPackage.id);
+
+        if (!deletePackageError) continue;
+        if (deletePackageError.code === "23503") {
+          const { error: disablePackageError } = await supabase
+            .from("product_pricing")
+            .update({ is_available: false })
+            .eq("id", orphanPackage.id);
+          if (disablePackageError) throw disablePackageError;
+          continue;
+        }
+
+        throw deletePackageError;
+      }
+
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useUpdateCommission] Error:", message);
+      setError(message || "Failed to update commission");
+      return false;
+    } finally {
+      setUpdating(false);
+    }
+  }, []);
+
+  return { updateCommission, updating, error };
 }
 
 interface UseSellerCommissionsReturn {

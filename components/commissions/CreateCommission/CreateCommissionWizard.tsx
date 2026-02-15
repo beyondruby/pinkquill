@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCreateCommission } from "@/lib/hooks/useCommissions";
+import { useCreateCommission, useUpdateCommission } from "@/lib/hooks/useCommissions";
 import {
   type CommissionPackageFormState,
   type CommissionWizardState,
+  type Product,
   initialCommissionWizardState,
 } from "@/lib/types/store";
 import {
@@ -74,16 +75,114 @@ const TIER_STYLES: Record<
   },
 };
 
-export default function CreateCommissionWizard() {
+function isVideoMedia(preview: { file?: File | null; mediaType?: string; url: string }): boolean {
+  if (preview.mediaType) return preview.mediaType === "video";
+  if (preview.file?.type) return preview.file.type.startsWith("video/");
+  return /\.(mp4|mov|m4v|webm)(\?.*)?$/i.test(preview.url);
+}
+
+function mapProductToCommissionState(product: Product): CommissionWizardState {
+  const serviceMetadata =
+    product.service_metadata && typeof product.service_metadata === "object"
+      ? product.service_metadata
+      : {};
+
+  const requirements = Array.isArray(serviceMetadata.requirements)
+    ? serviceMetadata.requirements.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+
+  const faqs = Array.isArray(serviceMetadata.faqs)
+    ? serviceMetadata.faqs
+      .filter((item): item is { question: string; answer: string } => {
+        if (!item || typeof item !== "object") return false;
+        const candidate = item as { question?: unknown; answer?: unknown };
+        return typeof candidate.question === "string" && typeof candidate.answer === "string";
+      })
+      .map((faq) => ({ question: faq.question, answer: faq.answer }))
+    : [];
+
+  const packages = (product.pricing || [])
+    .filter((pricing) => pricing.pricing_type === "service_package")
+    .sort((a, b) => Number(a.price || 0) - Number(b.price || 0))
+    .map((pricing, index) => {
+      const packageMeta =
+        pricing.reproduction_options
+        && typeof pricing.reproduction_options === "object"
+        && !Array.isArray(pricing.reproduction_options)
+          ? pricing.reproduction_options as { description?: unknown }
+          : {};
+
+      return {
+        id: pricing.id,
+        pricing_id: pricing.id,
+        tier: pricing.package_tier || PACKAGE_PRESETS[index]?.tier || "custom",
+        name: pricing.variant_name || PACKAGE_PRESETS[index]?.name || `Package ${index + 1}`,
+        description: typeof packageMeta.description === "string" ? packageMeta.description : "",
+        price: Number(pricing.price || 0),
+        deliveryDays: pricing.delivery_days || 7,
+        revisions: pricing.revisions || 0,
+        features: Array.isArray(pricing.package_features)
+          ? pricing.package_features.filter((feature): feature is string => typeof feature === "string" && feature.trim().length > 0)
+          : [],
+      } satisfies CommissionPackageFormState;
+    });
+
+  const mediaPreviews = [...(product.media || [])]
+    .sort((a, b) => a.position - b.position)
+    .map((media) => ({
+      id: media.id,
+      file: null,
+      url: media.media_url,
+      isPrimary: Boolean(media.is_primary),
+      mediaType: media.media_type,
+    }));
+
+  if (mediaPreviews.length > 0 && !mediaPreviews.some((media) => media.isPrimary)) {
+    mediaPreviews[0].isPrimary = true;
+  }
+
+  return {
+    category: product.category || null,
+    subcategory: product.subcategory || null,
+    title: product.title || "",
+    headline: typeof serviceMetadata.headline === "string" ? serviceMetadata.headline : "",
+    description: product.description || "",
+    mediaPreviews,
+    packages: packages.length > 0 ? packages : initialCommissionWizardState.packages,
+    requirements,
+    faqs,
+    keywords: Array.isArray(product.keywords) ? product.keywords : [],
+  };
+}
+
+interface CreateCommissionWizardProps {
+  mode?: "create" | "edit";
+  productId?: string;
+  initialProduct?: Product | null;
+}
+
+export default function CreateCommissionWizard({
+  mode = "create",
+  productId,
+  initialProduct = null,
+}: CreateCommissionWizardProps = {}) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaUrlsRef = useRef<string[]>([]);
   const { user, profile } = useAuth();
-  const { createCommission, creating, error: createError } = useCreateCommission();
+  const { createCommission, creating: creatingCommission, error: createError } = useCreateCommission();
+  const { updateCommission, updating: updatingCommission, error: updateError } = useUpdateCommission();
 
+  const isEditMode = mode === "edit";
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [state, setState] = useState<CommissionWizardState>(initialCommissionWizardState);
+  const [state, setState] = useState<CommissionWizardState>(() => (
+    mode === "edit" && initialProduct
+      ? mapProductToCommissionState(initialProduct)
+      : initialCommissionWizardState
+  ));
+  const submitting = isEditMode ? updatingCommission : creatingCommission;
+  const submitError = isEditMode ? updateError : createError;
 
   const categories = useMemo(() => getAllCommissionCategories(), []);
   const selectedCategory = state.category ? COMMISSION_CATEGORIES[state.category] : null;
@@ -91,7 +190,9 @@ export default function CreateCommissionWizard() {
   const stepTitle = STEP_TITLES[step] || STEP_TITLES[1];
 
   useEffect(() => {
-    mediaUrlsRef.current = state.mediaPreviews.map((item) => item.url);
+    mediaUrlsRef.current = state.mediaPreviews
+      .filter((item) => item.file instanceof File)
+      .map((item) => item.url);
   }, [state.mediaPreviews]);
 
   useEffect(() => {
@@ -159,6 +260,7 @@ export default function CreateCommissionWizard() {
         file,
         url: URL.createObjectURL(file),
         isPrimary: currentCount === 0 && accepted.length === 0,
+        mediaType: file.type.startsWith("video/") ? "video" : "image",
       });
     }
 
@@ -178,7 +280,7 @@ export default function CreateCommissionWizard() {
 
   const removeMedia = useCallback((index: number) => {
     const item = state.mediaPreviews[index];
-    if (item) URL.revokeObjectURL(item.url);
+    if (item?.file) URL.revokeObjectURL(item.url);
 
     const nextMedia = state.mediaPreviews.filter((_, idx) => idx !== index);
     if (nextMedia.length > 0 && !nextMedia.some((media) => media.isPrimary)) {
@@ -239,7 +341,7 @@ export default function CreateCommissionWizard() {
 
   const publishService = useCallback(async () => {
     if (!user || !profile) {
-      setError("Please sign in to publish your service.");
+      setError(`Please sign in to ${isEditMode ? "edit" : "publish"} your service.`);
       return;
     }
 
@@ -250,11 +352,24 @@ export default function CreateCommissionWizard() {
       }
     }
 
+    if (isEditMode) {
+      const targetProductId = productId || initialProduct?.id;
+      if (!targetProductId) {
+        setError("Missing commission id for edit.");
+        return;
+      }
+      const success = await updateCommission(targetProductId, state);
+      if (success) {
+        router.push(`/studio/${profile.username}?tab=commissions`);
+      }
+      return;
+    }
+
     const created = await createCommission(state);
     if (created) {
       router.push(`/studio/${profile.username}?tab=commissions`);
     }
-  }, [createCommission, profile, router, state, user, validateStep]);
+  }, [createCommission, initialProduct?.id, isEditMode, productId, profile, router, state, updateCommission, user, validateStep]);
 
   const priceFrom = useMemo(() => {
     const values = state.packages
@@ -262,6 +377,14 @@ export default function CreateCommissionWizard() {
       .filter((value): value is number => typeof value === "number" && value > 0);
     return values.length > 0 ? Math.min(...values) : null;
   }, [state.packages]);
+
+  if (isEditMode && !initialProduct) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-white to-pink-50/50 flex items-center justify-center px-6">
+        <div className="w-10 h-10 rounded-full border-2 border-black/20 border-t-[var(--color-pink-vivid)] animate-spin" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -308,9 +431,9 @@ export default function CreateCommissionWizard() {
           </div>
         </div>
 
-        {(error || createError) && (
+        {(error || submitError) && (
           <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
-            <p className="text-sm text-red-600 font-body">{error || createError}</p>
+            <p className="text-sm text-red-600 font-body">{error || submitError}</p>
           </div>
         )}
 
@@ -515,8 +638,8 @@ export default function CreateCommissionWizard() {
                       {state.mediaPreviews.length > 0 && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                           {state.mediaPreviews.map((media, index) => (
-                            <div key={media.url} className="relative rounded-xl overflow-hidden border border-black/[0.08] group bg-white">
-                              {media.file.type.startsWith("video/") ? (
+                            <div key={media.id || media.url} className="relative rounded-xl overflow-hidden border border-black/[0.08] group bg-white">
+                              {isVideoMedia(media) ? (
                                 <video
                                   src={media.url}
                                   className="w-full aspect-square object-cover"
@@ -651,7 +774,7 @@ export default function CreateCommissionWizard() {
               <button
                 type="button"
                 onClick={goBack}
-                disabled={step === 1 || creating}
+                disabled={step === 1 || submitting}
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-ui font-semibold text-ink bg-white border border-black/[0.08] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -664,7 +787,7 @@ export default function CreateCommissionWizard() {
                 <button
                   type="button"
                   onClick={goNext}
-                  disabled={creating}
+                  disabled={submitting}
                   className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   Continue
@@ -676,11 +799,13 @@ export default function CreateCommissionWizard() {
                 <button
                   type="button"
                   onClick={publishService}
-                  disabled={creating}
+                  disabled={submitting}
                   className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm hover:shadow-lg hover:shadow-pink-vivid/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {creating ? "Publishing..." : "Publish Service"}
-                  {!creating && (
+                  {submitting
+                    ? (isEditMode ? "Saving..." : "Publishing...")
+                    : (isEditMode ? "Save Changes" : "Publish Service")}
+                  {!submitting && (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
@@ -990,7 +1115,7 @@ function ListingPreviewCard({
       <div className="p-4 space-y-3">
         <div className="rounded-xl overflow-hidden border border-black/[0.08] bg-gradient-to-br from-orange-50 to-pink-50">
           {primaryMedia ? (
-            primaryMedia.file.type.startsWith("video/") ? (
+            isVideoMedia(primaryMedia) ? (
               <video src={primaryMedia.url} className="w-full aspect-[4/3] object-cover" muted playsInline />
             ) : (
               <img src={primaryMedia.url} alt="Service preview" className="w-full aspect-[4/3] object-cover" />

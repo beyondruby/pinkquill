@@ -8,7 +8,6 @@ import type {
   ProductMedia,
   ProductPricing,
   ProductShipping,
-  ProductFile,
   ProductWizardState,
   ProductStatus,
   CreatePricingData,
@@ -301,16 +300,18 @@ export function useCreateProduct(): UseCreateProductReturn {
       if (productError) throw productError;
 
       // Upload media files
-      if (wizardState.mediaPreviews.length > 0) {
+      const uploadableMedia = wizardState.mediaPreviews.filter((preview) => preview.file instanceof File);
+      if (uploadableMedia.length > 0) {
         const mediaInserts = await Promise.all(
-          wizardState.mediaPreviews.map(async (preview, index) => {
+          uploadableMedia.map(async (preview, index) => {
+            const sourceFile = preview.file as File;
             // Upload to storage
-            const fileExt = preview.file.name.split(".").pop();
+            const fileExt = sourceFile.name.split(".").pop();
             const fileName = `${user.id}/${product.id}/${Date.now()}-${index}.${fileExt}`;
 
             const { error: uploadError } = await supabase.storage
               .from("product-images")
-              .upload(fileName, preview.file, { upsert: true });
+              .upload(fileName, sourceFile, { upsert: true });
 
             if (uploadError) {
               console.error("Media upload error:", uploadError);
@@ -324,7 +325,7 @@ export function useCreateProduct(): UseCreateProductReturn {
             return {
               product_id: product.id,
               media_url: publicUrl,
-              media_type: preview.file.type.startsWith("video/") ? "video" : "image",
+              media_type: preview.mediaType || (sourceFile.type.startsWith("video/") ? "video" : "image"),
               is_primary: preview.isPrimary,
               position: index,
             };
@@ -406,9 +407,11 @@ export function useCreateProduct(): UseCreateProductReturn {
       }
 
       // Upload digital files
-      if (wizardState.digitalFiles.length > 0) {
+      const uploadableDigitalFiles = wizardState.digitalFiles.filter((item) => item.file instanceof File);
+      if (uploadableDigitalFiles.length > 0) {
         const fileInserts = await Promise.all(
-          wizardState.digitalFiles.map(async (file) => {
+          uploadableDigitalFiles.map(async (digitalItem) => {
+            const file = digitalItem.file as File;
             const fileName = `${user.id}/${product.id}/${file.name}`;
 
             const { error: uploadError } = await supabase.storage
@@ -428,8 +431,8 @@ export function useCreateProduct(): UseCreateProductReturn {
             return {
               product_id: product.id,
               file_url: signedData?.signedUrl || fileName,
-              file_name: file.name,
-              file_type: file.type || file.name.split(".").pop() || null,
+              file_name: digitalItem.name || file.name,
+              file_type: digitalItem.type || file.type || file.name.split(".").pop() || null,
               file_size: file.size,
               is_preview: false,
             };
@@ -472,6 +475,444 @@ export function useCreateProduct(): UseCreateProductReturn {
 }
 
 // ============================================================================
+// useUpdateProductListing - Update a full product listing from wizard state
+// ============================================================================
+
+interface UseUpdateProductListingReturn {
+  updateListing: (productId: string, wizardState: ProductWizardState) => Promise<boolean>;
+  updating: boolean;
+  error: string | null;
+}
+
+type ExistingMediaRow = {
+  id: string;
+  media_url: string;
+  media_type: "image" | "video";
+};
+
+type ExistingPricingRow = {
+  id: string;
+  pricing_type: string;
+  variant_name: string | null;
+  currency: string;
+};
+
+type ExistingDigitalFileRow = {
+  id: string;
+  file_url: string;
+};
+
+type DesiredPricingRow = {
+  pricing_type: "original" | "reproduction" | "digital_download";
+  variant_name: string | null;
+  price: number;
+  currency: string;
+  stock: number | null;
+};
+
+function normalizeVariantName(value: string | null | undefined): string {
+  return String(value || "").trim().toLowerCase();
+}
+
+export function useUpdateProductListing(): UseUpdateProductListingReturn {
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateListing = useCallback(async (productId: string, wizardState: ProductWizardState): Promise<boolean> => {
+    setUpdating(true);
+    setError(null);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      if (!wizardState.deliveryType || !wizardState.category) {
+        throw new Error("Delivery type and category are required");
+      }
+
+      const title = wizardState.title.trim();
+      if (!title) {
+        throw new Error("Title is required");
+      }
+
+      const desiredPricing: DesiredPricingRow[] = [];
+      if (wizardState.sellOriginal && wizardState.originalPrice !== null) {
+        desiredPricing.push({
+          pricing_type: "original",
+          variant_name: "Original",
+          price: Math.max(0, Number(wizardState.originalPrice)),
+          currency: "USD",
+          stock: 1,
+        });
+      }
+
+      if (wizardState.hasReproductions) {
+        wizardState.reproductions.forEach((rep) => {
+          if (rep.price > 0) {
+            desiredPricing.push({
+              pricing_type: "reproduction",
+              variant_name: rep.type || "Reproduction",
+              price: Number(rep.price),
+              currency: "USD",
+              stock: null,
+            });
+          }
+        });
+      }
+
+      if (wizardState.hasDigitalDownload && wizardState.digitalPrice !== null) {
+        desiredPricing.push({
+          pricing_type: "digital_download",
+          variant_name: wizardState.digitalFormat || "Digital Download",
+          price: Math.max(0, Number(wizardState.digitalPrice)),
+          currency: "USD",
+          stock: null,
+        });
+      }
+
+      if (desiredPricing.length === 0) {
+        throw new Error("At least one pricing option is required");
+      }
+
+      const { data: existingProduct, error: existingProductError } = await supabase
+        .from("products")
+        .select("id")
+        .eq("id", productId)
+        .eq("seller_id", user.id)
+        .maybeSingle();
+
+      if (existingProductError) throw existingProductError;
+      if (!existingProduct) throw new Error("Listing not found or not editable");
+
+      const { error: productUpdateError } = await supabase
+        .from("products")
+        .update({
+          title,
+          description: wizardState.description.trim() || null,
+          delivery_type: wizardState.deliveryType,
+          category: wizardState.category,
+          subcategory: wizardState.subcategory || null,
+          attributes: wizardState.attributes || {},
+          year_created: wizardState.yearCreated || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", productId)
+        .eq("seller_id", user.id);
+
+      if (productUpdateError) throw productUpdateError;
+
+      const normalizedKeywords = Array.from(
+        new Set(
+          wizardState.keywords
+            .map((keyword) => keyword.trim().toLowerCase())
+            .filter((keyword) => keyword.length > 0)
+        )
+      );
+
+      const { error: deleteKeywordsError } = await supabase
+        .from("product_keywords")
+        .delete()
+        .eq("product_id", productId);
+      if (deleteKeywordsError) throw deleteKeywordsError;
+
+      if (normalizedKeywords.length > 0) {
+        const { error: insertKeywordsError } = await supabase
+          .from("product_keywords")
+          .insert(normalizedKeywords.map((keyword) => ({ product_id: productId, keyword })));
+        if (insertKeywordsError) throw insertKeywordsError;
+      }
+
+      const { data: existingMediaRows, error: existingMediaError } = await supabase
+        .from("product_media")
+        .select("id, media_url, media_type")
+        .eq("product_id", productId);
+      if (existingMediaError) throw existingMediaError;
+
+      const existingMedia = (existingMediaRows || []) as ExistingMediaRow[];
+      const existingMediaById = new Map(existingMedia.map((row) => [row.id, row]));
+      const keptMediaIds = new Set<string>();
+      const mediaPreviews = wizardState.mediaPreviews.map((preview) => ({ ...preview }));
+      if (mediaPreviews.length > 0 && !mediaPreviews.some((preview) => preview.isPrimary)) {
+        mediaPreviews[0].isPrimary = true;
+      }
+
+      for (let index = 0; index < mediaPreviews.length; index += 1) {
+        const preview = mediaPreviews[index];
+        const desiredType = preview.mediaType
+          || (preview.file?.type?.startsWith("video/") ? "video" : "image");
+
+        if (preview.id && existingMediaById.has(preview.id)) {
+          const { error: updateMediaError } = await supabase
+            .from("product_media")
+            .update({
+              media_url: preview.url,
+              media_type: desiredType,
+              is_primary: preview.isPrimary,
+              position: index,
+            })
+            .eq("id", preview.id);
+          if (updateMediaError) throw updateMediaError;
+          keptMediaIds.add(preview.id);
+          continue;
+        }
+
+        if (preview.file instanceof File) {
+          const fileExt = preview.file.name.split(".").pop();
+          const fileName = `${user.id}/${productId}/${Date.now()}-${index}.${fileExt}`;
+
+          const { error: uploadMediaError } = await supabase.storage
+            .from("product-images")
+            .upload(fileName, preview.file, { upsert: true });
+          if (uploadMediaError) throw uploadMediaError;
+
+          const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(fileName);
+          const { data: insertedMedia, error: insertMediaError } = await supabase
+            .from("product_media")
+            .insert({
+              product_id: productId,
+              media_url: publicUrl,
+              media_type: desiredType,
+              is_primary: preview.isPrimary,
+              position: index,
+            })
+            .select("id")
+            .single();
+          if (insertMediaError) throw insertMediaError;
+          if (insertedMedia?.id) keptMediaIds.add(insertedMedia.id as string);
+          continue;
+        }
+
+        const matchedExisting = existingMedia.find(
+          (row) => row.media_url === preview.url && !keptMediaIds.has(row.id)
+        );
+
+        if (matchedExisting) {
+          const { error: updateMediaError } = await supabase
+            .from("product_media")
+            .update({
+              media_type: desiredType,
+              is_primary: preview.isPrimary,
+              position: index,
+            })
+            .eq("id", matchedExisting.id);
+          if (updateMediaError) throw updateMediaError;
+          keptMediaIds.add(matchedExisting.id);
+          continue;
+        }
+
+        const { data: insertedMedia, error: insertMediaError } = await supabase
+          .from("product_media")
+          .insert({
+            product_id: productId,
+            media_url: preview.url,
+            media_type: desiredType,
+            is_primary: preview.isPrimary,
+            position: index,
+          })
+          .select("id")
+          .single();
+        if (insertMediaError) throw insertMediaError;
+        if (insertedMedia?.id) keptMediaIds.add(insertedMedia.id as string);
+      }
+
+      const removableMediaIds = existingMedia
+        .map((row) => row.id)
+        .filter((id) => !keptMediaIds.has(id));
+      if (removableMediaIds.length > 0) {
+        const { error: removeMediaError } = await supabase
+          .from("product_media")
+          .delete()
+          .in("id", removableMediaIds);
+        if (removeMediaError) throw removeMediaError;
+      }
+
+      const { data: existingPricingRows, error: existingPricingError } = await supabase
+        .from("product_pricing")
+        .select("id, pricing_type, variant_name, currency")
+        .eq("product_id", productId);
+      if (existingPricingError) throw existingPricingError;
+
+      const remainingPricing = [...((existingPricingRows || []) as ExistingPricingRow[])];
+      for (const desired of desiredPricing) {
+        const matchIndex = remainingPricing.findIndex((row) => {
+          if (row.pricing_type !== desired.pricing_type) return false;
+          if (desired.pricing_type === "reproduction") {
+            return normalizeVariantName(row.variant_name) === normalizeVariantName(desired.variant_name);
+          }
+          return true;
+        });
+
+        if (matchIndex >= 0) {
+          const [matched] = remainingPricing.splice(matchIndex, 1);
+          const { error: updatePricingError } = await supabase
+            .from("product_pricing")
+            .update({
+              pricing_type: desired.pricing_type,
+              variant_name: desired.variant_name,
+              price: desired.price,
+              currency: desired.currency,
+              stock: desired.stock,
+              is_available: true,
+            })
+            .eq("id", matched.id);
+          if (updatePricingError) throw updatePricingError;
+          continue;
+        }
+
+        const { error: insertPricingError } = await supabase
+          .from("product_pricing")
+          .insert({
+            product_id: productId,
+            pricing_type: desired.pricing_type,
+            variant_name: desired.variant_name,
+            price: desired.price,
+            currency: desired.currency,
+            stock: desired.stock,
+            is_available: true,
+          });
+        if (insertPricingError) throw insertPricingError;
+      }
+
+      for (const orphanRow of remainingPricing) {
+        const { error: deletePricingError } = await supabase
+          .from("product_pricing")
+          .delete()
+          .eq("id", orphanRow.id);
+
+        if (!deletePricingError) continue;
+        if (deletePricingError.code === "23503") {
+          const { error: disablePricingError } = await supabase
+            .from("product_pricing")
+            .update({ is_available: false })
+            .eq("id", orphanRow.id);
+          if (disablePricingError) throw disablePricingError;
+          continue;
+        }
+
+        throw deletePricingError;
+      }
+
+      if (wizardState.deliveryType !== "digital") {
+        const { error: upsertShippingError } = await supabase
+          .from("product_shipping")
+          .upsert({
+            product_id: productId,
+            dimensions_unit: wizardState.shipping.dimensions_unit || "cm",
+            height: wizardState.shipping.height || null,
+            width: wizardState.shipping.width || null,
+            thickness: wizardState.shipping.thickness || null,
+            weight: wizardState.shipping.weight || null,
+            weight_unit: wizardState.shipping.weight_unit || "kg",
+            shipping_services: wizardState.shipping.shipping_services || [],
+            shipping_locations: wizardState.shipping.shipping_locations || [],
+            packaging: wizardState.shipping.packaging || null,
+            processing_days: wizardState.shipping.processing_days || null,
+            shipping_cost: wizardState.shipping.shipping_cost || 0,
+          }, { onConflict: "product_id" });
+        if (upsertShippingError) throw upsertShippingError;
+      } else {
+        const { error: removeShippingError } = await supabase
+          .from("product_shipping")
+          .delete()
+          .eq("product_id", productId);
+        if (removeShippingError) throw removeShippingError;
+      }
+
+      if (wizardState.deliveryType === "digital" || wizardState.deliveryType === "both") {
+        const { data: existingDigitalFilesRows, error: existingDigitalFilesError } = await supabase
+          .from("product_files")
+          .select("id, file_url")
+          .eq("product_id", productId);
+        if (existingDigitalFilesError) throw existingDigitalFilesError;
+
+        const existingDigitalFiles = (existingDigitalFilesRows || []) as ExistingDigitalFileRow[];
+        const existingDigitalById = new Map(existingDigitalFiles.map((row) => [row.id, row]));
+        const keptDigitalIds = new Set<string>();
+
+        for (const digitalFile of wizardState.digitalFiles) {
+          if (digitalFile.id && existingDigitalById.has(digitalFile.id)) {
+            const { error: updateDigitalError } = await supabase
+              .from("product_files")
+              .update({
+                file_name: digitalFile.name,
+                file_type: digitalFile.type || null,
+                file_size: digitalFile.size || null,
+              })
+              .eq("id", digitalFile.id);
+            if (updateDigitalError) throw updateDigitalError;
+            keptDigitalIds.add(digitalFile.id);
+            continue;
+          }
+
+          if (digitalFile.file instanceof File) {
+            const fileName = `${user.id}/${productId}/${digitalFile.file.name}`;
+            const { error: uploadDigitalError } = await supabase.storage
+              .from("product-files")
+              .upload(fileName, digitalFile.file, { upsert: true });
+            if (uploadDigitalError) throw uploadDigitalError;
+
+            const { data: signedData } = await supabase.storage
+              .from("product-files")
+              .createSignedUrl(fileName, 60 * 60 * 24 * 365);
+
+            const { data: insertedDigital, error: insertDigitalError } = await supabase
+              .from("product_files")
+              .insert({
+                product_id: productId,
+                file_url: signedData?.signedUrl || fileName,
+                file_name: digitalFile.name || digitalFile.file.name,
+                file_type: digitalFile.type || digitalFile.file.type || null,
+                file_size: digitalFile.file.size,
+                is_preview: false,
+              })
+              .select("id")
+              .single();
+            if (insertDigitalError) throw insertDigitalError;
+            if (insertedDigital?.id) keptDigitalIds.add(insertedDigital.id as string);
+            continue;
+          }
+
+          const matchedExisting = existingDigitalFiles.find(
+            (row) => row.file_url === digitalFile.url && !keptDigitalIds.has(row.id)
+          );
+          if (matchedExisting) {
+            keptDigitalIds.add(matchedExisting.id);
+          }
+        }
+
+        const removableDigitalIds = existingDigitalFiles
+          .map((row) => row.id)
+          .filter((id) => !keptDigitalIds.has(id));
+        if (removableDigitalIds.length > 0) {
+          const { error: removeDigitalError } = await supabase
+            .from("product_files")
+            .delete()
+            .in("id", removableDigitalIds);
+          if (removeDigitalError) throw removeDigitalError;
+        }
+      } else {
+        const { error: deleteAllDigitalFilesError } = await supabase
+          .from("product_files")
+          .delete()
+          .eq("product_id", productId);
+        if (deleteAllDigitalFilesError) throw deleteAllDigitalFilesError;
+      }
+
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useUpdateProductListing] Error:", message);
+      setError(message || "Failed to update product listing");
+      return false;
+    } finally {
+      setUpdating(false);
+    }
+  }, []);
+
+  return { updateListing, updating, error };
+}
+
+// ============================================================================
 // useUpdateProduct - Update an existing product
 // ============================================================================
 
@@ -496,7 +937,7 @@ export function useUpdateProduct(): UseUpdateProductReturn {
         throw new Error("Not authenticated");
       }
 
-      const { error: updateError, count } = await supabase
+      const { error: updateError } = await supabase
         .from("products")
         .update({
           title: updates.title,
@@ -557,7 +998,24 @@ export function useDeleteProduct(): UseDeleteProductReturn {
         .eq("id", productId)
         .eq("seller_id", user.id); // SECURITY: Only delete if user owns this product
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        // Listings with historical orders cannot be hard deleted due foreign-key references.
+        // In that case, archive instead so sellers can still remove it from active storefronts.
+        if (deleteError.code === "23503") {
+          const { error: archiveError } = await supabase
+            .from("products")
+            .update({
+              status: "archived",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", productId)
+            .eq("seller_id", user.id);
+
+          if (archiveError) throw archiveError;
+          return true;
+        }
+        throw deleteError;
+      }
       return true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -666,7 +1124,7 @@ export function useToggleSaveProduct(): UseToggleSaveProductReturn {
 
       if (error) throw error;
       return !!data;
-    } catch (err) {
+    } catch {
       return false;
     }
   }, []);

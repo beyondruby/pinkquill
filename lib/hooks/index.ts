@@ -111,6 +111,7 @@ export type {
 export {
   useSellerProducts,
   useProduct,
+  useUpdateProductListing,
   useUpdateProductStatus,
   useDeleteProduct,
 } from "./useProducts";
@@ -118,6 +119,7 @@ export {
 // Commissions
 export {
   useCreateCommission,
+  useUpdateCommission,
   useSellerCommissions,
   useHireCommission,
   useCommissionOrder,

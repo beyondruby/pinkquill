@@ -4,17 +4,28 @@ import { useRef, useCallback, useState } from "react";
 import { ProductDelivery } from "@/lib/types/store";
 
 interface MediaPreview {
-  file: File;
+  id?: string;
+  file?: File | null;
   url: string;
   isPrimary: boolean;
+  mediaType?: "image" | "video";
+}
+
+interface DigitalFileDraft {
+  id?: string;
+  file?: File | null;
+  name: string;
+  type?: string;
+  size: number;
+  url?: string;
 }
 
 interface MediaUploadStepProps {
   deliveryType: ProductDelivery;
   mediaPreviews: MediaPreview[];
-  digitalFiles: File[];
+  digitalFiles: DigitalFileDraft[];
   onMediaChange: (previews: MediaPreview[]) => void;
-  onDigitalFilesChange: (files: File[]) => void;
+  onDigitalFilesChange: (files: DigitalFileDraft[]) => void;
 }
 
 const MAX_IMAGES = 8;
@@ -61,6 +72,7 @@ export default function MediaUploadStep({
           file,
           url,
           isPrimary: mediaPreviews.length === 0 && newPreviews.length === 0,
+          mediaType: "image",
         });
       });
 
@@ -94,7 +106,9 @@ export default function MediaUploadStep({
   const handleRemove = useCallback(
     (index: number) => {
       const removed = mediaPreviews[index];
-      URL.revokeObjectURL(removed.url);
+      if (removed?.file) {
+        URL.revokeObjectURL(removed.url);
+      }
 
       const newPreviews = mediaPreviews.filter((_, i) => i !== index);
       if (removed.isPrimary && newPreviews.length > 0) {
@@ -119,7 +133,15 @@ export default function MediaUploadStep({
   const handleDigitalFiles = useCallback(
     (files: FileList | null) => {
       if (!files) return;
-      onDigitalFilesChange([...digitalFiles, ...Array.from(files)]);
+      onDigitalFilesChange([
+        ...digitalFiles,
+        ...Array.from(files).map((file) => ({
+          file,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        })),
+      ]);
     },
     [digitalFiles, onDigitalFilesChange]
   );
@@ -215,7 +237,7 @@ export default function MediaUploadStep({
       <div className="mt-8 grid grid-cols-4 gap-3">
         {/* Filled slots */}
         {mediaPreviews.map((preview, index) => (
-          <div key={preview.url} className="relative group">
+          <div key={preview.id || preview.url} className="relative group">
             <div
               className={`
                 aspect-square rounded-xl overflow-hidden transition-all duration-300
@@ -312,7 +334,7 @@ export default function MediaUploadStep({
             <div className="mt-4 space-y-2">
               {digitalFiles.map((file, index) => (
                 <div
-                  key={`${file.name}-${index}`}
+                  key={`${file.id || file.name}-${index}`}
                   className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100"
                 >
                   <div className="flex items-center gap-3">
