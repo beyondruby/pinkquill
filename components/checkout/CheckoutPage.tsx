@@ -3,8 +3,13 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
+import {
+  buildStripeBillingDefaults,
+  buildStripeElementsOptions,
+  buildStripePaymentElementOptions,
+  type StripeBillingDefaults,
+} from "@/lib/stripe-checkout-ui";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCheckout } from "@/lib/hooks/usePayments";
 import { useUpdateOrderDraft } from "@/lib/hooks/useOrders";
@@ -228,20 +233,6 @@ function PromoCodeSection({
 // STRIPE INLINE FORM
 // ============================================================================
 
-interface BillingDetails {
-  name?: string;
-  email?: string;
-  phone?: string;
-  address?: {
-    line1?: string;
-    line2?: string;
-    city?: string;
-    state?: string;
-    postal_code?: string;
-    country?: string;
-  };
-}
-
 function StripeInlineForm({
   orderId,
   amount,
@@ -249,7 +240,7 @@ function StripeInlineForm({
   onSuccess,
   captchaToken,
   onCaptchaConsumed,
-  billingDetails,
+  billingDefaults,
 }: {
   orderId: string;
   amount: number;
@@ -257,7 +248,7 @@ function StripeInlineForm({
   onSuccess: () => void;
   captchaToken: string | null;
   onCaptchaConsumed: () => void;
-  billingDetails?: BillingDetails;
+  billingDefaults?: StripeBillingDefaults;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -278,15 +269,17 @@ function StripeInlineForm({
         return;
       }
 
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        setError(submitError.message || "Complete your payment details before continuing.");
+        setProcessing(false);
+        return;
+      }
+
       const { error: stripeError } = await stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/orders/${orderId}?payment=success`,
-          ...(billingDetails ? {
-            payment_method_data: {
-              billing_details: billingDetails,
-            },
-          } : {}),
         },
         redirect: "if_required",
       });
@@ -325,7 +318,7 @@ function StripeInlineForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <PaymentElement />
+      <PaymentElement options={buildStripePaymentElementOptions(billingDefaults)} />
       {error && <p className="text-red-600 text-sm">{error}</p>}
       <button
         type="submit"
@@ -389,29 +382,15 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     };
   }, [order?.shipping_address, orderId, shippingDraftEdits]);
 
-  // Build billing details from auth profile and order shipping address.
-  // Passing these to Stripe enables AVS (Address Verification) which reduces bank declines.
-  const billingDetails = useMemo<BillingDetails>(() => {
-    const details: BillingDetails = {};
-    if (profile?.display_name) details.name = profile.display_name;
-    if (user?.email) details.email = user.email;
-    if (order?.buyer_phone) details.phone = order.buyer_phone;
-    const addr = order?.shipping_address;
-    if (addr && typeof addr === "object") {
-      const line1 = String(addr.line1 || "").trim();
-      if (line1) {
-        details.address = {
-          line1,
-          line2: String(addr.line2 || "").trim() || undefined,
-          city: String(addr.city || "").trim() || undefined,
-          state: String(addr.state || "").trim() || undefined,
-          postal_code: String(addr.postal_code || "").trim() || undefined,
-          country: String(addr.country || "").trim() || undefined,
-        };
-      }
-    }
-    return details;
-  }, [profile?.display_name, user?.email, order?.buyer_phone, order?.shipping_address]);
+  // Prefill only stable identity fields and let Stripe collect the billing
+  // address from the buyer instead of assuming shipping == billing.
+  const billingDefaults = useMemo(() => {
+    return buildStripeBillingDefaults({
+      name: profile?.display_name ?? undefined,
+      email: user?.email ?? undefined,
+      phone: order?.buyer_phone ?? undefined,
+    });
+  }, [profile?.display_name, user?.email, order?.buyer_phone]);
 
   const setShippingField = useCallback((field: keyof ShippingAddress, value: string) => {
     setShippingDraftEdits((prev) => ({
@@ -641,17 +620,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
   const currency = order.currency || "USD";
 
-  const elementsOptions: StripeElementsOptions | undefined = clientSecret
-    ? {
-        clientSecret,
-        appearance: {
-          theme: "stripe",
-          variables: {
-            colorPrimary: "#8e44ad",
-            borderRadius: "10px",
-          },
-        },
-      }
+  const elementsOptions = clientSecret
+    ? buildStripeElementsOptions(clientSecret, "10px")
     : undefined;
 
   return (
@@ -1057,7 +1027,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       onSuccess={handleSuccess}
                       captchaToken={captchaToken}
                       onCaptchaConsumed={resetCaptcha}
-                      billingDetails={billingDetails}
+                      billingDefaults={billingDefaults}
                     />
                   </Elements>
                 </div>

@@ -2,27 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
+import {
+  buildStripeBillingDefaults,
+  buildStripeElementsOptions,
+  buildStripePaymentElementOptions,
+  type StripeBillingDefaults,
+} from "@/lib/stripe-checkout-ui";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCheckout } from "@/lib/hooks/usePayments";
 import { supabase } from "@/lib/supabase";
 import type { Order } from "@/lib/types/store";
 import TurnstileCaptcha from "@/components/security/TurnstileCaptcha";
-
-interface BillingDetails {
-  name?: string;
-  email?: string;
-  phone?: string;
-  address?: {
-    line1?: string;
-    line2?: string;
-    city?: string;
-    state?: string;
-    postal_code?: string;
-    country?: string;
-  };
-}
 
 interface CheckoutModalProps {
   order: Order;
@@ -79,7 +70,7 @@ function OrderSummary({ order }: { order: Order }) {
 interface StripeCheckoutFormProps extends CheckoutModalProps {
   captchaToken: string | null;
   onCaptchaConsumed: () => void;
-  billingDetails?: BillingDetails;
+  billingDefaults?: StripeBillingDefaults;
 }
 
 function StripeCheckoutForm({
@@ -88,7 +79,7 @@ function StripeCheckoutForm({
   onClose,
   captchaToken,
   onCaptchaConsumed,
-  billingDetails,
+  billingDefaults,
 }: StripeCheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -109,15 +100,17 @@ function StripeCheckoutForm({
         return;
       }
 
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        setError(submitError.message || "Complete your payment details before continuing.");
+        setProcessing(false);
+        return;
+      }
+
       const { error: stripeError } = await stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/orders/${order.id}?payment=success`,
-          ...(billingDetails ? {
-            payment_method_data: {
-              billing_details: billingDetails,
-            },
-          } : {}),
         },
         redirect: "if_required",
       });
@@ -156,7 +149,7 @@ function StripeCheckoutForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <OrderSummary order={order} />
-      <PaymentElement />
+      <PaymentElement options={buildStripePaymentElementOptions(billingDefaults)} />
       {error && <p className="text-red-600 text-sm">{error}</p>}
       <div className="flex gap-3">
         <button
@@ -222,35 +215,14 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
     setCaptchaResetKey((prev) => prev + 1);
   }, [order.id]);
 
-  const billingDetails: BillingDetails = {};
-  if (profile?.display_name) billingDetails.name = profile.display_name;
-  if (user?.email) billingDetails.email = user.email;
-  const addr = order.shipping_address as Record<string, unknown> | null | undefined;
-  if (addr && typeof addr === "object") {
-    const line1 = String(addr.line1 || "").trim();
-    if (line1) {
-      billingDetails.address = {
-        line1,
-        line2: String(addr.line2 || "").trim() || undefined,
-        city: String(addr.city || "").trim() || undefined,
-        state: String(addr.state || "").trim() || undefined,
-        postal_code: String(addr.postal_code || "").trim() || undefined,
-        country: String(addr.country || "").trim() || undefined,
-      };
-    }
-  }
+  const billingDefaults = buildStripeBillingDefaults({
+    name: profile?.display_name ?? undefined,
+    email: user?.email ?? undefined,
+    phone: order.buyer_phone ?? undefined,
+  });
 
-  const elementsOptions: StripeElementsOptions | undefined = clientSecret
-    ? {
-        clientSecret,
-        appearance: {
-          theme: "stripe",
-          variables: {
-            colorPrimary: "#8e44ad",
-            borderRadius: "8px",
-          },
-        },
-      }
+  const elementsOptions = clientSecret
+    ? buildStripeElementsOptions(clientSecret)
     : undefined;
 
   const zeroTotal = Number(order.amount) <= 0;
@@ -398,7 +370,7 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
                 onClose={onClose}
                 captchaToken={activeCaptchaToken}
                 onCaptchaConsumed={resetCaptcha}
-                billingDetails={billingDetails}
+                billingDefaults={billingDefaults}
               />
             </Elements>
           </div>

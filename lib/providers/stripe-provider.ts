@@ -53,6 +53,9 @@ const COUNTRY_ALIAS_TO_ISO2: Record<string, string> = {
   "brazil": "BR",
 };
 
+const CHECKOUT_CONFIG_VERSION = "v2";
+const SERVICE_PAYMENT_METHOD_TYPES = ["card"] as const;
+
 function normalizeCountryCode(rawCountry: string | null | undefined): string | null {
   const value = String(rawCountry || "").trim();
   if (!value) return null;
@@ -114,6 +117,54 @@ function buildStripeShipping(
       country: countryCode,
     },
   };
+}
+
+function resolveStripeAccountId(value: unknown): string | null {
+  if (typeof value === "string" && value.trim().length > 0) return value;
+  if (value && typeof value === "object" && "id" in value) {
+    const id = (value as { id?: unknown }).id;
+    return typeof id === "string" && id.trim().length > 0 ? id : null;
+  }
+  return null;
+}
+
+function shouldReplacePaymentIntent(
+  paymentIntent: Stripe.PaymentIntent,
+  {
+    amountCents,
+    currency,
+    captureMethod,
+    destinationAccountId,
+    paymentMethodTypes,
+  }: {
+    amountCents: number;
+    currency: string;
+    captureMethod: "automatic" | "manual";
+    destinationAccountId?: string;
+    paymentMethodTypes?: readonly string[];
+  }
+): boolean {
+  if (paymentIntent.amount !== amountCents) return true;
+  if (String(paymentIntent.currency || "").toLowerCase() !== currency.toLowerCase()) return true;
+  if (paymentIntent.capture_method !== captureMethod) return true;
+
+  const transferDestination = resolveStripeAccountId(paymentIntent.transfer_data?.destination);
+  const onBehalfOf = resolveStripeAccountId(paymentIntent.on_behalf_of);
+
+  if (destinationAccountId) {
+    if (transferDestination !== destinationAccountId) return true;
+    if (onBehalfOf !== destinationAccountId) return true;
+  } else if (transferDestination || onBehalfOf) {
+    return true;
+  }
+
+  if (paymentMethodTypes) {
+    const currentTypes = [...paymentIntent.payment_method_types].sort().join(",");
+    const expectedTypes = [...paymentMethodTypes].sort().join(",");
+    if (currentTypes !== expectedTypes) return true;
+  }
+
+  return false;
 }
 
 async function getOrCreateStripeCustomer(
@@ -299,6 +350,7 @@ export class StripeProvider implements PaymentProviderInterface {
     const description = compactTitle
       ? `PinkQuill ${orderReference} • ${compactTitle}`
       : `PinkQuill order ${orderReference}`;
+    const captureMethod = isService ? "manual" : "automatic";
 
     // Look up seller's Stripe Connect account for destination charges
     const { data: sellerOrder } = await supabaseAdmin
@@ -308,6 +360,7 @@ export class StripeProvider implements PaymentProviderInterface {
       .single();
 
     let transferData: { destination: string } | undefined;
+    let onBehalfOf: string | undefined;
     let applicationFeeAmount: number | undefined;
 
     if (sellerOrder?.seller_id) {
@@ -324,6 +377,7 @@ export class StripeProvider implements PaymentProviderInterface {
       }
 
       transferData = { destination: sellerAccount.stripe_account_id };
+      onBehalfOf = sellerAccount.stripe_account_id;
       const platformFeeCents = Math.round(Number(sellerOrder.platform_fee) * 100);
       if (platformFeeCents > 0) {
         applicationFeeAmount = platformFeeCents;
@@ -339,8 +393,26 @@ export class StripeProvider implements PaymentProviderInterface {
       "requires_payment_method", "requires_confirmation",
       "requires_action", "processing",
     ]);
+    const replaceableStatuses = new Set([
+      "requires_payment_method",
+      "requires_confirmation",
+    ]);
+    const paymentMethodTypes = isService ? SERVICE_PAYMENT_METHOD_TYPES : undefined;
 
-    if (paymentIntent && paymentIntent.amount !== amountCents) {
+    if (
+      paymentIntent
+      && replaceableStatuses.has(paymentIntent.status)
+      && shouldReplacePaymentIntent(paymentIntent, {
+        amountCents,
+        currency,
+        captureMethod,
+        destinationAccountId: transferData?.destination,
+        paymentMethodTypes,
+      })
+    ) {
+      await stripe.paymentIntents.cancel(paymentIntent.id, {
+        cancellation_reason: "abandoned",
+      }).catch(() => null);
       paymentIntent = null;
     }
 
@@ -377,20 +449,23 @@ export class StripeProvider implements PaymentProviderInterface {
           amount: amountCents,
           currency,
           customer: customerId,
-          automatic_payment_methods: { enabled: true },
+          ...(paymentMethodTypes
+            ? { payment_method_types: [...paymentMethodTypes] }
+            : { automatic_payment_methods: { enabled: true } }),
           payment_method_options: {
             card: {
               request_three_d_secure: "automatic",
             },
           },
-          // Manual capture for commissions (escrow), auto for products
-          capture_method: isService ? "manual" : "automatic",
-          // Destination charge routes funds to seller's connected account
+          // Manual capture for commissions (escrow), auto for products.
+          capture_method: captureMethod,
+          // Set both destination and settlement merchant so issuers see the
+          // seller's connected account context instead of the platform only.
           ...(transferData ? { transfer_data: transferData } : {}),
-          // Application fee is Pinkquill's 5% platform cut
+          ...(onBehalfOf ? { on_behalf_of: onBehalfOf } : {}),
+          // Application fee is the platform fee already calculated on the order.
           ...(applicationFeeAmount ? { application_fee_amount: applicationFeeAmount } : {}),
           ...(shipping ? { shipping } : {}),
-          statement_descriptor: "PINKQUILL",
           ...(descriptorSuffix ? { statement_descriptor_suffix: descriptorSuffix } : {}),
           metadata: {
             order_id: order.id,
@@ -398,11 +473,12 @@ export class StripeProvider implements PaymentProviderInterface {
             buyer_id: order.buyerId,
             listing_type: order.listingType,
             product_title: compactTitle,
+            checkout_config_version: CHECKOUT_CONFIG_VERSION,
           },
           description,
           receipt_email: order.buyerEmail ?? undefined,
         },
-        { idempotencyKey: `checkout_${order.id}_${amountCents}_${currency}` }
+        { idempotencyKey: `checkout_${CHECKOUT_CONFIG_VERSION}_${order.id}_${amountCents}_${currency}` }
       );
     }
 

@@ -242,6 +242,14 @@ export async function POST(request: Request) {
         if (captchaError) return captchaError;
 
         const declineDetails = extractStripeDeclineDetails(paymentIntent);
+        console.warn("[Payments Confirm] Stripe payment failed", {
+          order_id: order.id,
+          payment_intent_id: paymentIntent.id,
+          failure_category: declineDetails.failure_category,
+          decline_code: declineDetails.decline_code,
+          merchant_context: declineDetails.merchant_context,
+          integration_hints: declineDetails.integration_hints,
+        });
         await markOrderPaymentFailed({
           orderId: order.id,
           provider: "stripe",
