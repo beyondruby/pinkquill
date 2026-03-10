@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { buildPostgrestInFilter } from "@/lib/utils/postgrest";
 import type { MessageReaction, MessageReactionEmoji, TypingUser, Message } from "@/lib/types";
 import { MESSAGE_REACTION_EMOJIS } from "@/lib/types";
 
@@ -15,6 +16,7 @@ import { MESSAGE_REACTION_EMOJIS } from "@/lib/types";
 interface UseMessageReactionsOptions {
   conversationId: string;
   currentUserId: string;
+  messageIds?: string[];
 }
 
 interface UseMessageReactionsReturn {
@@ -33,12 +35,14 @@ interface UseMessageReactionsReturn {
 export function useMessageReactions({
   conversationId,
   currentUserId,
+  messageIds = [],
 }: UseMessageReactionsOptions): UseMessageReactionsReturn {
   const [reactionsByMessage, setReactionsByMessage] = useState<Map<string, MessageReaction[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const messageIdsKey = messageIds.join(",");
 
   // Optimized: Single query using inner join through messages table
   const fetchReactions = useCallback(async () => {
@@ -146,6 +150,11 @@ export function useMessageReactions({
       return;
     }
 
+    const messageIdsFilter = buildPostgrestInFilter("message_id", messageIds);
+    if (!messageIdsFilter) {
+      return;
+    }
+
     // Clean up previous channel
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
@@ -163,6 +172,7 @@ export function useMessageReactions({
           event: "*",
           schema: "public",
           table: "message_reactions",
+          filter: messageIdsFilter,
         },
         async (payload) => {
           if (!mountedRef.current) return;
@@ -245,7 +255,7 @@ export function useMessageReactions({
         channelRef.current = null;
       }
     };
-  }, [conversationId]);
+  }, [conversationId, messageIdsKey]);
 
   // Toggle reaction (add if not exists or different emoji, remove if same emoji)
   const toggleReaction = useCallback(async (messageId: string, emoji: MessageReactionEmoji) => {
@@ -582,6 +592,7 @@ export function useTypingIndicator({
 interface UseChatFeaturesOptions {
   conversationId: string;
   currentUserId: string;
+  messageIds?: string[];
   currentUserProfile?: {
     username: string;
     display_name: string | null;
@@ -593,6 +604,7 @@ export function useChatFeatures(options: UseChatFeaturesOptions) {
   const reactions = useMessageReactions({
     conversationId: options.conversationId,
     currentUserId: options.currentUserId,
+    messageIds: options.messageIds,
   });
 
   const typing = useTypingIndicator(options);

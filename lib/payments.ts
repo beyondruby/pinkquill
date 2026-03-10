@@ -1,6 +1,8 @@
 export type PaymentProvider = "placeholder" | "stripe";
 
-const normalizeProvider = (value?: string | null): PaymentProvider => {
+export const normalizePaymentProvider = (
+  value?: string | null
+): PaymentProvider => {
   const lower = value?.toLowerCase();
   if (lower === "stripe") return "stripe";
   return "placeholder";
@@ -8,7 +10,7 @@ const normalizeProvider = (value?: string | null): PaymentProvider => {
 
 export function getPaymentProvider(): PaymentProvider {
   const configured = process.env.PAYMENTS_PROVIDER ?? process.env.NEXT_PUBLIC_PAYMENTS_PROVIDER;
-  return normalizeProvider(configured);
+  return normalizePaymentProvider(configured);
 }
 
 export function isPlaceholderPayments(): boolean {

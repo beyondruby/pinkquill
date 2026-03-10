@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { supabase } from "@/lib/supabase";
+import { loginWithIdentifier } from "@/lib/auth-client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFeatherPointed,
@@ -104,37 +105,16 @@ export default function AuthModal() {
 
     try {
       if (isLogin) {
-        let loginEmail = emailOrUsername.trim();
+        const result = await loginWithIdentifier(emailOrUsername, password);
 
-        if (!emailOrUsername.includes("@") || emailOrUsername.startsWith("@")) {
-          const normalizedUsername = emailOrUsername.toLowerCase().replace(/^@/, "").trim();
-
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("email")
-            .eq("username", normalizedUsername)
-            .single();
-
-          if (profileError || !profile?.email) {
-            throw new Error("Username not found. Please use your email.");
-          }
-          loginEmail = profile.email;
-        }
-
-        const { error } = await supabase.auth.signInWithPassword({
-          email: loginEmail,
-          password,
-        });
-
-        if (error) {
-          if (error.message.includes("Email not confirmed")) {
-            setPendingEmail(loginEmail);
-            await supabase.auth.resend({ type: "signup", email: loginEmail });
+        if (!result.success) {
+          if (result.requiresVerification && result.pendingEmail) {
+            setPendingEmail(result.pendingEmail);
             setResendCooldown(60);
             setStep("otp");
-            setMessage("Please verify your email with the code we sent.");
+            setMessage(result.message || "Please verify your email with the code we sent.");
           } else {
-            throw error;
+            throw new Error(result.error || "Unable to sign in right now.");
           }
         } else {
           closeModal();

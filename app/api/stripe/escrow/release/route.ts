@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
+import { normalizePaymentProvider, type PaymentProvider } from "@/lib/payments";
+import { finalizeOrderEscrowRelease } from "@/lib/payments-server";
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
@@ -12,7 +14,7 @@ type EscrowOrder = {
   seller_id: string;
   status: string;
   listing_type: string;
-  payment_provider: string | null;
+  payment_provider: PaymentProvider | null;
   payment_status: string;
   payment_reference: string | null;
   escrow_released: boolean | null;
@@ -84,68 +86,47 @@ export async function POST(request: Request) {
     }
 
     let paymentReference = order.payment_reference || null;
-    const providerName = order.payment_provider || "placeholder";
+    const providerName = normalizePaymentProvider(order.payment_provider);
 
-    // Stripe escrow: capture the manually-held PaymentIntent
-    if (providerName === "stripe" && order.payment_status === "authorized" && paymentReference) {
+    if (providerName === "stripe") {
+      if (!paymentReference) {
+        return NextResponse.json(
+          { error: "Missing Stripe payment reference for escrow release" },
+          { status: 400 }
+        );
+      }
+
       const stripe = getStripeServer();
-      const captured = await stripe.paymentIntents.capture(
-        paymentReference,
-        {},
-        { idempotencyKey: `escrow_release_${order.id}` }
-      );
-      paymentReference = captured.id;
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentReference);
+
+      if (paymentIntent.status === "requires_capture") {
+        const captured = await stripe.paymentIntents.capture(
+          paymentReference,
+          {},
+          { idempotencyKey: `escrow_release_${order.id}` }
+        );
+        paymentReference = captured.id;
+      } else if (paymentIntent.status !== "succeeded") {
+        return NextResponse.json(
+          { error: `Cannot release escrow: payment status is ${paymentIntent.status}` },
+          { status: 409 }
+        );
+      }
     }
 
-    const now = new Date().toISOString();
-
-    const { error: txError } = await supabaseAdmin
-      .from("transactions")
-      .update({ status: "completed" })
-      .eq("order_id", order.id)
-      .eq("status", "pending");
-    if (txError) {
-      throw new Error(txError.message);
-    }
-
-    const { error: orderUpdateError } = await supabaseAdmin
-      .from("orders")
-      .update({
-        escrow_released: true,
-        escrow_released_at: now,
-        payment_status: "paid",
-        payment_reference: paymentReference,
-      })
-      .eq("id", orderId);
-    if (orderUpdateError) {
-      throw new Error(orderUpdateError.message);
-    }
-
-    const { error: eventError } = await supabaseAdmin.from("order_events").insert({
-      order_id: order.id,
-      actor_id: user.id,
-      event_type: "payment",
-      metadata: {
-        action: "escrow_released",
-        provider: providerName,
-        payment_reference: paymentReference,
-      },
+    const result = await finalizeOrderEscrowRelease({
+      orderId: order.id,
+      provider: providerName,
+      paymentReference: paymentReference || `placeholder:${order.id}`,
+      actorId: user.id,
+      source: "api.stripe.escrow_release",
     });
-    if (eventError) {
-      throw new Error(eventError.message);
-    }
 
-    const { error: messageError } = await supabaseAdmin.from("order_messages").insert({
-      order_id: order.id,
-      sender_id: user.id,
-      content: "Escrow released and payout marked as available.",
-      message_type: "system",
+    return NextResponse.json({
+      success: true,
+      provider: providerName,
+      already_released: result.already_processed,
     });
-    if (messageError) {
-      throw new Error(messageError.message);
-    }
-
-    return NextResponse.json({ success: true, provider: providerName });
   } catch (error) {
     console.error("[Escrow Release]", error);
     const message = error instanceof Error ? error.message : "Failed to release escrow";

@@ -88,6 +88,19 @@ interface Post {
   styling?: PostStyling | null;
 }
 
+interface MentionRow {
+  user: TaggedUser | TaggedUser[] | null;
+}
+
+interface TagRow {
+  tag: { name?: string | null } | Array<{ name?: string | null }> | null;
+}
+
+interface CollaboratorRow {
+  role?: string | null;
+  user: CollaboratorUser["user"] | CollaboratorUser["user"][] | null;
+}
+
 function getTimeAgo(dateString: string): string {
   const now = new Date();
   const date = new Date(dateString);
@@ -494,10 +507,8 @@ export default function PostPage() {
         mentionsPromise, tagsPromise, collabPromise, relaysPromise, savePromise,
       ]);
 
-      // Process mentions
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mentions: TaggedUser[] = mentionsRes.data
-        ? (mentionsRes.data as any[])
+        ? (mentionsRes.data as MentionRow[])
             .map((m) => {
               const u = Array.isArray(m.user) ? m.user[0] : m.user;
               return u as TaggedUser | null;
@@ -505,10 +516,8 @@ export default function PostPage() {
             .filter((u): u is TaggedUser => u !== null && u !== undefined)
         : [];
 
-      // Process hashtags
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const hashtags: string[] = tagsRes.data
-        ? (tagsRes.data as any[])
+        ? (tagsRes.data as TagRow[])
             .map((t) => {
               const tag = Array.isArray(t.tag) ? t.tag[0] : t.tag;
               return tag?.name;
@@ -516,10 +525,8 @@ export default function PostPage() {
             .filter((name): name is string => !!name)
         : [];
 
-      // Process collaborators
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const collaborators: CollaboratorUser[] = collabRes.data
-        ? (collabRes.data as any[])
+        ? (collabRes.data as CollaboratorRow[])
             .map((c) => {
               const u = Array.isArray(c.user) ? c.user[0] : c.user;
               return u ? { role: c.role, user: u } as CollaboratorUser : null;

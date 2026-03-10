@@ -25,7 +25,7 @@ declare global {
 interface TurnstileCaptchaProps {
   siteKey: string;
   action: string;
-  resetKey: number;
+  resetKey: number | string;
   onTokenChange: (token: string | null) => void;
   className?: string;
 }

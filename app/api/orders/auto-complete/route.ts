@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { normalizePaymentProvider, type PaymentProvider } from "@/lib/payments";
+import { finalizeOrderEscrowRelease } from "@/lib/payments-server";
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
@@ -6,7 +8,7 @@ export const runtime = "nodejs";
 
 type PendingEscrowOrder = {
   id: string;
-  payment_provider: string | null;
+  payment_provider: PaymentProvider | null;
   payment_status: string;
   payment_reference: string | null;
 };
@@ -53,54 +55,35 @@ export async function POST(request: Request) {
 
     for (const order of pendingEscrow || []) {
       try {
-        const providerName = order.payment_provider || "placeholder";
+        const providerName = normalizePaymentProvider(order.payment_provider);
         let paymentReference = order.payment_reference || null;
 
-        // Stripe escrow: capture the manually-held PaymentIntent
-        if (providerName === "stripe" && order.payment_status === "authorized" && paymentReference) {
+        if (providerName === "stripe") {
+          if (!paymentReference) {
+            throw new Error("Missing Stripe payment reference for escrow release");
+          }
+
           const stripe = getStripeServer();
-          const captured = await stripe.paymentIntents.capture(
-            paymentReference,
-            {},
-            { idempotencyKey: `escrow_release_auto_${order.id}` }
-          );
-          paymentReference = captured.id;
+          const paymentIntent = await stripe.paymentIntents.retrieve(paymentReference);
+
+          if (paymentIntent.status === "requires_capture") {
+            const captured = await stripe.paymentIntents.capture(
+              paymentReference,
+              {},
+              { idempotencyKey: `escrow_release_auto_${order.id}` }
+            );
+            paymentReference = captured.id;
+          } else if (paymentIntent.status !== "succeeded") {
+            throw new Error(`Cannot release escrow: payment status is ${paymentIntent.status}`);
+          }
         }
 
-        const { error: txError } = await supabaseAdmin
-          .from("transactions")
-          .update({ status: "completed" })
-          .eq("order_id", order.id)
-          .eq("status", "pending");
-        if (txError) {
-          throw new Error(txError.message);
-        }
-
-        const { error: updateError } = await supabaseAdmin
-          .from("orders")
-          .update({
-            escrow_released: true,
-            escrow_released_at: new Date().toISOString(),
-            payment_status: "paid",
-            payment_reference: paymentReference,
-          })
-          .eq("id", order.id);
-        if (updateError) {
-          throw new Error(updateError.message);
-        }
-
-        const { error: eventError } = await supabaseAdmin.from("order_events").insert({
-          order_id: order.id,
-          event_type: "payment",
-          metadata: {
-            action: "escrow_released_auto",
-            provider: providerName,
-            payment_reference: paymentReference,
-          },
+        await finalizeOrderEscrowRelease({
+          orderId: order.id,
+          provider: providerName,
+          paymentReference: paymentReference || `placeholder:${order.id}`,
+          source: "api.orders.auto_complete",
         });
-        if (eventError) {
-          throw new Error(eventError.message);
-        }
 
         escrowReleased += 1;
       } catch (releaseError) {

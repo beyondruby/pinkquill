@@ -121,7 +121,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     });
 
     return unsubscribe;
-  }, [take.id, subscribeToTakeUpdates]);
+  }, [take.id, subscribeToTakeUpdates, userReaction]);
 
   // Click outside to close menu
   useEffect(() => {

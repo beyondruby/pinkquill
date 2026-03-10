@@ -8,6 +8,7 @@ import { useSavedTakes } from "@/lib/hooks/useTakes";
 import { useSavedProducts, useToggleSaveProduct } from "@/lib/hooks/useProducts";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
+import { stripHtml } from "@/lib/utils/sanitize";
 import { supabase } from "@/lib/supabase";
 import Loading, { FullPageLoading } from "@/components/ui/Loading";
 // Product type is inferred from useSavedProducts hook
@@ -94,11 +95,6 @@ function getTypeLabel(type: string): string {
     quote: "Quote",
   };
   return labels[type] || "Post";
-}
-
-function stripHtml(html: string): string {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  return doc.body.textContent || "";
 }
 
 type PostType = "poem" | "journal" | "thought" | "visual" | "audio" | "video" | "essay" | "blog" | "story" | "letter" | "quote";

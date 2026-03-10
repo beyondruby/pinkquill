@@ -1,8 +1,9 @@
+import type { PaymentProvider } from "@/lib/payments";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 interface PaymentMutationOptions {
   orderId: string;
-  provider: "stripe" | "placeholder";
+  provider: PaymentProvider;
   paymentReference: string;
   actorId?: string | null;
   source: string;
@@ -13,6 +14,10 @@ export interface PaymentMutationResult {
   order_id: string;
   status: string;
   payment_status: string;
+}
+
+export interface EscrowReleaseMutationResult extends PaymentMutationResult {
+  escrow_released: boolean;
 }
 
 export async function finalizeOrderPayment({
@@ -62,4 +67,26 @@ export async function markOrderPaymentFailed({
   }
 
   return data as PaymentMutationResult;
+}
+
+export async function finalizeOrderEscrowRelease({
+  orderId,
+  provider,
+  paymentReference,
+  actorId,
+  source,
+}: PaymentMutationOptions): Promise<EscrowReleaseMutationResult> {
+  const { data, error } = await supabaseAdmin.rpc("finalize_order_escrow_release", {
+    p_order_id: orderId,
+    p_provider: provider,
+    p_payment_reference: paymentReference,
+    p_actor_id: actorId ?? null,
+    p_source: source,
+  });
+
+  if (error || !data) {
+    throw new Error(error?.message || "Failed to finalize escrow release");
+  }
+
+  return data as EscrowReleaseMutationResult;
 }

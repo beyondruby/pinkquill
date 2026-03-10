@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "../supabase";
 import type { Post, PostMedia, PaginationState, RelayedPost, ReactionType, AggregateCount, PostAuthor, PostType, PostVisibility } from "../types";
 import { getAggregateCount } from "../types";
+import { buildPostgrestInFilter } from "../utils/postgrest";
 import { categorizeError, retryWithBackoff, isRetryableError } from "../utils/retry";
 
 // ============================================================================
@@ -150,8 +151,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
               reactions:reactions(count),
               comments:comments(count),
               relays:relays(count)
-            `,
-              { count: "exact" }
+            `
             )
             .eq("status", "published")
             .order("created_at", { ascending: false })
@@ -346,6 +346,11 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
     };
   }, [fetchPosts, enabled]);
 
+  const postIdsFilter = useMemo(
+    () => buildPostgrestInFilter("post_id", posts.map((post) => post.id)),
+    [posts]
+  );
+
   // Real-time subscriptions for interactions
   // CRITICAL: Use stable channel name to prevent connection leaks
   useEffect(() => {
@@ -355,6 +360,10 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
       channelRef.current = null;
     }
 
+    if (!postIdsFilter) {
+      return;
+    }
+
     // Stable channel name - NO Date.now() to prevent connection leaks
     const channelName = `feed-interactions-${userId || "anon"}`;
 
@@ -362,7 +371,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
       .channel(channelName)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "admires" },
+        { event: "*", schema: "public", table: "admires", filter: postIdsFilter },
         (payload) => {
           const newData = payload.new as { post_id?: string; user_id?: string } | null;
           const oldData = payload.old as { post_id?: string; user_id?: string } | null;
@@ -393,7 +402,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "reactions" },
+        { event: "*", schema: "public", table: "reactions", filter: postIdsFilter },
         (payload) => {
           const newData = payload.new as { post_id?: string; user_id?: string; reaction_type?: string } | null;
           const oldData = payload.old as { post_id?: string; user_id?: string } | null;
@@ -435,7 +444,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "relays" },
+        { event: "*", schema: "public", table: "relays", filter: postIdsFilter },
         (payload) => {
           const newData = payload.new as { post_id?: string; user_id?: string } | null;
           const oldData = payload.old as { post_id?: string; user_id?: string } | null;
@@ -474,7 +483,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         channelRef.current = null;
       }
     };
-  }, [userId]);
+  }, [postIdsFilter, userId]);
 
   return { posts, loading, error, pagination, loadMore, refresh };
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { loginWithIdentifier } from "@/lib/auth-client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFeatherPointed,
@@ -64,51 +65,16 @@ export default function AuthForm() {
 
     try {
       if (isLogin) {
-        // LOGIN FLOW: Use signInWithPassword (unchanged for verified users)
-        let loginEmail = emailOrUsername.trim();
+        const result = await loginWithIdentifier(emailOrUsername, password);
 
-        // Check if input is a username (no @ in the middle = not an email)
-        if (!emailOrUsername.includes("@") || emailOrUsername.startsWith("@")) {
-          // Remove leading @ if present and normalize
-          const normalizedUsername = emailOrUsername.toLowerCase().replace(/^@/, "").trim();
-
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("email")
-            .eq("username", normalizedUsername)
-            .single();
-
-          if (profileError) {
-            console.error("Profile lookup error:", profileError.message);
-            throw new Error("Username not found. Please check your username or use your email.");
-          }
-
-          if (!profile?.email) {
-            throw new Error("No email associated with this username. Please sign in with your email.");
-          }
-
-          loginEmail = profile.email;
-        }
-
-        const { error } = await supabase.auth.signInWithPassword({
-          email: loginEmail,
-          password,
-        });
-
-        if (error) {
-          // Check if it's an unverified email error
-          if (error.message.includes("Email not confirmed")) {
-            // Send a new OTP for verification
-            setPendingEmail(loginEmail);
-            await supabase.auth.resend({
-              type: "signup",
-              email: loginEmail,
-            });
+        if (!result.success) {
+          if (result.requiresVerification && result.pendingEmail) {
+            setPendingEmail(result.pendingEmail);
             setResendCooldown(60);
             setStep("otp");
-            setMessage("Please verify your email with the code we sent.");
+            setMessage(result.message || "Please verify your email with the code we sent.");
           } else {
-            throw error;
+            throw new Error(result.error || "Unable to sign in right now.");
           }
         } else {
           window.location.href = "/";

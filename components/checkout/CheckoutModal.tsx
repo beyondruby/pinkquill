@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
@@ -197,16 +197,12 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
   const [stripeReady, setStripeReady] = useState(false);
   const [confirmingPlaceholder, setConfirmingPlaceholder] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaTokenOrderId, setCaptchaTokenOrderId] = useState(order.id);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   useEffect(() => {
     createCheckout(order.id);
   }, [order.id, createCheckout]);
-
-  useEffect(() => {
-    setCaptchaToken(null);
-    setCaptchaResetKey((prev) => prev + 1);
-  }, [order.id]);
 
   useEffect(() => {
     if (mode !== "stripe") return;
@@ -215,26 +211,34 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
     });
   }, [mode]);
 
-  const billingDetails = useMemo<BillingDetails>(() => {
-    const details: BillingDetails = {};
-    if (profile?.display_name) details.name = profile.display_name;
-    if (user?.email) details.email = user.email;
-    const addr = order.shipping_address as Record<string, unknown> | null | undefined;
-    if (addr && typeof addr === "object") {
-      const line1 = String(addr.line1 || "").trim();
-      if (line1) {
-        details.address = {
-          line1,
-          line2: String(addr.line2 || "").trim() || undefined,
-          city: String(addr.city || "").trim() || undefined,
-          state: String(addr.state || "").trim() || undefined,
-          postal_code: String(addr.postal_code || "").trim() || undefined,
-          country: String(addr.country || "").trim() || undefined,
-        };
-      }
+  const handleCaptchaTokenChange = useCallback((token: string | null) => {
+    setCaptchaToken(token);
+    setCaptchaTokenOrderId(order.id);
+  }, [order.id]);
+
+  const resetCaptcha = useCallback(() => {
+    setCaptchaToken(null);
+    setCaptchaTokenOrderId(order.id);
+    setCaptchaResetKey((prev) => prev + 1);
+  }, [order.id]);
+
+  const billingDetails: BillingDetails = {};
+  if (profile?.display_name) billingDetails.name = profile.display_name;
+  if (user?.email) billingDetails.email = user.email;
+  const addr = order.shipping_address as Record<string, unknown> | null | undefined;
+  if (addr && typeof addr === "object") {
+    const line1 = String(addr.line1 || "").trim();
+    if (line1) {
+      billingDetails.address = {
+        line1,
+        line2: String(addr.line2 || "").trim() || undefined,
+        city: String(addr.city || "").trim() || undefined,
+        state: String(addr.state || "").trim() || undefined,
+        postal_code: String(addr.postal_code || "").trim() || undefined,
+        country: String(addr.country || "").trim() || undefined,
+      };
     }
-    return details;
-  }, [profile?.display_name, user?.email, order.shipping_address]);
+  }
 
   const elementsOptions: StripeElementsOptions | undefined = clientSecret
     ? {
@@ -251,7 +255,8 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
 
   const zeroTotal = Number(order.amount) <= 0;
   const captchaEnabled = Boolean(turnstileSiteKey);
-  const captchaReady = captchaEnabled ? Boolean(captchaToken) : process.env.NODE_ENV !== "production";
+  const activeCaptchaToken = captchaTokenOrderId === order.id ? captchaToken : null;
+  const captchaReady = captchaEnabled ? Boolean(activeCaptchaToken) : process.env.NODE_ENV !== "production";
 
   return (
     <div
@@ -300,8 +305,8 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
                 <TurnstileCaptcha
                   siteKey={turnstileSiteKey}
                   action="payments_confirm"
-                  resetKey={captchaResetKey}
-                  onTokenChange={setCaptchaToken}
+                  resetKey={`${order.id}:${captchaResetKey}`}
+                  onTokenChange={handleCaptchaTokenChange}
                   className="mt-3"
                 />
               ) : (
@@ -350,9 +355,8 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
                 onClick={async () => {
                   if (!captchaReady) return;
                   setConfirmingPlaceholder(true);
-                  const success = await confirmPayment(order.id, captchaToken);
-                  setCaptchaToken(null);
-                  setCaptchaResetKey((prev) => prev + 1);
+                  const success = await confirmPayment(order.id, activeCaptchaToken);
+                  resetCaptcha();
                   setConfirmingPlaceholder(false);
                   if (success) onSuccess();
                 }}
@@ -377,8 +381,8 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
                 <TurnstileCaptcha
                   siteKey={turnstileSiteKey}
                   action="payments_confirm"
-                  resetKey={captchaResetKey}
-                  onTokenChange={setCaptchaToken}
+                  resetKey={`${order.id}:${captchaResetKey}`}
+                  onTokenChange={handleCaptchaTokenChange}
                   className="mt-3"
                 />
               ) : (
@@ -392,11 +396,8 @@ export default function CheckoutModal({ order, onSuccess, onClose }: CheckoutMod
                 order={order}
                 onSuccess={onSuccess}
                 onClose={onClose}
-                captchaToken={captchaToken}
-                onCaptchaConsumed={() => {
-                  setCaptchaToken(null);
-                  setCaptchaResetKey((prev) => prev + 1);
-                }}
+                captchaToken={activeCaptchaToken}
+                onCaptchaConsumed={resetCaptcha}
                 billingDetails={billingDetails}
               />
             </Elements>

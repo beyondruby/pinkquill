@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useBlock, useSendVoiceNote, useSendMedia, useChatFeatures } from "@/lib/hooks";
@@ -157,11 +157,13 @@ export default function ChatView({
   const { checkIsBlocked, blockUser, unblockUser } = useBlock();
   const { sendVoiceNote, sending: sendingVoice } = useSendVoiceNote();
   const { sendMedia, validateFile, sending: sendingMedia, limits } = useSendMedia();
+  const messageIds = useMemo(() => messages.map((message) => message.id), [messages]);
 
   // Message reactions and typing indicators
   const { reactions, typing } = useChatFeatures({
     conversationId,
     currentUserId,
+    messageIds,
     currentUserProfile,
   });
 

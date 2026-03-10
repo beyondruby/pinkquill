@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunityChatUnreadCount } from "@/lib/hooks";
+import { buildPostgrestInFilter } from "@/lib/utils/postgrest";
 import ConversationList from "./ConversationList";
 import ChatView from "./ChatView";
 import NewMessageModal from "./NewMessageModal";
@@ -258,6 +259,11 @@ export default function MessagesView() {
     fetchConversations(true);
   }, [user]);
 
+  const conversationIdsFilter = useMemo(
+    () => buildPostgrestInFilter("conversation_id", conversations.map((conversation) => conversation.id)),
+    [conversations]
+  );
+
   // Real-time subscription for new messages - update silently without loading state
   // OPTIMIZED: User-specific channel name + debounced refetch to prevent excessive queries
   useEffect(() => {
@@ -272,33 +278,50 @@ export default function MessagesView() {
     };
 
     // Use user-specific channel name to prevent conflicts
-    const channel = supabase
-      .channel(`messages-list-${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-        },
-        debouncedRefetch
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-        },
-        debouncedRefetch
-      )
-      .subscribe();
+    const channel = supabase.channel(`messages-list-${user.id}`);
+
+    if (conversationIdsFilter) {
+      channel
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: conversationIdsFilter,
+          },
+          debouncedRefetch
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "messages",
+            filter: conversationIdsFilter,
+          },
+          debouncedRefetch
+        );
+    }
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "conversation_participants",
+        filter: `user_id=eq.${user.id}`,
+      },
+      debouncedRefetch
+    );
+
+    channel.subscribe();
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [conversationIdsFilter, user]);
 
   const handleSelectConversation = (conversationId: string) => {
     setSelectedConversation(conversationId);
