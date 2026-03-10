@@ -303,6 +303,14 @@ export async function POST(request: Request) {
     if (message.includes("Seller Stripe account is not ready")) {
       return NextResponse.json({ error: message }, { status: 409 });
     }
+    if (message.includes("No valid payment method types for this Payment Intent")) {
+      return NextResponse.json(
+        {
+          error: "This seller's payout account cannot currently accept checkout in the order currency. Ask the seller to update their Stripe setup or listing currency, then try again.",
+        },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

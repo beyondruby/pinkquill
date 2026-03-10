@@ -53,8 +53,8 @@ const COUNTRY_ALIAS_TO_ISO2: Record<string, string> = {
   "brazil": "BR",
 };
 
-const CHECKOUT_CONFIG_VERSION = "v2";
-const SERVICE_PAYMENT_METHOD_TYPES = ["card"] as const;
+const CHECKOUT_CONFIG_VERSION = "v3";
+const DEFAULT_PAYMENT_METHOD_TYPES = ["card"] as const;
 
 function normalizeCountryCode(rawCountry: string | null | undefined): string | null {
   const value = String(rawCountry || "").trim();
@@ -136,24 +136,35 @@ function shouldReplacePaymentIntent(
     captureMethod,
     destinationAccountId,
     paymentMethodTypes,
+    checkoutConfigVersion,
   }: {
     amountCents: number;
     currency: string;
     captureMethod: "automatic" | "manual";
     destinationAccountId?: string;
     paymentMethodTypes?: readonly string[];
+    checkoutConfigVersion: string;
   }
 ): boolean {
   if (paymentIntent.amount !== amountCents) return true;
   if (String(paymentIntent.currency || "").toLowerCase() !== currency.toLowerCase()) return true;
   if (paymentIntent.capture_method !== captureMethod) return true;
 
+  const currentConfigVersion = String(paymentIntent.metadata?.checkout_config_version || "").trim();
+  if (currentConfigVersion !== checkoutConfigVersion) return true;
+
   const transferDestination = resolveStripeAccountId(paymentIntent.transfer_data?.destination);
   const onBehalfOf = resolveStripeAccountId(paymentIntent.on_behalf_of);
+  const merchantContext = String(paymentIntent.metadata?.merchant_context || "").trim();
 
   if (destinationAccountId) {
     if (transferDestination !== destinationAccountId) return true;
-    if (onBehalfOf !== destinationAccountId) return true;
+    if (
+      onBehalfOf !== destinationAccountId
+      && merchantContext !== "platform_settlement_fallback"
+    ) {
+      return true;
+    }
   } else if (transferDestination || onBehalfOf) {
     return true;
   }
@@ -165,6 +176,12 @@ function shouldReplacePaymentIntent(
   }
 
   return false;
+}
+
+function isNoValidPaymentMethodTypesError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const message = "message" in error ? String(error.message || "") : "";
+  return message.includes("No valid payment method types for this Payment Intent");
 }
 
 async function getOrCreateStripeCustomer(
@@ -397,7 +414,7 @@ export class StripeProvider implements PaymentProviderInterface {
       "requires_payment_method",
       "requires_confirmation",
     ]);
-    const paymentMethodTypes = isService ? SERVICE_PAYMENT_METHOD_TYPES : undefined;
+    const paymentMethodTypes = DEFAULT_PAYMENT_METHOD_TYPES;
 
     if (
       paymentIntent
@@ -408,6 +425,7 @@ export class StripeProvider implements PaymentProviderInterface {
         captureMethod,
         destinationAccountId: transferData?.destination,
         paymentMethodTypes,
+        checkoutConfigVersion: CHECKOUT_CONFIG_VERSION,
       })
     ) {
       await stripe.paymentIntents.cancel(paymentIntent.id, {
@@ -444,42 +462,65 @@ export class StripeProvider implements PaymentProviderInterface {
         order.buyerName,
       );
 
-      paymentIntent = await stripe.paymentIntents.create(
-        {
-          amount: amountCents,
-          currency,
-          customer: customerId,
-          ...(paymentMethodTypes
-            ? { payment_method_types: [...paymentMethodTypes] }
-            : { automatic_payment_methods: { enabled: true } }),
-          payment_method_options: {
-            card: {
-              request_three_d_secure: "automatic",
-            },
+      const buildPaymentIntentParams = (
+        merchantContext: "connected_account_settlement" | "platform_settlement_fallback"
+      ): Stripe.PaymentIntentCreateParams => ({
+        amount: amountCents,
+        currency,
+        customer: customerId,
+        payment_method_types: [...paymentMethodTypes],
+        payment_method_options: {
+          card: {
+            request_three_d_secure: "automatic",
           },
-          // Manual capture for commissions (escrow), auto for products.
-          capture_method: captureMethod,
-          // Set both destination and settlement merchant so issuers see the
-          // seller's connected account context instead of the platform only.
-          ...(transferData ? { transfer_data: transferData } : {}),
-          ...(onBehalfOf ? { on_behalf_of: onBehalfOf } : {}),
-          // Application fee is the platform fee already calculated on the order.
-          ...(applicationFeeAmount ? { application_fee_amount: applicationFeeAmount } : {}),
-          ...(shipping ? { shipping } : {}),
-          ...(descriptorSuffix ? { statement_descriptor_suffix: descriptorSuffix } : {}),
-          metadata: {
-            order_id: order.id,
-            order_number: order.orderNumber || "",
-            buyer_id: order.buyerId,
-            listing_type: order.listingType,
-            product_title: compactTitle,
-            checkout_config_version: CHECKOUT_CONFIG_VERSION,
-          },
-          description,
-          receipt_email: order.buyerEmail ?? undefined,
         },
-        { idempotencyKey: `checkout_${CHECKOUT_CONFIG_VERSION}_${order.id}_${amountCents}_${currency}` }
-      );
+        // Manual capture for commissions (escrow), auto for products.
+        capture_method: captureMethod,
+        ...(transferData ? { transfer_data: transferData } : {}),
+        ...(merchantContext === "connected_account_settlement" && onBehalfOf
+          ? { on_behalf_of: onBehalfOf }
+          : {}),
+        // Application fee is the platform fee already calculated on the order.
+        ...(applicationFeeAmount ? { application_fee_amount: applicationFeeAmount } : {}),
+        ...(shipping ? { shipping } : {}),
+        ...(descriptorSuffix ? { statement_descriptor_suffix: descriptorSuffix } : {}),
+        metadata: {
+          order_id: order.id,
+          order_number: order.orderNumber || "",
+          buyer_id: order.buyerId,
+          listing_type: order.listingType,
+          product_title: compactTitle,
+          checkout_config_version: CHECKOUT_CONFIG_VERSION,
+          merchant_context: merchantContext,
+        },
+        description,
+        receipt_email: order.buyerEmail ?? undefined,
+      });
+
+      const baseIdempotencyKey = `checkout_${CHECKOUT_CONFIG_VERSION}_${order.id}_${amountCents}_${currency}`;
+
+      try {
+        paymentIntent = await stripe.paymentIntents.create(
+          buildPaymentIntentParams("connected_account_settlement"),
+          { idempotencyKey: `${baseIdempotencyKey}_connected` }
+        );
+      } catch (error) {
+        if (!isNoValidPaymentMethodTypesError(error) || !transferData) {
+          throw error;
+        }
+
+        console.warn("[StripeProvider] Falling back to platform settlement for checkout", {
+          order_id: order.id,
+          currency,
+          capture_method: captureMethod,
+          destination_account_id: transferData.destination,
+        });
+
+        paymentIntent = await stripe.paymentIntents.create(
+          buildPaymentIntentParams("platform_settlement_fallback"),
+          { idempotencyKey: `${baseIdempotencyKey}_platform_fallback` }
+        );
+      }
     }
 
     // Persist payment intent on order
