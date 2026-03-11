@@ -20,6 +20,8 @@ export async function GET(request: Request) {
       onboarding_complete: status.onboardingComplete,
       charges_enabled: status.chargesEnabled,
       payouts_enabled: status.payoutsEnabled,
+      card_payments_enabled: status.cardPaymentsEnabled || false,
+      transfers_enabled: status.transfersEnabled || false,
       country: status.country,
       email: status.email,
       placeholder_mode: status.placeholderMode || false,

@@ -55,6 +55,10 @@ const COUNTRY_ALIAS_TO_ISO2: Record<string, string> = {
 
 const CHECKOUT_CONFIG_VERSION = "v3";
 const DEFAULT_PAYMENT_METHOD_TYPES = ["card"] as const;
+const REQUESTED_CONNECT_CAPABILITIES: Stripe.AccountCreateParams.Capabilities = {
+  card_payments: { requested: true },
+  transfers: { requested: true },
+};
 
 function normalizeCountryCode(rawCountry: string | null | undefined): string | null {
   const value = String(rawCountry || "").trim();
@@ -136,6 +140,7 @@ function shouldReplacePaymentIntent(
     captureMethod,
     destinationAccountId,
     paymentMethodTypes,
+    automaticPaymentMethodsEnabled,
     checkoutConfigVersion,
   }: {
     amountCents: number;
@@ -143,6 +148,7 @@ function shouldReplacePaymentIntent(
     captureMethod: "automatic" | "manual";
     destinationAccountId?: string;
     paymentMethodTypes?: readonly string[];
+    automaticPaymentMethodsEnabled: boolean;
     checkoutConfigVersion: string;
   }
 ): boolean {
@@ -169,6 +175,12 @@ function shouldReplacePaymentIntent(
     return true;
   }
 
+  if (automaticPaymentMethodsEnabled) {
+    if (!paymentIntent.automatic_payment_methods?.enabled) return true;
+  } else if (paymentIntent.automatic_payment_methods?.enabled) {
+    return true;
+  }
+
   if (paymentMethodTypes) {
     const currentTypes = [...paymentIntent.payment_method_types].sort().join(",");
     const expectedTypes = [...paymentMethodTypes].sort().join(",");
@@ -182,6 +194,13 @@ function isNoValidPaymentMethodTypesError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const message = "message" in error ? String(error.message || "") : "";
   return message.includes("No valid payment method types for this Payment Intent");
+}
+
+function isOnBehalfOfCapabilityError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const message = "message" in error ? String(error.message || "") : "";
+  return message.includes("on_behalf_of parameter set to a connected account")
+    && message.includes("without the card_payments capability enabled");
 }
 
 async function getOrCreateStripeCustomer(
@@ -244,6 +263,7 @@ export class StripeProvider implements PaymentProviderInterface {
         business_profile: {
           name: profile.displayName || profile.username || undefined,
         },
+        capabilities: REQUESTED_CONNECT_CAPABILITIES,
       });
       stripeAccountId = account.id;
 
@@ -259,6 +279,10 @@ export class StripeProvider implements PaymentProviderInterface {
         });
       }
     }
+
+    await stripe.accounts.update(stripeAccountId, {
+      capabilities: REQUESTED_CONNECT_CAPABILITIES,
+    });
 
     const origin = process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "production" ? "https://pinkquill.com" : "http://localhost:3000");
     const accountLink = await stripe.accountLinks.create({
@@ -286,6 +310,8 @@ export class StripeProvider implements PaymentProviderInterface {
         onboardingComplete: false,
         chargesEnabled: false,
         payoutsEnabled: false,
+        cardPaymentsEnabled: false,
+        transfersEnabled: false,
         country: null,
         email: null,
       };
@@ -294,6 +320,8 @@ export class StripeProvider implements PaymentProviderInterface {
     if (account.stripe_account_id) {
       const stripe = getStripeServer();
       const stripeAccount = await stripe.accounts.retrieve(account.stripe_account_id);
+      const cardPaymentsEnabled = stripeAccount.capabilities?.card_payments === "active";
+      const transfersEnabled = stripeAccount.capabilities?.transfers === "active";
 
       const updates = {
         onboarding_complete: stripeAccount.details_submitted ?? false,
@@ -315,6 +343,8 @@ export class StripeProvider implements PaymentProviderInterface {
         onboardingComplete: updates.onboarding_complete,
         chargesEnabled: updates.charges_enabled,
         payoutsEnabled: updates.payouts_enabled,
+        cardPaymentsEnabled,
+        transfersEnabled,
         country: updates.country || null,
         email: null,
       };
@@ -328,6 +358,8 @@ export class StripeProvider implements PaymentProviderInterface {
       onboardingComplete: false,
       chargesEnabled: false,
       payoutsEnabled: false,
+      cardPaymentsEnabled: false,
+      transfersEnabled: false,
       country: account.country || null,
       email: null,
     };
@@ -379,6 +411,10 @@ export class StripeProvider implements PaymentProviderInterface {
     let transferData: { destination: string } | undefined;
     let onBehalfOf: string | undefined;
     let applicationFeeAmount: number | undefined;
+    let preferredMerchantContext:
+      | "connected_account_settlement"
+      | "platform_settlement_fallback"
+      | "platform_direct" = "platform_direct";
 
     if (sellerOrder?.seller_id) {
       const { data: sellerAccount } = await supabaseAdmin
@@ -393,8 +429,20 @@ export class StripeProvider implements PaymentProviderInterface {
         );
       }
 
+      const stripeAccount = await stripe.accounts.retrieve(sellerAccount.stripe_account_id);
+      const canUseOnBehalfOf = stripeAccount.capabilities?.card_payments === "active";
+
       transferData = { destination: sellerAccount.stripe_account_id };
-      onBehalfOf = sellerAccount.stripe_account_id;
+      if (canUseOnBehalfOf) {
+        onBehalfOf = sellerAccount.stripe_account_id;
+        preferredMerchantContext = "connected_account_settlement";
+      } else {
+        preferredMerchantContext = "platform_settlement_fallback";
+        console.warn("[StripeProvider] Connected account missing card_payments capability; using platform settlement", {
+          order_id: order.id,
+          destination_account_id: sellerAccount.stripe_account_id,
+        });
+      }
       const platformFeeCents = Math.round(Number(sellerOrder.platform_fee) * 100);
       if (platformFeeCents > 0) {
         applicationFeeAmount = platformFeeCents;
@@ -414,7 +462,10 @@ export class StripeProvider implements PaymentProviderInterface {
       "requires_payment_method",
       "requires_confirmation",
     ]);
-    const paymentMethodTypes = DEFAULT_PAYMENT_METHOD_TYPES;
+    const useAutomaticPaymentMethods = !isService;
+    const paymentMethodTypes = useAutomaticPaymentMethods
+      ? undefined
+      : DEFAULT_PAYMENT_METHOD_TYPES;
 
     if (
       paymentIntent
@@ -425,6 +476,7 @@ export class StripeProvider implements PaymentProviderInterface {
         captureMethod,
         destinationAccountId: transferData?.destination,
         paymentMethodTypes,
+        automaticPaymentMethodsEnabled: useAutomaticPaymentMethods,
         checkoutConfigVersion: CHECKOUT_CONFIG_VERSION,
       })
     ) {
@@ -463,12 +515,18 @@ export class StripeProvider implements PaymentProviderInterface {
       );
 
       const buildPaymentIntentParams = (
-        merchantContext: "connected_account_settlement" | "platform_settlement_fallback"
+        merchantContext:
+          | "connected_account_settlement"
+          | "platform_settlement_fallback"
+          | "platform_direct",
+        paymentMode: "automatic" | "card_only"
       ): Stripe.PaymentIntentCreateParams => ({
         amount: amountCents,
         currency,
         customer: customerId,
-        payment_method_types: [...paymentMethodTypes],
+        ...(paymentMode === "automatic"
+          ? { automatic_payment_methods: { enabled: true } }
+          : { payment_method_types: [...DEFAULT_PAYMENT_METHOD_TYPES] }),
         payment_method_options: {
           card: {
             request_three_d_secure: "automatic",
@@ -492,34 +550,65 @@ export class StripeProvider implements PaymentProviderInterface {
           product_title: compactTitle,
           checkout_config_version: CHECKOUT_CONFIG_VERSION,
           merchant_context: merchantContext,
+          payment_mode: paymentMode,
         },
         description,
         receipt_email: order.buyerEmail ?? undefined,
       });
 
       const baseIdempotencyKey = `checkout_${CHECKOUT_CONFIG_VERSION}_${order.id}_${amountCents}_${currency}`;
+      const merchantContexts = transferData
+        ? preferredMerchantContext === "connected_account_settlement"
+          ? ["connected_account_settlement", "platform_settlement_fallback"] as const
+          : ["platform_settlement_fallback"] as const
+        : ["platform_direct"] as const;
+      const initialPaymentMode: "automatic" | "card_only" = useAutomaticPaymentMethods
+        ? "automatic"
+        : "card_only";
+      let lastError: unknown = null;
 
-      try {
-        paymentIntent = await stripe.paymentIntents.create(
-          buildPaymentIntentParams("connected_account_settlement"),
-          { idempotencyKey: `${baseIdempotencyKey}_connected` }
-        );
-      } catch (error) {
-        if (!isNoValidPaymentMethodTypesError(error) || !transferData) {
-          throw error;
+      for (const merchantContext of merchantContexts) {
+        const paymentModes = initialPaymentMode === "automatic"
+          ? (["automatic", "card_only"] as const)
+          : (["card_only"] as const);
+
+        for (const paymentMode of paymentModes) {
+          try {
+            paymentIntent = await stripe.paymentIntents.create(
+              buildPaymentIntentParams(merchantContext, paymentMode),
+              { idempotencyKey: `${baseIdempotencyKey}_${merchantContext}_${paymentMode}` }
+            );
+            break;
+          } catch (error) {
+            lastError = error;
+
+            const canTryCardFallback = paymentMode === "automatic" && isNoValidPaymentMethodTypesError(error);
+            const canTryPlatformFallback = merchantContext === "connected_account_settlement"
+              && (isNoValidPaymentMethodTypesError(error) || isOnBehalfOfCapabilityError(error));
+
+            if (canTryCardFallback) {
+              continue;
+            }
+
+            if (canTryPlatformFallback) {
+              console.warn("[StripeProvider] Falling back to platform settlement for checkout", {
+                order_id: order.id,
+                currency,
+                capture_method: captureMethod,
+                destination_account_id: transferData?.destination || null,
+              });
+              break;
+            }
+
+            throw error;
+          }
         }
 
-        console.warn("[StripeProvider] Falling back to platform settlement for checkout", {
-          order_id: order.id,
-          currency,
-          capture_method: captureMethod,
-          destination_account_id: transferData.destination,
-        });
+        if (paymentIntent) break;
+      }
 
-        paymentIntent = await stripe.paymentIntents.create(
-          buildPaymentIntentParams("platform_settlement_fallback"),
-          { idempotencyKey: `${baseIdempotencyKey}_platform_fallback` }
-        );
+      if (!paymentIntent) {
+        throw lastError instanceof Error ? lastError : new Error("Failed to create Stripe payment intent");
       }
     }
 

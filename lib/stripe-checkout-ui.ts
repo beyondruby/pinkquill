@@ -49,6 +49,11 @@ export function buildStripePaymentElementOptions(
     ...(billingDefaults
       ? { defaultValues: { billingDetails: billingDefaults } }
       : {}),
+    wallets: {
+      applePay: "auto",
+      googlePay: "auto",
+      link: "auto",
+    },
     fields: {
       billingDetails: {
         name: "auto",

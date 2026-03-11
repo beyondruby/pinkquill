@@ -50,6 +50,8 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
           onboarding_complete: Boolean(data.onboarding_complete),
           charges_enabled: Boolean(data.charges_enabled),
           payouts_enabled: Boolean(data.payouts_enabled),
+          card_payments_enabled: Boolean(data.card_payments_enabled),
+          transfers_enabled: Boolean(data.transfers_enabled),
           default_currency: data.default_currency || "usd",
           country: data.country || null,
           created_at: data.created_at || new Date().toISOString(),

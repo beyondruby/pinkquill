@@ -19,6 +19,8 @@ export interface SellerStatusResult {
   onboardingComplete: boolean;
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
+  cardPaymentsEnabled?: boolean;
+  transfersEnabled?: boolean;
   country: string | null;
   email: string | null;
   placeholderMode?: boolean;

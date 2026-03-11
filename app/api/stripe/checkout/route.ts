@@ -303,6 +303,14 @@ export async function POST(request: Request) {
     if (message.includes("Seller Stripe account is not ready")) {
       return NextResponse.json({ error: message }, { status: 409 });
     }
+    if (message.includes("without the card_payments capability enabled")) {
+      return NextResponse.json(
+        {
+          error: "The seller's Stripe account is missing the card payments capability. Ask the seller to reopen Stripe onboarding and complete card payments setup.",
+        },
+        { status: 409 }
+      );
+    }
     if (message.includes("No valid payment method types for this Payment Intent")) {
       return NextResponse.json(
         {

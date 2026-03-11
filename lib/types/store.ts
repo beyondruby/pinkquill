@@ -493,6 +493,8 @@ export interface SellerAccount {
   onboarding_complete: boolean;
   charges_enabled: boolean;
   payouts_enabled: boolean;
+  card_payments_enabled?: boolean;
+  transfers_enabled?: boolean;
   default_currency: string;
   country: string | null;
   created_at: string;

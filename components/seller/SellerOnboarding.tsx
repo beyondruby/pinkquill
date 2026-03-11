@@ -24,6 +24,15 @@ export default function SellerOnboarding() {
     useSellerOnboarding();
 
   const providerLabel = getProviderLabel(account?.provider);
+  const requiresCardPaymentsCapability = Boolean(
+    account && account.provider === "stripe" && !account.placeholder_mode
+  );
+  const isSetupComplete = Boolean(
+    account
+    && account.onboarding_complete
+    && account.charges_enabled
+    && (!requiresCardPaymentsCapability || account.card_payments_enabled)
+  );
 
   if (loading) {
     return (
@@ -64,7 +73,7 @@ export default function SellerOnboarding() {
   }
 
   // Onboarding incomplete
-  if (!account.onboarding_complete || !account.charges_enabled) {
+  if (!isSetupComplete) {
     return (
       <div className="max-w-lg mx-auto text-center py-12 px-6">
         <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -74,11 +83,17 @@ export default function SellerOnboarding() {
         <p className="text-gray-600 mb-6">
           Your seller account is almost ready. Please complete the {providerLabel} onboarding to start accepting payments.
         </p>
+        {requiresCardPaymentsCapability && !account.card_payments_enabled && (
+          <p className="text-sm text-amber-700 mb-4">
+            Your Stripe account still needs the card payments capability enabled before marketplace checkout can settle on your behalf.
+          </p>
+        )}
 
         <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
           <StatusRow label="Account created" done />
           <StatusRow label="Identity verified" done={account.onboarding_complete} />
           <StatusRow label="Payments enabled" done={account.charges_enabled} />
+          <StatusRow label="Card payments capability" done={Boolean(account.card_payments_enabled)} />
           <StatusRow label="Payouts enabled" done={account.payouts_enabled} />
         </div>
 
@@ -120,6 +135,7 @@ export default function SellerOnboarding() {
       <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
         <StatusRow label="Identity verified" done />
         <StatusRow label="Payments enabled" done />
+        <StatusRow label="Card payments capability" done={Boolean(account.card_payments_enabled)} />
         <StatusRow label="Payouts enabled" done={account.payouts_enabled} />
         {account.country && (
           <div className="text-sm text-gray-500 pt-1">
