@@ -25,7 +25,7 @@ export async function GET() {
     return new NextResponse(content, {
       status: 200,
       headers: {
-        "Content-Type": "application/octet-stream",
+        "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "public, max-age=86400",
       },
     });

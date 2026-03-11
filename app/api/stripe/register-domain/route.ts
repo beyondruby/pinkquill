@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { enforceSameOrigin } from "@/lib/api-security";
+import {
+  collectPaymentMethodDomains,
+  ensurePaymentMethodDomainsRegistered,
+} from "@/lib/stripe-payment-method-domains";
 import { getStripeServer } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
 /**
- * Registers the platform domain with Stripe for Apple Pay.
- * Registers both apex + www by default. Idempotent — safe to call multiple times.
+ * Registers the platform domain with Stripe for Payment Element wallets.
+ * This activates Apple Pay / Google Pay / Link on supported browsers when the
+ * domain is properly verified and enabled in Stripe.
  */
 export async function POST(request: Request) {
   try {
@@ -20,45 +25,8 @@ export async function POST(request: Request) {
     }
 
     const stripe = getStripeServer();
-    const configuredDomains = process.env.STRIPE_APPLE_PAY_DOMAINS
-      ?.split(",")
-      .map((domain) => domain.trim())
-      .filter(Boolean);
-
-    const primaryHost = process.env.NEXT_PUBLIC_SITE_URL
-      ? new URL(process.env.NEXT_PUBLIC_SITE_URL).hostname
-      : "pinkquill.com";
-
-    const derivedHosts = primaryHost.startsWith("www.")
-      ? [primaryHost, primaryHost.slice(4)]
-      : [primaryHost, `www.${primaryHost}`];
-
-    const domains = Array.from(new Set([...(configuredDomains || []), ...derivedHosts]));
-    const results: Array<{ domain: string; id: string | null; status: "registered" | "already_registered" }> = [];
-
-    for (const domain of domains) {
-      try {
-        const applePayDomain = await stripe.applePayDomains.create({
-          domain_name: domain,
-        });
-        results.push({
-          domain: applePayDomain.domain_name,
-          id: applePayDomain.id,
-          status: "registered",
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to register domain";
-        if (message.includes("already been registered")) {
-          results.push({
-            domain,
-            id: null,
-            status: "already_registered",
-          });
-          continue;
-        }
-        throw error;
-      }
-    }
+    const domains = collectPaymentMethodDomains(request);
+    const results = await ensurePaymentMethodDomainsRegistered(stripe, domains);
 
     return NextResponse.json({
       success: true,
