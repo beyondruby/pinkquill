@@ -68,6 +68,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
+  // Idempotency check: skip if this Stripe event has already been processed.
+  // The event ID is stored in metadata->>'stripe_event_id' for directly-inserted
+  // order_events, and embedded in metadata->>'source' for RPC-created events.
+  const { data: existingEvent } = await supabaseAdmin
+    .from("order_events")
+    .select("id")
+    .or(`metadata->>stripe_event_id.eq.${event.id},metadata->>source.like.%${event.id}%`)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingEvent) {
+    return NextResponse.json({ received: true, already_processed: true });
+  }
+
   try {
     switch (event.type) {
       case "payment_intent.succeeded": {
@@ -83,7 +97,7 @@ export async function POST(request: Request) {
           provider: "stripe",
           paymentReference: paymentIntent.id,
           actorId: order.buyer_id,
-          source: "stripe.webhook.payment_intent_succeeded",
+          source: `stripe.webhook.payment_intent_succeeded:${event.id}`,
         });
         break;
       }
@@ -115,7 +129,7 @@ export async function POST(request: Request) {
           paymentReference: paymentIntent.id,
           reason: paymentIntent.last_payment_error?.message || `Stripe event: ${event.type}`,
           errorDetails: declineDetails,
-          source: `stripe.webhook.${event.type}`,
+          source: `stripe.webhook.${event.type}:${event.id}`,
         });
         break;
       }
@@ -182,7 +196,8 @@ export async function POST(request: Request) {
               metadata: {
                 provider: "stripe",
                 stripe_charge_id: charge.id,
-                source: "stripe.webhook.charge_refunded",
+                stripe_event_id: event.id,
+                source: `stripe.webhook.charge_refunded:${event.id}`,
                 refund_type: isFullyRefunded ? "full" : "partial",
               },
             })
@@ -200,7 +215,8 @@ export async function POST(request: Request) {
             metadata: {
               provider: "stripe",
               stripe_charge_id: charge.id,
-              source: "stripe.webhook.charge_refunded",
+              stripe_event_id: event.id,
+              source: `stripe.webhook.charge_refunded:${event.id}`,
               refund_type: isFullyRefunded ? "full" : "partial",
             },
           });
@@ -216,7 +232,8 @@ export async function POST(request: Request) {
           metadata: {
             action: isFullyRefunded ? "refund" : "partial_refund",
             provider: "stripe",
-            source: "stripe.webhook.charge_refunded",
+            source: `stripe.webhook.charge_refunded:${event.id}`,
+            stripe_event_id: event.id,
             stripe_charge_id: charge.id,
             refunded_amount: refundAmountForLedger,
             charge_amount: chargeAmount,

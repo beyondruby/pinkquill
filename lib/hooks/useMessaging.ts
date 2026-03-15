@@ -261,6 +261,24 @@ export function useMessageReactions({
   const toggleReaction = useCallback(async (messageId: string, emoji: MessageReactionEmoji) => {
     if (!currentUserId) return;
 
+    // Block check: fetch the message sender and check for blocks in either direction
+    const { data: message } = await supabase
+      .from("messages")
+      .select("sender_id")
+      .eq("id", messageId)
+      .single();
+
+    if (message && message.sender_id !== currentUserId) {
+      const { count } = await supabase
+        .from("blocks")
+        .select("id", { count: "exact", head: true })
+        .or(
+          `and(blocker_id.eq.${currentUserId},blocked_id.eq.${message.sender_id}),and(blocker_id.eq.${message.sender_id},blocked_id.eq.${currentUserId})`
+        );
+
+      if (count && count > 0) return;
+    }
+
     // Check if user already has a reaction on this message
     const existingReactions = reactionsByMessage.get(messageId) || [];
     const userReaction = existingReactions.find(r => r.user_id === currentUserId);

@@ -1075,7 +1075,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
       />
 
       {/* Panel - full width on mobile, fixed width on desktop */}
-      <div className="fixed top-0 left-0 md:left-[72px] bottom-0 w-full md:w-[400px] bg-white shadow-2xl z-[9999] animate-slideInLeft flex flex-col border-r border-purple-primary/[0.08]">
+      <div className="fixed top-0 left-0 md:left-[72px] bottom-0 w-full md:w-[400px] bg-white shadow-2xl z-[9999] animate-slideInLeft flex flex-col border-r border-purple-primary/[0.08]" aria-label="Notifications">
         {/* Header */}
         <div className="relative px-6 py-5 border-b border-black/[0.04]">
           {/* Decorative gradient line */}
@@ -1105,6 +1105,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
               <button
                 onClick={onClose}
                 className="w-9 h-9 rounded-full bg-black/[0.03] flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.06] transition-all"
+                aria-label="Close notifications"
               >
                 {icons.close}
               </button>

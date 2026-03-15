@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, memo } from "react";
 import Link from "next/link";
 import TakePlayer from "./TakePlayer";
 import TakeReactionPicker from "./TakeReactionPicker";
@@ -39,7 +39,7 @@ function getWordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-export default function TakeCard({
+function TakeCard({
   take,
   isActive,
   isMuted,
@@ -465,3 +465,5 @@ export default function TakeCard({
     </div>
   );
 }
+
+export default memo(TakeCard);

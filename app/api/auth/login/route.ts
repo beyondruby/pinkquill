@@ -82,18 +82,19 @@ export async function POST(request: Request) {
 
     if (error) {
       if (error.message.includes("Email not confirmed")) {
+        // Silently resend verification email without revealing account existence
         await supabase.auth.resend({
           type: "signup",
           email: loginEmail,
-        });
+        }).catch(() => {});
 
+        // Return same 401 status as invalid credentials to prevent email enumeration,
+        // but include a generic hint that applies to all failed logins
         return NextResponse.json(
           {
-            requires_verification: true,
-            pending_email: loginEmail,
-            message: "Please verify your email with the code we sent.",
+            error: "Invalid email/username or password. If you recently signed up, please check your email for a verification link.",
           },
-          { status: 409 }
+          { status: 401 }
         );
       }
 

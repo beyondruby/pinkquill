@@ -376,8 +376,25 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
       }
     } catch (err) {
       console.error("[useComments] toggleLike Error:", err);
-      // Revert on error
-      fetchComments(0, false);
+      // Revert optimistic update directly instead of expensive full refetch
+      setComments((current) => {
+        const revertComment = (comments: Comment[]): Comment[] => {
+          return comments.map((c) => {
+            if (c.id === commentId) {
+              return {
+                ...c,
+                likes_count: isLiked ? c.likes_count + 1 : c.likes_count - 1,
+                user_has_liked: isLiked,
+              };
+            }
+            if (c.replies && c.replies.length > 0) {
+              return { ...c, replies: revertComment(c.replies) };
+            }
+            return c;
+          });
+        };
+        return revertComment(current);
+      });
     }
   };
 

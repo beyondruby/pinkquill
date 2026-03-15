@@ -59,7 +59,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (user.id !== order.buyer_id && user.id !== order.seller_id) {
+    // Only the buyer can release escrowed funds
+    if (user.id !== order.buyer_id) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 

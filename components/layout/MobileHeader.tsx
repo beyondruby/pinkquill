@@ -5,9 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFeatherPointed } from "@fortawesome/free-solid-svg-icons";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useBadgeCounts } from "@/components/providers/BadgeCountProvider";
-import NotificationPanel from "@/components/notifications/NotificationPanel";
+
+const NotificationPanel = dynamic(() => import("@/components/notifications/NotificationPanel"), { ssr: false });
 
 export default function MobileHeader() {
   const pathname = usePathname();

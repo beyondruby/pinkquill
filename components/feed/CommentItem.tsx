@@ -23,24 +23,31 @@ interface CommentItemProps {
   onModeratorDelete?: (commentId: string, reason?: string) => Promise<void>;
 }
 
+// Strip HTML tags to prevent XSS in plain-text comment content
+function stripHtmlTags(text: string): string {
+  return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 // Parse @mentions in comment content and render as clickable links
-function renderContentWithMentions(content: string): React.ReactNode {
+function renderContentWithMentions(content: string, commentId?: string): React.ReactNode {
+  // Sanitize content first to prevent XSS injection
+  const sanitized = stripHtmlTags(content);
   // Match @username patterns (alphanumeric and underscores)
   const mentionRegex = /@([a-zA-Z0-9_]+)/g;
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
   let match;
 
-  while ((match = mentionRegex.exec(content)) !== null) {
+  while ((match = mentionRegex.exec(sanitized)) !== null) {
     // Add text before the mention
     if (match.index > lastIndex) {
-      parts.push(content.slice(lastIndex, match.index));
+      parts.push(<span key={`text-${commentId}-${lastIndex}`} dangerouslySetInnerHTML={{ __html: sanitized.slice(lastIndex, match.index) }} />);
     }
     // Add the mention as a link
     const username = match[1];
     parts.push(
       <Link
-        key={match.index}
+        key={`mention-${commentId}-${match.index}`}
         href={`/studio/${username}`}
         className="text-purple-primary font-medium hover:underline"
         onClick={(e) => e.stopPropagation()}
@@ -52,11 +59,11 @@ function renderContentWithMentions(content: string): React.ReactNode {
   }
 
   // Add remaining text
-  if (lastIndex < content.length) {
-    parts.push(content.slice(lastIndex));
+  if (lastIndex < sanitized.length) {
+    parts.push(<span key={`text-${commentId}-${lastIndex}`} dangerouslySetInnerHTML={{ __html: sanitized.slice(lastIndex) }} />);
   }
 
-  return parts.length > 0 ? parts : content;
+  return parts.length > 0 ? parts : <span dangerouslySetInnerHTML={{ __html: sanitized }} />;
 }
 
 function getTimeAgo(dateString: string): string {
@@ -332,7 +339,7 @@ function CommentItemComponent({
               )}
             </div>
             <p className="font-body text-[0.9rem] text-ink leading-relaxed">
-              {renderContentWithMentions(comment.content)}
+              {renderContentWithMentions(comment.content, comment.id)}
             </p>
           </div>
 

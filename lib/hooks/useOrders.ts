@@ -50,7 +50,7 @@ function transformOrder(raw: Record<string, unknown>): Order {
     product.media = (product.media as ProductMedia[]).sort((a, b) => a.position - b.position);
   }
 
-  if (product?.keywords) {
+  if (product?.keywords && Array.isArray(product.keywords)) {
     const rawKeywords = product.keywords as unknown[];
     product.keywords = rawKeywords
       .map((item) => {
@@ -487,6 +487,17 @@ interface UseUpdateOrderStatusReturn {
   error: string | null;
 }
 
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  pending_payment: ["paid", "cancelled"],
+  pending_acceptance: ["paid", "declined", "cancelled"],
+  paid: ["in_progress", "cancelled", "refund_requested"],
+  in_progress: ["submitted", "cancelled", "refund_requested"],
+  submitted: ["revision_requested", "completed"],
+  revision_requested: ["in_progress"],
+  completed: ["refund_requested"],
+  refund_requested: ["refunded"],
+};
+
 export function useUpdateOrderStatus(): UseUpdateOrderStatusReturn {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -508,14 +519,20 @@ export function useUpdateOrderStatus(): UseUpdateOrderStatusReturn {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Get order to determine role
+      // Get order to determine role and current status
       const { data: order, error: orderError } = await supabase
         .from("orders")
-        .select("buyer_id, seller_id")
+        .select("buyer_id, seller_id, status")
         .eq("id", orderId)
         .single();
 
       if (orderError) throw orderError;
+
+      // Validate state transition
+      const allowed = VALID_TRANSITIONS[order.status];
+      if (!allowed || !allowed.includes(status)) {
+        throw new Error(`Invalid status transition: "${order.status}" → "${status}"`);
+      }
 
       const isBuyer = order.buyer_id === user.id;
       const isSeller = order.seller_id === user.id;

@@ -396,6 +396,12 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
   useEffect(() => {
     mountedRef.current = true;
 
+    // Always clean up previous channel first, regardless of early return
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
     if (!postId) {
       return () => {
         mountedRef.current = false;
@@ -407,11 +413,6 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
       return () => {
         mountedRef.current = false;
       };
-    }
-
-    // Clean up previous channel if exists
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
     }
 
     const channel = supabase

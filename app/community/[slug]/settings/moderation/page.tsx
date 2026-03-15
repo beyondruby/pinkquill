@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useCommunityMembers, useCommunityModeration, useModLog } from "@/lib/hooks";
+import { stripHtml } from "@/lib/utils/sanitize";
 
 type TabType = 'mod-log' | 'muted' | 'banned';
 
@@ -203,12 +204,9 @@ export default function CommunityModerationSettingsPage() {
                               {entry.content_snapshot.title}
                             </p>
                           )}
-                          <p
-                            className="font-body text-sm text-ink/60 line-clamp-3"
-                            dangerouslySetInnerHTML={{
-                              __html: entry.content_snapshot.content?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300) || ''
-                            }}
-                          />
+                          <p className="font-body text-sm text-ink/60 line-clamp-3">
+                            {stripHtml(entry.content_snapshot.content || "").slice(0, 300)}
+                          </p>
                         </div>
                       )}
 

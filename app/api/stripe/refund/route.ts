@@ -35,7 +35,11 @@ export async function POST(request: Request) {
 
     const parsed = await safeJsonParse<{ order_id?: string; reason?: string }>(request);
     if ("error" in parsed) return parsed.error;
-    const { order_id: orderId, reason } = parsed.data;
+    const { order_id: orderId } = parsed.data;
+    // Sanitize and limit refund reason to prevent XSS and oversized inputs
+    const reason = parsed.data.reason
+      ? String(parsed.data.reason).trim().slice(0, 500)
+      : undefined;
 
     if (!orderId) {
       return NextResponse.json({ error: "order_id is required" }, { status: 400 });

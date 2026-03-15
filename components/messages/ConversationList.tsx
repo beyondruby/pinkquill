@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Conversation } from "./MessagesView";
 import { ConversationSkeleton } from "@/components/ui/Skeleton";
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
@@ -35,7 +36,7 @@ function formatTime(dateString: string): string {
   }
 }
 
-export default function ConversationList({
+function ConversationList({
   conversations,
   loading,
   selectedId,
@@ -164,3 +165,5 @@ export default function ConversationList({
     </div>
   );
 }
+
+export default memo(ConversationList);

@@ -137,6 +137,8 @@ export default function ChatView({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ file: File; url: string; type: 'image' | 'video' } | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -315,14 +317,17 @@ export default function ChatView({
         }
       }
 
-      // Get messages
+      // Get latest 50 messages (fetch newest first, then reverse for display)
       const { data: messagesData } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-      setMessages(messagesData || []);
+      const sorted = (messagesData || []).reverse();
+      setMessages(sorted);
+      setHasOlderMessages((messagesData || []).length === 50);
 
       // Mark messages as read
       await supabase
@@ -341,6 +346,31 @@ export default function ChatView({
   useEffect(() => {
     fetchData();
   }, [conversationId]);
+
+  const loadOlderMessages = async () => {
+    if (loadingOlder || !hasOlderMessages || messages.length === 0) return;
+    setLoadingOlder(true);
+    try {
+      const oldestMessage = messages[0];
+      const { data } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .lt("created_at", oldestMessage.created_at)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      const older = (data || []).reverse();
+      if (older.length > 0) {
+        setMessages((prev) => [...older, ...prev]);
+      }
+      setHasOlderMessages((data || []).length === 50);
+    } catch (err) {
+      console.error("Failed to load older messages:", err);
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   // Real-time subscription for new messages
   useEffect(() => {
@@ -411,7 +441,11 @@ export default function ChatView({
           );
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('[ChatView] Real-time connection error');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -688,6 +722,17 @@ export default function ChatView({
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-[#f8f7fc]">
+        {hasOlderMessages && (
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={loadOlderMessages}
+              disabled={loadingOlder}
+              className="text-sm font-ui text-purple-primary hover:text-purple-primary/80 disabled:opacity-50 transition-colors"
+            >
+              {loadingOlder ? "Loading..." : "Load older messages"}
+            </button>
+          </div>
+        )}
         {messages.length === 0 ? (
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="text-center">

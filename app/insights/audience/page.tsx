@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useProfileInsights, TimeRange, DateRange } from "@/lib/hooks/useInsights";
+import dynamic from "next/dynamic";
 import DateRangePicker from "@/components/insights/DateRangePicker";
 import MetricCard from "@/components/insights/cards/MetricCard";
-import GrowthChart from "@/components/insights/charts/GrowthChart";
 import LoadingSkeleton from "@/components/insights/shared/LoadingSkeleton";
+
+const GrowthChart = dynamic(() => import("@/components/insights/charts/GrowthChart"), { ssr: false });
 import EmptyState from "@/components/insights/shared/EmptyState";
 
 function formatNumber(num: number): string {

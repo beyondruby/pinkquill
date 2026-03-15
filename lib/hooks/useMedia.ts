@@ -156,13 +156,19 @@ export function useVoiceRecorder(maxDuration: number = 300) {
 
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        setState((prev) => ({
-          ...prev,
-          audioBlob: blob,
-          audioUrl: url,
-          isRecording: false,
-        }));
+        // Revoke previous ObjectURL before creating a new one to prevent memory leaks
+        setState((prev) => {
+          if (prev.audioUrl) {
+            URL.revokeObjectURL(prev.audioUrl);
+          }
+          const url = URL.createObjectURL(blob);
+          return {
+            ...prev,
+            audioBlob: blob,
+            audioUrl: url,
+            isRecording: false,
+          };
+        });
       };
 
       // Start recording

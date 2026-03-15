@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     const body = parsed.data;
     const productId = body.product_id;
     const pricingId = body.pricing_id;
-    const requestedQuantity = Number.isFinite(body.quantity) ? Math.max(1, Math.floor(body.quantity!)) : 1;
+    const requestedQuantity = Number.isFinite(body.quantity) ? Math.min(999, Math.max(1, Math.floor(body.quantity!))) : 1;
 
     if (!productId || !pricingId) {
       return NextResponse.json(

@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // If duplicate key error on username, try with suffix
         if (error.code === "23505" && error.message.includes("username")) {
-          username = `${baseUsername.toLowerCase().replace(/[^a-z0-9_]/g, "")}_${Math.random().toString(36).slice(2, 6)}`;
+          username = `${baseUsername.toLowerCase().replace(/[^a-z0-9_]/g, "")}_${crypto.randomUUID().slice(0, 8)}`;
           attempts++;
         } else if (error.code === "23505" && error.message.includes("profiles_pkey")) {
           // Profile already exists (race condition) - fetch and return it

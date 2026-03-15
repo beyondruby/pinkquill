@@ -30,13 +30,13 @@ function parseShippingAddress(input: unknown): Record<string, string> | null {
   if (!input || typeof input !== "object" || Array.isArray(input)) return null;
   const raw = input as Record<string, unknown>;
   const normalized = {
-    name: String(raw.name || "").trim(),
-    line1: String(raw.line1 || "").trim(),
-    line2: String(raw.line2 || "").trim(),
-    city: String(raw.city || "").trim(),
-    state: String(raw.state || "").trim(),
-    postal_code: String(raw.postal_code || "").trim(),
-    country: String(raw.country || "").trim(),
+    name: String(raw.name || "").trim().slice(0, 100),
+    line1: String(raw.line1 || "").trim().slice(0, 200),
+    line2: String(raw.line2 || "").trim().slice(0, 200),
+    city: String(raw.city || "").trim().slice(0, 100),
+    state: String(raw.state || "").trim().slice(0, 100),
+    postal_code: String(raw.postal_code || "").trim().slice(0, 20),
+    country: String(raw.country || "").trim().slice(0, 2),
   };
 
   if (!normalized.name || !normalized.line1 || !normalized.city || !normalized.country) {
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
       }
 
       if (body.buyer_phone !== undefined) {
-        const phone = String(body.buyer_phone || "").trim();
+        const phone = String(body.buyer_phone || "").trim().slice(0, 30);
         if (!phone) {
           return NextResponse.json({ error: "Phone number is required for physical products." }, { status: 400 });
         }
@@ -149,7 +149,7 @@ export async function POST(request: Request) {
 
     if (order.listing_type === "service") {
       if (body.brief !== undefined) {
-        const brief = String(body.brief || "").trim();
+        const brief = String(body.brief || "").trim().slice(0, 5000);
         if (!brief) {
           return NextResponse.json({ error: "Brief cannot be empty." }, { status: 400 });
         }
@@ -160,6 +160,13 @@ export async function POST(request: Request) {
       if (body.requirements !== undefined) {
         if (typeof body.requirements !== "object" || body.requirements === null || Array.isArray(body.requirements)) {
           return NextResponse.json({ error: "requirements must be an object." }, { status: 400 });
+        }
+        const reqKeys = Object.keys(body.requirements);
+        if (reqKeys.length > 50) {
+          return NextResponse.json({ error: "requirements has too many fields." }, { status: 400 });
+        }
+        if (JSON.stringify(body.requirements).length > 50000) {
+          return NextResponse.json({ error: "requirements payload is too large." }, { status: 400 });
         }
         updates.requirements = body.requirements;
         hasEditableField = true;

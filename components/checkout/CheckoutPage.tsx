@@ -62,6 +62,7 @@ function hasRequiredShippingAddress(address?: Partial<ShippingAddress> | null): 
 // ============================================================================
 
 function useOrderData(orderId: string) {
+  const { user } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,14 +84,21 @@ function useOrderData(orderId: string) {
           .single();
 
         if (err) throw err;
-        setOrder(data as unknown as Order);
+
+        // Verify the current user is the buyer for this order
+        const orderData = data as unknown as Order;
+        if (user?.id && orderData.buyer_id !== user.id) {
+          throw new Error("Not authorized to access this order");
+        }
+
+        setOrder(orderData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load order");
       } finally {
         setLoading(false);
       }
     })();
-  }, [orderId]);
+  }, [orderId, user?.id]);
 
   return { order, loading, error, setOrder };
 }

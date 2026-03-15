@@ -157,8 +157,8 @@ export async function checkRateLimit({
       .single<{ allowed: boolean; remaining: number; reset_at: string }>();
 
     if (error || !data) {
-      console.error("[RateLimit] RPC error:", error);
-      return { allowed: true, remaining: limit, resetAt: null };
+      console.error("[RateLimit] RPC error — failing closed:", error);
+      return { allowed: false, remaining: 0, resetAt: null };
     }
 
     return {
@@ -167,8 +167,8 @@ export async function checkRateLimit({
       resetAt: data.reset_at || null,
     };
   } catch (error) {
-    console.error("[RateLimit] unexpected error:", error);
-    return { allowed: true, remaining: limit, resetAt: null };
+    console.error("[RateLimit] unexpected error — failing closed:", error);
+    return { allowed: false, remaining: 0, resetAt: null };
   }
 }
 

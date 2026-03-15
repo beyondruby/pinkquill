@@ -437,6 +437,14 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
   const getBlockedUsers = useCallback(async (): Promise<Set<string>> => {
     if (!userId) return new Set();
 
+    // Clear cache entries for other users to prevent cross-user leakage
+    // (e.g., User A logs out, User B logs in within the TTL window)
+    for (const key of blockedUsersCacheByUser.keys()) {
+      if (key !== userId) {
+        blockedUsersCacheByUser.delete(key);
+      }
+    }
+
     // Check cache
     const cached = blockedUsersCacheByUser.get(userId);
     if (cached && (Date.now() - cached.fetchedAt < BLOCKED_USERS_CACHE_TTL_MS)) {
@@ -629,12 +637,16 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
       supabase.removeChannel(channelRef.current);
     }
 
+    // Track whether this effect is still active to prevent post-cleanup timer fires
+    let active = true;
+
     // Debounce rapid message updates - increased to 1000ms to reduce database load
     let debounceTimer: NodeJS.Timeout | null = null;
     const debouncedFetch = () => {
+      if (!active) return;
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        if (mountedRef.current) {
+        if (active && mountedRef.current) {
           fetchCountRef.current();
         }
       }, 1000); // Increased from 300ms to 1000ms
@@ -772,6 +784,7 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
     channelRef.current = channel;
 
     return () => {
+      active = false;
       if (debounceTimer) clearTimeout(debounceTimer);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
@@ -794,11 +807,13 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
       supabase.removeChannel(communityChannelRef.current);
     }
 
+    let active = true;
     let debounceTimer: NodeJS.Timeout | null = null;
     const debouncedFetch = () => {
+      if (!active) return;
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        if (mountedRef.current) {
+        if (active && mountedRef.current) {
           fetchCountRef.current();
         }
       }, 1000);
@@ -841,6 +856,7 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
     communityChannelRef.current = channel;
 
     return () => {
+      active = false;
       if (debounceTimer) clearTimeout(debounceTimer);
       if (communityChannelRef.current) {
         supabase.removeChannel(communityChannelRef.current);

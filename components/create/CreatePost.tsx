@@ -14,12 +14,15 @@ import {
   TakeEffect,
   Sound,
 } from "@/lib/hooks/useTakes";
-import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
+import type { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
 import { PostStyling, JournalMetadata, TextAlignment, LineSpacing, SpotifyTrack, CommunityFlair } from "@/lib/types";
-import FlairPicker from "@/components/communities/FlairPicker";
-import BackgroundPicker from "@/components/create/BackgroundPicker";
-import JournalMetadataPanel from "@/components/create/JournalMetadata";
-import CollectionSelector from "@/components/collections/CollectionSelector";
+import dynamic from "next/dynamic";
+
+const PeoplePickerModal = dynamic(() => import("@/components/ui/PeoplePickerModal"), { ssr: false });
+const FlairPicker = dynamic(() => import("@/components/communities/FlairPicker"), { ssr: false });
+const BackgroundPicker = dynamic(() => import("@/components/create/BackgroundPicker"), { ssr: false });
+const JournalMetadataPanel = dynamic(() => import("@/components/create/JournalMetadata"), { ssr: false });
+const CollectionSelector = dynamic(() => import("@/components/collections/CollectionSelector"), { ssr: false });
 import { useAddPostToCollectionItem } from "@/lib/hooks/useCollections";
 import type { Collection, CollectionItem } from "@/lib/types";
 import DOMPurify from "dompurify";

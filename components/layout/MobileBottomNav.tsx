@@ -79,6 +79,7 @@ export default function MobileBottomNav() {
             <Link
               key={item.icon}
               href={href}
+              aria-label={item.label}
               className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
                 isCreate
                   ? ""

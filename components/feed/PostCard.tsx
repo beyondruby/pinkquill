@@ -4,15 +4,17 @@ import { useState, useEffect, useRef, useCallback, memo, useMemo, type ReactNode
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { useToggleAdmire, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, createNotification, useBlock, ReactionType, ReactionCounts } from "@/lib/hooks";
 import { usePostViewTracker, useTrackPostImpression } from "@/lib/hooks/useTracking";
-import ShareModal from "@/components/ui/ShareModal";
-import ReportModal from "@/components/ui/ReportModal";
-import SendToDMModal from "@/components/messages/SendToDMModal";
+
+const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
+const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
+const SendToDMModal = dynamic(() => import("@/components/messages/SendToDMModal"), { ssr: false });
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import FlairBadge from "@/components/communities/FlairBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";

@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useInsightsDashboard, TimeRange, DateRange } from "@/lib/hooks/useInsights";
+import dynamic from "next/dynamic";
 import DateRangePicker from "@/components/insights/DateRangePicker";
 import MetricCard from "@/components/insights/cards/MetricCard";
-import ViewsChart from "@/components/insights/charts/ViewsChart";
-import TrafficSourcesChart from "@/components/insights/charts/TrafficSourcesChart";
-import GrowthChart from "@/components/insights/charts/GrowthChart";
 import LoadingSkeleton from "@/components/insights/shared/LoadingSkeleton";
+
+const ViewsChart = dynamic(() => import("@/components/insights/charts/ViewsChart"), { ssr: false });
+const TrafficSourcesChart = dynamic(() => import("@/components/insights/charts/TrafficSourcesChart"), { ssr: false });
+const GrowthChart = dynamic(() => import("@/components/insights/charts/GrowthChart"), { ssr: false });
 import EmptyState from "@/components/insights/shared/EmptyState";
 
 function formatNumber(num: number): string {

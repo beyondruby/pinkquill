@@ -4,11 +4,13 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { usePostInsights, TimeRange, DateRange } from "@/lib/hooks/useInsights";
+import dynamic from "next/dynamic";
 import DateRangePicker from "@/components/insights/DateRangePicker";
 import MetricCard from "@/components/insights/cards/MetricCard";
-import ViewsChart from "@/components/insights/charts/ViewsChart";
-import TrafficSourcesChart from "@/components/insights/charts/TrafficSourcesChart";
 import LoadingSkeleton from "@/components/insights/shared/LoadingSkeleton";
+
+const ViewsChart = dynamic(() => import("@/components/insights/charts/ViewsChart"), { ssr: false });
+const TrafficSourcesChart = dynamic(() => import("@/components/insights/charts/TrafficSourcesChart"), { ssr: false });
 import EmptyState from "@/components/insights/shared/EmptyState";
 
 function formatNumber(num: number): string {

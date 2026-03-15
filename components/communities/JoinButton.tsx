@@ -75,7 +75,14 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
         status: 'active',
       });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        // Handle duplicate key error gracefully (already a member)
+        if (insertError.code === "23505") {
+          if (onUpdate) onUpdate();
+          return;
+        }
+        throw insertError;
+      }
 
       // THEN update invitation status to 'accepted'
       const { error: updateError } = await supabase

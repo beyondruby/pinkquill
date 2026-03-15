@@ -3,34 +3,23 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import DOMPurify from "dompurify";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { useComments, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, ReactionType } from "@/lib/hooks";
 import type { PostUpdate } from "@/components/providers/ModalProvider";
-import ShareModal from "@/components/ui/ShareModal";
-import ReportModal from "@/components/ui/ReportModal";
 import CommentItem from "@/components/feed/CommentItem";
 import ReactionPicker from "@/components/feed/ReactionPicker";
+
+const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
+const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
 import { supabase } from "@/lib/supabase";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
+import { createSafeHtml } from "@/lib/utils/sanitize";
 import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack } from "@/lib/types";
-
-// Helper to sanitize and clean HTML for display
-function cleanHtmlForDisplay(html: string): string {
-  // First sanitize to prevent XSS attacks
-  // Note: 'style' attribute removed to prevent CSS injection attacks
-  const sanitized = DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'span', 'div'],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
-    ALLOW_DATA_ATTR: false,
-  });
-  // Then clean up &nbsp; entities
-  return sanitized.replace(/&nbsp;/g, ' ');
-}
 
 // Convert number to Roman numeral
 function toRomanNumeral(num: number): string {
@@ -1078,12 +1067,12 @@ export default function PostDetailModal({
               {post.type === "poem" ? (
                 <div
                   className={`font-body text-[1.05rem] md:text-[1.3rem] leading-loose italic text-center py-4 md:py-8 post-content text-ink ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
-                  dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
+                  dangerouslySetInnerHTML={createSafeHtml(post.content)}
                 />
               ) : (
                 <div
                   className={`font-body text-[0.95rem] md:text-[1.1rem] post-content text-ink ${alignmentClass} ${lineSpacingClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
-                  dangerouslySetInnerHTML={{ __html: cleanHtmlForDisplay(post.content) }}
+                  dangerouslySetInnerHTML={createSafeHtml(post.content)}
                 />
               )}
 
@@ -1108,7 +1097,7 @@ export default function PostDetailModal({
                       <div className="relative">
                         <Image
                           src={media[currentMediaIndex].media_url}
-                          alt=""
+                          alt={media[currentMediaIndex]?.caption || "Post media"}
                           width={900}
                           height={500}
                           className="w-full h-auto max-h-[350px] md:max-h-[450px] object-cover cursor-pointer"
@@ -1177,7 +1166,7 @@ export default function PostDetailModal({
                               </div>
                             </div>
                           ) : (
-                            <Image src={item.media_url} alt="" width={64} height={64} className="w-full h-full object-cover" sizes="64px" quality={60} loading="lazy" />
+                            <Image src={item.media_url} alt={item.caption || "Media thumbnail"} width={64} height={64} className="w-full h-full object-cover" sizes="64px" quality={60} loading="lazy" />
                           )}
                         </button>
                       ))}

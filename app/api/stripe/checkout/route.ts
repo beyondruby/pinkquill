@@ -31,6 +31,8 @@ type OrderForCheckout = {
   } | null;
 };
 
+const VALID_CURRENCIES = new Set(["usd", "eur", "gbp", "cad", "aud", "jpy", "sgd", "myr", "inr", "php"]);
+
 const REQUIRED_SHIPPING_FIELDS = ["name", "line1", "city", "country"] as const;
 
 function hasRequiredShippingAddress(address: Record<string, unknown> | null): boolean {
@@ -171,6 +173,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const currency = VALID_CURRENCIES.has(String(order.currency || "usd").toLowerCase())
+      ? String(order.currency || "usd").toLowerCase()
+      : "usd";
+    const productTitle = order.product?.title ? String(order.product.title).slice(0, 200) : undefined;
+
     // Free orders should bypass external payment providers.
     if (orderAmount <= 0) {
       const providerName: PaymentProvider = "placeholder";
@@ -180,10 +187,10 @@ export async function POST(request: Request) {
         buyerId: user.id,
         buyerEmail: user.email ?? undefined,
         amount: 0,
-        currency: String(order.currency || "usd"),
+        currency,
         listingType: order.listing_type,
         orderNumber: order.order_number,
-        productTitle: order.product?.title,
+        productTitle: productTitle,
         shippingAddress: order.shipping_address,
         buyerPhone: order.buyer_phone,
         existingPaymentRef: null,

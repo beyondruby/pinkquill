@@ -31,11 +31,28 @@ export default function TakePlayer({
   const lastTapRef = useRef(0);
   const tapTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const pausedOverlayTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const mountedRef = useRef(true);
+
+  // Cleanup all timeouts on unmount to prevent state updates on unmounted component
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+      if (pausedOverlayTimeoutRef.current) clearTimeout(pausedOverlayTimeoutRef.current);
+    };
+  }, []);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    // Clear pending tap timeout when isActive changes to prevent stale state updates
+    if (tapTimeoutRef.current) {
+      clearTimeout(tapTimeoutRef.current);
+      tapTimeoutRef.current = undefined;
+    }
 
     if (isActive) {
       video.play().catch(() => {});

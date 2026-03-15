@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
+
+function verifyCronSecret(authHeader: string | null, secret: string): boolean {
+  const expected = `Bearer ${secret}`;
+  if (!authHeader || authHeader.length !== expected.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -9,7 +20,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "CRON_SECRET is not configured" }, { status: 500 });
   }
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyCronSecret(authHeader, cronSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
