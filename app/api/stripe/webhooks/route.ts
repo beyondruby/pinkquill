@@ -1,9 +1,9 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { finalizeOrderPayment, markOrderPaymentFailed } from "@/lib/payments-server";
-import { extractStripeDeclineDetails } from "@/lib/stripe-decline-details";
+import { finalizeOrderPayment, markOrderPaymentFailed, markOrderExpired } from "@/lib/payments-server";
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { getActiveProvider } from "@/lib/payment-provider";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,17 +11,20 @@ export const runtime = "nodejs";
 interface OrderLookup {
   id: string;
   buyer_id: string;
+  seller_id: string;
   status: string;
   payment_status: string;
   amount: number;
   currency: string;
+  listing_type: string;
+  transfer_id: string | null;
 }
 
-async function findOrderByPaymentIntent(paymentIntentId: string): Promise<OrderLookup | null> {
+async function findOrderByCheckoutSession(sessionId: string): Promise<OrderLookup | null> {
   const { data } = await supabaseAdmin
     .from("orders")
-    .select("id, buyer_id, status, payment_status, amount, currency")
-    .eq("payment_intent_id", paymentIntentId)
+    .select("id, buyer_id, seller_id, status, payment_status, amount, currency, listing_type, transfer_id")
+    .eq("checkout_session_id", sessionId)
     .maybeSingle<OrderLookup>();
 
   return data || null;
@@ -30,20 +33,45 @@ async function findOrderByPaymentIntent(paymentIntentId: string): Promise<OrderL
 async function findOrderById(orderId: string): Promise<OrderLookup | null> {
   const { data } = await supabaseAdmin
     .from("orders")
-    .select("id, buyer_id, status, payment_status, amount, currency")
+    .select("id, buyer_id, seller_id, status, payment_status, amount, currency, listing_type, transfer_id")
     .eq("id", orderId)
     .maybeSingle<OrderLookup>();
 
   return data || null;
 }
 
-async function resolveOrder(paymentIntent: Stripe.PaymentIntent): Promise<OrderLookup | null> {
-  const metadataOrderId = paymentIntent.metadata?.order_id;
-  if (metadataOrderId) {
-    const fromMetadata = await findOrderById(metadataOrderId);
-    if (fromMetadata) return fromMetadata;
+/**
+ * Process pending transfers for a seller who just completed onboarding.
+ */
+async function processPendingTransfers(stripeAccountId: string) {
+  const { data: sellerAccount } = await supabaseAdmin
+    .from("seller_accounts")
+    .select("user_id")
+    .eq("stripe_account_id", stripeAccountId)
+    .maybeSingle();
+
+  if (!sellerAccount) return 0;
+
+  const { data: pendingOrders } = await supabaseAdmin
+    .from("orders")
+    .select("id")
+    .eq("seller_id", sellerAccount.user_id)
+    .eq("transfer_status", "pending_onboarding")
+    .in("status", ["completed", "delivered"]);
+
+  if (!pendingOrders?.length) return 0;
+
+  let transferred = 0;
+  const provider = getActiveProvider();
+  for (const order of pendingOrders) {
+    try {
+      await provider.transferToSeller(order.id);
+      transferred++;
+    } catch (err) {
+      console.error(`[Stripe Webhook] Failed to process pending transfer for order ${order.id}:`, err);
+    }
   }
-  return findOrderByPaymentIntent(paymentIntent.id);
+  return transferred;
 }
 
 export async function POST(request: Request) {
@@ -68,9 +96,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  // Idempotency check: skip if this Stripe event has already been processed.
-  // The event ID is stored in metadata->>'stripe_event_id' for directly-inserted
-  // order_events, and embedded in metadata->>'source' for RPC-created events.
+  // Idempotency check
   const { data: existingEvent } = await supabaseAdmin
     .from("order_events")
     .select("id")
@@ -84,62 +110,82 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
-      case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        const order = await resolveOrder(paymentIntent);
+      // ─── Payment completed via Checkout Session ───────────────
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const orderId = session.metadata?.order_id;
+        if (!orderId) {
+          console.warn("[Stripe Webhook] checkout.session.completed missing order_id metadata", session.id);
+          break;
+        }
+
+        const order = await findOrderById(orderId);
         if (!order) {
-          console.warn("[Stripe Webhook] No order found for payment intent", paymentIntent.id);
+          console.warn("[Stripe Webhook] No order found for checkout session", session.id);
           break;
         }
 
         await finalizeOrderPayment({
           orderId: order.id,
           provider: "stripe",
-          paymentReference: paymentIntent.id,
+          paymentReference: session.id,
           actorId: order.buyer_id,
-          source: `stripe.webhook.payment_intent_succeeded:${event.id}`,
+          source: `stripe.webhook.checkout_session_completed:${event.id}`,
         });
+
+        // Auto-transfer for digital products (immediate delivery)
+        const { data: orderWithProduct } = await supabaseAdmin
+          .from("orders")
+          .select("product:products (delivery_type)")
+          .eq("id", order.id)
+          .single();
+
+        const productData = Array.isArray(orderWithProduct?.product)
+          ? orderWithProduct.product[0]
+          : orderWithProduct?.product;
+
+        if (productData?.delivery_type === "digital" || order.listing_type === "product") {
+          try {
+            await getActiveProvider().transferToSeller(order.id);
+          } catch {
+            // Non-blocking — transfer can be retried via auto-complete
+          }
+        }
         break;
       }
 
-      case "payment_intent.payment_failed":
-      case "payment_intent.canceled": {
-        const eventPaymentIntent = event.data.object as Stripe.PaymentIntent;
-        const paymentIntent = await stripe.paymentIntents.retrieve(eventPaymentIntent.id, {
-          expand: ["latest_charge", "last_payment_error.payment_method"],
-        }).catch(() => eventPaymentIntent);
-        const order = await resolveOrder(paymentIntent);
-        if (!order) {
-          console.warn("[Stripe Webhook] No order found for failed payment intent", paymentIntent.id);
-          break;
-        }
+      // ─── Checkout expired (buyer abandoned) ───────────────────
+      case "checkout.session.expired": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const orderId = session.metadata?.order_id;
+        if (!orderId) break;
 
-        const declineDetails = extractStripeDeclineDetails(paymentIntent);
-        console.warn("[Stripe Webhook] Stripe payment failed", {
-          order_id: order.id,
-          payment_intent_id: paymentIntent.id,
-          failure_category: declineDetails.failure_category,
-          decline_code: declineDetails.decline_code,
-          merchant_context: declineDetails.merchant_context,
-          integration_hints: declineDetails.integration_hints,
-        });
-        await markOrderPaymentFailed({
+        const order = await findOrderById(orderId);
+        if (!order) break;
+
+        await markOrderExpired({
           orderId: order.id,
           provider: "stripe",
-          paymentReference: paymentIntent.id,
-          reason: paymentIntent.last_payment_error?.message || `Stripe event: ${event.type}`,
-          errorDetails: declineDetails,
-          source: `stripe.webhook.${event.type}:${event.id}`,
+          paymentReference: session.id,
+          source: `stripe.webhook.checkout_session_expired:${event.id}`,
         });
         break;
       }
 
+      // ─── Refund processed ─────────────────────────────────────
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge;
         const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : null;
         if (!paymentIntentId) break;
 
-        const order = await findOrderByPaymentIntent(paymentIntentId);
+        // Find order by checkout session that contains this payment intent
+        // First try via the payment intent's metadata
+        let order: OrderLookup | null = null;
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        if (pi.metadata?.order_id) {
+          order = await findOrderById(pi.metadata.order_id);
+        }
+
         if (!order) break;
 
         const now = new Date().toISOString();
@@ -154,7 +200,23 @@ export async function POST(request: Request) {
 
         if (isFullyRefunded && order.payment_status === "refunded") break;
 
-        const { error: orderUpdateError } = await supabaseAdmin
+        // If transfer was already sent, reverse it
+        if (order.transfer_id) {
+          try {
+            await stripe.transfers.createReversal(order.transfer_id, {
+              metadata: { order_id: order.id, reason: "refund", stripe_event_id: event.id },
+            });
+
+            await supabaseAdmin
+              .from("orders")
+              .update({ transfer_status: "reversed", updated_at: now })
+              .eq("id", order.id);
+          } catch (err) {
+            console.error("[Stripe Webhook] Transfer reversal failed:", err);
+          }
+        }
+
+        await supabaseAdmin
           .from("orders")
           .update({
             ...(isFullyRefunded ? { status: "refunded" } : {}),
@@ -162,33 +224,24 @@ export async function POST(request: Request) {
             updated_at: now,
           })
           .eq("id", order.id);
-        if (orderUpdateError) {
-          throw new Error(orderUpdateError.message);
-        }
 
         if (isFullyRefunded) {
-          const { error: txStatusError } = await supabaseAdmin
+          await supabaseAdmin
             .from("transactions")
             .update({ status: "refunded" })
             .eq("order_id", order.id)
             .in("status", ["pending", "completed"]);
-          if (txStatusError) {
-            throw new Error(txStatusError.message);
-          }
         }
 
-        const { data: existingRefund, error: existingRefundError } = await supabaseAdmin
+        const { data: existingRefund } = await supabaseAdmin
           .from("transactions")
           .select("id, amount")
           .eq("order_id", order.id)
           .eq("type", "refund")
           .maybeSingle<{ id: string; amount: number }>();
-        if (existingRefundError) {
-          throw new Error(existingRefundError.message);
-        }
 
         if (existingRefund && refundAmountForLedger > 0) {
-          const { error: updateRefundTxError } = await supabaseAdmin
+          await supabaseAdmin
             .from("transactions")
             .update({
               amount: Math.max(Number(existingRefund.amount || 0), refundAmountForLedger),
@@ -202,11 +255,8 @@ export async function POST(request: Request) {
               },
             })
             .eq("id", existingRefund.id);
-          if (updateRefundTxError) {
-            throw new Error(updateRefundTxError.message);
-          }
         } else if (!existingRefund && refundAmountForLedger > 0) {
-          const { error: insertRefundTxError } = await supabaseAdmin.from("transactions").insert({
+          await supabaseAdmin.from("transactions").insert({
             order_id: order.id,
             type: "refund",
             amount: refundAmountForLedger,
@@ -220,12 +270,9 @@ export async function POST(request: Request) {
               refund_type: isFullyRefunded ? "full" : "partial",
             },
           });
-          if (insertRefundTxError) {
-            throw new Error(insertRefundTxError.message);
-          }
         }
 
-        const { error: orderEventError } = await supabaseAdmin.from("order_events").insert({
+        await supabaseAdmin.from("order_events").insert({
           order_id: order.id,
           actor_id: order.buyer_id,
           event_type: "payment",
@@ -239,11 +286,8 @@ export async function POST(request: Request) {
             charge_amount: chargeAmount,
           },
         });
-        if (orderEventError) {
-          throw new Error(orderEventError.message);
-        }
 
-        const { error: orderMessageError } = await supabaseAdmin.from("order_messages").insert({
+        await supabaseAdmin.from("order_messages").insert({
           order_id: order.id,
           sender_id: order.buyer_id,
           content: isFullyRefunded
@@ -251,23 +295,23 @@ export async function POST(request: Request) {
             : "A partial refund has been issued for your payment.",
           message_type: "system",
         });
-        if (orderMessageError) {
-          throw new Error(orderMessageError.message);
-        }
         break;
       }
 
+      // ─── Seller account updated ───────────────────────────────
       case "account.updated": {
         const account = event.data.object as Stripe.Account;
         if (!account.id) break;
 
         const { data: sellerAccount } = await supabaseAdmin
           .from("seller_accounts")
-          .select("id, user_id")
+          .select("id, user_id, payouts_enabled")
           .eq("stripe_account_id", account.id)
           .maybeSingle();
 
         if (sellerAccount) {
+          const wasPayoutsEnabled = sellerAccount.payouts_enabled;
+
           await supabaseAdmin
             .from("seller_accounts")
             .update({
@@ -278,21 +322,14 @@ export async function POST(request: Request) {
               updated_at: new Date().toISOString(),
             })
             .eq("id", sellerAccount.id);
-        }
-        break;
-      }
 
-      case "payment_intent.amount_capturable_updated": {
-        // Escrow authorization confirmed — update order payment_status to "authorized"
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        const order = await resolveOrder(paymentIntent);
-        if (!order) break;
-
-        if (order.payment_status !== "authorized") {
-          await supabaseAdmin
-            .from("orders")
-            .update({ payment_status: "authorized", updated_at: new Date().toISOString() })
-            .eq("id", order.id);
+          // If seller just completed onboarding, process pending transfers
+          if (!wasPayoutsEnabled && account.payouts_enabled) {
+            const transferred = await processPendingTransfers(account.id);
+            if (transferred > 0) {
+              console.log(`[Stripe Webhook] Processed ${transferred} pending transfers for account ${account.id}`);
+            }
+          }
         }
         break;
       }

@@ -149,7 +149,6 @@ export { useStudioCart, useStudioQueue } from "./useStudioQueue";
 // Payments
 export {
   useSellerOnboarding,
-  useCheckout,
   useSellerEarnings,
   useTransactionHistory,
 } from "./usePayments";

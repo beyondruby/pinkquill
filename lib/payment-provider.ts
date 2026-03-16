@@ -3,8 +3,16 @@
  *
  * Strategy pattern for payment providers.
  * Active provider is determined by PAYMENTS_PROVIDER env var.
- * Supports: stripe, placeholder
+ *
+ * Architecture: Platform is merchant of record.
+ * - All payments go through the platform's Stripe account
+ * - Sellers receive payouts via Stripe Transfers after order fulfillment
+ * - Seller Connect accounts are for payouts only (not for payment collection)
  */
+
+// ============================================================================
+// RESULT INTERFACES
+// ============================================================================
 
 export interface OnboardingResult {
   url: string;
@@ -19,32 +27,9 @@ export interface SellerStatusResult {
   onboardingComplete: boolean;
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
-  cardPaymentsEnabled?: boolean;
-  transfersEnabled?: boolean;
   country: string | null;
   email: string | null;
   placeholderMode?: boolean;
-}
-
-export interface CheckoutResult {
-  mode: string;
-  /** Stripe: client_secret. Placeholder: null */
-  clientToken: string | null;
-  paymentReference: string;
-  message?: string;
-}
-
-export interface CaptureResult {
-  success: boolean;
-  alreadyProcessed?: boolean;
-  status?: string;
-  paymentStatus?: string;
-  paymentReference?: string;
-}
-
-export interface RefundResult {
-  success: boolean;
-  alreadyRefunded?: boolean;
 }
 
 export interface DashboardResult {
@@ -52,38 +37,72 @@ export interface DashboardResult {
   placeholderMode?: boolean;
 }
 
-export interface OrderForPayment {
+export interface CheckoutSessionResult {
+  mode: string;
+  /** Checkout Session client_secret for embedded mode */
+  clientSecret: string | null;
+  /** Checkout Session ID */
+  sessionId: string;
+  message?: string;
+}
+
+export interface TransferResult {
+  success: boolean;
+  transferId?: string;
+  /** Cents transferred to seller */
+  amount?: number;
+  /** Cents kept by platform */
+  platformFee?: number;
+  alreadyTransferred?: boolean;
+  /** Seller hasn't completed Connect onboarding yet */
+  pendingOnboarding?: boolean;
+}
+
+export interface RefundResult {
+  success: boolean;
+  alreadyRefunded?: boolean;
+}
+
+// ============================================================================
+// ORDER INPUT
+// ============================================================================
+
+export interface OrderForCheckout {
   id: string;
   orderNumber?: string | null;
   buyerId: string;
   buyerEmail?: string;
   buyerName?: string;
-  buyerPhone?: string | null;
   amount: number;
   currency: string;
   listingType: string;
   productTitle?: string | null;
-  shippingAddress?: Record<string, unknown> | null;
-  existingPaymentRef?: string | null;
 }
+
+// ============================================================================
+// PROVIDER INTERFACE
+// ============================================================================
 
 export interface PaymentProviderInterface {
   readonly name: "stripe" | "placeholder";
 
-  // Seller onboarding
-  createSellerAccount(userId: string, email: string, profile: { username?: string; displayName?: string }): Promise<OnboardingResult>;
+  // Seller onboarding (for payouts only — not needed for payment collection)
+  createSellerAccount(
+    userId: string,
+    email: string,
+    profile: { username?: string; displayName?: string }
+  ): Promise<OnboardingResult>;
   checkSellerStatus(userId: string): Promise<SellerStatusResult>;
   getSellerDashboardUrl(userId: string): Promise<DashboardResult>;
 
-  // Checkout
-  createCheckoutSession(order: OrderForPayment): Promise<CheckoutResult>;
-  capturePayment(orderId: string, paymentRef: string): Promise<CaptureResult>;
+  // Checkout — creates embedded checkout session on platform's account
+  createCheckoutSession(order: OrderForCheckout): Promise<CheckoutSessionResult>;
 
-  // Escrow
-  releaseEscrow?(paymentRef: string, orderId: string): Promise<CaptureResult>;
+  // Transfers — pay seller after order completion
+  transferToSeller(orderId: string): Promise<TransferResult>;
 
-  // Refunds
-  refundPayment(paymentRef: string, orderId: string, amount?: number): Promise<RefundResult>;
+  // Refunds — refund buyer, reverse transfer if needed
+  refundPayment(orderId: string): Promise<RefundResult>;
 }
 
 // ============================================================================

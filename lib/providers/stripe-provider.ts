@@ -1,10 +1,14 @@
 /**
- * Stripe Provider — Primary payment provider for Pinkquill marketplace.
+ * Stripe Provider — Platform-Centric Payment Architecture
  *
- * Uses Stripe Connect (Express) with destination charges.
- * - Products: auto-capture with application_fee_amount
- * - Commissions: manual capture (escrow) with application_fee_amount
- *   Funds are held until buyer approves delivery, then captured via releaseEscrow().
+ * All payments are processed through the PLATFORM's Stripe account.
+ * Sellers receive payouts via Stripe Transfers after order fulfillment.
+ * Seller Connect accounts are for payouts only — their status never blocks payments.
+ *
+ * - Checkout: Stripe Checkout Sessions (embedded mode)
+ * - Payouts: Stripe Transfers to seller's Connect Express account
+ * - Escrow: Funds held in platform balance until transfer
+ * - Refunds: stripe.refunds.create() + transfer reversal if needed
  */
 
 import Stripe from "stripe";
@@ -13,65 +17,31 @@ import type {
   OnboardingResult,
   SellerStatusResult,
   DashboardResult,
-  CheckoutResult,
-  CaptureResult,
+  CheckoutSessionResult,
+  TransferResult,
   RefundResult,
-  OrderForPayment,
+  OrderForCheckout,
 } from "@/lib/payment-provider";
 import { getStripeServer, CONNECT_ACCOUNT_TYPE } from "@/lib/stripe";
+import { PLATFORM_FEE_RATE } from "@/lib/payments";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
-const COUNTRY_ALIAS_TO_ISO2: Record<string, string> = {
-  "united states": "US",
-  "united kingdom": "GB",
-  "great britain": "GB",
-  "england": "GB",
-  "canada": "CA",
-  "australia": "AU",
-  "new zealand": "NZ",
-  "germany": "DE",
-  "france": "FR",
-  "italy": "IT",
-  "spain": "ES",
-  "netherlands": "NL",
-  "sweden": "SE",
-  "norway": "NO",
-  "denmark": "DK",
-  "finland": "FI",
-  "ireland": "IE",
-  "switzerland": "CH",
-  "austria": "AT",
-  "belgium": "BE",
-  "portugal": "PT",
-  "japan": "JP",
-  "south korea": "KR",
-  "singapore": "SG",
-  "india": "IN",
-  "united arab emirates": "AE",
-  "saudi arabia": "SA",
-  "mexico": "MX",
-  "brazil": "BR",
-};
+// ============================================================================
+// HELPERS
+// ============================================================================
 
-const CHECKOUT_CONFIG_VERSION = "v3";
-const DEFAULT_PAYMENT_METHOD_TYPES = ["card"] as const;
-const REQUESTED_CONNECT_CAPABILITIES: Stripe.AccountCreateParams.Capabilities = {
-  card_payments: { requested: true },
-  transfers: { requested: true },
-};
-
-function normalizeCountryCode(rawCountry: string | null | undefined): string | null {
-  const value = String(rawCountry || "").trim();
-  if (!value) return null;
-
-  if (/^[a-z]{2}$/i.test(value)) {
-    return value.toUpperCase();
-  }
-
-  return COUNTRY_ALIAS_TO_ISO2[value.toLowerCase()] || null;
+function getSiteUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === "production"
+      ? "https://pinkquill.studio"
+      : "http://localhost:3000")
+  );
 }
 
-function normalizeDescriptorSuffix(orderNumber: string | null | undefined): string | undefined {
+function normalizeDescriptorSuffix(
+  orderNumber: string | null | undefined
+): string | undefined {
   const fallback = String(orderNumber || "").trim();
   let suffix = (fallback || "PINKQUILL")
     .replace(/[^A-Za-z0-9 ]/g, " ")
@@ -79,7 +49,6 @@ function normalizeDescriptorSuffix(orderNumber: string | null | undefined): stri
     .trim()
     .toUpperCase();
 
-  // Stripe requires at least one Latin character in the descriptor/suffix.
   if (!/[A-Z]/.test(suffix)) {
     suffix = `${suffix} PQ`.trim();
   }
@@ -92,152 +61,19 @@ function normalizeDescriptorSuffix(orderNumber: string | null | undefined): stri
   return suffix;
 }
 
-function buildStripeShipping(
-  rawAddress: Record<string, unknown> | null | undefined,
-  rawPhone: string | null | undefined
-): Stripe.PaymentIntentCreateParams.Shipping | undefined {
-  if (!rawAddress || typeof rawAddress !== "object") return undefined;
+const REQUESTED_CONNECT_CAPABILITIES: Stripe.AccountCreateParams.Capabilities = {
+  transfers: { requested: true },
+};
 
-  const name = String(rawAddress.name || "").trim();
-  const line1 = String(rawAddress.line1 || "").trim();
-  const line2 = String(rawAddress.line2 || "").trim();
-  const city = String(rawAddress.city || "").trim();
-  const state = String(rawAddress.state || "").trim();
-  const postalCode = String(rawAddress.postal_code || "").trim();
-  const countryCode = normalizeCountryCode(String(rawAddress.country || "").trim());
-  const phone = String(rawPhone || "").trim();
-
-  if (!name || !line1 || !city || !countryCode) return undefined;
-
-  return {
-    name,
-    phone: phone || undefined,
-    address: {
-      line1,
-      ...(line2 ? { line2 } : {}),
-      city,
-      ...(state ? { state } : {}),
-      ...(postalCode ? { postal_code: postalCode } : {}),
-      country: countryCode,
-    },
-  };
-}
-
-function resolveStripeAccountId(value: unknown): string | null {
-  if (typeof value === "string" && value.trim().length > 0) return value;
-  if (value && typeof value === "object" && "id" in value) {
-    const id = (value as { id?: unknown }).id;
-    return typeof id === "string" && id.trim().length > 0 ? id : null;
-  }
-  return null;
-}
-
-function shouldReplacePaymentIntent(
-  paymentIntent: Stripe.PaymentIntent,
-  {
-    amountCents,
-    currency,
-    captureMethod,
-    destinationAccountId,
-    paymentMethodTypes,
-    automaticPaymentMethodsEnabled,
-    checkoutConfigVersion,
-  }: {
-    amountCents: number;
-    currency: string;
-    captureMethod: "automatic" | "manual";
-    destinationAccountId?: string;
-    paymentMethodTypes?: readonly string[];
-    automaticPaymentMethodsEnabled: boolean;
-    checkoutConfigVersion: string;
-  }
-): boolean {
-  if (paymentIntent.amount !== amountCents) return true;
-  if (String(paymentIntent.currency || "").toLowerCase() !== currency.toLowerCase()) return true;
-  if (paymentIntent.capture_method !== captureMethod) return true;
-
-  const currentConfigVersion = String(paymentIntent.metadata?.checkout_config_version || "").trim();
-  if (currentConfigVersion !== checkoutConfigVersion) return true;
-
-  const transferDestination = resolveStripeAccountId(paymentIntent.transfer_data?.destination);
-  const onBehalfOf = resolveStripeAccountId(paymentIntent.on_behalf_of);
-  const merchantContext = String(paymentIntent.metadata?.merchant_context || "").trim();
-
-  if (destinationAccountId) {
-    if (transferDestination !== destinationAccountId) return true;
-    if (
-      onBehalfOf !== destinationAccountId
-      && merchantContext !== "platform_settlement_fallback"
-    ) {
-      return true;
-    }
-  } else if (transferDestination || onBehalfOf) {
-    return true;
-  }
-
-  if (automaticPaymentMethodsEnabled) {
-    if (!paymentIntent.automatic_payment_methods?.enabled) return true;
-  } else if (paymentIntent.automatic_payment_methods?.enabled) {
-    return true;
-  }
-
-  if (paymentMethodTypes) {
-    const currentTypes = [...paymentIntent.payment_method_types].sort().join(",");
-    const expectedTypes = [...paymentMethodTypes].sort().join(",");
-    if (currentTypes !== expectedTypes) return true;
-  }
-
-  return false;
-}
-
-function isNoValidPaymentMethodTypesError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const message = "message" in error ? String(error.message || "") : "";
-  return message.includes("No valid payment method types for this Payment Intent");
-}
-
-function isOnBehalfOfCapabilityError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const message = "message" in error ? String(error.message || "") : "";
-  return message.includes("on_behalf_of parameter set to a connected account")
-    && message.includes("without the card_payments capability enabled");
-}
-
-async function getOrCreateStripeCustomer(
-  stripe: Stripe,
-  buyerId: string,
-  buyerEmail?: string,
-  buyerName?: string,
-): Promise<string> {
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("stripe_customer_id")
-    .eq("id", buyerId)
-    .single();
-
-  if (profile?.stripe_customer_id) {
-    return profile.stripe_customer_id;
-  }
-
-  const customer = await stripe.customers.create({
-    ...(buyerEmail ? { email: buyerEmail } : {}),
-    ...(buyerName ? { name: buyerName } : {}),
-    metadata: { user_id: buyerId },
-  });
-
-  await supabaseAdmin
-    .from("profiles")
-    .update({ stripe_customer_id: customer.id })
-    .eq("id", buyerId);
-
-  return customer.id;
-}
+// ============================================================================
+// STRIPE PROVIDER
+// ============================================================================
 
 export class StripeProvider implements PaymentProviderInterface {
   readonly name = "stripe" as const;
 
   // ============================================================================
-  // SELLER ONBOARDING
+  // SELLER ONBOARDING — For payouts only
   // ============================================================================
 
   async createSellerAccount(
@@ -259,7 +95,10 @@ export class StripeProvider implements PaymentProviderInterface {
       const account = await stripe.accounts.create({
         type: CONNECT_ACCOUNT_TYPE,
         email,
-        metadata: { user_id: userId, username: profile.username || "" },
+        metadata: {
+          user_id: userId,
+          username: profile.username || "",
+        },
         business_profile: {
           name: profile.displayName || profile.username || undefined,
         },
@@ -270,7 +109,10 @@ export class StripeProvider implements PaymentProviderInterface {
       if (existing) {
         await supabaseAdmin
           .from("seller_accounts")
-          .update({ stripe_account_id: stripeAccountId, updated_at: new Date().toISOString() })
+          .update({
+            stripe_account_id: stripeAccountId,
+            updated_at: new Date().toISOString(),
+          })
           .eq("user_id", userId);
       } else {
         await supabaseAdmin.from("seller_accounts").insert({
@@ -280,11 +122,7 @@ export class StripeProvider implements PaymentProviderInterface {
       }
     }
 
-    await stripe.accounts.update(stripeAccountId, {
-      capabilities: REQUESTED_CONNECT_CAPABILITIES,
-    });
-
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "production" ? "https://pinkquill.com" : "http://localhost:3000");
+    const origin = getSiteUrl();
     const accountLink = await stripe.accountLinks.create({
       account: stripeAccountId,
       refresh_url: `${origin}/seller/onboarding?refresh=true`,
@@ -310,8 +148,6 @@ export class StripeProvider implements PaymentProviderInterface {
         onboardingComplete: false,
         chargesEnabled: false,
         payoutsEnabled: false,
-        cardPaymentsEnabled: false,
-        transfersEnabled: false,
         country: null,
         email: null,
       };
@@ -319,9 +155,9 @@ export class StripeProvider implements PaymentProviderInterface {
 
     if (account.stripe_account_id) {
       const stripe = getStripeServer();
-      const stripeAccount = await stripe.accounts.retrieve(account.stripe_account_id);
-      const cardPaymentsEnabled = stripeAccount.capabilities?.card_payments === "active";
-      const transfersEnabled = stripeAccount.capabilities?.transfers === "active";
+      const stripeAccount = await stripe.accounts.retrieve(
+        account.stripe_account_id
+      );
 
       const updates = {
         onboarding_complete: stripeAccount.details_submitted ?? false,
@@ -343,14 +179,11 @@ export class StripeProvider implements PaymentProviderInterface {
         onboardingComplete: updates.onboarding_complete,
         chargesEnabled: updates.charges_enabled,
         payoutsEnabled: updates.payouts_enabled,
-        cardPaymentsEnabled,
-        transfersEnabled,
         country: updates.country || null,
         email: null,
       };
     }
 
-    // No stripe_account_id — seller needs to complete Stripe onboarding
     return {
       provider: "stripe",
       hasAccount: true,
@@ -358,8 +191,6 @@ export class StripeProvider implements PaymentProviderInterface {
       onboardingComplete: false,
       chargesEnabled: false,
       payoutsEnabled: false,
-      cardPaymentsEnabled: false,
-      transfersEnabled: false,
       country: account.country || null,
       email: null,
     };
@@ -373,350 +204,271 @@ export class StripeProvider implements PaymentProviderInterface {
       .single();
 
     if (!account?.stripe_account_id) {
-      // No Stripe account linked — redirect to onboarding
-      const origin = process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "production" ? "https://pinkquill.com" : "http://localhost:3000");
+      const origin = getSiteUrl();
       return { url: `${origin}/seller/onboarding` };
     }
 
     const stripe = getStripeServer();
-    const loginLink = await stripe.accounts.createLoginLink(account.stripe_account_id);
+    const loginLink = await stripe.accounts.createLoginLink(
+      account.stripe_account_id
+    );
     return { url: loginLink.url };
   }
 
   // ============================================================================
-  // CHECKOUT — Destination charges with platform fee
+  // CHECKOUT — Stripe Checkout Session (Embedded Mode)
+  // All payments go through the PLATFORM's account. No destination charges.
   // ============================================================================
 
-  async createCheckoutSession(order: OrderForPayment): Promise<CheckoutResult> {
+  async createCheckoutSession(
+    order: OrderForCheckout
+  ): Promise<CheckoutSessionResult> {
     const stripe = getStripeServer();
     const amountCents = Math.round(order.amount * 100);
     const currency = (order.currency || "usd").toLowerCase();
-    const isService = order.listingType === "service";
-    const shipping = buildStripeShipping(order.shippingAddress, order.buyerPhone);
-    const descriptorSuffix = normalizeDescriptorSuffix(order.orderNumber);
     const orderReference = order.orderNumber || order.id;
     const compactTitle = String(order.productTitle || "").trim().slice(0, 80);
+    const productName = compactTitle || `Order ${orderReference}`;
     const description = compactTitle
-      ? `PinkQuill ${orderReference} • ${compactTitle}`
+      ? `PinkQuill ${orderReference} — ${compactTitle}`
       : `PinkQuill order ${orderReference}`;
-    const captureMethod = isService ? "manual" : "automatic";
 
-    // Look up seller's Stripe Connect account for destination charges
-    const { data: sellerOrder } = await supabaseAdmin
+    // Check for existing checkout session on this order
+    const { data: existingOrder } = await supabaseAdmin
       .from("orders")
-      .select("seller_id, platform_fee")
+      .select("checkout_session_id")
       .eq("id", order.id)
       .single();
 
-    let transferData: { destination: string } | undefined;
-    let onBehalfOf: string | undefined;
-    let applicationFeeAmount: number | undefined;
-    let preferredMerchantContext:
-      | "connected_account_settlement"
-      | "platform_settlement_fallback"
-      | "platform_direct" = "platform_direct";
-
-    if (sellerOrder?.seller_id) {
-      const { data: sellerAccount } = await supabaseAdmin
-        .from("seller_accounts")
-        .select("stripe_account_id, onboarding_complete, charges_enabled")
-        .eq("user_id", sellerOrder.seller_id)
-        .single();
-
-      if (!sellerAccount?.stripe_account_id || !sellerAccount.charges_enabled) {
-        throw new Error(
-          "Seller Stripe account is not ready to receive payments. Ask the seller to complete Stripe onboarding."
+    if (existingOrder?.checkout_session_id) {
+      try {
+        const existingSession = await stripe.checkout.sessions.retrieve(
+          existingOrder.checkout_session_id
         );
+
+        // If session is still open, reuse it
+        if (existingSession.status === "open" && existingSession.client_secret) {
+          return {
+            mode: "stripe",
+            clientSecret: existingSession.client_secret,
+            sessionId: existingSession.id,
+          };
+        }
+
+        // If already completed, return as-is
+        if (existingSession.status === "complete") {
+          return {
+            mode: "stripe",
+            clientSecret: null,
+            sessionId: existingSession.id,
+            message: "Payment already completed",
+          };
+        }
+      } catch {
+        // Session not found or expired — create a new one
       }
-
-      const stripeAccount = await stripe.accounts.retrieve(sellerAccount.stripe_account_id);
-      const canUseOnBehalfOf = stripeAccount.capabilities?.card_payments === "active";
-
-      transferData = { destination: sellerAccount.stripe_account_id };
-      if (canUseOnBehalfOf) {
-        onBehalfOf = sellerAccount.stripe_account_id;
-        preferredMerchantContext = "connected_account_settlement";
-      } else {
-        preferredMerchantContext = "platform_settlement_fallback";
-        console.warn("[StripeProvider] Connected account missing card_payments capability; using platform settlement", {
-          order_id: order.id,
-          destination_account_id: sellerAccount.stripe_account_id,
-        });
-      }
-      const platformFeeCents = Math.round(Number(sellerOrder.platform_fee) * 100);
-      if (platformFeeCents > 0) {
-        applicationFeeAmount = platformFeeCents;
-      }
     }
 
-    // Check for existing reusable PaymentIntent
-    let paymentIntent = order.existingPaymentRef?.startsWith("pi_")
-      ? await stripe.paymentIntents.retrieve(order.existingPaymentRef).catch(() => null)
-      : null;
-
-    const reusableStatuses = new Set([
-      "requires_payment_method", "requires_confirmation",
-      "requires_action", "processing",
-    ]);
-    const replaceableStatuses = new Set([
-      "requires_payment_method",
-      "requires_confirmation",
-    ]);
-    const useAutomaticPaymentMethods = !isService;
-    const paymentMethodTypes = useAutomaticPaymentMethods
-      ? undefined
-      : DEFAULT_PAYMENT_METHOD_TYPES;
-
-    if (
-      paymentIntent
-      && replaceableStatuses.has(paymentIntent.status)
-      && shouldReplacePaymentIntent(paymentIntent, {
-        amountCents,
-        currency,
-        captureMethod,
-        destinationAccountId: transferData?.destination,
-        paymentMethodTypes,
-        automaticPaymentMethodsEnabled: useAutomaticPaymentMethods,
-        checkoutConfigVersion: CHECKOUT_CONFIG_VERSION,
-      })
-    ) {
-      await stripe.paymentIntents.cancel(paymentIntent.id, {
-        cancellation_reason: "abandoned",
-      }).catch(() => null);
-      paymentIntent = null;
-    }
-
-    if (paymentIntent?.status === "succeeded") {
-      return {
-        mode: "stripe",
-        clientToken: null,
-        paymentReference: paymentIntent.id,
-        message: "Payment already completed",
-      };
-    }
-
-    if (paymentIntent?.status === "requires_capture") {
-      return {
-        mode: "stripe",
-        clientToken: null,
-        paymentReference: paymentIntent.id,
-        message: "Payment already authorized (escrow)",
-      };
-    }
-
-    if (!paymentIntent || !reusableStatuses.has(paymentIntent.status)) {
-      // Create or reuse a Stripe Customer for the buyer.
-      // This gives Stripe Radar transaction history and improves bank acceptance rates.
-      const customerId = await getOrCreateStripeCustomer(
-        stripe,
-        order.buyerId,
-        order.buyerEmail,
-        order.buyerName,
-      );
-
-      const buildPaymentIntentParams = (
-        merchantContext:
-          | "connected_account_settlement"
-          | "platform_settlement_fallback"
-          | "platform_direct",
-        paymentMode: "automatic" | "card_only"
-      ): Stripe.PaymentIntentCreateParams => ({
-        amount: amountCents,
-        currency,
-        customer: customerId,
-        ...(paymentMode === "automatic"
-          ? { automatic_payment_methods: { enabled: true } }
-          : { payment_method_types: [...DEFAULT_PAYMENT_METHOD_TYPES] }),
-        payment_method_options: {
-          card: {
-            request_three_d_secure: "automatic",
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      ui_mode: "embedded",
+      line_items: [
+        {
+          price_data: {
+            currency,
+            product_data: {
+              name: productName,
+              description,
+            },
+            unit_amount: amountCents,
           },
+          quantity: 1,
         },
-        // Manual capture for commissions (escrow), auto for products.
-        capture_method: captureMethod,
-        ...(transferData ? { transfer_data: transferData } : {}),
-        ...(merchantContext === "connected_account_settlement" && onBehalfOf
-          ? { on_behalf_of: onBehalfOf }
-          : {}),
-        // Application fee is the platform fee already calculated on the order.
-        ...(applicationFeeAmount ? { application_fee_amount: applicationFeeAmount } : {}),
-        ...(shipping ? { shipping } : {}),
-        ...(descriptorSuffix ? { statement_descriptor_suffix: descriptorSuffix } : {}),
+      ],
+      payment_intent_data: {
         metadata: {
           order_id: order.id,
           order_number: order.orderNumber || "",
           buyer_id: order.buyerId,
           listing_type: order.listingType,
-          product_title: compactTitle,
-          checkout_config_version: CHECKOUT_CONFIG_VERSION,
-          merchant_context: merchantContext,
-          payment_mode: paymentMode,
         },
-        description,
-        receipt_email: order.buyerEmail ?? undefined,
-      });
-
-      const baseIdempotencyKey = `checkout_${CHECKOUT_CONFIG_VERSION}_${order.id}_${amountCents}_${currency}`;
-      const merchantContexts = transferData
-        ? preferredMerchantContext === "connected_account_settlement"
-          ? ["connected_account_settlement", "platform_settlement_fallback"] as const
-          : ["platform_settlement_fallback"] as const
-        : ["platform_direct"] as const;
-      const initialPaymentMode: "automatic" | "card_only" = useAutomaticPaymentMethods
-        ? "automatic"
-        : "card_only";
-      let lastError: unknown = null;
-
-      for (const merchantContext of merchantContexts) {
-        const paymentModes = initialPaymentMode === "automatic"
-          ? (["automatic", "card_only"] as const)
-          : (["card_only"] as const);
-
-        for (const paymentMode of paymentModes) {
-          try {
-            paymentIntent = await stripe.paymentIntents.create(
-              buildPaymentIntentParams(merchantContext, paymentMode),
-              { idempotencyKey: `${baseIdempotencyKey}_${merchantContext}_${paymentMode}` }
-            );
-            break;
-          } catch (error) {
-            lastError = error;
-
-            const canTryCardFallback = paymentMode === "automatic" && isNoValidPaymentMethodTypesError(error);
-            const canTryPlatformFallback = merchantContext === "connected_account_settlement"
-              && (isNoValidPaymentMethodTypesError(error) || isOnBehalfOfCapabilityError(error));
-
-            if (canTryCardFallback) {
-              continue;
+        ...(normalizeDescriptorSuffix(order.orderNumber)
+          ? {
+              statement_descriptor_suffix:
+                normalizeDescriptorSuffix(order.orderNumber),
             }
+          : {}),
+      },
+      ...(order.buyerEmail ? { customer_email: order.buyerEmail } : {}),
+      metadata: {
+        order_id: order.id,
+        order_number: order.orderNumber || "",
+        buyer_id: order.buyerId,
+        listing_type: order.listingType,
+      },
+      return_url: `${getSiteUrl()}/checkout/${order.id}/complete?session_id={CHECKOUT_SESSION_ID}`,
+    });
 
-            if (canTryPlatformFallback) {
-              console.warn("[StripeProvider] Falling back to platform settlement for checkout", {
-                order_id: order.id,
-                currency,
-                capture_method: captureMethod,
-                destination_account_id: transferData?.destination || null,
-              });
-              break;
-            }
-
-            throw error;
-          }
-        }
-
-        if (paymentIntent) break;
-      }
-
-      if (!paymentIntent) {
-        throw lastError instanceof Error ? lastError : new Error("Failed to create Stripe payment intent");
-      }
-    }
-
-    // Persist payment intent on order
+    // Persist checkout session on order
     await supabaseAdmin
       .from("orders")
       .update({
         payment_provider: "stripe",
-        payment_reference: paymentIntent.id,
-        payment_intent_id: paymentIntent.id,
+        payment_reference: session.id,
+        checkout_session_id: session.id,
         payment_status: "pending",
       })
       .eq("id", order.id);
 
     return {
       mode: "stripe",
-      clientToken: paymentIntent.client_secret,
-      paymentReference: paymentIntent.id,
+      clientSecret: session.client_secret,
+      sessionId: session.id,
     };
   }
 
   // ============================================================================
-  // CAPTURE — Verify payment status after client-side confirmation
+  // TRANSFERS — Pay seller after order completion
   // ============================================================================
 
-  async capturePayment(_orderId: string, paymentRef: string): Promise<CaptureResult> {
+  async transferToSeller(orderId: string): Promise<TransferResult> {
     const stripe = getStripeServer();
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentRef);
 
-    // Auto-captured payment (products)
-    if (paymentIntent.status === "succeeded") {
-      return { success: true, alreadyProcessed: true };
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
+      .single();
+
+    if (orderError || !order) {
+      throw new Error("Order not found");
     }
 
-    // Manual capture (commissions/escrow) — auth succeeded, awaiting capture
-    if (paymentIntent.status === "requires_capture") {
-      return {
-        success: true,
-        status: "paid",
-        paymentStatus: "authorized",
-        paymentReference: paymentRef,
-      };
+    // Already transferred
+    if (order.transfer_id) {
+      return { success: true, alreadyTransferred: true };
     }
 
-    if (paymentIntent.status === "canceled" || paymentIntent.status === "requires_payment_method") {
-      throw new Error(paymentIntent.last_payment_error?.message || "Payment failed");
+    // Get seller's Connect account
+    const { data: sellerAccount } = await supabaseAdmin
+      .from("seller_accounts")
+      .select("stripe_account_id, payouts_enabled, onboarding_complete")
+      .eq("user_id", order.seller_id)
+      .single();
+
+    // Seller hasn't completed Connect onboarding — queue for later
+    if (
+      !sellerAccount?.stripe_account_id ||
+      !sellerAccount.payouts_enabled
+    ) {
+      await supabaseAdmin
+        .from("orders")
+        .update({ transfer_status: "pending_onboarding" })
+        .eq("id", orderId);
+
+      return { success: true, pendingOnboarding: true };
     }
 
-    throw new Error(`Payment not complete (status: ${paymentIntent.status})`);
-  }
+    const amountCents = Math.round(Number(order.amount) * 100);
+    const platformFeeCents = Math.round(amountCents * PLATFORM_FEE_RATE);
+    const sellerAmountCents = amountCents - platformFeeCents;
 
-  // ============================================================================
-  // ESCROW RELEASE — Capture a manually-held PaymentIntent
-  // ============================================================================
-
-  async releaseEscrow(paymentRef: string, orderId: string): Promise<CaptureResult> {
-    const stripe = getStripeServer();
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentRef);
-
-    if (paymentIntent.status === "succeeded") {
-      return { success: true, alreadyProcessed: true };
-    }
-
-    if (paymentIntent.status !== "requires_capture") {
-      throw new Error(`Cannot release escrow: payment status is ${paymentIntent.status}`);
-    }
-
-    const captured = await stripe.paymentIntents.capture(
-      paymentRef,
-      {},
-      { idempotencyKey: `escrow_release_${orderId}` }
+    const transfer = await stripe.transfers.create(
+      {
+        amount: sellerAmountCents,
+        currency: order.currency || "usd",
+        destination: sellerAccount.stripe_account_id,
+        transfer_group: orderId,
+        metadata: {
+          order_id: orderId,
+          order_number: order.order_number || "",
+        },
+      },
+      { idempotencyKey: `transfer_${orderId}` }
     );
+
+    // Record transfer via RPC
+    await supabaseAdmin.rpc("mark_order_transfer_completed", {
+      p_order_id: orderId,
+      p_transfer_id: transfer.id,
+      p_transfer_amount: sellerAmountCents,
+      p_source: "stripe_transfer",
+    });
 
     return {
       success: true,
-      status: "paid",
-      paymentStatus: "paid",
-      paymentReference: captured.id,
+      transferId: transfer.id,
+      amount: sellerAmountCents,
+      platformFee: platformFeeCents,
     };
   }
 
   // ============================================================================
-  // REFUNDS — Handle both captured and uncaptured (escrow void)
+  // REFUNDS — Refund buyer + reverse transfer if needed
   // ============================================================================
 
-  async refundPayment(paymentRef: string, orderId: string, _amount?: number): Promise<RefundResult> {
+  async refundPayment(orderId: string): Promise<RefundResult> {
     const stripe = getStripeServer();
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentRef);
 
-    // Uncaptured escrow — void the authorization
-    if (paymentIntent.status === "requires_capture") {
-      await stripe.paymentIntents.cancel(paymentRef, {
-        cancellation_reason: "requested_by_customer",
-      });
-      return { success: true };
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
+      .single();
+
+    if (orderError || !order) {
+      throw new Error("Order not found");
     }
 
-    // Captured payment — refund
-    if (paymentIntent.status === "succeeded") {
-      await stripe.refunds.create({
-        payment_intent: paymentRef,
-        reason: "requested_by_customer",
-        metadata: { order_id: orderId },
-      });
-      return { success: true };
+    // Get the PaymentIntent from the Checkout Session
+    let paymentIntentId: string | null = null;
+
+    if (order.checkout_session_id) {
+      const session = await stripe.checkout.sessions.retrieve(
+        order.checkout_session_id
+      );
+      paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id || null;
+    } else if (order.payment_intent_id) {
+      // Fallback for legacy orders
+      paymentIntentId = order.payment_intent_id;
     }
 
-    // Already canceled or refunded
-    return { success: true, alreadyRefunded: true };
+    if (!paymentIntentId) {
+      throw new Error("No payment found for this order");
+    }
+
+    // If transfer was already sent to seller, reverse it first
+    if (order.transfer_id) {
+      try {
+        await stripe.transfers.createReversal(order.transfer_id, {
+          metadata: { order_id: orderId, reason: "refund" },
+        });
+      } catch (err) {
+        // Transfer reversal might fail if seller has insufficient balance
+        console.error("[StripeProvider] Transfer reversal failed:", err);
+      }
+    }
+
+    // Refund the buyer
+    await stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      reason: "requested_by_customer",
+      metadata: { order_id: orderId },
+    });
+
+    // Update order status
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        payment_status: "refunded",
+        status: "refunded",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
+
+    return { success: true };
   }
 }

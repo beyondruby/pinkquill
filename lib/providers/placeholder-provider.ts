@@ -1,23 +1,30 @@
 /**
- * Placeholder Provider (for development/testing without real payment credentials)
+ * Placeholder Provider — For development/testing and free orders.
+ *
+ * No actual payment processing. Simulates the provider interface
+ * so the app works without Stripe credentials.
  */
 
-import { supabaseAdmin } from "@/lib/supabase-server";
 import type {
   PaymentProviderInterface,
   OnboardingResult,
   SellerStatusResult,
   DashboardResult,
-  CheckoutResult,
-  CaptureResult,
+  CheckoutSessionResult,
+  TransferResult,
   RefundResult,
-  OrderForPayment,
+  OrderForCheckout,
 } from "@/lib/payment-provider";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 export class PlaceholderProvider implements PaymentProviderInterface {
   readonly name = "placeholder" as const;
 
-  async createSellerAccount(userId: string): Promise<OnboardingResult> {
+  async createSellerAccount(
+    userId: string,
+    _email: string,
+    _profile: { username?: string; displayName?: string }
+  ): Promise<OnboardingResult> {
     const { data: existing } = await supabaseAdmin
       .from("seller_accounts")
       .select("id")
@@ -29,17 +36,26 @@ export class PlaceholderProvider implements PaymentProviderInterface {
         user_id: userId,
         onboarding_complete: true,
         charges_enabled: true,
-        payouts_enabled: false,
+        payouts_enabled: true,
       });
     } else {
       await supabaseAdmin
         .from("seller_accounts")
-        .update({ onboarding_complete: true, charges_enabled: true, updated_at: new Date().toISOString() })
+        .update({
+          onboarding_complete: true,
+          charges_enabled: true,
+          payouts_enabled: true,
+          updated_at: new Date().toISOString(),
+        })
         .eq("user_id", userId);
     }
 
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "production" ? "https://pinkquill.com" : "http://localhost:3000");
-    return { url: `${origin}/seller/onboarding?provider=placeholder`, placeholderMode: true };
+    const origin =
+      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    return {
+      url: `${origin}/seller/onboarding?success=true`,
+      placeholderMode: true,
+    };
   }
 
   async checkSellerStatus(userId: string): Promise<SellerStatusResult> {
@@ -51,51 +67,71 @@ export class PlaceholderProvider implements PaymentProviderInterface {
 
     return {
       provider: "placeholder",
-      hasAccount: !!account,
+      hasAccount: Boolean(account),
       accountId: null,
-      onboardingComplete: account?.onboarding_complete || true,
-      chargesEnabled: account?.charges_enabled || true,
-      payoutsEnabled: false,
+      onboardingComplete: Boolean(account?.onboarding_complete),
+      chargesEnabled: Boolean(account?.charges_enabled),
+      payoutsEnabled: Boolean(account?.payouts_enabled),
       country: null,
       email: null,
       placeholderMode: true,
     };
   }
 
-  async getSellerDashboardUrl(): Promise<DashboardResult> {
-    return { url: "/seller/onboarding?provider=placeholder", placeholderMode: true };
+  async getSellerDashboardUrl(_userId: string): Promise<DashboardResult> {
+    const origin =
+      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    return { url: `${origin}/seller/earnings`, placeholderMode: true };
   }
 
-  async createCheckoutSession(order: OrderForPayment): Promise<CheckoutResult> {
-    const paymentReference = `placeholder:${order.id}`;
+  async createCheckoutSession(
+    order: OrderForCheckout
+  ): Promise<CheckoutSessionResult> {
+    const sessionId = `cs_placeholder_${order.id}`;
 
     await supabaseAdmin
       .from("orders")
       .update({
         payment_provider: "placeholder",
-        payment_reference: paymentReference,
-        payment_intent_id: paymentReference,
+        payment_reference: sessionId,
+        checkout_session_id: sessionId,
         payment_status: "pending",
       })
       .eq("id", order.id);
 
     return {
       mode: "placeholder",
-      clientToken: null,
-      paymentReference,
-      message: "Placeholder payments active — no real charge.",
+      clientSecret: null,
+      sessionId,
     };
   }
 
-  async capturePayment(): Promise<CaptureResult> {
-    return { success: true };
+  async transferToSeller(orderId: string): Promise<TransferResult> {
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        transfer_id: `tr_placeholder_${orderId}`,
+        transfer_status: "completed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
+
+    return {
+      success: true,
+      transferId: `tr_placeholder_${orderId}`,
+    };
   }
 
-  async releaseEscrow(): Promise<CaptureResult> {
-    return { success: true };
-  }
+  async refundPayment(orderId: string): Promise<RefundResult> {
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        payment_status: "refunded",
+        status: "refunded",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
 
-  async refundPayment(): Promise<RefundResult> {
     return { success: true };
   }
 }

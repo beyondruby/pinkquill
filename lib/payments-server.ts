@@ -16,10 +16,6 @@ export interface PaymentMutationResult {
   payment_status: string;
 }
 
-export interface EscrowReleaseMutationResult extends PaymentMutationResult {
-  escrow_released: boolean;
-}
-
 export async function finalizeOrderPayment({
   orderId,
   provider,
@@ -69,24 +65,60 @@ export async function markOrderPaymentFailed({
   return data as PaymentMutationResult;
 }
 
-export async function finalizeOrderEscrowRelease({
+export async function markOrderExpired({
   orderId,
   provider,
   paymentReference,
-  actorId,
   source,
-}: PaymentMutationOptions): Promise<EscrowReleaseMutationResult> {
-  const { data, error } = await supabaseAdmin.rpc("finalize_order_escrow_release", {
-    p_order_id: orderId,
-    p_provider: provider,
-    p_payment_reference: paymentReference,
-    p_actor_id: actorId ?? null,
-    p_source: source,
-  });
+}: Omit<PaymentMutationOptions, "actorId">): Promise<PaymentMutationResult> {
+  const now = new Date().toISOString();
 
-  if (error || !data) {
-    throw new Error(error?.message || "Failed to finalize escrow release");
+  const { data: order, error: fetchError } = await supabaseAdmin
+    .from("orders")
+    .select("id, status, payment_status")
+    .eq("id", orderId)
+    .single();
+
+  if (fetchError || !order) {
+    throw new Error(fetchError?.message || "Order not found");
   }
 
-  return data as EscrowReleaseMutationResult;
+  // Only expire orders that are still pending payment
+  if (order.status !== "pending_payment") {
+    return {
+      already_processed: true,
+      order_id: order.id,
+      status: order.status,
+      payment_status: order.payment_status,
+    };
+  }
+
+  const { error: updateError } = await supabaseAdmin
+    .from("orders")
+    .update({
+      status: "expired",
+      payment_status: "expired",
+      updated_at: now,
+    })
+    .eq("id", orderId);
+
+  if (updateError) throw new Error(updateError.message);
+
+  await supabaseAdmin.from("order_events").insert({
+    order_id: orderId,
+    event_type: "payment",
+    metadata: {
+      action: "checkout_expired",
+      provider,
+      payment_reference: paymentReference,
+      source,
+    },
+  });
+
+  return {
+    already_processed: false,
+    order_id: orderId,
+    status: "expired",
+    payment_status: "expired",
+  };
 }

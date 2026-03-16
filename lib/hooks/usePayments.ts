@@ -35,7 +35,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
   const checkStatus = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch("/api/payments/connect/status", {
+      const res = await fetch("/api/stripe/connect/status", {
         headers: await buildAuthHeaders(),
       });
       const data = await safeResponseJson<Record<string, unknown>>(res);
@@ -75,7 +75,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
       setError(null);
       setLoading(true);
 
-      const res = await fetch("/api/payments/connect/onboard", {
+      const res = await fetch("/api/stripe/connect/onboard", {
         method: "POST",
         headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
       });
@@ -96,7 +96,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
     try {
       setError(null);
 
-      const res = await fetch("/api/payments/connect/dashboard", {
+      const res = await fetch("/api/stripe/connect/dashboard", {
         method: "POST",
         headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
       });
@@ -116,94 +116,6 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
   }, [checkStatus]);
 
   return { account, loading, error, startOnboarding, checkStatus, openDashboard };
-}
-
-// ============================================================================
-// CHECKOUT
-// ============================================================================
-
-export type CheckoutMode = "stripe" | "placeholder";
-
-interface UseCheckoutReturn {
-  mode: CheckoutMode;
-  clientSecret: string | null;
-  loading: boolean;
-  error: string | null;
-  createCheckout: (orderId: string) => Promise<string | null>;
-  confirmPayment: (orderId: string, captchaToken?: string | null) => Promise<boolean>;
-  /** @deprecated Use confirmPayment instead */
-  confirmPlaceholderPayment: (orderId: string, captchaToken?: string | null) => Promise<boolean>;
-}
-
-export function useCheckout(): UseCheckoutReturn {
-  const [mode, setMode] = useState<CheckoutMode>("placeholder");
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const createCheckout = useCallback(async (orderId: string): Promise<string | null> => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const res = await fetch("/api/payments/checkout", {
-        method: "POST",
-        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ order_id: orderId }),
-      });
-
-      const data = await safeResponseJson<Record<string, unknown>>(res);
-
-      if (!res.ok) throw new Error((data.error as string) || `Request failed (${res.status})`);
-
-      const checkoutMode = (data.mode || "placeholder") as CheckoutMode;
-      setMode(checkoutMode);
-      setClientSecret((data.client_secret as string) || null);
-      return (data.client_secret as string) || null;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create checkout";
-      setError(message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const confirmPayment = useCallback(async (orderId: string, captchaToken?: string | null): Promise<boolean> => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const res = await fetch("/api/payments/confirm", {
-        method: "POST",
-        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          order_id: orderId,
-          captcha_token: captchaToken || null,
-        }),
-      });
-
-      const data = await safeResponseJson<Record<string, unknown>>(res);
-      if (!res.ok) throw new Error((data.error as string) || "Failed to confirm payment");
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to confirm payment";
-      setError(message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  return {
-    mode,
-    clientSecret,
-    loading,
-    error,
-    createCheckout,
-    confirmPayment,
-    confirmPlaceholderPayment: confirmPayment,
-  };
 }
 
 // ============================================================================

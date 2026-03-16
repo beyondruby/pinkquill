@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { normalizePaymentProvider, type PaymentProvider } from "@/lib/payments";
-import { finalizeOrderEscrowRelease } from "@/lib/payments-server";
-import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { getActiveProvider } from "@/lib/payment-provider";
 
 export const runtime = "nodejs";
 
@@ -16,13 +14,6 @@ function verifyCronSecret(authHeader: string | null, secret: string): boolean {
     return false;
   }
 }
-
-type PendingEscrowOrder = {
-  id: string;
-  payment_provider: PaymentProvider | null;
-  payment_status: string;
-  payment_reference: string | null;
-};
 
 export async function POST(request: Request) {
   try {
@@ -46,67 +37,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Release escrow for completed commission orders.
-    const { data: pendingEscrow, error: escrowQueryError } = await supabaseAdmin
+    // Transfer funds to sellers for completed orders that haven't been transferred yet
+    const { data: pendingTransfers, error: transferQueryError } = await supabaseAdmin
       .from("orders")
-      .select("id, payment_provider, payment_status, payment_reference")
+      .select("id")
       .eq("status", "completed")
-      .eq("escrow_released", false)
-      .eq("listing_type", "service")
-      .in("payment_status", ["authorized", "paid"])
-      .returns<PendingEscrowOrder[]>();
+      .is("transfer_status", null)
+      .in("payment_status", ["paid"])
+      .limit(50);
 
-    if (escrowQueryError) {
-      console.error("[Auto-Complete] Escrow query error:", escrowQueryError);
-      return NextResponse.json({ error: escrowQueryError.message }, { status: 500 });
+    if (transferQueryError) {
+      console.error("[Auto-Complete] Transfer query error:", transferQueryError);
+      return NextResponse.json({ error: transferQueryError.message }, { status: 500 });
     }
 
-    let escrowReleased = 0;
-    let escrowReleaseFailures = 0;
+    let transferred = 0;
+    let transferFailures = 0;
+    const provider = getActiveProvider();
 
-    for (const order of pendingEscrow || []) {
+    for (const order of pendingTransfers || []) {
       try {
-        const providerName = normalizePaymentProvider(order.payment_provider);
-        let paymentReference = order.payment_reference || null;
-
-        if (providerName === "stripe") {
-          if (!paymentReference) {
-            throw new Error("Missing Stripe payment reference for escrow release");
-          }
-
-          const stripe = getStripeServer();
-          const paymentIntent = await stripe.paymentIntents.retrieve(paymentReference);
-
-          if (paymentIntent.status === "requires_capture") {
-            const captured = await stripe.paymentIntents.capture(
-              paymentReference,
-              {},
-              { idempotencyKey: `escrow_release_auto_${order.id}` }
-            );
-            paymentReference = captured.id;
-          } else if (paymentIntent.status !== "succeeded") {
-            throw new Error(`Cannot release escrow: payment status is ${paymentIntent.status}`);
-          }
-        }
-
-        await finalizeOrderEscrowRelease({
-          orderId: order.id,
-          provider: providerName,
-          paymentReference: paymentReference || `placeholder:${order.id}`,
-          source: "api.orders.auto_complete",
-        });
-
-        escrowReleased += 1;
-      } catch (releaseError) {
-        escrowReleaseFailures += 1;
-        console.error(`[Auto-Complete] Escrow release failed for order ${order.id}:`, releaseError);
+        await provider.transferToSeller(order.id);
+        transferred++;
+      } catch (err) {
+        transferFailures++;
+        console.error(`[Auto-Complete] Transfer failed for order ${order.id}:`, err);
       }
     }
 
     return NextResponse.json({
       auto_completed: count ?? 0,
-      escrow_released: escrowReleased,
-      escrow_release_failures: escrowReleaseFailures,
+      transfers_processed: transferred,
+      transfer_failures: transferFailures,
     });
   } catch (error) {
     console.error("[Auto-Complete]", error);

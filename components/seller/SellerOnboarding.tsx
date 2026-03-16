@@ -24,14 +24,10 @@ export default function SellerOnboarding() {
     useSellerOnboarding();
 
   const providerLabel = getProviderLabel(account?.provider);
-  const requiresCardPaymentsCapability = Boolean(
-    account && account.provider === "stripe" && !account.placeholder_mode
-  );
   const isSetupComplete = Boolean(
     account
     && account.onboarding_complete
-    && account.charges_enabled
-    && (!requiresCardPaymentsCapability || account.card_payments_enabled)
+    && account.payouts_enabled
   );
 
   if (loading) {
@@ -54,8 +50,8 @@ export default function SellerOnboarding() {
           Share your art, offer commissions, and earn from your creative work.
         </p>
         <p className="text-sm text-gray-500 mb-8">
-          We use secure payment processing to protect both buyers and sellers.
-          Quill charges 5% on all sales.
+          Complete setup to receive payouts for your sales.
+          Quill charges a 5% platform fee on all sales.
         </p>
 
         {error && (
@@ -81,19 +77,12 @@ export default function SellerOnboarding() {
         </div>
         <h2 className="text-xl font-bold mb-3">Complete Your Setup</h2>
         <p className="text-gray-600 mb-6">
-          Your seller account is almost ready. Please complete the {providerLabel} onboarding to start accepting payments.
+          Your seller account is almost ready. Complete the {providerLabel} onboarding to start receiving payouts.
         </p>
-        {requiresCardPaymentsCapability && !account.card_payments_enabled && (
-          <p className="text-sm text-amber-700 mb-4">
-            Your Stripe account still needs the card payments capability enabled before marketplace checkout can settle on your behalf.
-          </p>
-        )}
 
         <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
           <StatusRow label="Account created" done />
           <StatusRow label="Identity verified" done={account.onboarding_complete} />
-          <StatusRow label="Payments enabled" done={account.charges_enabled} />
-          <StatusRow label="Card payments capability" done={Boolean(account.card_payments_enabled)} />
           <StatusRow label="Payouts enabled" done={account.payouts_enabled} />
         </div>
 
@@ -129,13 +118,11 @@ export default function SellerOnboarding() {
       <p className="text-gray-600 mb-6">
         {account.placeholder_mode
           ? "Placeholder payments are active while payment setup is pending."
-          : `Your ${providerLabel} account is set up and ready to receive payments.`}
+          : `Your ${providerLabel} account is set up and ready to receive payouts.`}
       </p>
 
       <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
         <StatusRow label="Identity verified" done />
-        <StatusRow label="Payments enabled" done />
-        <StatusRow label="Card payments capability" done={Boolean(account.card_payments_enabled)} />
         <StatusRow label="Payouts enabled" done={account.payouts_enabled} />
         {account.country && (
           <div className="text-sm text-gray-500 pt-1">
