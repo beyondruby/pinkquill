@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -14,14 +14,21 @@ type CheckoutStatus = "loading" | "success" | "failed" | "expired";
 
 async function buildAuthHeaders(): Promise<Headers> {
   const headers = new Headers();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    headers.set("Authorization", `Bearer ${session.access_token}`);
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      headers.set("Authorization", `Bearer ${session.access_token}`);
+    }
+  } catch {
+    // Auth not ready yet — will retry
   }
   return headers;
 }
+
+const MAX_POLLS = 10;
+const POLL_INTERVAL_MS = 2000;
 
 export default function CheckoutCompletePage() {
   const params = useParams();
@@ -32,11 +39,13 @@ export default function CheckoutCompletePage() {
 
   const [status, setStatus] = useState<CheckoutStatus>("loading");
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const pollCountRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const checkStatus = useCallback(async () => {
+  const checkStatus = useCallback(async (): Promise<boolean> => {
     if (!sessionId) {
       setStatus("failed");
-      return;
+      return true; // stop polling
     }
 
     try {
@@ -44,29 +53,60 @@ export default function CheckoutCompletePage() {
         `/api/checkout/status?session_id=${encodeURIComponent(sessionId)}`,
         { headers: await buildAuthHeaders() }
       );
-      const data = await res.json();
 
       if (!res.ok) {
+        // Auth might not be ready yet — retry
+        if (res.status === 401 && pollCountRef.current < MAX_POLLS) {
+          return false; // keep polling
+        }
         setStatus("failed");
-        return;
+        return true;
       }
+
+      const data = await res.json();
 
       if (data.status === "complete" || data.payment_status === "paid") {
         setStatus("success");
         setOrderStatus(data.order_status);
+        return true;
       } else if (data.status === "expired") {
         setStatus("expired");
+        return true;
       } else {
-        // Session still open — payment not complete yet
-        setStatus("failed");
+        // Session still open — payment may be processing
+        return false; // keep polling
       }
     } catch {
-      setStatus("failed");
+      // Network error — retry
+      return false;
     }
   }, [sessionId]);
 
   useEffect(() => {
-    checkStatus();
+    let cancelled = false;
+
+    async function poll() {
+      if (cancelled) return;
+
+      const done = await checkStatus();
+
+      if (!done && !cancelled) {
+        pollCountRef.current += 1;
+        if (pollCountRef.current >= MAX_POLLS) {
+          // Give up after max polls — show failed
+          setStatus("failed");
+          return;
+        }
+        timerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
+      }
+    }
+
+    poll();
+
+    return () => {
+      cancelled = true;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [checkStatus]);
 
   return (

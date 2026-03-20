@@ -310,8 +310,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           setError(categorized.userMessage);
         }
       } finally {
-        // Only update loading state if this is still the active request
-        if (!abortController.signal.aborted && mountedRef.current) {
+        if (mountedRef.current) {
           setLoading(false);
         }
       }
@@ -630,7 +629,7 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
         setError("Failed to load saved posts");
       }
     } finally {
-      if (!abortController.signal.aborted && mountedRef.current) {
+      if (mountedRef.current) {
         setLoading(false);
       }
     }

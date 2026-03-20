@@ -673,8 +673,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           setError(err instanceof Error ? err.message : "Failed to fetch posts");
         }
       } finally {
-        // Only update loading state if this is still the active request
-        if (!abortController.signal.aborted && mountedRef.current) {
+        if (mountedRef.current) {
           setLoading(false);
         }
       }

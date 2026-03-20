@@ -34,7 +34,7 @@ function getSiteUrl(): string {
   return (
     process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.NODE_ENV === "production"
-      ? "https://pinkquill.studio"
+      ? "https://www.pinkquill.com"
       : "http://localhost:3000")
   );
 }
