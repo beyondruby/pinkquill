@@ -818,7 +818,7 @@ export function useRelays(username: string) {
         if ((err instanceof Error && err.name === "AbortError") || abortControllerRef.current?.signal.aborted) return;
         console.error("[useRelays] Error:", err);
       } finally {
-        if (!abortControllerRef.current?.signal.aborted && mountedRef.current) {
+        if (mountedRef.current) {
           setLoading(false);
         }
       }

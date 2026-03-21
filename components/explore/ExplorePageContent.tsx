@@ -348,6 +348,23 @@ export default function ExplorePageContent() {
   const observerRef = useRef<HTMLDivElement>(null);
   const tabsScrollRef = useRef<HTMLDivElement>(null);
 
+  // Auto-recovery: if loading is stuck for >12s, force a retry
+  const retryCountRef = useRef(0);
+  useEffect(() => {
+    if (loading && posts.length === 0) {
+      const timer = setTimeout(() => {
+        if (retryCountRef.current < 2) {
+          retryCountRef.current += 1;
+          console.warn(`[Explore] Loading stuck for >12s, auto-retrying (attempt ${retryCountRef.current})`);
+          refresh();
+        }
+      }, 12000);
+      return () => clearTimeout(timer);
+    } else {
+      retryCountRef.current = 0;
+    }
+  }, [loading, posts.length, refresh]);
+
   // Check if current tab is a category filter
   const isCategory = CATEGORY_FILTERS.some(c => c.id === activeTab);
   const isPrimaryTab = PRIMARY_TABS.some(t => t.id === activeTab);

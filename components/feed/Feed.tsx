@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, type ReactNode } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { useInView } from "react-intersection-observer";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -229,6 +229,28 @@ export default function Feed() {
 
   // Local state for filtering deleted posts
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+
+  // Auto-recovery: if loading is stuck for >12s, force a retry
+  const loadingStartRef = useRef<number | null>(null);
+  const retryCountRef = useRef(0);
+  useEffect(() => {
+    if (postsLoading && feedPosts.length === 0) {
+      if (!loadingStartRef.current) {
+        loadingStartRef.current = Date.now();
+      }
+      const timer = setTimeout(() => {
+        if (retryCountRef.current < 2) {
+          retryCountRef.current += 1;
+          console.warn(`[Feed] Loading stuck for >12s, auto-retrying (attempt ${retryCountRef.current})`);
+          refresh();
+        }
+      }, 12000);
+      return () => clearTimeout(timer);
+    } else {
+      loadingStartRef.current = null;
+      retryCountRef.current = 0;
+    }
+  }, [postsLoading, feedPosts.length, refresh]);
 
   // Intersection observer for infinite scroll
   const { ref: bottomRef, inView } = useInView({
