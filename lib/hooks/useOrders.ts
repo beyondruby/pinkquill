@@ -494,6 +494,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   in_progress: ["submitted", "cancelled", "refund_requested"],
   submitted: ["revision_requested", "completed"],
   revision_requested: ["in_progress"],
+  delivered: ["completed"],
   completed: ["refund_requested"],
   refund_requested: ["refunded"],
 };

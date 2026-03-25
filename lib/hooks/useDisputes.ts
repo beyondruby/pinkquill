@@ -6,7 +6,6 @@ import type {
   Dispute,
   DisputeReason,
   DisputeResolution,
-  ProductSeller,
 } from "../types/store";
 
 // ============================================================================
@@ -159,7 +158,7 @@ export function useResolveDispute() {
 }
 
 // ============================================================================
-// useRequestRefund — Request a refund via API
+// useRequestRefund — Buyer requests a refund (status → refund_requested)
 // ============================================================================
 
 export function useRequestRefund() {
@@ -178,7 +177,7 @@ export function useRequestRefund() {
           "Content-Type": "application/json",
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ order_id: orderId, reason }),
+        body: JSON.stringify({ order_id: orderId, reason, action: "request" }),
       });
 
       const data = await response.json();
@@ -194,4 +193,80 @@ export function useRequestRefund() {
   }, []);
 
   return { requestRefund, loading, error };
+}
+
+// ============================================================================
+// useDeclineRefund — Seller declines a buyer's refund request
+// ============================================================================
+
+export function useDeclineRefund() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const declineRefund = useCallback(async (orderId: string, reason?: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/payments/refund", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ order_id: orderId, reason, action: "decline" }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to decline refund");
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to decline refund";
+      setError(msg);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { declineRefund, loading, error };
+}
+
+// ============================================================================
+// useApproveRefund — Seller approves/issues a refund (processes Stripe refund)
+// ============================================================================
+
+export function useApproveRefund() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const approveRefund = useCallback(async (orderId: string, reason?: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/payments/refund", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ order_id: orderId, reason, action: "approve" }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Refund approval failed");
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to process refund";
+      setError(msg);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { approveRefund, loading, error };
 }

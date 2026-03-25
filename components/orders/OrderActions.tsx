@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUpdateOrderStatus, useAcceptOrder, useDeclineOrder } from "@/lib/hooks/useOrders";
-import { useRequestRefund } from "@/lib/hooks/useDisputes";
+import { useRequestRefund, useApproveRefund, useDeclineRefund } from "@/lib/hooks/useDisputes";
 import DisputeModal from "./DisputeModal";
 import type { Order, OrderStatus } from "@/lib/types/store";
 
@@ -17,7 +17,9 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
   const { updateStatus, updating, error } = useUpdateOrderStatus();
   const { acceptOrder, accepting } = useAcceptOrder();
   const { declineOrder, declining } = useDeclineOrder();
-  const { requestRefund, loading: refunding, error: refundError } = useRequestRefund();
+  const { requestRefund, loading: requestingRefund, error: requestRefundError } = useRequestRefund();
+  const { approveRefund, loading: approvingRefund, error: approveRefundError } = useApproveRefund();
+  const { declineRefund, loading: decliningRefund, error: declineRefundError } = useDeclineRefund();
   const [deliveryNote, setDeliveryNote] = useState("");
   const [declineReason, setDeclineReason] = useState("");
   const [showDecline, setShowDecline] = useState(false);
@@ -35,10 +37,20 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
     if (result && onUpdate) onUpdate(result);
   };
 
-  const handleRefund = async () => {
+  const handleBuyerRefundRequest = async () => {
     const success = await requestRefund(order.id, refundReason || undefined);
     if (success) {
       setShowRefund(false);
+      setRefundReason("");
+      if (onUpdate) onUpdate({ ...order, status: "refund_requested", cancel_reason: refundReason || null });
+    }
+  };
+
+  const handleSellerApproveRefund = async () => {
+    const success = await approveRefund(order.id, refundReason || undefined);
+    if (success) {
+      setShowRefund(false);
+      setRefundReason("");
       if (onUpdate) onUpdate({ ...order, status: "refunded", payment_status: "refunded" });
     }
   };
@@ -85,7 +97,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
     );
   }
 
-  // Pending acceptance state (buyer sees waiting, seller sees accept/decline via dashboard)
+  // Pending acceptance state
   if (order.status === "pending_acceptance") {
     if (isBuyer) {
       return (
@@ -107,7 +119,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
         </section>
       );
     }
-    // Seller sees accept/decline inline
+    // Seller sees accept/decline
     return (
       <section className="rounded-2xl border-2 border-purple-primary/20 bg-purple-50/40 p-5 sm:p-6 space-y-4">
         <div className="flex items-center gap-2 mb-1">
@@ -200,23 +212,59 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
     );
   }
 
-  // Refund requested state
+  // ─── Refund Requested state ──────────────────────────────────────
   if (order.status === "refund_requested") {
     return (
-      <section className="rounded-2xl border-2 border-orange-200 bg-orange-50 p-5 sm:p-6">
-        <div className="flex items-center gap-2 mb-2">
+      <section className="rounded-2xl border-2 border-orange-200 bg-orange-50 p-5 sm:p-6 space-y-4">
+        <div className="flex items-center gap-2">
           <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
           </svg>
           <h2 className="font-display text-lg text-orange-700">Refund Requested</h2>
         </div>
-        <p className="text-sm font-body text-orange-600/80">
-          A refund has been requested for this order. It is being processed.
-        </p>
+
         {order.cancel_reason && (
-          <p className="text-sm font-body text-orange-700 mt-2">
-            <span className="font-semibold">Reason:</span> {order.cancel_reason}
+          <div className="p-3 rounded-xl border border-orange-200/60 bg-white/60">
+            <p className="text-xs font-ui uppercase tracking-wider text-orange-500/70 mb-1">Reason</p>
+            <p className="text-sm font-body text-orange-800">{order.cancel_reason}</p>
+          </div>
+        )}
+
+        {isBuyer && (
+          <p className="text-sm font-body text-orange-600/80">
+            Your refund request has been sent to the seller. You&apos;ll be notified once they respond.
           </p>
+        )}
+
+        {/* Seller can approve or decline the refund request */}
+        {isSeller && (
+          <>
+            <p className="text-sm font-body text-orange-600/80">
+              The buyer has requested a refund of <span className="font-semibold">${Number(order.amount).toFixed(2)}</span>.
+              Approving will process the refund immediately.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={handleSellerApproveRefund}
+                disabled={approvingRefund || decliningRefund}
+                className="px-5 py-3 rounded-xl text-sm font-ui font-semibold text-white bg-orange-500 disabled:opacity-60"
+              >
+                {approvingRefund ? "Processing Refund..." : "Approve Refund"}
+              </button>
+              <button
+                onClick={async () => {
+                  const success = await declineRefund(order.id);
+                  if (success && onUpdate) onUpdate({ ...order, status: "paid" });
+                }}
+                disabled={approvingRefund || decliningRefund}
+                className="px-5 py-3 rounded-xl text-sm font-ui font-semibold text-orange-600 border border-orange-200 bg-white disabled:opacity-60"
+              >
+                {decliningRefund ? "Declining..." : "Decline Request"}
+              </button>
+            </div>
+            {approveRefundError && <p className="text-sm text-red-500 font-body">{approveRefundError}</p>}
+            {declineRefundError && <p className="text-sm text-red-500 font-body">{declineRefundError}</p>}
+          </>
         )}
       </section>
     );
@@ -291,7 +339,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
             </div>
           )}
 
-          {/* Physical product shipped: seller sees status, buyer confirms delivery via ConfirmDeliveryBanner */}
+          {/* Physical product shipped: seller sees status */}
           {order.listing_type === "product" && order.shipping_address && order.status === "shipped" && (
             <div className="p-4 rounded-xl border border-blue-200 bg-blue-50">
               <p className="text-sm font-ui font-semibold text-blue-700">Order Shipped</p>
@@ -333,7 +381,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
             </div>
           )}
 
-          {/* Accept Delivery (physical product delivered) */}
+          {/* Accept Delivery (product delivered) */}
           {order.status === "delivered" && (
             <button
               onClick={() => handleAction("completed")}
@@ -389,40 +437,57 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
         </div>
       )}
 
-      {/* REFUND (buyer OR seller, post-payment non-disputed) */}
-      {(isBuyer || isSeller) && ["paid", "completed", "delivered", "in_progress", "submitted", "shipped"].includes(order.status) && !showRefund && (
+      {/* BUYER: Request Refund */}
+      {isBuyer && ["paid", "completed", "delivered", "in_progress", "submitted", "shipped"].includes(order.status) && !showRefund && (
         <button
           onClick={() => setShowRefund(true)}
           className="text-sm font-ui text-orange-500 hover:text-orange-600"
         >
-          {isSeller ? "Issue Refund" : "Request Refund"}
+          Request Refund
+        </button>
+      )}
+
+      {/* SELLER: Issue Refund (proactively, without buyer request) */}
+      {isSeller && ["paid", "completed", "delivered", "in_progress", "submitted", "shipped"].includes(order.status) && !showRefund && (
+        <button
+          onClick={() => setShowRefund(true)}
+          className="text-sm font-ui text-orange-500 hover:text-orange-600"
+        >
+          Issue Refund
         </button>
       )}
 
       {showRefund && (
         <div className="space-y-3 p-4 rounded-xl border border-orange-200 bg-orange-50">
           <p className="text-sm font-ui font-semibold text-orange-600">
-            {isSeller ? "Issue a refund to the buyer?" : "Request a refund?"}
+            {isSeller ? "Issue a refund to the buyer?" : "Request a refund from the seller?"}
           </p>
           {isSeller && (
             <p className="text-xs font-body text-orange-500/80">
-              This will refund ${Number(order.amount).toFixed(2)} to the buyer and cancel the order.
+              This will immediately refund ${Number(order.amount).toFixed(2)} to the buyer via Stripe.
+            </p>
+          )}
+          {isBuyer && (
+            <p className="text-xs font-body text-orange-500/80">
+              Your request will be sent to the seller for approval. The refund is not automatic.
             </p>
           )}
           <textarea
             rows={2}
             value={refundReason}
             onChange={(e) => setRefundReason(e.target.value)}
-            placeholder={isSeller ? "Reason for refund (visible to buyer)" : "Reason for refund (optional)"}
+            placeholder={isSeller ? "Reason for refund (visible to buyer)" : "Why are you requesting a refund?"}
             className="w-full px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-body focus:outline-none focus:ring-2 focus:ring-orange-200"
           />
           <div className="flex gap-2">
             <button
-              onClick={handleRefund}
-              disabled={refunding}
+              onClick={isSeller ? handleSellerApproveRefund : handleBuyerRefundRequest}
+              disabled={requestingRefund || approvingRefund}
               className="px-4 py-2.5 rounded-xl text-sm font-ui font-semibold text-white bg-orange-500 disabled:opacity-60"
             >
-              {refunding ? "Processing..." : isSeller ? "Confirm Refund" : "Request Refund"}
+              {(requestingRefund || approvingRefund)
+                ? "Processing..."
+                : isSeller ? "Confirm Refund" : "Submit Request"}
             </button>
             <button
               onClick={() => { setShowRefund(false); setRefundReason(""); }}
@@ -431,7 +496,8 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
               Nevermind
             </button>
           </div>
-          {refundError && <p className="text-sm text-red-500 font-body">{refundError}</p>}
+          {requestRefundError && <p className="text-sm text-red-500 font-body">{requestRefundError}</p>}
+          {approveRefundError && <p className="text-sm text-red-500 font-body">{approveRefundError}</p>}
         </div>
       )}
 

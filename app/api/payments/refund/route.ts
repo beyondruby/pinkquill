@@ -9,11 +9,16 @@ export const runtime = "nodejs";
 /**
  * POST /api/payments/refund
  *
- * Issues a refund for an order. Can be called by the buyer OR the seller.
- * - Buyer: requesting a refund on their purchase
- * - Seller: proactively issuing a refund to the buyer
+ * Two distinct flows:
  *
- * Body: { order_id: string, reason?: string }
+ * 1. BUYER requests a refund → order goes to "refund_requested" status.
+ *    No money moves yet. Seller must approve.
+ *
+ * 2. SELLER approves/issues a refund → actual Stripe refund is processed.
+ *    Can be triggered by seller approving a buyer request OR proactively.
+ *
+ * Body: { order_id: string, reason?: string, action?: "request" | "approve" | "decline" }
+ *   - action defaults to "request" for buyers and "approve" for sellers
  */
 export async function POST(request: Request) {
   // Authenticate
@@ -34,14 +39,14 @@ export async function POST(request: Request) {
   }
 
   // Parse body
-  let body: { order_id?: string; reason?: string };
+  let body: { order_id?: string; reason?: string; action?: "request" | "approve" | "decline" };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { order_id, reason } = body;
+  const { order_id, reason, action } = body;
   if (!order_id) {
     return NextResponse.json({ error: "order_id is required" }, { status: 400 });
   }
@@ -57,79 +62,204 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  // Verify caller is buyer or seller
   const isBuyer = user.id === order.buyer_id;
   const isSeller = user.id === order.seller_id;
   if (!isBuyer && !isSeller) {
     return NextResponse.json({ error: "You are not a participant in this order" }, { status: 403 });
   }
 
-  // Only allow refunds on paid/completed/delivered orders
-  const refundableStatuses = ["paid", "completed", "delivered", "in_progress", "submitted", "shipped"];
-  if (!refundableStatuses.includes(order.status)) {
-    return NextResponse.json(
-      { error: `Cannot refund an order with status: ${order.status}` },
-      { status: 400 }
-    );
-  }
-
   // Already refunded
   if (order.payment_status === "refunded") {
-    return NextResponse.json(
-      { error: "This order has already been refunded" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "This order has already been refunded" }, { status: 400 });
   }
 
-  try {
-    // Call the payment provider to process the refund
-    const provider = getActiveProvider();
-    const result = await provider.refundPayment(order_id);
+  // Determine the action
+  const resolvedAction = action || (isSeller ? "approve" : "request");
 
-    if (!result.success) {
-      return NextResponse.json({ error: "Refund processing failed" }, { status: 500 });
+  // ─── BUYER: Request a refund (no money moves) ───────────────────
+  if (resolvedAction === "request" && isBuyer) {
+    const requestableStatuses = ["paid", "completed", "delivered", "in_progress", "submitted", "shipped"];
+    if (!requestableStatuses.includes(order.status)) {
+      return NextResponse.json(
+        { error: `Cannot request a refund for an order with status: ${order.status}` },
+        { status: 400 }
+      );
     }
 
-    // Create notification for the other party
-    const notifyUserId = isBuyer ? order.seller_id : order.buyer_id;
-    const notificationType = isSeller ? "order_refunded" : "refund_requested";
+    try {
+      const now = new Date().toISOString();
 
-    await supabaseAdmin.from("notifications").insert({
-      user_id: notifyUserId,
-      actor_id: user.id,
-      type: notificationType,
-      order_id: order.id,
-      content: isSeller
-        ? `The seller issued a refund of $${Number(order.amount).toFixed(2)} for your order.`
-        : `A refund of $${Number(order.amount).toFixed(2)} has been requested.`,
-    });
+      // Update order status to refund_requested
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          status: "refund_requested",
+          cancel_reason: reason || null,
+          updated_at: now,
+        })
+        .eq("id", order_id);
 
-    // Create order event
-    await supabaseAdmin.from("order_events").insert({
-      order_id: order.id,
-      actor_id: user.id,
-      event_type: "payment",
-      metadata: {
-        action: isSeller ? "seller_refund" : "buyer_refund_request",
-        reason: reason || null,
-        initiated_by: isSeller ? "seller" : "buyer",
-      },
-    });
+      // Notify seller
+      await supabaseAdmin.from("notifications").insert({
+        user_id: order.seller_id,
+        actor_id: order.buyer_id,
+        type: "refund_requested",
+        order_id: order.id,
+        content: `A refund of $${Number(order.amount).toFixed(2)} has been requested.${reason ? ` Reason: ${reason}` : ""}`,
+      });
 
-    // Create system message in order chat
-    await supabaseAdmin.from("order_messages").insert({
-      order_id: order.id,
-      sender_id: user.id,
-      content: isSeller
-        ? `Seller issued a full refund${reason ? `: ${reason}` : "."}`
-        : `Buyer requested a refund${reason ? `: ${reason}` : "."}`,
-      message_type: "system",
-    });
+      // Order event
+      await supabaseAdmin.from("order_events").insert({
+        order_id: order.id,
+        actor_id: user.id,
+        event_type: "status_change",
+        from_status: order.status,
+        to_status: "refund_requested",
+        metadata: {
+          action: "buyer_refund_request",
+          reason: reason || null,
+        },
+      });
 
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Refund failed";
-    console.error("[Refund API] Error:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+      // System message
+      await supabaseAdmin.from("order_messages").insert({
+        order_id: order.id,
+        sender_id: user.id,
+        content: `Refund requested${reason ? `: ${reason}` : "."}`,
+        message_type: "system",
+      });
+
+      return NextResponse.json({ success: true, status: "refund_requested" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to request refund";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
   }
+
+  // ─── SELLER: Approve/issue a refund (processes Stripe refund) ───
+  if (resolvedAction === "approve" && isSeller) {
+    const approvableStatuses = [
+      "refund_requested", "paid", "completed", "delivered",
+      "in_progress", "submitted", "shipped",
+    ];
+    if (!approvableStatuses.includes(order.status)) {
+      return NextResponse.json(
+        { error: `Cannot issue a refund for an order with status: ${order.status}` },
+        { status: 400 }
+      );
+    }
+
+    try {
+      // Process the actual Stripe refund
+      const provider = getActiveProvider();
+      const result = await provider.refundPayment(order_id);
+
+      if (!result.success) {
+        return NextResponse.json({ error: "Refund processing failed" }, { status: 500 });
+      }
+
+      // Notify buyer
+      await supabaseAdmin.from("notifications").insert({
+        user_id: order.buyer_id,
+        actor_id: order.seller_id,
+        type: "order_refunded",
+        order_id: order.id,
+        content: `Your refund of $${Number(order.amount).toFixed(2)} has been approved and processed.`,
+      });
+
+      // Order event
+      await supabaseAdmin.from("order_events").insert({
+        order_id: order.id,
+        actor_id: user.id,
+        event_type: "payment",
+        metadata: {
+          action: "seller_approved_refund",
+          reason: reason || null,
+          previous_status: order.status,
+        },
+      });
+
+      // System message
+      await supabaseAdmin.from("order_messages").insert({
+        order_id: order.id,
+        sender_id: user.id,
+        content: `Refund approved and processed${reason ? `: ${reason}` : "."}`,
+        message_type: "system",
+      });
+
+      return NextResponse.json({ success: true, status: "refunded" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Refund failed";
+      console.error("[Refund API] Error:", message);
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  // ─── SELLER: Decline a refund request (restore previous status) ──
+  if (resolvedAction === "decline" && isSeller) {
+    if (order.status !== "refund_requested") {
+      return NextResponse.json(
+        { error: "No refund request to decline" },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const now = new Date().toISOString();
+
+      // Restore order to paid status
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          status: "paid",
+          updated_at: now,
+        })
+        .eq("id", order_id);
+
+      // Notify buyer
+      await supabaseAdmin.from("notifications").insert({
+        user_id: order.buyer_id,
+        actor_id: order.seller_id,
+        type: "order_paid",
+        order_id: order.id,
+        content: `Your refund request has been declined by the seller.${reason ? ` Reason: ${reason}` : ""}`,
+      });
+
+      // Order event
+      await supabaseAdmin.from("order_events").insert({
+        order_id: order.id,
+        actor_id: user.id,
+        event_type: "status_change",
+        from_status: "refund_requested",
+        to_status: "paid",
+        metadata: {
+          action: "seller_declined_refund",
+          reason: reason || null,
+        },
+      });
+
+      // System message
+      await supabaseAdmin.from("order_messages").insert({
+        order_id: order.id,
+        sender_id: user.id,
+        content: `Refund request declined${reason ? `: ${reason}` : "."}`,
+        message_type: "system",
+      });
+
+      return NextResponse.json({ success: true, status: "paid" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to decline refund";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  // Invalid action/role combination
+  if (resolvedAction === "approve" && isBuyer) {
+    return NextResponse.json({ error: "Only the seller can approve a refund" }, { status: 403 });
+  }
+  if (resolvedAction === "request" && isSeller) {
+    return NextResponse.json({ error: "Sellers should use action: 'approve' to issue refunds directly" }, { status: 400 });
+  }
+
+  return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 }
