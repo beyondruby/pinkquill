@@ -16,6 +16,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
 import { supabase } from "@/lib/supabase";
+import { deleteOwnPost } from "@/lib/posts-client";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
 import { createSafeHtml } from "@/lib/utils/sanitize";
@@ -483,25 +484,7 @@ export default function PostDetailModal({
 
     setDeleting(true);
     try {
-      // Delete related data first
-      await Promise.all([
-        supabase.from("post_media").delete().eq("post_id", post.id),
-        supabase.from("admires").delete().eq("post_id", post.id),
-        supabase.from("reactions").delete().eq("post_id", post.id),
-        supabase.from("saves").delete().eq("post_id", post.id),
-        supabase.from("relays").delete().eq("post_id", post.id),
-        supabase.from("comments").delete().eq("post_id", post.id),
-        supabase.from("notifications").delete().eq("post_id", post.id),
-      ]);
-
-      // Delete the post
-      const { error } = await supabase.from("posts").delete().eq("id", post.id);
-
-      if (error) {
-        console.error("Error deleting post:", error);
-        setDeleting(false);
-        return;
-      }
+      await deleteOwnPost(post.id);
 
       setShowDeleteConfirm(false);
       onClose();

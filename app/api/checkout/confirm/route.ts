@@ -4,7 +4,12 @@
  */
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
-import { enforceSameOrigin, safeJsonParse } from "@/lib/api-security";
+import {
+  checkRateLimit,
+  enforceSameOrigin,
+  rateLimitResponse,
+  safeJsonParse,
+} from "@/lib/api-security";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { finalizeOrderPayment } from "@/lib/payments-server";
 import { getActiveProvider } from "@/lib/payment-provider";
@@ -20,6 +25,15 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rateLimit = await checkRateLimit({
+      request,
+      scope: "user",
+      identifier: user.id,
+      limit: 10,
+      windowSeconds: 60,
+    });
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit, 60);
 
     const parsed = await safeJsonParse<{ order_id?: string }>(request);
     if ("error" in parsed) return parsed.error;

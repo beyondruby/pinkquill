@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { buildAuthenticatedHeaders } from "@/lib/auth-client";
 import { supabase } from "@/lib/supabase";
+import { safeResponseJson } from "@/lib/utils/fetch";
 
 export default function AccountSettingsPage() {
   const { user } = useAuth();
@@ -37,6 +39,10 @@ export default function AccountSettingsPage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleEmailChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +127,44 @@ export default function AccountSettingsPage() {
       setPasswordError(errorMessage);
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    if (deleteConfirmation.trim() !== "DELETE") {
+      setDeleteError('Type "DELETE" to confirm account deletion.');
+      return;
+    }
+
+    setDeleteLoading(true);
+    setDeleteError(null);
+
+    try {
+      const response = await fetch("/api/account", {
+        method: "DELETE",
+        headers: await buildAuthenticatedHeaders({
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ confirmation: deleteConfirmation.trim() }),
+      });
+
+      const data = await safeResponseJson<{ success?: boolean; error?: string }>(
+        response
+      );
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete account");
+      }
+
+      await supabase.auth.signOut();
+      window.location.replace("/");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete account";
+      setDeleteError(errorMessage);
+      setDeleteLoading(false);
     }
   };
 
@@ -313,17 +357,62 @@ export default function AccountSettingsPage() {
         <p className="font-body text-sm text-red-600/70 mb-4">
           Once you delete your account, there is no going back. Please be certain.
         </p>
-        <button
-          className="px-6 py-2.5 bg-white border border-red-300 text-red-600 font-ui text-sm font-medium rounded-xl hover:bg-red-50 transition-all"
-          onClick={() => {
-            if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-              // TODO: Implement account deletion
-              alert("Account deletion is not yet implemented.");
-            }
-          }}
-        >
-          Delete Account
-        </button>
+        {!showDeleteConfirm ? (
+          <button
+            className="px-6 py-2.5 bg-white border border-red-300 text-red-600 font-ui text-sm font-medium rounded-xl hover:bg-red-50 transition-all"
+            onClick={() => {
+              setShowDeleteConfirm(true);
+              setDeleteError(null);
+            }}
+          >
+            Delete Account
+          </button>
+        ) : (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-red-200 bg-white p-4">
+              <p className="font-ui text-sm text-red-700">
+                Type <span className="font-medium">DELETE</span> to permanently remove your account and content.
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmation}
+                onChange={(event) => {
+                  setDeleteConfirmation(event.target.value);
+                  if (deleteError) setDeleteError(null);
+                }}
+                placeholder='Type "DELETE" to confirm'
+                className="mt-3 w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-red-200 transition-all"
+              />
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-xl bg-red-100 text-red-700 font-ui text-sm">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="px-6 py-2.5 bg-red-600 text-white font-ui text-sm font-medium rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
+                disabled={deleteLoading}
+                onClick={handleDeleteAccount}
+              >
+                {deleteLoading ? "Deleting..." : "Permanently Delete Account"}
+              </button>
+              <button
+                className="px-6 py-2.5 bg-white border border-red-300 text-red-600 font-ui text-sm font-medium rounded-xl hover:bg-red-50 transition-all disabled:opacity-50"
+                disabled={deleteLoading}
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmation("");
+                  setDeleteError(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getAuthUser } from "@/lib/auth-server";
+import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
 import { getActiveProvider } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
@@ -21,32 +22,33 @@ export const runtime = "nodejs";
  *   - action defaults to "request" for buyers and "approve" for sellers
  */
 export async function POST(request: Request) {
-  // Authenticate
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
+  const originError = enforceSameOrigin(request);
+  if (originError) return originError;
+
+  const user = await getAuthUser(request);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const token = authHeader.replace("Bearer ", "");
-  const supabaseAuth = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-  const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const rateLimit = await checkRateLimit({
+    request,
+    scope: "payments.refund",
+    limit: 12,
+    windowSeconds: 60,
+    userId: user.id,
+  });
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit, 60);
   }
 
-  // Parse body
-  let body: { order_id?: string; reason?: string; action?: "request" | "approve" | "decline" };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const parsed = await safeJsonParse<{
+    order_id?: string;
+    reason?: string;
+    action?: "request" | "approve" | "decline";
+  }>(request);
+  if ("error" in parsed) return parsed.error;
 
-  const { order_id, reason, action } = body;
+  const { order_id, reason, action } = parsed.data;
   if (!order_id) {
     return NextResponse.json({ error: "order_id is required" }, { status: 400 });
   }

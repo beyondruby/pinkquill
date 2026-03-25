@@ -4,6 +4,7 @@ import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } f
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getActiveProvider } from "@/lib/payment-provider";
 import type { OrderForCheckout } from "@/lib/payment-provider";
+import { verifyTurnstileToken } from "@/lib/turnstile-server";
 
 export const runtime = "nodejs";
 
@@ -26,10 +27,22 @@ export async function POST(request: Request) {
     });
     if (!rateLimit.allowed) return rateLimitResponse(rateLimit, 60);
 
-    const parsed = await safeJsonParse<{ order_id?: string }>(request);
+    const parsed = await safeJsonParse<{
+      order_id?: string;
+      turnstile_token?: string;
+    }>(request);
     if ("error" in parsed) return parsed.error;
     if (!parsed.data?.order_id) {
       return NextResponse.json({ error: "order_id is required" }, { status: 400 });
+    }
+
+    const turnstile = await verifyTurnstileToken({
+      request,
+      token: parsed.data.turnstile_token,
+      action: "checkout_create",
+    });
+    if (!turnstile.ok) {
+      return turnstile.response!;
     }
 
     // Fetch order with product details

@@ -1,18 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { buildAuthenticatedHeaders } from "@/lib/auth-client";
 import { supabase } from "../supabase";
 import { safeResponseJson } from "../utils/fetch";
 import type { SellerAccount, SellerEarnings, Transaction } from "../types/store";
-
-async function buildAuthHeaders(initial?: HeadersInit): Promise<Headers> {
-  const headers = new Headers(initial);
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    headers.set("Authorization", `Bearer ${session.access_token}`);
-  }
-  return headers;
-}
 
 // ============================================================================
 // SELLER ONBOARDING
@@ -36,7 +28,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
     try {
       setError(null);
       const res = await fetch("/api/stripe/connect/status", {
-        headers: await buildAuthHeaders(),
+        headers: await buildAuthenticatedHeaders(),
       });
       const data = await safeResponseJson<Record<string, unknown>>(res);
 
@@ -77,7 +69,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
 
       const res = await fetch("/api/stripe/connect/onboard", {
         method: "POST",
-        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
+        headers: await buildAuthenticatedHeaders({ "Content-Type": "application/json" }),
       });
       const data = await safeResponseJson<Record<string, unknown>>(res);
 
@@ -98,7 +90,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
 
       const res = await fetch("/api/stripe/connect/dashboard", {
         method: "POST",
-        headers: await buildAuthHeaders({ "Content-Type": "application/json" }),
+        headers: await buildAuthenticatedHeaders({ "Content-Type": "application/json" }),
       });
       const data = await safeResponseJson<Record<string, unknown>>(res);
 

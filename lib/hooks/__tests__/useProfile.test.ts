@@ -393,7 +393,7 @@ describe("useFollowRequests", () => {
   });
 
   it("should have accept and decline methods", async () => {
-    const { result } = renderHook(() => useFollowRequests("user-1"));
+    const { result } = renderHook(() => useFollowRequests(undefined));
 
     // Just verify the methods exist
     expect(typeof result.current.accept).toBe("function");

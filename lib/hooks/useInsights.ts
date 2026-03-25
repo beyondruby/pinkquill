@@ -180,7 +180,7 @@ export function useInsightsDashboard(
         postIds.length > 0
           ? supabase
               .from("post_views")
-              .select("*")
+              .select("viewer_id, session_id, view_date, source")
               .in("post_id", postIds)
               .gte("view_date", startDate)
               .lte("view_date", endDate)
@@ -188,15 +188,15 @@ export function useInsightsDashboard(
         postIds.length > 0
           ? supabase
               .from("post_impressions")
-              .select("*")
+              .select("id", { count: "exact", head: true })
               .in("post_id", postIds)
               .gte("created_at", startDate)
               .lte("created_at", endDate)
-          : { data: [] },
+          : { count: 0 },
         takeIds.length > 0
           ? supabase
               .from("take_views")
-              .select("*")
+              .select("viewer_id, session_id, view_date, source")
               .in("take_id", takeIds)
               .gte("view_date", startDate)
               .lte("view_date", endDate)
@@ -204,27 +204,27 @@ export function useInsightsDashboard(
         takeIds.length > 0
           ? supabase
               .from("take_impressions")
-              .select("*")
+              .select("id", { count: "exact", head: true })
               .in("take_id", takeIds)
               .gte("created_at", startDate)
               .lte("created_at", endDate)
-          : { data: [] },
+          : { count: 0 },
         supabase
           .from("follower_history")
-          .select("*")
+          .select("date, net_change, gained, lost, follower_count")
           .eq("profile_id", user.id)
           .gte("date", startDate)
           .lte("date", endDate)
           .order("date", { ascending: true }),
         supabase
           .from("follows")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("following_id", user.id),
         // Previous period for comparison
         postIds.length > 0
           ? supabase
               .from("post_views")
-              .select("*", { count: "exact", head: true })
+              .select("id", { count: "exact", head: true })
               .in("post_id", postIds)
               .gte("view_date", prevStartDate)
               .lte("view_date", prevEndDate)
@@ -232,7 +232,7 @@ export function useInsightsDashboard(
         takeIds.length > 0
           ? supabase
               .from("take_views")
-              .select("*", { count: "exact", head: true })
+              .select("id", { count: "exact", head: true })
               .in("take_id", takeIds)
               .gte("view_date", prevStartDate)
               .lte("view_date", prevEndDate)
@@ -240,14 +240,13 @@ export function useInsightsDashboard(
       ]);
 
       const postViews = postViewsResult.data || [];
-      const postImpressions = postImpressionsResult.data || [];
       const takeViews = takeViewsResult.data || [];
-      const takeImpressions = takeImpressionsResult.data || [];
       const followerHistory = followerHistoryResult.data || [];
 
       // Calculate totals
       const totalViews = postViews.length + takeViews.length;
-      const totalImpressions = postImpressions.length + takeImpressions.length;
+      const totalImpressions =
+        (postImpressionsResult.count || 0) + (takeImpressionsResult.count || 0);
 
       // Calculate unique viewers (reach)
       const uniqueViewers = new Set([
@@ -260,15 +259,15 @@ export function useInsightsDashboard(
       const [admireResult, commentResult, relayResult] = await Promise.all([
         supabase
           .from("admires")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .in("post_id", postIds),
         supabase
           .from("comments")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .in("post_id", postIds),
         supabase
           .from("relays")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .in("post_id", postIds),
       ]);
 
@@ -449,38 +448,39 @@ export function usePostInsights(
         await Promise.all([
           supabase
             .from("post_views")
-            .select("*")
+            .select(
+              "viewer_id, session_id, view_date, read_time_seconds, is_follower, source"
+            )
             .eq("post_id", postId)
             .gte("view_date", startDate)
             .lte("view_date", endDate),
           supabase
             .from("post_impressions")
-            .select("*")
+            .select("id", { count: "exact", head: true })
             .eq("post_id", postId)
             .gte("created_at", startDate)
             .lte("created_at", endDate),
-          supabase.from("reactions").select("*").eq("post_id", postId),
+          supabase.from("reactions").select("reaction_type").eq("post_id", postId),
           supabase
             .from("comments")
-            .select("*", { count: "exact", head: true })
+            .select("id", { count: "exact", head: true })
             .eq("post_id", postId),
           supabase
             .from("relays")
-            .select("*", { count: "exact", head: true })
+            .select("id", { count: "exact", head: true })
             .eq("post_id", postId),
           supabase
             .from("saves")
-            .select("*", { count: "exact", head: true })
+            .select("id", { count: "exact", head: true })
             .eq("post_id", postId),
         ]);
 
       const views = viewsResult.data || [];
-      const impressions = impressionsResult.data || [];
       const reactions = reactionsResult.data || [];
 
       // Calculate totals
       const totalViews = views.length;
-      const totalImpressions = impressions.length;
+      const totalImpressions = impressionsResult.count || 0;
 
       // Unique viewers
       const uniqueViewers = new Set(views.map((v) => v.viewer_id || v.session_id));
@@ -492,12 +492,12 @@ export function usePostInsights(
 
       // Reactions breakdown
       const reactionBreakdown: ReactionBreakdown = {
-        admire: reactions.filter((r) => r.type === "admire").length,
-        snap: reactions.filter((r) => r.type === "snap").length,
-        ovation: reactions.filter((r) => r.type === "ovation").length,
-        support: reactions.filter((r) => r.type === "support").length,
-        inspired: reactions.filter((r) => r.type === "inspired").length,
-        applaud: reactions.filter((r) => r.type === "applaud").length,
+        admire: reactions.filter((r) => r.reaction_type === "admire").length,
+        snap: reactions.filter((r) => r.reaction_type === "snap").length,
+        ovation: reactions.filter((r) => r.reaction_type === "ovation").length,
+        support: reactions.filter((r) => r.reaction_type === "support").length,
+        inspired: reactions.filter((r) => r.reaction_type === "inspired").length,
+        applaud: reactions.filter((r) => r.reaction_type === "applaud").length,
         total: reactions.length,
       };
 
@@ -641,38 +641,42 @@ export function useTakeInsights(
         await Promise.all([
           supabase
             .from("take_views")
-            .select("*")
+            .select(
+              "viewer_id, session_id, view_date, watch_time_seconds, completed, loop_count, is_follower, source"
+            )
             .eq("take_id", takeId)
             .gte("view_date", startDate)
             .lte("view_date", endDate),
           supabase
             .from("take_impressions")
-            .select("*")
+            .select("id", { count: "exact", head: true })
             .eq("take_id", takeId)
             .gte("created_at", startDate)
             .lte("created_at", endDate),
-          supabase.from("take_reactions").select("*").eq("take_id", takeId),
+          supabase
+            .from("take_reactions")
+            .select("reaction_type")
+            .eq("take_id", takeId),
           supabase
             .from("take_comments")
-            .select("*", { count: "exact", head: true })
+            .select("id", { count: "exact", head: true })
             .eq("take_id", takeId),
           supabase
             .from("take_relays")
-            .select("*", { count: "exact", head: true })
+            .select("id", { count: "exact", head: true })
             .eq("take_id", takeId),
           supabase
             .from("take_saves")
-            .select("*", { count: "exact", head: true })
+            .select("id", { count: "exact", head: true })
             .eq("take_id", takeId),
         ]);
 
       const views = viewsResult.data || [];
-      const impressions = impressionsResult.data || [];
       const reactions = reactionsResult.data || [];
 
       // Calculate totals
       const totalViews = views.length;
-      const totalImpressions = impressions.length;
+      const totalImpressions = impressionsResult.count || 0;
 
       // Unique viewers
       const uniqueViewers = new Set(views.map((v) => v.viewer_id || v.session_id));
@@ -693,12 +697,12 @@ export function useTakeInsights(
 
       // Reactions breakdown
       const reactionBreakdown: ReactionBreakdown = {
-        admire: reactions.filter((r) => r.type === "admire").length,
-        snap: reactions.filter((r) => r.type === "snap").length,
-        ovation: reactions.filter((r) => r.type === "ovation").length,
-        support: reactions.filter((r) => r.type === "support").length,
-        inspired: reactions.filter((r) => r.type === "inspired").length,
-        applaud: reactions.filter((r) => r.type === "applaud").length,
+        admire: reactions.filter((r) => r.reaction_type === "admire").length,
+        snap: reactions.filter((r) => r.reaction_type === "snap").length,
+        ovation: reactions.filter((r) => r.reaction_type === "ovation").length,
+        support: reactions.filter((r) => r.reaction_type === "support").length,
+        inspired: reactions.filter((r) => r.reaction_type === "inspired").length,
+        applaud: reactions.filter((r) => r.reaction_type === "applaud").length,
         total: reactions.length,
       };
 
@@ -825,20 +829,20 @@ export function useProfileInsights(
         await Promise.all([
           supabase
             .from("profile_views")
-            .select("*")
+            .select("viewer_id, session_id, view_date")
             .eq("profile_id", user.id)
             .gte("view_date", startDate)
             .lte("view_date", endDate),
           supabase
             .from("follower_history")
-            .select("*")
+            .select("date, net_change, gained, lost, follower_count")
             .eq("profile_id", user.id)
             .gte("date", startDate)
             .lte("date", endDate)
             .order("date", { ascending: true }),
           supabase
             .from("follows")
-            .select("*", { count: "exact", head: true })
+            .select("id", { count: "exact", head: true })
             .eq("following_id", user.id),
         ]);
 
@@ -860,7 +864,7 @@ export function useProfileInsights(
           postIds.length > 0
             ? supabase
                 .from("post_views")
-                .select("*")
+                .select("viewer_id, session_id")
                 .in("post_id", postIds)
                 .gte("view_date", startDate)
                 .lte("view_date", endDate)
@@ -868,7 +872,7 @@ export function useProfileInsights(
           takeIds.length > 0
             ? supabase
                 .from("take_views")
-                .select("*")
+                .select("viewer_id, session_id")
                 .in("take_id", takeIds)
                 .gte("view_date", startDate)
                 .lte("view_date", endDate)
@@ -876,13 +880,13 @@ export function useProfileInsights(
           postIds.length > 0
             ? supabase
                 .from("admires")
-                .select("*", { count: "exact", head: true })
+                .select("id", { count: "exact", head: true })
                 .in("post_id", postIds)
             : { count: 0 },
           postIds.length > 0
             ? supabase
                 .from("comments")
-                .select("*", { count: "exact", head: true })
+                .select("id", { count: "exact", head: true })
                 .in("post_id", postIds)
             : { count: 0 },
         ]);
@@ -1035,31 +1039,31 @@ export function useCommunityInsights(
       ] = await Promise.all([
         supabase
           .from("community_views")
-          .select("*")
+          .select("viewer_id, session_id, view_date")
           .eq("community_id", communityId)
           .gte("view_date", startDate)
           .lte("view_date", endDate),
         supabase
           .from("community_member_history")
-          .select("*")
+          .select("date, joined, left, member_count")
           .eq("community_id", communityId)
           .gte("date", startDate)
           .lte("date", endDate)
           .order("date", { ascending: true }),
         supabase
           .from("community_members")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("community_id", communityId)
           .eq("status", "active"),
         supabase
           .from("posts")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("community_id", communityId)
           .gte("created_at", startDate)
           .lte("created_at", endDate),
         supabase
           .from("takes")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("community_id", communityId)
           .gte("created_at", startDate)
           .lte("created_at", endDate),

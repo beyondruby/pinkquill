@@ -51,6 +51,12 @@ export function useMessageReactions({
       return;
     }
 
+    if (messageIds.length === 0) {
+      setReactionsByMessage(new Map());
+      setLoading(false);
+      return;
+    }
+
     // Abort any in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -58,8 +64,6 @@ export function useMessageReactions({
     abortControllerRef.current = new AbortController();
 
     try {
-      // Optimized: Use a single query that joins through messages
-      // This fetches reactions only for messages in this conversation
       const { data: reactions, error } = await supabase
         .from("message_reactions")
         .select(`
@@ -78,6 +82,7 @@ export function useMessageReactions({
             conversation_id
           )
         `)
+        .in("message_id", messageIds)
         .eq("message.conversation_id", conversationId);
 
       if (!mountedRef.current) return;
@@ -125,7 +130,7 @@ export function useMessageReactions({
         setLoading(false);
       }
     }
-  }, [conversationId]);
+  }, [conversationId, messageIds]);
 
   // Initial fetch with cleanup
   useEffect(() => {

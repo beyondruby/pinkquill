@@ -1,5 +1,31 @@
 import type { NextConfig } from "next";
 
+const supabaseOrigin = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+      : null;
+  } catch {
+    return null;
+  }
+})();
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "frame-ancestors 'self'",
+  "form-action 'self' https://hooks.stripe.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://challenges.cloudflare.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "media-src 'self' blob: https:",
+  "connect-src 'self' https://api.stripe.com https://js.stripe.com https://r.stripe.com https://m.stripe.network https://open.spotify.com https://challenges.cloudflare.com https://*.supabase.co wss://*.supabase.co"
+    + (supabaseOrigin ? ` ${supabaseOrigin}` : ""),
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://open.spotify.com https://challenges.cloudflare.com",
+  "worker-src 'self' blob:",
+].join("; ");
+
 const securityHeaders = [
   {
     key: "X-DNS-Prefetch-Control",
@@ -28,6 +54,10 @@ const securityHeaders = [
   {
     key: "Permissions-Policy",
     value: "camera=(), microphone=(self), geolocation=()",
+  },
+  {
+    key: "Content-Security-Policy",
+    value: contentSecurityPolicy,
   },
 ];
 

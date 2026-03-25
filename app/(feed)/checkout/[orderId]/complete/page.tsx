@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { buildAuthenticatedHeaders } from "@/lib/auth-client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCheckCircle,
@@ -11,21 +11,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 type CheckoutStatus = "loading" | "success" | "failed" | "expired";
-
-async function buildAuthHeaders(): Promise<Headers> {
-  const headers = new Headers();
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      headers.set("Authorization", `Bearer ${session.access_token}`);
-    }
-  } catch {
-    // Auth not ready yet — will retry
-  }
-  return headers;
-}
 
 const MAX_POLLS = 10;
 const POLL_INTERVAL_MS = 2000;
@@ -52,7 +37,7 @@ export default function CheckoutCompletePage() {
     try {
       const res = await fetch(
         `/api/checkout/status?session_id=${encodeURIComponent(sessionId)}`,
-        { headers: await buildAuthHeaders() }
+        { headers: await buildAuthenticatedHeaders() }
       );
 
       if (!res.ok) {

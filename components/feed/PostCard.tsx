@@ -20,6 +20,7 @@ import FlairBadge from "@/components/communities/FlairBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { PostStyling, JournalMetadata, PostBackground, SpotifyTrack, PostType } from "@/lib/types";
+import { deleteOwnPost } from "@/lib/posts-client";
 import { actionToast } from "@/lib/utils/toast";
 import {
   MentionsDisplay,
@@ -524,26 +525,7 @@ function PostCardComponent({
   const handleDelete = useCallback(async () => {
     setDeleting(true);
     try {
-      // Delete related data first
-      await Promise.all([
-        supabase.from("post_media").delete().eq("post_id", post.id),
-        supabase.from("admires").delete().eq("post_id", post.id),
-        supabase.from("reactions").delete().eq("post_id", post.id),
-        supabase.from("saves").delete().eq("post_id", post.id),
-        supabase.from("relays").delete().eq("post_id", post.id),
-        supabase.from("comments").delete().eq("post_id", post.id),
-        supabase.from("notifications").delete().eq("post_id", post.id),
-      ]);
-
-      // Delete the post
-      const { error } = await supabase.from("posts").delete().eq("id", post.id);
-
-      if (error) {
-        console.error("Error deleting post:", error);
-        actionToast.postDeleteError();
-        setDeleting(false);
-        return;
-      }
+      await deleteOwnPost(post.id);
 
       setShowDeleteConfirm(false);
       actionToast.postDeleted();

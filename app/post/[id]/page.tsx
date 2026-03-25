@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useToggleSave, useToggleRelay, useComments, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, ReactionType } from "@/lib/hooks";
 import { cleanHtmlForDisplay } from "@/lib/utils/sanitize";
+import { deleteOwnPost } from "@/lib/posts-client";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import CommentItem from "@/components/feed/CommentItem";
@@ -667,25 +668,7 @@ export default function PostPage() {
 
     setDeleting(true);
     try {
-      // Delete related data first (media, admires, reactions, saves, relays, comments, notifications)
-      await Promise.all([
-        supabase.from("post_media").delete().eq("post_id", post.id),
-        supabase.from("admires").delete().eq("post_id", post.id),
-        supabase.from("reactions").delete().eq("post_id", post.id),
-        supabase.from("saves").delete().eq("post_id", post.id),
-        supabase.from("relays").delete().eq("post_id", post.id),
-        supabase.from("comments").delete().eq("post_id", post.id),
-        supabase.from("notifications").delete().eq("post_id", post.id),
-      ]);
-
-      // Delete the post
-      const { error } = await supabase.from("posts").delete().eq("id", post.id);
-
-      if (error) {
-        console.error("Error deleting post:", error);
-        setDeleting(false);
-        return;
-      }
+      await deleteOwnPost(post.id);
 
       // Navigate back to home
       router.push("/");

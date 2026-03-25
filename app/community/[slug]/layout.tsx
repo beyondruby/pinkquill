@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { supabaseAdmin } from "@/lib/supabase-server";
+import { createSupabaseServerClient } from "@/lib/auth-server";
 import CommunityLayoutClient from "./CommunityLayoutClient";
 
 interface Props {
@@ -9,8 +9,9 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const supabase = await createSupabaseServerClient();
 
-  const { data: community } = await supabaseAdmin
+  const { data: community } = await supabase
     .from("communities")
     .select("name, description")
     .eq("slug", slug)

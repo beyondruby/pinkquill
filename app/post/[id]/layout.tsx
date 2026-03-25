@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { supabaseAdmin } from "@/lib/supabase-server";
+import { createSupabaseServerClient } from "@/lib/auth-server";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -8,8 +8,9 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
+  const supabase = await createSupabaseServerClient();
 
-  const { data: post } = await supabaseAdmin
+  const { data: post } = await supabase
     .from("posts")
     .select("title, content, type, author:profiles!posts_author_id_fkey(display_name, username)")
     .eq("id", id)

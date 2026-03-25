@@ -62,30 +62,6 @@ export default function Avatar({
     .filter(Boolean)
     .join(" ");
 
-  // For Supabase images, use standard img for best performance
-  // For other images (including default), use Next.js Image
-  if (isSupabaseUrl && !error) {
-    return (
-      <div
-        className={containerClasses}
-        style={{ width: pixelSize, height: pixelSize }}
-      >
-        <img
-          src={optimizedSrc}
-          alt={alt}
-          width={pixelSize}
-          height={pixelSize}
-          loading={priority ? "eager" : "lazy"}
-          decoding="async"
-          onError={() => setError(true)}
-          className="w-full h-full object-cover"
-          style={{ backgroundColor: "#e2d8f3" }} // Fallback color while loading
-        />
-      </div>
-    );
-  }
-
-  // For non-Supabase URLs or fallback, use Next.js Image
   return (
     <div
       className={containerClasses}
@@ -102,6 +78,7 @@ export default function Avatar({
         onError={() => setError(true)}
         className="w-full h-full object-cover"
         sizes={`${pixelSize}px`}
+        style={isSupabaseUrl && !error ? { backgroundColor: "#e2d8f3" } : undefined}
       />
     </div>
   );

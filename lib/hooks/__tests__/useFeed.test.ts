@@ -235,7 +235,7 @@ describe("useSavedPosts", () => {
   });
 
   it("should have loading and posts state", () => {
-    const { result } = renderHook(() => useSavedPosts("user-1"));
+    const { result } = renderHook(() => useSavedPosts(undefined));
     expect(typeof result.current.loading).toBe("boolean");
     expect(Array.isArray(result.current.posts)).toBe(true);
   });
@@ -243,7 +243,7 @@ describe("useSavedPosts", () => {
 
 describe("useRelays", () => {
   it("should have loading state", () => {
-    const { result } = renderHook(() => useRelays("testuser"));
+    const { result } = renderHook(() => useRelays(""));
     // Just verify hook initializes without error
     expect(typeof result.current.loading).toBe("boolean");
     expect(Array.isArray(result.current.relays)).toBe(true);

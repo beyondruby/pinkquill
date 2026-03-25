@@ -185,7 +185,7 @@ describe("useUnreadCount", () => {
   });
 
   it("should have refetch method", () => {
-    const { result } = renderHook(() => useUnreadCount("user-1"));
+    const { result } = renderHook(() => useUnreadCount(undefined));
     expect(typeof result.current.refetch).toBe("function");
   });
 });

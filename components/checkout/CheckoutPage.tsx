@@ -6,6 +6,8 @@ import {
   EmbeddedCheckoutProvider,
   EmbeddedCheckout,
 } from "@stripe/react-stripe-js";
+import TurnstileCaptcha from "@/components/security/TurnstileCaptcha";
+import { buildAuthenticatedHeaders } from "@/lib/auth-client";
 import { getStripe } from "@/lib/stripe-client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUpdateOrderDraft } from "@/lib/hooks/useOrders";
@@ -24,17 +26,6 @@ function formatCurrency(amount: number, currency = "USD") {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
-}
-
-async function buildAuthHeaders(initial?: HeadersInit): Promise<Headers> {
-  const headers = new Headers(initial);
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    headers.set("Authorization", `Bearer ${session.access_token}`);
-  }
-  return headers;
 }
 
 const REQUIRED_SHIPPING_FIELDS = ["name", "line1", "city", "country"] as const;
@@ -302,6 +293,9 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   );
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [paymentUnlocked, setPaymentUnlocked] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   // UI state
   const [promoOverrides, setPromoOverrides] = useState<
@@ -324,6 +318,22 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   const [noteError, setNoteError] = useState<string | null>(null);
   const [noteSaveError, setNoteSaveError] = useState<string | null>(null);
   const [noteSaved, setNoteSaved] = useState(false);
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const requiresSecurityCheck = Boolean(turnstileSiteKey);
+
+  const resetPaymentGate = useCallback(() => {
+    setClientSecret(null);
+    setCheckoutMode("placeholder");
+    setCheckoutError(null);
+    setActionError(null);
+    setPaymentUnlocked(false);
+    setTurnstileToken(null);
+    setTurnstileResetKey((prev) => prev + 1);
+  }, []);
+
+  useEffect(() => {
+    resetPaymentGate();
+  }, [orderId, resetPaymentGate]);
 
   const promoOverride = promoOverrides[orderId];
   const shippingDraft = useMemo<Partial<ShippingAddress>>(() => {
@@ -398,6 +408,11 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   // Create checkout session
   const createCheckout = useCallback(
     async (oid: string) => {
+      if (requiresSecurityCheck && !turnstileToken) {
+        setCheckoutError("Complete the security check before continuing to payment.");
+        return;
+      }
+
       setCheckoutLoading(true);
       setCheckoutError(null);
       setClientSecret(null);
@@ -405,10 +420,13 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
       try {
         const res = await fetch("/api/checkout", {
           method: "POST",
-          headers: await buildAuthHeaders({
+          headers: await buildAuthenticatedHeaders({
             "Content-Type": "application/json",
           }),
-          body: JSON.stringify({ order_id: oid }),
+          body: JSON.stringify({
+            order_id: oid,
+            turnstile_token: requiresSecurityCheck ? turnstileToken : undefined,
+          }),
         });
         const data = await res.json();
 
@@ -418,20 +436,27 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
         setCheckoutMode(data.mode || "placeholder");
         setClientSecret(data.client_secret || null);
+        setPaymentUnlocked(true);
       } catch (err) {
         setCheckoutError(
           err instanceof Error ? err.message : "Failed to create checkout"
         );
+        if (requiresSecurityCheck) {
+          setTurnstileToken(null);
+          setTurnstileResetKey((prev) => prev + 1);
+          setPaymentUnlocked(false);
+        }
       } finally {
         setCheckoutLoading(false);
       }
     },
-    []
+    [requiresSecurityCheck, turnstileToken]
   );
 
   // Auto-create checkout when ready
   useEffect(() => {
     if (!order || order.status !== "pending_payment") return;
+    if (requiresSecurityCheck) return;
 
     const isPhysical =
       order.listing_type === "product" &&
@@ -444,7 +469,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     if (shippingReady) {
       createCheckout(order.id);
     }
-  }, [order, createCheckout]);
+  }, [order, createCheckout, requiresSecurityCheck]);
 
   // Redirect if not logged in or order not pending
   useEffect(() => {
@@ -508,6 +533,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
         ? { ...prev, shipping_address: payload, buyer_phone: trimmedPhone }
         : prev
     );
+    resetPaymentGate();
     setShippingDraftEdits((prev) => {
       if (!(orderId in prev)) return prev;
       const next = { ...prev };
@@ -518,6 +544,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   }, [
     order,
     orderId,
+    resetPaymentGate,
     setOrder,
     shippingDraft,
     updateDraft,
@@ -533,7 +560,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     try {
       const res = await fetch("/api/checkout/confirm", {
         method: "POST",
-        headers: await buildAuthHeaders({
+        headers: await buildAuthenticatedHeaders({
           "Content-Type": "application/json",
         }),
         body: JSON.stringify({ order_id: order.id }),
@@ -553,6 +580,17 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
       setConfirmingFree(false);
     }
   }, [order, orderId, router]);
+
+  const handleUnlockPayment = useCallback(() => {
+    if (!order) return;
+
+    if (!turnstileToken) {
+      setCheckoutError("Complete the security check before continuing to payment.");
+      return;
+    }
+
+    void createCheckout(order.id);
+  }, [createCheckout, order, turnstileToken]);
 
   // Loading state
   if (authLoading || orderLoading) {
@@ -722,10 +760,14 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       [order.id]: { amount: final, discount },
                     }));
                     setActionError(null);
-                    // Re-create checkout with updated amount
+                    // Pricing changes invalidate the existing checkout session.
                     if (!requiresShippingDetails) {
-                      setClientSecret(null);
-                      createCheckout(order.id);
+                      if (requiresSecurityCheck) {
+                        resetPaymentGate();
+                      } else {
+                        setClientSecret(null);
+                        createCheckout(order.id);
+                      }
                     }
                   }}
                 />
@@ -1062,6 +1104,35 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 </div>
               )}
 
+              {!requiresShippingDetails &&
+                requiresSecurityCheck &&
+                !paymentUnlocked &&
+                !checkoutLoading && (
+                  <div className="mt-4 space-y-4 rounded-xl border border-purple-primary/15 bg-white/80 p-4">
+                    <div>
+                      <p className="text-sm font-ui font-semibold text-ink">
+                        Quick security check
+                      </p>
+                      <p className="mt-1 text-xs font-body text-muted">
+                        Complete this verification once to unlock payment.
+                      </p>
+                    </div>
+                    <TurnstileCaptcha
+                      siteKey={turnstileSiteKey!}
+                      action="checkout_create"
+                      resetKey={turnstileResetKey}
+                      onTokenChange={setTurnstileToken}
+                    />
+                    <button
+                      onClick={handleUnlockPayment}
+                      disabled={!turnstileToken}
+                      className="rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid px-5 py-3 text-sm font-ui font-semibold text-white disabled:opacity-60"
+                    >
+                      Continue to Payment
+                    </button>
+                  </div>
+                )}
+
               {/* Loading */}
               {checkoutLoading && !requiresShippingDetails && (
                 <div className="mt-4 flex items-center justify-center rounded-xl border border-black/[0.06] bg-white/80 py-10">
@@ -1093,6 +1164,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
               {/* Stripe Embedded Checkout */}
               {!requiresShippingDetails &&
+                (!requiresSecurityCheck || paymentUnlocked) &&
                 checkoutMode === "stripe" &&
                 clientSecret &&
                 !checkoutLoading &&
@@ -1110,6 +1182,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
               {/* Placeholder / Free order confirmation */}
               {!requiresShippingDetails &&
+                (!requiresSecurityCheck || paymentUnlocked) &&
                 (checkoutMode === "placeholder" || zeroTotal) &&
                 !checkoutLoading &&
                 !checkoutError && (

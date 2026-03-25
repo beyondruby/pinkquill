@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase";
 import { safeResponseJson } from "@/lib/utils/fetch";
 
 export interface LoginWithIdentifierResult {
@@ -6,6 +7,26 @@ export interface LoginWithIdentifierResult {
   requiresVerification?: boolean;
   pendingEmail?: string;
   message?: string;
+}
+
+export async function buildAuthenticatedHeaders(
+  initial?: HeadersInit
+): Promise<Headers> {
+  const headers = new Headers(initial);
+
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session?.access_token) {
+      headers.set("Authorization", `Bearer ${session.access_token}`);
+    }
+  } catch {
+    // Auth can still be initializing; callers can decide whether to retry.
+  }
+
+  return headers;
 }
 
 export async function loginWithIdentifier(

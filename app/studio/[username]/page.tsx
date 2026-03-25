@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { supabaseAdmin } from "@/lib/supabase-server";
+import { createSupabaseServerClient } from "@/lib/auth-server";
 import StudioProfileWrapper from "@/components/studio/StudioProfileWrapper";
 
 interface Props {
@@ -8,8 +8,9 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
+  const supabase = await createSupabaseServerClient();
 
-  const { data: profile } = await supabaseAdmin
+  const { data: profile } = await supabase
     .from("profiles")
     .select("display_name, bio")
     .eq("username", username)

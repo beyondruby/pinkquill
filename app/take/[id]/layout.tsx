@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { supabaseAdmin } from "@/lib/supabase-server";
+import { createSupabaseServerClient } from "@/lib/auth-server";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -8,8 +8,9 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
+  const supabase = await createSupabaseServerClient();
 
-  const { data: take } = await supabaseAdmin
+  const { data: take } = await supabase
     .from("takes")
     .select("caption, author_id")
     .eq("id", id)
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const { data: author } = await supabaseAdmin
+  const { data: author } = await supabase
     .from("profiles")
     .select("display_name, username")
     .eq("id", take.author_id)
