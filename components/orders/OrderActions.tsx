@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUpdateOrderStatus, useAcceptOrder, useDeclineOrder } from "@/lib/hooks/useOrders";
 import { useRequestRefund, useApproveRefund, useDeclineRefund } from "@/lib/hooks/useDisputes";
@@ -436,7 +436,19 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
 }
 
 function AutoCompletionNotice({ deadline }: { deadline: string }) {
-  const diff = new Date(deadline).getTime() - Date.now();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(Date.now());
+    }, 60_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const diff = new Date(deadline).getTime() - now;
   if (diff <= 0) {
     return (
       <div className="flex items-center gap-2.5 p-3 rounded-xl bg-yellow-50/80 border border-yellow-200/50">

@@ -158,34 +158,35 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Refund processing failed" }, { status: 500 });
       }
 
-      // Notify buyer
-      await supabaseAdmin.from("notifications").insert({
-        user_id: order.buyer_id,
-        actor_id: order.seller_id,
-        type: "order_refunded",
-        order_id: order.id,
-        content: `Your refund of $${Number(order.amount).toFixed(2)} has been approved and processed.`,
-      });
+      // Stripe refunds emit canonical side effects from the webhook. Avoid
+      // duplicating notifications, order events, and system messages here.
+      if (provider.name !== "stripe") {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: order.buyer_id,
+          actor_id: order.seller_id,
+          type: "order_refunded",
+          order_id: order.id,
+          content: `Your refund of $${Number(order.amount).toFixed(2)} has been approved and processed.`,
+        });
 
-      // Order event
-      await supabaseAdmin.from("order_events").insert({
-        order_id: order.id,
-        actor_id: user.id,
-        event_type: "payment",
-        metadata: {
-          action: "seller_approved_refund",
-          reason: reason || null,
-          previous_status: order.status,
-        },
-      });
+        await supabaseAdmin.from("order_events").insert({
+          order_id: order.id,
+          actor_id: user.id,
+          event_type: "payment",
+          metadata: {
+            action: "seller_approved_refund",
+            reason: reason || null,
+            previous_status: order.status,
+          },
+        });
 
-      // System message
-      await supabaseAdmin.from("order_messages").insert({
-        order_id: order.id,
-        sender_id: user.id,
-        content: `Refund approved and processed${reason ? `: ${reason}` : "."}`,
-        message_type: "system",
-      });
+        await supabaseAdmin.from("order_messages").insert({
+          order_id: order.id,
+          sender_id: user.id,
+          content: `Refund approved and processed${reason ? `: ${reason}` : "."}`,
+          message_type: "system",
+        });
+      }
 
       return NextResponse.json({ success: true, status: "refunded" });
     } catch (err) {

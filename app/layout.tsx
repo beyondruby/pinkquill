@@ -25,6 +25,17 @@ import { BadgeCountProvider } from "@/components/providers/BadgeCountProvider";
 import { LightboxProvider } from "@/components/ui/Lightbox";
 import AuthModal from "@/components/auth/AuthModal";
 
+function getSupabaseOrigin(): string | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) return null;
+
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
 // Creative fonts - deferred loading (used for post styling)
 const libreBaskerville = Libre_Baskerville({
   weight: ["400", "700"],
@@ -189,12 +200,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabaseOrigin = getSupabaseOrigin();
+
   return (
     <html lang="en">
       <head>
         {/* Preconnect to critical origins for faster resource loading */}
-        <link rel="preconnect" href="https://loaitxbibjftsytlgddi.supabase.co" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://loaitxbibjftsytlgddi.supabase.co" />
+        {supabaseOrigin ? (
+          <>
+            <link rel="preconnect" href={supabaseOrigin} crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href={supabaseOrigin} />
+          </>
+        ) : null}
       </head>
       <body
         className={`${libreBaskerville.variable} ${crimsonPro.variable} ${josefinSans.variable} ${poppins.variable} ${openSans.variable} ${playfairDisplay.variable} ${lora.variable} ${merriweather.variable} ${dancingScript.variable} ${caveat.variable} ${sourceCodePro.variable} ${inter.variable} ${spectral.variable} ${ebGaramond.variable} ${cormorantGaramond.variable} antialiased`}

@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { finalizeOrderPayment, markOrderPaymentFailed, markOrderExpired } from "@/lib/payments-server";
+import { finalizeOrderPayment, markOrderExpired } from "@/lib/payments-server";
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getActiveProvider } from "@/lib/payment-provider";
@@ -18,16 +18,6 @@ interface OrderLookup {
   currency: string;
   listing_type: string;
   transfer_id: string | null;
-}
-
-async function findOrderByCheckoutSession(sessionId: string): Promise<OrderLookup | null> {
-  const { data } = await supabaseAdmin
-    .from("orders")
-    .select("id, buyer_id, seller_id, status, payment_status, amount, currency, listing_type, transfer_id")
-    .eq("checkout_session_id", sessionId)
-    .maybeSingle<OrderLookup>();
-
-  return data || null;
 }
 
 async function findOrderById(orderId: string): Promise<OrderLookup | null> {

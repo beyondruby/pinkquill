@@ -65,10 +65,15 @@ export function useVoiceRecorder(maxDuration: number = 300) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const waveformIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
+  const latestAudioUrlRef = useRef<string | null>(null);
 
   // Check browser support
   const isSupported =
     typeof window !== "undefined" && navigator.mediaDevices && typeof MediaRecorder !== "undefined";
+
+  useEffect(() => {
+    latestAudioUrlRef.current = state.audioUrl;
+  }, [state.audioUrl]);
 
   // Get best supported MIME type
   const getMimeType = () => {
@@ -301,8 +306,8 @@ export function useVoiceRecorder(maxDuration: number = 300) {
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
-      if (state.audioUrl) {
-        URL.revokeObjectURL(state.audioUrl);
+      if (latestAudioUrlRef.current) {
+        URL.revokeObjectURL(latestAudioUrlRef.current);
       }
     };
   }, []);
