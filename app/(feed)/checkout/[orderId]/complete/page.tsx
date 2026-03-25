@@ -29,6 +29,7 @@ async function buildAuthHeaders(): Promise<Headers> {
 
 const MAX_POLLS = 10;
 const POLL_INTERVAL_MS = 2000;
+const AUTO_REDIRECT_DELAY_MS = 2000;
 
 export default function CheckoutCompletePage() {
   const params = useParams();
@@ -38,7 +39,7 @@ export default function CheckoutCompletePage() {
   const sessionId = searchParams.get("session_id");
 
   const [status, setStatus] = useState<CheckoutStatus>("loading");
-  const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const [redirectCountdown, setRedirectCountdown] = useState(2);
   const pollCountRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,7 +68,6 @@ export default function CheckoutCompletePage() {
 
       if (data.status === "complete" || data.payment_status === "paid") {
         setStatus("success");
-        setOrderStatus(data.order_status);
         return true;
       } else if (data.status === "expired") {
         setStatus("expired");
@@ -109,6 +109,24 @@ export default function CheckoutCompletePage() {
     };
   }, [checkStatus]);
 
+  // Auto-redirect to order page on success
+  useEffect(() => {
+    if (status !== "success") return;
+
+    const countdownTimer = setInterval(() => {
+      setRedirectCountdown((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+
+    const redirectTimer = setTimeout(() => {
+      router.push(`/orders/${orderId}`);
+    }, AUTO_REDIRECT_DELAY_MS);
+
+    return () => {
+      clearInterval(countdownTimer);
+      clearTimeout(redirectTimer);
+    };
+  }, [status, orderId, router]);
+
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6">
       <div className="max-w-md w-full text-center">
@@ -118,10 +136,10 @@ export default function CheckoutCompletePage() {
               icon={faSpinner}
               className="text-4xl text-purple-500 animate-spin"
             />
-            <h2 className="text-xl font-semibold text-ink">
+            <h2 className="text-xl font-display font-semibold text-ink">
               Confirming your payment...
             </h2>
-            <p className="text-muted">
+            <p className="font-body text-muted">
               Please wait while we verify your payment.
             </p>
           </div>
@@ -129,31 +147,23 @@ export default function CheckoutCompletePage() {
 
         {status === "success" && (
           <div className="space-y-4">
-            <FontAwesomeIcon
-              icon={faCheckCircle}
-              className="text-5xl text-green-500"
-            />
-            <h2 className="text-2xl font-semibold text-ink">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-50">
+              <FontAwesomeIcon
+                icon={faCheckCircle}
+                className="text-4xl text-green-500"
+              />
+            </div>
+            <h2 className="text-2xl font-display font-semibold text-ink">
               Payment Successful!
             </h2>
-            <p className="text-muted">
-              Your order has been confirmed. {orderStatus === "delivered"
-                ? "Your digital content is ready for download."
-                : "The seller has been notified."}
+            <p className="font-body text-muted">
+              Redirecting to your order{redirectCountdown > 0 ? ` in ${redirectCountdown}s` : ""}...
             </p>
-            <div className="flex flex-col gap-3 mt-6">
-              <button
-                onClick={() => router.push(`/orders/${orderId}`)}
-                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
-              >
-                View Order
-              </button>
-              <button
-                onClick={() => router.push("/")}
-                className="px-6 py-3 text-purple-600 hover:text-purple-700 transition-colors font-medium"
-              >
-                Back to Feed
-              </button>
+            <div className="w-full bg-gray-100 rounded-full h-1 mt-2 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full transition-all duration-[2000ms] ease-linear"
+                style={{ width: status === "success" ? "100%" : "0%" }}
+              />
             </div>
           </div>
         )}
@@ -164,22 +174,22 @@ export default function CheckoutCompletePage() {
               icon={faTimesCircle}
               className="text-5xl text-red-500"
             />
-            <h2 className="text-2xl font-semibold text-ink">
+            <h2 className="text-2xl font-display font-semibold text-ink">
               Payment Failed
             </h2>
-            <p className="text-muted">
+            <p className="font-body text-muted">
               Something went wrong with your payment. No charges were made.
             </p>
             <div className="flex flex-col gap-3 mt-6">
               <button
                 onClick={() => router.push(`/checkout/${orderId}`)}
-                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                className="px-6 py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-xl font-ui font-semibold hover:opacity-90 transition-opacity"
               >
                 Try Again
               </button>
               <button
                 onClick={() => router.push("/")}
-                className="px-6 py-3 text-purple-600 hover:text-purple-700 transition-colors font-medium"
+                className="px-6 py-3 font-ui text-purple-primary hover:text-pink-vivid transition-colors font-medium"
               >
                 Back to Feed
               </button>
@@ -193,16 +203,16 @@ export default function CheckoutCompletePage() {
               icon={faTimesCircle}
               className="text-5xl text-amber-500"
             />
-            <h2 className="text-2xl font-semibold text-ink">
+            <h2 className="text-2xl font-display font-semibold text-ink">
               Checkout Expired
             </h2>
-            <p className="text-muted">
+            <p className="font-body text-muted">
               Your checkout session has expired. Please start a new checkout.
             </p>
             <div className="flex flex-col gap-3 mt-6">
               <button
                 onClick={() => router.push(`/checkout/${orderId}`)}
-                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                className="px-6 py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-xl font-ui font-semibold hover:opacity-90 transition-opacity"
               >
                 Start New Checkout
               </button>

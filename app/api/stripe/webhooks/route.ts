@@ -133,6 +133,24 @@ export async function POST(request: Request) {
           source: `stripe.webhook.checkout_session_completed:${event.id}`,
         });
 
+        // Notify seller: new paid order
+        await supabaseAdmin.from("notifications").insert({
+          user_id: order.seller_id,
+          actor_id: order.buyer_id,
+          type: "order_paid",
+          order_id: order.id,
+          content: `Payment received for order — $${Number(order.amount).toFixed(2)}.`,
+        });
+
+        // Notify buyer: payment confirmed
+        await supabaseAdmin.from("notifications").insert({
+          user_id: order.buyer_id,
+          actor_id: order.seller_id,
+          type: "order_paid",
+          order_id: order.id,
+          content: "Your payment has been confirmed. The order is now active.",
+        });
+
         // Auto-transfer for digital products (immediate delivery)
         const { data: orderWithProduct } = await supabaseAdmin
           .from("orders")
@@ -294,6 +312,28 @@ export async function POST(request: Request) {
             ? "Your payment has been refunded."
             : "A partial refund has been issued for your payment.",
           message_type: "system",
+        });
+
+        // Notify buyer about the refund
+        await supabaseAdmin.from("notifications").insert({
+          user_id: order.buyer_id,
+          actor_id: order.seller_id,
+          type: "order_refunded",
+          order_id: order.id,
+          content: isFullyRefunded
+            ? `Your payment of $${refundAmountForLedger.toFixed(2)} has been refunded.`
+            : `A partial refund of $${refundAmountForLedger.toFixed(2)} has been issued.`,
+        });
+
+        // Notify seller about the refund
+        await supabaseAdmin.from("notifications").insert({
+          user_id: order.seller_id,
+          actor_id: order.buyer_id,
+          type: "order_refunded",
+          order_id: order.id,
+          content: isFullyRefunded
+            ? `A full refund of $${refundAmountForLedger.toFixed(2)} was processed.`
+            : `A partial refund of $${refundAmountForLedger.toFixed(2)} was processed.`,
         });
         break;
       }

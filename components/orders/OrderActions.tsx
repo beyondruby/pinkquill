@@ -389,24 +389,31 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
         </div>
       )}
 
-      {/* REFUND (buyer, post-payment non-disputed) */}
-      {isBuyer && ["paid", "completed", "delivered"].includes(order.status) && !showRefund && (
+      {/* REFUND (buyer OR seller, post-payment non-disputed) */}
+      {(isBuyer || isSeller) && ["paid", "completed", "delivered", "in_progress", "submitted", "shipped"].includes(order.status) && !showRefund && (
         <button
           onClick={() => setShowRefund(true)}
           className="text-sm font-ui text-orange-500 hover:text-orange-600"
         >
-          Request Refund
+          {isSeller ? "Issue Refund" : "Request Refund"}
         </button>
       )}
 
       {showRefund && (
         <div className="space-y-3 p-4 rounded-xl border border-orange-200 bg-orange-50">
-          <p className="text-sm font-ui font-semibold text-orange-600">Request a refund?</p>
+          <p className="text-sm font-ui font-semibold text-orange-600">
+            {isSeller ? "Issue a refund to the buyer?" : "Request a refund?"}
+          </p>
+          {isSeller && (
+            <p className="text-xs font-body text-orange-500/80">
+              This will refund ${Number(order.amount).toFixed(2)} to the buyer and cancel the order.
+            </p>
+          )}
           <textarea
             rows={2}
             value={refundReason}
             onChange={(e) => setRefundReason(e.target.value)}
-            placeholder="Reason for refund (optional)"
+            placeholder={isSeller ? "Reason for refund (visible to buyer)" : "Reason for refund (optional)"}
             className="w-full px-4 py-2.5 rounded-xl border border-orange-200 text-sm font-body focus:outline-none focus:ring-2 focus:ring-orange-200"
           />
           <div className="flex gap-2">
@@ -415,7 +422,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
               disabled={refunding}
               className="px-4 py-2.5 rounded-xl text-sm font-ui font-semibold text-white bg-orange-500 disabled:opacity-60"
             >
-              {refunding ? "Processing..." : "Confirm Refund"}
+              {refunding ? "Processing..." : isSeller ? "Confirm Refund" : "Request Refund"}
             </button>
             <button
               onClick={() => { setShowRefund(false); setRefundReason(""); }}
