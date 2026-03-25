@@ -32,7 +32,6 @@ function getSteps(orderStatus: OrderStatus, listingType: string): Step[] {
     }));
   }
 
-  // Physical or digital product
   const isDigital = listingType === "digital";
   const steps = isDigital
     ? ["Placed", "Paid", "Processing", "Completed"]
@@ -49,20 +48,37 @@ function getSteps(orderStatus: OrderStatus, listingType: string): Step[] {
   }));
 }
 
+const TERMINAL_STATUSES = ["cancelled", "declined", "refunded", "disputed", "refund_requested", "resolved"];
+
+const TERMINAL_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  cancelled: { label: "Cancelled", color: "text-red-600", bg: "bg-red-50", border: "border-red-100" },
+  declined: { label: "Declined", color: "text-red-600", bg: "bg-red-50", border: "border-red-100" },
+  refunded: { label: "Refunded", color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
+  disputed: { label: "Disputed", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+  refund_requested: { label: "Refund Requested", color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
+  resolved: { label: "Resolved", color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-100" },
+};
+
 export default function OrderTracker({
   status,
   listingType,
+  compact = false,
 }: {
   status: OrderStatus;
   listingType: string;
+  compact?: boolean;
 }) {
-  const terminal = ["cancelled", "declined", "refunded", "disputed", "refund_requested", "resolved"];
-  if (terminal.includes(status)) {
+  if (TERMINAL_STATUSES.includes(status)) {
+    const config = TERMINAL_CONFIG[status] || TERMINAL_CONFIG.cancelled;
     return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200/50">
-        <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-        <span className="text-sm font-ui font-medium text-red-700 capitalize">
-          {status.replace(/_/g, " ")}
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${config.bg} border ${config.border}`}>
+        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
+        </svg>
+        <span className={`text-xs font-ui font-medium ${config.color}`}>
+          {config.label}
         </span>
       </div>
     );
@@ -71,34 +87,44 @@ export default function OrderTracker({
   const steps = getSteps(status, listingType);
 
   return (
-    <div className="flex items-center gap-1 w-full">
+    <div className="flex items-center w-full gap-0">
       {steps.map((step, i) => (
         <div key={step.label} className="flex items-center flex-1 min-w-0">
-          <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-            <div
-              className={`w-3.5 h-3.5 rounded-full border-2 shrink-0 ${
-                step.status === "done"
-                  ? "bg-green-500 border-green-500"
-                  : step.status === "active"
-                    ? "bg-purple-primary border-purple-primary"
-                    : "bg-white border-gray-300"
-              }`}
-            />
-            <span
-              className={`text-[10px] font-ui text-center leading-tight truncate w-full ${
-                step.status === "active"
-                  ? "font-semibold text-purple-primary"
-                  : step.status === "done"
-                    ? "text-green-700"
-                    : "text-muted"
-              }`}
-            >
-              {step.label}
-            </span>
+          {/* Step dot + label */}
+          <div className="flex flex-col items-center gap-1 min-w-0">
+            <div className="relative">
+              {step.status === "done" ? (
+                <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                  <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              ) : step.status === "active" ? (
+                <div className="w-5 h-5 rounded-full bg-purple-primary ring-4 ring-purple-primary/15 flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                </div>
+              ) : (
+                <div className="w-5 h-5 rounded-full border-2 border-gray-200 bg-white" />
+              )}
+            </div>
+            {!compact && (
+              <span
+                className={`text-[10px] font-ui text-center leading-tight w-full ${
+                  step.status === "active"
+                    ? "font-semibold text-purple-primary"
+                    : step.status === "done"
+                      ? "font-medium text-green-600"
+                      : "text-gray-400"
+                }`}
+              >
+                {step.label}
+              </span>
+            )}
           </div>
+          {/* Connector line */}
           {i < steps.length - 1 && (
             <div
-              className={`h-0.5 flex-1 min-w-2 mt-[-14px] ${
+              className={`h-[2px] flex-1 min-w-3 ${compact ? "" : "mt-[-14px]"} ${
                 step.status === "done" ? "bg-green-400" : "bg-gray-200"
               }`}
             />

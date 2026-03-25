@@ -3,82 +3,145 @@
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerEarnings, useTransactionHistory, useSellerOnboarding } from "@/lib/hooks/usePayments";
 import type { Transaction } from "@/lib/types/store";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 
-function EarningCard({
+// ---------------------------------------------------------------------------
+// Transaction type config
+// ---------------------------------------------------------------------------
+
+const TX_CONFIG: Record<string, { label: string; color: string; sign: string; icon: React.ReactNode }> = {
+  payment: {
+    label: "Payment received",
+    color: "text-green-600",
+    sign: "+",
+    icon: (
+      <svg className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+      </svg>
+    ),
+  },
+  platform_fee: {
+    label: "Platform fee",
+    color: "text-muted",
+    sign: "-",
+    icon: (
+      <svg className="w-4 h-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a4 4 0 0 0-8 0v2" />
+      </svg>
+    ),
+  },
+  seller_payout: {
+    label: "Payout",
+    color: "text-blue-600",
+    sign: "+",
+    icon: (
+      <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    ),
+  },
+  refund: {
+    label: "Refund",
+    color: "text-orange-600",
+    sign: "-",
+    icon: (
+      <svg className="w-4 h-4 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+      </svg>
+    ),
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Metric Card
+// ---------------------------------------------------------------------------
+
+function MetricCard({
   label,
   value,
+  icon,
   accent,
 }: {
   label: string;
   value: string;
+  icon: React.ReactNode;
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border p-5 ${
+    <div className={`rounded-xl border p-4 sm:p-5 ${
       accent
-        ? "border-purple-primary/20 bg-gradient-to-br from-purple-50 to-pink-50"
+        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
         : "border-black/[0.06] bg-white"
     }`}>
-      <p className="text-xs font-ui uppercase tracking-wider text-muted">{label}</p>
-      <p className={`text-2xl font-display font-bold mt-1 ${
-        accent ? "text-purple-primary" : "text-ink"
-      }`}>
-        {value}
-      </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{label}</p>
+          <p className={`text-2xl font-display font-bold mt-1 ${accent ? "text-purple-primary" : "text-ink"}`}>
+            {value}
+          </p>
+        </div>
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-gray-100 text-muted"
+        }`}>
+          {icon}
+        </div>
+      </div>
     </div>
   );
 }
 
-const TX_TYPE_LABELS: Record<string, string> = {
-  payment: "Payment received",
-  platform_fee: "Platform fee",
-  seller_payout: "Payout",
-  refund: "Refund",
-};
-
-const TX_TYPE_COLORS: Record<string, string> = {
-  payment: "text-green-600",
-  platform_fee: "text-red-500",
-  seller_payout: "text-blue-600",
-  refund: "text-orange-600",
-};
+// ---------------------------------------------------------------------------
+// Transaction Row
+// ---------------------------------------------------------------------------
 
 function TransactionRow({ tx }: { tx: Transaction }) {
+  const config = TX_CONFIG[tx.type] || { label: tx.type, color: "text-ink", sign: "", icon: null };
+
   return (
-    <div className="flex items-center gap-4 py-3 px-4 border-b border-black/[0.04] last:border-0">
+    <div className="flex items-center gap-3 py-3 px-4 sm:px-5 border-b border-black/[0.04] last:border-0">
+      {/* Icon */}
+      <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+        {config.icon}
+      </div>
+
+      {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-ui text-sm font-medium text-ink">
-          {TX_TYPE_LABELS[tx.type] || tx.type}
-        </p>
+        <p className="font-ui text-sm font-medium text-ink">{config.label}</p>
         <p className="text-xs text-muted mt-0.5">
-          {new Date(tx.created_at).toLocaleDateString()} &middot; {tx.status}
+          {new Date(tx.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          {tx.status !== "completed" && (
+            <> · <span className="capitalize">{tx.status}</span></>
+          )}
         </p>
       </div>
-      <span className={`font-ui text-sm font-semibold ${TX_TYPE_COLORS[tx.type] || "text-ink"}`}>
-        {tx.type === "platform_fee" || tx.type === "refund" ? "-" : "+"}${Number(tx.amount).toFixed(2)}
+
+      {/* Amount */}
+      <span className={`font-ui text-sm font-semibold ${config.color}`}>
+        {config.sign}${Number(tx.amount).toFixed(2)}
       </span>
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Main Component
+// ---------------------------------------------------------------------------
 
 export default function EarningsOverview() {
   const { user } = useAuth();
   const { earnings, loading: earningsLoading } = useSellerEarnings(user?.id);
   const { transactions, loading: txLoading, hasMore, loadMore } = useTransactionHistory(user?.id);
   const { openDashboard, account } = useSellerOnboarding();
-  const provider = account?.provider || "placeholder";
-  const providerLabel = provider === "stripe" ? "Stripe" : "Payment";
   const isPlaceholder = Boolean(account?.placeholder_mode);
+  const providerLabel = account?.provider === "stripe" ? "Stripe" : "Payment";
 
+  // Loading
   if (earningsLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 bg-gray-100 rounded-lg animate-pulse" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="h-7 w-32 bg-gray-100 rounded-lg animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
+            <div key={i} className="h-[100px] bg-gray-50 rounded-xl animate-pulse border border-black/[0.04]" />
           ))}
         </div>
       </div>
@@ -87,59 +150,93 @@ export default function EarningsOverview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="font-display text-2xl text-ink">Earnings</h1>
+      {/* Header */}
+      <div className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-ink">Earnings</h1>
+          <p className="text-sm font-body text-muted mt-0.5">Track your revenue and payouts</p>
+        </div>
         <button
           onClick={openDashboard}
-          className="px-4 py-2 bg-white border border-black/[0.08] rounded-xl text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors inline-flex items-center gap-2"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-gray-50 transition-colors"
         >
           {isPlaceholder ? "Payment Setup" : `${providerLabel} Dashboard`}
-          <FontAwesomeIcon icon={faExternalLinkAlt} className="text-xs text-muted" />
+          <svg className="w-3.5 h-3.5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
         </button>
       </div>
 
-      {/* Earnings Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <EarningCard
+      {/* Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <MetricCard
           label="Total Earned"
           value={`$${(earnings?.total_earned ?? 0).toFixed(2)}`}
           accent
+          icon={
+            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          }
         />
-        <EarningCard
+        <MetricCard
           label="Pending"
           value={`$${(earnings?.pending_earnings ?? 0).toFixed(2)}`}
+          icon={
+            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+          }
         />
-        <EarningCard
+        <MetricCard
           label="Completed Orders"
           value={`${earnings?.completed_orders ?? 0}`}
+          icon={
+            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          }
         />
-        <EarningCard
+        <MetricCard
           label="Avg. Order Value"
           value={`$${(earnings?.avg_order_value ?? 0).toFixed(2)}`}
+          icon={
+            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+            </svg>
+          }
         />
       </div>
 
       {/* Fee Info */}
-      <div className="rounded-xl bg-purple-50 border border-purple-100 p-4 text-sm font-body text-purple-900">
-        <strong>Fee structure:</strong> 5% on all sales.
-        {isPlaceholder
-          ? " Payments are currently in placeholder mode while live provider setup is pending."
-          : " Payment processing fees depend on your Stripe account and region."}
+      <div className="flex items-start gap-3 rounded-lg bg-purple-50/60 border border-purple-100 p-4">
+        <svg className="w-4.5 h-4.5 text-purple-primary shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+        <p className="text-sm font-body text-purple-900">
+          <strong>Fee structure:</strong> 5% on all sales.
+          {isPlaceholder
+            ? " Payments are currently in placeholder mode while live provider setup is pending."
+            : " Payment processing fees depend on your Stripe account and region."}
+        </p>
       </div>
 
       {/* Transaction History */}
-      <section className="rounded-2xl border border-black/[0.06] bg-white overflow-hidden">
-        <div className="px-5 py-4 border-b border-black/[0.04]">
-          <h2 className="font-display text-lg text-ink">Transaction History</h2>
+      <section className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-black/[0.06]">
+          <h2 className="font-display text-base font-bold text-ink">Transaction History</h2>
         </div>
 
         {txLoading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-purple-primary mx-auto" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-200 border-t-purple-primary mx-auto" />
           </div>
         ) : transactions.length === 0 ? (
-          <div className="p-12 text-center">
-            <p className="font-body text-muted text-sm">No transactions yet.</p>
+          <div className="p-16 text-center">
+            <svg className="w-10 h-10 text-gray-200 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            <p className="font-body text-sm text-muted">No transactions yet.</p>
           </div>
         ) : (
           <>
@@ -147,12 +244,12 @@ export default function EarningsOverview() {
               <TransactionRow key={tx.id} tx={tx} />
             ))}
             {hasMore && (
-              <div className="p-4 text-center">
+              <div className="p-4 text-center border-t border-black/[0.04]">
                 <button
                   onClick={loadMore}
-                  className="text-sm font-ui text-purple-primary hover:underline"
+                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-purple-50/50 hover:bg-purple-50 transition-colors"
                 >
-                  Load more
+                  Load More
                 </button>
               </div>
             )}
