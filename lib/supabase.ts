@@ -82,6 +82,33 @@ function isUploadRequest(url: RequestInfo | URL, options?: RequestInit): boolean
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _client: any = null;
 
+// Singleton refresh lock: when multiple requests get 401 simultaneously,
+// only ONE refresh call is made. All others wait for the same promise.
+// Without this, N concurrent 401s trigger N refreshSession() calls — each
+// generating CORS preflight + POST — creating a thundering-herd that can
+// produce 40+ token refresh requests in a single second and freeze the page.
+let _refreshPromise: Promise<string | null> | null = null;
+
+function deduplicatedRefresh(): Promise<string | null> {
+  if (_refreshPromise) return _refreshPromise;
+
+  _refreshPromise = (async () => {
+    try {
+      const { data } = await _client.auth.refreshSession();
+      return data?.session?.access_token ?? null;
+    } catch {
+      return null;
+    } finally {
+      // Clear after a short delay so back-to-back 401 batches within
+      // the same tick still share the same refresh, but a genuinely
+      // new expiry later gets a fresh call.
+      setTimeout(() => { _refreshPromise = null; }, 500);
+    }
+  })();
+
+  return _refreshPromise;
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -133,35 +160,31 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         maybeLogBadRequest(url, options, response.status);
 
         // 401 retry: if the JWT was expired, refresh the session and retry once.
-        // The Supabase client sets the Authorization header before calling fetch,
-        // so we need to replace it with the refreshed token.
+        // Uses deduplicatedRefresh() so N concurrent 401s only trigger ONE
+        // refreshSession() call instead of N (prevents thundering-herd).
         if (response.status === 401 && _client && typeof window !== 'undefined') {
           const retryHeader = options.headers instanceof Headers
             ? options.headers.get('x-sb-retry')
             : null;
           if (!retryHeader) {
-            try {
-              const { data } = await _client.auth.refreshSession();
-              if (data?.session?.access_token) {
-                const retryHeaders = new Headers(options.headers);
-                retryHeaders.set('Authorization', `Bearer ${data.session.access_token}`);
-                retryHeaders.set('x-sb-retry', '1');
-                const retryController = new AbortController();
-                const retryTimeout = setTimeout(() => retryController.abort(), timeout);
-                try {
-                  const retryResponse = await fetch(url, {
-                    ...options,
-                    headers: retryHeaders,
-                    signal: retryController.signal,
-                  });
-                  clearTimeout(retryTimeout);
-                  return retryResponse;
-                } catch {
-                  clearTimeout(retryTimeout);
-                }
+            const newToken = await deduplicatedRefresh();
+            if (newToken) {
+              const retryHeaders = new Headers(options.headers);
+              retryHeaders.set('Authorization', `Bearer ${newToken}`);
+              retryHeaders.set('x-sb-retry', '1');
+              const retryController = new AbortController();
+              const retryTimeout = setTimeout(() => retryController.abort(), timeout);
+              try {
+                const retryResponse = await fetch(url, {
+                  ...options,
+                  headers: retryHeaders,
+                  signal: retryController.signal,
+                });
+                clearTimeout(retryTimeout);
+                return retryResponse;
+              } catch {
+                clearTimeout(retryTimeout);
               }
-            } catch {
-              // Refresh failed — return original 401
             }
           }
         }
