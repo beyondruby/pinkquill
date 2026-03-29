@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSellerProducts, useDeleteProduct, useUpdateProductStatus } from "@/lib/hooks/useProducts";
 import { Product, ProductStatus } from "@/lib/types/store";
 import { getCategoryConfig, CATEGORY_ICONS } from "@/lib/store/categories";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 interface StoreTabProps {
   userId: string;
@@ -214,7 +215,7 @@ function ProductCard({
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const { deleteProduct, deleting } = useDeleteProduct();
@@ -227,7 +228,6 @@ function ProductCard({
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
-        setConfirmDelete(false);
       }
     };
 
@@ -276,21 +276,19 @@ function ProductCard({
     setMenuOpen(false);
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setMenuOpen(false);
+    setShowDeleteModal(true);
+  };
 
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      return;
-    }
-
+  const handleDeleteConfirm = async () => {
     const success = await deleteProduct(product.id);
     if (success) {
       await onRefetch();
     }
-    setMenuOpen(false);
-    setConfirmDelete(false);
+    setShowDeleteModal(false);
   };
 
   const handleActivate = async (e: React.MouseEvent) => {
@@ -424,7 +422,6 @@ function ProductCard({
               e.preventDefault();
               e.stopPropagation();
               setMenuOpen(!menuOpen);
-              setConfirmDelete(false);
             }}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200
               ${menuOpen
@@ -482,20 +479,30 @@ function ProductCard({
 
               {/* Delete */}
               <button
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 disabled={deleting}
-                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors disabled:opacity-50
-                  ${confirmDelete ? "bg-red-50 text-red-600" : "text-red-500 hover:bg-red-50"}`}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                {deleting ? "Deleting..." : confirmDelete ? "Confirm" : "Delete"}
+                Delete
               </button>
             </div>
           )}
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Product?"
+        description="This action cannot be undone. This will permanently delete your product listing and remove all associated data."
+        confirmText="Delete"
+        isDanger
+        loading={deleting}
+      />
     </div>
   );
 }

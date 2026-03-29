@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useCommunityMembers, useCommunityModeration, useModLog } from "@/lib/hooks";
 import { stripHtml } from "@/lib/utils/sanitize";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 type TabType = 'mod-log' | 'muted' | 'banned';
 
@@ -45,6 +46,7 @@ export default function CommunityModerationSettingsPage() {
 
   const { checkExpiredMutes, unmuteUser, unbanUser } = useCommunityModeration(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);
+  const [unbanTarget, setUnbanTarget] = useState<string | null>(null);
 
   // Check and auto-unmute expired mutes on page load
   useEffect(() => {
@@ -73,13 +75,13 @@ export default function CommunityModerationSettingsPage() {
     setActionLoading(false);
   };
 
-  const handleUnban = async (userId: string) => {
-    if (confirm('Are you sure you want to unban this user? They will be able to rejoin the community.')) {
-      setActionLoading(true);
-      const result = await unbanUser(userId);
-      if (result.success) refetchBanned();
-      setActionLoading(false);
-    }
+  const handleUnban = async () => {
+    if (!unbanTarget) return;
+    setActionLoading(true);
+    const result = await unbanUser(unbanTarget);
+    if (result.success) refetchBanned();
+    setActionLoading(false);
+    setUnbanTarget(null);
   };
 
   return (
@@ -350,7 +352,7 @@ export default function CommunityModerationSettingsPage() {
 
                 {/* Actions */}
                 <button
-                  onClick={() => activeTab === 'muted' ? handleUnmute(member.user_id) : handleUnban(member.user_id)}
+                  onClick={() => activeTab === 'muted' ? handleUnmute(member.user_id) : setUnbanTarget(member.user_id)}
                   disabled={actionLoading}
                   className={`px-4 py-2 rounded-lg font-ui text-sm font-medium transition-colors disabled:opacity-50 ${
                     activeTab === 'muted'
@@ -400,6 +402,17 @@ export default function CommunityModerationSettingsPage() {
           Back to Settings
         </button>
       </div>
+
+      <ConfirmationModal
+        isOpen={!!unbanTarget}
+        onClose={() => setUnbanTarget(null)}
+        onConfirm={handleUnban}
+        title="Unban User?"
+        description="Are you sure you want to unban this user? They will be able to rejoin the community."
+        confirmText="Unban"
+        isDanger
+        loading={actionLoading}
+      />
     </div>
   );
 }

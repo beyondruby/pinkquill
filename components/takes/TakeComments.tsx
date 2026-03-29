@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTakeComments } from "@/lib/hooks/useTakes";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 interface TakeCommentsProps {
   isOpen: boolean;
@@ -73,11 +74,16 @@ export default function TakeComments({ isOpen, onClose, takeId }: TakeCommentsPr
     setSubmitting(false);
   }, [input, submitting, addComment]);
 
-  const handleDelete = useCallback(async (commentId: string) => {
-    if (confirm("Delete this comment?")) {
-      await deleteComment(commentId);
-    }
-  }, [deleteComment]);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [commentDeleting, setCommentDeleting] = useState(false);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setCommentDeleting(true);
+    await deleteComment(deleteTarget);
+    setCommentDeleting(false);
+    setDeleteTarget(null);
+  }, [deleteTarget, deleteComment]);
 
   return (
     <dialog ref={dialogRef} className="take-comments-modal" onClick={(e) => {
@@ -152,7 +158,7 @@ export default function TakeComments({ isOpen, onClose, takeId }: TakeCommentsPr
                   {comment.user_id === user?.id && (
                     <button
                       className="take-comment-delete"
-                      onClick={() => handleDelete(comment.id)}
+                      onClick={() => setDeleteTarget(comment.id)}
                     >
                       Delete
                     </button>
@@ -184,6 +190,16 @@ export default function TakeComments({ isOpen, onClose, takeId }: TakeCommentsPr
           </div>
         )}
       </div>
+      <ConfirmationModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Comment?"
+        description="This action cannot be undone. Your comment will be permanently deleted."
+        confirmText="Delete"
+        isDanger
+        loading={commentDeleting}
+      />
     </dialog>
   );
 }

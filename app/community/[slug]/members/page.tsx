@@ -8,6 +8,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useCommunityMembers, useCommunityModeration, useJoinRequests, ModeratorPermissions } from "@/lib/hooks";
 import InviteModal from "@/components/communities/InviteModal";
 import ModeratorPermissionsModal from "@/components/communities/ModeratorPermissionsModal";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
 type RoleFilter = 'all' | 'admin' | 'moderator' | 'member';
@@ -61,6 +62,7 @@ export default function CommunityMembersPage() {
   const { requests: joinRequests, approve: approveRequest, reject: rejectRequest, refetch: refetchRequests } = useJoinRequests(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [unbanTarget, setUnbanTarget] = useState<string | null>(null);
 
   // Moderator permissions modal state
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
@@ -236,15 +238,15 @@ export default function CommunityMembersPage() {
     setActionLoading(false);
   };
 
-  const handleUnban = async (userId: string) => {
-    if (confirm('Are you sure you want to unban this user? They will be able to rejoin the community.')) {
-      setActionLoading(true);
-      const result = await unbanUser(userId);
-      if (result.success) {
-        refetchBanned();
-      }
-      setActionLoading(false);
+  const handleUnban = async () => {
+    if (!unbanTarget) return;
+    setActionLoading(true);
+    const result = await unbanUser(unbanTarget);
+    if (result.success) {
+      refetchBanned();
     }
+    setActionLoading(false);
+    setUnbanTarget(null);
   };
 
   const handleApproveRequest = async (requestId: string, userId: string) => {
@@ -805,7 +807,7 @@ export default function CommunityMembersPage() {
 
                   {/* Unban Button */}
                   <button
-                    onClick={() => handleUnban(member.user_id)}
+                    onClick={() => setUnbanTarget(member.user_id)}
                     disabled={actionLoading}
                     className="px-4 py-2 rounded-lg bg-red-100 text-red-700 font-ui text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
                   >
@@ -1040,6 +1042,17 @@ export default function CommunityMembersPage() {
         initialPermissions={existingPermissions}
         loading={actionLoading}
         isEditing={editingPermissions}
+      />
+
+      <ConfirmationModal
+        isOpen={!!unbanTarget}
+        onClose={() => setUnbanTarget(null)}
+        onConfirm={handleUnban}
+        title="Unban User?"
+        description="Are you sure you want to unban this user? They will be able to rejoin the community."
+        confirmText="Unban"
+        isDanger
+        loading={actionLoading}
       />
     </div>
   );

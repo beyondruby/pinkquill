@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useCommunityMembers, useJoinRequests, useCommunityModeration } from "@/lib/hooks";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 type TabType = 'moderators' | 'requests';
 
@@ -26,6 +27,7 @@ export default function CommunityMembersSettingsPage() {
 
   const { promoteUser, demoteUser } = useCommunityModeration(community?.id || '');
   const [actionLoading, setActionLoading] = useState(false);
+  const [demoteTarget, setDemoteTarget] = useState<string | null>(null);
 
   if (!community) return null;
 
@@ -44,13 +46,13 @@ export default function CommunityMembersSettingsPage() {
   };
   void _handlePromote; // Reserved for future use
 
-  const handleDemote = async (userId: string) => {
-    if (confirm('Are you sure you want to remove moderator role from this user?')) {
-      setActionLoading(true);
-      const result = await demoteUser(userId);
-      if (result.success) refetchMods();
-      setActionLoading(false);
-    }
+  const handleDemote = async () => {
+    if (!demoteTarget) return;
+    setActionLoading(true);
+    const result = await demoteUser(demoteTarget);
+    if (result.success) refetchMods();
+    setActionLoading(false);
+    setDemoteTarget(null);
   };
 
   const handleApprove = async (requestId: string, userId: string) => {
@@ -153,7 +155,7 @@ export default function CommunityMembersSettingsPage() {
                   </div>
 
                   <button
-                    onClick={() => handleDemote(member.user_id)}
+                    onClick={() => setDemoteTarget(member.user_id)}
                     disabled={actionLoading}
                     className="px-4 py-2 rounded-lg bg-red-100 text-red-700 font-ui text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
                   >
@@ -285,6 +287,17 @@ export default function CommunityMembersSettingsPage() {
           Back to Settings
         </button>
       </div>
+
+      <ConfirmationModal
+        isOpen={!!demoteTarget}
+        onClose={() => setDemoteTarget(null)}
+        onConfirm={handleDemote}
+        title="Remove Moderator?"
+        description="Are you sure you want to remove moderator role from this user? They will become a regular member."
+        confirmText="Remove"
+        isDanger
+        loading={actionLoading}
+      />
     </div>
   );
 }

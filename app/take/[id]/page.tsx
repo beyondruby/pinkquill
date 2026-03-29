@@ -13,6 +13,7 @@ import TakeCommentItem from "@/components/takes/TakeCommentItem";
 import PostTags from "@/components/feed/PostTags";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { icons } from "@/components/ui/Icons";
@@ -468,6 +469,7 @@ export default function SingleTakePage({ params }: PageProps) {
         supabase.from("take_comments").delete().eq("take_id", take.id),
         supabase.from("take_saves").delete().eq("take_id", take.id),
         supabase.from("take_relays").delete().eq("take_id", take.id),
+        supabase.from("notifications").delete().eq("post_id", take.id),
       ]);
 
       await supabase.from("takes").delete().eq("id", take.id);
@@ -927,43 +929,16 @@ export default function SingleTakePage({ params }: PageProps) {
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] animate-fadeIn"
-            onClick={() => !deleting && setShowDeleteConfirm(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white rounded-2xl shadow-2xl z-[1001] animate-scaleIn p-6">
-            <h3 className="font-display text-[1.3rem] text-ink mb-3">Delete Take?</h3>
-            <p className="font-body text-[0.95rem] text-muted mb-6">
-              This action cannot be undone. This will permanently delete your take and remove all associated data including comments and reactions.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={deleting}
-                className="px-5 py-2.5 rounded-full font-ui text-[0.9rem] text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="px-5 py-2.5 rounded-full font-ui text-[0.9rem] text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {deleting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Delete Take?"
+        description="This action cannot be undone. This will permanently delete your take and remove all associated data including comments and reactions."
+        confirmText="Delete"
+        isDanger
+        loading={deleting}
+      />
 
       {/* Block Confirmation Modal */}
       {showBlockConfirm && (

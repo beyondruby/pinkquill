@@ -541,7 +541,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
             user_id: take.author_id,
             actor_id: userId,
             type: "relay",
-            take_id: takeId,
+            post_id: takeId,
           }).then(({ error }) => {
             if (error) console.error("[useTakes.toggleRelay] Failed to create notification:", error.message);
           });
@@ -576,12 +576,28 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         supabase.from("take_reactions").delete().eq("take_id", takeId).then(({ error }) => {
           if (error) return supabase.from("take_admires").delete().eq("take_id", takeId);
         }),
-        supabase.from("notifications").delete().eq("take_id", takeId),
+        supabase.from("notifications").delete().eq("post_id", takeId),
       ]);
 
-      // Delete the take
+      // Delete the take record
       const { error } = await supabase.from("takes").delete().eq("id", takeId);
       if (error) throw error;
+
+      // Clean up storage files (non-blocking)
+      const filesToRemove: string[] = [];
+      if (take.video_url) {
+        const match = take.video_url.match(/\/takes\/(.+)$/);
+        if (match) filesToRemove.push(match[1]);
+      }
+      if (take.thumbnail_url) {
+        const match = take.thumbnail_url.match(/\/takes\/(.+)$/);
+        if (match) filesToRemove.push(match[1]);
+      }
+      if (filesToRemove.length > 0) {
+        supabase.storage.from("takes").remove(filesToRemove).then(({ error: storageErr }) => {
+          if (storageErr) console.error("[useTakes.deleteTake] Storage cleanup error:", storageErr);
+        });
+      }
     } catch (err) {
       console.error("[useTakes.deleteTake] Error:", err);
       // Revert - add back to list

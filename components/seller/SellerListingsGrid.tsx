@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerProducts, useUpdateProductStatus, useDeleteProduct } from "@/lib/hooks";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import type { Product, ProductStatus } from "@/lib/types/store";
 
 // ---------------------------------------------------------------------------
@@ -36,6 +37,7 @@ function ListingCard({
   const router = useRouter();
   const [showActions, setShowActions] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const primaryImage = product.primary_image_url || product.media?.[0]?.media_url;
   const isService = product.listing_type === "service";
@@ -49,10 +51,10 @@ function ListingCard({
   }, [product.id, onStatusChange]);
 
   const handleDelete = useCallback(async () => {
-    if (!confirm("Delete this listing? This cannot be undone.")) return;
     setBusy(true);
     await onDelete(product.id);
     setBusy(false);
+    setShowDeleteConfirm(false);
   }, [product.id, onDelete]);
 
   return (
@@ -177,7 +179,7 @@ function ListingCard({
                 )}
                 <hr className="my-1 border-black/[0.04]" />
                 <button
-                  onClick={handleDelete}
+                  onClick={() => { setShowActions(false); setShowDeleteConfirm(true); }}
                   className="block w-full text-left px-3.5 py-2 text-sm font-ui text-red-600 hover:bg-red-50"
                 >
                   Delete
@@ -187,6 +189,17 @@ function ListingCard({
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Delete Listing?"
+        description="This action cannot be undone. This will permanently delete your listing and remove all associated data."
+        confirmText="Delete"
+        isDanger
+        loading={busy}
+      />
     </div>
   );
 }

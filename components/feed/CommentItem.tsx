@@ -7,6 +7,7 @@ import type { Comment } from "@/lib/hooks";
 import { useBlock } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import ReportModal from "@/components/ui/ReportModal";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { actionToast } from "@/lib/utils/toast";
 
 interface CommentItemProps {
@@ -115,6 +116,7 @@ function CommentItemComponent({
     setShowReplyInput(!showReplyInput);
   };
   const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
@@ -211,8 +213,15 @@ function CommentItemComponent({
 
   const handleDelete = () => {
     if (onDelete && isOwner) {
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (onDelete) {
       onDelete(comment.id);
     }
+    setShowDeleteConfirm(false);
   };
 
   const handleModeratorDelete = async () => {
@@ -539,6 +548,17 @@ function CommentItemComponent({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Comment?"
+        description="This action cannot be undone. Your comment and any replies will be permanently deleted."
+        confirmText="Delete"
+        isDanger
+      />
     </div>
   );
 }

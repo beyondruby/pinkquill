@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, useDeleteCollection, useDeleteCollectionItem, useUpdateCollection, useUpdateCollectionItem, usePinnedPosts, useReorderCollections } from "@/lib/hooks";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 // Type for follows table real-time payload
 interface FollowRealtimePayload {
@@ -527,6 +528,10 @@ function CollectionCard({
 }: CollectionCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteItemTarget, setDeleteItemTarget] = useState<string | null>(null);
+  const [collectionDeleting, setCollectionDeleting] = useState(false);
+  const [itemDeleting, setItemDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -703,7 +708,7 @@ function CollectionCard({
                       <button
                         onClick={() => {
                           setShowMenu(false);
-                          onDelete();
+                          setShowDeleteConfirm(true);
                         }}
                         className="w-full px-4 py-2.5 text-left font-ui text-sm text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors"
                       >
@@ -765,7 +770,7 @@ function CollectionCard({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDeleteItem(item.id);
+                          setDeleteItemTarget(item.id);
                         }}
                         className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white opacity-0 group-hover/item:opacity-100 hover:bg-red-500 transition-all"
                         title="Delete item"
@@ -818,6 +823,41 @@ function CollectionCard({
 
       {/* Decorative gradient glow on hover */}
       <div className="absolute -inset-1 bg-gradient-to-r from-purple-primary/20 to-pink-vivid/20 rounded-[28px] opacity-0 group-hover:opacity-50 blur-xl transition-opacity duration-500 -z-10" />
+
+      {/* Delete Collection Confirmation */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={async () => {
+          setCollectionDeleting(true);
+          await onDelete();
+          setCollectionDeleting(false);
+          setShowDeleteConfirm(false);
+        }}
+        title="Delete Collection?"
+        description="This action cannot be undone. This will permanently delete this collection and all its items."
+        confirmText="Delete"
+        isDanger
+        loading={collectionDeleting}
+      />
+
+      {/* Delete Item Confirmation */}
+      <ConfirmationModal
+        isOpen={!!deleteItemTarget}
+        onClose={() => setDeleteItemTarget(null)}
+        onConfirm={async () => {
+          if (!deleteItemTarget) return;
+          setItemDeleting(true);
+          await onDeleteItem(deleteItemTarget);
+          setItemDeleting(false);
+          setDeleteItemTarget(null);
+        }}
+        title="Delete Item?"
+        description="This action cannot be undone. This item will be permanently removed from the collection."
+        confirmText="Delete"
+        isDanger
+        loading={itemDeleting}
+      />
     </div>
   );
 }
@@ -2816,17 +2856,12 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       refetchCollections();
                     }}
                     onDelete={async () => {
-                      if (confirm("Are you sure you want to delete this collection? This cannot be undone.")) {
-                        // Use the hook outside - for now just refetch
-                        const { error } = await supabase.from("collections").delete().eq("id", collection.id);
-                        if (!error) refetchCollections();
-                      }
+                      const { error } = await supabase.from("collections").delete().eq("id", collection.id);
+                      if (!error) refetchCollections();
                     }}
                     onDeleteItem={async (itemId: string) => {
-                      if (confirm("Are you sure you want to delete this item?")) {
-                        const { error } = await supabase.from("collection_items").delete().eq("id", itemId);
-                        if (!error) refetchCollections();
-                      }
+                      const { error } = await supabase.from("collection_items").delete().eq("id", itemId);
+                      if (!error) refetchCollections();
                     }}
                     router={router}
                   />

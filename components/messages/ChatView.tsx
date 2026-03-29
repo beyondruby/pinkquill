@@ -12,6 +12,7 @@ import TypingIndicator from "./TypingIndicator";
 import SharedPostCard from "./SharedPostCard";
 import Loading from "@/components/ui/Loading";
 import EmojiPicker from "@/components/ui/EmojiPicker";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { DEFAULT_AVATAR } from "@/lib/utils/image";
 
 // Local type for chat participants (simplified from ConversationParticipant)
@@ -1241,45 +1242,16 @@ export default function ChatView({
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
-            onClick={() => !deleteLoading && setShowDeleteConfirm(false)}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] p-5 md:p-6">
-            <h3 className="font-display text-xl text-ink mb-3">
-              Delete Conversation?
-            </h3>
-            <p className="font-body text-sm text-muted mb-6">
-              This will permanently delete all messages in this conversation. This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={deleteLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConversation}
-                disabled={deleteLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {deleteLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteConversation}
+        title="Delete Conversation?"
+        description="This will permanently delete all messages in this conversation. This action cannot be undone."
+        confirmText="Delete"
+        isDanger
+        loading={deleteLoading}
+      />
 
       {/* Image Lightbox */}
       {lightboxImage && (
