@@ -7,6 +7,7 @@ import { useSellerProducts, useDeleteProduct, useUpdateProductStatus } from "@/l
 import { Product, ProductStatus } from "@/lib/types/store";
 import { getCategoryConfig, CATEGORY_ICONS } from "@/lib/store/categories";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { showToast } from "@/lib/utils/toast";
 
 interface StoreTabProps {
   userId: string;
@@ -284,11 +285,19 @@ function ProductCard({
   };
 
   const handleDeleteConfirm = async () => {
-    const success = await deleteProduct(product.id);
-    if (success) {
-      await onRefetch();
+    try {
+      const success = await deleteProduct(product.id);
+      if (success) {
+        showToast.success("Product deleted");
+        await onRefetch();
+      } else {
+        showToast.error("Failed to delete product", "Please try again");
+      }
+    } catch {
+      showToast.error("Failed to delete product", "Please try again");
+    } finally {
+      setShowDeleteModal(false);
     }
-    setShowDeleteModal(false);
   };
 
   const handleActivate = async (e: React.MouseEvent) => {

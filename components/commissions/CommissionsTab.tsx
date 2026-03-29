@@ -19,6 +19,7 @@ import { useDeleteProduct, useUpdateProductStatus } from "@/lib/hooks/useProduct
 import type { Product, ProductStatus } from "@/lib/types/store";
 import QuillIcon from "@/components/reviews/QuillIcon";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { showToast } from "@/lib/utils/toast";
 import CommissionReviewsPanel from "./CommissionReviewsPanel";
 
 interface CommissionsTabProps {
@@ -525,11 +526,19 @@ function CommissionCard({
   };
 
   const handleDeleteConfirm = async () => {
-    const success = await deleteProduct(commission.id);
-    if (success) {
-      await onRefetch();
+    try {
+      const success = await deleteProduct(commission.id);
+      if (success) {
+        showToast.success("Commission deleted");
+        await onRefetch();
+      } else {
+        showToast.error("Failed to delete commission", "Please try again");
+      }
+    } catch {
+      showToast.error("Failed to delete commission", "Please try again");
+    } finally {
+      setShowDeleteModal(false);
     }
-    setShowDeleteModal(false);
   };
 
   return (

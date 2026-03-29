@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerProducts, useUpdateProductStatus, useDeleteProduct } from "@/lib/hooks";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { showToast } from "@/lib/utils/toast";
 import type { Product, ProductStatus } from "@/lib/types/store";
 
 // ---------------------------------------------------------------------------
@@ -51,10 +52,16 @@ function ListingCard({
   }, [product.id, onStatusChange]);
 
   const handleDelete = useCallback(async () => {
-    setBusy(true);
-    await onDelete(product.id);
-    setBusy(false);
-    setShowDeleteConfirm(false);
+    try {
+      setBusy(true);
+      await onDelete(product.id);
+      showToast.success("Listing deleted");
+    } catch {
+      showToast.error("Failed to delete listing", "Please try again");
+    } finally {
+      setBusy(false);
+      setShowDeleteConfirm(false);
+    }
   }, [product.id, onDelete]);
 
   return (
