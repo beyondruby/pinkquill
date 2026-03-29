@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useProduct, useToggleSaveProduct } from "@/lib/hooks/useProducts";
+import { useProduct, useToggleSaveProduct, useDeleteProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -17,7 +17,10 @@ import ProductGallery from "./ProductGallery";
 import SellerCard from "./SellerCard";
 import SellerRating from "@/components/reviews/SellerRating";
 import ProductReviewsSection from "@/components/reviews/ProductReviewsSection";
+import ActionMenu from "@/components/ui/ActionMenu";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ShareModal from "@/components/ui/ShareModal";
+import { showToast } from "@/lib/utils/toast";
 
 interface ProductDetailViewProps {
   productId: string;
@@ -28,11 +31,13 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   const { user } = useAuth();
   const { product, loading, error } = useProduct(productId);
   const { toggle: toggleSave, checkIsSaved } = useToggleSaveProduct();
+  const { deleteProduct, deleting } = useDeleteProduct();
   const { createOrder, creating: buying, error: buyError } = useCreateOrder();
   const { addItem, hasItem } = useStudioCart();
 
   const [selectedPricing, setSelectedPricing] = useState<ProductPricing | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -67,6 +72,27 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
     if (!success) {
       setIsSaved(isSaved);
     }
+  };
+
+  const handleDelete = async (listingId: string) => {
+    const result = await deleteProduct(listingId);
+
+    if (!result) {
+      showToast.error("Failed to delete product", "Please try again");
+      return;
+    }
+
+    if (result.outcome === "archived") {
+      showToast.info(
+        "Product archived",
+        "This listing has order history, so it was archived instead of permanently deleted."
+      );
+    } else {
+      showToast.success("Product deleted");
+    }
+
+    setShowDeleteConfirm(false);
+    router.push("/seller/listings");
   };
 
   if (loading || product?.listing_type === "service") {
@@ -106,6 +132,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   }
 
   const categoryConfig = getCategoryConfig(product.category);
+  const isOwner = !!user && user.id === product.seller_id;
   const activePricing = selectedPricing || product.pricing?.[0];
   const isQueued = activePricing ? hasItem(product.id, activePricing.id) : false;
   const shippingCost = product.delivery_type !== "digital"
@@ -215,6 +242,9 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               onSave={handleToggleSave}
               isSaved={isSaved}
               isLoggedIn={!!user}
+              isOwner={isOwner}
+              onEdit={() => router.push(`/sell/edit/${product.id}`)}
+              onDelete={() => setShowDeleteConfirm(true)}
             />
           </div>
         </div>
@@ -480,6 +510,17 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
         onClose={() => setShowShareModal(false)}
       />
 
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => handleDelete(product.id)}
+        title="Delete Product?"
+        description="This action cannot be undone. This will permanently delete your product listing and remove its associated data. If the product has order history, it will be archived instead."
+        confirmText="Delete"
+        isDanger
+        loading={deleting}
+      />
+
       {showBuyModal && activePricing && (
         <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm px-4 py-8 overflow-y-auto">
           <div className="max-w-xl mx-auto rounded-3xl bg-white shadow-2xl border border-black/[0.08] overflow-hidden">
@@ -630,79 +671,73 @@ function MoreMenu({
   onSave,
   isSaved,
   isLoggedIn,
+  isOwner,
+  onEdit,
+  onDelete,
 }: {
   onShare: () => void;
   onSave: () => void;
   isSaved: boolean;
   isLoggedIn: boolean;
+  isOwner: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="More actions"
-        className="w-10 h-10 rounded-full border border-black/[0.08] bg-white text-muted hover:text-ink hover:bg-black/[0.02] transition-colors"
-      >
-        <svg className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="5" cy="12" r="2" />
-          <circle cx="12" cy="12" r="2" />
-          <circle cx="19" cy="12" r="2" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-2xl shadow-xl border border-black/[0.08] overflow-hidden z-20">
-            {isLoggedIn && (
-              <button
-                onClick={() => {
-                  onSave();
-                  setIsOpen(false);
-                }}
-                className="w-full px-4 py-3 text-left text-sm font-ui text-ink hover:bg-black/[0.03] flex items-center gap-3 transition-colors"
-              >
-                <svg
-                  className="w-4 h-4 text-purple-primary"
-                  fill={isSaved ? "currentColor" : "none"}
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-                {isSaved ? "Saved" : "Save"}
-              </button>
-            )}
-
-            <button
-              onClick={() => {
-                onShare();
-                setIsOpen(false);
-              }}
-              className="w-full px-4 py-3 text-left text-sm font-ui text-ink hover:bg-black/[0.03] flex items-center gap-3 transition-colors"
+    <ActionMenu
+      buttonClassName="w-10 h-10 rounded-full border border-black/[0.08] bg-white text-muted hover:text-ink hover:bg-black/[0.02] transition-colors flex items-center justify-center"
+      buttonIconClassName="w-5 h-5"
+      widthClassName="w-44"
+      items={[
+        {
+          label: "Edit",
+          onSelect: onEdit,
+          hidden: !isOwner,
+          icon: (
+            <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          ),
+        },
+        {
+          label: isSaved ? "Saved" : "Save",
+          onSelect: onSave,
+          hidden: isOwner || !isLoggedIn,
+          icon: (
+            <svg
+              className="w-4 h-4 text-purple-primary"
+              fill={isSaved ? "currentColor" : "none"}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
-                <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
-                <path d="M16 6l-4-4-4 4" />
-                <path d="M12 2v13" />
-              </svg>
-              Share
-            </button>
-
-            <button
-              onClick={() => setIsOpen(false)}
-              className="w-full px-4 py-3 text-left text-sm font-ui text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-              </svg>
-              Report
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          ),
+        },
+        {
+          label: "Share",
+          onSelect: onShare,
+          icon: (
+            <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+              <path d="M16 6l-4-4-4 4" />
+              <path d="M12 2v13" />
+            </svg>
+          ),
+        },
+        {
+          label: "Delete",
+          onSelect: onDelete,
+          hidden: !isOwner,
+          tone: "danger",
+          dividerBefore: true,
+          icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          ),
+        },
+      ]}
+    />
   );
 }

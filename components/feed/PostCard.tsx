@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, memo, useMemo, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -16,6 +15,7 @@ const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: fa
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
 const SendToDMModal = dynamic(() => import("@/components/messages/SendToDMModal"), { ssr: false });
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import FlairBadge from "@/components/communities/FlairBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
@@ -39,7 +39,6 @@ import {
   RelayIcon,
   ShareIcon,
   BookmarkIcon,
-  EllipsisIcon,
   TrashIcon,
   EditIcon,
   FlagIcon,
@@ -227,7 +226,6 @@ function PostCardComponent({
   const [showContent, setShowContent] = useState(!post.contentWarning);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSendToDMModal, setShowSendToDMModal] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showModeratorDeleteConfirm, setShowModeratorDeleteConfirm] = useState(false);
@@ -240,7 +238,6 @@ function PostCardComponent({
   const [blockLoading, setBlockLoading] = useState(false);
 
   const { blockUser } = useBlock();
-  const menuRef = useRef<HTMLDivElement>(null);
   const reportTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isOwner = user && user.id === post.authorId;
 
@@ -502,26 +499,6 @@ function PostCardComponent({
     }
   }, [user, openAuthModal, isRelayed, post.id, post.authorId, notifyUpdate, toggleRelay]);
 
-  // Click outside to close menu (check both dropdown portal and button)
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const clickedInDropdown = menuRef.current && menuRef.current.contains(target);
-      const clickedOnButton = menuButtonRef.current && menuButtonRef.current.contains(target);
-      if (!clickedInDropdown && !clickedOnButton) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenu]);
-
   const handleDelete = useCallback(async () => {
     setDeleting(true);
     try {
@@ -691,262 +668,115 @@ function PostCardComponent({
   );
   const hasCollaborators = acceptedCollaborators.length > 0;
   const hasCommunity = !!post.community;
+  const postMenuItems = useMemo(() => {
+    const items: ActionMenuItem[] = [];
 
-  // Portal-based dropdown to escape stacking contexts (transform, overflow, z-index)
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
-
-  // Calculate dropdown position when menu opens
-  useEffect(() => {
-    if (showMenu && menuButtonRef.current) {
-      const rect = menuButtonRef.current.getBoundingClientRect();
-      setMenuPos({
-        top: rect.bottom + 8 + window.scrollY,
-        left: rect.right + window.scrollX,
+    if (isPinned && onUnpin) {
+      items.push({
+        label: "Unpin",
+        onSelect: () => onUnpin(post.id),
+        icon: (
+          <svg
+            className="w-4 h-4"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ),
+        dividerBefore: false,
+      });
+    } else if (!isPinned && onPin) {
+      items.push({
+        label: "Pin",
+        onSelect: () => onPin(post.id),
+        icon: (
+          <svg className="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z" />
+          </svg>
+        ),
+        tone: "accent" as const,
       });
     }
-  }, [showMenu]);
 
-  // Reposition on scroll/resize while open
-  useEffect(() => {
-    if (!showMenu) return;
-    const reposition = () => {
-      if (menuButtonRef.current) {
-        const rect = menuButtonRef.current.getBoundingClientRect();
-        setMenuPos({
-          top: rect.bottom + 8 + window.scrollY,
-          left: rect.right + window.scrollX,
+    if (isOwner) {
+      items.push({
+        label: "Edit",
+        onSelect: handleEdit,
+        icon: <EditIcon aria-hidden="true" />,
+        dividerBefore: items.length > 0,
+      });
+      items.push({
+        label: "Delete",
+        onSelect: () => setShowDeleteConfirm(true),
+        icon: <TrashIcon aria-hidden="true" />,
+        tone: "danger" as const,
+      });
+      if (canModerateDelete && onModeratorDelete) {
+        items.push({
+          label: "Delete (Mod)",
+          onSelect: () => setShowModeratorDeleteConfirm(true),
+          icon: <TrashIcon aria-hidden="true" />,
+          tone: "warning" as const,
+          dividerBefore: true,
         });
       }
-    };
-    window.addEventListener("scroll", reposition, true);
-    window.addEventListener("resize", reposition);
-    return () => {
-      window.removeEventListener("scroll", reposition, true);
-      window.removeEventListener("resize", reposition);
-    };
-  }, [showMenu]);
+      return items;
+    }
 
-  // Render dropdown items into a portal at document.body
-  const renderDropdownPortal = (width: string, children: ReactNode) => {
-    if (!showMenu || !menuPos) return null;
-    return createPortal(
-      <div
-        ref={menuRef}
-        className={`${width} bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden`}
-        style={{
-          position: "absolute",
-          top: menuPos.top,
-          left: menuPos.left,
-          transform: "translateX(-100%)",
-          zIndex: 9999,
-        }}
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        role="menu"
-        aria-label="Post options"
-      >
-        {children}
-      </div>,
-      document.body
-    );
-  };
+    if (!user) return items;
 
-  // Post menu button + portal dropdown
-  const postMenuElement = isOwner ? (
-    <>
-      <button
-        ref={menuButtonRef}
-        className="post-menu-btn"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowMenu(!showMenu);
-        }}
-        aria-label="Post options menu"
-        aria-expanded={showMenu}
-        aria-haspopup="menu"
-      >
-        <EllipsisIcon />
-      </button>
-      {renderDropdownPortal((onPin || onUnpin || (canModerateDelete && onModeratorDelete)) ? "w-44" : "w-36", <>
-        {/* Pin/Unpin option for community admins/moderators */}
-        {isPinned && onUnpin && (
-          <>
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                onUnpin(post.id);
-              }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
-              role="menuitem"
-            >
-              <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Unpin
-            </button>
-            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
-          </>
-        )}
-        {!isPinned && onPin && (
-          <>
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                onPin(post.id);
-              }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-purple-primary hover:bg-purple-primary/5 transition-colors"
-              role="menuitem"
-            >
-              <svg className="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
-              </svg>
-              Pin
-            </button>
-            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
-          </>
-        )}
-        <button
-          onClick={() => {
-            setShowMenu(false);
-            handleEdit();
-          }}
-          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
-          role="menuitem"
-        >
-          <EditIcon aria-hidden="true" />
-          Edit
-        </button>
-        <button
-          onClick={() => {
-            setShowMenu(false);
-            setShowDeleteConfirm(true);
-          }}
-          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
-          role="menuitem"
-        >
-          <TrashIcon aria-hidden="true" />
-          Delete
-        </button>
-        {/* Moderator delete for owner-moderators (audited) */}
-        {canModerateDelete && onModeratorDelete && (
-          <>
-            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                setShowModeratorDeleteConfirm(true);
-              }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 transition-colors"
-              role="menuitem"
-            >
-              <TrashIcon aria-hidden="true" />
-              Delete (Mod)
-            </button>
-          </>
-        )}
-      </>)}
-    </>
-  ) : user ? (
-    <>
-      <button
-        ref={menuButtonRef}
-        className="post-menu-btn"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowMenu(!showMenu);
-        }}
-        aria-label="Post options menu"
-        aria-expanded={showMenu}
-        aria-haspopup="menu"
-      >
-        <EllipsisIcon />
-      </button>
-      {renderDropdownPortal("w-44", <>
-        {/* Pin/Unpin option for community admins/moderators */}
-        {isPinned && onUnpin && (
-          <>
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                onUnpin(post.id);
-              }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
-              role="menuitem"
-            >
-              <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Unpin
-            </button>
-            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
-          </>
-        )}
-        {!isPinned && onPin && (
-          <>
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                onPin(post.id);
-              }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-purple-primary hover:bg-purple-primary/5 transition-colors"
-              role="menuitem"
-            >
-              <svg className="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
-              </svg>
-              Pin
-            </button>
-            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
-          </>
-        )}
-        <button
-          onClick={() => {
-            setShowMenu(false);
-            setShowBlockConfirm(true);
-          }}
-          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
-          role="menuitem"
-        >
-          <BlockIcon aria-hidden="true" />
-          Block @{post.author.handle.replace('@', '')}
-        </button>
-        {/* Moderator delete option - only shown if user can moderate */}
-        {canModerateDelete && onModeratorDelete && (
-          <>
-            <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                setShowModeratorDeleteConfirm(true);
-              }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 transition-colors"
-              role="menuitem"
-            >
-              <TrashIcon aria-hidden="true" />
-              Delete (Mod)
-            </button>
-          </>
-        )}
-        <div className="h-px bg-black/[0.06] mx-3" role="separator" aria-hidden="true" />
-        <button
-          onClick={() => {
-            setShowMenu(false);
-            setShowReportModal(true);
-          }}
-          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
-          role="menuitem"
-        >
-          <FlagIcon aria-hidden="true" />
-          Report
-        </button>
-      </>)}
-    </>
-  ) : (
-    <button className="post-menu-btn" onClick={(e) => e.stopPropagation()} aria-label="Post options">
-      <EllipsisIcon />
-    </button>
-  );
+    items.push({
+      label: `Block @${post.author.handle.replace("@", "")}`,
+      onSelect: () => setShowBlockConfirm(true),
+      icon: <BlockIcon aria-hidden="true" />,
+      dividerBefore: items.length > 0,
+    });
+
+    if (canModerateDelete && onModeratorDelete) {
+      items.push({
+        label: "Delete (Mod)",
+        onSelect: () => setShowModeratorDeleteConfirm(true),
+        icon: <TrashIcon aria-hidden="true" />,
+        tone: "warning" as const,
+        dividerBefore: true,
+      });
+    }
+
+    items.push({
+      label: "Report",
+      onSelect: () => setShowReportModal(true),
+      icon: <FlagIcon aria-hidden="true" />,
+      tone: "danger" as const,
+      dividerBefore: true,
+    });
+
+    return items;
+  }, [
+    canModerateDelete,
+    handleEdit,
+    isOwner,
+    isPinned,
+    onModeratorDelete,
+    onPin,
+    onUnpin,
+    post.author.handle,
+    post.id,
+    user,
+  ]);
+
+  const postMenuElement = user ? (
+    <ActionMenu
+      items={postMenuItems}
+      buttonClassName="post-menu-btn"
+      widthClassName={(onPin || onUnpin || (canModerateDelete && onModeratorDelete)) ? "w-44" : "w-36"}
+      buttonAriaLabel="Post options menu"
+      portal
+    />
+  ) : null;
 
   // Author Header component - Reddit-style for community posts
   const AuthorHeader = ({ small = false, centered = false }: { small?: boolean; centered?: boolean }) => {

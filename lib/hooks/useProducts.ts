@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { deleteOwnListing, type DeleteListingResult } from "@/lib/content-client";
 import { supabase } from "../supabase";
 import type {
   ListingType,
@@ -971,7 +972,7 @@ export function useUpdateProduct(): UseUpdateProductReturn {
 // ============================================================================
 
 interface UseDeleteProductReturn {
-  deleteProduct: (productId: string) => Promise<boolean>;
+  deleteProduct: (productId: string) => Promise<DeleteListingResult | null>;
   deleting: boolean;
   error: string | null;
 }
@@ -980,48 +981,17 @@ export function useDeleteProduct(): UseDeleteProductReturn {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const deleteProduct = useCallback(async (productId: string): Promise<boolean> => {
+  const deleteProduct = useCallback(async (productId: string): Promise<DeleteListingResult | null> => {
     setDeleting(true);
     setError(null);
 
     try {
-      // SECURITY: Verify current user owns this product
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("Not authenticated");
-      }
-
-      // Delete will cascade to media, pricing, shipping, files, keywords
-      const { error: deleteError } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", productId)
-        .eq("seller_id", user.id); // SECURITY: Only delete if user owns this product
-
-      if (deleteError) {
-        // Listings with historical orders cannot be hard deleted due foreign-key references.
-        // In that case, archive instead so sellers can still remove it from active storefronts.
-        if (deleteError.code === "23503") {
-          const { error: archiveError } = await supabase
-            .from("products")
-            .update({
-              status: "archived",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", productId)
-            .eq("seller_id", user.id);
-
-          if (archiveError) throw archiveError;
-          return true;
-        }
-        throw deleteError;
-      }
-      return true;
+      return await deleteOwnListing(productId);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("[useDeleteProduct] Error:", message);
       setError(message || "Failed to delete product");
-      return false;
+      return null;
     } finally {
       setDeleting(false);
     }

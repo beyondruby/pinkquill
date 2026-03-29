@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTakeComments, useTakeReactionCounts, TakeReactionType, Take } from "@/lib/hooks/useTakes";
+import { deleteOwnTake } from "@/lib/content-client";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
 import TakeCommentItem from "@/components/takes/TakeCommentItem";
 import PostTags from "@/components/feed/PostTags";
@@ -63,7 +65,6 @@ export default function TakeDetailModal({
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -80,8 +81,6 @@ export default function TakeDetailModal({
   const [mentions, setMentions] = useState<Array<{
     id: string; username: string; display_name: string | null; avatar_url: string | null;
   }>>([]);
-
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment } = useTakeComments(take?.id || "", user?.id);
   const { counts: reactionCounts } = useTakeReactionCounts(take?.id || "");
@@ -171,45 +170,12 @@ export default function TakeDetailModal({
   }, [isOpen, take?.id, showContent]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Click outside to close menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenu]);
-
   const handleDelete = async () => {
     if (!take || !user) return;
 
     setDeleting(true);
     try {
-      // Delete related data first
-      await Promise.all([
-        supabase.from("take_comments").delete().eq("take_id", take.id),
-        supabase.from("take_saves").delete().eq("take_id", take.id),
-        supabase.from("take_relays").delete().eq("take_id", take.id),
-        supabase.from("take_reactions").delete().eq("take_id", take.id),
-        supabase.from("notifications").delete().eq("post_id", take.id),
-      ]);
-
-      // Delete the take
-      const { error } = await supabase.from("takes").delete().eq("id", take.id);
-
-      if (error) {
-        console.error("Error deleting take:", error);
-        setDeleting(false);
-        return;
-      }
+      await deleteOwnTake(take.id);
 
       setShowDeleteConfirm(false);
       onClose();
@@ -251,6 +217,26 @@ export default function TakeDetailModal({
     }
     setReportSubmitting(false);
   };
+
+  const takeMenuItems: ActionMenuItem[] = isOwner
+    ? [
+        {
+          label: "Delete",
+          onSelect: () => setShowDeleteConfirm(true),
+          icon: icons.trash,
+          tone: "danger",
+        },
+      ]
+    : user
+      ? [
+          {
+            label: "Report",
+            onSelect: () => setShowReportModal(true),
+            icon: icons.flag,
+            tone: "danger",
+          },
+        ]
+      : [];
 
   if (!take) return null;
 
@@ -477,54 +463,13 @@ export default function TakeDetailModal({
               </button>
 
               {/* Take Options Menu */}
-              {isOwner ? (
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
-                  >
-                    {icons.moreHorizontal}
-                  </button>
-
-                  {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowDeleteConfirm(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        {icons.trash}
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : user && (
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
-                  >
-                    {icons.moreHorizontal}
-                  </button>
-
-                  {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowReportModal(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        {icons.flag}
-                        Report
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {(isOwner || user) && (
+                <ActionMenu
+                  items={takeMenuItems}
+                  buttonClassName="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+                  widthClassName="w-40"
+                  buttonAriaLabel="Take options menu"
+                />
               )}
             </div>
 

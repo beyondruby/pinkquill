@@ -4,13 +4,17 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useProduct } from "@/lib/hooks/useProducts";
+import { useDeleteProduct, useProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
 import { getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
 import { PLATFORM_FEES } from "@/lib/types/store";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
 import SellerRating from "@/components/reviews/SellerRating";
+import ActionMenu from "@/components/ui/ActionMenu";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import ShareModal from "@/components/ui/ShareModal";
+import { showToast } from "@/lib/utils/toast";
 
 interface CommissionDetailViewProps {
   commissionId: string;
@@ -20,10 +24,13 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
   const router = useRouter();
   const { user } = useAuth();
   const { product, loading, error } = useProduct(commissionId);
+  const { deleteProduct, deleting } = useDeleteProduct();
   const { createOrder, creating: hiring, error: hireError } = useCreateOrder();
   const { addItem, hasItem } = useStudioCart();
 
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showHireModal, setShowHireModal] = useState(false);
   const [brief, setBrief] = useState("");
   const [timelineDays, setTimelineDays] = useState(7);
@@ -81,6 +88,8 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
     const value = product?.service_metadata?.delivery_notes;
     return typeof value === "string" && value.trim().length > 0 ? value : null;
   }, [product]);
+
+  const isOwner = !!user && user.id === product?.seller_id;
 
   const minDeliveryDays = useMemo(() => {
     return packages
@@ -150,6 +159,28 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
     }
   };
 
+  const handleDelete = async () => {
+    if (!product) return;
+
+    const result = await deleteProduct(product.id);
+    if (!result) {
+      showToast.error("Failed to delete commission", "Please try again");
+      return;
+    }
+
+    if (result.outcome === "archived") {
+      showToast.info(
+        "Commission archived",
+        "This service has order history, so it was archived instead of permanently deleted."
+      );
+    } else {
+      showToast.success("Commission deleted");
+    }
+
+    setShowDeleteConfirm(false);
+    router.push("/seller/listings");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_100%)] px-4 py-10">
@@ -191,42 +222,87 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
       <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_48%,#fff7f2_100%)] pb-16">
         <div className="max-w-6xl mx-auto px-4 pt-8">
           <div className="pb-6 border-b border-black/[0.08]">
-            <p className="text-[11px] font-ui uppercase tracking-[0.15em] text-muted">Commission Service</p>
-            <h1 className="mt-3 font-display text-3xl md:text-4xl leading-tight text-ink max-w-4xl">{product.title}</h1>
+            <div className="flex items-start justify-between gap-4">
+              <div className="max-w-4xl">
+                <p className="text-[11px] font-ui uppercase tracking-[0.15em] text-muted">Commission Service</p>
+                <h1 className="mt-3 font-display text-3xl md:text-4xl leading-tight text-ink max-w-4xl">{product.title}</h1>
 
-            {product.service_metadata?.headline && (
-              <p className="mt-3 text-sm md:text-base font-body text-muted max-w-3xl">
-                {String(product.service_metadata.headline)}
-              </p>
-            )}
+                {product.service_metadata?.headline && (
+                  <p className="mt-3 text-sm md:text-base font-body text-muted max-w-3xl">
+                    {String(product.service_metadata.headline)}
+                  </p>
+                )}
 
-            {product.seller && (
-              <div className="mt-3">
-                <p className="text-sm font-body text-muted">
-                  by{" "}
-                  <Link
-                    href={`/studio/${product.seller.username}`}
-                    className="font-ui font-semibold text-ink hover:text-pink-vivid transition-colors"
-                  >
-                    {product.seller.display_name || product.seller.username}
-                  </Link>
-                </p>
-                <div className="mt-1">
-                  <SellerRating sellerId={product.seller.id} compact />
+                {product.seller && (
+                  <div className="mt-3">
+                    <p className="text-sm font-body text-muted">
+                      by{" "}
+                      <Link
+                        href={`/studio/${product.seller.username}`}
+                        className="font-ui font-semibold text-ink hover:text-pink-vivid transition-colors"
+                      >
+                        {product.seller.display_name || product.seller.username}
+                      </Link>
+                    </p>
+                    <div className="mt-1">
+                      <SellerRating sellerId={product.seller.id} compact />
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-xs font-body text-muted">
+                  <span>{categoryLabel}</span>
+                  <span>•</span>
+                  <span>{product.service_metadata?.response_time_hours ?? 24}h average response</span>
+                  <span>•</span>
+                  <span>
+                    {minDeliveryDays ? `${minDeliveryDays} day${minDeliveryDays === 1 ? "" : "s"} fastest delivery` : "Custom delivery"}
+                  </span>
+                  <span>•</span>
+                  <span>{maxRevisions !== undefined ? `${maxRevisions} max revisions` : "Custom revisions"}</span>
                 </div>
               </div>
-            )}
 
-            <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-xs font-body text-muted">
-              <span>{categoryLabel}</span>
-              <span>•</span>
-              <span>{product.service_metadata?.response_time_hours ?? 24}h average response</span>
-              <span>•</span>
-              <span>
-                {minDeliveryDays ? `${minDeliveryDays} day${minDeliveryDays === 1 ? "" : "s"} fastest delivery` : "Custom delivery"}
-              </span>
-              <span>•</span>
-              <span>{maxRevisions !== undefined ? `${maxRevisions} max revisions` : "Custom revisions"}</span>
+              <ActionMenu
+                buttonClassName="w-10 h-10 rounded-full border border-black/[0.08] bg-white text-muted hover:text-ink hover:bg-black/[0.02] transition-colors flex items-center justify-center"
+                buttonIconClassName="w-5 h-5"
+                widthClassName="w-44"
+                items={[
+                  {
+                    label: "Edit",
+                    onSelect: () => router.push(`/sell/edit/${product.id}`),
+                    hidden: !isOwner,
+                    icon: (
+                      <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    label: "Share",
+                    onSelect: () => setShowShareModal(true),
+                    icon: (
+                      <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+                        <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+                        <path d="M16 6l-4-4-4 4" />
+                        <path d="M12 2v13" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    label: "Delete",
+                    onSelect: () => setShowDeleteConfirm(true),
+                    hidden: !isOwner,
+                    tone: "danger",
+                    dividerBefore: true,
+                    icon: (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    ),
+                  },
+                ]}
+              />
             </div>
           </div>
 
@@ -509,6 +585,30 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
           </div>
         </div>
       )}
+
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={typeof window !== "undefined" ? window.location.href : ""}
+        title={product.title}
+        description={product.description || ""}
+        type="service"
+        authorName={product.seller?.display_name || product.seller?.username || ""}
+        authorUsername={product.seller?.username || ""}
+        authorAvatar={product.seller?.avatar_url || ""}
+        imageUrl={product.media?.[0]?.media_url || ""}
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Delete Commission?"
+        description="This action cannot be undone. This will permanently delete your commission listing and remove its associated data. If the service has order history, it will be archived instead."
+        confirmText="Delete"
+        isDanger
+        loading={deleting}
+      />
     </>
   );
 }

@@ -6,6 +6,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerProducts, useUpdateProductStatus, useDeleteProduct } from "@/lib/hooks";
+import type { DeleteListingResult } from "@/lib/content-client";
+import ActionMenu from "@/components/ui/ActionMenu";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { showToast } from "@/lib/utils/toast";
 import type { Product, ProductStatus } from "@/lib/types/store";
@@ -33,10 +35,9 @@ function ListingCard({
 }: {
   product: Product;
   onStatusChange: (id: string, status: ProductStatus) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<DeleteListingResult | null>;
 }) {
   const router = useRouter();
-  const [showActions, setShowActions] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -48,14 +49,22 @@ function ListingCard({
     setBusy(true);
     await onStatusChange(product.id, status);
     setBusy(false);
-    setShowActions(false);
   }, [product.id, onStatusChange]);
 
   const handleDelete = useCallback(async () => {
     try {
       setBusy(true);
-      await onDelete(product.id);
-      showToast.success("Listing deleted");
+      const result = await onDelete(product.id);
+      if (!result) {
+        showToast.error("Failed to delete listing", "Please try again");
+      } else if (result.outcome === "archived") {
+        showToast.info(
+          "Listing archived",
+          "This listing has order history, so it was archived instead of permanently deleted."
+        );
+      } else {
+        showToast.success("Listing deleted");
+      }
     } catch {
       showToast.error("Failed to delete listing", "Please try again");
     } finally {
@@ -118,82 +127,42 @@ function ListingCard({
           </Link>
           <button
             onClick={() => {
-              setShowActions(false);
               router.push(`/sell/edit/${product.id}`);
             }}
             className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-ink border border-black/[0.06] rounded-lg hover:bg-gray-50 transition-colors"
           >
             Edit
           </button>
-          <button
-            onClick={() => setShowActions(!showActions)}
-            disabled={busy}
-            className="px-2.5 py-1.5 text-xs font-ui text-muted border border-black/[0.06] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
-            {busy ? (
-              <div className="w-3 h-3 border border-gray-300 border-t-purple-primary rounded-full animate-spin" />
-            ) : (
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
-              </svg>
-            )}
-          </button>
-
-          {/* Actions dropdown */}
-          {showActions && (
-            <>
-              <div className="fixed inset-0 z-[5]" onClick={() => setShowActions(false)} />
-              <div className="absolute right-0 top-full mt-1 z-10 bg-white border border-black/[0.08] rounded-lg shadow-lg py-1 min-w-[140px]">
-                {product.status === "active" && (
-                  <button
-                    onClick={() => handleStatusChange("paused")}
-                    className="block w-full text-left px-3.5 py-2 text-sm font-ui text-ink hover:bg-gray-50"
-                  >
-                    Pause Listing
-                  </button>
-                )}
-                {product.status === "paused" && (
-                  <button
-                    onClick={() => handleStatusChange("active")}
-                    className="block w-full text-left px-3.5 py-2 text-sm font-ui text-ink hover:bg-gray-50"
-                  >
-                    Activate
-                  </button>
-                )}
-                {product.status === "draft" && (
-                  <button
-                    onClick={() => handleStatusChange("active")}
-                    className="block w-full text-left px-3.5 py-2 text-sm font-ui text-ink hover:bg-gray-50"
-                  >
-                    Publish
-                  </button>
-                )}
-                {product.status !== "archived" && (
-                  <button
-                    onClick={() => handleStatusChange("archived")}
-                    className="block w-full text-left px-3.5 py-2 text-sm font-ui text-ink hover:bg-gray-50"
-                  >
-                    Archive
-                  </button>
-                )}
-                {product.status === "archived" && (
-                  <button
-                    onClick={() => handleStatusChange("active")}
-                    className="block w-full text-left px-3.5 py-2 text-sm font-ui text-ink hover:bg-gray-50"
-                  >
-                    Restore
-                  </button>
-                )}
-                <hr className="my-1 border-black/[0.04]" />
-                <button
-                  onClick={() => { setShowActions(false); setShowDeleteConfirm(true); }}
-                  className="block w-full text-left px-3.5 py-2 text-sm font-ui text-red-600 hover:bg-red-50"
-                >
-                  Delete
-                </button>
-              </div>
-            </>
-          )}
+          <ActionMenu
+            buttonClassName="px-2.5 py-1.5 text-xs font-ui text-muted border border-black/[0.06] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center"
+            buttonIconClassName="w-3.5 h-3.5"
+            widthClassName="w-44"
+            buttonDisabled={busy}
+            items={[
+              {
+                label: "Pause Listing",
+                onSelect: () => void handleStatusChange("paused"),
+                hidden: product.status !== "active",
+              },
+              {
+                label: "Activate",
+                onSelect: () => void handleStatusChange("active"),
+                tone: "success",
+                hidden: product.status !== "paused" && product.status !== "draft" && product.status !== "archived",
+              },
+              {
+                label: product.status === "archived" ? "Restore" : "Archive",
+                onSelect: () => void handleStatusChange(product.status === "archived" ? "active" : "archived"),
+                hidden: false,
+              },
+              {
+                label: "Delete",
+                onSelect: () => setShowDeleteConfirm(true),
+                tone: "danger",
+                dividerBefore: true,
+              },
+            ]}
+          />
         </div>
       </div>
 
@@ -202,7 +171,7 @@ function ListingCard({
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
         title="Delete Listing?"
-        description="This action cannot be undone. This will permanently delete your listing and remove all associated data."
+        description="This action cannot be undone. This will permanently delete your listing and remove its associated data. If it already has order history, it will be archived instead."
         confirmText="Delete"
         isDanger
         loading={busy}
@@ -232,8 +201,11 @@ export default function SellerListingsGrid() {
   }, [updateStatus, refetch]);
 
   const handleDelete = useCallback(async (productId: string) => {
-    await deleteProduct(productId);
-    await refetch();
+    const result = await deleteProduct(productId);
+    if (result) {
+      await refetch();
+    }
+    return result;
   }, [deleteProduct, refetch]);
 
   const counts = {

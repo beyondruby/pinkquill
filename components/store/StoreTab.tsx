@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSellerProducts, useDeleteProduct, useUpdateProductStatus } from "@/lib/hooks/useProducts";
 import { Product, ProductStatus } from "@/lib/types/store";
 import { getCategoryConfig, CATEGORY_ICONS } from "@/lib/store/categories";
+import ActionMenu from "@/components/ui/ActionMenu";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { showToast } from "@/lib/utils/toast";
 
@@ -215,31 +216,12 @@ function ProductCard({
   onRefetch: () => Promise<void>;
 }) {
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const { deleteProduct, deleting } = useDeleteProduct();
   const { updateStatus, updating } = useUpdateProductStatus();
 
   const categoryConfig = getCategoryConfig(product.category);
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-
-    if (menuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [menuOpen]);
 
   // Format price display
   const formatPrice = (price?: number) => {
@@ -259,36 +241,33 @@ function ProductCard({
         : `From ${formatPrice(product.min_price)}`
       : null;
 
-  const handleEdit = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleEdit = () => {
     router.push(`/sell/edit/${product.id}`);
-    setMenuOpen(false);
   };
 
-  const handleArchive = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleArchive = async () => {
     const newStatus: ProductStatus = product.status === "archived" ? "active" : "archived";
     const success = await updateStatus(product.id, newStatus);
     if (success) {
       await onRefetch();
     }
-    setMenuOpen(false);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setMenuOpen(false);
+  const handleDeleteClick = () => {
     setShowDeleteModal(true);
   };
 
   const handleDeleteConfirm = async () => {
     try {
-      const success = await deleteProduct(product.id);
-      if (success) {
+      const result = await deleteProduct(product.id);
+      if (result?.outcome === "deleted") {
         showToast.success("Product deleted");
+        await onRefetch();
+      } else if (result?.outcome === "archived") {
+        showToast.info(
+          "Product archived",
+          "This listing has order history, so it was archived instead of permanently deleted."
+        );
         await onRefetch();
       } else {
         showToast.error("Failed to delete product", "Please try again");
@@ -300,14 +279,11 @@ function ProductCard({
     }
   };
 
-  const handleActivate = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleActivate = async () => {
     const success = await updateStatus(product.id, "active");
     if (success) {
       await onRefetch();
     }
-    setMenuOpen(false);
   };
 
   const getStatusBadge = () => {
@@ -424,81 +400,57 @@ function ProductCard({
 
       {/* Actions menu button (only for own profile) */}
       {isOwnProfile && (
-        <div ref={menuRef} className={`absolute top-3 z-10 ${product.delivery_type === "digital" ? "right-14" : "right-3"}`}>
-          {/* Menu button - vertical 3 dots */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setMenuOpen(!menuOpen);
-            }}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200
-              ${menuOpen
-                ? "bg-white shadow-md"
-                : "bg-black/40 opacity-0 group-hover:opacity-100 hover:bg-black/60"
-              }`}
-          >
-            {/* Horizontal 3 dots */}
-            <svg className={`w-4 h-4 ${menuOpen ? "text-muted" : "text-white"}`} viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="5" cy="12" r="2" />
-              <circle cx="12" cy="12" r="2" />
-              <circle cx="19" cy="12" r="2" />
-            </svg>
-          </button>
-
-          {/* Dropdown menu */}
-          {menuOpen && (
-            <div className="absolute top-full right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-20">
-              {/* Edit */}
-              <button
-                onClick={handleEdit}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
-              >
-                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                Edit
-              </button>
-
-              {/* Activate (only for inactive products) */}
-              {product.status !== "active" && product.status !== "sold" && (
-                <button
-                  onClick={handleActivate}
-                  disabled={updating}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
-                >
+        <div className={`absolute top-3 z-10 ${product.delivery_type === "digital" ? "right-14" : "right-3"}`}>
+          <ActionMenu
+            buttonClassName="w-8 h-8 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 hover:bg-black/60 transition-all duration-200 text-white"
+            buttonIconClassName="w-4 h-4"
+            widthClassName="w-44"
+            items={[
+              {
+                label: "Edit",
+                onSelect: handleEdit,
+                icon: (
+                  <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Activate",
+                onSelect: () => void handleActivate(),
+                tone: "success",
+                icon: (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  {updating ? "Activating..." : "Activate"}
-                </button>
-              )}
-
-              {/* Archive/Unarchive */}
-              <button
-                onClick={handleArchive}
-                disabled={updating}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors disabled:opacity-50"
-              >
-                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-                {updating ? "Updating..." : product.status === "archived" ? "Unarchive" : "Archive"}
-              </button>
-
-              {/* Delete */}
-              <button
-                onClick={handleDeleteClick}
-                disabled={deleting}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Delete
-              </button>
-            </div>
-          )}
+                ),
+                hidden: product.status === "active" || product.status === "sold",
+                disabled: updating,
+              },
+              {
+                label: product.status === "archived" ? "Unarchive" : "Archive",
+                onSelect: () => void handleArchive(),
+                icon: (
+                  <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                ),
+                disabled: updating,
+              },
+              {
+                label: "Delete",
+                onSelect: handleDeleteClick,
+                tone: "danger",
+                dividerBefore: true,
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                ),
+                disabled: deleting,
+              },
+            ]}
+          />
         </div>
       )}
 
@@ -507,7 +459,7 @@ function ProductCard({
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteConfirm}
         title="Delete Product?"
-        description="This action cannot be undone. This will permanently delete your product listing and remove all associated data."
+        description="This action cannot be undone. This will permanently delete your product listing and remove its associated data. If the product has order history, it will be archived instead."
         confirmText="Delete"
         isDanger
         loading={deleting}

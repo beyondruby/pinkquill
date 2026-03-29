@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { deleteOwnTake } from "@/lib/content-client";
 import { supabase } from "../supabase";
 import { sanitizePostgrestSearchTerm } from "../utils/postgrest";
 
@@ -568,36 +569,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     setTakes(prev => prev.filter(t => t.id !== takeId));
 
     try {
-      // Delete related data first
-      await Promise.all([
-        supabase.from("take_comments").delete().eq("take_id", takeId),
-        supabase.from("take_saves").delete().eq("take_id", takeId),
-        supabase.from("take_relays").delete().eq("take_id", takeId),
-        supabase.from("take_reactions").delete().eq("take_id", takeId).then(({ error }) => {
-          if (error) return supabase.from("take_admires").delete().eq("take_id", takeId);
-        }),
-        supabase.from("notifications").delete().eq("post_id", takeId),
-      ]);
-
-      // Delete the take record
-      const { error } = await supabase.from("takes").delete().eq("id", takeId);
-      if (error) throw error;
-
-      // Clean up storage files (non-blocking)
-      const filesToRemove: string[] = [];
-      if (take.video_url) {
-        const match = take.video_url.match(/\/takes\/(.+)$/);
-        if (match) filesToRemove.push(match[1]);
-      }
-      if (take.thumbnail_url) {
-        const match = take.thumbnail_url.match(/\/takes\/(.+)$/);
-        if (match) filesToRemove.push(match[1]);
-      }
-      if (filesToRemove.length > 0) {
-        supabase.storage.from("takes").remove(filesToRemove).then(({ error: storageErr }) => {
-          if (storageErr) console.error("[useTakes.deleteTake] Storage cleanup error:", storageErr);
-        });
-      }
+      await deleteOwnTake(takeId);
     } catch (err) {
       console.error("[useTakes.deleteTake] Error:", err);
       // Revert - add back to list

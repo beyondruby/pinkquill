@@ -8,12 +8,14 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useMuted, useVolume, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
 import { useBlock } from "@/lib/hooks";
 import { useTakeComments } from "@/lib/hooks/useTakes";
+import { deleteOwnTake } from "@/lib/content-client";
 import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
 import TakeCommentItem from "@/components/takes/TakeCommentItem";
 import PostTags from "@/components/feed/PostTags";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { icons } from "@/components/ui/Icons";
@@ -84,7 +86,6 @@ export default function SingleTakePage({ params }: PageProps) {
   // UI states
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
@@ -104,7 +105,6 @@ export default function SingleTakePage({ params }: PageProps) {
   }>>([]);
   const [showContent, setShowContent] = useState(true);
 
-  const menuRef = useRef<HTMLDivElement>(null);
   const { isMuted, toggle: toggleMute } = useMuted();
   const { volume } = useVolume();
   const { blockUser } = useBlock();
@@ -348,20 +348,6 @@ export default function SingleTakePage({ params }: PageProps) {
     }
   }, [volume, isMuted]);
 
-  // Click outside menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showMenu]);
-
   // Handlers
   const handleReaction = async (type: TakeReactionType) => {
     if (!user || !take) return;
@@ -464,15 +450,7 @@ export default function SingleTakePage({ params }: PageProps) {
 
     setDeleting(true);
     try {
-      await Promise.all([
-        supabase.from("take_reactions").delete().eq("take_id", take.id),
-        supabase.from("take_comments").delete().eq("take_id", take.id),
-        supabase.from("take_saves").delete().eq("take_id", take.id),
-        supabase.from("take_relays").delete().eq("take_id", take.id),
-        supabase.from("notifications").delete().eq("post_id", take.id),
-      ]);
-
-      await supabase.from("takes").delete().eq("id", take.id);
+      await deleteOwnTake(take.id);
       router.push("/takes");
     } catch (err) {
       console.error("Error deleting take:", err);
@@ -514,6 +492,31 @@ export default function SingleTakePage({ params }: PageProps) {
     }
     setIsBlocking(false);
   };
+
+  const takeMenuItems: ActionMenuItem[] = isOwner
+    ? [
+        {
+          label: "Delete",
+          onSelect: () => setShowDeleteConfirm(true),
+          icon: icons.trash,
+          tone: "danger",
+        },
+      ]
+    : user
+      ? [
+          {
+            label: "Block",
+            onSelect: () => setShowBlockConfirm(true),
+            icon: icons.block,
+          },
+          {
+            label: "Report",
+            onSelect: () => setShowReportModal(true),
+            icon: icons.flag,
+            tone: "danger",
+          },
+        ]
+      : [];
 
   const togglePlayPause = () => {
     if (videoRef.current) {
@@ -636,55 +639,14 @@ export default function SingleTakePage({ params }: PageProps) {
                   </button>
                 )}
 
-                {/* Menu */}
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
-                  >
-                    {icons.moreHorizontal}
-                  </button>
-
-                  {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
-                      {isOwner ? (
-                        <button
-                          onClick={() => {
-                            setShowMenu(false);
-                            setShowDeleteConfirm(true);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
-                        >
-                          {icons.trash}
-                          Delete
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => {
-                              setShowMenu(false);
-                              setShowBlockConfirm(true);
-                            }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
-                          >
-                            {icons.block}
-                            Block
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowMenu(false);
-                              setShowReportModal(true);
-                            }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
-                          >
-                            {icons.flag}
-                            Report
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
+                {(isOwner || user) && (
+                  <ActionMenu
+                    items={takeMenuItems}
+                    buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+                    widthClassName="w-40"
+                    buttonAriaLabel="Take options menu"
+                  />
+                )}
               </div>
 
               {/* Video Content */}

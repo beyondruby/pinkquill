@@ -9,7 +9,6 @@ import {
   useId,
   useState,
   type KeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
 } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useSellerCommissions } from "@/lib/hooks/useCommissions";
@@ -18,6 +17,7 @@ import { useSellerProfile } from "@/lib/hooks/useSellerProfile";
 import { useDeleteProduct, useUpdateProductStatus } from "@/lib/hooks/useProducts";
 import type { Product, ProductStatus } from "@/lib/types/store";
 import QuillIcon from "@/components/reviews/QuillIcon";
+import ActionMenu from "@/components/ui/ActionMenu";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { showToast } from "@/lib/utils/toast";
 import CommissionReviewsPanel from "./CommissionReviewsPanel";
@@ -440,9 +440,7 @@ function CommissionCard({
   onRefetch: () => Promise<void>;
 }) {
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const { deleteProduct, deleting } = useDeleteProduct();
   const { updateStatus, updating } = useUpdateProductStatus();
@@ -466,70 +464,45 @@ function CommissionCard({
   const packageCount = commission.pricing?.length || 0;
   const startingPrice = commission.min_price;
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-
-    if (menuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [menuOpen]);
-
-  const handleEdit = (e: ReactMouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleEdit = () => {
     router.push(`/sell/edit/${commission.id}`);
-    setMenuOpen(false);
   };
 
-  const handleShare = (e: ReactMouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleShare = () => {
     const url = `${window.location.origin}/commissions/${commission.id}`;
-    navigator.clipboard.writeText(url);
-    setMenuOpen(false);
+    void navigator.clipboard.writeText(url);
   };
 
-  const handleArchive = async (e: ReactMouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleArchive = async () => {
     const newStatus: ProductStatus = commission.status === "archived" ? "active" : "archived";
     const success = await updateStatus(commission.id, newStatus);
     if (success) {
       await onRefetch();
     }
-    setMenuOpen(false);
   };
 
-  const handleActivate = async (e: ReactMouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleActivate = async () => {
     const success = await updateStatus(commission.id, "active");
     if (success) {
       await onRefetch();
     }
-    setMenuOpen(false);
   };
 
-  const handleDeleteClick = (e: ReactMouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setMenuOpen(false);
+  const handleDeleteClick = () => {
     setShowDeleteModal(true);
   };
 
   const handleDeleteConfirm = async () => {
     try {
-      const success = await deleteProduct(commission.id);
-      if (success) {
+      const result = await deleteProduct(commission.id);
+      if (result?.outcome === "deleted") {
         showToast.success("Commission deleted");
+        await onRefetch();
+      } else if (result?.outcome === "archived") {
+        showToast.info(
+          "Commission archived",
+          "This service has order history, so it was archived instead of permanently deleted."
+        );
         await onRefetch();
       } else {
         showToast.error("Failed to delete commission", "Please try again");
@@ -603,86 +576,68 @@ function CommissionCard({
       </Link>
 
       {isOwnProfile && (
-        <div ref={menuRef} className="absolute top-3 right-3 z-10">
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setMenuOpen(!menuOpen);
-            }}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200
-              ${menuOpen
-                ? "bg-white shadow-md"
-                : "bg-purple-primary/45 opacity-0 group-hover:opacity-100 hover:bg-pink-vivid/60"
-              }`}
-          >
-            <svg className={`w-4 h-4 ${menuOpen ? "text-muted" : "text-white"}`} viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="5" cy="12" r="2" />
-              <circle cx="12" cy="12" r="2" />
-              <circle cx="19" cy="12" r="2" />
-            </svg>
-          </button>
-
-          {menuOpen && (
-            <div className="absolute top-full right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-purple-primary/15 overflow-hidden z-20">
-              <button
-                onClick={handleEdit}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-purple-50/60 transition-colors"
-              >
-                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                Edit
-              </button>
-
-              <button
-                onClick={handleShare}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-purple-50/60 transition-colors"
-              >
-                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
-                  <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
-                  <path d="M16 6l-4-4-4 4" />
-                  <path d="M12 2v13" />
-                </svg>
-                Copy Link
-              </button>
-
-              {commission.status !== "active" && commission.status !== "sold" && (
-                <button
-                  onClick={handleActivate}
-                  disabled={updating}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
-                >
+        <div className="absolute top-3 right-3 z-10">
+          <ActionMenu
+            buttonClassName="w-8 h-8 rounded-full flex items-center justify-center bg-purple-primary/45 opacity-0 group-hover:opacity-100 hover:bg-pink-vivid/60 transition-all duration-200 text-white"
+            buttonIconClassName="w-4 h-4"
+            widthClassName="w-44"
+            items={[
+              {
+                label: "Edit",
+                onSelect: handleEdit,
+                icon: (
+                  <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Copy Link",
+                onSelect: handleShare,
+                icon: (
+                  <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+                    <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+                    <path d="M16 6l-4-4-4 4" />
+                    <path d="M12 2v13" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Activate",
+                onSelect: () => void handleActivate(),
+                tone: "success",
+                hidden: commission.status === "active" || commission.status === "sold",
+                disabled: updating,
+                icon: (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  {updating ? "Activating..." : "Activate"}
-                </button>
-              )}
-
-              <button
-                onClick={handleArchive}
-                disabled={updating}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-purple-50/60 transition-colors disabled:opacity-50"
-              >
-                <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-                {updating ? "Updating..." : commission.status === "archived" ? "Unarchive" : "Archive"}
-              </button>
-
-              <button
-                onClick={handleDeleteClick}
-                disabled={deleting}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Delete
-              </button>
-            </div>
-          )}
+                ),
+              },
+              {
+                label: commission.status === "archived" ? "Unarchive" : "Archive",
+                onSelect: () => void handleArchive(),
+                disabled: updating,
+                icon: (
+                  <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Delete",
+                onSelect: handleDeleteClick,
+                tone: "danger",
+                dividerBefore: true,
+                disabled: deleting,
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
 
@@ -691,7 +646,7 @@ function CommissionCard({
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteConfirm}
         title="Delete Commission?"
-        description="This action cannot be undone. This will permanently delete your commission listing and remove all associated data."
+        description="This action cannot be undone. This will permanently delete your commission listing and remove its associated data. If the service has order history, it will be archived instead."
         confirmText="Delete"
         isDanger
         loading={deleting}

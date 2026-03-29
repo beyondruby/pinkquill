@@ -7,9 +7,11 @@ import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Take, RelayedTake, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
 import { useBlock } from "@/lib/hooks";
+import { deleteOwnTake } from "@/lib/content-client";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
 import { supabase } from "@/lib/supabase";
 import {
@@ -18,7 +20,6 @@ import {
   RelayIcon,
   ShareIcon,
   BookmarkIcon,
-  EllipsisIcon,
   TrashIcon,
   FlagIcon,
   BlockIcon,
@@ -58,7 +59,6 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
   const { user } = useAuth();
   const { blockUser } = useBlock();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const [isHovering, setIsHovering] = useState(false);
   const [userReaction, setUserReaction] = useState<TakeReactionType | null>(take.user_reaction_type || null);
@@ -77,7 +77,6 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
   const [isRelayedState, setIsRelayedState] = useState(take.is_relayed || false);
   const [relayCount, setRelayCount] = useState(take.relays_count || 0);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -123,23 +122,6 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
 
     return unsubscribe;
   }, [take.id, subscribeToTakeUpdates, userReaction]);
-
-  // Click outside to close menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenu]);
 
   const handleMouseEnter = () => {
     setIsHovering(true);
@@ -339,21 +321,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await Promise.all([
-        supabase.from("take_comments").delete().eq("take_id", take.id),
-        supabase.from("take_saves").delete().eq("take_id", take.id),
-        supabase.from("take_relays").delete().eq("take_id", take.id),
-        supabase.from("take_reactions").delete().eq("take_id", take.id),
-        supabase.from("notifications").delete().eq("post_id", take.id),
-      ]);
-
-      const { error } = await supabase.from("takes").delete().eq("id", take.id);
-
-      if (error) {
-        console.error("Error deleting take:", error);
-        setDeleting(false);
-        return;
-      }
+      await deleteOwnTake(take.id);
 
       setShowDeleteConfirm(false);
       if (onTakeDeleted) {
@@ -408,6 +376,32 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
     }
     setBlockLoading(false);
   };
+
+  const takeMenuItems: ActionMenuItem[] = isOwner
+    ? [
+        {
+          label: "Delete",
+          onSelect: () => setShowDeleteConfirm(true),
+          icon: <TrashIcon />,
+          tone: "danger",
+        },
+      ]
+    : user
+      ? [
+          {
+            label: `Block @${take.author.username}`,
+            onSelect: () => setShowBlockConfirm(true),
+            icon: <BlockIcon />,
+          },
+          {
+            label: "Report",
+            onSelect: () => setShowReportModal(true),
+            icon: <FlagIcon />,
+            tone: "danger",
+            dividerBefore: true,
+          },
+        ]
+      : [];
 
   // Grid variant - compact card for profile page
   if (variant === "grid") {
@@ -502,79 +496,13 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
           </div>
 
           {/* Menu */}
-          {isOwner ? (
-            <div className="relative" ref={menuRef}>
-              <button
-                className="post-menu-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowMenu(!showMenu);
-                }}
-              >
-                <EllipsisIcon />
-              </button>
-              {showMenu && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-36 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowDeleteConfirm(true);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <TrashIcon />
-                    Delete
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : user ? (
-            <div className="relative" ref={menuRef}>
-              <button
-                className="post-menu-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowMenu(!showMenu);
-                }}
-              >
-                <EllipsisIcon />
-              </button>
-              {showMenu && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowBlockConfirm(true);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
-                  >
-                    <BlockIcon />
-                    Block @{take.author.username}
-                  </button>
-                  <div className="h-px bg-black/[0.06] mx-3" />
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowReportModal(true);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <FlagIcon />
-                    Report
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <button className="post-menu-btn" onClick={(e) => e.stopPropagation()}>
-              <EllipsisIcon />
-            </button>
+          {(isOwner || user) && (
+            <ActionMenu
+              items={takeMenuItems}
+              buttonClassName="post-menu-btn"
+              widthClassName={isOwner ? "w-36" : "w-44"}
+              buttonAriaLabel="Take options menu"
+            />
           )}
         </div>
 

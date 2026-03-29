@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -16,6 +16,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { supabase } from "@/lib/supabase";
 import { deleteOwnPost } from "@/lib/posts-client";
 import { icons } from "@/components/ui/Icons";
@@ -426,7 +427,6 @@ export default function PostDetailModal({
   const [submitting, setSubmitting] = useState(false);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -436,7 +436,6 @@ export default function PostDetailModal({
   const [isBlocking, setIsBlocking] = useState(false);
   const [showContent, setShowContent] = useState(true);
 
-  const menuRef = useRef<HTMLDivElement>(null);
   const { blockUser } = useBlock();
 
   const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment } = useComments(post?.id || "", user?.id);
@@ -462,23 +461,6 @@ export default function PostDetailModal({
       setShowContent(!post.contentWarning);
     }
   }, [post?.id, post?.isSaved, post?.isRelayed, post?.stats.relays, post?.contentWarning]);
-
-  // Click outside to close menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenu]);
 
   const handleDelete = async () => {
     if (!post || !user) return;
@@ -561,6 +543,36 @@ export default function PostDetailModal({
       setIsBlocking(false);
     }
   };
+
+  const postMenuItems: ActionMenuItem[] = isOwner
+    ? [
+        {
+          label: "Edit",
+          onSelect: handleEdit,
+          icon: icons.edit,
+        },
+        {
+          label: "Delete",
+          onSelect: () => setShowDeleteConfirm(true),
+          icon: icons.trash,
+          tone: "danger",
+        },
+      ]
+    : user
+      ? [
+          {
+            label: "Block",
+            onSelect: () => setShowBlockConfirm(true),
+            icon: icons.block,
+          },
+          {
+            label: "Report",
+            onSelect: () => setShowReportModal(true),
+            icon: icons.flag,
+            tone: "danger",
+          },
+        ]
+      : [];
 
   if (!post) return null;
 
@@ -841,78 +853,15 @@ export default function PostDetailModal({
               {/* Mobile Discussion Button - hidden on mobile per user request */}
 
               {/* Post Options Menu */}
-              {isOwner ? (
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                      hasDarkBg ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-muted hover:text-ink hover:bg-black/[0.04]'
-                    }`}
-                  >
-                    {icons.moreHorizontal}
-                  </button>
-
-                  {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          handleEdit();
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
-                      >
-                        {icons.edit}
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowDeleteConfirm(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        {icons.trash}
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : user && (
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                      hasDarkBg ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-muted hover:text-ink hover:bg-black/[0.04]'
-                    }`}
-                  >
-                    {icons.moreHorizontal}
-                  </button>
-
-                  {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowBlockConfirm(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
-                      >
-                        {icons.block}
-                        Block
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowReportModal(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        {icons.flag}
-                        Report
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {(isOwner || user) && (
+                <ActionMenu
+                  items={postMenuItems}
+                  buttonClassName={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                    hasDarkBg ? "text-white/70 hover:text-white hover:bg-white/10" : "text-muted hover:text-ink hover:bg-black/[0.04]"
+                  }`}
+                  widthClassName="w-40"
+                  buttonAriaLabel="Post options menu"
+                />
               )}
             </div>
 
