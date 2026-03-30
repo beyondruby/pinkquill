@@ -273,8 +273,8 @@ describe("useReactionCounts", () => {
     expect(result.current.counts.total).toBe(15);
   });
 
-  it("should skip realtime subscription by default (enableRealtime defaults to false)", async () => {
-    renderHook(() => useReactionCounts("post-1"));
+  it("should skip realtime subscription when disabled", async () => {
+    renderHook(() => useReactionCounts("post-1", { disableRealtime: true }));
 
     await waitFor(() => {
       expect(mockChannel).not.toHaveBeenCalled();

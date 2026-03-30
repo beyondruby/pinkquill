@@ -147,6 +147,26 @@ export function countWords(html: string): number {
 }
 
 /**
+ * Sanitize a URL to prevent javascript: and data: attacks
+ */
+export function sanitizeUrl(url: string): string {
+  if (!url) return "";
+
+  const trimmed = url.trim().toLowerCase();
+
+  // Block dangerous protocols
+  if (
+    trimmed.startsWith("javascript:") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("vbscript:")
+  ) {
+    return "";
+  }
+
+  return url;
+}
+
+/**
  * Create safe HTML for dangerouslySetInnerHTML
  * Returns object ready for React's dangerouslySetInnerHTML prop
  */
@@ -162,5 +182,6 @@ export default {
   getExcerpt,
   getExcerptByWords,
   countWords,
+  sanitizeUrl,
   createSafeHtml,
 };

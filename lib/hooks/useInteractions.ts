@@ -246,8 +246,8 @@ export function useToggleReaction() {
 // ============================================================================
 
 interface UseReactionCountsOptions {
-  /** Enable real-time subscription for live updates. Default false to avoid per-post channel overhead in feeds. */
-  enableRealtime?: boolean;
+  /** Disable real-time subscription (useful when parent already manages updates) */
+  disableRealtime?: boolean;
   /** Skip initial fetch (useful when initial data is already provided by parent). */
   skipInitialFetch?: boolean;
   /** Initial counts from parent data to avoid immediate N+1 fetches. */
@@ -256,7 +256,7 @@ interface UseReactionCountsOptions {
 
 export function useReactionCounts(postId: string, options?: UseReactionCountsOptions) {
   const {
-    enableRealtime = false,
+    disableRealtime = false,
     skipInitialFetch = false,
     initialCounts,
   } = options || {};
@@ -392,7 +392,7 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
   }, [postId, fetchCounts, skipInitialFetch]);
 
   // Real-time subscription - only depends on postId to prevent recreation
-  // PERFORMANCE: Only create subscription when enableRealtime is true (e.g., in post detail modal)
+  // PERFORMANCE: Skip subscription when disableRealtime is true (e.g., in feed context)
   useEffect(() => {
     mountedRef.current = true;
 
@@ -408,8 +408,8 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
       };
     }
 
-    // Skip subscription unless explicitly enabled (default off to avoid per-post channel overhead)
-    if (!enableRealtime) {
+    // Skip subscription if disabled (parent manages updates)
+    if (disableRealtime) {
       return () => {
         mountedRef.current = false;
       };
@@ -440,7 +440,7 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
         channelRef.current = null;
       }
     };
-  }, [postId, enableRealtime]);
+  }, [postId, disableRealtime]);
 
   return { counts, loading, refetch: fetchCounts };
 }
@@ -450,8 +450,8 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
 // ============================================================================
 
 interface UseUserReactionOptions {
-  /** Enable real-time subscription for live updates. Default false to avoid per-post channel overhead in feeds. */
-  enableRealtime?: boolean;
+  /** Disable real-time subscription (useful when parent already manages updates) */
+  disableRealtime?: boolean;
   /** Skip initial fetch (useful when parent already provides current reaction). */
   skipInitialFetch?: boolean;
   /** Initial reaction from parent-provided data. */
@@ -460,7 +460,7 @@ interface UseUserReactionOptions {
 
 export function useUserReaction(postId: string, userId?: string, options?: UseUserReactionOptions) {
   const {
-    enableRealtime = false,
+    disableRealtime = false,
     skipInitialFetch = false,
     initialReaction = null,
   } = options || {};
@@ -530,14 +530,14 @@ export function useUserReaction(postId: string, userId?: string, options?: UseUs
   }, [postId, fetchReaction, skipInitialFetch]);
 
   // Real-time subscription - only depends on postId and userId to prevent recreation
-  // PERFORMANCE: Only create subscription when enableRealtime is true (e.g., in post detail modal)
+  // PERFORMANCE: Skip subscription when disableRealtime is true (e.g., in feed context)
   useEffect(() => {
     mountedRef.current = true;
 
     if (!postId || !userId) return;
 
-    // Skip subscription unless explicitly enabled (default off to avoid per-post channel overhead)
-    if (!enableRealtime) {
+    // Skip subscription if disabled (parent manages updates)
+    if (disableRealtime) {
       return () => {
         mountedRef.current = false;
       };
@@ -585,7 +585,7 @@ export function useUserReaction(postId: string, userId?: string, options?: UseUs
         channelRef.current = null;
       }
     };
-  }, [postId, userId, enableRealtime]);
+  }, [postId, userId, disableRealtime]);
 
   return { reaction, loading, setReaction, refetch: fetchReaction };
 }

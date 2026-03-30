@@ -8,10 +8,6 @@
  *   import { useFeed, useToggleAdmire, useProfile } from '@/lib/hooks';
  */
 
-// Auth Flow
-export { useAuthFlow } from "./useAuthFlow";
-export type { AuthStep, UseAuthFlowOptions, UseAuthFlowReturn } from "./useAuthFlow";
-
 // Feed & Posts
 export { useFeed, useSavedPosts, useRelays } from "./useFeed";
 
