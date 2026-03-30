@@ -18,7 +18,7 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { icons } from "@/components/ui/Icons";
+import { CommentIcon, icons } from "@/components/ui/Icons";
 
 interface Take {
   id: string;
@@ -750,7 +750,7 @@ export default function SingleTakePage({ params }: PageProps) {
                 <button
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
                 >
-                  {icons.comment}
+                  <CommentIcon className="shrink-0" />
                   {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
                 </button>
 
@@ -798,7 +798,7 @@ export default function SingleTakePage({ params }: PageProps) {
             <section className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden sticky top-[86px]">
               <div className="p-5 border-b border-black/[0.06]">
                 <h2 className="font-ui text-[1rem] font-medium text-ink flex items-center gap-2">
-                  {icons.comment}
+                  <CommentIcon className="shrink-0" />
                   Discussion ({comments.length})
                 </h2>
               </div>

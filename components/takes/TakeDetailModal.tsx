@@ -15,7 +15,7 @@ import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
 import TakeCommentItem from "@/components/takes/TakeCommentItem";
 import PostTags from "@/components/feed/PostTags";
 import { supabase } from "@/lib/supabase";
-import { icons } from "@/components/ui/Icons";
+import { CommentIcon, icons } from "@/components/ui/Icons";
 
 function getTimeAgo(dateString: string): string {
   const now = new Date();
@@ -455,7 +455,7 @@ export default function TakeDetailModal({
                 onClick={() => setShowComments(!showComments)}
                 className="view-discussion-btn"
               >
-                {icons.comment}
+                <CommentIcon className="shrink-0" />
                 <span>Discussion</span>
                 <span className="badge">
                   {comments.length}
@@ -583,7 +583,7 @@ export default function TakeDetailModal({
                 onClick={() => setShowComments(true)}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
               >
-                {icons.comment}
+                <CommentIcon className="shrink-0" />
                 {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
               </button>
 
