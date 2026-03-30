@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, useDeleteCollection, useDeleteCollectionItem, useUpdateCollection, useUpdateCollectionItem, usePinnedPosts, useReorderCollections } from "@/lib/hooks";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { CommentIcon } from "@/components/ui/Icons";
 
 // Type for follows table real-time payload
 interface FollowRealtimePayload {
@@ -127,11 +128,7 @@ function WorkCardFooter({ postId, commentsCount, formattedDate, userId }: WorkCa
           disabled={!userId}
         />
         <span className="studio-work-stat">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M12 10.5h6M12 13h4" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
+          <CommentIcon />
           {commentsCount}
         </span>
       </div>
@@ -406,11 +403,7 @@ const icons = {
     </svg>
   ),
   comment: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 10.5h6M12 13h4" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
+    <CommentIcon />
   ),
   relay: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2124,11 +2117,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                     {work.admires_count || 0}
                                   </span>
                                   <span className="flex items-center gap-1 text-xs text-muted">
-                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                      <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                      <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                      <path d="M12 10.5h6M12 13h4" strokeWidth="1.8" strokeLinecap="round" />
-                                    </svg>
+                                    <CommentIcon />
                                     {work.comments_count || 0}
                                   </span>
                                 </div>
@@ -2228,11 +2217,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                   {work.admires_count || 0}
                                 </span>
                                 <span className="flex items-center gap-1.5">
-                                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M12 10.5h6M12 13h4" strokeWidth="1.8" strokeLinecap="round" />
-                                  </svg>
+                                  <CommentIcon />
                                   {work.comments_count || 0}
                                 </span>
                               </div>
@@ -2365,11 +2350,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                 {work.admires_count || 0}
                               </span>
                               <span className="flex items-center gap-1">
-                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                  <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                  <path d="M12 10.5h6M12 13h4" strokeWidth="1.8" strokeLinecap="round" />
-                                </svg>
+                                <CommentIcon />
                                 {work.comments_count || 0}
                               </span>
                             </div>
@@ -2537,11 +2518,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                   {work.admires_count || 0}
                                 </span>
                                 <span className="flex items-center gap-1 text-xs">
-                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M12 10.5h6M12 13h4" strokeWidth="1.8" strokeLinecap="round" />
-                                  </svg>
+                                  <CommentIcon size="sm" />
                                   {work.comments_count || 0}
                                 </span>
                               </div>

@@ -12,6 +12,7 @@ import LoadingSkeleton from "@/components/insights/shared/LoadingSkeleton";
 const ViewsChart = dynamic(() => import("@/components/insights/charts/ViewsChart"), { ssr: false });
 const TrafficSourcesChart = dynamic(() => import("@/components/insights/charts/TrafficSourcesChart"), { ssr: false });
 import EmptyState from "@/components/insights/shared/EmptyState";
+import { CommentIcon } from "@/components/ui/Icons";
 
 function formatNumber(num: number): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -279,11 +280,7 @@ export default function TakeInsightsPage() {
           </div>
           <div className="text-center">
             <div className="w-12 h-12 mx-auto rounded-xl bg-blue-50 flex items-center justify-center mb-2">
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M12 10.5h6M12 13h4" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+              <CommentIcon size="lg" className="w-6 h-6" />
             </div>
             <p className="font-ui text-2xl text-ink">{formatNumber(insights.comments)}</p>
             <p className="font-body text-xs text-muted">Comments</p>

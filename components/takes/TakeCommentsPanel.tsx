@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useTakeComments, TakeComment } from "@/lib/hooks/useTakes";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { CommentIcon } from "@/components/ui/Icons";
 
 interface TakeCommentsPanelProps {
   isOpen: boolean;
@@ -454,11 +455,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
           {!loading && !error && comments.length === 0 && (
             <div className="text-center py-12 md:py-8">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-black/[0.03] flex items-center justify-center">
-                <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M8 3.5C4.5 3.5 2 6 2 9c0 1.4.5 2.6 1.4 3.6L2 16l2.8-1.3c.7.5 1.6.8 2.5.8.7 0 1.3-.1 1.9-.3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M15 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c.8 0 1.5-.1 2.2-.4L21 19l-1.5-3c.7-1 1.1-2.2 1.1-3.5 0-3-2.4-5.5-5.6-5.5z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M12 10.5h6M12 13h4" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
+                <CommentIcon size="lg" className="w-8 h-8" />
               </div>
               <p className="font-ui text-[0.95rem] text-ink mb-1">No comments yet</p>
               <p className="font-body text-sm text-muted">Start the conversation!</p>
