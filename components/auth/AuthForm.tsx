@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
-import { loginWithIdentifier } from "@/lib/auth-client";
+import { useAuthFlow } from "@/lib/hooks/useAuthFlow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFeatherPointed,
@@ -16,257 +15,40 @@ import {
   faShieldHalved
 } from "@fortawesome/free-solid-svg-icons";
 
-type AuthStep = "credentials" | "otp";
-
 export default function AuthForm() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [step, setStep] = useState<AuthStep>("credentials");
+  const handleSuccess = useCallback(() => {
+    window.location.href = "/";
+  }, []);
 
-  // Credentials state
-  const [emailOrUsername, setEmailOrUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
-  // OTP state
-  const [otpCode, setOtpCode] = useState(["", "", "", "", "", ""]);
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [resendCooldown, setResendCooldown] = useState(0);
-
-  // UI state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-
-  // Refs for OTP inputs
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown]);
-
-  // Focus first OTP input when entering OTP step
-  useEffect(() => {
-    if (step === "otp") {
-      setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
-    }
-  }, [step]);
-
-  const handleCredentialsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      if (isLogin) {
-        const result = await loginWithIdentifier(emailOrUsername, password);
-
-        if (!result.success) {
-          if (result.requiresVerification && result.pendingEmail) {
-            setPendingEmail(result.pendingEmail);
-            setResendCooldown(60);
-            setStep("otp");
-            setMessage(result.message || "Please verify your email with the code we sent.");
-          } else {
-            throw new Error(result.error || "Unable to sign in right now.");
-          }
-        } else {
-          window.location.href = "/";
-        }
-      } else {
-        // SIGNUP FLOW: Create account and send OTP
-        const { data, error } = await supabase.auth.signUp({
-          email: emailOrUsername,
-          password,
-          options: {
-            data: {
-              username: username.toLowerCase(),
-              display_name: displayName,
-            },
-          },
-        });
-
-        if (error) throw error;
-
-        // Check if user already exists (identities will be empty)
-        if (data.user?.identities?.length === 0) {
-          throw new Error("An account with this email already exists. Please sign in.");
-        }
-
-        // Check if email confirmation is required (no session = needs confirmation)
-        const needsEmailConfirmation = !data.session;
-
-        if (data.user && needsEmailConfirmation) {
-          // Try to create profile (may fail if RLS requires email verification)
-          const { error: profileError } = await supabase
-            .from("profiles")
-            .insert({
-              id: data.user.id,
-              username: username.toLowerCase(),
-              display_name: displayName,
-              email: emailOrUsername.toLowerCase(),
-              avatar_url: '/defaultprofile.png',
-            });
-
-          // Profile will be created after email confirmation if there was an error
-
-          // Move to OTP step
-          setPendingEmail(emailOrUsername);
-          setResendCooldown(60);
-          setStep("otp");
-        } else if (data.session) {
-          // Email confirmation is disabled in Supabase - user is auto-confirmed
-          // This shouldn't happen if Supabase is configured correctly
-          console.warn("User was auto-confirmed. Enable email confirmations in Supabase dashboard.");
-
-          // Still create profile and redirect
-          if (data.user) {
-            await supabase.from("profiles").insert({
-              id: data.user.id,
-              username: username.toLowerCase(),
-              display_name: displayName,
-              email: emailOrUsername.toLowerCase(),
-              avatar_url: '/defaultprofile.png',
-            });
-          }
-          window.location.href = "/";
-        }
-      }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "An error occurred";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    // Only allow digits
-    if (value && !/^\d$/.test(value)) return;
-
-    const newOtp = [...otpCode];
-    newOtp[index] = value;
-    setOtpCode(newOtp);
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-
-    // Auto-submit when all 6 digits are entered
-    if (value && index === 5 && newOtp.every(digit => digit !== "")) {
-      handleOtpSubmit(newOtp.join(""));
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otpCode[index] && index > 0) {
-      // Move to previous input on backspace if current is empty
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pastedData.length === 6) {
-      const newOtp = pastedData.split("");
-      setOtpCode(newOtp);
-      otpInputRefs.current[5]?.focus();
-      handleOtpSubmit(pastedData);
-    }
-  };
-
-  const handleOtpSubmit = async (code?: string) => {
-    const otpString = code || otpCode.join("");
-    if (otpString.length !== 6) {
-      setError("Please enter all 6 digits");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: pendingEmail,
-        token: otpString,
-        type: "signup",
-      });
-
-      if (error) {
-        if (error.message.includes("Token has expired") || error.message.includes("invalid")) {
-          setError("Invalid or expired code. Please try again or resend.");
-        } else {
-          setError(error.message);
-        }
-        // Clear OTP inputs on error
-        setOtpCode(["", "", "", "", "", ""]);
-        otpInputRefs.current[0]?.focus();
-        return;
-      }
-
-      if (data.user) {
-        // Successfully verified - redirect to feed
-        window.location.href = "/";
-      }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Verification failed";
-      setError(errorMessage);
-      setOtpCode(["", "", "", "", "", ""]);
-      otpInputRefs.current[0]?.focus();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (resendCooldown > 0) return;
-
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: pendingEmail,
-      });
-
-      if (error) throw error;
-
-      setMessage("New code sent! Check your email.");
-      setResendCooldown(60);
-      setOtpCode(["", "", "", "", "", ""]);
-      otpInputRefs.current[0]?.focus();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to resend code";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBackToCredentials = () => {
-    setStep("credentials");
-    setOtpCode(["", "", "", "", "", ""]);
-    setError(null);
-    setMessage(null);
-  };
-
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setStep("credentials");
-    setError(null);
-    setMessage(null);
-    setOtpCode(["", "", "", "", "", ""]);
-  };
+  const {
+    isLogin,
+    step,
+    emailOrUsername,
+    setEmailOrUsername,
+    password,
+    setPassword,
+    username,
+    setUsername,
+    displayName,
+    setDisplayName,
+    showPassword,
+    setShowPassword,
+    otpCode,
+    pendingEmail,
+    resendCooldown,
+    otpInputRefs,
+    loading,
+    error,
+    message,
+    handleCredentialsSubmit,
+    handleOtpChange,
+    handleOtpKeyDown,
+    handleOtpPaste,
+    handleOtpSubmit,
+    handleResendCode,
+    handleBackToCredentials,
+    toggleMode,
+  } = useAuthFlow({ onSuccess: handleSuccess });
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#FDFCFD] p-4 sm:p-6 lg:p-8 overflow-hidden relative selection:bg-purple-primary/20 selection:text-purple-primary">

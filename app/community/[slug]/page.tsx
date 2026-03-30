@@ -11,36 +11,12 @@ import PostCard from "@/components/feed/PostCard";
 
 import TimeRangeDropdown from "@/components/communities/TimeRangeDropdown";
 import type { TopTimeRange } from "@/lib/types";
+import { getTimeAgo, POST_TYPE_ACTION_LABELS } from "@/lib/utils";
 
 type SortOption = 'newest' | 'hot' | 'top';
 
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
-}
-
 function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    poem: "wrote a poem",
-    journal: "wrote in their journal",
-    thought: "shared a thought",
-    visual: "shared a visual story",
-    audio: "recorded a voice note",
-    video: "shared a video",
-    essay: "wrote an essay",
-    blog: "published a blog post",
-    story: "shared a story",
-    letter: "wrote a letter",
-    quote: "shared a quote",
-  };
-  return labels[type] || "shared";
+  return POST_TYPE_ACTION_LABELS[type] || "shared";
 }
 
 function transformPost(post: Post) {

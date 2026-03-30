@@ -11,36 +11,10 @@ import PostSkeleton from "./PostSkeleton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
 import type { Post } from "@/lib/types";
-
-// PERFORMANCE: Moved outside component to prevent recreation on every render
-const TYPE_LABELS: Record<string, string> = {
-  poem: "wrote a poem",
-  journal: "wrote in their journal",
-  thought: "shared a thought",
-  visual: "shared a visual story",
-  audio: "recorded a voice note",
-  video: "shared a video",
-  essay: "wrote an essay",
-  blog: "published a blog post",
-  story: "shared a story",
-  letter: "wrote a letter",
-  quote: "shared a quote",
-};
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
-}
+import { getTimeAgo, POST_TYPE_ACTION_LABELS } from "@/lib/utils";
 
 function getTypeLabel(type: string): string {
-  return TYPE_LABELS[type] || "shared something";
+  return POST_TYPE_ACTION_LABELS[type as keyof typeof POST_TYPE_ACTION_LABELS] || "shared something";
 }
 
 // PERFORMANCE: Transform post data once, memoized by post ID

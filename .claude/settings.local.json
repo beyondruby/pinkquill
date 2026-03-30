@@ -75,7 +75,9 @@
       "Bash(source /Users/hadi/projects/pinkquill/.env.local 2>/dev/null; node -e \"\nconst { createClient } = require\\('@supabase/supabase-js'\\);\nconst sb = createClient\\(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY\\);\n\\(async \\(\\) => {\n  const { data: order } = await sb.from\\('orders'\\).select\\('id, status, payment_status, checkout_session_id, transfer_status, transfer_id'\\).eq\\('id', '839d3cf0-8a9e-4943-a554-148fc946c5ff'\\).single\\(\\);\n  console.log\\('Order:', JSON.stringify\\(order, null, 2\\)\\);\n}\\)\\(\\);\n\" 2>&1)",
       "Bash(source /Users/hadi/projects/pinkquill/.env.local 2>/dev/null; node -e \"\nconst Stripe = require\\('stripe'\\);\nconst stripe = new Stripe\\('$STRIPE_SECRET_KEY'\\);\n\\(async \\(\\) => {\n  const endpoints = await stripe.webhookEndpoints.list\\({ limit: 10 }\\);\n  for \\(const ep of endpoints.data\\) {\n    console.log\\('Endpoint:', ep.url\\);\n    console.log\\('  Status:', ep.status\\);\n    console.log\\('  Events:', ep.enabled_events.join\\(', '\\)\\);\n    console.log\\(''\\);\n  }\n}\\)\\(\\);\n\" 2>&1)",
       "Bash(source /Users/hadi/projects/pinkquill/.env.local 2>/dev/null; node -e \"\nconst Stripe = require\\('stripe'\\);\nconst stripe = new Stripe\\('$STRIPE_SECRET_KEY'\\);\n\\(async \\(\\) => {\n  const endpoints = await stripe.webhookEndpoints.list\\({ limit: 10 }\\);\n  const ep = endpoints.data[0];\n  \n  // Update to include all the events our webhook handler needs\n  const updated = await stripe.webhookEndpoints.update\\(ep.id, {\n    enabled_events: [\n      'checkout.session.completed',\n      'checkout.session.expired',\n      'charge.refunded',\n      'account.updated',\n      'payment_intent.succeeded',\n      'payment_intent.created',\n    ],\n  }\\);\n  \n  console.log\\('Updated endpoint:', updated.url\\);\n  console.log\\('New events:', updated.enabled_events.join\\(', '\\)\\);\n}\\)\\(\\);\n\" 2>&1)",
-      "mcp__supabase__get_project"
+      "mcp__supabase__get_project",
+      "Bash(npm outdated:*)",
+      "Bash(jobs -l)"
     ]
   }
 }

@@ -11,6 +11,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { FollowerGrowthData, MemberGrowthData } from "@/lib/hooks/useInsights";
+import { formatCount } from "@/lib/utils";
 
 interface GrowthChartProps {
   data: FollowerGrowthData | MemberGrowthData;
@@ -24,12 +25,6 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toString();
-}
-
 // Moved outside component to avoid "Cannot create components during render" error
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { payload: { count?: number; netChange?: number } }[]; label?: string }) {
   if (active && payload && payload.length) {
@@ -41,7 +36,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
           <p className="font-body text-sm text-muted">
             Count:{" "}
             <span className="text-purple-primary font-medium">
-              {formatNumber(point.count || 0)}
+              {formatCount(point.count || 0)}
             </span>
           </p>
           <p className="font-body text-sm text-muted">
@@ -155,7 +150,7 @@ export default function GrowthChart({
             axisLine={{ stroke: "#f0f0f0" }}
           />
           <YAxis
-            tickFormatter={formatNumber}
+            tickFormatter={formatCount}
             tick={{ fontSize: 12, fill: "#777" }}
             tickLine={false}
             axisLine={false}

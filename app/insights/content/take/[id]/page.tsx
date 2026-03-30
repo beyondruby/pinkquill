@@ -13,12 +13,7 @@ const ViewsChart = dynamic(() => import("@/components/insights/charts/ViewsChart
 const TrafficSourcesChart = dynamic(() => import("@/components/insights/charts/TrafficSourcesChart"), { ssr: false });
 import EmptyState from "@/components/insights/shared/EmptyState";
 import { CommentIcon } from "@/components/ui/Icons";
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toLocaleString();
-}
+import { formatNumber } from "@/lib/utils";
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${Math.round(seconds)}s`;

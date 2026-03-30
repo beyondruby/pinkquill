@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
-import { supabase } from "@/lib/supabase";
-import { loginWithIdentifier } from "@/lib/auth-client";
+import { useAuthFlow } from "@/lib/hooks/useAuthFlow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFeatherPointed,
@@ -14,36 +13,49 @@ import {
   faSpinner,
   faXmark,
   faEnvelope,
-  faShieldHalved,
   faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
 
-type AuthStep = "credentials" | "otp";
-
 export default function AuthModal() {
   const { isOpen, closeModal } = useAuthModal();
-  const [isLogin, setIsLogin] = useState(true);
-  const [step, setStep] = useState<AuthStep>("credentials");
 
-  // Credentials state
-  const [emailOrUsername, setEmailOrUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const handleSuccess = useCallback(() => {
+    closeModal();
+    window.location.reload();
+  }, [closeModal]);
 
-  // OTP state
-  const [otpCode, setOtpCode] = useState(["", "", "", "", "", ""]);
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [resendCooldown, setResendCooldown] = useState(0);
-
-  // UI state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const {
+    isLogin,
+    step,
+    emailOrUsername,
+    setEmailOrUsername,
+    password,
+    setPassword,
+    username,
+    setUsername,
+    displayName,
+    setDisplayName,
+    showPassword,
+    setShowPassword,
+    otpCode,
+    pendingEmail,
+    resendCooldown,
+    otpInputRefs,
+    loading,
+    error,
+    message,
+    handleCredentialsSubmit,
+    handleOtpChange,
+    handleOtpKeyDown,
+    handleOtpPaste,
+    handleOtpSubmit,
+    handleResendCode,
+    handleBackToCredentials,
+    toggleMode,
+    resetForm,
+  } = useAuthFlow({ onSuccess: handleSuccess });
 
   const modalRef = useRef<HTMLDivElement>(null);
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Close on escape key
   useEffect(() => {
@@ -71,210 +83,9 @@ export default function AuthModal() {
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setStep("credentials");
-      setEmailOrUsername("");
-      setPassword("");
-      setUsername("");
-      setDisplayName("");
-      setOtpCode(["", "", "", "", "", ""]);
-      setError(null);
-      setMessage(null);
+      resetForm();
     }
-  }, [isOpen]);
-
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown]);
-
-  // Focus first OTP input when entering OTP step
-  useEffect(() => {
-    if (step === "otp" && isOpen) {
-      setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
-    }
-  }, [step, isOpen]);
-
-  const handleCredentialsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      if (isLogin) {
-        const result = await loginWithIdentifier(emailOrUsername, password);
-
-        if (!result.success) {
-          if (result.requiresVerification && result.pendingEmail) {
-            setPendingEmail(result.pendingEmail);
-            setResendCooldown(60);
-            setStep("otp");
-            setMessage(result.message || "Please verify your email with the code we sent.");
-          } else {
-            throw new Error(result.error || "Unable to sign in right now.");
-          }
-        } else {
-          closeModal();
-          window.location.reload();
-        }
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: emailOrUsername,
-          password,
-          options: {
-            data: {
-              username: username.toLowerCase(),
-              display_name: displayName,
-            },
-          },
-        });
-
-        if (error) throw error;
-
-        if (data.user?.identities?.length === 0) {
-          throw new Error("An account with this email already exists.");
-        }
-
-        const needsEmailConfirmation = !data.session;
-
-        if (data.user && needsEmailConfirmation) {
-          await supabase.from("profiles").insert({
-            id: data.user.id,
-            username: username.toLowerCase(),
-            display_name: displayName,
-            email: emailOrUsername.toLowerCase(),
-            avatar_url: '/defaultprofile.png',
-          });
-
-          setPendingEmail(emailOrUsername);
-          setResendCooldown(60);
-          setStep("otp");
-        } else if (data.session) {
-          if (data.user) {
-            await supabase.from("profiles").insert({
-              id: data.user.id,
-              username: username.toLowerCase(),
-              display_name: displayName,
-              email: emailOrUsername.toLowerCase(),
-              avatar_url: '/defaultprofile.png',
-            });
-          }
-          closeModal();
-          window.location.reload();
-        }
-      }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "An error occurred";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (value && !/^\d$/.test(value)) return;
-
-    const newOtp = [...otpCode];
-    newOtp[index] = value;
-    setOtpCode(newOtp);
-
-    if (value && index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-
-    if (value && index === 5 && newOtp.every(digit => digit !== "")) {
-      handleOtpSubmit(newOtp.join(""));
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otpCode[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pastedData.length === 6) {
-      const newOtp = pastedData.split("");
-      setOtpCode(newOtp);
-      otpInputRefs.current[5]?.focus();
-      handleOtpSubmit(pastedData);
-    }
-  };
-
-  const handleOtpSubmit = async (code?: string) => {
-    const otpString = code || otpCode.join("");
-    if (otpString.length !== 6) {
-      setError("Please enter all 6 digits");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: pendingEmail,
-        token: otpString,
-        type: "signup",
-      });
-
-      if (error) {
-        if (error.message.includes("Token has expired") || error.message.includes("invalid")) {
-          setError("Invalid or expired code. Please try again.");
-        } else {
-          setError(error.message);
-        }
-        setOtpCode(["", "", "", "", "", ""]);
-        otpInputRefs.current[0]?.focus();
-        return;
-      }
-
-      if (data.user) {
-        closeModal();
-        window.location.reload();
-      }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Verification failed";
-      setError(errorMessage);
-      setOtpCode(["", "", "", "", "", ""]);
-      otpInputRefs.current[0]?.focus();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (resendCooldown > 0) return;
-
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: pendingEmail,
-      });
-
-      if (error) throw error;
-
-      setMessage("New code sent!");
-      setResendCooldown(60);
-      setOtpCode(["", "", "", "", "", ""]);
-      otpInputRefs.current[0]?.focus();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to resend code";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isOpen, resetForm]);
 
   if (!isOpen) return null;
 
@@ -438,11 +249,7 @@ export default function AuthModal() {
                   {isLogin ? "New here?" : "Already a member?"}
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsLogin(!isLogin);
-                      setError(null);
-                      setMessage(null);
-                    }}
+                    onClick={toggleMode}
                     className="ml-1.5 font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-primary to-pink-vivid hover:opacity-80 transition-opacity"
                   >
                     {isLogin ? "Create account" : "Sign in"}
@@ -466,12 +273,7 @@ export default function AuthModal() {
           {step === "otp" && (
             <div className="animate-fadeIn">
               <button
-                onClick={() => {
-                  setStep("credentials");
-                  setOtpCode(["", "", "", "", "", ""]);
-                  setError(null);
-                  setMessage(null);
-                }}
+                onClick={handleBackToCredentials}
                 className="flex items-center gap-2 text-muted hover:text-purple-primary transition-colors mb-4 group"
               >
                 <FontAwesomeIcon icon={faArrowLeft} className="w-3 h-3 group-hover:-translate-x-1 transition-transform" />

@@ -114,6 +114,13 @@ type Tab = "color" | "gradient" | "pattern" | "image";
 const MAX_BACKGROUND_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_BACKGROUND_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: "color", label: "Color", icon: icons.color },
+  { id: "gradient", label: "Gradient", icon: icons.gradient },
+  { id: "pattern", label: "Pattern", icon: icons.pattern },
+  { id: "image", label: "Image", icon: icons.image },
+];
+
 export default function BackgroundPicker({ value, onChange, onClose }: BackgroundPickerProps) {
   const [activeTab, setActiveTab] = useState<Tab>("color");
   const [customColor, setCustomColor] = useState(value?.type === "solid" ? value.value : "#8e44ad");
@@ -122,13 +129,6 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
   const [imageBlur, setImageBlur] = useState(value?.blur ?? 0);
   const [imageError, setImageError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "color", label: "Color", icon: icons.color },
-    { id: "gradient", label: "Gradient", icon: icons.gradient },
-    { id: "pattern", label: "Pattern", icon: icons.pattern },
-    { id: "image", label: "Image", icon: icons.image },
-  ];
 
   const handleSelectColor = (color: string) => {
     onChange({ type: "solid", value: color });

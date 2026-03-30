@@ -12,6 +12,7 @@ import {
   AreaChart,
 } from "recharts";
 import { DailyStats } from "@/lib/hooks/useInsights";
+import { formatCount } from "@/lib/utils";
 
 interface ViewsChartProps {
   data: DailyStats[];
@@ -25,12 +26,6 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toString();
-}
-
 // Moved outside component to avoid "Cannot create components during render" error
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (active && payload && payload.length) {
@@ -39,7 +34,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
         <p className="font-ui text-sm text-ink font-medium mb-1">{label}</p>
         <p className="font-body text-sm text-muted">
           <span className="text-purple-primary font-medium">
-            {formatNumber(payload[0].value)}
+            {formatCount(payload[0].value)}
           </span>{" "}
           views
         </p>
@@ -94,7 +89,7 @@ export default function ViewsChart({
               axisLine={{ stroke: "#f0f0f0" }}
             />
             <YAxis
-              tickFormatter={formatNumber}
+              tickFormatter={formatCount}
               tick={{ fontSize: 12, fill: "#777" }}
               tickLine={false}
               axisLine={false}
@@ -119,7 +114,7 @@ export default function ViewsChart({
               axisLine={{ stroke: "#f0f0f0" }}
             />
             <YAxis
-              tickFormatter={formatNumber}
+              tickFormatter={formatCount}
               tick={{ fontSize: 12, fill: "#777" }}
               tickLine={false}
               axisLine={false}

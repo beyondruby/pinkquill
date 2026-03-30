@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useToggleSave, useToggleRelay, useComments, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, ReactionType } from "@/lib/hooks";
 import { cleanHtmlForDisplay } from "@/lib/utils/sanitize";
+import { getTimeAgo } from "@/lib/utils";
 import { deleteOwnPost } from "@/lib/posts-client";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";
@@ -101,18 +102,6 @@ interface TagRow {
 interface CollaboratorRow {
   role?: string | null;
   user: CollaboratorUser["user"] | CollaboratorUser["user"][] | null;
-}
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
 }
 
 function formatDate(dateString: string): string {
@@ -281,8 +270,8 @@ export default function PostPage() {
 
   // Reaction system hooks
   const { react: toggleReaction, removeReaction } = useToggleReaction();
-  const { counts: reactionCounts } = useReactionCounts(postId);
-  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(postId, user?.id);
+  const { counts: reactionCounts } = useReactionCounts(postId, { enableRealtime: true });
+  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(postId, user?.id, { enableRealtime: true });
 
   // Scroll to comment when navigating from notification
   useEffect(() => {

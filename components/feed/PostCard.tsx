@@ -207,12 +207,12 @@ function PostCardComponent({
 
   // Real-time reaction hooks - disabled in feed context to reduce subscription count
   const { counts: reactionCounts, refetch: refetchReactionCounts } = useReactionCounts(post.id, {
-    disableRealtime: disableRealtimeSubscriptions,
+    enableRealtime: !disableRealtimeSubscriptions,
     skipInitialFetch: disableRealtimeSubscriptions,
     initialCounts: initialReactionCounts,
   });
   const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post.id, user?.id, {
-    disableRealtime: disableRealtimeSubscriptions,
+    enableRealtime: !disableRealtimeSubscriptions,
     skipInitialFetch: disableRealtimeSubscriptions,
     initialReaction: post.reactionType ?? null,
   });

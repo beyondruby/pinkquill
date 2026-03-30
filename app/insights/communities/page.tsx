@@ -12,6 +12,7 @@ import LoadingSkeleton from "@/components/insights/shared/LoadingSkeleton";
 const GrowthChart = dynamic(() => import("@/components/insights/charts/GrowthChart"), { ssr: false });
 import EmptyState from "@/components/insights/shared/EmptyState";
 import { supabase } from "@/lib/supabase";
+import { formatNumber } from "@/lib/utils";
 
 interface Community {
   id: string;
@@ -19,12 +20,6 @@ interface Community {
   slug: string;
   avatar_url: string | null;
   member_count: number;
-}
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toLocaleString();
 }
 
 function CommunityInsightsCard({

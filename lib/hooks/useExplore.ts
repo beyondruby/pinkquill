@@ -399,8 +399,9 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           query = query.neq("author_id", userId);
         }
 
-        // Use range for pagination - calculate the range based on page
-        const rangeStart = page * pageSize;
+        // Use range for pagination - for algorithmic tabs we fetch more items
+        // per page for scoring, so the DB offset must account for that
+        const rangeStart = page * fetchLimit;
         const rangeEnd = rangeStart + fetchLimit - 1;
 
         const { data: postsData, count: totalCount, error: queryError } = await query

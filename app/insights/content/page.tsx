@@ -6,26 +6,7 @@ import { useContentInsights, TimeRange, DateRange } from "@/lib/hooks/useInsight
 import DateRangePicker from "@/components/insights/DateRangePicker";
 import LoadingSkeleton from "@/components/insights/shared/LoadingSkeleton";
 import EmptyState from "@/components/insights/shared/EmptyState";
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toLocaleString();
-}
-
-const postTypeLabels: Record<string, string> = {
-  poem: "Poem",
-  journal: "Journal",
-  thought: "Thought",
-  visual: "Visual",
-  audio: "Audio",
-  video: "Video",
-  essay: "Essay",
-  screenplay: "Screenplay",
-  story: "Story",
-  letter: "Letter",
-  quote: "Quote",
-};
+import { formatNumber, POST_TYPE_LABELS } from "@/lib/utils";
 
 const postTypeIcons: Record<string, React.ReactNode> = {
   poem: (
@@ -307,7 +288,7 @@ export default function InsightsContentPage() {
                         Take
                       </>
                     ) : (
-                      postTypeLabels[item.postType || ""] || "Post"
+                      POST_TYPE_LABELS[item.postType || ""] || "Post"
                     )}
                   </span>
                   <span className="text-xs text-muted">

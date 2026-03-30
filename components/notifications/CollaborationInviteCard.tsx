@@ -10,52 +10,12 @@ import {
   faEye,
 } from "@fortawesome/free-solid-svg-icons";
 import { CollaborationInvite } from "@/lib/hooks";
+import { getTimeAgo, getExcerpt, getPostTypeLabel } from "@/lib/utils";
 
 interface CollaborationInviteCardProps {
   invite: CollaborationInvite;
   onAccept: (postId: string, authorId: string) => Promise<void>;
   onDecline: (postId: string, authorId: string) => Promise<void>;
-}
-
-// Helper to get post type label
-function getPostTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    poem: "poem",
-    journal: "journal entry",
-    thought: "thought",
-    essay: "essay",
-    story: "story",
-    letter: "letter",
-    quote: "quote",
-    visual: "visual post",
-    audio: "voice note",
-    video: "video",
-    blog: "blog post",
-  };
-  return labels[type] || "post";
-}
-
-// Helper to get excerpt from HTML content
-function getExcerpt(content: string, maxLength: number = 100): string {
-  const text = content.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ");
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + "...";
-}
-
-// Helper to format time ago
-function formatTimeAgo(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default function CollaborationInviteCard({
@@ -87,8 +47,8 @@ export default function CollaborationInviteCard({
   };
 
   const author = invite.post.author;
-  const postTypeLabel = getPostTypeLabel(invite.post.type);
-  const excerpt = getExcerpt(invite.post.content);
+  const postTypeLabel = getPostTypeLabel(invite.post.type).toLowerCase();
+  const excerpt = getExcerpt(invite.post.content, 100);
 
   return (
     <div className="collab-invite-card">
@@ -103,7 +63,7 @@ export default function CollaborationInviteCard({
           </svg>
         </div>
         <span className="collab-invite-title">Collaboration Invite</span>
-        <span className="collab-invite-time">{formatTimeAgo(invite.invited_at)}</span>
+        <span className="collab-invite-time">{getTimeAgo(invite.invited_at)}</span>
       </div>
 
       {/* Content */}

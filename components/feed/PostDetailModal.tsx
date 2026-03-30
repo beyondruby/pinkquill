@@ -444,8 +444,8 @@ export default function PostDetailModal({
 
   // Reaction system hooks
   const { react: toggleReaction, removeReaction } = useToggleReaction();
-  const { counts: reactionCounts } = useReactionCounts(post?.id || "");
-  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post?.id || "", user?.id);
+  const { counts: reactionCounts } = useReactionCounts(post?.id || "", { enableRealtime: true });
+  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post?.id || "", user?.id, { enableRealtime: true });
 
   const hasMedia = post?.media && post.media.length > 0;
   const postUrl = typeof window !== 'undefined' && post ? `${window.location.origin}/post/${post.id}` : '';

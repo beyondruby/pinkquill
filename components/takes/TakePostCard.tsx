@@ -24,6 +24,7 @@ import {
   FlagIcon,
   BlockIcon,
 } from "@/components/ui/Icons";
+import { formatCount, getTimeAgo } from "@/lib/utils";
 
 interface TakePostCardProps {
   take: Take | RelayedTake;
@@ -34,24 +35,6 @@ interface TakePostCardProps {
   };
   variant?: "feed" | "grid";
   onTakeDeleted?: (takeId: string) => void;
-}
-
-function formatCount(n: number): string {
-  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "K";
-  return n.toString();
-}
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default function TakePostCard({ take, isRelayed, relayedBy, variant = "feed", onTakeDeleted }: TakePostCardProps) {

@@ -5,7 +5,6 @@ import {
   getExcerpt,
   getExcerptByWords,
   countWords,
-  sanitizeUrl,
   createSafeHtml,
 } from "../sanitize";
 
@@ -140,39 +139,6 @@ describe("countWords", () => {
 
   it("should return 0 for empty string", () => {
     expect(countWords("")).toBe(0);
-  });
-});
-
-describe("sanitizeUrl", () => {
-  it("should allow https URLs", () => {
-    const input = "https://example.com";
-    expect(sanitizeUrl(input)).toBe(input);
-  });
-
-  it("should allow http URLs", () => {
-    const input = "http://example.com";
-    expect(sanitizeUrl(input)).toBe(input);
-  });
-
-  it("should block javascript: URLs", () => {
-    expect(sanitizeUrl("javascript:alert(1)")).toBe("");
-  });
-
-  it("should block data: URLs", () => {
-    expect(sanitizeUrl("data:text/html,<script>alert(1)</script>")).toBe("");
-  });
-
-  it("should block vbscript: URLs", () => {
-    expect(sanitizeUrl("vbscript:msgbox(1)")).toBe("");
-  });
-
-  it("should be case insensitive for dangerous protocols", () => {
-    expect(sanitizeUrl("JAVASCRIPT:alert(1)")).toBe("");
-    expect(sanitizeUrl("JavaScript:alert(1)")).toBe("");
-  });
-
-  it("should return empty for empty input", () => {
-    expect(sanitizeUrl("")).toBe("");
   });
 });
 

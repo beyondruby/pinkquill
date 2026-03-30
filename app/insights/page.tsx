@@ -14,26 +14,7 @@ const ViewsChart = dynamic(() => import("@/components/insights/charts/ViewsChart
 const TrafficSourcesChart = dynamic(() => import("@/components/insights/charts/TrafficSourcesChart"), { ssr: false });
 const GrowthChart = dynamic(() => import("@/components/insights/charts/GrowthChart"), { ssr: false });
 import EmptyState from "@/components/insights/shared/EmptyState";
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toLocaleString();
-}
-
-const postTypeLabels: Record<string, string> = {
-  poem: "Poem",
-  journal: "Journal",
-  thought: "Thought",
-  visual: "Visual",
-  audio: "Audio",
-  video: "Video",
-  essay: "Essay",
-  screenplay: "Screenplay",
-  story: "Story",
-  letter: "Letter",
-  quote: "Quote",
-};
+import { formatNumber, POST_TYPE_LABELS } from "@/lib/utils";
 
 export default function InsightsOverviewPage() {
   const router = useRouter();
@@ -255,7 +236,7 @@ export default function InsightsOverviewPage() {
                     {item.title || "Untitled"}
                   </p>
                   <p className="font-body text-xs text-muted">
-                    {item.type === "take" ? "Take" : item.postType ? postTypeLabels[item.postType] || item.postType : "Post"} • {new Date(item.createdAt).toLocaleDateString()}
+                    {item.type === "take" ? "Take" : item.postType ? POST_TYPE_LABELS[item.postType] || item.postType : "Post"} • {new Date(item.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="text-right">

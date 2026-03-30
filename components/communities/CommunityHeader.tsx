@@ -7,22 +7,13 @@ import { Community, CommunityTag } from "@/lib/hooks";
 import JoinButton from "./JoinButton";
 import ReportModal from "@/components/ui/ReportModal";
 import { supabase } from "@/lib/supabase";
+import { formatCount } from "@/lib/utils";
 
 interface CommunityHeaderProps {
   community: Community;
   tags: CommunityTag[];
   userId?: string;
   onUpdate?: () => void;
-}
-
-function formatCount(count: number): string {
-  if (count >= 1000000) {
-    return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
-  }
-  if (count >= 1000) {
-    return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-  }
-  return count.toString();
 }
 
 export default function CommunityHeader({ community, tags, userId, onUpdate }: CommunityHeaderProps) {

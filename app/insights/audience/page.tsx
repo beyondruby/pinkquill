@@ -9,12 +9,7 @@ import LoadingSkeleton from "@/components/insights/shared/LoadingSkeleton";
 
 const GrowthChart = dynamic(() => import("@/components/insights/charts/GrowthChart"), { ssr: false });
 import EmptyState from "@/components/insights/shared/EmptyState";
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toLocaleString();
-}
+import { formatNumber } from "@/lib/utils";
 
 export default function InsightsAudiencePage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");

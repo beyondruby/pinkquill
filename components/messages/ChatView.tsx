@@ -141,6 +141,8 @@ export default function ChatView({
   const [hasOlderMessages, setHasOlderMessages] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ file: File; url: string; type: 'image' | 'video' } | null>(null);
+  const mediaPreviewRef = useRef(mediaPreview);
+  mediaPreviewRef.current = mediaPreview;
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -150,11 +152,13 @@ export default function ChatView({
   const reportTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mediaErrorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cleanup timeouts on unmount
+  // Cleanup timeouts and object URLs on unmount
   useEffect(() => {
     return () => {
       if (reportTimeoutRef.current) clearTimeout(reportTimeoutRef.current);
       if (mediaErrorTimeoutRef.current) clearTimeout(mediaErrorTimeoutRef.current);
+      // Revoke any pending media preview URL to prevent memory leaks
+      if (mediaPreviewRef.current?.url) URL.revokeObjectURL(mediaPreviewRef.current.url);
     };
   }, []);
   const { checkIsBlocked, blockUser, unblockUser } = useBlock();
@@ -600,6 +604,7 @@ export default function ChatView({
     setMessages((prev) => [...prev, optimisticMessage]);
 
     const fileToSend = mediaPreview.file;
+    URL.revokeObjectURL(mediaPreview.url);
     setMediaPreview(null);
 
     const message = await sendMedia(conversationId, currentUserId, fileToSend);

@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMuted, useVolume, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
 import { useBlock } from "@/lib/hooks";
+import { getTimeAgo, DEFAULT_AVATAR } from "@/lib/utils";
 import { useTakeComments } from "@/lib/hooks/useTakes";
 import { deleteOwnTake } from "@/lib/content-client";
 import TakeReactionPicker from "@/components/takes/TakeReactionPicker";
@@ -42,18 +43,6 @@ interface Take {
 
 interface PageProps {
   params: Promise<{ id: string }>;
-}
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
 }
 
 export default function SingleTakePage({ params }: PageProps) {
@@ -606,7 +595,7 @@ export default function SingleTakePage({ params }: PageProps) {
               <div className="flex items-center gap-4 p-6 border-b border-black/[0.06]">
                 <Link href={`/studio/${take.author.username}`}>
                   <img
-                    src={take.author.avatar_url || "/defaultprofile.png"}
+                    src={take.author.avatar_url || DEFAULT_AVATAR}
                     alt={take.author.display_name || take.author.username}
                     className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md hover:scale-110 transition-transform"
                   />
@@ -807,7 +796,7 @@ export default function SingleTakePage({ params }: PageProps) {
               {user ? (
                 <div className="p-4 border-b border-black/[0.06] flex gap-3 items-center">
                   <img
-                    src={profile?.avatar_url || "/defaultprofile.png"}
+                    src={profile?.avatar_url || DEFAULT_AVATAR}
                     alt="You"
                     className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                   />

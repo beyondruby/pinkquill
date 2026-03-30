@@ -1291,14 +1291,17 @@ export default function CreatePost() {
     }
   }, [isTakePreviewPlaying]);
 
-  // Cleanup take preview URL on unmount
+  // Cleanup take preview URLs on unmount
   useEffect(() => {
     return () => {
       if (takeVideoPreview) {
         URL.revokeObjectURL(takeVideoPreview);
       }
+      if (takeThumbnailPreview) {
+        URL.revokeObjectURL(takeThumbnailPreview);
+      }
     };
-  }, [takeVideoPreview]);
+  }, [takeVideoPreview, takeThumbnailPreview]);
 
   // Extract tags from take caption (hashtags)
   useEffect(() => {

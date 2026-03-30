@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useTagPosts, useTrendingTags } from "@/lib/hooks";
 import PostCard from "@/components/feed/PostCard";
 import type { PostProps, PostType } from "@/components/feed/PostCard/types";
+import { getTimeAgo, POST_TYPE_ACTION_LABELS, DEFAULT_AVATAR } from "@/lib/utils";
 
 // Loading skeleton
 function PostSkeleton() {
@@ -50,42 +51,16 @@ function transformPostForCard(post: {
   hashtags?: string[];
   author?: { username?: string; display_name?: string | null; avatar_url?: string | null };
 }) {
-  const typeLabels: Record<string, string> = {
-    poem: "wrote a poem",
-    journal: "wrote in their journal",
-    thought: "shared a thought",
-    visual: "shared a visual story",
-    audio: "recorded a voice note",
-    video: "shared a video",
-    essay: "wrote an essay",
-    blog: "published a blog post",
-    story: "shared a story",
-    letter: "wrote a letter",
-    quote: "shared a quote",
-  };
-
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (seconds < 60) return "just now";
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
-
   return {
     id: post.id,
     authorId: post.author_id,
     author: {
       name: post.author?.display_name || post.author?.username || "Unknown",
       handle: `@${post.author?.username || "unknown"}`,
-      avatar: post.author?.avatar_url || "/default-avatar.png",
+      avatar: post.author?.avatar_url || DEFAULT_AVATAR,
     },
     type: post.type as PostType,
-    typeLabel: typeLabels[post.type] || "shared",
+    typeLabel: POST_TYPE_ACTION_LABELS[post.type] || "shared",
     timeAgo: getTimeAgo(post.created_at),
     createdAt: post.created_at,
     title: post.title || undefined,

@@ -428,6 +428,8 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
     blockedUsersRef.current = new Set();
     dmUnreadCountRef.current = 0;
     communityUnreadCountRef.current = 0;
+    // Clear the entire module-level cache to prevent cross-user data leakage
+    blockedUsersCacheByUser.clear();
     if (!userId) {
       setCount(0);
     }
@@ -437,15 +439,7 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
   const getBlockedUsers = useCallback(async (): Promise<Set<string>> => {
     if (!userId) return new Set();
 
-    // Clear cache entries for other users to prevent cross-user leakage
-    // (e.g., User A logs out, User B logs in within the TTL window)
-    for (const key of blockedUsersCacheByUser.keys()) {
-      if (key !== userId) {
-        blockedUsersCacheByUser.delete(key);
-      }
-    }
-
-    // Check cache
+    // Check cache (cross-user leakage is prevented by clearing cache on userId change in useEffect)
     const cached = blockedUsersCacheByUser.get(userId);
     if (cached && (Date.now() - cached.fetchedAt < BLOCKED_USERS_CACHE_TTL_MS)) {
       return cached.userIds;

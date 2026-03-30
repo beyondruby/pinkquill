@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { actionToast } from "@/lib/utils/toast";
+import { getTimeAgoCompact } from "@/lib/utils";
 
 interface CommentItemProps {
   comment: Comment;
@@ -65,18 +66,6 @@ function renderContentWithMentions(content: string, commentId?: string): React.R
   }
 
   return parts.length > 0 ? parts : <span dangerouslySetInnerHTML={{ __html: sanitized }} />;
-}
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-  return date.toLocaleDateString();
 }
 
 function CommentItemComponent({
@@ -266,7 +255,7 @@ function CommentItemComponent({
                 {comment.author.display_name || comment.author.username}
               </Link>
               <span className="font-ui text-[0.7rem] text-muted">
-                {getTimeAgo(comment.created_at)}
+                {getTimeAgoCompact(comment.created_at)}
               </span>
 
               {/* 3-dot Menu */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -98,7 +98,7 @@ const icons: Record<string, React.ReactElement> = {
   ),
 };
 
-export default function LeftSidebar() {
+function LeftSidebar() {
   const pathname = usePathname();
   const { user, profile, loading, signOut } = useAuth();
 
@@ -582,3 +582,5 @@ export default function LeftSidebar() {
     </>
   );
 }
+
+export default memo(LeftSidebar);

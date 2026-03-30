@@ -2,34 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import type { SharedPostPreview, PostType } from "@/lib/types";
+import type { SharedPostPreview } from "@/lib/types";
 import { fetchSharedPostPreview } from "@/lib/hooks";
-import { DEFAULT_AVATAR } from "@/lib/utils/image";
+import { DEFAULT_AVATAR, POST_TYPE_LABELS, getExcerpt } from "@/lib/utils";
 
 interface SharedPostCardProps {
   postId: string;
   isOwnMessage: boolean;
   cachedPost?: SharedPostPreview;
-}
-
-const POST_TYPE_LABELS: Record<PostType, string> = {
-  poem: "Poem",
-  journal: "Journal",
-  thought: "Thought",
-  visual: "Visual",
-  audio: "Audio",
-  video: "Video",
-  essay: "Essay",
-  blog: "Blog",
-  story: "Story",
-  letter: "Letter",
-  quote: "Quote",
-};
-
-function getExcerpt(html: string, maxLength: number = 80): string {
-  const text = html.replace(/<[^>]*>/g, "").trim();
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength).trim() + "...";
 }
 
 export default function SharedPostCard({
