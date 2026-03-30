@@ -3,6 +3,8 @@ import { safeResponseJson } from "@/lib/utils/fetch";
 
 export interface LoginWithIdentifierResult {
   success: boolean;
+  /** The resolved email address (returned on success for client-side sign-in) */
+  email?: string;
   error?: string;
   requiresVerification?: boolean;
   pendingEmail?: string;
@@ -58,6 +60,7 @@ export async function loginWithIdentifier(
 
   return {
     success: true,
+    email: (data.email as string) || undefined,
     requiresVerification: Boolean(data.requires_verification),
     pendingEmail: (data.pending_email as string) || undefined,
     message: (data.message as string) || undefined,

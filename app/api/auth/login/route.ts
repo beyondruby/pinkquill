@@ -74,6 +74,7 @@ export async function POST(request: Request) {
       loginEmail = profile.email;
     }
 
+    // Validate credentials server-side first (rate-limited, prevents brute force)
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
@@ -88,8 +89,6 @@ export async function POST(request: Request) {
           email: loginEmail,
         }).catch(() => {});
 
-        // Return same 401 status as invalid credentials to prevent email enumeration,
-        // but include a generic hint that applies to all failed logins
         return NextResponse.json(
           {
             error: "Invalid email/username or password. If you recently signed up, please check your email for a verification link.",
@@ -101,7 +100,11 @@ export async function POST(request: Request) {
       return invalidCredentialsResponse();
     }
 
-    return NextResponse.json({ success: true });
+    // Return the resolved email so the client can also sign in client-side.
+    // Client-side signInWithPassword sets the session in localStorage,
+    // which the AuthProvider reads via getSession().
+    // The email is only returned AFTER successful server-side authentication.
+    return NextResponse.json({ success: true, email: loginEmail });
   } catch (error) {
     console.error("[Auth Login]", error);
     return NextResponse.json(

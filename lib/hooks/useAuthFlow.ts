@@ -235,6 +235,7 @@ export function useAuthFlow({ onSuccess }: UseAuthFlowOptions): UseAuthFlowRetur
 
     try {
       if (isLogin) {
+        // Step 1: Resolve username → email via server API (rate-limited, same-origin enforced)
         const result = await loginWithIdentifier(emailOrUsername, password);
 
         if (!result.success) {
@@ -247,7 +248,27 @@ export function useAuthFlow({ onSuccess }: UseAuthFlowOptions): UseAuthFlowRetur
             throw new Error(result.error || "Unable to sign in right now.");
           }
         } else {
-          onSuccessRef.current();
+          // Step 2: Sign in client-side so the session is stored in localStorage.
+          // The server API resolved the username to an email for us.
+          const loginEmail = result.email || emailOrUsername;
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: loginEmail,
+            password,
+          });
+
+          if (signInError) {
+            // Handle unconfirmed email
+            if (signInError.message.includes("Email not confirmed")) {
+              setPendingEmail(loginEmail);
+              setResendCooldown(60);
+              setStep("otp");
+              setMessage("Please verify your email with the code we sent.");
+            } else {
+              throw new Error(signInError.message);
+            }
+          } else {
+            onSuccessRef.current();
+          }
         }
       } else {
         const { data, error } = await supabase.auth.signUp({
