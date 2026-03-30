@@ -58,6 +58,7 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       setLoading(true);
@@ -68,9 +69,9 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
       const { data, error: rpcError } = await supabase.rpc("get_trending_tags", {
         p_limit: limit,
         p_days: 30,
-      });
+      }).abortSignal(signal);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal.aborted) return;
       if (rpcError) throw rpcError;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -5,9 +5,6 @@ import { deleteOwnTake } from "@/lib/content-client";
 import { supabase } from "../supabase";
 import { sanitizePostgrestSearchTerm } from "../utils/postgrest";
 
-// Request timeout in milliseconds - reduced from 15s to 8s for faster fallback
-const REQUEST_TIMEOUT_MS = 8000;
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -176,6 +173,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       if (reset) {
@@ -190,6 +188,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         .select("*")
         .eq("visibility", "public")
         .order("created_at", { ascending: false })
+        .abortSignal(signal)
         .range(offsetRef.current, offsetRef.current + limit - 1);
 
       if (communityId) query = query.eq("community_id", communityId);
@@ -198,7 +197,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
 
       const { data: takesData, error: takesError } = await query;
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal.aborted) return;
       if (takesError) throw takesError;
       if (!takesData || takesData.length === 0) {
         if (reset) setTakes([]);
@@ -217,12 +216,14 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         savesRes,
         relaysRes,
       ] = await Promise.all([
-        supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds),
-        supabase.from("take_reactions").select("take_id, reaction_type").in("take_id", takeIds),
-        supabase.from("take_comments").select("take_id").in("take_id", takeIds),
-        supabase.from("take_saves").select("take_id").in("take_id", takeIds),
-        supabase.from("take_relays").select("take_id").in("take_id", takeIds),
+        supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds).abortSignal(signal),
+        supabase.from("take_reactions").select("take_id, reaction_type").in("take_id", takeIds).abortSignal(signal),
+        supabase.from("take_comments").select("take_id").in("take_id", takeIds).abortSignal(signal),
+        supabase.from("take_saves").select("take_id").in("take_id", takeIds).abortSignal(signal),
+        supabase.from("take_relays").select("take_id").in("take_id", takeIds).abortSignal(signal),
       ]);
+
+      if (!mountedRef.current || signal.aborted) return;
 
       // User interactions (only if logged in)
       const userReactionMap = new Map<string, TakeReactionType>();
@@ -231,10 +232,12 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
 
       if (userId) {
         const [userReactionRes, userSavesRes, userRelaysRes] = await Promise.all([
-          supabase.from("take_reactions").select("take_id, reaction_type").eq("user_id", userId).in("take_id", takeIds),
-          supabase.from("take_saves").select("take_id").eq("user_id", userId).in("take_id", takeIds),
-          supabase.from("take_relays").select("take_id").eq("user_id", userId).in("take_id", takeIds),
+          supabase.from("take_reactions").select("take_id, reaction_type").eq("user_id", userId).in("take_id", takeIds).abortSignal(signal),
+          supabase.from("take_saves").select("take_id").eq("user_id", userId).in("take_id", takeIds).abortSignal(signal),
+          supabase.from("take_relays").select("take_id").eq("user_id", userId).in("take_id", takeIds).abortSignal(signal),
         ]);
+
+        if (!mountedRef.current || signal.aborted) return;
 
         (userReactionRes.data || []).forEach(r => {
           userReactionMap.set(r.take_id, r.reaction_type as TakeReactionType);
@@ -271,7 +274,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       (relaysRes.data || []).forEach(r => { relaysCount[r.take_id] = (relaysCount[r.take_id] || 0) + 1; });
 
       // Check if still mounted before building final array
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal.aborted) return;
 
       // Build final takes array
       const processedTakes: Take[] = takesData.map(take => ({
@@ -454,7 +457,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
           }
         }
       }
-    } catch (err) {
+    } catch {
       // Revert on error
       setTakes(prev => prev.map(t =>
         t.id === takeId
@@ -503,7 +506,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       } else {
         await supabase.from("take_saves").insert({ take_id: takeId, user_id: userId });
       }
-    } catch (err) {
+    } catch {
       // Revert on error
       setTakes(prev => prev.map(t =>
         t.id === takeId
@@ -548,7 +551,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
           });
         }
       }
-    } catch (err) {
+    } catch {
       // Revert on error
       setTakes(prev => prev.map(t =>
         t.id === takeId
@@ -887,7 +890,7 @@ export function useTakeComments(takeId: string, userId?: string) {
       } else {
         await supabase.from("take_comment_likes").insert({ comment_id: commentId, user_id: userId });
       }
-    } catch (err) {
+    } catch {
       // Revert
       setComments(prev => updateCommentLike(prev));
     }
@@ -913,7 +916,7 @@ export function useTakeComments(takeId: string, userId?: string) {
 
     try {
       await supabase.from("take_comments").delete().eq("id", commentId).eq("user_id", userId);
-    } catch (err) {
+    } catch {
       // Revert
       setComments(previousComments);
     }
@@ -1057,7 +1060,7 @@ export function useTakesFollowing(userId?: string) {
       } else {
         await supabase.from("follows").insert({ follower_id: userId, following_id: authorId });
       }
-    } catch (err) {
+    } catch {
       // Revert
       setFollowing(prev => {
         const next = new Set(prev);
@@ -1766,7 +1769,7 @@ export function useSounds(userId?: string, options: UseSoundsOptions = {}) {
           .from("sound_favorites")
           .insert({ user_id: userId, sound_id: soundId });
       }
-    } catch (err) {
+    } catch {
       // Revert on error
       setFavorites(prev => {
         const next = new Set(prev);

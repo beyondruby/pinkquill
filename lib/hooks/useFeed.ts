@@ -76,6 +76,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
       // Create new AbortController for this request
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
+      const signal = abortController.signal;
 
       try {
         if (!append) {
@@ -155,6 +156,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
             )
             .eq("status", "published")
             .order("created_at", { ascending: false })
+            .abortSignal(signal)
             .range(from, to);
 
           if (communityId) {
@@ -189,14 +191,15 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         if (postIds.length > 0) {
           const results = userId
             ? await Promise.all([
-                supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
-                supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
-                supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
+                supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
+                supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
+                supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
                 supabase
                   .from("reactions")
                   .select("post_id, reaction_type")
                   .eq("user_id", userId)
-                  .in("post_id", postIds),
+                  .in("post_id", postIds)
+                  .abortSignal(signal),
               ])
             : [];
 
@@ -520,6 +523,7 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
+    const signal = abortController.signal;
 
     try {
       setLoading(true);
@@ -530,7 +534,8 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
         .from("saves")
         .select("post_id, created_at")
         .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .abortSignal(signal);
 
       if (abortController.signal.aborted || !mountedRef.current) return;
       if (savedError) throw savedError;
@@ -583,9 +588,10 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
             relays:relays(count)
           `
           )
-          .in("id", postIds),
-        supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
-        supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
+          .in("id", postIds)
+          .abortSignal(signal),
+        supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
+        supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
       ]);
 
       if (abortController.signal.aborted || !mountedRef.current) return;
@@ -678,6 +684,7 @@ export function useRelays(username: string) {
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
+      const signal = abortController.signal;
 
       try {
         setLoading(true);
@@ -687,6 +694,7 @@ export function useRelays(username: string) {
           .from("profiles")
           .select("id")
           .eq("username", username)
+          .abortSignal(signal)
           .single();
 
         if (abortController.signal.aborted || !mountedRef.current) return;
@@ -730,7 +738,8 @@ export function useRelays(username: string) {
           `
           )
           .eq("user_id", profileData.id)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .abortSignal(signal);
 
         if (abortController.signal.aborted || !mountedRef.current) return;
         if (relaysError || !relaysData || relaysData.length === 0) {

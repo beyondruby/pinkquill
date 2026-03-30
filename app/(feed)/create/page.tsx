@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import RequireAuth from "@/components/auth/RequireAuth";
 import CreatePost from "@/components/create/CreatePost";
 
 function CreatePostLoading() {
@@ -12,8 +13,10 @@ function CreatePostLoading() {
 
 export default function CreatePage() {
   return (
-    <Suspense fallback={<CreatePostLoading />}>
-      <CreatePost />
-    </Suspense>
+    <RequireAuth loadingText="Loading composer">
+      <Suspense fallback={<CreatePostLoading />}>
+        <CreatePost />
+      </Suspense>
+    </RequireAuth>
   );
 }

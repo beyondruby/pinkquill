@@ -229,29 +229,33 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch user interests for personalization
-  const fetchUserInterests = useCallback(async (): Promise<UserInterests | null> => {
+  const fetchUserInterests = useCallback(async (signal?: AbortSignal): Promise<UserInterests | null> => {
     if (!userId) return null;
 
     try {
+      const admiresQuery = supabase
+        .from("admires")
+        .select(`
+          post_id,
+          post:posts (
+            type,
+            author_id
+          )
+        `)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      const followsQuery = supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", userId)
+        .eq("status", "accepted");
+
       // Fetch user's admires to understand preferences
       const [admiresResult, followsResult] = await Promise.all([
-        supabase
-          .from("admires")
-          .select(`
-            post_id,
-            post:posts (
-              type,
-              author_id
-            )
-          `)
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(100),
-        supabase
-          .from("follows")
-          .select("following_id")
-          .eq("follower_id", userId)
-          .eq("status", "accepted"),
+        signal ? admiresQuery.abortSignal(signal) : admiresQuery,
+        signal ? followsQuery.abortSignal(signal) : followsQuery,
       ]);
 
       const admiredPostTypes = new Map<string, number>();
@@ -283,6 +287,9 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         fetchedAt: Date.now(),
       };
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return null;
+      }
       console.error("[useExplore] Failed to fetch user interests:", err);
       return null;
     }
@@ -299,6 +306,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
       // Create new abort controller for this request
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
+      const signal = abortController.signal;
 
       try {
         if (!append) {
@@ -315,14 +323,14 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           if (!cached) {
             // No cache - fetch in parallel with posts query (below)
             // Will be used for scoring if it completes in time
-            fetchUserInterests().then((interests) => {
+            fetchUserInterests(signal).then((interests) => {
               if (mountedRef.current) {
                 userInterestsRef.current = interests;
               }
             });
           } else if (cacheExpired) {
             // Stale cache - use existing value, refresh in background
-            fetchUserInterests().then((interests) => {
+            fetchUserInterests(signal).then((interests) => {
               if (mountedRef.current) {
                 userInterestsRef.current = interests;
               }
@@ -369,7 +377,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
             { count: "exact" }
           )
           .eq("status", "published")
-          .eq("visibility", "public");
+          .eq("visibility", "public")
+          .abortSignal(signal);
 
         // Filter by post type or community
         if (activeTab === "communities") {
@@ -412,11 +421,11 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         const userReactions = new Map<string, string>();
 
         if (userId && postIds.length > 0) {
-          const [admiresResult, savesResult, relaysResult, reactionsResult] = await Promise.all([
-            supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
-            supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
-            supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
-            supabase.from("reactions").select("post_id, reaction_type").eq("user_id", userId).in("post_id", postIds),
+        const [admiresResult, savesResult, relaysResult, reactionsResult] = await Promise.all([
+            supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
+            supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
+            supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
+            supabase.from("reactions").select("post_id, reaction_type").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
           ]);
 
           if (abortController.signal.aborted || !mountedRef.current) return;
@@ -452,7 +461,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
                 )
               `)
               .in("post_id", postIds)
-              .eq("status", "accepted"),
+              .eq("status", "accepted")
+              .abortSignal(signal),
             supabase
               .from("post_mentions")
               .select(`
@@ -462,16 +472,18 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
                   username,
                   display_name,
                   avatar_url
-                )
+                  )
               `)
-              .in("post_id", postIds),
+              .in("post_id", postIds)
+              .abortSignal(signal),
             supabase
               .from("post_tags")
               .select(`
                 post_id,
                 tag:tags(name)
               `)
-              .in("post_id", postIds),
+              .in("post_id", postIds)
+              .abortSignal(signal),
           ]);
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

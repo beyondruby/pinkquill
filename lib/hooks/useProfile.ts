@@ -43,6 +43,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       setLoading(true);
@@ -55,9 +56,10 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         .from("profiles")
         .select("*")
         .eq("username", username)
+        .abortSignal(signal)
         .single();
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal.aborted) return;
 
       if (profileError || !profileData) {
         if (profileError?.code === "PGRST116" || !profileData) {
@@ -80,6 +82,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             .select("id")
             .eq("blocker_id", profileData.id)
             .eq("blocked_id", currentViewerId)
+            .abortSignal(signal)
             .maybeSingle(),
           supabase
             .from("follows")
@@ -87,10 +90,11 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             .eq("follower_id", currentViewerId)
             .eq("following_id", profileData.id)
             .eq("status", "accepted")
+            .abortSignal(signal)
             .maybeSingle(),
         ]);
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || signal.aborted) return;
 
         if (blockResult.data) {
           setIsBlockedByUser(true);
@@ -112,12 +116,14 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             .from("follows")
             .select("*", { count: "exact", head: true })
             .eq("following_id", profileData.id)
-            .eq("status", "accepted"),
+            .eq("status", "accepted")
+            .abortSignal(signal),
           supabase
             .from("follows")
             .select("*", { count: "exact", head: true })
             .eq("follower_id", profileData.id)
-            .eq("status", "accepted"),
+            .eq("status", "accepted")
+            .abortSignal(signal),
         ]);
 
         setProfile({
@@ -173,7 +179,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         )
         .eq("author_id", profileData.id)
         .eq("status", "published")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .abortSignal(signal);
 
       // Apply visibility filter
       if (!isOwnProfile) {
@@ -190,14 +197,18 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           .from("follows")
           .select("*", { count: "exact", head: true })
           .eq("following_id", profileData.id)
-          .eq("status", "accepted"),
+          .eq("status", "accepted")
+          .abortSignal(signal),
         supabase
           .from("follows")
           .select("*", { count: "exact", head: true })
           .eq("follower_id", profileData.id)
-          .eq("status", "accepted"),
+          .eq("status", "accepted")
+          .abortSignal(signal),
         postsQuery,
       ]);
+
+      if (!mountedRef.current || signal.aborted) return;
 
       const worksCount = postsData.data?.length || 0;
 
@@ -224,11 +235,13 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
 
       if (currentViewerId && postIds.length > 0) {
         const [admiresRes, savesRes, relaysRes, reactionsRes] = await Promise.all([
-          supabase.from("admires").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds),
-          supabase.from("saves").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds),
-          supabase.from("relays").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds),
-          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", currentViewerId).in("post_id", postIds),
+          supabase.from("admires").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds).abortSignal(signal),
+          supabase.from("saves").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds).abortSignal(signal),
+          supabase.from("relays").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds).abortSignal(signal),
+          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", currentViewerId).in("post_id", postIds).abortSignal(signal),
         ]);
+
+        if (!mountedRef.current || signal.aborted) return;
 
         userAdmires = new Set((admiresRes.data || []).map((a) => a.post_id));
         userSaves = new Set((savesRes.data || []).map((s) => s.post_id));
@@ -259,7 +272,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         community_id: post.community_id || null,
       }));
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal.aborted) return;
       setPosts(postsWithStats as Post[]);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
@@ -454,6 +467,7 @@ export function useFollowList(userId: string, type: "followers" | "following") {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       setLoading(true);
@@ -474,9 +488,10 @@ export function useFollowList(userId: string, type: "followers" | "following") {
           `
           )
           .eq("following_id", userId)
-          .eq("status", "accepted");
+          .eq("status", "accepted")
+          .abortSignal(signal);
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || signal.aborted) return;
         if (error) throw error;
         setUsers((data?.map((d) => d.follower) as unknown as FollowUser[]) || []);
       } else {
@@ -495,9 +510,10 @@ export function useFollowList(userId: string, type: "followers" | "following") {
           `
           )
           .eq("follower_id", userId)
-          .eq("status", "accepted");
+          .eq("status", "accepted")
+          .abortSignal(signal);
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || signal.aborted) return;
         if (error) throw error;
         setUsers((data?.map((d) => d.following) as unknown as FollowUser[]) || []);
       }

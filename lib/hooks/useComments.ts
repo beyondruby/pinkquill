@@ -55,6 +55,7 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       if (!append) {
@@ -80,10 +81,11 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         .eq("post_id", postId)
         .is("parent_id", null) // Only top-level
         .order("created_at", { ascending: false }) // Newest first
-        .range(from, to);
+        .range(from, to)
+        .abortSignal(signal);
 
       // Check if still mounted before updating state
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal.aborted) return;
 
       if (error) throw error;
 
@@ -101,19 +103,20 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
       // Batch fetch likes and reply counts
       const currentUserId = userIdRef.current;
       const [likesResult, userLikesResult, repliesCountResult] = await Promise.all([
-        supabase.from("comment_likes").select("comment_id").in("comment_id", commentIds),
+        supabase.from("comment_likes").select("comment_id").in("comment_id", commentIds).abortSignal(signal),
         currentUserId
           ? supabase
               .from("comment_likes")
               .select("comment_id")
               .eq("user_id", currentUserId)
               .in("comment_id", commentIds)
+              .abortSignal(signal)
           : Promise.resolve({ data: [] }),
-        supabase.from("comments").select("parent_id").in("parent_id", commentIds),
+        supabase.from("comments").select("parent_id").in("parent_id", commentIds).abortSignal(signal),
       ]);
 
       // Check if still mounted after second batch of queries
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal.aborted) return;
 
       const likesCounts: Record<string, number> = {};
       const userLikes = new Set<string>();

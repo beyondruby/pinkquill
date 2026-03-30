@@ -1319,7 +1319,7 @@ export default function PostDetailModal({
             ) : (
               <div className="p-4 bg-white border-t border-black/[0.06] text-center">
                 <p className="font-ui text-[0.9rem] text-muted">
-                  <a href="/login" className="text-purple-primary hover:underline">Sign in</a> to comment
+                  <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
                 </p>
               </div>
             )}

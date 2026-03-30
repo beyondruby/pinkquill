@@ -211,7 +211,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
           reaction_type: reactionType,
         });
       }
-    } catch (err) {
+    } catch {
       // Revert on error
       setUserReaction(take.user_reaction_type);
       setReactionCounts(take.reaction_counts || {
@@ -245,7 +245,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
       await supabase.from("take_reactions").delete()
         .eq("take_id", take.id)
         .eq("user_id", user.id);
-    } catch (err) {
+    } catch {
       setUserReaction(take.user_reaction_type);
       setReactionCounts(take.reaction_counts || {
         admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0,
@@ -279,7 +279,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
           .eq("take_id", take.id)
           .eq("user_id", user.id);
       }
-    } catch (err) {
+    } catch {
       setIsSaved(!newIsSaved);
     }
   };
@@ -312,7 +312,7 @@ export default function TakePostCard({ take, isRelayed, relayedBy, variant = "fe
           .eq("take_id", take.id)
           .eq("user_id", user.id);
       }
-    } catch (err) {
+    } catch {
       setIsRelayedState(!newIsRelayed);
       setRelayCount(prev => prev - countChange);
     }

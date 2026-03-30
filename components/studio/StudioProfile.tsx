@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { useProfile, useFollow, useRelays, useBlock, useToggleReaction, useReactionCounts, useUserReaction, ReactionType, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, useDeleteCollection, useDeleteCollectionItem, useUpdateCollection, useUpdateCollectionItem, usePinnedPosts, useReorderCollections } from "@/lib/hooks";
+import { useProfile, useFollow, useRelays, useBlock, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, usePinnedPosts, useReorderCollections } from "@/lib/hooks";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
 
@@ -18,10 +18,10 @@ import { useTrackProfileView } from "@/lib/hooks/useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import FollowersModal from "./FollowersModal";
 import ShareModal from "@/components/ui/ShareModal";
-import ReactionPicker from "@/components/feed/ReactionPicker";
 import TakePostCard from "@/components/takes/TakePostCard";
 import Loading from "@/components/ui/Loading";
 import StoreTab from "@/components/store/StoreTab";
@@ -79,61 +79,6 @@ function useScrollReveal() {
   }, []);
 
   return { revealedCards, observeCard };
-}
-
-// WorkCardFooter component with reaction picker per card
-interface WorkCardFooterProps {
-  postId: string;
-  commentsCount: number;
-  formattedDate: string;
-  userId?: string;
-}
-
-function WorkCardFooter({ postId, commentsCount, formattedDate, userId }: WorkCardFooterProps) {
-  const { react: toggleReaction, removeReaction } = useToggleReaction();
-  const { counts: reactionCounts } = useReactionCounts(postId);
-  const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(postId, userId);
-
-  const handleReaction = async (reactionType: ReactionType) => {
-    if (!userId) return;
-
-    const isSameReaction = userReaction === reactionType;
-
-    // Optimistic update
-    if (isSameReaction) {
-      setUserReaction(null);
-    } else {
-      setUserReaction(reactionType);
-    }
-
-    // Database update
-    await toggleReaction(postId, userId, reactionType, userReaction);
-  };
-
-  const handleRemoveReaction = async () => {
-    if (!userId || !userReaction) return;
-    setUserReaction(null);
-    await removeReaction(postId, userId);
-  };
-
-  return (
-    <div className="studio-work-footer" onClick={(e) => e.stopPropagation()}>
-      <span className="studio-work-date">{formattedDate}</span>
-      <div className="studio-work-stats">
-        <ReactionPicker
-          currentReaction={userReaction}
-          reactionCounts={reactionCounts}
-          onReact={handleReaction}
-          onRemoveReaction={handleRemoveReaction}
-          disabled={!userId}
-        />
-        <span className="studio-work-stat">
-          <CommentIcon />
-          {commentsCount}
-        </span>
-      </div>
-    </div>
-  );
 }
 
 // Social link type
@@ -520,7 +465,6 @@ function CollectionCard({
   onMoveDown,
 }: CollectionCardProps) {
   const [showMenu, setShowMenu] = useState(false);
-  const [editingItem, setEditingItem] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteItemTarget, setDeleteItemTarget] = useState<string | null>(null);
   const [collectionDeleting, setCollectionDeleting] = useState(false);
@@ -952,7 +896,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const { relays, loading: relaysLoading } = useRelays(shouldLoadRelayPosts ? username : "");
   const { takes: userTakes, loading: takesLoading } = useUserTakes(shouldLoadTakes ? username : "", user?.id);
   const { takes: relayedTakes, loading: relayedTakesLoading } = useRelayedTakes(shouldLoadRelayTakes ? username : "", user?.id);
-  const { communities: userCommunities, loading: communitiesLoading } = useCommunities(profile?.id, 'joined');
+  const { communities: userCommunities } = useCommunities(profile?.id, 'joined');
   const { collections, loading: collectionsLoading, refetch: refetchCollections } = useCollections(shouldLoadCollections ? profile?.id : undefined);
   const { toggleCollapse } = useToggleCollectionCollapse();
   const { reorderCollections } = useReorderCollections();
@@ -975,7 +919,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
   const [collaboratedPosts, setCollaboratedPosts] = useState<Post[]>([]);
-  const [collabPostsLoading, setCollabPostsLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Trigger page load animation
@@ -1079,14 +1022,12 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   useEffect(() => {
     const loadCollaboratedPosts = async () => {
       if (profile?.id) {
-        setCollabPostsLoading(true);
         try {
           const collabPosts = await fetchCollaboratedPosts(profile.id);
           setCollaboratedPosts(collabPosts);
         } catch (error) {
           console.error("Error fetching collaborated posts:", error);
         }
-        setCollabPostsLoading(false);
       }
     };
     loadCollaboratedPosts();
@@ -1359,9 +1300,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             )}
 
             {isOwnProfile && (
-              <a href="/settings" className="px-5 py-2 md:px-8 md:py-3 rounded-full border-2 border-black/10 bg-white font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink hover:border-purple-primary hover:text-purple-primary transition-all">
+              <Link href="/settings" className="px-5 py-2 md:px-8 md:py-3 rounded-full border-2 border-black/10 bg-white font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink hover:border-purple-primary hover:text-purple-primary transition-all">
                 Edit Profile
-              </a>
+              </Link>
             )}
 
             {/* 3-dot Menu */}

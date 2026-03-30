@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTakeComments, useTakeReactionCounts, TakeReactionType, Take } from "@/lib/hooks/useTakes";
@@ -52,7 +51,6 @@ export default function TakeDetailModal({
   onTakeUpdate,
   onTakeDeleted,
 }: TakeDetailModalProps) {
-  const router = useRouter();
   const { user, profile } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -60,7 +58,6 @@ export default function TakeDetailModal({
   const [isSaved, setIsSaved] = useState(false);
   const [isRelayed, setIsRelayed] = useState(false);
   const [relayCount, setRelayCount] = useState(0);
-  const [reactionsCount, setReactionsCount] = useState(0);
   const [userReaction, setUserReaction] = useState<TakeReactionType | null>(null);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -95,7 +92,6 @@ export default function TakeDetailModal({
       setIsSaved(take.is_saved || false);
       setIsRelayed(take.is_relayed || false);
       setRelayCount(take.relays_count || 0);
-      setReactionsCount(take.reactions_count || 0);
       setUserReaction(take.user_reaction_type || null);
       setShowContent(!take.content_warning);
     }
@@ -249,13 +245,8 @@ export default function TakeDetailModal({
     // Optimistic update
     if (isSameReaction) {
       setUserReaction(null);
-      setReactionsCount(prev => Math.max(0, prev - 1));
     } else {
-      const wasReacted = userReaction !== null;
       setUserReaction(reactionType);
-      if (!wasReacted) {
-        setReactionsCount(prev => prev + 1);
-      }
     }
 
     try {
@@ -275,10 +266,9 @@ export default function TakeDetailModal({
           reaction_type: reactionType,
         });
       }
-    } catch (err) {
+    } catch {
       // Revert on error
       setUserReaction(take.user_reaction_type);
-      setReactionsCount(take.reactions_count);
     }
 
     onTakeUpdate?.({
@@ -294,15 +284,13 @@ export default function TakeDetailModal({
     if (!user || !userReaction) return;
 
     setUserReaction(null);
-    setReactionsCount(prev => Math.max(0, prev - 1));
 
     try {
       await supabase.from("take_reactions").delete()
         .eq("take_id", take.id)
         .eq("user_id", user.id);
-    } catch (err) {
+    } catch {
       setUserReaction(take.user_reaction_type);
-      setReactionsCount(take.reactions_count);
     }
 
     onTakeUpdate?.({
@@ -331,7 +319,7 @@ export default function TakeDetailModal({
           .eq("take_id", take.id)
           .eq("user_id", user.id);
       }
-    } catch (err) {
+    } catch {
       setIsSaved(!newIsSaved);
     }
 
@@ -363,7 +351,7 @@ export default function TakeDetailModal({
           .eq("take_id", take.id)
           .eq("user_id", user.id);
       }
-    } catch (err) {
+    } catch {
       setIsRelayed(!newIsRelayed);
       setRelayCount(prev => prev - countChange);
     }
@@ -705,7 +693,7 @@ export default function TakeDetailModal({
               ) : (
                 <div className="p-4 bg-white border-t border-black/[0.06] text-center">
                   <p className="font-ui text-[0.9rem] text-muted">
-                    <a href="/login" className="text-purple-primary hover:underline">Sign in</a> to comment
+                    <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
                   </p>
                 </div>
               )}

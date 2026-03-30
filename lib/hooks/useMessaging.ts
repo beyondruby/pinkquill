@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { buildPostgrestInFilter } from "@/lib/utils/postgrest";
-import type { MessageReaction, MessageReactionEmoji, TypingUser, Message } from "@/lib/types";
+import type { MessageReaction, MessageReactionEmoji, TypingUser } from "@/lib/types";
 import { MESSAGE_REACTION_EMOJIS } from "@/lib/types";
 
 // ============================================================================
@@ -62,6 +62,7 @@ export function useMessageReactions({
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       const { data: reactions, error } = await supabase
@@ -83,9 +84,10 @@ export function useMessageReactions({
           )
         `)
         .in("message_id", messageIds)
-        .eq("message.conversation_id", conversationId);
+        .eq("message.conversation_id", conversationId)
+        .abortSignal(signal);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal.aborted) return;
 
       if (error) {
         console.error("Failed to fetch message reactions:", error);

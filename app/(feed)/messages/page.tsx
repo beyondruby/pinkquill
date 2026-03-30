@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import RequireAuth from "@/components/auth/RequireAuth";
 import MessagesView from "@/components/messages/MessagesView";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { MessagesErrorFallback } from "@/components/ui/ErrorFallbacks";
@@ -13,13 +14,15 @@ function MessagesLoading() {
 
 export default function MessagesPage() {
   return (
-    <ErrorBoundary
-      section="Messages"
-      fallback={<MessagesErrorFallback />}
-    >
-      <Suspense fallback={<MessagesLoading />}>
-        <MessagesView />
-      </Suspense>
-    </ErrorBoundary>
+    <RequireAuth loadingText="Loading messages">
+      <ErrorBoundary
+        section="Messages"
+        fallback={<MessagesErrorFallback />}
+      >
+        <Suspense fallback={<MessagesLoading />}>
+          <MessagesView />
+        </Suspense>
+      </ErrorBoundary>
+    </RequireAuth>
   );
 }

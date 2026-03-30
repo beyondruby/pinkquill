@@ -3,17 +3,35 @@ import { test, expect } from "@playwright/test";
 test.describe("Navigation - Public Pages", () => {
   test("should load privacy policy page", async ({ page }) => {
     await page.goto("/privacy");
-    await expect(page.getByRole("heading", { name: /privacy/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /privacy policy/i })).toBeVisible();
   });
 
   test("should load terms of service page", async ({ page }) => {
     await page.goto("/terms");
-    await expect(page.getByRole("heading", { name: /terms/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /terms & conditions/i })).toBeVisible();
   });
 
   test("should load login page", async ({ page }) => {
     await page.goto("/login");
     await expect(page).toHaveURL(/login/);
+  });
+
+  test("should keep the same document during internal public-page navigation", async ({ page }) => {
+    await page.goto("/help");
+    await page.evaluate(() => {
+      (window as Window & { __softNavProbe?: string }).__softNavProbe = "alive";
+    });
+
+    await page.getByRole("link", { name: /read policy/i }).click();
+
+    await expect(page).toHaveURL(/\/privacy$/);
+    await expect(page.getByRole("heading", { name: /privacy policy/i })).toBeVisible();
+
+    const probe = await page.evaluate(() => {
+      return (window as Window & { __softNavProbe?: string }).__softNavProbe;
+    });
+
+    expect(probe).toBe("alive");
   });
 });
 

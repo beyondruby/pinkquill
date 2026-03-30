@@ -1,6 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-export function proxy(request: NextRequest) {
+export function proxy() {
   // Simply pass through - the main purpose of this proxy
   // is to use the matcher config below to exclude static files
   // from any processing. Auth is handled client-side.

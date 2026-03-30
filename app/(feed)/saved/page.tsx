@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import RequireAuth from "@/components/auth/RequireAuth";
 import { useSavedPosts, useToggleSave } from "@/lib/hooks";
 import { useSavedTakes } from "@/lib/hooks/useTakes";
 import { useSavedProducts, useToggleSaveProduct } from "@/lib/hooks/useProducts";
@@ -230,35 +231,9 @@ export default function SavedPage() {
     return <FullPageLoading text="Loading" />;
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="text-center max-w-md">
-          <div className="w-24 h-24 mx-auto mb-8 relative">
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 blur-xl" />
-            <div className="relative w-full h-full rounded-3xl bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
-              <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
-            </div>
-          </div>
-          <h1 className="font-display text-3xl text-ink mb-4">Your Collection</h1>
-          <p className="font-body text-muted mb-8 text-lg">
-            Sign in to save posts and build your personal collection. Everything you save is private to you.
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold text-lg shadow-xl shadow-purple-primary/30 hover:shadow-2xl hover:scale-[1.02] transition-all"
-          >
-            Sign In to Start Saving
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen pb-20">
+    <RequireAuth loadingText="Loading your saved items">
+      <div className="min-h-screen pb-20">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-xl border-b border-black/[0.04]">
         <div className="max-w-5xl mx-auto px-6 py-6">
@@ -691,6 +666,7 @@ export default function SavedPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </RequireAuth>
   );
 }

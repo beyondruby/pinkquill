@@ -6,7 +6,7 @@ import TakeCard from "./TakeCard";
 import TakeCommentsPanel from "./TakeCommentsPanel";
 import { useTakes, useMuted, useTakesFollowing, useVolume } from "@/lib/hooks/useTakes";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useTrackTakeView, useTrackTakeImpression, getSessionId } from "@/lib/hooks/useTracking";
+import { getSessionId } from "@/lib/hooks/useTracking";
 import { supabase } from "@/lib/supabase";
 
 interface TakesFeedProps {

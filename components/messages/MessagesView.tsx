@@ -62,7 +62,7 @@ const icons = {
 export default function MessagesView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { count: communityUnreadCount } = useCommunityChatUnreadCount(user?.id);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
@@ -338,33 +338,8 @@ export default function MessagesView() {
     fetchConversations(false);
   };
 
-  // Show loading while auth is resolving
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-primary border-t-transparent" />
-      </div>
-    );
-  }
-
-  // Redirect if not logged in
   if (!user) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h1 className="font-display text-[2rem] text-ink mb-4">Messages</h1>
-          <p className="font-body text-muted mb-6">
-            Sign in to view your messages
-          </p>
-          <a
-            href="/login"
-            className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-white"
-          >
-            Sign In
-          </a>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -420,11 +395,6 @@ export default function MessagesView() {
           <ChatView
             conversationId={selectedConversation}
             currentUserId={user.id}
-            currentUserProfile={profile ? {
-              username: profile.username,
-              display_name: profile.display_name,
-              avatar_url: profile.avatar_url,
-            } : undefined}
             onBack={() => {
               setSelectedConversation(null);
               router.push("/messages", { scroll: false });
