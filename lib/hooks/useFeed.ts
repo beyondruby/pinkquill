@@ -12,6 +12,7 @@ import { categorizeError, retryWithBackoff, isRetryableError } from "../utils/re
 // ============================================================================
 
 const DEFAULT_PAGE_SIZE = 20;
+const MAX_FEED_POSTS = 200;
 
 // ============================================================================
 // useFeed - Main feed hook with pagination
@@ -290,7 +291,13 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         // Update state
         const typedPosts = transformedPosts as Post[];
         if (append) {
-          setPosts((prev) => [...prev, ...typedPosts]);
+          setPosts((prev) => {
+            const combined = [...prev, ...typedPosts];
+            if (combined.length > MAX_FEED_POSTS) {
+              return combined.slice(combined.length - MAX_FEED_POSTS);
+            }
+            return combined;
+          });
         } else {
           setPosts(typedPosts);
         }

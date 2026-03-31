@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
-import { supabase } from "@/lib/supabase";
-import { loginWithIdentifier } from "@/lib/auth-client";
+import { useAuthFlow } from "@/lib/hooks/useAuthFlow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFeatherPointed,
@@ -14,33 +13,19 @@ import {
   faSpinner,
   faXmark,
   faEnvelope,
-  faShieldHalved,
   faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
 
-type AuthStep = "credentials" | "otp";
-
 export default function AuthModal() {
   const { isOpen, closeModal } = useAuthModal();
-  const [isLogin, setIsLogin] = useState(true);
-  const [step, setStep] = useState<AuthStep>("credentials");
+  const { state, actions } = useAuthFlow();
+  const {
+    isLogin, step, emailOrUsername, password, username, displayName,
+    otpCode, pendingEmail, resendCooldown, loading, error, message,
+  } = state;
 
-  // Credentials state
-  const [emailOrUsername, setEmailOrUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  // UI-only state
   const [showPassword, setShowPassword] = useState(false);
-
-  // OTP state
-  const [otpCode, setOtpCode] = useState(["", "", "", "", "", ""]);
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [resendCooldown, setResendCooldown] = useState(0);
-
-  // UI state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -71,24 +56,18 @@ export default function AuthModal() {
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setStep("credentials");
-      setEmailOrUsername("");
-      setPassword("");
-      setUsername("");
-      setDisplayName("");
-      setOtpCode(["", "", "", "", "", ""]);
-      setError(null);
-      setMessage(null);
+      actions.resetForm();
+      setShowPassword(false);
     }
-  }, [isOpen]);
+  }, [isOpen, actions]);
 
   // Resend cooldown timer
   useEffect(() => {
     if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      const timer = setTimeout(() => actions.tickResendCooldown(), 1000);
       return () => clearTimeout(timer);
     }
-  }, [resendCooldown]);
+  }, [resendCooldown, actions]);
 
   // Focus first OTP input when entering OTP step
   useEffect(() => {
@@ -97,182 +76,19 @@ export default function AuthModal() {
     }
   }, [step, isOpen]);
 
-  const handleCredentialsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      if (isLogin) {
-        const result = await loginWithIdentifier(emailOrUsername, password);
-
-        if (!result.success) {
-          if (result.requiresVerification && result.pendingEmail) {
-            setPendingEmail(result.pendingEmail);
-            setResendCooldown(60);
-            setStep("otp");
-            setMessage(result.message || "Please verify your email with the code we sent.");
-          } else {
-            throw new Error(result.error || "Unable to sign in right now.");
-          }
-        } else {
-          closeModal();
-          window.location.reload();
-        }
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: emailOrUsername,
-          password,
-          options: {
-            data: {
-              username: username.toLowerCase(),
-              display_name: displayName,
-            },
-          },
-        });
-
-        if (error) throw error;
-
-        if (data.user?.identities?.length === 0) {
-          throw new Error("An account with this email already exists.");
-        }
-
-        const needsEmailConfirmation = !data.session;
-
-        if (data.user && needsEmailConfirmation) {
-          await supabase.from("profiles").insert({
-            id: data.user.id,
-            username: username.toLowerCase(),
-            display_name: displayName,
-            email: emailOrUsername.toLowerCase(),
-            avatar_url: '/defaultprofile.png',
-          });
-
-          setPendingEmail(emailOrUsername);
-          setResendCooldown(60);
-          setStep("otp");
-        } else if (data.session) {
-          if (data.user) {
-            await supabase.from("profiles").insert({
-              id: data.user.id,
-              username: username.toLowerCase(),
-              display_name: displayName,
-              email: emailOrUsername.toLowerCase(),
-              avatar_url: '/defaultprofile.png',
-            });
-          }
-          closeModal();
-          window.location.reload();
-        }
-      }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "An error occurred";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+  const onCredentialsSubmit = async (e: React.FormEvent) => {
+    const result = await actions.handleCredentialsSubmit(e);
+    if (result === "redirect") {
+      closeModal();
+      window.location.reload();
     }
   };
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value && !/^\d$/.test(value)) return;
-
-    const newOtp = [...otpCode];
-    newOtp[index] = value;
-    setOtpCode(newOtp);
-
-    if (value && index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-
-    if (value && index === 5 && newOtp.every(digit => digit !== "")) {
-      handleOtpSubmit(newOtp.join(""));
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otpCode[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pastedData.length === 6) {
-      const newOtp = pastedData.split("");
-      setOtpCode(newOtp);
-      otpInputRefs.current[5]?.focus();
-      handleOtpSubmit(pastedData);
-    }
-  };
-
-  const handleOtpSubmit = async (code?: string) => {
-    const otpString = code || otpCode.join("");
-    if (otpString.length !== 6) {
-      setError("Please enter all 6 digits");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: pendingEmail,
-        token: otpString,
-        type: "signup",
-      });
-
-      if (error) {
-        if (error.message.includes("Token has expired") || error.message.includes("invalid")) {
-          setError("Invalid or expired code. Please try again.");
-        } else {
-          setError(error.message);
-        }
-        setOtpCode(["", "", "", "", "", ""]);
-        otpInputRefs.current[0]?.focus();
-        return;
-      }
-
-      if (data.user) {
-        closeModal();
-        window.location.reload();
-      }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Verification failed";
-      setError(errorMessage);
-      setOtpCode(["", "", "", "", "", ""]);
-      otpInputRefs.current[0]?.focus();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (resendCooldown > 0) return;
-
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: pendingEmail,
-      });
-
-      if (error) throw error;
-
-      setMessage("New code sent!");
-      setResendCooldown(60);
-      setOtpCode(["", "", "", "", "", ""]);
-      otpInputRefs.current[0]?.focus();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to resend code";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+  const onOtpSubmit = async (code?: string) => {
+    const result = await actions.handleOtpSubmit(code);
+    if (result === "redirect") {
+      closeModal();
+      window.location.reload();
     }
   };
 
@@ -339,7 +155,7 @@ export default function AuthModal() {
 
           {/* Credentials Form */}
           {step === "credentials" && (
-            <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+            <form onSubmit={onCredentialsSubmit} className="space-y-4">
               {!isLogin && (
                 <div className="grid grid-cols-2 gap-3 animate-fadeIn">
                   <div>
@@ -347,7 +163,7 @@ export default function AuthModal() {
                     <input
                       type="text"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      onChange={(e) => actions.setUsername(e.target.value)}
                       placeholder="@poet"
                       required={!isLogin}
                       className="w-full px-3 py-2.5 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all"
@@ -358,7 +174,7 @@ export default function AuthModal() {
                     <input
                       type="text"
                       value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
+                      onChange={(e) => actions.setDisplayName(e.target.value)}
                       placeholder="Jane Doe"
                       required={!isLogin}
                       className="w-full px-3 py-2.5 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all"
@@ -374,7 +190,7 @@ export default function AuthModal() {
                 <input
                   type={isLogin ? "text" : "email"}
                   value={emailOrUsername}
-                  onChange={(e) => setEmailOrUsername(e.target.value)}
+                  onChange={(e) => actions.setEmailOrUsername(e.target.value)}
                   placeholder={isLogin ? "Email or username" : "your@email.com"}
                   required
                   className="w-full px-3 py-2.5 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all"
@@ -387,7 +203,7 @@ export default function AuthModal() {
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => actions.setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
                     minLength={6}
@@ -438,11 +254,7 @@ export default function AuthModal() {
                   {isLogin ? "New here?" : "Already a member?"}
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsLogin(!isLogin);
-                      setError(null);
-                      setMessage(null);
-                    }}
+                    onClick={actions.toggleMode}
                     className="ml-1.5 font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-primary to-pink-vivid hover:opacity-80 transition-opacity"
                   >
                     {isLogin ? "Create account" : "Sign in"}
@@ -466,12 +278,7 @@ export default function AuthModal() {
           {step === "otp" && (
             <div className="animate-fadeIn">
               <button
-                onClick={() => {
-                  setStep("credentials");
-                  setOtpCode(["", "", "", "", "", ""]);
-                  setError(null);
-                  setMessage(null);
-                }}
+                onClick={actions.handleBackToCredentials}
                 className="flex items-center gap-2 text-muted hover:text-purple-primary transition-colors mb-4 group"
               >
                 <FontAwesomeIcon icon={faArrowLeft} className="w-3 h-3 group-hover:-translate-x-1 transition-transform" />
@@ -487,9 +294,9 @@ export default function AuthModal() {
                     inputMode="numeric"
                     maxLength={1}
                     value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    onPaste={index === 0 ? handleOtpPaste : undefined}
+                    onChange={(e) => actions.handleOtpChange(index, e.target.value, otpInputRefs)}
+                    onKeyDown={(e) => actions.handleOtpKeyDown(index, e, otpInputRefs)}
+                    onPaste={index === 0 ? (ev) => actions.handleOtpPaste(ev, otpInputRefs) : undefined}
                     disabled={loading}
                     className="w-11 h-13 text-center text-xl font-bold text-ink rounded-xl bg-gray-50/50 border-2 border-gray-200 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/10 transition-all disabled:opacity-50"
                   />
@@ -509,7 +316,7 @@ export default function AuthModal() {
               )}
 
               <button
-                onClick={() => handleOtpSubmit()}
+                onClick={() => onOtpSubmit()}
                 disabled={loading || otpCode.some(d => d === "")}
                 className="w-full py-3 rounded-xl font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-[length:200%_auto] hover:bg-[position:right_center] transition-all duration-500 shadow-lg shadow-purple-primary/20 disabled:opacity-70 flex items-center justify-center gap-2"
               >
@@ -525,7 +332,7 @@ export default function AuthModal() {
 
               <div className="mt-4 text-center">
                 <button
-                  onClick={handleResendCode}
+                  onClick={actions.handleResendCode}
                   disabled={resendCooldown > 0 || loading}
                   className={`font-ui text-sm transition-all ${
                     resendCooldown > 0

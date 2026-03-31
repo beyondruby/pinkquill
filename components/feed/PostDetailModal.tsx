@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -22,6 +22,8 @@ import { deleteOwnPost } from "@/lib/posts-client";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
 import { createSafeHtml } from "@/lib/utils/sanitize";
+import { getTimeAgo } from "@/lib/utils/time";
+import { getBackgroundStyle, isDarkBackground, getLuminance, extractColorsFromGradient } from "@/lib/utils/background";
 import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack } from "@/lib/types";
 
 // Convert number to Roman numeral
@@ -37,42 +39,6 @@ function toRomanNumeral(num: number): string {
     }
   }
   return result;
-}
-
-// Generate background CSS from PostBackground
-function getBackgroundStyle(background?: PostBackground): React.CSSProperties {
-  if (!background) return {};
-
-  switch (background.type) {
-    case 'solid':
-      return { backgroundColor: background.value };
-    case 'gradient':
-      return { background: background.value };
-    case 'pattern':
-      // Pattern values are stored as full CSS, use them directly
-      const patternValue = background.value;
-      // Determine appropriate background size based on pattern type
-      let backgroundSize = 'auto';
-      if (patternValue.includes('dots') || patternValue.includes('radial-gradient(circle at 1px')) {
-        backgroundSize = '20px 20px';
-      } else if (patternValue.includes('grid') || patternValue.includes('linear-gradient(rgba')) {
-        backgroundSize = '20px 20px';
-      } else if (patternValue.includes('notebook')) {
-        backgroundSize = '100% 24px';
-      }
-      return {
-        background: patternValue,
-        backgroundSize: backgroundSize,
-      };
-    case 'image':
-      return {
-        backgroundImage: `url(${background.imageUrl || background.value})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      };
-    default:
-      return {};
-  }
 }
 
 // Weather icons for journal display
@@ -118,55 +84,6 @@ const moodIcons: Record<string, React.ReactNode> = {
   'overwhelmed': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
   'lonely': <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>,
 };
-
-// Calculate luminance from hex color
-function getLuminance(hex: string): number {
-  const cleanHex = hex.replace('#', '');
-  if (cleanHex.length < 6) return 1; // Default to light if invalid
-  const r = parseInt(cleanHex.substring(0, 2), 16);
-  const g = parseInt(cleanHex.substring(2, 4), 16);
-  const b = parseInt(cleanHex.substring(4, 6), 16);
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-}
-
-// Extract hex colors from a gradient string
-function extractColorsFromGradient(gradient: string): string[] {
-  const hexPattern = /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g;
-  return gradient.match(hexPattern) || [];
-}
-
-// Determine if background is dark to adjust text color
-function isDarkBackground(background?: PostBackground): boolean {
-  if (!background) return false;
-
-  // Solid colors - check luminance directly
-  if (background.type === 'solid') {
-    return getLuminance(background.value) < 0.5;
-  }
-
-  // Image backgrounds are always treated as dark (overlay added)
-  if (background.type === 'image') return true;
-
-  // Gradients - analyze the colors in the gradient
-  if (background.type === 'gradient') {
-    const colors = extractColorsFromGradient(background.value);
-    if (colors.length === 0) return false;
-
-    // Calculate average luminance of all colors in gradient
-    const avgLuminance = colors.reduce((sum, color) => sum + getLuminance(color), 0) / colors.length;
-    return avgLuminance < 0.5;
-  }
-
-  // Patterns - check if it contains dark colors
-  if (background.type === 'pattern') {
-    const colors = extractColorsFromGradient(background.value);
-    if (colors.length === 0) return false;
-    const avgLuminance = colors.reduce((sum, color) => sum + getLuminance(color), 0) / colors.length;
-    return avgLuminance < 0.4; // Slightly stricter for patterns
-  }
-
-  return false;
-}
 
 // Post type styling configuration with icons and gradients
 const postTypeStyles: Record<string, { icon: React.ReactNode; gradient: string; label: string; prefix: string }> = {
@@ -384,18 +301,6 @@ function formatWeather(weather?: string): string {
   return labels[weather] || weather;
 }
 
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
-}
-
 interface PostDetailModalProps {
   post: Post | null;
   isOpen: boolean;
@@ -407,7 +312,7 @@ interface PostDetailModalProps {
   onModeratorDeleteComment?: (commentId: string, reason?: string) => Promise<void>;
 }
 
-export default function PostDetailModal({
+function PostDetailModalComponent({
   post,
   isOpen,
   onClose,
@@ -462,7 +367,7 @@ export default function PostDetailModal({
     }
   }, [post?.id, post?.isSaved, post?.isRelayed, post?.stats.relays, post?.contentWarning]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!post || !user) return;
 
     setDeleting(true);
@@ -479,15 +384,15 @@ export default function PostDetailModal({
       console.error("Failed to delete post:", err);
       setDeleting(false);
     }
-  };
+  }, [post, user, onClose, onPostDeleted]);
 
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     if (!post) return;
     onClose();
     router.push(`/create?edit=${post.id}`);
-  };
+  }, [post, onClose, router]);
 
-  const handleReport = async (reason: string, details?: string) => {
+  const handleReport = useCallback(async (reason: string, details?: string) => {
     if (!user || !post) return;
 
     setReportSubmitting(true);
@@ -527,9 +432,9 @@ export default function PostDetailModal({
       console.error("Failed to submit report:", err);
     }
     setReportSubmitting(false);
-  };
+  }, [user, post]);
 
-  const handleBlock = async () => {
+  const handleBlock = useCallback(async () => {
     if (!user || !post?.authorId) return;
 
     setIsBlocking(true);
@@ -542,7 +447,7 @@ export default function PostDetailModal({
     } finally {
       setIsBlocking(false);
     }
-  };
+  }, [user, post?.authorId, blockUser, onClose]);
 
   const postMenuItems: ActionMenuItem[] = isOwner
     ? [
@@ -574,11 +479,9 @@ export default function PostDetailModal({
         ]
       : [];
 
-  if (!post) return null;
-
-  // Reaction handlers
-  const handleReaction = async (reactionType: ReactionType) => {
-    if (!user) {
+  // Reaction handlers - memoized with useCallback to prevent unnecessary re-renders
+  const handleReaction = useCallback(async (reactionType: ReactionType) => {
+    if (!user || !post) {
       openAuthModal();
       return;
     }
@@ -608,10 +511,10 @@ export default function PostDetailModal({
       countChange: isSameReaction ? -1 : (userReaction ? 0 : 1),
       reactionType: isSameReaction ? null : reactionType,
     });
-  };
+  }, [user, post, openAuthModal, userReaction, setUserReaction, toggleReaction, onPostUpdate]);
 
-  const handleRemoveReaction = async () => {
-    if (!user) {
+  const handleRemoveReaction = useCallback(async () => {
+    if (!user || !post) {
       openAuthModal();
       return;
     }
@@ -631,10 +534,10 @@ export default function PostDetailModal({
       countChange: -1,
       reactionType: null,
     });
-  };
+  }, [user, post, openAuthModal, userReaction, setUserReaction, removeReaction, onPostUpdate]);
 
-  const handleSave = async () => {
-    if (!user) {
+  const handleSave = useCallback(async () => {
+    if (!user || !post) {
       openAuthModal();
       return;
     }
@@ -659,10 +562,10 @@ export default function PostDetailModal({
     if (newIsSaved && post.authorId && post.authorId !== user.id) {
       await createNotification(post.authorId, user.id, 'save', post.id);
     }
-  };
+  }, [user, post, openAuthModal, isSaved, onPostUpdate, toggleSave]);
 
-  const handleRelay = async () => {
-    if (!user) {
+  const handleRelay = useCallback(async () => {
+    if (!user || !post) {
       openAuthModal();
       return;
     }
@@ -691,10 +594,10 @@ export default function PostDetailModal({
     if (newIsRelayed && post.authorId && post.authorId !== user.id) {
       await createNotification(post.authorId, user.id, "relay", post.id);
     }
-  };
+  }, [user, post, openAuthModal, isRelayed, onPostUpdate, toggleRelay]);
 
-  const handleAddComment = async () => {
-    if (!user) {
+  const handleAddComment = useCallback(async () => {
+    if (!user || !post) {
       openAuthModal();
       return;
     }
@@ -710,27 +613,29 @@ export default function PostDetailModal({
       }
     }
     setSubmitting(false);
-  };
+  }, [user, post, openAuthModal, commentText, addComment]);
 
-  const handleCommentLike = (commentId: string, isLiked: boolean) => {
+  const handleCommentLike = useCallback((commentId: string, isLiked: boolean) => {
     if (!user) {
       openAuthModal();
       return;
     }
     toggleLike(commentId, user.id, isLiked);
-  };
+  }, [user, openAuthModal, toggleLike]);
 
-  const handleCommentReply = async (parentId: string, content: string) => {
+  const handleCommentReply = useCallback(async (parentId: string, content: string) => {
     if (!user) {
       openAuthModal();
       return;
     }
     await addComment(user.id, content, parentId);
-  };
+  }, [user, openAuthModal, addComment]);
 
-  const handleCommentDelete = (commentId: string) => {
+  const handleCommentDelete = useCallback((commentId: string) => {
     deleteComment(commentId);
-  };
+  }, [deleteComment]);
+
+  if (!post) return null;
 
   // Determine styling properties
   const hasBackground = post.styling?.background;
@@ -1399,3 +1304,7 @@ export default function PostDetailModal({
     </>
   );
 }
+
+// Memoize to prevent re-renders when parent state changes but modal props are the same
+const PostDetailModal = memo(PostDetailModalComponent);
+export default PostDetailModal;

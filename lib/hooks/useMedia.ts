@@ -211,33 +211,56 @@ export function useVoiceRecorder(maxDuration: number = 300) {
         }
       }, 100);
     } catch (err) {
+      // Clean up all resources on failure to prevent leaks
+      if (waveformIntervalRef.current) {
+        clearInterval(waveformIntervalRef.current);
+        waveformIntervalRef.current = null;
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      analyserRef.current = null;
+      mediaRecorderRef.current = null;
+
       const error = err instanceof Error ? err.message : "Failed to start recording";
       setState((prev) => ({ ...prev, error, isRecording: false }));
     }
   };
 
   const stopRecording = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    if (waveformIntervalRef.current) {
-      clearInterval(waveformIntervalRef.current);
-      waveformIntervalRef.current = null;
-    }
+    // Always clean up intervals first in a finally-style pattern
+    try {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+    } finally {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (waveformIntervalRef.current) {
+        clearInterval(waveformIntervalRef.current);
+        waveformIntervalRef.current = null;
+      }
 
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-    }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
     }
   };
 
@@ -326,6 +349,69 @@ export function useVoiceRecorder(maxDuration: number = 300) {
 }
 
 // ============================================================================
+// Helper: Check if a signed URL is expired and re-sign it
+// ============================================================================
+
+function isSignedUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.searchParams.has("token");
+  } catch {
+    return false;
+  }
+}
+
+function isSignedUrlExpired(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const token = parsed.searchParams.get("token");
+    if (!token) return false;
+
+    // Supabase signed URLs encode expiry in the JWT payload
+    // The token is a JWT; decode the payload to check exp
+    const parts = token.split(".");
+    if (parts.length !== 3) return true; // Malformed token, treat as expired
+    const payload = JSON.parse(atob(parts[1]));
+    if (payload.exp && Date.now() / 1000 > payload.exp) {
+      return true;
+    }
+    return false;
+  } catch {
+    return true; // If we can't parse it, treat as expired to be safe
+  }
+}
+
+function extractStoragePath(url: string): { bucket: string; path: string } | null {
+  try {
+    const parsed = new URL(url);
+    // Supabase storage URLs have format: /storage/v1/object/sign/<bucket>/<path>
+    const match = parsed.pathname.match(/\/storage\/v1\/object\/sign\/([^/]+)\/(.+)/);
+    if (match) {
+      return { bucket: match[1], path: decodeURIComponent(match[2]) };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function refreshSignedUrl(url: string): Promise<string> {
+  const storageInfo = extractStoragePath(url);
+  if (!storageInfo) return url;
+
+  const { data, error } = await supabase.storage
+    .from(storageInfo.bucket)
+    .createSignedUrl(storageInfo.path, 3600); // 1 hour expiry
+
+  if (error || !data?.signedUrl) {
+    console.error("[refreshSignedUrl] Failed to refresh:", error?.message);
+    return url; // Return original as fallback
+  }
+
+  return data.signedUrl;
+}
+
+// ============================================================================
 // useAudioPlayer - Play audio files with controls
 // ============================================================================
 
@@ -340,25 +426,55 @@ export function useAudioPlayer(audioUrl: string | null) {
   });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const resolvedUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!audioUrl) return;
 
-    const audio = new Audio(audioUrl);
-    audioRef.current = audio;
+    let cancelled = false;
 
-    audio.onloadstart = () => setState((prev) => ({ ...prev, isLoading: true }));
-    audio.oncanplay = () => setState((prev) => ({ ...prev, isLoading: false }));
-    audio.onloadedmetadata = () => setState((prev) => ({ ...prev, duration: audio.duration }));
-    audio.ontimeupdate = () => setState((prev) => ({ ...prev, currentTime: audio.currentTime }));
-    audio.onended = () => setState((prev) => ({ ...prev, isPlaying: false, currentTime: 0 }));
-    audio.onplay = () => setState((prev) => ({ ...prev, isPlaying: true }));
-    audio.onpause = () => setState((prev) => ({ ...prev, isPlaying: false }));
-    audio.onerror = () => setState((prev) => ({ ...prev, error: "Failed to load audio", isLoading: false }));
+    const initAudio = async (url: string) => {
+      // If the URL is a signed URL that is expired, refresh it
+      let resolvedUrl = url;
+      if (isSignedUrl(url) && isSignedUrlExpired(url)) {
+        resolvedUrl = await refreshSignedUrl(url);
+        if (cancelled) return;
+      }
+      resolvedUrlRef.current = resolvedUrl;
+
+      const audio = new Audio(resolvedUrl);
+      audioRef.current = audio;
+
+      audio.onloadstart = () => setState((prev) => ({ ...prev, isLoading: true }));
+      audio.oncanplay = () => setState((prev) => ({ ...prev, isLoading: false }));
+      audio.onloadedmetadata = () => setState((prev) => ({ ...prev, duration: audio.duration }));
+      audio.ontimeupdate = () => setState((prev) => ({ ...prev, currentTime: audio.currentTime }));
+      audio.onended = () => setState((prev) => ({ ...prev, isPlaying: false, currentTime: 0 }));
+      audio.onplay = () => setState((prev) => ({ ...prev, isPlaying: true }));
+      audio.onpause = () => setState((prev) => ({ ...prev, isPlaying: false }));
+      audio.onerror = async () => {
+        // If the error might be due to an expired signed URL, try refreshing
+        if (isSignedUrl(resolvedUrl) && isSignedUrlExpired(resolvedUrl)) {
+          const newUrl = await refreshSignedUrl(resolvedUrl);
+          if (!cancelled && newUrl !== resolvedUrl) {
+            resolvedUrlRef.current = newUrl;
+            audio.src = newUrl;
+            audio.load();
+            return;
+          }
+        }
+        setState((prev) => ({ ...prev, error: "Failed to load audio", isLoading: false }));
+      };
+    };
+
+    initAudio(audioUrl);
 
     return () => {
-      audio.pause();
-      audio.src = "";
+      cancelled = true;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
     };
   }, [audioUrl]);
 
@@ -447,9 +563,13 @@ export function useSendVoiceNote() {
 
       setProgress(60);
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("voice-notes").getPublicUrl(uploadData.path);
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("voice-notes")
+        .createSignedUrl(uploadData.path, 3600); // 1 hour expiry
+
+      if (urlError || !urlData?.signedUrl) {
+        throw new Error(`Failed to generate signed URL: ${urlError?.message || "Unknown error"}`);
+      }
 
       setProgress(70);
 
@@ -460,7 +580,7 @@ export function useSendVoiceNote() {
           sender_id: senderId,
           content: "",
           message_type: "voice",
-          voice_url: publicUrl,
+          voice_url: urlData.signedUrl,
           voice_duration: Math.round(duration),
           waveform_data: waveformData,
         })
@@ -562,9 +682,13 @@ export function useSendMedia(limits: MediaLimits = DEFAULT_MEDIA_LIMITS) {
 
       setProgress(60);
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("message-media").getPublicUrl(uploadData.path);
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("message-media")
+        .createSignedUrl(uploadData.path, 3600); // 1 hour expiry
+
+      if (urlError || !urlData?.signedUrl) {
+        throw new Error(`Failed to generate signed URL: ${urlError?.message || "Unknown error"}`);
+      }
 
       setProgress(70);
 
@@ -575,7 +699,7 @@ export function useSendMedia(limits: MediaLimits = DEFAULT_MEDIA_LIMITS) {
           sender_id: senderId,
           content: "",
           message_type: "media",
-          media_url: publicUrl,
+          media_url: urlData.signedUrl,
           media_type: validation.mediaType,
         })
         .select()

@@ -98,19 +98,25 @@ export default function AccountSettingsPage() {
     setPasswordSuccess(false);
 
     try {
-      // First, verify current password by re-authenticating
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user?.email || "",
-        password: currentPassword,
+      // Verify current password via server-side API route.
+      // This avoids calling signInWithPassword() on the client, which would
+      // create a duplicate session.
+      const verifyResponse = await fetch("/api/auth/verify-password", {
+        method: "POST",
+        headers: await buildAuthenticatedHeaders({
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ password: currentPassword }),
       });
 
-      if (signInError) {
-        setPasswordError("Current password is incorrect");
+      if (!verifyResponse.ok) {
+        const verifyData = await safeResponseJson<{ error?: string }>(verifyResponse);
+        setPasswordError(verifyData.error || "Current password is incorrect");
         setPasswordLoading(false);
         return;
       }
 
-      // If current password is correct, update to new password
+      // Current password verified — update to new password
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -158,8 +164,19 @@ export default function AccountSettingsPage() {
         throw new Error(data.error || "Failed to delete account");
       }
 
-      await supabase.auth.signOut();
-      window.location.replace("/");
+      // Sign out locally. Even if signOut fails (e.g. network issue),
+      // the account is already deleted server-side, so redirect anyway.
+      try {
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) {
+          console.warn("Sign-out after account deletion failed:", signOutError.message);
+        }
+      } catch (signOutErr) {
+        console.warn("Sign-out after account deletion threw:", signOutErr);
+      } finally {
+        // Always redirect even if signout fails - account is deleted
+        window.location.replace("/");
+      }
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to delete account";

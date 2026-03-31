@@ -66,6 +66,18 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
 
     setInvitationLoading(true);
     try {
+      // SECURITY: Verify the invitation belongs to the current user before accepting
+      const { data: invitation } = await supabase
+        .from("community_invitations")
+        .select("invitee_id")
+        .eq("id", community.pending_invitation_id)
+        .single();
+
+      if (!invitation || invitation.invitee_id !== userId) {
+        console.error("[JoinButton] Invitation does not belong to current user");
+        return;
+      }
+
       // IMPORTANT: Add as member FIRST while invitation is still 'pending'
       // The RLS policy checks for pending invitation status
       const { error: insertError } = await supabase.from("community_members").insert({

@@ -11,6 +11,7 @@ import PostSkeleton from "./PostSkeleton";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
 import type { Post } from "@/lib/types";
+import { getTimeAgo } from "@/lib/utils/time";
 
 // PERFORMANCE: Moved outside component to prevent recreation on every render
 const TYPE_LABELS: Record<string, string> = {
@@ -26,18 +27,6 @@ const TYPE_LABELS: Record<string, string> = {
   letter: "wrote a letter",
   quote: "shared a quote",
 };
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
-}
 
 function getTypeLabel(type: string): string {
   return TYPE_LABELS[type] || "shared something";
@@ -227,8 +216,14 @@ export default function Feed() {
     refresh,
   } = useFeed(user?.id, { pageSize: 10, enabled: !authLoading });
 
-  // Local state for filtering deleted posts
+  // Local state for filtering deleted posts (cleared on refresh since fresh data is accurate)
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+
+  // Wrap refresh to clear deletedIds since fresh server data reflects accurate state
+  const handleRefresh = useCallback(() => {
+    setDeletedIds(new Set());
+    refresh();
+  }, [refresh]);
 
   // Auto-recovery: if loading is stuck for >12s, force a retry
   const loadingStartRef = useRef<number | null>(null);
@@ -242,7 +237,7 @@ export default function Feed() {
         if (retryCountRef.current < 2) {
           retryCountRef.current += 1;
           console.warn(`[Feed] Loading stuck for >12s, auto-retrying (attempt ${retryCountRef.current})`);
-          refresh();
+          handleRefresh();
         }
       }, 12000);
       return () => clearTimeout(timer);
@@ -250,7 +245,7 @@ export default function Feed() {
       loadingStartRef.current = null;
       retryCountRef.current = 0;
     }
-  }, [postsLoading, feedPosts.length, refresh]);
+  }, [postsLoading, feedPosts.length, handleRefresh]);
 
   // Intersection observer for infinite scroll
   const { ref: bottomRef, inView } = useInView({
@@ -309,7 +304,7 @@ export default function Feed() {
         <div className="text-center">
           <p className="font-body text-red-500 mb-4">{error}</p>
           <button
-            onClick={() => refresh()}
+            onClick={() => handleRefresh()}
             className="px-6 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-sm font-medium text-white hover:opacity-90 transition-opacity"
           >
             Try Again

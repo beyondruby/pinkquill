@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Create profile for new users
+  // Create profile for new users (with timeout protection)
   const createProfile = useCallback(async (user: User): Promise<Profile | null> => {
     try {
       const metadata = user.user_metadata || {};
@@ -128,6 +128,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
   }, [fetchProfile]);
+
+  /**
+   * Fetch profile, creating it if necessary, with a hard 10s timeout
+   * so the operation never hangs indefinitely. Returns null on timeout
+   * or failure -- the user will still be set (auth works) but profile
+   * will be missing until the next page load.
+   */
+  const fetchOrCreateProfileWithTimeout = useCallback(
+    async (authUser: User): Promise<Profile | null> => {
+      const PROFILE_TIMEOUT_MS = 10_000;
+
+      const profilePromise = (async () => {
+        let profile = await fetchProfile(authUser.id);
+        if (!profile) {
+          profile = await createProfile(authUser);
+        }
+        return profile;
+      })();
+
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => {
+          console.warn(
+            `Profile fetch/create timed out after ${PROFILE_TIMEOUT_MS / 1000}s for user ${authUser.id}`
+          );
+          resolve(null);
+        }, PROFILE_TIMEOUT_MS);
+      });
+
+      return Promise.race([profilePromise, timeoutPromise]);
+    },
+    [fetchProfile, createProfile]
+  );
 
   // Refresh profile (useful after profile updates)
   const refreshProfile = useCallback(async () => {
@@ -186,20 +218,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         completeAuth();
 
         // Step 2: Fetch profile immediately (doesn't need getUser validation)
+        // Uses a 10s timeout so a hanging profile fetch/create never blocks forever.
         const userIdToFetch = localSession.user.id;
         if (fetchingProfileRef.current !== userIdToFetch) {
           fetchingProfileRef.current = userIdToFetch;
 
-          let userProfile = await fetchProfile(userIdToFetch);
-
-          if (fetchingProfileRef.current !== userIdToFetch) return;
-
-          if (!userProfile && isMounted) {
-            userProfile = await createProfile(localSession.user);
-          }
+          const userProfile = await fetchOrCreateProfileWithTimeout(localSession.user);
 
           if (isMounted && fetchingProfileRef.current === userIdToFetch) {
             setProfile(userProfile);
+            if (!userProfile) {
+              // Profile missing after timeout or failure. The user is still
+              // authenticated so the app can function with limited profile data.
+              // The next page load will retry.
+              console.warn("Auth user exists but profile is null. Will retry on next load.");
+            }
           }
           fetchingProfileRef.current = null;
         }
@@ -247,27 +280,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
           completeAuth();
 
-          // Fetch profile for newly signed in user
-          // Use a local variable to track the user we're fetching for to prevent race conditions
+          // Fetch profile for newly signed in user with timeout protection
           const userIdToFetch = session.user.id;
           if (fetchingProfileRef.current !== userIdToFetch) {
             fetchingProfileRef.current = userIdToFetch;
 
-            let userProfile = await fetchProfile(userIdToFetch);
+            const userProfile = await fetchOrCreateProfileWithTimeout(session.user);
 
             // Check if we're still fetching for the same user (prevents race condition)
             if (fetchingProfileRef.current !== userIdToFetch) {
-              // User changed during fetch, abort
               return;
             }
 
-            if (!userProfile && isMounted) {
-              userProfile = await createProfile(session.user);
-            }
-
-            // Final check before setting state
             if (isMounted && fetchingProfileRef.current === userIdToFetch) {
               setProfile(userProfile);
+              if (!userProfile) {
+                console.warn("Profile unavailable after sign-in. Will retry on next load.");
+              }
             }
             fetchingProfileRef.current = null;
           }
@@ -299,7 +328,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, [fetchProfile, createProfile]);
+  }, [fetchProfile, createProfile, fetchOrCreateProfileWithTimeout]);
 
   // Sign out function
   const signOut = useCallback(async () => {

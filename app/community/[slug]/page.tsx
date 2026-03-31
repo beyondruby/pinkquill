@@ -208,6 +208,7 @@ export default function CommunityFeedPage() {
   if (!community) return null;
 
   const canPost = community.is_member && community.user_status === 'active';
+  const canInteract = community.is_member && community.user_status === 'active';
   const isAdmin = community.user_role === 'admin' || community.user_role === 'moderator';
 
   return (
@@ -311,6 +312,7 @@ export default function CommunityFeedPage() {
                       isPinned={true}
                       onUnpin={isAdmin ? handleUnpin : undefined}
                       disableRealtimeSubscriptions={true}
+                      readOnly={!canInteract}
                     />
                   </div>
                 </div>
@@ -340,6 +342,7 @@ export default function CommunityFeedPage() {
                   onPin={isAdmin && canPin && !isPinned(post.id) ? handlePin : undefined}
                   onUnpin={isAdmin && isPinned(post.id) ? handleUnpin : undefined}
                   disableRealtimeSubscriptions={true}
+                  readOnly={!canInteract}
                 />
               </div>
             ))}

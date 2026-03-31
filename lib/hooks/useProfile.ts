@@ -110,22 +110,6 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       if (!isOwnProfile && profileData.is_private && !viewerFollowsProfile) {
         setIsPrivateAccount(true);
 
-        // Get follow counts
-        const [followersResult, followingResult] = await Promise.all([
-          supabase
-            .from("follows")
-            .select("*", { count: "exact", head: true })
-            .eq("following_id", profileData.id)
-            .eq("status", "accepted")
-            .abortSignal(signal),
-          supabase
-            .from("follows")
-            .select("*", { count: "exact", head: true })
-            .eq("follower_id", profileData.id)
-            .eq("status", "accepted")
-            .abortSignal(signal),
-        ]);
-
         setProfile({
           ...profileData,
           bio: null,
@@ -136,8 +120,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           languages: null,
           website: null,
           works_count: 0,
-          followers_count: followersResult.count || 0,
-          following_count: followingResult.count || 0,
+          followers_count: null,
+          following_count: null,
           admires_count: 0,
         });
         setPosts([]);
@@ -174,7 +158,8 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
           ),
           admires:admires(count),
           reactions:reactions(count),
-          comments:comments(count)
+          comments:comments(count),
+          relays:relays(count)
         `
         )
         .eq("author_id", profileData.id)
@@ -257,7 +242,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
         admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
         comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
-        relays_count: 0,
+        relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
         reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
         user_has_admired: userAdmires.has(post.id),
         user_has_saved: userSaves.has(post.id),
@@ -453,13 +438,15 @@ export function useFollow() {
 // useFollowList - Get followers or following list
 // ============================================================================
 
-export function useFollowList(userId: string, type: "followers" | "following") {
+export function useFollowList(userId: string, type: "followers" | "following", pageSize = 30) {
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(0);
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchList = useCallback(async () => {
+  const fetchPage = useCallback(async (pageNum: number) => {
     if (!userId) return;
 
     // Abort any in-flight request
@@ -471,6 +458,8 @@ export function useFollowList(userId: string, type: "followers" | "following") {
 
     try {
       setLoading(true);
+      const from = pageNum * pageSize;
+      const to = (pageNum + 1) * pageSize - 1;
 
       if (type === "followers") {
         const { data, error } = await supabase
@@ -489,11 +478,14 @@ export function useFollowList(userId: string, type: "followers" | "following") {
           )
           .eq("following_id", userId)
           .eq("status", "accepted")
+          .range(from, to)
           .abortSignal(signal);
 
         if (!mountedRef.current || signal.aborted) return;
         if (error) throw error;
-        setUsers((data?.map((d) => d.follower) as unknown as FollowUser[]) || []);
+        const newUsers = (data?.map((d) => d.follower) as unknown as FollowUser[]) || [];
+        setHasMore(newUsers.length === pageSize);
+        setUsers((prev) => pageNum === 0 ? newUsers : [...prev, ...newUsers]);
       } else {
         const { data, error } = await supabase
           .from("follows")
@@ -511,11 +503,14 @@ export function useFollowList(userId: string, type: "followers" | "following") {
           )
           .eq("follower_id", userId)
           .eq("status", "accepted")
+          .range(from, to)
           .abortSignal(signal);
 
         if (!mountedRef.current || signal.aborted) return;
         if (error) throw error;
-        setUsers((data?.map((d) => d.following) as unknown as FollowUser[]) || []);
+        const newUsers = (data?.map((d) => d.following) as unknown as FollowUser[]) || [];
+        setHasMore(newUsers.length === pageSize);
+        setUsers((prev) => pageNum === 0 ? newUsers : [...prev, ...newUsers]);
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
@@ -525,11 +520,20 @@ export function useFollowList(userId: string, type: "followers" | "following") {
         setLoading(false);
       }
     }
-  }, [userId, type]);
+  }, [userId, type, pageSize]);
+
+  const loadMore = useCallback(() => {
+    setPage((p) => p + 1);
+  }, []);
+
+  const refetch = useCallback(() => {
+    setPage(0);
+    fetchPage(0);
+  }, [fetchPage]);
 
   useEffect(() => {
     mountedRef.current = true;
-    fetchList();
+    fetchPage(page);
 
     return () => {
       mountedRef.current = false;
@@ -537,9 +541,16 @@ export function useFollowList(userId: string, type: "followers" | "following") {
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchList]);
+  }, [fetchPage, page]);
 
-  return { users, loading, refetch: fetchList };
+  // Reset page when userId or type changes
+  useEffect(() => {
+    setPage(0);
+    setUsers([]);
+    setHasMore(false);
+  }, [userId, type]);
+
+  return { users, loading, hasMore, loadMore, refetch };
 }
 
 // ============================================================================

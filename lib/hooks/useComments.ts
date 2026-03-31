@@ -11,6 +11,7 @@ import type { Comment } from "../types";
 
 // Pagination constants
 const COMMENTS_PAGE_SIZE = 30;
+const REPLIES_PAGE_SIZE = 20;
 
 interface UseCommentsReturn {
   comments: Comment[];
@@ -167,9 +168,9 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
     await fetchComments(pageRef.current + 1, true);
   }, [fetchComments, hasMore, loading]);
 
-  // Lazy-load replies for a specific comment
+  // Lazy-load replies for a specific comment with pagination
   const fetchReplies = useCallback(
-    async (commentId: string): Promise<Comment[]> => {
+    async (commentId: string, limit = REPLIES_PAGE_SIZE, offset = 0): Promise<Comment[]> => {
       try {
         const { data, error } = await supabase
           .from("comments")
@@ -184,12 +185,14 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
           `
           )
           .eq("parent_id", commentId)
-          .order("created_at", { ascending: true }); // Oldest first for replies
+          .order("created_at", { ascending: true }) // Oldest first for replies
+          .range(offset, offset + limit - 1);
 
         if (error) throw error;
         if (!data || data.length === 0) return [];
 
         const replyIds = data.map((c) => c.id);
+        const hasMoreReplies = data.length === limit;
 
         // Fetch likes for replies
         const currentUserId = userIdRef.current;
@@ -222,11 +225,12 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
           replies: [],
         }));
 
-        // Update parent comment with replies
+        // Update parent comment with replies (append if offset > 0, replace if first page)
         setComments((current) =>
           current.map((c) => {
             if (c.id === commentId) {
-              return { ...c, replies };
+              const updatedReplies = offset > 0 ? [...(c.replies || []), ...replies] : replies;
+              return { ...c, replies: updatedReplies, hasMoreReplies };
             }
             return c;
           })

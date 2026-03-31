@@ -77,7 +77,8 @@
       "Bash(source /Users/hadi/projects/pinkquill/.env.local 2>/dev/null; node -e \"\nconst Stripe = require\\('stripe'\\);\nconst stripe = new Stripe\\('$STRIPE_SECRET_KEY'\\);\n\\(async \\(\\) => {\n  const endpoints = await stripe.webhookEndpoints.list\\({ limit: 10 }\\);\n  const ep = endpoints.data[0];\n  \n  // Update to include all the events our webhook handler needs\n  const updated = await stripe.webhookEndpoints.update\\(ep.id, {\n    enabled_events: [\n      'checkout.session.completed',\n      'checkout.session.expired',\n      'charge.refunded',\n      'account.updated',\n      'payment_intent.succeeded',\n      'payment_intent.created',\n    ],\n  }\\);\n  \n  console.log\\('Updated endpoint:', updated.url\\);\n  console.log\\('New events:', updated.enabled_events.join\\(', '\\)\\);\n}\\)\\(\\);\n\" 2>&1)",
       "mcp__supabase__get_project",
       "Bash(npm outdated:*)",
-      "Bash(jobs -l)"
+      "Bash(jobs -l)",
+      "Bash(cat:*)"
     ]
   }
 }

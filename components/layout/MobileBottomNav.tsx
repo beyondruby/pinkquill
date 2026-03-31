@@ -80,7 +80,7 @@ export default function MobileBottomNav() {
               key={item.icon}
               href={href}
               aria-label={item.label}
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors focus-visible:outline-2 focus-visible:outline-purple-primary focus-visible:outline-offset-2 ${
                 isCreate
                   ? ""
                   : isActive

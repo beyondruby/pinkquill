@@ -3,70 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
-
-// Social link type
-interface SocialLink {
-  platform: string;
-  url: string;
-}
-
-// Platform definitions with icons
-const PLATFORMS = {
-  twitter: { name: "Twitter / X", icon: "twitter", color: "#1DA1F2" },
-  instagram: { name: "Instagram", icon: "instagram", color: "#E4405F" },
-  github: { name: "GitHub", icon: "github", color: "#333" },
-  linkedin: { name: "LinkedIn", icon: "linkedin", color: "#0A66C2" },
-  youtube: { name: "YouTube", icon: "youtube", color: "#FF0000" },
-  tiktok: { name: "TikTok", icon: "tiktok", color: "#000" },
-  threads: { name: "Threads", icon: "threads", color: "#000" },
-  facebook: { name: "Facebook", icon: "facebook", color: "#1877F2" },
-  behance: { name: "Behance", icon: "behance", color: "#1769FF" },
-  dribbble: { name: "Dribbble", icon: "dribbble", color: "#EA4C89" },
-  spotify: { name: "Spotify", icon: "spotify", color: "#1DB954" },
-  soundcloud: { name: "SoundCloud", icon: "soundcloud", color: "#FF5500" },
-  medium: { name: "Medium", icon: "medium", color: "#000" },
-  substack: { name: "Substack", icon: "substack", color: "#FF6719" },
-  patreon: { name: "Patreon", icon: "patreon", color: "#FF424D" },
-  ko_fi: { name: "Ko-fi", icon: "ko_fi", color: "#29ABE0" },
-  website: { name: "Website", icon: "link", color: "#8e44ad" },
-};
-
-// Detect platform from URL
-function detectPlatform(url: string): string {
-  const lower = url.toLowerCase();
-  if (lower.includes("twitter.com") || lower.includes("x.com")) return "twitter";
-  if (lower.includes("instagram.com")) return "instagram";
-  if (lower.includes("github.com")) return "github";
-  if (lower.includes("linkedin.com")) return "linkedin";
-  if (lower.includes("youtube.com") || lower.includes("youtu.be")) return "youtube";
-  if (lower.includes("tiktok.com")) return "tiktok";
-  if (lower.includes("threads.net")) return "threads";
-  if (lower.includes("facebook.com") || lower.includes("fb.com")) return "facebook";
-  if (lower.includes("behance.net")) return "behance";
-  if (lower.includes("dribbble.com")) return "dribbble";
-  if (lower.includes("spotify.com") || lower.includes("open.spotify")) return "spotify";
-  if (lower.includes("soundcloud.com")) return "soundcloud";
-  if (lower.includes("medium.com")) return "medium";
-  if (lower.includes("substack.com")) return "substack";
-  if (lower.includes("patreon.com")) return "patreon";
-  if (lower.includes("ko-fi.com")) return "ko_fi";
-  return "website";
-}
-
-// Parse social links from stored JSON or legacy string
-function parseSocialLinks(website: string | null): SocialLink[] {
-  if (!website) return [];
-  try {
-    const parsed = JSON.parse(website);
-    if (Array.isArray(parsed)) return parsed;
-  } catch {
-    // Legacy format: plain URL string
-    if (website.trim()) {
-      return [{ platform: detectPlatform(website), url: website }];
-    }
-  }
-  return [];
-}
+import { parseSocialLinks, detectPlatform, PLATFORMS } from "@/lib/utils/social";
+import type { SocialLink } from "@/lib/utils/social";
 
 export default function EditProfilePage() {
   const { user, profile } = useAuth();
@@ -126,6 +64,9 @@ export default function EditProfilePage() {
     setSuccess(false);
   };
 
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
   const handleImageUpload = async (
     file: File,
     type: "avatar" | "cover"
@@ -137,6 +78,17 @@ export default function EditProfilePage() {
     setError(null);
 
     try {
+      if (file.size > MAX_IMAGE_SIZE) {
+        setError("Image must be smaller than 5MB");
+        setUploading(false);
+        return;
+      }
+
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        setError("Only JPEG, PNG, GIF, and WebP images are allowed");
+        setUploading(false);
+        return;
+      }
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const bucketName = type === "avatar" ? "avatars" : "covers";
@@ -192,6 +144,16 @@ export default function EditProfilePage() {
     setSocialLinks(updated);
   };
 
+  function isValidUrl(url: string): boolean {
+    if (!url.trim()) return true; // Empty is valid (optional)
+    try {
+      const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -201,6 +163,14 @@ export default function EditProfilePage() {
     setSuccess(false);
 
     try {
+      // Validate social link URLs
+      const invalidLinks = socialLinks.filter(link => link.url && !isValidUrl(link.url));
+      if (invalidLinks.length > 0) {
+        setError("Please enter valid URLs for social links (must start with http:// or https://)");
+        setSaving(false);
+        return;
+      }
+
       // Store social links as JSON string in website field
       const websiteValue = socialLinks.length > 0
         ? JSON.stringify(socialLinks)

@@ -240,8 +240,8 @@ export interface Profile {
   is_private: boolean;
   created_at: string;
   works_count: number;
-  followers_count: number;
-  following_count: number;
+  followers_count: number | null;
+  following_count: number | null;
   admires_count: number;
 }
 
@@ -288,6 +288,7 @@ export interface Comment {
   replies_count: number;
   user_has_liked: boolean;
   replies?: Comment[];
+  hasMoreReplies?: boolean;
 }
 
 // ============================================================================

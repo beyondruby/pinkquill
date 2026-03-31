@@ -143,35 +143,30 @@ export default function LeftSidebar() {
     };
   }, []);
 
-  // Close menus when clicking outside
+  // Close menus when clicking outside — single listener for full lifecycle
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const clickedInsideSidebar = sidebarRef.current?.contains(event.target as Node);
 
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowMenu(false);
-        // Collapse sidebar if click was outside
         if (!clickedInsideSidebar) {
           setIsExpanded(false);
         }
       }
       if (createMenuRef.current && !createMenuRef.current.contains(event.target as Node)) {
         setShowCreateMenu(false);
-        // Collapse sidebar if click was outside
         if (!clickedInsideSidebar) {
           setIsExpanded(false);
         }
       }
     };
 
-    if (showMenu || showCreateMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showMenu, showCreateMenu]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOpenNotifications = () => {
     setShowNotifications(true);

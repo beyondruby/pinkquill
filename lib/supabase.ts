@@ -99,10 +99,11 @@ function deduplicatedRefresh(): Promise<string | null> {
     } catch {
       return null;
     } finally {
-      // Clear after a short delay so back-to-back 401 batches within
-      // the same tick still share the same refresh, but a genuinely
-      // new expiry later gets a fresh call.
-      setTimeout(() => { _refreshPromise = null; }, 500);
+      // Clear immediately so the next batch of 401s after this refresh
+      // completes will trigger a fresh call. Concurrent callers that
+      // arrived while this was in-flight already hold a reference to the
+      // same promise, so they still share the single refresh.
+      _refreshPromise = null;
     }
   })();
 

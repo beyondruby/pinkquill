@@ -68,6 +68,38 @@ export default function CommunityLayoutClient({
     );
   }
 
+  // Check if user is banned from this community
+  if (community.user_status === 'banned') {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 text-center">
+        <div className="relative">
+          <div className="absolute inset-0 -m-8 bg-gradient-to-br from-red-500/5 via-pink-vivid/5 to-purple-primary/5 rounded-3xl blur-xl" />
+
+          <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl border border-red-200/50 p-10 shadow-xl">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-red-100 to-pink-100 flex items-center justify-center">
+              <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            <h1 className="font-display text-2xl font-bold text-ink mb-3">Access Denied</h1>
+            <p className="font-body text-muted mb-8 max-w-sm mx-auto">
+              You have been banned from this community.
+            </p>
+            <Link
+              href="/community"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold shadow-lg shadow-purple-primary/25 hover:shadow-xl hover:shadow-pink-vivid/30 hover:-translate-y-0.5 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Browse Communities
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Check if user can view private community
   if (community.privacy === 'private' && !community.is_member && community.created_by !== user?.id) {
     return (

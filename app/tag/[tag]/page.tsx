@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useTagPosts, useTrendingTags } from "@/lib/hooks";
 import PostCard from "@/components/feed/PostCard";
 import type { PostProps, PostType } from "@/components/feed/PostCard/types";
+import { getTimeAgoCompact } from "@/lib/utils/time";
 
 // Loading skeleton
 function PostSkeleton() {
@@ -64,18 +65,6 @@ function transformPostForCard(post: {
     quote: "shared a quote",
   };
 
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (seconds < 60) return "just now";
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
-
   return {
     id: post.id,
     authorId: post.author_id,
@@ -86,7 +75,7 @@ function transformPostForCard(post: {
     },
     type: post.type as PostType,
     typeLabel: typeLabels[post.type] || "shared",
-    timeAgo: getTimeAgo(post.created_at),
+    timeAgo: getTimeAgoCompact(post.created_at),
     createdAt: post.created_at,
     title: post.title || undefined,
     content: post.content || "",

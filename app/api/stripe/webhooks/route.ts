@@ -115,6 +115,22 @@ export async function POST(request: Request) {
           break;
         }
 
+        // Verify the amount charged matches the order amount
+        const amountPaid = session.amount_total ? session.amount_total / 100 : null;
+        if (amountPaid !== null && Math.abs(amountPaid - Number(order.amount)) > 0.01) {
+          console.error(`[Stripe Webhook] Amount mismatch: charged ${amountPaid}, order ${order.amount}`);
+          // Don't finalize - flag for manual review
+          await supabaseAdmin
+            .from("order_events")
+            .insert({
+              order_id: order.id,
+              event_type: "amount_mismatch",
+              actor_id: order.buyer_id,
+              metadata: { charged: amountPaid, expected: Number(order.amount), stripe_event_id: event.id }
+            });
+          return NextResponse.json({ received: true, warning: "amount_mismatch" });
+        }
+
         await finalizeOrderPayment({
           orderId: order.id,
           provider: "stripe",
@@ -155,8 +171,25 @@ export async function POST(request: Request) {
         if (productData?.delivery_type === "digital" || order.listing_type === "product") {
           try {
             await getActiveProvider().transferToSeller(order.id);
-          } catch {
-            // Non-blocking — transfer can be retried via auto-complete
+            // Only mark as delivered after transfer succeeds
+            await supabaseAdmin
+              .from("orders")
+              .update({ status: "delivered" })
+              .eq("id", order.id);
+          } catch (transferErr) {
+            console.error(`[Stripe Webhook] Transfer failed for digital order ${order.id}:`, transferErr);
+            // Order stays as 'paid', transfer will be retried by auto-complete cron
+            try {
+              await supabaseAdmin
+                .from("order_events")
+                .insert({
+                  order_id: order.id,
+                  event_type: "transfer_failed",
+                  metadata: { error: transferErr instanceof Error ? transferErr.message : "Unknown" },
+                });
+            } catch {
+              // Non-blocking
+            }
           }
         }
         break;
@@ -221,6 +254,32 @@ export async function POST(request: Request) {
               .eq("id", order.id);
           } catch (err) {
             console.error("[Stripe Webhook] Transfer reversal failed:", err);
+            // Update transfer status to track the failure
+            await supabaseAdmin
+              .from("transactions")
+              .update({ status: "reversal_failed" })
+              .eq("order_id", order.id)
+              .eq("type", "transfer");
+
+            // Notify both parties
+            try {
+              await supabaseAdmin
+                .from("notifications")
+                .insert([
+                  {
+                    user_id: order.seller_id,
+                    type: "order_transfer_failed",
+                    content: "Refund reversal requires manual review.",
+                  },
+                  {
+                    user_id: order.buyer_id,
+                    type: "order_transfer_failed",
+                    content: "Your refund is being processed manually.",
+                  },
+                ]);
+            } catch {
+              // Non-blocking
+            }
           }
         }
 

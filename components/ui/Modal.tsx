@@ -9,6 +9,23 @@ interface ModalProps {
   ariaLabel?: string;
 }
 
+// Counter-based scroll lock to handle nested modals correctly
+let modalCount = 0;
+
+function lockScroll() {
+  modalCount++;
+  if (modalCount === 1) {
+    document.body.style.overflow = "hidden";
+  }
+}
+
+function unlockScroll() {
+  modalCount = Math.max(0, modalCount - 1);
+  if (modalCount === 0) {
+    document.body.style.overflow = "";
+  }
+}
+
 // Focusable element selectors for focus trap
 const FOCUSABLE_SELECTORS = [
   'button:not([disabled])',
@@ -66,7 +83,7 @@ export default function Modal({ isOpen, onClose, children, ariaLabel = "Modal di
       previousActiveElement.current = document.activeElement as HTMLElement;
 
       document.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
+      lockScroll();
 
       // Focus the first focusable element or the modal itself
       requestAnimationFrame(() => {
@@ -77,17 +94,17 @@ export default function Modal({ isOpen, onClose, children, ariaLabel = "Modal di
           modalRef.current?.focus();
         }
       });
+
+      return () => {
+        document.removeEventListener("keydown", handleKeyDown);
+        unlockScroll();
+
+        // Restore focus to the previously focused element
+        if (previousActiveElement.current && typeof previousActiveElement.current.focus === 'function') {
+          previousActiveElement.current.focus();
+        }
+      };
     }
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "auto";
-
-      // Restore focus to the previously focused element
-      if (previousActiveElement.current && typeof previousActiveElement.current.focus === 'function') {
-        previousActiveElement.current.focus();
-      }
-    };
   }, [isOpen, onClose, getFocusableElements]);
 
   if (!isOpen) return null;

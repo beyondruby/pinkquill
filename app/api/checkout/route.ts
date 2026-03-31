@@ -51,6 +51,7 @@ export async function POST(request: Request) {
       .select(`
         id, order_number, buyer_id, seller_id, amount, currency,
         listing_type, status, payment_status, checkout_session_id,
+        quantity,
         product:products (id, title, listing_type)
       `)
       .eq("id", parsed.data.order_id)
@@ -69,6 +70,28 @@ export async function POST(request: Request) {
         { error: `Order is not awaiting payment (status: ${order.status})` },
         { status: 400 }
       );
+    }
+
+    // Verify order amount against current product pricing
+    if (order.product) {
+      const productRecord = Array.isArray(order.product) ? order.product[0] : order.product;
+      if (productRecord?.id) {
+        const { data: pricing } = await supabaseAdmin
+          .from("product_pricing")
+          .select("price")
+          .eq("product_id", productRecord.id)
+          .eq("is_active", true)
+          .single();
+
+        const qty = order.quantity ?? 1;
+        if (pricing && Math.abs(Number(order.amount) - pricing.price * qty) > 0.01) {
+          // Price changed since order was created
+          return NextResponse.json(
+            { error: "Product price has changed. Please recreate your order." },
+            { status: 409 }
+          );
+        }
+      }
     }
 
     // Build order data for the provider

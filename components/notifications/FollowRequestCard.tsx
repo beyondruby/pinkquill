@@ -20,14 +20,24 @@ export default function FollowRequestCard({
 
   const handleAccept = async () => {
     setAccepting(true);
-    await onAccept(request.follower_id);
-    setAccepting(false);
+    try {
+      await onAccept(request.follower_id);
+    } catch (err) {
+      console.error("Failed to accept follow request:", err);
+    } finally {
+      setAccepting(false);
+    }
   };
 
   const handleDecline = async () => {
     setDeclining(true);
-    await onDecline(request.follower_id);
-    setDeclining(false);
+    try {
+      await onDecline(request.follower_id);
+    } catch (err) {
+      console.error("Failed to decline follow request:", err);
+    } finally {
+      setDeclining(false);
+    }
   };
 
   const requester = request.requester;

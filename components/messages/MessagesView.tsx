@@ -264,8 +264,8 @@ export default function MessagesView() {
     [conversations]
   );
 
-  // Real-time subscription for new messages - update silently without loading state
-  // OPTIMIZED: User-specific channel name + debounced refetch to prevent excessive queries
+  // Real-time subscription for new messages - incremental update for message inserts,
+  // full refetch only for participant changes or message updates (read receipts etc.)
   useEffect(() => {
     if (!user) return;
 
@@ -273,8 +273,54 @@ export default function MessagesView() {
     const debouncedRefetch = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        fetchConversations(false); // Silent update
-      }, 500); // Debounce 500ms to batch rapid message updates
+        fetchConversations(false); // Silent full update
+      }, 500);
+    };
+
+    // Handle new message inserts by updating only the affected conversation
+    const handleMessageInsert = (payload: { new: Record<string, unknown> }) => {
+      const newMsg = payload.new as {
+        conversation_id: string;
+        sender_id: string;
+        content: string;
+        created_at: string;
+        message_type?: "text" | "voice" | "media";
+        voice_duration?: number;
+        media_type?: "image" | "video";
+      };
+
+      setConversations((prev) => {
+        const convIndex = prev.findIndex((c) => c.id === newMsg.conversation_id);
+        if (convIndex === -1) {
+          // New conversation we don't know about yet -- full refetch
+          debouncedRefetch();
+          return prev;
+        }
+
+        const updated = prev.map((conv) => {
+          if (conv.id !== newMsg.conversation_id) return conv;
+
+          const isFromOther = newMsg.sender_id !== user.id;
+          return {
+            ...conv,
+            last_message: {
+              content: newMsg.content,
+              created_at: newMsg.created_at,
+              sender_id: newMsg.sender_id,
+              message_type: newMsg.message_type,
+              voice_duration: newMsg.voice_duration,
+              media_type: newMsg.media_type,
+            },
+            unread_count: isFromOther ? conv.unread_count + 1 : conv.unread_count,
+            updated_at: newMsg.created_at,
+          };
+        });
+
+        // Re-sort by most recent
+        return updated.sort(
+          (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        );
+      });
     };
 
     // Use user-specific channel name to prevent conflicts
@@ -290,7 +336,7 @@ export default function MessagesView() {
             table: "messages",
             filter: conversationIdsFilter,
           },
-          debouncedRefetch
+          handleMessageInsert
         )
         .on(
           "postgres_changes",

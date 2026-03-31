@@ -52,6 +52,25 @@ export default function PrivacySettingsPage() {
     setSavingPrivacy(true);
 
     try {
+      // Switching from private to public — confirm auto-accept of pending requests
+      if (!newValue) {
+        const { count } = await supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("following_id", user.id)
+          .eq("status", "pending");
+
+        if (count && count > 0) {
+          const confirmed = window.confirm(
+            `You have ${count} pending follow request${count > 1 ? "s" : ""}. Making your account public will accept all of them. Continue?`
+          );
+          if (!confirmed) {
+            setSavingPrivacy(false);
+            return;
+          }
+        }
+      }
+
       const { error } = await supabase
         .from("profiles")
         .update({ is_private: newValue })

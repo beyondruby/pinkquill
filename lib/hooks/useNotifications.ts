@@ -559,30 +559,50 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
         const conversationIds = participations.map((p) => p.conversation_id);
         conversationIdsRef.current = new Set(conversationIds);
 
-        // Get unread count - only fetch sender_id for filtering (minimal data)
-        const { data: unreadMessages, error } = await retryWithBackoff(
-          () =>
-            supabase
-              .from("messages")
-              .select("sender_id")
-              .in("conversation_id", conversationIds)
-              .eq("is_read", false)
-              .neq("sender_id", userId),
-          {
-            attempts: 3,
-            shouldRetry: isRetryableError,
-          }
-        );
+        // Build blocked user IDs array for Supabase filter
+        const blockedArray = Array.from(blockedUserIds);
 
-        if (!mountedRef.current) return;
-        if (error) throw error;
+        if (blockedArray.length > 0) {
+          // Use count query with server-side blocked user filtering
+          const { count: unreadCount, error } = await retryWithBackoff(
+            () =>
+              supabase
+                .from("messages")
+                .select("*", { count: "exact", head: true })
+                .eq("is_read", false)
+                .in("conversation_id", conversationIds)
+                .neq("sender_id", userId)
+                .not("sender_id", "in", `(${blockedArray.join(",")})`),
+            {
+              attempts: 3,
+              shouldRetry: isRetryableError,
+            }
+          );
 
-        // Filter out blocked users (this is fast since blockedUserIds is a Set)
-        const messages = unreadMessages || [];
-        for (let i = 0; i < messages.length; i++) {
-          if (!blockedUserIds.has(messages[i].sender_id)) {
-            filteredCount++;
-          }
+          if (!mountedRef.current) return;
+          if (error) throw error;
+
+          filteredCount = unreadCount || 0;
+        } else {
+          // No blocked users -- simple count query without block filter
+          const { count: unreadCount, error } = await retryWithBackoff(
+            () =>
+              supabase
+                .from("messages")
+                .select("*", { count: "exact", head: true })
+                .eq("is_read", false)
+                .in("conversation_id", conversationIds)
+                .neq("sender_id", userId),
+            {
+              attempts: 3,
+              shouldRetry: isRetryableError,
+            }
+          );
+
+          if (!mountedRef.current) return;
+          if (error) throw error;
+
+          filteredCount = unreadCount || 0;
         }
       }
 

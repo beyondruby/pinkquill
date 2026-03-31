@@ -5,6 +5,9 @@ import { supabase } from "@/lib/supabase";
 import { useProfile, useFollow, useRelays, useBlock, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, usePinnedPosts, useReorderCollections } from "@/lib/hooks";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
+import { getTimeAgo } from "@/lib/utils/time";
+import { parseSocialLinks, getSocialUrl } from "@/lib/utils/social";
+import type { SocialLink } from "@/lib/utils/social";
 
 // Type for follows table real-time payload
 interface FollowRealtimePayload {
@@ -81,66 +84,6 @@ function useScrollReveal() {
   return { revealedCards, observeCard };
 }
 
-// Social link type
-interface SocialLink {
-  platform: string;
-  url: string;
-}
-
-// Parse social links from stored JSON or legacy string
-function parseSocialLinks(website: string | null): SocialLink[] {
-  if (!website) return [];
-  try {
-    const parsed = JSON.parse(website);
-    if (Array.isArray(parsed)) return parsed;
-  } catch {
-    // Legacy format: plain URL string - detect platform
-    if (website.trim()) {
-      const lower = website.toLowerCase();
-      let platform = "website";
-      if (lower.includes("twitter.com") || lower.includes("x.com")) platform = "twitter";
-      else if (lower.includes("instagram.com")) platform = "instagram";
-      else if (lower.includes("github.com")) platform = "github";
-      else if (lower.includes("linkedin.com")) platform = "linkedin";
-      else if (lower.includes("youtube.com") || lower.includes("youtu.be")) platform = "youtube";
-      else if (lower.includes("tiktok.com")) platform = "tiktok";
-      else if (lower.includes("threads.net")) platform = "threads";
-      else if (lower.includes("facebook.com") || lower.includes("fb.com")) platform = "facebook";
-      return [{ platform, url: website }];
-    }
-  }
-  return [];
-}
-
-// Get URL for a social link
-function getSocialUrl(link: SocialLink): string {
-  const url = link.url.trim();
-  // If already a full URL, return it
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
-  }
-  // Otherwise, construct URL based on platform
-  const username = url.replace(/^@/, "");
-  const platformUrls: Record<string, string> = {
-    twitter: `https://twitter.com/${username}`,
-    instagram: `https://instagram.com/${username}`,
-    github: `https://github.com/${username}`,
-    linkedin: `https://linkedin.com/in/${username}`,
-    youtube: `https://youtube.com/@${username}`,
-    tiktok: `https://tiktok.com/@${username}`,
-    threads: `https://threads.net/@${username}`,
-    facebook: `https://facebook.com/${username}`,
-    behance: `https://behance.net/${username}`,
-    dribbble: `https://dribbble.com/${username}`,
-    spotify: `https://open.spotify.com/user/${username}`,
-    soundcloud: `https://soundcloud.com/${username}`,
-    medium: `https://medium.com/@${username}`,
-    substack: `https://${username}.substack.com`,
-    patreon: `https://patreon.com/${username}`,
-    ko_fi: `https://ko-fi.com/${username}`,
-  };
-  return platformUrls[link.platform] || `https://${url}`;
-}
 
 // Social platform icons (using brand colors)
 const socialIcons: Record<string, { icon: React.ReactNode; color: string }> = {
@@ -799,7 +742,8 @@ function CollectionCard({
   );
 }
 
-function formatCount(num: number): string {
+function formatCount(num: number | null): string {
+  if (num === null) return "-";
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}m`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
   return num.toString();
@@ -858,21 +802,9 @@ function StudioSubTabButton({
   );
 }
 
-function formatDate(dateString: string): string {
+function formatMonthYear(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
 }
 
 interface StudioProfileProps {
@@ -1385,17 +1317,23 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 }
               </p>
 
-              {/* Minimal Stats */}
+              {/* Minimal Stats - only show if counts are available */}
+              {(profile.followers_count !== null || profile.following_count !== null) && (
               <div className="flex items-center justify-center gap-8 pt-6 border-t border-purple-primary/10">
+                {profile.followers_count !== null && (
                 <div className="text-center">
                   <span className="font-display text-xl text-ink block">{formatCount(profile.followers_count)}</span>
                   <span className="font-ui text-xs text-muted uppercase tracking-wider">Followers</span>
                 </div>
+                )}
+                {profile.following_count !== null && (
                 <div className="text-center">
                   <span className="font-display text-xl text-ink block">{formatCount(profile.following_count)}</span>
                   <span className="font-ui text-xs text-muted uppercase tracking-wider">Following</span>
                 </div>
+                )}
               </div>
+              )}
             </div>
           </div>
         )}
@@ -1578,7 +1516,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 {/* Joined */}
                 <div className="flex items-center gap-2 text-ink/30">
                   <span className="text-pink-vivid/40">{icons.calendar}</span>
-                  <span className="font-ui text-xs tracking-wider uppercase">Joined {formatDate(profile.created_at)}</span>
+                  <span className="font-ui text-xs tracking-wider uppercase">Joined {formatMonthYear(profile.created_at)}</span>
                 </div>
               </div>
 

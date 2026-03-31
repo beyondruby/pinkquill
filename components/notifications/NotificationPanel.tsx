@@ -11,6 +11,7 @@ import { setRequestMetricsScope } from "@/lib/utils/requestMetrics";
 import CollaborationInviteCard from "./CollaborationInviteCard";
 import FollowRequestCard from "./FollowRequestCard";
 import { CommentIcon } from "@/components/ui/Icons";
+import { getTimeAgoCompact } from "@/lib/utils/time";
 
 interface NotificationPanelProps {
   isOpen: boolean;
@@ -604,18 +605,6 @@ const icons = {
   ),
 };
 
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-  return date.toLocaleDateString();
-}
-
 function getNotificationIcon(type: string) {
   switch (type) {
     case 'admire':
@@ -831,7 +820,7 @@ function NotificationItem({
     if (notification.type === 'follow' ||
         notification.type === 'follow_request' ||
         notification.type === 'follow_request_accepted') {
-      return `/studio/${notification.actor?.username}`;
+      return notification.actor?.username ? `/studio/${notification.actor.username}` : '#';
     }
     if (notification.type === 'community_join_request' && notification.community?.slug) {
       // Link to the members settings page where admins can approve/reject
@@ -860,7 +849,7 @@ function NotificationItem({
     if (notification.post_id) {
       return `/post/${notification.post_id}`;
     }
-    return `/studio/${notification.actor?.username}`;
+    return notification.actor?.username ? `/studio/${notification.actor.username}` : '#';
   };
 
   const notificationLink = getNotificationLink();
@@ -968,7 +957,7 @@ function NotificationItem({
 
         {/* Timestamp */}
         <span className="font-ui text-[0.72rem] text-muted mt-1.5 block">
-          {getTimeAgo(notification.created_at)}
+          {getTimeAgoCompact(notification.created_at)}
         </span>
       </div>
     </Link>
@@ -1093,6 +1082,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
               {regularUnreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
+                  aria-label="Mark all notifications as read"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-purple-primary font-ui text-[0.78rem] font-medium hover:bg-purple-primary/10 transition-all"
                 >
                   {icons.checkAll}

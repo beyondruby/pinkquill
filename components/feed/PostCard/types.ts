@@ -102,6 +102,8 @@ export interface PostCardProps {
   onPin?: (postId: string) => void; // Pin post handler (for admins/moderators)
   onUnpin?: (postId: string) => void; // Unpin post handler (for admins/moderators)
   isPinned?: boolean; // Whether this post is currently pinned
+  /** When true, disables commenting/interactions (e.g. muted community members) */
+  readOnly?: boolean;
 }
 
 // Action handler types

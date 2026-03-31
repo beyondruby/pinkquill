@@ -113,7 +113,7 @@ export default function FollowersModal({
   isOwnProfile,
 }: FollowersModalProps) {
   const { user } = useAuth();
-  const { users, loading } = useFollowList(userId, type);
+  const { users, loading, hasMore, loadMore } = useFollowList(userId, type);
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   // Reset removed IDs when modal closes or type changes
@@ -180,6 +180,15 @@ export default function FollowersModal({
                   onUnfollow={handleUnfollow}
                 />
               ))}
+              {hasMore && (
+                <button
+                  onClick={loadMore}
+                  disabled={loading}
+                  className="w-full py-3 text-purple-primary hover:underline font-ui text-sm disabled:opacity-50"
+                >
+                  {loading ? "Loading..." : "Load more"}
+                </button>
+              )}
             </div>
           )}
         </div>

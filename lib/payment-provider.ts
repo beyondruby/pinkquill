@@ -143,5 +143,13 @@ export function getProviderByName(providerName: PaymentProvider): PaymentProvide
  * Lazy-instantiated and cached for the lifetime of the process.
  */
 export function getActiveProvider(): PaymentProviderInterface {
-  return getProviderByName(getPaymentProvider());
+  const providerName = getPaymentProvider();
+
+  if (process.env.NODE_ENV === "production" && providerName === "placeholder") {
+    throw new Error(
+      "Placeholder payment provider cannot be used in production. Set PAYMENTS_PROVIDER to 'stripe' or 'paypal'."
+    );
+  }
+
+  return getProviderByName(providerName);
 }

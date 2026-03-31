@@ -876,6 +876,27 @@ export function useJoinCommunity() {
     if (activeOperation) return { success: false, error: 'Another operation in progress' };
     setActiveOperation('leave');
     try {
+      // Check if the user is an admin and if they are the last one
+      const { data: memberData } = await supabase
+        .from("community_members")
+        .select("role")
+        .eq("community_id", communityId)
+        .eq("user_id", userId)
+        .single();
+
+      if (memberData?.role === 'admin') {
+        const { count } = await supabase
+          .from("community_members")
+          .select("*", { count: "exact", head: true })
+          .eq("community_id", communityId)
+          .eq("role", "admin")
+          .eq("status", "active");
+
+        if (count !== null && count <= 1) {
+          return { success: false, error: "Cannot leave as the last admin. Transfer admin role to another member first." };
+        }
+      }
+
       const { error } = await supabase
         .from("community_members")
         .delete()
@@ -1211,12 +1232,26 @@ export function useCreateCommunity() {
     setError(null);
 
     try {
+      // Sanitize and validate slug
+      const sanitizedSlug = data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+
+      // Check slug uniqueness before creating
+      const { data: existing } = await supabase
+        .from("communities")
+        .select("id")
+        .eq("slug", sanitizedSlug)
+        .maybeSingle();
+
+      if (existing) {
+        throw new Error("A community with this URL already exists. Please choose a different name.");
+      }
+
       // Create the community
       const { data: community, error: createError } = await supabase
         .from("communities")
         .insert({
           name: data.name,
-          slug: data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+          slug: sanitizedSlug,
           description: data.description || null,
           privacy: data.privacy || 'public',
           topics: data.topics || [],
@@ -1240,9 +1275,9 @@ export function useCreateCommunity() {
         });
 
       if (adminError) {
-        // Rollback: delete the orphaned community
+        // Rollback: delete the orphaned community to prevent orphaned records
         await supabase.from("communities").delete().eq("id", community.id);
-        throw adminError;
+        throw new Error("Failed to set up community admin. Please try again.");
       }
 
       // Add tags if provided
@@ -1742,6 +1777,28 @@ export function useCommunityModeration(communityId: string) {
   const removeMember = async (userId: string) => {
     setLoading(true);
     try {
+      // Check if the user being removed is an admin
+      const { data: memberData } = await supabase
+        .from("community_members")
+        .select("role")
+        .eq("community_id", communityId)
+        .eq("user_id", userId)
+        .single();
+
+      if (memberData?.role === 'admin') {
+        // Check if this is the last admin
+        const { count } = await supabase
+          .from("community_members")
+          .select("*", { count: "exact", head: true })
+          .eq("community_id", communityId)
+          .eq("role", "admin")
+          .eq("status", "active");
+
+        if (count !== null && count <= 1) {
+          return { success: false, error: "Cannot remove the last admin. Transfer admin role to another member first." };
+        }
+      }
+
       const { error } = await supabase
         .from("community_members")
         .delete()

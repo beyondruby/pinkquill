@@ -21,6 +21,8 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
 import type { PostBackground, PostStyling } from "@/lib/types";
+import { getTimeAgo, formatDate, formatTime } from "@/lib/utils/time";
+import { getBackgroundStyle, isDarkBackground, getLuminance, extractColorsFromGradient } from "@/lib/utils/background";
 
 interface TaggedUser {
   id: string;
@@ -103,103 +105,12 @@ interface CollaboratorRow {
   user: CollaboratorUser["user"] | CollaboratorUser["user"][] | null;
 }
 
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  return date.toLocaleDateString();
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  });
-}
-
-function formatTime(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
-}
-
 function formatWeather(weather: string): string {
   return weather.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
 
 function formatMood(mood: string): string {
   return mood.charAt(0).toUpperCase() + mood.slice(1);
-}
-
-function getBackgroundStyle(background?: PostBackground): React.CSSProperties {
-  if (!background) return {};
-
-  switch (background.type) {
-    case "solid":
-      return { backgroundColor: background.value };
-    case "gradient":
-      return { background: background.value };
-    case "pattern":
-      return {
-        background: background.value,
-        backgroundSize: background.value.includes("notebook")
-          ? "100% 24px"
-          : background.value.includes("dots") || background.value.includes("grid")
-          ? "20px 20px"
-          : "auto",
-      };
-    case "image":
-      return {
-        backgroundImage: `url(${background.imageUrl || background.value})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      };
-    default:
-      return {};
-  }
-}
-
-function getLuminance(hex: string): number {
-  const normalized = hex.replace("#", "");
-  if (normalized.length < 6) return 1;
-  const r = parseInt(normalized.substring(0, 2), 16);
-  const g = parseInt(normalized.substring(2, 4), 16);
-  const b = parseInt(normalized.substring(4, 6), 16);
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-}
-
-function extractColorsFromGradient(gradient: string): string[] {
-  const hexPattern = /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g;
-  return gradient.match(hexPattern) || [];
-}
-
-function isDarkBackground(background?: PostBackground): boolean {
-  if (!background) return false;
-
-  if (background.type === "solid") {
-    return getLuminance(background.value) < 0.5;
-  }
-
-  if (background.type === "image") return true;
-
-  if (background.type === "gradient" || background.type === "pattern") {
-    const colors = extractColorsFromGradient(background.value);
-    if (colors.length === 0) return false;
-    const average = colors.reduce((sum, color) => sum + getLuminance(color), 0) / colors.length;
-    return average < 0.5;
-  }
-
-  return false;
 }
 
 // Weather icons for journal display

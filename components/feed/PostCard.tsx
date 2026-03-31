@@ -21,6 +21,7 @@ import FlairBadge from "@/components/communities/FlairBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { PostStyling, JournalMetadata, PostBackground, SpotifyTrack, PostType } from "@/lib/types";
+import { getBackgroundPreviewStyle, isDarkBackground, getLuminance, extractColorsFromGradient } from "@/lib/utils/background";
 import { deleteOwnPost } from "@/lib/posts-client";
 import { actionToast } from "@/lib/utils/toast";
 import {
@@ -68,67 +69,6 @@ function formatDate(dateString: string): string {
   });
 }
 
-// Get background style for card preview
-function getBackgroundPreviewStyle(background?: PostBackground): React.CSSProperties {
-  if (!background) return {};
-  switch (background.type) {
-    case 'solid':
-      return { backgroundColor: background.value };
-    case 'gradient':
-      return { background: background.value };
-    case 'pattern':
-      return {
-        background: background.value,
-        backgroundSize: background.value.includes("notebook")
-          ? "100% 24px"
-          : background.value.includes("dots") || background.value.includes("grid")
-          ? "20px 20px"
-          : "auto",
-      };
-    case 'image':
-      return {
-        backgroundImage: `url(${background.imageUrl || background.value})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      };
-    default:
-      return {};
-  }
-}
-
-function getLuminance(hex: string): number {
-  const normalized = hex.replace("#", "");
-  if (normalized.length < 6) return 1;
-  const r = parseInt(normalized.substring(0, 2), 16);
-  const g = parseInt(normalized.substring(2, 4), 16);
-  const b = parseInt(normalized.substring(4, 6), 16);
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-}
-
-function extractColorsFromGradient(gradient: string): string[] {
-  const hexPattern = /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}/g;
-  return gradient.match(hexPattern) || [];
-}
-
-function isDarkBackground(background?: PostBackground): boolean {
-  if (!background) return false;
-
-  if (background.type === "solid") {
-    return getLuminance(background.value) < 0.5;
-  }
-
-  if (background.type === "image") return true;
-
-  if (background.type === "gradient" || background.type === "pattern") {
-    const colors = extractColorsFromGradient(background.value);
-    if (colors.length === 0) return false;
-    const average = colors.reduce((sum, color) => sum + getLuminance(color), 0) / colors.length;
-    return average < 0.5;
-  }
-
-  return false;
-}
-
 // Weather icons (simplified inline)
 const weatherIconsSmall: Record<string, string> = {
   'sunny': '☀️',
@@ -168,6 +108,7 @@ function PostCardComponent({
   onUnpin,
   isPinned,
   disableRealtimeSubscriptions = false,
+  readOnly = false,
 }: {
   post: PostProps;
   onPostDeleted?: (postId: string) => void;
@@ -178,6 +119,8 @@ function PostCardComponent({
   isPinned?: boolean;
   /** PERFORMANCE: Disable per-card real-time subscriptions when used in feed context */
   disableRealtimeSubscriptions?: boolean;
+  /** When true, disables commenting/interactions (e.g. muted community members) */
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const { openPostModal, subscribeToUpdates, notifyUpdate } = useModal();
@@ -303,41 +246,6 @@ function PostCardComponent({
     });
   }, [post, isAdmired, isSaved, isRelayed, admireCount, relayCount, openPostModal]);
 
-  const handleAdmire = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-
-    const newIsAdmired = !isAdmired;
-    const countChange = newIsAdmired ? 1 : -1;
-
-    // Optimistic update
-    setIsAdmired(newIsAdmired);
-    setAdmireCount((prev) => Math.max(0, prev + countChange));
-
-    notifyUpdate({
-      postId: post.id,
-      field: "admires",
-      isActive: newIsAdmired,
-      countChange,
-    });
-
-    try {
-      await toggleAdmire(post.id, user.id, isAdmired);
-
-      if (newIsAdmired) {
-        await createNotification(post.authorId, user.id, 'admire', post.id);
-      }
-    } catch {
-      // Revert on error
-      setIsAdmired(!newIsAdmired);
-      setAdmireCount((prev) => Math.max(0, prev - countChange));
-      actionToast.reactionError();
-    }
-  }, [user, openAuthModal, isAdmired, post.id, post.authorId, notifyUpdate, toggleAdmire]);
-
   // Handle reaction (new reaction system with real-time) - memoized
   const handleReaction = useCallback(async (reactionType: ReactionType) => {
     if (!user) {
@@ -417,6 +325,23 @@ function PostCardComponent({
       actionToast.reactionError();
     }
   }, [user, openAuthModal, userReaction, post.id, notifyUpdate, removeReaction, setUserReaction, disableRealtimeSubscriptions, refetchReactionCounts]);
+
+  // Unified admire handler: delegates to reaction system with 'admire' type
+  // This eliminates the dual-system conflict between legacy admires and reactions
+  const handleAdmire = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+
+    // If already reacted with 'admire', remove it; otherwise set 'admire' reaction
+    if (userReaction === 'admire') {
+      await handleRemoveReaction();
+    } else {
+      await handleReaction('admire' as ReactionType);
+    }
+  }, [user, openAuthModal, userReaction, handleRemoveReaction, handleReaction]);
 
   const handleSave = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -624,20 +549,22 @@ function PostCardComponent({
         <ReactionPicker
           currentReaction={userReaction}
           reactionCounts={reactionCounts}
-          onReact={handleReaction}
-          onRemoveReaction={handleRemoveReaction}
+          onReact={readOnly ? () => {} : handleReaction}
+          onRemoveReaction={readOnly ? () => {} : handleRemoveReaction}
+          disabled={readOnly}
         />
-        <button className="action-btn" aria-label={`${post.stats?.comments ?? 0} comments`}>
+        <button className="action-btn" aria-label={`${post.stats?.comments ?? 0} comments`} disabled={readOnly} style={readOnly ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>
           <CommentIcon />
           <span className="action-count">{post.stats?.comments ?? 0}</span>
         </button>
         {(!user || user.id !== post.authorId) && (
           <button
             className={`action-btn ${isRelayed ? 'active' : ''}`}
-            onClick={handleRelay}
-            style={isRelayed ? { color: '#22c55e' } : undefined}
+            onClick={readOnly ? undefined : handleRelay}
+            style={isRelayed ? { color: '#22c55e' } : readOnly ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
             aria-label={isRelayed ? `Remove relay, ${relayCount} relays` : `Relay post, ${relayCount} relays`}
             aria-pressed={isRelayed}
+            disabled={readOnly}
           >
             <RelayIcon />
             <span className="action-count">{relayCount}</span>
@@ -1116,8 +1043,8 @@ function PostCardComponent({
                 </div>
               )}
 
-              {/* 3. Images as squares */}
-              {hasMedia && (
+              {/* 3. Images as squares - hidden entirely when content warning is active */}
+              {hasMedia && showContent && (
                 <div className="unified-media-grid" onClick={(e) => e.stopPropagation()}>
                   {post.media!.slice(0, 4).map((item, idx) => (
                     <div
@@ -1159,8 +1086,8 @@ function PostCardComponent({
                 </div>
               )}
 
-              {/* Legacy single image support */}
-              {!hasMedia && post.image && (
+              {/* Legacy single image support - hidden when content warning is active */}
+              {!hasMedia && post.image && showContent && (
                 <div className="unified-media-grid single-legacy" onClick={(e) => e.stopPropagation()}>
                   <div className="unified-media-item single">
                     <Image
@@ -1396,7 +1323,8 @@ const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
     prevProps.isPinned === nextProps.isPinned &&
     !!prevProps.onPin === !!nextProps.onPin &&
     !!prevProps.onUnpin === !!nextProps.onUnpin &&
-    prevProps.disableRealtimeSubscriptions === nextProps.disableRealtimeSubscriptions
+    prevProps.disableRealtimeSubscriptions === nextProps.disableRealtimeSubscriptions &&
+    prevProps.readOnly === nextProps.readOnly
   );
 });
 

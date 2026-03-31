@@ -28,6 +28,9 @@ export { useComments } from "./useComments";
 // Profile & Follows
 export { useProfile, useFollow, useFollowList, useFollowRequests } from "./useProfile";
 
+// Collaboration (from legacy hooks)
+export { useCollaborationInvites } from "../hooks.legacy";
+
 // Notifications
 export {
   createNotification,
@@ -207,6 +210,10 @@ export {
 } from "./useMessaging";
 
 export { useShareToDM, fetchSharedPostPreview } from "./useShareToDM";
+
+// Auth Flow
+export { useAuthFlow } from "./useAuthFlow";
+export type { AuthStep, OtpFlow, AuthFlowState, AuthFlowActions } from "./useAuthFlow";
 
 // Re-export types
 export type {
