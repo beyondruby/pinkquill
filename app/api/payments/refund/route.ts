@@ -7,6 +7,15 @@ import { supabaseAdmin } from "@/lib/supabase-server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const REFUND_RESTORABLE_STATUSES = new Set([
+  "paid",
+  "completed",
+  "delivered",
+  "in_progress",
+  "submitted",
+  "shipped",
+]);
+
 /**
  * POST /api/payments/refund
  *
@@ -209,12 +218,26 @@ export async function POST(request: Request) {
 
     try {
       const now = new Date().toISOString();
+      const { data: refundRequestEvent } = await supabaseAdmin
+        .from("order_events")
+        .select("from_status")
+        .eq("order_id", order_id)
+        .eq("to_status", "refund_requested")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle<{ from_status: string | null }>();
 
-      // Restore order to paid status
+      const restoredStatus =
+        refundRequestEvent?.from_status &&
+        REFUND_RESTORABLE_STATUSES.has(refundRequestEvent.from_status)
+          ? refundRequestEvent.from_status
+          : "paid";
+
+      // Restore the last known status before the refund request.
       await supabaseAdmin
         .from("orders")
         .update({
-          status: "paid",
+          status: restoredStatus,
           updated_at: now,
         })
         .eq("id", order_id);
@@ -234,10 +257,11 @@ export async function POST(request: Request) {
         actor_id: user.id,
         event_type: "status_change",
         from_status: "refund_requested",
-        to_status: "paid",
+        to_status: restoredStatus,
         metadata: {
           action: "seller_declined_refund",
           reason: reason || null,
+          restored_status: restoredStatus,
         },
       });
 
@@ -249,7 +273,7 @@ export async function POST(request: Request) {
         message_type: "system",
       });
 
-      return NextResponse.json({ success: true, status: "paid" });
+      return NextResponse.json({ success: true, status: restoredStatus });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to decline refund";
       return NextResponse.json({ error: message }, { status: 500 });

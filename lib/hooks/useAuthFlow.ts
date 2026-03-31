@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { loginWithIdentifier } from "@/lib/auth-client";
 
@@ -400,42 +400,72 @@ export function useAuthFlow() {
 
   // ---- public API ----
 
-  const state: AuthFlowState = {
-    isLogin,
-    step,
-    emailOrUsername,
-    password,
-    username,
-    displayName,
-    otpCode,
-    pendingEmail,
-    resendCooldown,
-    loading,
-    error,
-    message,
-  };
+  const state: AuthFlowState = useMemo(
+    () => ({
+      isLogin,
+      step,
+      emailOrUsername,
+      password,
+      username,
+      displayName,
+      otpCode,
+      pendingEmail,
+      resendCooldown,
+      loading,
+      error,
+      message,
+    }),
+    [
+      isLogin,
+      step,
+      emailOrUsername,
+      password,
+      username,
+      displayName,
+      otpCode,
+      pendingEmail,
+      resendCooldown,
+      loading,
+      error,
+      message,
+    ]
+  );
 
-  const actions: AuthFlowActions = {
-    setIsLogin,
-    setStep,
-    setEmailOrUsername,
-    setPassword,
-    setUsername,
-    setDisplayName,
-    setOtpCode,
-    setError,
-    setMessage,
-    handleCredentialsSubmit,
-    handleOtpSubmit,
-    handleResendCode,
-    handleBackToCredentials,
-    toggleMode,
-    resetForm,
-    handleOtpChange,
-    handleOtpKeyDown,
-    handleOtpPaste,
-    tickResendCooldown,
-  };
+  const actions: AuthFlowActions = useMemo(
+    () => ({
+      setIsLogin,
+      setStep,
+      setEmailOrUsername,
+      setPassword,
+      setUsername,
+      setDisplayName,
+      setOtpCode,
+      setError,
+      setMessage,
+      handleCredentialsSubmit,
+      handleOtpSubmit,
+      handleResendCode,
+      handleBackToCredentials,
+      toggleMode,
+      resetForm,
+      handleOtpChange,
+      handleOtpKeyDown,
+      handleOtpPaste,
+      tickResendCooldown,
+    }),
+    [
+      handleCredentialsSubmit,
+      handleOtpSubmit,
+      handleResendCode,
+      handleBackToCredentials,
+      toggleMode,
+      resetForm,
+      handleOtpChange,
+      handleOtpKeyDown,
+      handleOtpPaste,
+      tickResendCooldown,
+    ]
+  );
 
   return { state, actions };
 }

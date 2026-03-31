@@ -37,7 +37,12 @@ async function requestDelete<T extends DeleteResponseBase>(
   url: string,
   body: Record<string, string>
 ): Promise<T> {
-  const response = await fetch(url, {
+  const resolvedUrl =
+    typeof window !== "undefined" && window.location?.origin
+      ? new URL(url, window.location.origin).toString()
+      : url;
+
+  const response = await fetch(resolvedUrl, {
     method: "POST",
     headers: await buildAuthenticatedHeaders({
       "Content-Type": "application/json",

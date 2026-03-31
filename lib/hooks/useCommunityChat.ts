@@ -248,7 +248,7 @@ export function useCommunityChatOverview(userId?: string): UseCommunityChatOverv
         if (mountedRef.current) {
           fetchOverview();
         }
-      }, 500);
+      }, 1000);
     };
 
     const channel = supabase
@@ -256,7 +256,7 @@ export function useCommunityChatOverview(userId?: string): UseCommunityChatOverv
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "community_chat_messages",
         },
@@ -378,7 +378,7 @@ export function useCommunityChatUnreadCount(userId?: string): UseCommunityChatUn
         if (mountedRef.current) {
           fetchUnreadCount();
         }
-      }, 500);
+      }, 1000);
     };
 
     const channel = supabase
@@ -386,7 +386,7 @@ export function useCommunityChatUnreadCount(userId?: string): UseCommunityChatUn
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "community_chat_messages",
         },

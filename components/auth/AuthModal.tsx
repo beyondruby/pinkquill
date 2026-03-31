@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { useAuthFlow } from "@/lib/hooks/useAuthFlow";
@@ -30,16 +30,22 @@ export default function AuthModal() {
   const modalRef = useRef<HTMLDivElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  const handleClose = useCallback(() => {
+    actions.resetForm();
+    setShowPassword(false);
+    closeModal();
+  }, [actions, closeModal]);
+
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
-        closeModal();
+        handleClose();
       }
     };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, closeModal]);
+  }, [isOpen, handleClose]);
 
   // Lock body scroll when open
   useEffect(() => {
@@ -52,14 +58,6 @@ export default function AuthModal() {
       document.body.style.overflow = "";
     };
   }, [isOpen]);
-
-  // Reset form when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      actions.resetForm();
-      setShowPassword(false);
-    }
-  }, [isOpen, actions]);
 
   // Resend cooldown timer
   useEffect(() => {
@@ -79,7 +77,7 @@ export default function AuthModal() {
   const onCredentialsSubmit = async (e: React.FormEvent) => {
     const result = await actions.handleCredentialsSubmit(e);
     if (result === "redirect") {
-      closeModal();
+      handleClose();
       window.location.reload();
     }
   };
@@ -87,7 +85,7 @@ export default function AuthModal() {
   const onOtpSubmit = async (code?: string) => {
     const result = await actions.handleOtpSubmit(code);
     if (result === "redirect") {
-      closeModal();
+      handleClose();
       window.location.reload();
     }
   };
@@ -99,7 +97,7 @@ export default function AuthModal() {
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-md"
-        onClick={closeModal}
+        onClick={handleClose}
       />
 
       {/* Modal */}
@@ -109,7 +107,7 @@ export default function AuthModal() {
       >
         {/* Close button */}
         <button
-          onClick={closeModal}
+          onClick={handleClose}
           className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/5 flex items-center justify-center text-muted hover:text-ink hover:bg-black/10 transition-all z-10"
         >
           <FontAwesomeIcon icon={faXmark} className="w-4 h-4" />
@@ -159,8 +157,9 @@ export default function AuthModal() {
               {!isLogin && (
                 <div className="grid grid-cols-2 gap-3 animate-fadeIn">
                   <div>
-                    <label className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Username</label>
+                    <label htmlFor="auth-modal-username" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Username</label>
                     <input
+                      id="auth-modal-username"
                       type="text"
                       value={username}
                       onChange={(e) => actions.setUsername(e.target.value)}
@@ -170,8 +169,9 @@ export default function AuthModal() {
                     />
                   </div>
                   <div>
-                    <label className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Display Name</label>
+                    <label htmlFor="auth-modal-display-name" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Display Name</label>
                     <input
+                      id="auth-modal-display-name"
                       type="text"
                       value={displayName}
                       onChange={(e) => actions.setDisplayName(e.target.value)}
@@ -184,10 +184,11 @@ export default function AuthModal() {
               )}
 
               <div>
-                <label className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">
+                <label htmlFor="auth-modal-identifier" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">
                   {isLogin ? "Email or Username" : "Email"}
                 </label>
                 <input
+                  id="auth-modal-identifier"
                   type={isLogin ? "text" : "email"}
                   value={emailOrUsername}
                   onChange={(e) => actions.setEmailOrUsername(e.target.value)}
@@ -198,9 +199,10 @@ export default function AuthModal() {
               </div>
 
               <div>
-                <label className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Password</label>
+                <label htmlFor="auth-modal-password" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Password</label>
                 <div className="relative">
                   <input
+                    id="auth-modal-password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => actions.setPassword(e.target.value)}
@@ -265,7 +267,7 @@ export default function AuthModal() {
               <div className="text-center">
                 <Link
                   href="/login"
-                  onClick={closeModal}
+                  onClick={handleClose}
                   className="font-ui text-xs text-muted/60 hover:text-purple-primary transition-colors"
                 >
                   Go to full login page

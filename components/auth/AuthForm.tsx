@@ -137,8 +137,9 @@ export default function AuthForm() {
                   {!isLogin && (
                     <div className="grid grid-cols-2 gap-4 animate-fadeIn">
                       <div className="space-y-1">
-                        <label className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Username</label>
+                        <label htmlFor="auth-form-username" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Username</label>
                         <input
+                          id="auth-form-username"
                           type="text"
                           value={username}
                           onChange={(e) => actions.setUsername(e.target.value)}
@@ -148,8 +149,9 @@ export default function AuthForm() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Display Name</label>
+                        <label htmlFor="auth-form-display-name" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Display Name</label>
                         <input
+                          id="auth-form-display-name"
                           type="text"
                           value={displayName}
                           onChange={(e) => actions.setDisplayName(e.target.value)}
@@ -162,10 +164,11 @@ export default function AuthForm() {
                   )}
 
                   <div className="space-y-1">
-                    <label className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">
+                    <label htmlFor="auth-form-identifier" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">
                       {isLogin ? "Email or Username" : "Email"}
                     </label>
                     <input
+                      id="auth-form-identifier"
                       type={isLogin ? "text" : "email"}
                       value={emailOrUsername}
                       onChange={(e) => actions.setEmailOrUsername(e.target.value)}
@@ -176,9 +179,10 @@ export default function AuthForm() {
                   </div>
 
                   <div className="relative space-y-1">
-                    <label className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Password</label>
+                    <label htmlFor="auth-form-password" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Password</label>
                     <div className="relative">
                       <input
+                        id="auth-form-password"
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => actions.setPassword(e.target.value)}

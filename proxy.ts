@@ -1,10 +1,41 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export function proxy() {
-  // Simply pass through - the main purpose of this proxy
-  // is to use the matcher config below to exclude static files
-  // from any processing. Auth is handled client-side.
-  return NextResponse.next();
+const PROTECTED_PREFIXES = [
+  "/create",
+  "/messages",
+  "/saved",
+  "/settings",
+  "/orders",
+  "/queue",
+  "/cart",
+  "/pending-collaborations",
+  "/seller",
+  "/insights",
+];
+
+function isProtectedPath(pathname: string): boolean {
+  if (pathname === "/") return true;
+
+  return PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+function hasSupabaseAuthCookie(request: NextRequest): boolean {
+  return request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.includes("auth-token") && cookie.value.length > 0);
+}
+
+export function proxy(request: NextRequest) {
+  if (!isProtectedPath(request.nextUrl.pathname) || hasSupabaseAuthCookie(request)) {
+    return NextResponse.next();
+  }
+
+  const loginUrl = new URL("/login", request.url);
+  const redirectTarget = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  loginUrl.searchParams.set("redirect", redirectTarget);
+  return NextResponse.redirect(loginUrl);
 }
 
 export const config = {

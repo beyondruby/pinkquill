@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunityChatUnreadCount } from "@/lib/hooks";
+import { useCommunityChatOverview } from "@/lib/hooks";
 import { buildPostgrestInFilter } from "@/lib/utils/postgrest";
 import ConversationList from "./ConversationList";
 import ChatView from "./ChatView";
@@ -63,7 +63,7 @@ export default function MessagesView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { count: communityUnreadCount } = useCommunityChatUnreadCount(user?.id);
+  const { totalUnreadCount: communityUnreadCount } = useCommunityChatOverview(user?.id);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
