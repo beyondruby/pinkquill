@@ -154,14 +154,13 @@ export default function CommunityInboxView() {
     threads,
     loading: threadsLoading,
     error: threadsError,
-    refetch: _refetchThreads,
+    refetch: refetchThreads,
   } = useCommunityChatThreads(
     selectedCommunityId || "",
     user?.id,
     isStaff,
-    { includeStaffThreads: !isStaff }
+    { includeStaffThreads: true }
   );
-  void _refetchThreads;
 
   const {
     results: memberSearchResults,
@@ -620,54 +619,64 @@ export default function CommunityInboxView() {
                 />
               </div>
               <div className="flex-1 overflow-y-auto">
-                {staffRecentThreads.length > 0 && (
-                  <div className="border-b border-black/[0.06]">
+                {/* Active member threads — sorted by most recent message */}
+                {threads.length > 0 && !memberSearchQuery.trim() && (
+                  <div>
                     <p className="px-4 py-2 font-ui text-[11px] uppercase tracking-wide text-muted">
-                      Recent Threads
+                      Member Threads
                     </p>
-                    {staffRecentThreads.map((thread) => {
-                      const isSelected =
-                        selectedThreadId !== COMMUNITY_THREAD_ID &&
-                        selectedStaffTarget?.memberId === thread.memberId;
+                    {threads
+                      .filter((t) => t.last_message_at)
+                      .map((thread) => {
+                        const profile = thread.member_profile;
+                        const isSelected =
+                          selectedThreadId !== COMMUNITY_THREAD_ID &&
+                          selectedStaffTarget?.memberId === thread.member_id;
 
-                      return (
-                        <button
-                          key={`recent-${thread.memberId}`}
-                          onClick={() => {
-                            setSelectedThreadIdState(thread.threadId);
-                            setSelectedStaffTarget(thread);
-                            setSendAsAppeal(false);
-                          }}
-                          className={`w-full text-left px-4 py-3 border-t border-black/[0.04] transition-colors ${
-                            isSelected ? "bg-purple-primary/8" : "hover:bg-black/[0.02]"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={thread.avatarUrl || DEFAULT_AVATAR}
-                              alt={thread.username}
-                              className="w-9 h-9 rounded-full object-cover"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="font-ui text-sm text-ink truncate">
-                                {thread.displayName || thread.username}
-                              </p>
-                              <p className="font-ui text-xs text-muted truncate">@{thread.username}</p>
+                        return (
+                          <button
+                            key={`thread-${thread.id}`}
+                            onClick={() => {
+                              setSelectedThreadIdState(thread.id);
+                              setSelectedStaffTarget({
+                                threadId: thread.id,
+                                memberId: thread.member_id,
+                                status: "active",
+                                username: profile?.username || "unknown",
+                                displayName: profile?.display_name || null,
+                                avatarUrl: profile?.avatar_url || null,
+                              });
+                              setSendAsAppeal(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 border-t border-black/[0.04] transition-colors ${
+                              isSelected ? "bg-purple-primary/8" : "hover:bg-black/[0.02]"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="relative">
+                                <img
+                                  src={profile?.avatar_url || DEFAULT_AVATAR}
+                                  alt={profile?.username || ""}
+                                  className="w-9 h-9 rounded-full object-cover"
+                                />
+                                {thread.has_unread && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className={`font-ui text-sm truncate ${thread.has_unread ? "text-ink font-semibold" : "text-ink"}`}>
+                                  {profile?.display_name || profile?.username || "Member"}
+                                </p>
+                                <p className="font-ui text-xs text-muted truncate">@{profile?.username || "unknown"}</p>
+                              </div>
                             </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                          </button>
+                        );
+                      })}
                   </div>
                 )}
 
-                {memberSearchQuery.trim().length < 2 ? (
-                  <div className="p-4">
-                    <p className="font-ui text-sm text-muted">
-                      Search a member to start a new direct thread.
-                    </p>
-                  </div>
-                ) : memberSearchLoading ? (
+                {memberSearchQuery.trim().length >= 2 && memberSearchLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="w-6 h-6 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin" />
                   </div>

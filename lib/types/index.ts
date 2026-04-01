@@ -483,6 +483,7 @@ export interface CommunityChatThread {
   updated_at: string;
   last_message_at: string | null;
   closed_at: string | null;
+  has_unread?: boolean;
   member_profile?: {
     id: string;
     username: string;

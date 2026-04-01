@@ -688,16 +688,39 @@ export function useCommunityChatThreads(
             )
           `)
           .eq("community_id", communityId)
-          .order("updated_at", { ascending: false });
+          .order("last_message_at", { ascending: false, nullsFirst: false });
 
         if (!mountedRef.current) return;
         if (fetchError) throw fetchError;
 
+        // Fetch read states to determine unread threads
+        const threadIds = (data || []).map((row: { id: string }) => row.id);
+        let readMap = new Map<string, string>();
+        if (threadIds.length > 0) {
+          const { data: readData } = await supabase
+            .from("community_chat_thread_reads")
+            .select("thread_id, last_read_at")
+            .eq("user_id", userId)
+            .in("thread_id", threadIds);
+
+          if (readData) {
+            readMap = new Map(readData.map((r: { thread_id: string; last_read_at: string }) => [r.thread_id, r.last_read_at]));
+          }
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped = (data || []).map((row: any) => ({
-          ...row,
-          member_profile: Array.isArray(row.member_profile) ? row.member_profile[0] : row.member_profile,
-        })) as CommunityChatThread[];
+        const mapped = (data || []).map((row: any) => {
+          const lastReadAt = readMap.get(row.id);
+          const hasUnread = row.last_message_at
+            ? !lastReadAt || new Date(row.last_message_at) > new Date(lastReadAt)
+            : false;
+
+          return {
+            ...row,
+            member_profile: Array.isArray(row.member_profile) ? row.member_profile[0] : row.member_profile,
+            has_unread: hasUnread,
+          };
+        }) as CommunityChatThread[];
 
         setThreads(mapped);
         return;
@@ -754,6 +777,31 @@ export function useCommunityChatThreads(
       mountedRef.current = false;
     };
   }, [fetchThreads]);
+
+  // Real-time: refresh thread list when new messages arrive (for staff)
+  useEffect(() => {
+    if (!communityId || !userId || !isStaff || !includeStaffThreads) return;
+
+    const channel = supabase
+      .channel(`community-threads-${communityId}-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "community_chat_threads",
+          filter: `community_id=eq.${communityId}`,
+        },
+        () => {
+          if (mountedRef.current) fetchThreads();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [communityId, userId, isStaff, includeStaffThreads, fetchThreads]);
 
   return { threads, loading, error, refetch: fetchThreads };
 }
