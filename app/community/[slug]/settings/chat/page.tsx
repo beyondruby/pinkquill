@@ -107,7 +107,7 @@ export default function CommunityChatSettingsPage() {
             className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
               communityChatEnabled
                 ? "bg-emerald-50 border-emerald-200"
-                : "bg-gray-50 border-black/10"
+                : "bg-black/[0.02] border-black/10"
             } ${!canManageToggles ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <div>
@@ -131,8 +131,8 @@ export default function CommunityChatSettingsPage() {
             }
             className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
               allowMemberMessages
-                ? "bg-blue-50 border-blue-200"
-                : "bg-gray-50 border-black/10"
+                ? "bg-purple-primary/[0.04] border-purple-primary/15"
+                : "bg-black/[0.02] border-black/10"
             } ${!canManageToggles ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <div>
@@ -159,7 +159,7 @@ export default function CommunityChatSettingsPage() {
             className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
               allowModmail
                 ? "bg-purple-50 border-purple-200"
-                : "bg-gray-50 border-black/10"
+                : "bg-black/[0.02] border-black/10"
             } ${!canManageToggles ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <div>

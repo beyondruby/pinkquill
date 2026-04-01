@@ -38,7 +38,7 @@ export default function FlairBadge({
   };
 
   const textColorClass = isLightColor(flair.color)
-    ? "text-gray-900"
+    ? "text-ink"
     : "text-white";
 
   const handleClick = (e: React.MouseEvent) => {

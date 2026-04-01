@@ -30,11 +30,11 @@ function getStatusStyles(status: string): string {
     case "pending":
       return "bg-amber-100 text-amber-700";
     case "reviewed":
-      return "bg-blue-100 text-blue-700";
+      return "bg-purple-primary/10 text-purple-primary";
     case "resolved":
-      return "bg-green-100 text-green-700";
+      return "bg-emerald-100 text-emerald-700";
     default:
-      return "bg-gray-100 text-gray-700";
+      return "bg-black/[0.04] text-ink/70";
   }
 }
 
@@ -114,7 +114,7 @@ export default function ReportCard({
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusStyles(report.status)}`}>
                   {report.status}
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
+                <span className="px-2 py-0.5 rounded-full bg-black/[0.04] text-ink/60 text-xs">
                   {report.type}
                 </span>
               </div>
@@ -156,7 +156,7 @@ export default function ReportCard({
 
         {/* Reported content preview */}
         {report.reported_post && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+          <div className="mt-4 p-3 bg-black/[0.02] rounded-lg">
             <span className="text-xs text-muted uppercase tracking-wide">Reported Content</span>
             <div className="mt-2">
               {report.reported_post.title && (
@@ -181,14 +181,14 @@ export default function ReportCard({
 
         {/* Resolution info if resolved */}
         {report.status === "resolved" && report.resolver && (
-          <div className="mt-4 p-3 bg-green-50 rounded-lg">
-            <span className="text-xs text-green-700 uppercase tracking-wide">Resolved</span>
-            <p className="text-sm text-green-800 mt-1">
+          <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
+            <span className="text-xs text-emerald-700 uppercase tracking-wide">Resolved</span>
+            <p className="text-sm text-emerald-800 mt-1">
               {report.resolution_action?.replace(/_/g, " ")} by {report.resolver.display_name || report.resolver.username}
               {report.resolved_at && ` • ${formatTimeAgo(report.resolved_at)}`}
             </p>
             {report.resolution_notes && (
-              <p className="text-sm text-green-700 mt-1 italic">{report.resolution_notes}</p>
+              <p className="text-sm text-emerald-700 mt-1 italic">{report.resolution_notes}</p>
             )}
           </div>
         )}
@@ -208,7 +208,7 @@ export default function ReportCard({
               <button
                 onClick={() => onDismiss()}
                 disabled={resolving}
-                className="px-4 py-2 text-muted hover:text-ink border border-gray-200 rounded-lg hover:border-gray-300 transition-colors font-ui text-sm"
+                className="px-4 py-2 text-muted hover:text-ink border border-black/[0.08] rounded-lg hover:border-black/[0.12] transition-colors font-ui text-sm"
               >
                 Dismiss
               </button>
@@ -236,8 +236,8 @@ export default function ReportCard({
                             ? "bg-red-500 text-white"
                             : action.color === "amber"
                               ? "bg-amber-500 text-white"
-                              : "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              : "bg-purple-primary text-white"
+                          : "bg-black/[0.04] text-ink/70 hover:bg-black/[0.06]"
                       }`}
                     >
                       {action.label}
@@ -255,7 +255,7 @@ export default function ReportCard({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add any notes about this action..."
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-purple-primary focus:outline-none resize-none"
+                  className="w-full px-3 py-2 border border-black/[0.08] rounded-lg text-sm focus:border-purple-primary focus:outline-none resize-none"
                   rows={2}
                 />
               </div>

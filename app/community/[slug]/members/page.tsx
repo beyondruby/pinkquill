@@ -414,7 +414,7 @@ export default function CommunityMembersPage() {
             className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
               moderationTab === 'members'
                 ? 'text-purple-primary border-purple-primary'
-                : 'text-muted border-transparent hover:text-ink hover:border-gray-300'
+                : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
             }`}
           >
             Members ({members.length})
@@ -424,7 +424,7 @@ export default function CommunityMembersPage() {
             className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
               moderationTab === 'muted'
                 ? 'text-yellow-600 border-yellow-500'
-                : 'text-muted border-transparent hover:text-ink hover:border-gray-300'
+                : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
             }`}
           >
             Muted ({mutedMembers.length})
@@ -434,7 +434,7 @@ export default function CommunityMembersPage() {
             className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
               moderationTab === 'banned'
                 ? 'text-red-600 border-red-500'
-                : 'text-muted border-transparent hover:text-ink hover:border-gray-300'
+                : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
             }`}
           >
             Banned ({bannedMembers.length})
@@ -511,7 +511,7 @@ export default function CommunityMembersPage() {
                         <span className={`px-2 py-0.5 rounded text-[0.65rem] font-ui font-semibold uppercase ${
                           member.role === 'admin'
                             ? 'bg-orange-100 text-orange-600'
-                            : 'bg-blue-100 text-blue-600'
+                            : 'bg-purple-primary/10 text-purple-primary'
                         }`}>
                           {member.role}
                         </span>
@@ -562,7 +562,7 @@ export default function CommunityMembersPage() {
                             disabled={actionLoading}
                             className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
                           >
-                            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                             </svg>
                             Make Moderator
@@ -590,7 +590,7 @@ export default function CommunityMembersPage() {
                               disabled={actionLoading}
                               className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
                             >
-                              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                               </svg>
                               Remove Mod Role

@@ -154,7 +154,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="bg-gray-50 rounded-lg p-4 space-y-4"
+          className="bg-black/[0.02] rounded-lg p-4 space-y-4"
         >
           <div className="flex items-start gap-4">
             {/* Emoji Input */}
@@ -169,7 +169,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
                   setFormData({ ...formData, emoji: e.target.value.slice(0, 2) })
                 }
                 placeholder="Optional"
-                className="w-16 px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-primary focus:outline-none text-center"
+                className="w-16 px-3 py-2 rounded-lg border border-black/[0.08] focus:border-purple-primary focus:outline-none text-center"
                 maxLength={2}
               />
             </div>
@@ -186,7 +186,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder="e.g., Discussion, Question, Announcement"
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-primary focus:outline-none"
+                className="w-full px-3 py-2 rounded-lg border border-black/[0.08] focus:border-purple-primary focus:outline-none"
                 maxLength={30}
                 required
               />
@@ -275,7 +275,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
           {flairs.map((flair, index) => (
             <div
               key={flair.id}
-              className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200"
+              className="flex items-center gap-3 p-3 bg-white rounded-lg border border-black/[0.08]"
             >
               {/* Reorder buttons */}
               <div className="flex flex-col gap-0.5">
@@ -391,7 +391,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
         !showForm && (
           <div className="text-center py-8 text-muted">
             <svg
-              className="w-12 h-12 mx-auto mb-3 text-gray-300"
+              className="w-12 h-12 mx-auto mb-3 text-muted/40"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

@@ -250,7 +250,7 @@ export default function InviteModal({
 
                     {/* Invite Button */}
                     {invitedUsers.has(user.id) ? (
-                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-600 font-ui text-xs font-medium">
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-600 font-ui text-xs font-medium">
                         <svg
                           className="w-3.5 h-3.5"
                           fill="none"

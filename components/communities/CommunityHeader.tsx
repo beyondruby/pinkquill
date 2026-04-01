@@ -136,7 +136,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
                   className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-ink/5 hover:text-ink transition-all min-w-[72px]"
                 >
                   {copied ? (
-                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
@@ -219,7 +219,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
                   ? 'bg-orange-warm'
                   : community.user_role === 'moderator'
                   ? 'bg-white'
-                  : 'bg-green-400'
+                  : 'bg-emerald-400'
               }`} />
               <span className="font-ui text-xs font-semibold text-white capitalize">
                 {community.user_role || 'Member'}

@@ -71,8 +71,8 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
 
         <div className="bg-white rounded-xl border border-black/[0.06] p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+              <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -99,7 +99,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
               className={`px-3 py-1.5 rounded-md font-ui text-sm transition-colors ${
                 statusFilter === option.value
                   ? "bg-purple-primary text-white"
-                  : "text-muted hover:text-ink hover:bg-gray-50"
+                  : "text-muted hover:text-ink hover:bg-black/[0.02]"
               }`}
             >
               {option.label}
@@ -120,7 +120,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
               className={`px-3 py-1.5 rounded-md font-ui text-sm transition-colors ${
                 typeFilter === option.value
                   ? "bg-purple-primary text-white"
-                  : "text-muted hover:text-ink hover:bg-gray-50"
+                  : "text-muted hover:text-ink hover:bg-black/[0.02]"
               }`}
             >
               {option.label}
@@ -130,7 +130,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
 
         <button
           onClick={() => refetch()}
-          className="ml-auto p-2 text-muted hover:text-purple-primary hover:bg-purple-50 rounded-lg transition-colors"
+          className="ml-auto p-2 text-muted hover:text-purple-primary hover:bg-purple-primary/[0.04] rounded-lg transition-colors"
           title="Refresh"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,7 +149,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
       ) : reports.length === 0 ? (
         <div className="text-center py-12">
           <svg
-            className="w-16 h-16 mx-auto text-gray-300 mb-4"
+            className="w-16 h-16 mx-auto text-muted/40 mb-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

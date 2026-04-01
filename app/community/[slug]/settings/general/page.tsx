@@ -237,7 +237,7 @@ export default function CommunityGeneralSettingsPage() {
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
                   </svg>
                   <span className="font-ui font-semibold text-ink">Public</span>
@@ -272,7 +272,7 @@ export default function CommunityGeneralSettingsPage() {
         )}
 
         {success && (
-          <div className="p-4 rounded-xl bg-green-50 border border-green-200 text-green-600 font-ui text-sm flex items-center gap-2">
+          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 font-ui text-sm flex items-center gap-2">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>

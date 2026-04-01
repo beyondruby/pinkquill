@@ -130,14 +130,14 @@ export default function CommunityAboutPage() {
               {typeTags.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     <h3 className="font-ui text-sm font-semibold text-ink">Community Type</h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {typeTags.map((tag) => (
-                      <span key={tag.id} className="px-3 py-1.5 rounded-full text-sm font-ui font-medium bg-blue-100 text-blue-700">
+                      <span key={tag.id} className="px-3 py-1.5 rounded-full text-sm font-ui font-medium bg-purple-primary/10 text-purple-primary">
                         {tag.tag}
                       </span>
                     ))}
@@ -149,14 +149,14 @@ export default function CommunityAboutPage() {
               {customTags.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
                     <h3 className="font-ui text-sm font-semibold text-ink">Other Tags</h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {customTags.map((tag) => (
-                      <span key={tag.id} className="px-3 py-1.5 rounded-full text-sm font-ui font-medium bg-gray-100 text-gray-700">
+                      <span key={tag.id} className="px-3 py-1.5 rounded-full text-sm font-ui font-medium bg-black/[0.04] text-ink/70">
                         {tag.tag}
                       </span>
                     ))}
@@ -196,7 +196,7 @@ export default function CommunityAboutPage() {
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
                     </svg>
                     Public
@@ -280,7 +280,7 @@ export default function CommunityAboutPage() {
                   className="flex items-center gap-3 group"
                 >
                   <div className="relative">
-                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {mod.profile?.avatar_url ? (
                         <Image
                           src={mod.profile.avatar_url}
@@ -296,7 +296,7 @@ export default function CommunityAboutPage() {
                       )}
                     </div>
                     {/* Mod shield badge */}
-                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-purple-primary flex items-center justify-center">
                       <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
@@ -307,7 +307,7 @@ export default function CommunityAboutPage() {
                       <p className="font-ui font-medium text-ink group-hover:text-purple-primary transition-colors">
                         {mod.profile?.display_name || mod.profile?.username}
                       </p>
-                      <span className="px-1.5 py-0.5 rounded text-[0.6rem] font-ui font-bold uppercase bg-blue-500/20 text-blue-600">
+                      <span className="px-1.5 py-0.5 rounded text-[0.6rem] font-ui font-bold uppercase bg-purple-primary/20 text-purple-primary">
                         Mod
                       </span>
                     </div>

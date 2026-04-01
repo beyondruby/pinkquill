@@ -377,8 +377,8 @@ export default function CommunityFeedPage() {
                 className="flex items-center gap-2 mb-4 pb-4 border-b border-ink/5 group"
               >
                 <div className="relative">
-                  <div className="w-2 h-2 rounded-full bg-green-400" />
-                  <div className="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-40" />
+                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-40" />
                 </div>
                 <span className="font-ui text-sm text-ink/70 group-hover:text-purple-primary transition-colors">
                   {community.member_count || 0} members
@@ -397,7 +397,7 @@ export default function CommunityFeedPage() {
                           : tag.tag_type === 'theme'
                           ? 'bg-pink-vivid/10 text-pink-vivid'
                           : tag.tag_type === 'type'
-                          ? 'bg-blue-500/10 text-blue-600'
+                          ? 'bg-orange-warm/10 text-orange-warm'
                           : 'bg-ink/5 text-ink/60'
                       }`}
                     >

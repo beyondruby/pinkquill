@@ -99,7 +99,7 @@ export default function CommunityModerationSettingsPage() {
           className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'mod-log'
               ? 'text-purple-primary border-purple-primary'
-              : 'text-muted border-transparent hover:text-ink hover:border-gray-300'
+              : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
           }`}
         >
           Mod Log
@@ -109,7 +109,7 @@ export default function CommunityModerationSettingsPage() {
           className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'muted'
               ? 'text-yellow-600 border-yellow-500'
-              : 'text-muted border-transparent hover:text-ink hover:border-gray-300'
+              : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
           }`}
         >
           Muted ({mutedMembers.length})
@@ -119,7 +119,7 @@ export default function CommunityModerationSettingsPage() {
           className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'banned'
               ? 'text-red-600 border-red-500'
-              : 'text-muted border-transparent hover:text-ink hover:border-gray-300'
+              : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
           }`}
         >
           Banned ({bannedMembers.length})
