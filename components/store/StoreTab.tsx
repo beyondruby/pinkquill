@@ -147,31 +147,28 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      {/* Header with filters only (no add button) */}
       {showFilters && (
-        <div className="flex items-center justify-start mb-8">
-          <div className="flex items-center gap-1 p-1.5 bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl">
-            {[
-              { id: "all", label: "All", count: products.length },
-              { id: "active", label: "Active", count: products.filter((p) => p.status === "active").length },
-              { id: "inactive", label: "Inactive", count: inactiveCount },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setFilter(tab.id as typeof filter)}
-                className={`px-5 py-2.5 rounded-xl font-ui text-sm transition-all duration-200 ${
-                  filter === tab.id
-                    ? "bg-white text-pink-vivid shadow-sm font-medium"
-                    : "text-muted hover:text-ink"
-                }`}
-              >
-                {tab.label}
-                <span className={`ml-1.5 ${filter === tab.id ? "text-orange-warm" : "text-muted/60"}`}>
-                  {tab.count}
-                </span>
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center gap-1.5 mb-8 overflow-x-auto scrollbar-hide">
+          {[
+            { id: "all", label: "All", count: products.length },
+            { id: "active", label: "Active", count: products.filter((p) => p.status === "active").length },
+            { id: "inactive", label: "Inactive", count: inactiveCount },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFilter(tab.id as typeof filter)}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
+                filter === tab.id
+                  ? "bg-pink-vivid/10 text-pink-vivid"
+                  : "text-muted hover:text-ink hover:bg-black/[0.03]"
+              }`}
+            >
+              {tab.label}
+              <span className={`ml-1 tabular-nums ${filter === tab.id ? "text-pink-vivid/60" : "text-muted/50"}`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
       )}
 

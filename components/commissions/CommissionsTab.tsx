@@ -214,75 +214,99 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <section className="relative mb-8 rounded-2xl border border-black/[0.06] bg-white shadow-sm p-6 sm:p-8">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-muted">Commissions Studio</p>
-              {sellerProfile?.store_tagline && (
-                <h2 className="font-display text-xl text-ink mt-1">{sellerProfile.store_tagline}</h2>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <QuillIcon className="h-5 w-5" gradient={Boolean(sellerStats?.total_reviews)} />
-              <span className="font-display text-xl font-semibold text-ink">{sellerStats?.total_reviews ? sellerStats.avg_quill_score.toFixed(1) : "--"}</span>
-              <span className="text-muted text-xs font-body">({sellerStats?.total_reviews ?? 0})</span>
-            </div>
-          </div>
+      <section className="relative mb-8 rounded-2xl overflow-hidden">
+        {/* Glass background with subtle brand gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.04] via-white to-pink-vivid/[0.04]" />
+        <div className="absolute inset-0 border border-black/[0.06] rounded-2xl pointer-events-none" />
+        {/* Soft decorative glow */}
+        <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-pink-vivid/[0.06] blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-purple-primary/[0.05] blur-3xl pointer-events-none" />
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] font-body text-muted">
-            <span>{stats.active} active service{stats.active !== 1 ? "s" : ""}</span>
-            <span className="text-black/10">&middot;</span>
-            <span>{sellerStats?.completed_orders ?? 0} completed</span>
-            <span className="text-black/10">&middot;</span>
-            <span>{formatResponseTime(responseTimeHours)} avg response</span>
-          </div>
-
-          {((sellerProfile?.skills?.length ?? 0) > 0 || (sellerProfile?.services?.length ?? 0) > 0) && (
-            <div className="flex flex-col sm:flex-row gap-4 pt-3 border-t border-black/[0.05]">
-              {(sellerProfile?.skills?.length ?? 0) > 0 && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-ui uppercase tracking-[0.15em] text-muted mb-2">Skills</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {sellerProfile!.skills.slice(0, 6).map((skill) => (
-                      <span key={skill} className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-ui font-medium text-ink bg-black/[0.04]">
-                        {skill}
-                      </span>
-                    ))}
-                    {sellerProfile!.skills.length > 6 && (
-                      <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.skills.length - 6}</span>
-                    )}
-                  </div>
-                </div>
-              )}
-              {(sellerProfile?.services?.length ?? 0) > 0 && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-ui uppercase tracking-[0.15em] text-muted mb-2">Services</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {sellerProfile!.services.slice(0, 4).map((service) => (
-                      <span key={service} className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-ui font-medium text-ink bg-black/[0.04]">
-                        {service}
-                      </span>
-                    ))}
-                    {sellerProfile!.services.length > 4 && (
-                      <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.services.length - 4}</span>
-                    )}
-                  </div>
-                </div>
-              )}
+        <div className="relative p-6 sm:p-8">
+          <div className="flex flex-col gap-5">
+            {/* Header row */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-pink-vivid/70">Commissions</p>
+                {sellerProfile?.store_tagline ? (
+                  <h2 className="font-display text-xl text-ink mt-1.5 leading-snug">{sellerProfile.store_tagline}</h2>
+                ) : (
+                  <h2 className="font-display text-xl text-ink mt-1.5 leading-snug">Open for work</h2>
+                )}
+              </div>
+              {/* Quill rating badge */}
+              <div className="flex items-center gap-2 shrink-0 px-3 py-2 rounded-xl bg-white/70 backdrop-blur-sm border border-black/[0.04]">
+                <QuillIcon className="h-5 w-5" gradient={Boolean(sellerStats?.total_reviews)} />
+                <span className="font-display text-lg font-semibold text-ink leading-none">
+                  {sellerStats?.total_reviews ? sellerStats.avg_quill_score.toFixed(1) : "--"}
+                </span>
+                <span className="text-muted text-[11px] font-body leading-none">
+                  ({sellerStats?.total_reviews ?? 0})
+                </span>
+              </div>
             </div>
-          )}
+
+            {/* Stats row as subtle chips */}
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-white/60 border border-black/[0.04]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                {stats.active} active
+              </span>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-white/60 border border-black/[0.04]">
+                {sellerStats?.completed_orders ?? 0} completed
+              </span>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-white/60 border border-black/[0.04]">
+                {formatResponseTime(responseTimeHours)} avg response
+              </span>
+            </div>
+
+            {/* Skills & Services */}
+            {((sellerProfile?.skills?.length ?? 0) > 0 || (sellerProfile?.services?.length ?? 0) > 0) && (
+              <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-black/[0.05]">
+                {(sellerProfile?.skills?.length ?? 0) > 0 && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-ui uppercase tracking-[0.15em] text-muted/80 mb-2">Skills</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {sellerProfile!.skills.slice(0, 6).map((skill) => (
+                        <span key={skill} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-ui font-medium text-purple-primary/80 bg-purple-primary/[0.06]">
+                          {skill}
+                        </span>
+                      ))}
+                      {sellerProfile!.skills.length > 6 && (
+                        <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.skills.length - 6}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {(sellerProfile?.services?.length ?? 0) > 0 && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-ui uppercase tracking-[0.15em] text-muted/80 mb-2">Services</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {sellerProfile!.services.slice(0, 4).map((service) => (
+                        <span key={service} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-ui font-medium text-pink-vivid/80 bg-pink-vivid/[0.06]">
+                          {service}
+                        </span>
+                      ))}
+                      {sellerProfile!.services.length > 4 && (
+                        <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.services.length - 4}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
       <section className="mb-6">
-        <div className="flex items-end border-b border-black/[0.08]">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
           <div
             id={tablistId}
             role="tablist"
             aria-label="Commissions views"
             onKeyDown={handleTabKeyDown}
-            className="flex gap-0 overflow-x-auto scrollbar-hide flex-1"
+            className="flex items-center gap-1.5"
           >
             {tabConfig.map((item) => {
               const isActive = panel === item.key;
@@ -293,31 +317,27 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => updateViewState({ panel: item.key })}
-                  className={`relative shrink-0 px-5 py-3 font-ui text-[13px] transition-colors ${
-                    isActive ? "text-ink font-medium" : "text-muted hover:text-ink"
+                  className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
+                    isActive
+                      ? "bg-pink-vivid/10 text-pink-vivid"
+                      : "text-muted hover:text-ink hover:bg-black/[0.03]"
                   }`}
                 >
                   {item.label}
-                  {isActive && (
-                    <span
-                      className="absolute bottom-0 inset-x-0 h-[2.5px] rounded-t-full"
-                      style={{ background: "linear-gradient(to right, #4F8BD9, #8B5CF6, #EC4899, #F97316, #F59E0B)" }}
-                    />
-                  )}
                 </button>
               );
             })}
           </div>
 
           {panel === "services" && (
-            <div className="relative shrink-0 pb-1.5" ref={filterMenuRef}>
+            <div className="relative shrink-0 ml-auto" ref={filterMenuRef}>
               <button
                 type="button"
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-ui transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-ui font-medium transition-all duration-200 ${
                   filter !== "all"
                     ? "text-pink-vivid bg-pink-vivid/10"
-                    : "text-muted hover:text-ink hover:bg-black/[0.04]"
+                    : "text-muted hover:text-ink hover:bg-black/[0.03]"
                 }`}
                 title="Filter services"
               >
