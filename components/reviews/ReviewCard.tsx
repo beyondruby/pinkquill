@@ -53,21 +53,21 @@ export default function ReviewCard({ review }: ReviewCardProps) {
     .replace(/\//g, ".");
 
   return (
-    <article className="p-6 sm:p-8">
-      <div className="flex items-start gap-5 sm:gap-8">
-        {/* Avatar + Name */}
-        <div className="shrink-0 flex flex-col items-center gap-2 w-16 sm:w-20">
+    <article className="rounded-2xl bg-white/60 border border-black/[0.05] p-5 sm:p-6 transition-colors hover:border-black/[0.08]">
+      <div className="flex items-start gap-4">
+        {/* Compact avatar + name */}
+        <div className="shrink-0 flex flex-col items-center gap-1.5 w-12">
           {reviewer?.avatar_url ? (
             <Image
               src={reviewer.avatar_url}
               alt=""
-              width={72}
-              height={72}
-              className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full object-cover"
+              width={44}
+              height={44}
+              className="w-11 h-11 rounded-full object-cover"
             />
           ) : (
-            <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
-              <span className="text-lg font-ui font-bold text-white">
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
+              <span className="text-sm font-ui font-bold text-white">
                 {displayName[0].toUpperCase()}
               </span>
             </div>
@@ -75,50 +75,52 @@ export default function ReviewCard({ review }: ReviewCardProps) {
           {reviewer ? (
             <Link
               href={`/studio/${reviewer.username}`}
-              className="font-display text-sm font-semibold text-ink hover:text-pink-vivid transition-colors text-center leading-tight"
+              className="font-ui text-[11px] font-medium text-muted hover:text-pink-vivid transition-colors text-center leading-tight truncate max-w-[52px]"
             >
               {shortName}
             </Link>
           ) : (
-            <span className="font-display text-sm font-semibold text-ink text-center leading-tight">
-              Anonymous
+            <span className="font-ui text-[11px] font-medium text-muted text-center leading-tight">
+              Anon
             </span>
           )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
-            <span className="text-xs font-body text-muted">{formattedDate}</span>
+          {/* Score row */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2.5">
+            <QuillMeter score={score} />
+            <span className="text-xs font-ui font-medium text-pink-vivid">{QUILL_TONE[score]}</span>
+            <span className="text-muted/30">&middot;</span>
+            <span className="text-[11px] font-body text-muted">{formattedDate}</span>
             {review.order?.product?.title && (
               <>
-                <span className="text-muted/40">&middot;</span>
-                <span className="text-xs font-body text-muted">{review.order.product.title}</span>
+                <span className="text-muted/30">&middot;</span>
+                <span className="text-[11px] font-body text-muted truncate">{review.order.product.title}</span>
               </>
             )}
           </div>
 
-          <div className="flex items-center gap-2 mb-3">
-            <QuillMeter score={score} />
-            <span className="text-xs font-ui text-muted">{QUILL_TONE[score]}</span>
-          </div>
-
+          {/* Title */}
           {review.title && (
             <h3 className="font-ui font-semibold text-sm text-ink mb-1.5">{review.title}</h3>
           )}
 
-          <p className="font-body text-[15px] leading-relaxed text-ink/85 whitespace-pre-wrap">
+          {/* Body */}
+          <p className="font-body text-[14px] leading-relaxed text-ink/80 whitespace-pre-wrap">
             {review.content}
           </p>
 
+          {/* Highlights */}
           {(review.highlights || []).length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-1.5">
               {(review.highlights || []).map((highlight) => (
                 <span
                   key={`${review.id}-${highlight}`}
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-ui text-muted bg-black/[0.04]"
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-ui font-medium text-purple-primary/80 bg-purple-primary/[0.06]"
                 >
-                  #{highlight}
+                  {highlight}
                 </span>
               ))}
             </div>

@@ -51,15 +51,15 @@ export default function TimeRangeDropdown({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-ui text-sm font-medium transition-all ${
+        className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
           disabled
-            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-            : "bg-purple-primary/10 text-purple-primary hover:bg-purple-primary/20"
+            ? "bg-black/[0.03] text-muted/50 cursor-not-allowed"
+            : "bg-purple-primary/[0.08] text-purple-primary hover:bg-purple-primary/[0.12]"
         }`}
       >
         <span>{selectedOption?.label || "All Time"}</span>
         <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`w-3 h-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -74,7 +74,7 @@ export default function TimeRangeDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+        <div className="absolute z-50 mt-1.5 w-40 rounded-xl bg-white border border-black/[0.06] shadow-lg shadow-black/[0.06] py-1 animate-fadeIn">
           {TIME_RANGE_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -83,28 +83,13 @@ export default function TimeRangeDropdown({
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full px-3 py-2 text-left text-sm font-ui hover:bg-gray-50 transition-colors ${
+              className={`w-full px-4 py-2 text-left text-sm font-ui transition-colors ${
                 value === option.value
-                  ? "text-purple-primary font-medium bg-purple-50"
-                  : "text-ink"
+                  ? "text-pink-vivid bg-pink-vivid/[0.06] font-medium"
+                  : "text-ink hover:bg-black/[0.03]"
               }`}
             >
               {option.label}
-              {value === option.value && (
-                <svg
-                  className="w-4 h-4 inline ml-2 text-purple-primary"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              )}
             </button>
           ))}
         </div>

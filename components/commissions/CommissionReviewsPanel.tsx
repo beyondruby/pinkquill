@@ -5,6 +5,7 @@ import { useCommissionReviews } from "@/lib/hooks/useReviews";
 import type { ReviewRole } from "@/lib/types/store";
 import ReviewCard from "@/components/reviews/ReviewCard";
 import QuillIcon from "@/components/reviews/QuillIcon";
+import { QuillMeter } from "@/components/reviews/ReviewCard";
 
 interface CommissionReviewsPanelProps {
   userId: string;
@@ -29,16 +30,13 @@ export default function CommissionReviewsPanel({
 
   if (loading) {
     return (
-      <div className="py-2 space-y-4">
+      <div className="space-y-3">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="rounded-2xl bg-[#f5f5f5] p-6 sm:p-8 animate-pulse">
-            <div className="flex items-start gap-5 sm:gap-8">
-              <div className="shrink-0 flex flex-col items-center gap-2 w-16 sm:w-20">
-                <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full bg-black/[0.06]" />
-                <div className="h-3 w-12 rounded bg-black/[0.06]" />
-              </div>
+          <div key={index} className="rounded-2xl border border-black/[0.05] bg-white/60 p-5 sm:p-6 animate-pulse">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-full bg-black/[0.06] shrink-0" />
               <div className="flex-1 space-y-3">
-                <div className="h-3 w-24 rounded bg-black/[0.06]" />
+                <div className="h-3 w-32 rounded bg-black/[0.06]" />
                 <div className="h-4 w-full rounded bg-black/[0.06]" />
                 <div className="h-4 w-3/4 rounded bg-black/[0.06]" />
               </div>
@@ -51,19 +49,39 @@ export default function CommissionReviewsPanel({
 
   return (
     <section>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6">
-        <h3 className="font-display text-lg text-ink">{roleTitle}</h3>
-        <span className="inline-flex items-center gap-1.5 text-sm font-ui">
-          <QuillIcon className="h-4 w-4" gradient={average > 0} />
-          <span className="font-semibold text-ink">{average > 0 ? average.toFixed(1) : "--"}</span>
-          <span className="text-muted text-xs">({reviews.length} review{reviews.length !== 1 ? "s" : ""})</span>
-        </span>
+      {/* Header */}
+      <div className="relative rounded-2xl overflow-hidden mb-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.04] via-white to-pink-vivid/[0.04]" />
+        <div className="absolute inset-0 border border-black/[0.06] rounded-2xl pointer-events-none" />
+        <div className="absolute -top-16 -right-16 w-36 h-36 rounded-full bg-pink-vivid/[0.05] blur-3xl pointer-events-none" />
+
+        <div className="relative px-6 py-5 flex items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <QuillIcon className="h-4 w-4" gradient />
+              <h3 className="font-display text-lg text-ink">{roleTitle}</h3>
+            </div>
+            <p className="text-xs font-body text-muted">
+              {reviews.length} review{reviews.length !== 1 ? "s" : ""} from completed commissions
+            </p>
+          </div>
+
+          {average > 0 && (
+            <div className="flex flex-col items-center gap-1.5 shrink-0">
+              <span className="font-display text-2xl font-bold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent leading-none">
+                {average.toFixed(1)}
+              </span>
+              <QuillMeter score={Math.round(average)} size="sm" />
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <p className="text-sm font-body text-red-500">{error}</p>}
 
       {!error && reviews.length === 0 && (
-        <div className="rounded-2xl bg-[#f5f5f5] p-8 text-center">
+        <div className="rounded-2xl border border-black/[0.05] bg-white/60 p-8 text-center">
+          <QuillIcon className="h-6 w-6 mx-auto mb-3 text-muted/30" />
           <p className="text-sm font-body text-muted">
             {isOwnProfile
               ? `No ${role === "seller" ? "seller" : "buyer"} reviews yet.`
@@ -73,30 +91,23 @@ export default function CommissionReviewsPanel({
       )}
 
       {reviews.length > 0 && (
-        <div className="space-y-0">
-          {reviews.map((review, index) => (
-            <React.Fragment key={review.id}>
-              <ReviewCard review={review} />
-              {index < reviews.length - 1 && (
-                <div className="py-3">
-                  <div
-                    className="h-[2px] rounded-full"
-                    style={{ background: "linear-gradient(to right, #4F8BD9, #8B5CF6, #EC4899, #F97316, #F59E0B)" }}
-                  />
-                </div>
-              )}
-            </React.Fragment>
+        <div className="space-y-3">
+          {reviews.map((review) => (
+            <ReviewCard key={review.id} review={review} />
           ))}
         </div>
       )}
 
       {hasMore && (
-        <div className="pt-2">
+        <div className="pt-5 text-center">
           <button
             onClick={loadMore}
-            className="inline-flex px-0 py-1 text-xs font-ui font-semibold text-muted hover:text-ink transition-colors"
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-ui font-semibold text-pink-vivid bg-pink-vivid/[0.06] hover:bg-pink-vivid/10 transition-colors"
           >
             Load more reviews
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
         </div>
       )}

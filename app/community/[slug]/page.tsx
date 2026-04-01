@@ -215,51 +215,27 @@ export default function CommunityFeedPage() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Main Feed */}
       <div className="lg:col-span-2">
-        {/* Sort Options - Enhanced */}
+        {/* Sort Options */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 p-1 bg-white/80 backdrop-blur-sm rounded-xl border border-purple-primary/10">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+            {([
+              { id: 'newest' as SortOption, label: 'Newest', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+              { id: 'hot' as SortOption, label: 'Hot', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg> },
+              { id: 'top' as SortOption, label: 'Top', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg> },
+            ]).map((option) => (
               <button
-                onClick={() => setSortBy('newest')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
-                  sortBy === 'newest'
-                    ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
-                    : 'text-muted hover:text-ink hover:bg-purple-primary/5'
+                key={option.id}
+                onClick={() => setSortBy(option.id)}
+                className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
+                  sortBy === option.id
+                    ? 'bg-pink-vivid/10 text-pink-vivid'
+                    : 'text-muted hover:text-ink hover:bg-black/[0.03]'
                 }`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Newest
+                {option.icon}
+                {option.label}
               </button>
-              <button
-                onClick={() => setSortBy('hot')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
-                  sortBy === 'hot'
-                    ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
-                    : 'text-muted hover:text-ink hover:bg-purple-primary/5'
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
-                </svg>
-                Hot
-              </button>
-              <button
-                onClick={() => setSortBy('top')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
-                  sortBy === 'top'
-                    ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
-                    : 'text-muted hover:text-ink hover:bg-purple-primary/5'
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                Top
-              </button>
-            </div>
+            ))}
 
             {/* Time Range Dropdown - only show when Top is selected */}
             {sortBy === 'top' && (
@@ -272,10 +248,10 @@ export default function CommunityFeedPage() {
 
           <button
             onClick={() => refetch()}
-            className="p-2 rounded-lg text-muted hover:text-purple-primary hover:bg-purple-primary/5 transition-all"
+            className="shrink-0 p-2 rounded-full text-muted hover:text-pink-vivid hover:bg-pink-vivid/[0.06] transition-all"
             title="Refresh"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
