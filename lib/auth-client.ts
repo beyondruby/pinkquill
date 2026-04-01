@@ -56,6 +56,16 @@ export async function loginWithIdentifier(
     };
   }
 
+  // Establish the client-side session in localStorage so the Supabase client
+  // has valid tokens for auto-refresh and API calls. Without this, the session
+  // only exists in server-side cookies and the client loses auth after ~1 min.
+  if (data.access_token && data.refresh_token) {
+    await supabase.auth.setSession({
+      access_token: data.access_token as string,
+      refresh_token: data.refresh_token as string,
+    });
+  }
+
   return {
     success: true,
     requiresVerification: Boolean(data.requires_verification),

@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
       password,
     });
@@ -96,7 +96,14 @@ export async function POST(request: Request) {
       return invalidCredentialsResponse();
     }
 
-    return NextResponse.json({ success: true });
+    // Return session tokens so the client can establish a localStorage session.
+    // Without this, the server-side cookie session and client-side localStorage
+    // are out of sync, causing the user to appear signed out after ~1 minute.
+    return NextResponse.json({
+      success: true,
+      access_token: data.session?.access_token,
+      refresh_token: data.session?.refresh_token,
+    });
   } catch (error) {
     console.error("[Auth Login]", error);
     return NextResponse.json(

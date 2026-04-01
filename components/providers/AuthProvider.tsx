@@ -19,6 +19,7 @@ interface Profile {
   languages: string | null;
   website: string | null;
   is_verified: boolean;
+  is_private: boolean;
 }
 
 interface AuthContextType {
@@ -307,6 +308,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(session.user);
         }
 
+        // Handle USER_UPDATED event (fires when user metadata changes)
+        if (event === "USER_UPDATED" && session?.user) {
+          setUser(session.user);
+        }
+
         // Handle INITIAL_SESSION event (fires when page loads with existing session)
         // CRITICAL: Do NOT set user/loading here - let initAuth() handle initial load
         // This prevents race conditions where child components start fetching before
@@ -329,6 +335,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, [fetchProfile, createProfile, fetchOrCreateProfileWithTimeout]);
+
+  // Recover auth state when the tab becomes visible again.
+  // If the session expired while the tab was hidden, the Supabase client's
+  // auto-refresh may have failed silently. Re-reading the session on visibility
+  // change ensures the React state stays in sync with localStorage.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== "visible") return;
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          // Session exists — make sure React state matches
+          setUser((prev) => {
+            if (!prev || prev.id !== session.user.id) {
+              return session.user;
+            }
+            return prev;
+          });
+        } else if (user) {
+          // localStorage session is gone but React state still has a user.
+          // This means Supabase cleared the session (e.g., refresh token expired).
+          // Clear React state to match.
+          setUser(null);
+          setProfile(null);
+        }
+      } catch {
+        // Ignore — the auto-refresh will handle it
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [user]);
 
   // Sign out function
   const signOut = useCallback(async () => {
