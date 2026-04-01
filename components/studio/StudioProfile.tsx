@@ -763,14 +763,15 @@ function StudioTabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex-1 min-w-0 relative flex items-center justify-center gap-2 py-3 font-ui text-[13px] font-medium transition-colors duration-200 ${
+      aria-label={label}
+      className={`flex-1 min-w-0 relative flex items-center justify-center gap-2 py-3 md:py-3 font-ui text-[13px] font-medium transition-colors duration-200 ${
         active
           ? "text-pink-vivid"
           : "text-muted hover:text-ink"
       }`}
     >
       <span className="shrink-0">{icon}</span>
-      <span className="truncate">{label}</span>
+      <span className="hidden md:inline truncate">{label}</span>
       <span className={`absolute bottom-0 inset-x-0 h-[2px] rounded-full transition-colors duration-200 ${
         active ? "bg-pink-vivid" : "bg-transparent"
       }`} />
