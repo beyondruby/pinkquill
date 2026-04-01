@@ -57,10 +57,10 @@ export default function MobileBottomNav() {
     { icon: "profile", label: "Profile", href: "/profile" },
   ];
 
-  // Get the profile href - use user's studio if logged in
+  // Get the profile href - use user's studio if logged in, settings as fallback
   const getProfileHref = () => {
-    if (user && profile?.username) {
-      return `/studio/${profile.username}`;
+    if (user) {
+      return profile?.username ? `/studio/${profile.username}` : "/settings/profile";
     }
     return "/login";
   };
@@ -95,9 +95,9 @@ export default function MobileBottomNav() {
               ) : (
                 <>
                   <div className="relative">
-                    {item.icon === "profile" && user && profile?.avatar_url ? (
+                    {item.icon === "profile" && user ? (
                       <img
-                        src={profile.avatar_url}
+                        src={profile?.avatar_url || "/defaultprofile.png"}
                         alt="Profile"
                         className={`w-6 h-6 rounded-full object-cover ${
                           isActive ? "ring-2 ring-pink-vivid" : ""

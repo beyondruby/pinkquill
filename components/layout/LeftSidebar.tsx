@@ -385,17 +385,17 @@ export default function LeftSidebar() {
               </div>
             </div>
           </div>
-        ) : user && profile ? (
+        ) : user ? (
           <div className={`mt-3 relative ${isExpanded ? "" : "flex flex-col items-center"}`} ref={menuRef}>
             <Link
-              href={`/studio/${profile.username}`}
+              href={profile ? `/studio/${profile.username}` : "/settings/profile"}
               className={`flex items-center cursor-pointer rounded-xl hover:bg-purple-primary/5 transition-all duration-300 ${
                 isExpanded ? "gap-3 p-3" : "p-1 justify-center"
               }`}
-              title={!isExpanded ? profile.display_name || profile.username : undefined}
+              title={!isExpanded ? (profile?.display_name || profile?.username || "Profile") : undefined}
             >
               <img
-                src={getOptimizedAvatarUrl(profile.avatar_url, isExpanded ? 38 : 36) || DEFAULT_AVATAR}
+                src={profile?.avatar_url ? (getOptimizedAvatarUrl(profile.avatar_url, isExpanded ? 38 : 36) || DEFAULT_AVATAR) : DEFAULT_AVATAR}
                 alt="Profile"
                 className={`rounded-full object-cover border-2 border-pink-vivid flex-shrink-0 ${
                   isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"
@@ -405,10 +405,10 @@ export default function LeftSidebar() {
                 isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 absolute"
               }`}>
                 <span className="font-ui text-[0.9rem] font-medium text-ink whitespace-nowrap">
-                  {profile.display_name || profile.username}
+                  {profile?.display_name || profile?.username || user.email?.split("@")[0] || "User"}
                 </span>
                 <span className="font-body text-[0.8rem] text-muted whitespace-nowrap">
-                  @{profile.username}
+                  {profile ? `@${profile.username}` : (user.email || "")}
                 </span>
               </div>
             </Link>
