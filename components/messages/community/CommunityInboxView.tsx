@@ -38,9 +38,9 @@ function getStatusBadgeClass(status: "active" | "muted" | "banned") {
 }
 
 function getRoleBadgeClass(role: "admin" | "moderator" | "member") {
-  if (role === "admin") return "bg-orange-100 text-orange-700";
-  if (role === "moderator") return "bg-blue-100 text-blue-700";
-  return "bg-gray-100 text-gray-700";
+  if (role === "admin") return "bg-orange-warm/10 text-orange-warm";
+  if (role === "moderator") return "bg-purple-primary/10 text-purple-primary";
+  return "bg-black/[0.04] text-muted";
 }
 
 function DateDivider({ date }: { date: string }) {
@@ -562,7 +562,7 @@ export default function CommunityInboxView() {
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-full bg-pink-vivid/10 text-pink-vivid flex items-center justify-center">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
@@ -615,7 +615,7 @@ export default function CommunityInboxView() {
                   value={memberSearchQuery}
                   onChange={(event) => setMemberSearchQuery(event.target.value)}
                   placeholder="Search by name or @username"
-                  className="w-full px-3 py-2 rounded-lg bg-[#f5f5f5] border border-black/[0.06] font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+                  className="w-full px-3 py-2 rounded-lg bg-black/[0.03] border border-black/[0.06] font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
                 />
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -774,7 +774,7 @@ export default function CommunityInboxView() {
                 </h2>
               </div>
               {isCommunityThreadSelected && (
-                <span className="px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-xs font-ui font-medium">
+                <span className="px-3 py-1.5 rounded-full bg-pink-vivid/10 text-pink-vivid text-xs font-ui font-medium">
                   {isStaff ? "All Joined Members" : isCommunityChatJoined ? "Joined" : "Not Joined"}
                 </span>
               )}
@@ -791,7 +791,7 @@ export default function CommunityInboxView() {
                   className={`w-full mb-2 px-3 py-2 rounded-lg border font-ui text-sm transition-colors ${
                     selectedThreadId === COMMUNITY_THREAD_ID
                       ? "bg-purple-primary/10 border-purple-primary/30 text-purple-primary"
-                      : "bg-[#f5f5f5] border-black/[0.06] text-ink"
+                      : "bg-black/[0.03] border-black/[0.06] text-ink"
                   }`}
                 >
                   Community Chat
@@ -803,7 +803,7 @@ export default function CommunityInboxView() {
                       value={memberSearchQuery}
                       onChange={(event) => setMemberSearchQuery(event.target.value)}
                       placeholder="Search member thread..."
-                      className="w-full px-3 py-2 rounded-lg bg-[#f5f5f5] border border-black/[0.06] font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+                      className="w-full px-3 py-2 rounded-lg bg-black/[0.03] border border-black/[0.06] font-ui text-sm text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
                     />
                     {staffRecentThreads.length > 0 && (
                       <div className="mt-2 rounded-lg border border-black/[0.06] bg-white">
@@ -863,7 +863,7 @@ export default function CommunityInboxView() {
                     className={`w-full px-3 py-2 rounded-lg border font-ui text-sm transition-colors ${
                       selectedThreadId === memberDirectThreadId
                         ? "bg-purple-primary/10 border-purple-primary/30 text-purple-primary"
-                        : "bg-[#f5f5f5] border-black/[0.06] text-ink"
+                        : "bg-black/[0.03] border-black/[0.06] text-ink"
                     }`}
                   >
                     Moderation Team
@@ -952,7 +952,7 @@ export default function CommunityInboxView() {
                           {message.message_type === "announcement" && (
                             <p
                               className={`font-ui text-[10px] uppercase tracking-wide mb-1 ${
-                                isOwn ? "text-white/70" : "text-blue-600"
+                                isOwn ? "text-white/70" : "text-pink-vivid"
                               }`}
                             >
                               Announcement
@@ -961,7 +961,7 @@ export default function CommunityInboxView() {
                           {message.message_type === "mod_action" && (
                             <p
                               className={`font-ui text-[10px] uppercase tracking-wide mb-1 ${
-                                isOwn ? "text-white/70" : "text-orange-600"
+                                isOwn ? "text-white/70" : "text-orange-warm"
                               }`}
                             >
                               Moderation Update
@@ -1006,8 +1006,8 @@ export default function CommunityInboxView() {
               )}
 
               {isCommunityThreadSelected && (
-                <div className="mb-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2">
-                  <p className="font-ui text-xs text-blue-700">
+                <div className="mb-2 rounded-lg bg-purple-primary/[0.04] border border-purple-primary/10 px-3 py-2">
+                  <p className="font-ui text-xs text-purple-primary/80">
                     {isStaff
                       ? "Messages in this thread are shared with joined community members."
                       : "This is the community-wide chat thread."}
@@ -1016,14 +1016,14 @@ export default function CommunityInboxView() {
               )}
 
               {isCommunityThreadSelected && !isStaff && !isCommunityChatJoined && (
-                <div className="mb-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 flex items-center justify-between gap-2">
-                  <p className="font-ui text-xs text-blue-700">
+                <div className="mb-2 rounded-lg bg-purple-primary/[0.04] border border-purple-primary/10 px-3 py-2 flex items-center justify-between gap-2">
+                  <p className="font-ui text-xs text-purple-primary/80">
                     Join community chat to view and participate in this thread.
                   </p>
                   <button
                     onClick={() => handleJoinCommunityChat(true)}
                     disabled={updatingJoinState || selectedMembership.status !== "active"}
-                    className="px-2.5 py-1 rounded-full bg-blue-600 text-white text-[11px] font-ui disabled:opacity-50"
+                    className="px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white text-[11px] font-ui disabled:opacity-50"
                   >
                     {updatingJoinState ? "Joining..." : "Join"}
                   </button>
@@ -1099,7 +1099,7 @@ export default function CommunityInboxView() {
                       ? "Write your appeal..."
                       : "Write a message..."
                   }
-                  className="flex-1 px-4 py-2.5 rounded-full bg-[#f5f5f5] border-none outline-none focus:ring-2 focus:ring-purple-primary/20 font-body text-sm"
+                  className="flex-1 px-4 py-2.5 rounded-full bg-black/[0.03] border-none outline-none focus:ring-2 focus:ring-purple-primary/20 font-body text-sm"
                   disabled={!canSendInCurrentThread}
                 />
                 <button
