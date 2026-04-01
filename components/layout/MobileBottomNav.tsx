@@ -95,9 +95,9 @@ export default function MobileBottomNav() {
               ) : (
                 <>
                   <div className="relative">
-                    {item.icon === "profile" && user ? (
+                    {item.icon === "profile" && user && profile?.avatar_url ? (
                       <img
-                        src={profile?.avatar_url || "/defaultprofile.png"}
+                        src={profile.avatar_url}
                         alt="Profile"
                         className={`w-6 h-6 rounded-full object-cover ${
                           isActive ? "ring-2 ring-pink-vivid" : ""

@@ -374,8 +374,8 @@ export default function LeftSidebar() {
         )}
 
         {/* Profile & Menu - Authenticated users */}
-        {loading ? (
-          /* Loading placeholder while auth state is being determined */
+        {loading || (user && !profile) ? (
+          /* Loading placeholder while auth or profile is being loaded */
           <div className={`mt-3 ${isExpanded ? "" : "flex justify-center"}`}>
             <div className={`flex items-center ${isExpanded ? "gap-3 p-3" : "p-1"}`}>
               <div className={`rounded-full bg-gray-200 animate-pulse flex-shrink-0 ${isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"}`} />
@@ -385,17 +385,17 @@ export default function LeftSidebar() {
               </div>
             </div>
           </div>
-        ) : user ? (
+        ) : user && profile ? (
           <div className={`mt-3 relative ${isExpanded ? "" : "flex flex-col items-center"}`} ref={menuRef}>
             <Link
-              href={profile ? `/studio/${profile.username}` : "/settings/profile"}
+              href={`/studio/${profile.username}`}
               className={`flex items-center cursor-pointer rounded-xl hover:bg-purple-primary/5 transition-all duration-300 ${
                 isExpanded ? "gap-3 p-3" : "p-1 justify-center"
               }`}
-              title={!isExpanded ? (profile?.display_name || profile?.username || "Profile") : undefined}
+              title={!isExpanded ? profile.display_name || profile.username : undefined}
             >
               <img
-                src={profile?.avatar_url ? (getOptimizedAvatarUrl(profile.avatar_url, isExpanded ? 38 : 36) || DEFAULT_AVATAR) : DEFAULT_AVATAR}
+                src={getOptimizedAvatarUrl(profile.avatar_url, isExpanded ? 38 : 36) || DEFAULT_AVATAR}
                 alt="Profile"
                 className={`rounded-full object-cover border-2 border-pink-vivid flex-shrink-0 ${
                   isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"
@@ -405,10 +405,10 @@ export default function LeftSidebar() {
                 isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 absolute"
               }`}>
                 <span className="font-ui text-[0.9rem] font-medium text-ink whitespace-nowrap">
-                  {profile?.display_name || profile?.username || user.email?.split("@")[0] || "User"}
+                  {profile.display_name || profile.username}
                 </span>
                 <span className="font-body text-[0.8rem] text-muted whitespace-nowrap">
-                  {profile ? `@${profile.username}` : (user.email || "")}
+                  @{profile.username}
                 </span>
               </div>
             </Link>
