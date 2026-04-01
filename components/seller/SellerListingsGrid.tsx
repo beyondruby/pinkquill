@@ -17,10 +17,10 @@ import type { Product, ProductStatus } from "@/lib/types/store";
 // ---------------------------------------------------------------------------
 
 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-  active: { label: "Active", dot: "bg-green-500", bg: "bg-green-50", text: "text-green-700" },
+  active: { label: "Active", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
   paused: { label: "Paused", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
-  draft: { label: "Draft", dot: "bg-gray-400", bg: "bg-gray-50", text: "text-gray-600" },
-  sold: { label: "Sold", dot: "bg-blue-400", bg: "bg-blue-50", text: "text-blue-700" },
+  draft: { label: "Draft", dot: "bg-muted/60", bg: "bg-black/[0.02]", text: "text-ink/60" },
+  sold: { label: "Sold", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
   archived: { label: "Archived", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
 };
 
@@ -76,12 +76,12 @@ function ListingCard({
   return (
     <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden group hover:shadow-sm hover:border-black/[0.1] transition-all">
       {/* Image */}
-      <div className="aspect-[4/3] bg-gray-50 relative overflow-hidden">
+      <div className="aspect-[4/3] bg-black/[0.02] relative overflow-hidden">
         {primaryImage ? (
           <Image src={primaryImage} alt="" fill className="object-cover group-hover:scale-[1.02] transition-transform duration-300" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <svg className="w-10 h-10 text-gray-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-10 h-10 text-muted/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
             </svg>
           </div>
@@ -111,7 +111,7 @@ function ListingCard({
               : "No price"}
           </span>
           {product.category && (
-            <span className="text-[10px] font-ui text-muted bg-gray-50 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] font-ui text-muted bg-black/[0.02] px-1.5 py-0.5 rounded">
               {product.category}
             </span>
           )}
@@ -121,7 +121,7 @@ function ListingCard({
         <div className="mt-3 flex gap-2 relative">
           <Link
             href={isService ? `/commissions/${product.id}` : `/product/${product.id}`}
-            className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-muted border border-black/[0.06] rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-muted border border-black/[0.06] rounded-lg hover:bg-black/[0.02] transition-colors"
           >
             View
           </Link>
@@ -129,12 +129,12 @@ function ListingCard({
             onClick={() => {
               router.push(`/sell/edit/${product.id}`);
             }}
-            className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-ink border border-black/[0.06] rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-ink border border-black/[0.06] rounded-lg hover:bg-black/[0.02] transition-colors"
           >
             Edit
           </button>
           <ActionMenu
-            buttonClassName="px-2.5 py-1.5 text-xs font-ui text-muted border border-black/[0.06] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center"
+            buttonClassName="px-2.5 py-1.5 text-xs font-ui text-muted border border-black/[0.06] rounded-lg hover:bg-black/[0.02] transition-colors disabled:opacity-50 flex items-center justify-center"
             buttonIconClassName="w-3.5 h-3.5"
             widthClassName="w-44"
             buttonDisabled={busy}
@@ -234,7 +234,7 @@ export default function SellerListingsGrid() {
           </Link>
           <Link
             href="/sell/service"
-            className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -254,7 +254,7 @@ export default function SellerListingsGrid() {
               className={`px-4 py-3 text-sm font-ui font-medium border-b-2 transition-colors ${
                 filter === f
                   ? "border-purple-primary text-purple-primary"
-                  : "border-transparent text-muted hover:text-ink hover:border-gray-200"
+                  : "border-transparent text-muted hover:text-ink hover:border-black/[0.06]"
               }`}
             >
               {f === "all" ? "All" : f === "product" ? "Products" : "Commissions"}
@@ -268,12 +268,12 @@ export default function SellerListingsGrid() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="rounded-xl bg-gray-50 animate-pulse border border-black/[0.04] aspect-[3/4]" />
+            <div key={i} className="rounded-xl bg-black/[0.02] animate-pulse border border-black/[0.04] aspect-[3/4]" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
-          <svg className="w-12 h-12 text-gray-200 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+          <svg className="w-12 h-12 text-muted/40 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
           </svg>
           <p className="font-body text-sm text-muted">

@@ -12,7 +12,7 @@ export default function DigitalDownloadSection({ orderId }: { orderId: string })
         <h3 className="font-display text-lg text-ink mb-3">Your Downloads</h3>
         <div className="space-y-3">
           {[1, 2].map((i) => (
-            <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+            <div key={i} className="h-20 bg-black/[0.04] rounded-xl animate-pulse" />
           ))}
         </div>
       </section>

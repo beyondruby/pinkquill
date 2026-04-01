@@ -21,7 +21,7 @@ function statusColor(status: OrderStatus): string {
       return "bg-yellow-100 text-yellow-700";
     case "paid":
     case "processing":
-      return "bg-blue-100 text-blue-700";
+      return "bg-purple-primary/10 text-purple-primary";
     case "in_progress":
     case "submitted":
       return "bg-purple-100 text-purple-700";
@@ -30,14 +30,14 @@ function statusColor(status: OrderStatus): string {
     case "completed":
     case "delivered":
     case "resolved":
-      return "bg-green-100 text-green-700";
+      return "bg-emerald-100 text-emerald-700";
     case "shipped":
       return "bg-indigo-100 text-indigo-700";
     case "cancelled":
     case "refunded":
       return "bg-red-100 text-red-600";
     default:
-      return "bg-gray-100 text-gray-600";
+      return "bg-black/[0.04] text-ink/60";
   }
 }
 
@@ -82,7 +82,7 @@ export default function BuyerOrdersList() {
         {loading && orders.length === 0 && (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+              <div key={i} className="h-24 bg-black/[0.04] rounded-2xl animate-pulse" />
             ))}
           </div>
         )}

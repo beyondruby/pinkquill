@@ -37,8 +37,8 @@ export default function TrackingInput({
 
   if (success) {
     return (
-      <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-center">
-        <p className="font-ui font-semibold text-green-700 text-sm">
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+        <p className="font-ui font-semibold text-emerald-700 text-sm">
           Tracking info added! The buyer has been notified.
         </p>
       </div>

@@ -94,7 +94,7 @@ export default function OrderTracker({
           <div className="flex flex-col items-center gap-1 min-w-0">
             <div className="relative">
               {step.status === "done" ? (
-                <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
                   <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
@@ -104,7 +104,7 @@ export default function OrderTracker({
                   <div className="w-1.5 h-1.5 rounded-full bg-white" />
                 </div>
               ) : (
-                <div className="w-5 h-5 rounded-full border-2 border-gray-200 bg-white" />
+                <div className="w-5 h-5 rounded-full border-2 border-black/[0.08] bg-white" />
               )}
             </div>
             {!compact && (
@@ -113,8 +113,8 @@ export default function OrderTracker({
                   step.status === "active"
                     ? "font-semibold text-purple-primary"
                     : step.status === "done"
-                      ? "font-medium text-green-600"
-                      : "text-gray-400"
+                      ? "font-medium text-emerald-600"
+                      : "text-muted/60"
                 }`}
               >
                 {step.label}
@@ -125,7 +125,7 @@ export default function OrderTracker({
           {i < steps.length - 1 && (
             <div
               className={`h-[2px] flex-1 min-w-3 ${compact ? "" : "mt-[-14px]"} ${
-                step.status === "done" ? "bg-green-400" : "bg-gray-200"
+                step.status === "done" ? "bg-emerald-400" : "bg-black/[0.08]"
               }`}
             />
           )}

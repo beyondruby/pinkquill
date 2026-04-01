@@ -108,7 +108,7 @@ function TagPicker({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <label className="block text-sm font-medium text-ink/70 mb-2">{label}</label>
       <div className="flex flex-wrap gap-2 mb-2">
         {options.map((opt) => (
           <button
@@ -118,7 +118,7 @@ function TagPicker({
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
               selected.includes(opt)
                 ? "bg-[var(--color-purple-primary)] text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                : "bg-black/[0.04] text-ink/60 hover:bg-black/[0.06]"
             }`}
           >
             {opt}
@@ -132,7 +132,7 @@ function TagPicker({
             value={customInput}
             onChange={(e) => setCustomInput(e.target.value)}
             placeholder="Add custom..."
-            className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+            className="flex-1 rounded-lg border border-black/[0.08] px-3 py-1.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && customInput.trim()) {
                 e.preventDefault();
@@ -170,38 +170,38 @@ function StoreBasicsStep({ state, setState }: { state: WizardState; setState: (s
   return (
     <div className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Store Name *</label>
+        <label className="block text-sm font-medium text-ink/70 mb-1">Store Name *</label>
         <input
           type="text"
           value={state.storeName}
           onChange={(e) => setState({ ...state, storeName: e.target.value })}
           placeholder="e.g., Ruby's Art Studio"
-          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] focus:ring-1 focus:ring-[var(--color-purple-primary)] outline-none"
+          className="w-full rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] focus:ring-1 focus:ring-[var(--color-purple-primary)] outline-none"
           maxLength={60}
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
+        <label className="block text-sm font-medium text-ink/70 mb-1">Tagline</label>
         <input
           type="text"
           value={state.storeTagline}
           onChange={(e) => setState({ ...state, storeTagline: e.target.value })}
           placeholder="e.g., Bringing stories to life through art"
-          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+          className="w-full rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
           maxLength={120}
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">About Your Store</label>
+        <label className="block text-sm font-medium text-ink/70 mb-1">About Your Store</label>
         <textarea
           value={state.storeDescription}
           onChange={(e) => setState({ ...state, storeDescription: e.target.value })}
           placeholder="Tell buyers about your work, experience, and what makes your creations special..."
           rows={4}
-          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none resize-none"
+          className="w-full rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none resize-none"
           maxLength={1000}
         />
-        <p className="text-xs text-gray-400 mt-1">{state.storeDescription.length}/1000</p>
+        <p className="text-xs text-muted/60 mt-1">{state.storeDescription.length}/1000</p>
       </div>
     </div>
   );
@@ -232,7 +232,7 @@ function ServicesSkillsStep({ state, setState }: { state: WizardState; setState:
         onToggle={(t) => setState({ ...state, services: toggleTag(state.services, t) })}
       />
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Experience Level</label>
+        <label className="block text-sm font-medium text-ink/70 mb-2">Experience Level</label>
         <div className="grid grid-cols-2 gap-2">
           {(["beginner", "intermediate", "expert", "professional"] as const).map((level) => (
             <button
@@ -242,7 +242,7 @@ function ServicesSkillsStep({ state, setState }: { state: WizardState; setState:
               className={`px-4 py-2.5 rounded-lg border text-sm font-medium capitalize transition-colors ${
                 state.experienceLevel === level
                   ? "border-[var(--color-purple-primary)] bg-purple-50 text-[var(--color-purple-primary)]"
-                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                  : "border-black/[0.08] text-ink/60 hover:bg-black/[0.02]"
               }`}
             >
               {level}
@@ -260,16 +260,16 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
+      <div className="flex items-center justify-between rounded-lg border border-black/[0.08] p-4">
         <div>
-          <p className="text-sm font-medium text-gray-800">Accepting Commissions</p>
-          <p className="text-xs text-gray-500">Allow buyers to hire you for custom work</p>
+          <p className="text-sm font-medium text-ink">Accepting Commissions</p>
+          <p className="text-xs text-muted">Allow buyers to hire you for custom work</p>
         </div>
         <button
           type="button"
           onClick={() => setState({ ...state, isAcceptingCommissions: !state.isAcceptingCommissions })}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            state.isAcceptingCommissions ? "bg-[var(--color-purple-primary)]" : "bg-gray-300"
+            state.isAcceptingCommissions ? "bg-[var(--color-purple-primary)]" : "bg-black/[0.12]"
           }`}
         >
           <span
@@ -280,10 +280,10 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
         </button>
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
+      <div className="flex items-center justify-between rounded-lg border border-black/[0.08] p-4">
         <div>
-          <p className="text-sm font-medium text-gray-800">Require Approval Before Payment</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-sm font-medium text-ink">Require Approval Before Payment</p>
+          <p className="text-xs text-muted">
             Applies to commissions and physical product orders only. Buyers pay only after you accept.
           </p>
         </div>
@@ -291,7 +291,7 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
           type="button"
           onClick={() => setState({ ...state, requireApproval: !state.requireApproval })}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            state.requireApproval ? "bg-[var(--color-purple-primary)]" : "bg-gray-300"
+            state.requireApproval ? "bg-[var(--color-purple-primary)]" : "bg-black/[0.12]"
           }`}
         >
           <span
@@ -304,27 +304,27 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
 
       {state.requireApproval && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Auto-decline timeout (hours)</label>
+          <label className="block text-sm font-medium text-ink/70 mb-2">Auto-decline timeout (hours)</label>
           <input
             type="number"
             min={1}
             max={720}
             value={state.autoDeclineHours}
             onChange={(e) => setState({ ...state, autoDeclineHours: Math.max(1, Math.min(720, Number(e.target.value || 72))) })}
-            className="w-40 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+            className="w-40 rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
           />
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Orders without a response in this window are automatically declined.
           </p>
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Typical Response Time</label>
+        <label className="block text-sm font-medium text-ink/70 mb-2">Typical Response Time</label>
         <select
           value={state.responseTimeHours}
           onChange={(e) => setState({ ...state, responseTimeHours: Number(e.target.value) })}
-          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+          className="w-full rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
         >
           <option value={1}>Within 1 hour</option>
           <option value={4}>Within 4 hours</option>
@@ -344,13 +344,13 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
       />
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Location (optional)</label>
+        <label className="block text-sm font-medium text-ink/70 mb-1">Location (optional)</label>
         <input
           type="text"
           value={state.location}
           onChange={(e) => setState({ ...state, location: e.target.value })}
           placeholder="e.g., Toronto, Canada"
-          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+          className="w-full rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
         />
       </div>
     </div>
@@ -360,26 +360,26 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
 function PaymentStep({ onStartOnboarding, onboardingLoading }: { onStartOnboarding: () => void; onboardingLoading: boolean }) {
   return (
     <div className="text-center space-y-6">
-      <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
+      <div className="w-16 h-16 bg-purple-primary/10 rounded-full flex items-center justify-center mx-auto">
         <FontAwesomeIcon icon={faCreditCard} className="text-2xl text-[var(--color-purple-primary)]" />
       </div>
       <div>
         <h3 className="text-lg font-semibold mb-2">Set Up Payments</h3>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-ink/60">
           Connect your payment account to start receiving earnings. You can also skip this step and set it up later.
         </p>
       </div>
-      <div className="bg-gray-50 rounded-lg p-4 text-left text-sm space-y-2">
+      <div className="bg-black/[0.02] rounded-lg p-4 text-left text-sm space-y-2">
         <div className="flex items-start gap-2">
-          <FontAwesomeIcon icon={faCheck} className="text-green-500 mt-0.5 text-xs" />
+          <FontAwesomeIcon icon={faCheck} className="text-emerald-500 mt-0.5 text-xs" />
           <span>Quill charges 5% on all sales</span>
         </div>
         <div className="flex items-start gap-2">
-          <FontAwesomeIcon icon={faCheck} className="text-green-500 mt-0.5 text-xs" />
+          <FontAwesomeIcon icon={faCheck} className="text-emerald-500 mt-0.5 text-xs" />
           <span>Secure payment processing via Stripe</span>
         </div>
         <div className="flex items-start gap-2">
-          <FontAwesomeIcon icon={faCheck} className="text-green-500 mt-0.5 text-xs" />
+          <FontAwesomeIcon icon={faCheck} className="text-emerald-500 mt-0.5 text-xs" />
           <span>Escrow protection for commissions</span>
         </div>
       </div>
@@ -468,21 +468,21 @@ export default function SellerSetupWizard() {
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
                   i < step
-                    ? "bg-green-500 text-white"
+                    ? "bg-emerald-500 text-white"
                     : i === step
                       ? "bg-[var(--color-purple-primary)] text-white"
-                      : "bg-gray-200 text-gray-500"
+                      : "bg-black/[0.06] text-muted"
                 }`}
               >
                 {i < step ? <FontAwesomeIcon icon={faCheck} /> : i + 1}
               </div>
               <span className={`text-xs font-medium hidden sm:inline ${
-                i === step ? "text-[var(--color-purple-primary)]" : "text-gray-500"
+                i === step ? "text-[var(--color-purple-primary)]" : "text-muted"
               }`}>
                 {s.label}
               </span>
               {i < STEPS.length - 1 && (
-                <div className={`w-8 sm:w-16 h-0.5 mx-1 ${i < step ? "bg-green-500" : "bg-gray-200"}`} />
+                <div className={`w-8 sm:w-16 h-0.5 mx-1 ${i < step ? "bg-emerald-500" : "bg-black/[0.06]"}`} />
               )}
             </div>
           ))}
@@ -521,7 +521,7 @@ export default function SellerSetupWizard() {
         <button
           onClick={() => setStep(Math.max(0, step - 1))}
           disabled={step === 0}
-          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-ink/60 hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <FontAwesomeIcon icon={faArrowLeft} className="text-xs" />
           Back
@@ -531,7 +531,7 @@ export default function SellerSetupWizard() {
             <button
               onClick={() => handleFinish(true)}
               disabled={updating}
-              className="px-5 py-2.5 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="px-5 py-2.5 text-sm font-medium text-ink/60 border border-black/[0.12] rounded-lg hover:bg-black/[0.02] disabled:opacity-50"
             >
               Skip & Finish
             </button>

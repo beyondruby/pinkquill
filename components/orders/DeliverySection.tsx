@@ -148,7 +148,7 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
                     className="w-full h-28 object-cover"
                   />
                 ) : (
-                  <div className="w-full h-28 bg-gray-50 flex flex-col items-center justify-center gap-2">
+                  <div className="w-full h-28 bg-black/[0.02] flex flex-col items-center justify-center gap-2">
                     <FontAwesomeIcon
                       icon={fileTypeIcon(url)}
                       className="text-2xl text-muted group-hover:text-purple-primary transition-colors"
@@ -162,7 +162,7 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
             ))}
           </div>
           {order.delivery_note && (
-            <div className="mt-3 p-3 rounded-lg bg-gray-50">
+            <div className="mt-3 p-3 rounded-lg bg-black/[0.02]">
               <p className="text-xs font-ui text-muted mb-1">Seller note:</p>
               <p className="text-sm font-body text-ink">{order.delivery_note}</p>
             </div>
@@ -217,7 +217,7 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
             <button
               onClick={handleAccept}
               disabled={updating}
-              className="flex-1 py-3 rounded-xl text-sm font-ui font-semibold bg-gradient-to-r from-green-500 to-emerald-500 text-white disabled:opacity-60 hover:opacity-90 transition-opacity"
+              className="flex-1 py-3 rounded-xl text-sm font-ui font-semibold bg-gradient-to-r from-emerald-500 to-emerald-500 text-white disabled:opacity-60 hover:opacity-90 transition-opacity"
             >
               <FontAwesomeIcon icon={faCheck} className="mr-2" />
               {updating ? "..." : "Accept Delivery"}
@@ -240,8 +240,8 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
       {isDelivered && !canAcceptOrRevise && !canDeliver && (
         <div className="p-5">
           <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faCheck} className="text-green-500" />
-            <p className="text-sm font-ui font-medium text-green-700">
+            <FontAwesomeIcon icon={faCheck} className="text-emerald-500" />
+            <p className="text-sm font-ui font-medium text-emerald-700">
               {order.status === "completed" ? "Delivery accepted and order completed." : "Delivery submitted, awaiting buyer review."}
             </p>
           </div>

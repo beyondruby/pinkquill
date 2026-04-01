@@ -262,7 +262,7 @@ function SellerSettingsForm({
             type="button"
             onClick={() => setIsAcceptingCommissions((value) => !value)}
             className={`relative h-7 w-12 rounded-full transition-colors ${
-              isAcceptingCommissions ? "bg-purple-primary" : "bg-gray-300"
+              isAcceptingCommissions ? "bg-purple-primary" : "bg-black/[0.12]"
             }`}
           >
             <span className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
@@ -283,7 +283,7 @@ function SellerSettingsForm({
             type="button"
             onClick={() => setRequireApproval((value) => !value)}
             className={`relative h-7 w-12 rounded-full transition-colors ${
-              requireApproval ? "bg-purple-primary" : "bg-gray-300"
+              requireApproval ? "bg-purple-primary" : "bg-black/[0.12]"
             }`}
           >
             <span className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
@@ -346,7 +346,7 @@ function SellerSettingsForm({
         </button>
 
         {saved && (
-          <span className="text-sm font-ui text-green-600">Settings saved!</span>
+          <span className="text-sm font-ui text-emerald-600">Settings saved!</span>
         )}
         {error && (
           <span className="text-sm font-body text-red-500">{error}</span>
@@ -363,8 +363,8 @@ export default function SellerSettings() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-gray-100" />
-        <div className="h-64 animate-pulse rounded-2xl bg-gray-100" />
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-black/[0.04]" />
+        <div className="h-64 animate-pulse rounded-2xl bg-black/[0.04]" />
       </div>
     );
   }

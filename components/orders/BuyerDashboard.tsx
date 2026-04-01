@@ -99,7 +99,7 @@ function MetricCard({
           )}
         </div>
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-gray-100 text-muted"
+          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-black/[0.04] text-muted"
         }`}>
           {icon}
         </div>
@@ -113,18 +113,18 @@ function MetricCard({
 // ---------------------------------------------------------------------------
 
 function MetricSkeleton() {
-  return <div className="h-[100px] bg-gray-50 rounded-xl animate-pulse border border-black/[0.04]" />;
+  return <div className="h-[100px] bg-black/[0.02] rounded-xl animate-pulse border border-black/[0.04]" />;
 }
 
 function OrderSkeleton() {
   return (
     <div className="rounded-xl border border-black/[0.04] bg-white p-5">
       <div className="flex gap-4">
-        <div className="w-[72px] h-[72px] rounded-lg bg-gray-100 animate-pulse shrink-0" />
+        <div className="w-[72px] h-[72px] rounded-lg bg-black/[0.04] animate-pulse shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 w-3/4 bg-gray-100 rounded animate-pulse" />
-          <div className="h-3 w-1/2 bg-gray-50 rounded animate-pulse" />
-          <div className="h-3 w-1/3 bg-gray-50 rounded animate-pulse" />
+          <div className="h-4 w-3/4 bg-black/[0.04] rounded animate-pulse" />
+          <div className="h-3 w-1/2 bg-black/[0.02] rounded animate-pulse" />
+          <div className="h-3 w-1/3 bg-black/[0.02] rounded animate-pulse" />
         </div>
       </div>
     </div>
@@ -187,7 +187,7 @@ export default function BuyerDashboard() {
           <div className="flex gap-2">
             <Link
               href="/cart"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-black/[0.08] bg-white text-sm font-ui font-medium text-ink hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-black/[0.08] bg-white text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
@@ -267,7 +267,7 @@ export default function BuyerDashboard() {
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-ui font-medium whitespace-nowrap border-b-2 transition-colors ${
                   activeTabIdx === idx
                     ? "border-purple-primary text-purple-primary"
-                    : "border-transparent text-muted hover:text-ink hover:border-gray-200"
+                    : "border-transparent text-muted hover:text-ink hover:border-black/[0.08]"
                 }`}
               >
                 <span className={activeTabIdx === idx ? "text-purple-primary" : "text-muted"}>{tab.icon}</span>
@@ -286,8 +286,8 @@ export default function BuyerDashboard() {
 
         {!loading && filteredOrders.length === 0 && (
           <div className="text-center py-20">
-            <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-16 h-16 rounded-2xl bg-black/[0.02] flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-muted/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a4 4 0 0 0-8 0v2" />
               </svg>
             </div>

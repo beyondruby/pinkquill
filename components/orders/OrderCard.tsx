@@ -8,12 +8,12 @@ import OrderTracker from "./OrderTracker";
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
   pending_acceptance: { label: "Pending Approval", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
   pending_payment: { label: "Awaiting Payment", bg: "bg-yellow-50", text: "text-yellow-700", dot: "bg-yellow-400" },
-  paid: { label: "Paid", bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-400" },
-  processing: { label: "Processing", bg: "bg-blue-50", text: "text-blue-600", dot: "bg-blue-400" },
+  paid: { label: "Paid", bg: "bg-purple-primary/[0.04]", text: "text-purple-primary", dot: "bg-purple-primary" },
+  processing: { label: "Processing", bg: "bg-purple-primary/[0.04]", text: "text-purple-primary", dot: "bg-purple-primary" },
   in_progress: { label: "In Progress", bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-400" },
   submitted: { label: "Delivered", bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-400" },
   revision_requested: { label: "Revision", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
-  completed: { label: "Completed", bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500" },
+  completed: { label: "Completed", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
   delivered: { label: "Delivered", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
   shipped: { label: "Shipped", bg: "bg-sky-50", text: "text-sky-700", dot: "bg-sky-400" },
   cancelled: { label: "Cancelled", bg: "bg-red-50", text: "text-red-600", dot: "bg-red-400" },
@@ -25,7 +25,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; d
 };
 
 function StatusBadge({ status }: { status: OrderStatus }) {
-  const config = STATUS_CONFIG[status] || { label: status, bg: "bg-gray-50", text: "text-gray-600", dot: "bg-gray-400" };
+  const config = STATUS_CONFIG[status] || { label: status, bg: "bg-black/[0.02]", text: "text-ink/60", dot: "bg-muted/60" };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-ui font-medium ${config.bg} ${config.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
@@ -148,7 +148,7 @@ export default function OrderCard({ order }: { order: Order }) {
       </Link>
 
       {/* Progress tracker + Quick action */}
-      <div className="border-t border-black/[0.04] px-4 sm:px-5 py-3 flex items-center gap-4 bg-gray-50/30">
+      <div className="border-t border-black/[0.04] px-4 sm:px-5 py-3 flex items-center gap-4 bg-black/[0.015]">
         <div className="flex-1 min-w-0">
           <OrderTracker
             status={order.status}

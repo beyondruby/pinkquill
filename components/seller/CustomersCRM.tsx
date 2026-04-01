@@ -14,11 +14,11 @@ import type { SellerCustomer } from "@/lib/hooks/useSellerCustomers";
 const STATUS_CONFIG: Record<string, { bg: string; text: string }> = {
   pending_payment: { bg: "bg-yellow-50", text: "text-yellow-700" },
   pending_acceptance: { bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { bg: "bg-blue-50", text: "text-blue-700" },
+  paid: { bg: "bg-purple-50", text: "text-purple-700" },
   in_progress: { bg: "bg-purple-50", text: "text-purple-700" },
   submitted: { bg: "bg-indigo-50", text: "text-indigo-700" },
   revision_requested: { bg: "bg-orange-50", text: "text-orange-700" },
-  completed: { bg: "bg-green-50", text: "text-green-700" },
+  completed: { bg: "bg-emerald-50", text: "text-emerald-700" },
   cancelled: { bg: "bg-red-50", text: "text-red-700" },
   refunded: { bg: "bg-red-50", text: "text-red-600" },
   shipped: { bg: "bg-sky-50", text: "text-sky-700" },
@@ -55,7 +55,7 @@ function MetricCard({
           </p>
         </div>
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-gray-100 text-muted"
+          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-black/[0.04] text-muted"
         }`}>
           {icon}
         </div>
@@ -79,7 +79,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
     <div className="border-b border-black/[0.04] last:border-0">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 hover:bg-gray-50/50 transition-colors text-left"
+        className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 hover:bg-black/[0.02] transition-colors text-left"
       >
         {/* Avatar */}
         {customer.avatar_url ? (
@@ -146,7 +146,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
       {/* Expanded detail */}
       {expanded && (
         <div className="px-4 sm:px-5 pb-4 pt-0">
-          <div className="bg-gray-50/80 rounded-lg p-4 sm:p-5 space-y-4">
+          <div className="bg-black/[0.02] rounded-lg p-4 sm:p-5 space-y-4">
             {/* Info grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Contact */}
@@ -211,7 +211,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
               <h4 className="text-[11px] font-ui font-semibold text-muted uppercase tracking-wider mb-2">Orders</h4>
               <div className="space-y-0.5">
                 {customer.orders.map((order) => {
-                  const sc = STATUS_CONFIG[order.status] || { bg: "bg-gray-50", text: "text-gray-700" };
+                  const sc = STATUS_CONFIG[order.status] || { bg: "bg-black/[0.02]", text: "text-ink/70" };
                   return (
                     <Link
                       key={order.id}
@@ -325,7 +325,7 @@ export default function CustomersCRM() {
       {/* Customer table */}
       <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
         {/* Header */}
-        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-black/[0.06] bg-gray-50/80 text-[11px] font-ui uppercase tracking-wider text-muted">
+        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-black/[0.06] bg-black/[0.02] text-[11px] font-ui uppercase tracking-wider text-muted">
           <div className="w-10" />
           <div className="flex-1">Customer</div>
           <div className="hidden sm:block w-16 text-center">Orders</div>
@@ -337,7 +337,7 @@ export default function CustomersCRM() {
 
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-200 border-t-purple-primary mx-auto" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-black/[0.06] border-t-purple-primary mx-auto" />
           </div>
         ) : error ? (
           <div className="p-12 text-center">
@@ -345,7 +345,7 @@ export default function CustomersCRM() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-16 text-center">
-            <svg className="w-10 h-10 text-gray-200 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-10 h-10 text-muted/40 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
             </svg>
             <p className="font-body text-sm text-muted">

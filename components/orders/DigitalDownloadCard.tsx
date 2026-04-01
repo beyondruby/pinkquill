@@ -100,9 +100,9 @@ export default function DigitalDownloadCard({ token }: { token: DownloadToken })
         disabled={disabled}
         className={`shrink-0 px-4 py-2 rounded-xl text-sm font-ui font-semibold transition-all ${
           downloaded
-            ? "bg-green-100 text-green-700"
+            ? "bg-emerald-100 text-emerald-700"
             : disabled
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              ? "bg-black/[0.04] text-muted/60 cursor-not-allowed"
               : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white hover:opacity-90"
         }`}
       >

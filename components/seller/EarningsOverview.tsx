@@ -11,10 +11,10 @@ import type { Transaction } from "@/lib/types/store";
 const TX_CONFIG: Record<string, { label: string; color: string; sign: string; icon: React.ReactNode }> = {
   payment: {
     label: "Payment received",
-    color: "text-green-600",
+    color: "text-emerald-600",
     sign: "+",
     icon: (
-      <svg className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
       </svg>
     ),
@@ -31,10 +31,10 @@ const TX_CONFIG: Record<string, { label: string; color: string; sign: string; ic
   },
   seller_payout: {
     label: "Payout",
-    color: "text-blue-600",
+    color: "text-purple-primary",
     sign: "+",
     icon: (
-      <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-4 h-4 text-purple-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
       </svg>
     ),
@@ -80,7 +80,7 @@ function MetricCard({
           </p>
         </div>
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-gray-100 text-muted"
+          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-black/[0.04] text-muted"
         }`}>
           {icon}
         </div>
@@ -99,7 +99,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
   return (
     <div className="flex items-center gap-3 py-3 px-4 sm:px-5 border-b border-black/[0.04] last:border-0">
       {/* Icon */}
-      <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+      <div className="w-8 h-8 rounded-lg bg-black/[0.02] flex items-center justify-center shrink-0">
         {config.icon}
       </div>
 
@@ -138,10 +138,10 @@ export default function EarningsOverview() {
   if (earningsLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-7 w-32 bg-gray-100 rounded-lg animate-pulse" />
+        <div className="h-7 w-32 bg-black/[0.04] rounded-lg animate-pulse" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-[100px] bg-gray-50 rounded-xl animate-pulse border border-black/[0.04]" />
+            <div key={i} className="h-[100px] bg-black/[0.02] rounded-xl animate-pulse border border-black/[0.04]" />
           ))}
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function EarningsOverview() {
         </div>
         <button
           onClick={openDashboard}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
         >
           {isPlaceholder ? "Payment Setup" : `${providerLabel} Dashboard`}
           <svg className="w-3.5 h-3.5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -229,11 +229,11 @@ export default function EarningsOverview() {
 
         {txLoading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-200 border-t-purple-primary mx-auto" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-black/[0.06] border-t-purple-primary mx-auto" />
           </div>
         ) : transactions.length === 0 ? (
           <div className="p-16 text-center">
-            <svg className="w-10 h-10 text-gray-200 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-10 h-10 text-muted/40 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
             </svg>
             <p className="font-body text-sm text-muted">No transactions yet.</p>

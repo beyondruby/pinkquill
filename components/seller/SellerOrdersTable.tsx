@@ -47,12 +47,12 @@ const STATUS_TABS: { label: string; value: OrderStatus | "all"; icon: React.Reac
 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
   pending_acceptance: { label: "Pending", dot: "bg-amber-400", bg: "bg-amber-50", text: "text-amber-700" },
   pending_payment: { label: "Awaiting Payment", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { label: "Paid", dot: "bg-blue-400", bg: "bg-blue-50", text: "text-blue-700" },
-  processing: { label: "Processing", dot: "bg-blue-400", bg: "bg-blue-50", text: "text-blue-600" },
+  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
+  processing: { label: "Processing", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
   in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
   submitted: { label: "Delivered", dot: "bg-indigo-400", bg: "bg-indigo-50", text: "text-indigo-700" },
   revision_requested: { label: "Revision", dot: "bg-orange-400", bg: "bg-orange-50", text: "text-orange-700" },
-  completed: { label: "Completed", dot: "bg-green-500", bg: "bg-green-50", text: "text-green-700" },
+  completed: { label: "Completed", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
   cancelled: { label: "Cancelled", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
   declined: { label: "Declined", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
   refunded: { label: "Refunded", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
@@ -65,12 +65,12 @@ const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; te
 // ---------------------------------------------------------------------------
 
 function OrderRow({ order }: { order: Order }) {
-  const config = STATUS_CONFIG[order.status] || { label: order.status, dot: "bg-gray-400", bg: "bg-gray-50", text: "text-gray-600" };
+  const config = STATUS_CONFIG[order.status] || { label: order.status, dot: "bg-muted/60", bg: "bg-black/[0.02]", text: "text-ink/60" };
 
   return (
     <Link
       href={`/orders/${order.id}`}
-      className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 border-b border-black/[0.04] last:border-0 hover:bg-gray-50/50 transition-colors"
+      className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 border-b border-black/[0.04] last:border-0 hover:bg-black/[0.02] transition-colors"
     >
       {/* Buyer avatar */}
       {order.buyer?.avatar_url ? (
@@ -94,7 +94,7 @@ function OrderRow({ order }: { order: Order }) {
       </div>
 
       {/* Type */}
-      <span className="hidden sm:inline-flex px-2 py-0.5 text-[10px] font-ui font-medium text-muted bg-gray-50 border border-black/[0.04] rounded">
+      <span className="hidden sm:inline-flex px-2 py-0.5 text-[10px] font-ui font-medium text-muted bg-black/[0.02] border border-black/[0.04] rounded">
         {order.listing_type === "service" ? "Commission" : "Product"}
       </span>
 
@@ -149,7 +149,7 @@ export default function SellerOrdersTable() {
               className={`flex items-center gap-2 px-4 py-3 text-sm font-ui font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === tab.value
                   ? "border-purple-primary text-purple-primary"
-                  : "border-transparent text-muted hover:text-ink hover:border-gray-200"
+                  : "border-transparent text-muted hover:text-ink hover:border-black/[0.06]"
               }`}
             >
               <span className={activeTab === tab.value ? "text-purple-primary" : "text-muted"}>
@@ -164,7 +164,7 @@ export default function SellerOrdersTable() {
       {/* Orders table */}
       <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
         {/* Table Header */}
-        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-black/[0.06] bg-gray-50/80 text-[11px] font-ui uppercase tracking-wider text-muted">
+        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-black/[0.06] bg-black/[0.02] text-[11px] font-ui uppercase tracking-wider text-muted">
           <div className="w-9" />
           <div className="flex-1">Order</div>
           <div className="hidden sm:block w-20 text-center">Type</div>
@@ -175,7 +175,7 @@ export default function SellerOrdersTable() {
 
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-200 border-t-purple-primary mx-auto" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-black/[0.06] border-t-purple-primary mx-auto" />
           </div>
         ) : error ? (
           <div className="p-12 text-center">
@@ -183,7 +183,7 @@ export default function SellerOrdersTable() {
           </div>
         ) : orders.length === 0 ? (
           <div className="p-16 text-center">
-            <svg className="w-10 h-10 text-gray-200 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-10 h-10 text-muted/40 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
             </svg>
             <p className="font-body text-sm text-muted">

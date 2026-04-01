@@ -39,7 +39,7 @@ export default function SellerLayout({
 
   if (loading || setupLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+      <div className="min-h-screen flex items-center justify-center bg-[#f8f7fc]">
         <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -54,7 +54,7 @@ export default function SellerLayout({
         <MobileHeader />
         <LeftSidebar />
         <div className="pt-16 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen">
-          <main className="bg-[#fafafa] p-4 md:p-8 overflow-y-auto">
+          <main className="bg-[#f8f7fc] p-4 md:p-8 overflow-y-auto">
             <div className="max-w-6xl mx-auto">
               {children}
             </div>
@@ -73,7 +73,7 @@ export default function SellerLayout({
         <div className="relative hidden md:block">
           <SellerSidebar />
         </div>
-        <main className="flex-1 bg-[#fafafa] p-4 md:p-8 overflow-y-auto">
+        <main className="flex-1 bg-[#f8f7fc] p-4 md:p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
             {children}
           </div>

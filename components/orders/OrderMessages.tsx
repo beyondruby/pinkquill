@@ -98,7 +98,7 @@ function MessageBubble({ message, isOwn }: { message: OrderMessage; isOwn: boole
   if (isSystem) {
     return (
       <div className="flex justify-center">
-        <div className="px-3 py-1.5 rounded-full bg-gray-50 border border-black/[0.06]">
+        <div className="px-3 py-1.5 rounded-full bg-black/[0.02] border border-black/[0.06]">
           <p className="text-xs font-ui text-muted">{message.content}</p>
           <p className="text-[10px] font-ui text-muted/60 text-center mt-0.5">
             {new Date(message.created_at).toLocaleString(undefined, {
@@ -139,7 +139,7 @@ function MessageBubble({ message, isOwn }: { message: OrderMessage; isOwn: boole
           className={`px-3.5 py-2.5 rounded-2xl text-sm font-body ${
             isOwn
               ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-tr-sm"
-              : "bg-gray-50 border border-black/[0.06] text-ink rounded-tl-sm"
+              : "bg-black/[0.02] border border-black/[0.06] text-ink rounded-tl-sm"
           }`}
         >
           <p className="whitespace-pre-wrap">{message.content}</p>

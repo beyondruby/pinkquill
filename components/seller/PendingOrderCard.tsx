@@ -83,7 +83,7 @@ export default function PendingOrderCard({
 
         {/* Brief preview */}
         {isCommission && order.brief && (
-          <div className="mt-4 p-3 rounded-lg bg-gray-50 border border-black/[0.04]">
+          <div className="mt-4 p-3 rounded-lg bg-black/[0.02] border border-black/[0.04]">
             <p className="text-[11px] font-ui uppercase tracking-wider text-muted mb-1">Brief</p>
             <p className="text-sm font-body text-ink/80 line-clamp-2">{order.brief}</p>
           </div>

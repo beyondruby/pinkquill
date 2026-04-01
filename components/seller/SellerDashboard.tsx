@@ -15,11 +15,11 @@ import type { Order } from "@/lib/types/store";
 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
   pending_acceptance: { label: "Pending", dot: "bg-amber-400", bg: "bg-amber-50", text: "text-amber-700" },
   pending_payment: { label: "Awaiting Payment", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { label: "Paid", dot: "bg-blue-400", bg: "bg-blue-50", text: "text-blue-700" },
+  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
   in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
   submitted: { label: "Delivered", dot: "bg-indigo-400", bg: "bg-indigo-50", text: "text-indigo-700" },
   revision_requested: { label: "Revision", dot: "bg-orange-400", bg: "bg-orange-50", text: "text-orange-700" },
-  completed: { label: "Completed", dot: "bg-green-500", bg: "bg-green-50", text: "text-green-700" },
+  completed: { label: "Completed", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
   cancelled: { label: "Cancelled", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
   declined: { label: "Declined", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
   shipped: { label: "Shipped", dot: "bg-sky-400", bg: "bg-sky-50", text: "text-sky-700" },
@@ -59,7 +59,7 @@ function MetricCard({
           {sublabel && <p className="text-[11px] font-body text-muted mt-0.5">{sublabel}</p>}
         </div>
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-gray-100 text-muted"
+          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-black/[0.04] text-muted"
         }`}>
           {icon}
         </div>
@@ -73,12 +73,12 @@ function MetricCard({
 // ---------------------------------------------------------------------------
 
 function RecentOrderRow({ order }: { order: Order }) {
-  const config = STATUS_CONFIG[order.status] || { label: order.status, dot: "bg-gray-400", bg: "bg-gray-50", text: "text-gray-600" };
+  const config = STATUS_CONFIG[order.status] || { label: order.status, dot: "bg-muted/60", bg: "bg-black/[0.02]", text: "text-ink/60" };
 
   return (
     <Link
       href={`/orders/${order.id}`}
-      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 transition-colors border-b border-black/[0.04] last:border-0"
+      className="flex items-center gap-3 px-4 py-3 hover:bg-black/[0.02] transition-colors border-b border-black/[0.04] last:border-0"
     >
       {/* Buyer avatar */}
       {order.buyer?.avatar_url ? (
@@ -145,13 +145,13 @@ export default function SellerDashboard() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-7 w-40 bg-gray-100 rounded-lg animate-pulse" />
+        <div className="h-7 w-40 bg-black/[0.04] rounded-lg animate-pulse" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-[100px] bg-gray-50 rounded-xl animate-pulse border border-black/[0.04]" />
+            <div key={i} className="h-[100px] bg-black/[0.02] rounded-xl animate-pulse border border-black/[0.04]" />
           ))}
         </div>
-        <div className="h-80 bg-gray-50 rounded-xl animate-pulse border border-black/[0.04]" />
+        <div className="h-80 bg-black/[0.02] rounded-xl animate-pulse border border-black/[0.04]" />
       </div>
     );
   }
@@ -287,7 +287,7 @@ export default function SellerDashboard() {
         </Link>
         <Link
           href="/sell/service"
-          className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -296,7 +296,7 @@ export default function SellerDashboard() {
         </Link>
         <Link
           href="/seller/orders"
-          className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
         >
           View All Orders
         </Link>
@@ -316,7 +316,7 @@ export default function SellerDashboard() {
 
         {ordersLoading ? (
           <div className="p-10 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-200 border-t-purple-primary mx-auto" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-black/[0.06] border-t-purple-primary mx-auto" />
           </div>
         ) : ordersError ? (
           <div className="p-10 text-center">
@@ -324,7 +324,7 @@ export default function SellerDashboard() {
           </div>
         ) : recentOrders.length === 0 ? (
           <div className="p-10 text-center">
-            <svg className="w-10 h-10 text-gray-200 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-10 h-10 text-muted/40 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
             </svg>
             <p className="font-body text-sm text-muted">No orders yet. Share your listings to get started!</p>

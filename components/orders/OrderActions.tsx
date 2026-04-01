@@ -234,11 +234,11 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
           )}
 
           {order.listing_type === "product" && order.shipping_address && order.status === "shipped" && (
-            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50/60 border border-blue-200/40">
-              <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-primary/[0.04] border border-purple-primary/15">
+              <svg className="w-4 h-4 text-purple-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-sm font-body text-blue-700">Shipped — waiting for buyer to confirm delivery.</p>
+              <p className="text-sm font-body text-purple-primary">Shipped — waiting for buyer to confirm delivery.</p>
             </div>
           )}
         </>
@@ -428,7 +428,7 @@ function InlineForm({ title, subtitle, placeholder, value, onChange, onConfirm, 
 
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-3 rounded-xl border border-black/[0.04] bg-gray-50/60">
+    <div className="p-3 rounded-xl border border-black/[0.04] bg-black/[0.02]">
       <p className="text-[11px] font-ui uppercase tracking-wider text-muted mb-1">{label}</p>
       <p className="font-body text-sm text-ink/90 whitespace-pre-wrap">{value}</p>
     </div>

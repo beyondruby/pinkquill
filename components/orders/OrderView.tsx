@@ -35,20 +35,20 @@ type OrderTab = "overview" | "activity" | "reviews";
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgClass: string; textClass: string; icon: string }> = {
   pending_acceptance: { label: "Pending Approval", color: "#f59e0b", bgClass: "bg-amber-500/10", textClass: "text-amber-600", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
   pending_payment:    { label: "Awaiting Payment", color: "#8e44ad", bgClass: "bg-purple-500/10", textClass: "text-purple-600", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
-  paid:               { label: "Paid", color: "#3b82f6", bgClass: "bg-blue-500/10", textClass: "text-blue-600", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
-  in_progress:        { label: "In Progress", color: "#3b82f6", bgClass: "bg-blue-500/10", textClass: "text-blue-600", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
+  paid:               { label: "Paid", color: "#8e44ad", bgClass: "bg-purple-primary/10", textClass: "text-purple-primary", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+  in_progress:        { label: "In Progress", color: "#8e44ad", bgClass: "bg-purple-primary/10", textClass: "text-purple-primary", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
   submitted:          { label: "Delivered", color: "#6366f1", bgClass: "bg-indigo-500/10", textClass: "text-indigo-600", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
   revision_requested: { label: "Revision Requested", color: "#f59e0b", bgClass: "bg-amber-500/10", textClass: "text-amber-600", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
-  processing:         { label: "Processing", color: "#3b82f6", bgClass: "bg-blue-500/10", textClass: "text-blue-600", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
+  processing:         { label: "Processing", color: "#8e44ad", bgClass: "bg-purple-primary/10", textClass: "text-purple-primary", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
   shipped:            { label: "Shipped", color: "#06b6d4", bgClass: "bg-cyan-500/10", textClass: "text-cyan-600", icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" },
   delivered:          { label: "Delivered", color: "#10b981", bgClass: "bg-emerald-500/10", textClass: "text-emerald-600", icon: "M5 13l4 4L19 7" },
-  completed:          { label: "Completed", color: "#22c55e", bgClass: "bg-green-500/10", textClass: "text-green-600", icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" },
-  cancelled:          { label: "Cancelled", color: "#9ca3af", bgClass: "bg-gray-400/10", textClass: "text-gray-500", icon: "M6 18L18 6M6 6l12 12" },
+  completed:          { label: "Completed", color: "#10b981", bgClass: "bg-emerald-500/10", textClass: "text-emerald-600", icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" },
+  cancelled:          { label: "Cancelled", color: "#777777", bgClass: "bg-black/[0.04]", textClass: "text-muted", icon: "M6 18L18 6M6 6l12 12" },
   refund_requested:   { label: "Refund Requested", color: "#f97316", bgClass: "bg-orange-500/10", textClass: "text-orange-600", icon: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" },
   refunded:           { label: "Refunded", color: "#ef4444", bgClass: "bg-red-500/10", textClass: "text-red-500", icon: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" },
   disputed:           { label: "Disputed", color: "#ef4444", bgClass: "bg-red-500/10", textClass: "text-red-500", icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" },
-  resolved:           { label: "Resolved", color: "#22c55e", bgClass: "bg-green-500/10", textClass: "text-green-600", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
-  declined:           { label: "Declined", color: "#9ca3af", bgClass: "bg-gray-400/10", textClass: "text-gray-500", icon: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" },
+  resolved:           { label: "Resolved", color: "#10b981", bgClass: "bg-emerald-500/10", textClass: "text-emerald-600", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+  declined:           { label: "Declined", color: "#777777", bgClass: "bg-black/[0.04]", textClass: "text-muted", icon: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" },
 };
 
 function getDefaultTab(order: Order): OrderTab {
@@ -161,15 +161,15 @@ export default function OrderView({ orderId }: OrderViewProps) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-          <div className="h-5 w-20 bg-gray-100 rounded animate-pulse mb-6" />
+          <div className="h-5 w-20 bg-black/[0.04] rounded animate-pulse mb-6" />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
-              <div className="h-48 bg-gray-100 rounded-2xl animate-pulse" />
-              <div className="h-64 bg-gray-100 rounded-2xl animate-pulse" />
+              <div className="h-48 bg-black/[0.04] rounded-2xl animate-pulse" />
+              <div className="h-64 bg-black/[0.04] rounded-2xl animate-pulse" />
             </div>
             <div className="space-y-5">
-              <div className="h-56 bg-gray-100 rounded-2xl animate-pulse" />
-              <div className="h-40 bg-gray-100 rounded-2xl animate-pulse" />
+              <div className="h-56 bg-black/[0.04] rounded-2xl animate-pulse" />
+              <div className="h-40 bg-black/[0.04] rounded-2xl animate-pulse" />
             </div>
           </div>
         </div>
@@ -182,8 +182,8 @@ export default function OrderView({ orderId }: OrderViewProps) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="max-w-sm text-center">
-          <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-gray-100 flex items-center justify-center">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-black/[0.04] flex items-center justify-center">
+            <svg className="w-8 h-8 text-muted/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
@@ -283,7 +283,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
             <div className="flex items-start gap-4 min-w-0">
               {/* Product thumbnail */}
               {productImage ? (
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-gray-100 ring-1 ring-black/[0.06]">
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-black/[0.04] ring-1 ring-black/[0.06]">
                   <Image src={productImage} alt="" fill className="object-cover" />
                 </div>
               ) : (
@@ -299,7 +299,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
                 </h1>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="text-sm font-body text-muted">{order.order_number}</span>
-                  <span className="hidden sm:inline text-gray-300">|</span>
+                  <span className="hidden sm:inline text-muted/40">|</span>
                   <span className="flex items-center gap-1.5 text-sm font-body text-muted">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={getOrderTypeIcon(order)} />
@@ -328,7 +328,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
             {!isBuyer && (
               <div>
                 <span className="text-muted">Your Earnings</span>
-                <span className="ml-1.5 font-semibold text-green-600">{formatCurrency(order.seller_amount)}</span>
+                <span className="ml-1.5 font-semibold text-emerald-600">{formatCurrency(order.seller_amount)}</span>
               </div>
             )}
             {isCommission && order.due_date && (
@@ -448,7 +448,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
                   <CardHeader title="Commission Brief" />
                   <p className="font-body text-sm text-ink/90 whitespace-pre-wrap leading-relaxed">{order.brief}</p>
                   {order.requirements && Object.keys(order.requirements).length > 0 && (
-                    <div className="mt-4 p-3.5 rounded-xl bg-gray-50/80 border border-black/[0.04]">
+                    <div className="mt-4 p-3.5 rounded-xl bg-black/[0.02] border border-black/[0.04]">
                       <p className="text-[11px] font-ui uppercase tracking-wider text-muted mb-2.5">Requirements</p>
                       <div className="space-y-1.5">
                         {Object.entries(order.requirements).map(([key, value]) => (
@@ -508,7 +508,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
                     <SummaryRow label="Shipping" value={formatCurrency(shippingCost)} />
                   )}
                   {discountAmount > 0 && (
-                    <SummaryRow label="Discount" value={`-${formatCurrency(discountAmount)}`} className="text-green-600" />
+                    <SummaryRow label="Discount" value={`-${formatCurrency(discountAmount)}`} className="text-emerald-600" />
                   )}
                   {isBuyer && (
                     <SummaryRow label="Platform Fee" value={formatCurrency(order.platform_fee)} muted />
@@ -744,7 +744,7 @@ function DraftEditor({
       {(draftValidationError || updateDraftError) && (
         <p className="text-sm font-body text-red-500">{draftValidationError || updateDraftError}</p>
       )}
-      {draftNotice && <p className="text-sm font-body text-green-600">{draftNotice}</p>}
+      {draftNotice && <p className="text-sm font-body text-emerald-600">{draftNotice}</p>}
 
       <button onClick={onSave} disabled={updatingDraft}
         className="px-5 py-2.5 rounded-xl text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid disabled:opacity-60 hover:opacity-90 transition-opacity">
@@ -768,8 +768,8 @@ function OrderReviewSection({ order, userId }: { order: Order; userId?: string }
   if (!REVIEWABLE_STATUSES.has(order.status) || !userId) {
     return (
       <Card className="text-center py-10">
-        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-50 flex items-center justify-center">
-          <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-black/[0.02] flex items-center justify-center">
+          <svg className="w-6 h-6 text-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
           </svg>
         </div>
@@ -814,9 +814,9 @@ function OrderReviewSection({ order, userId }: { order: Order; userId?: string }
       )}
 
       {hasReviewed && canLeaveReview && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-green-50/60 border border-green-200/40">
-          <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-          <p className="text-sm font-body text-green-700">Your review has been submitted.</p>
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/40">
+          <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          <p className="text-sm font-body text-emerald-700">Your review has been submitted.</p>
         </div>
       )}
     </Card>
@@ -834,10 +834,10 @@ function DisputeBanner({ orderId, orderStatus }: { orderId: string; orderStatus:
   const isResolved = dispute.status === "resolved";
 
   return (
-    <Card className={isResolved ? "border-green-200/60 bg-green-50/30" : "border-red-200/60 bg-red-50/30"}>
+    <Card className={isResolved ? "border-emerald-200/60 bg-emerald-50/30" : "border-red-200/60 bg-red-50/30"}>
       <div className="flex items-center gap-2.5 mb-3">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isResolved ? "bg-green-100" : "bg-red-100"}`}>
-          <svg className={`w-4 h-4 ${isResolved ? "text-green-600" : "text-red-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isResolved ? "bg-emerald-100" : "bg-red-100"}`}>
+          <svg className={`w-4 h-4 ${isResolved ? "text-emerald-600" : "text-red-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {isResolved ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             ) : (
@@ -845,32 +845,32 @@ function DisputeBanner({ orderId, orderStatus }: { orderId: string; orderStatus:
             )}
           </svg>
         </div>
-        <h2 className={`font-display text-base ${isResolved ? "text-green-700" : "text-red-700"}`}>
+        <h2 className={`font-display text-base ${isResolved ? "text-emerald-700" : "text-red-700"}`}>
           {isResolved ? "Dispute Resolved" : "Dispute Open"}
         </h2>
       </div>
       <div className="space-y-2.5 ml-[42px]">
         <div>
-          <p className={`text-[11px] font-ui uppercase tracking-wider ${isResolved ? "text-green-600/60" : "text-red-500/60"}`}>Reason</p>
-          <p className={`text-sm font-body ${isResolved ? "text-green-800" : "text-red-800"}`}>
+          <p className={`text-[11px] font-ui uppercase tracking-wider ${isResolved ? "text-emerald-600/60" : "text-red-500/60"}`}>Reason</p>
+          <p className={`text-sm font-body ${isResolved ? "text-emerald-800" : "text-red-800"}`}>
             {DISPUTE_REASON_LABELS[dispute.reason] || dispute.reason}
           </p>
         </div>
         <div>
-          <p className={`text-[11px] font-ui uppercase tracking-wider ${isResolved ? "text-green-600/60" : "text-red-500/60"}`}>Description</p>
-          <p className={`text-sm font-body ${isResolved ? "text-green-800" : "text-red-800"}`}>{dispute.description}</p>
+          <p className={`text-[11px] font-ui uppercase tracking-wider ${isResolved ? "text-emerald-600/60" : "text-red-500/60"}`}>Description</p>
+          <p className={`text-sm font-body ${isResolved ? "text-emerald-800" : "text-red-800"}`}>{dispute.description}</p>
         </div>
         {isResolved && dispute.resolution && (
           <div>
-            <p className="text-[11px] font-ui uppercase tracking-wider text-green-600/60">Resolution</p>
-            <p className="text-sm font-body text-green-800 font-semibold">
+            <p className="text-[11px] font-ui uppercase tracking-wider text-emerald-600/60">Resolution</p>
+            <p className="text-sm font-body text-emerald-800 font-semibold">
               {DISPUTE_RESOLUTION_LABELS[dispute.resolution] || dispute.resolution}
             </p>
-            {dispute.resolution_notes && <p className="text-sm font-body text-green-700 mt-1">{dispute.resolution_notes}</p>}
-            {dispute.refund_amount && <p className="text-sm font-body text-green-700 mt-1">Refund: {formatCurrency(dispute.refund_amount)}</p>}
+            {dispute.resolution_notes && <p className="text-sm font-body text-emerald-700 mt-1">{dispute.resolution_notes}</p>}
+            {dispute.refund_amount && <p className="text-sm font-body text-emerald-700 mt-1">Refund: {formatCurrency(dispute.refund_amount)}</p>}
           </div>
         )}
-        <p className={`text-xs font-body ${isResolved ? "text-green-600/50" : "text-red-500/50"}`}>
+        <p className={`text-xs font-body ${isResolved ? "text-emerald-600/50" : "text-red-500/50"}`}>
           {isResolved && dispute.resolved_at
             ? `Resolved ${formatDate(dispute.resolved_at)}`
             : `Opened ${formatDate(dispute.created_at)}`}
@@ -893,10 +893,10 @@ function ConfirmDeliveryCard({ orderId, onConfirm }: { orderId: string; onConfir
 
   if (confirmed) {
     return (
-      <Card className="border-green-200/60 bg-green-50/30 text-center">
+      <Card className="border-emerald-200/60 bg-emerald-50/30 text-center">
         <div className="flex items-center justify-center gap-2">
-          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-          <p className="font-ui font-semibold text-green-700">Delivery confirmed!</p>
+          <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          <p className="font-ui font-semibold text-emerald-700">Delivery confirmed!</p>
         </div>
       </Card>
     );
@@ -917,7 +917,7 @@ function ConfirmDeliveryCard({ orderId, onConfirm }: { orderId: string; onConfir
           </div>
         </div>
         <button onClick={handleConfirm} disabled={confirming}
-          className="shrink-0 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-ui font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60">
+          className="shrink-0 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-500 text-white rounded-xl font-ui font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60">
           {confirming ? "Confirming..." : "Confirm Delivery"}
         </button>
       </div>

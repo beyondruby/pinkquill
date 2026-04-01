@@ -33,30 +33,30 @@ export default function ShippingTracker({ order }: { order: Order }) {
       {/* Progress bar */}
       <div className="flex items-center gap-3 mb-5">
         <div className="flex items-center gap-1">
-          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
             <FontAwesomeIcon icon={faBox} className="text-white text-xs" />
           </div>
-          <span className="text-xs font-ui text-green-700 ml-1">Packed</span>
+          <span className="text-xs font-ui text-emerald-700 ml-1">Packed</span>
         </div>
-        <div className={`flex-1 h-1 rounded ${isShipped ? "bg-green-400" : "bg-gray-200"}`} />
+        <div className={`flex-1 h-1 rounded ${isShipped ? "bg-emerald-400" : "bg-black/[0.08]"}`} />
         <div className="flex items-center gap-1">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isShipped ? "bg-green-500" : "bg-gray-200"
+            isShipped ? "bg-emerald-500" : "bg-black/[0.08]"
           }`}>
-            <FontAwesomeIcon icon={faTruck} className={isShipped ? "text-white text-xs" : "text-gray-400 text-xs"} />
+            <FontAwesomeIcon icon={faTruck} className={isShipped ? "text-white text-xs" : "text-muted/60 text-xs"} />
           </div>
-          <span className={`text-xs font-ui ml-1 ${isShipped ? "text-green-700" : "text-muted"}`}>
+          <span className={`text-xs font-ui ml-1 ${isShipped ? "text-emerald-700" : "text-muted"}`}>
             Shipped
           </span>
         </div>
-        <div className={`flex-1 h-1 rounded ${isDelivered ? "bg-green-400" : "bg-gray-200"}`} />
+        <div className={`flex-1 h-1 rounded ${isDelivered ? "bg-emerald-400" : "bg-black/[0.08]"}`} />
         <div className="flex items-center gap-1">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isDelivered ? "bg-green-500" : "bg-gray-200"
+            isDelivered ? "bg-emerald-500" : "bg-black/[0.08]"
           }`}>
-            <FontAwesomeIcon icon={faCheckCircle} className={isDelivered ? "text-white text-xs" : "text-gray-400 text-xs"} />
+            <FontAwesomeIcon icon={faCheckCircle} className={isDelivered ? "text-white text-xs" : "text-muted/60 text-xs"} />
           </div>
-          <span className={`text-xs font-ui ml-1 ${isDelivered ? "text-green-700" : "text-muted"}`}>
+          <span className={`text-xs font-ui ml-1 ${isDelivered ? "text-emerald-700" : "text-muted"}`}>
             Delivered
           </span>
         </div>
@@ -64,7 +64,7 @@ export default function ShippingTracker({ order }: { order: Order }) {
 
       {/* Tracking details */}
       {hasTracking && (
-        <div className="rounded-xl bg-gray-50 border border-black/[0.04] p-4">
+        <div className="rounded-xl bg-black/[0.02] border border-black/[0.04] p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-ui text-muted uppercase tracking-wider mb-1">
@@ -96,7 +96,7 @@ export default function ShippingTracker({ order }: { order: Order }) {
             </p>
           )}
           {order.delivered_at && (
-            <p className="text-xs font-body text-green-600 mt-1">
+            <p className="text-xs font-body text-emerald-600 mt-1">
               Delivered on {new Date(order.delivered_at).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
             </p>
           )}
