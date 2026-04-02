@@ -78,7 +78,8 @@
       "mcp__supabase__get_project",
       "Bash(npm outdated:*)",
       "Bash(jobs -l)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
