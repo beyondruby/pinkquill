@@ -31,7 +31,6 @@ export default function CommunitiesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState<SortType>('trending');
-  const [showFilters, setShowFilters] = useState(false);
 
   const { communities: discoverCommunities, trending, loading: discoverLoading } = useDiscoverCommunities();
   const { communities: joinedCommunities, loading: joinedLoading } = useCommunities(user?.id, 'joined');
@@ -149,7 +148,6 @@ export default function CommunitiesPage() {
   const showFeatured = activeTab === 'discover' && featuredCommunities.length > 0 && !searchQuery && selectedCategory === 'all';
   const showBrowseByCategory = activeTab === 'discover' && !searchQuery && selectedCategory === 'all' && topByCategory.length > 0;
   const hasActiveFilters = selectedCategory !== 'all' || sortBy !== 'trending';
-  const activeFilterCount = (selectedCategory !== 'all' ? 1 : 0) + (sortBy !== 'trending' ? 1 : 0);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -219,139 +217,73 @@ export default function CommunitiesPage() {
 
         {/* Tabs */}
         {user && (
-          <div className="flex gap-1 p-1 bg-white/80 backdrop-blur-sm rounded-xl border border-purple-primary/10 shadow-sm">
-            <button
-              onClick={() => setActiveTab('discover')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
-                activeTab === 'discover'
-                  ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
-                  : 'text-muted hover:text-ink hover:bg-purple-primary/5'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Discover
-            </button>
-            <button
-              onClick={() => setActiveTab('joined')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
-                activeTab === 'joined'
-                  ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
-                  : 'text-muted hover:text-ink hover:bg-purple-primary/5'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Joined
-            </button>
-            <button
-              onClick={() => setActiveTab('created')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-ui text-sm font-medium transition-all duration-200 ${
-                activeTab === 'created'
-                  ? 'bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md'
-                  : 'text-muted hover:text-ink hover:bg-purple-primary/5'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Created
-            </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {([
+              { id: 'discover' as TabType, label: 'Discover' },
+              { id: 'joined' as TabType, label: 'Joined' },
+              { id: 'created' as TabType, label: 'Created' },
+            ]).map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`shrink-0 px-4 py-2 rounded-full font-ui text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-pink-vivid/10 text-pink-vivid'
+                    : 'text-muted hover:text-ink hover:bg-black/[0.03]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         )}
 
       </div>
 
-      {/* Filters */}
-      <div className="mb-8">
-        <div className="flex items-center gap-4">
-          {/* Filter Toggle */}
+      {/* Categories — always visible, horizontally scrollable */}
+      <div className="mb-4 flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+        {CATEGORIES.map((cat) => (
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-ui text-sm transition-all ${
-              showFilters || hasActiveFilters
-                ? 'text-purple-primary'
-                : 'text-muted hover:text-ink'
+            key={cat.id}
+            onClick={() => setSelectedCategory(cat.id)}
+            className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
+              selectedCategory === cat.id
+                ? 'bg-pink-vivid/10 text-pink-vivid'
+                : 'text-muted hover:text-ink hover:bg-black/[0.03]'
             }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.5 rounded bg-purple-primary text-white text-xs">
-                {activeFilterCount}
-              </span>
-            )}
+            {cat.name}
           </button>
+        ))}
+      </div>
 
-          {/* Divider */}
-          <div className="h-4 w-px bg-black/10" />
+      {/* Sort + active filter indicator */}
+      <div className="flex items-center gap-1.5 mb-8">
+        {([
+          { id: 'trending' as SortType, label: 'Trending' },
+          { id: 'newest' as SortType, label: 'New' },
+          { id: 'members' as SortType, label: 'Popular' },
+        ]).map((sort) => (
+          <button
+            key={sort.id}
+            onClick={() => setSortBy(sort.id)}
+            className={`shrink-0 px-3 py-1 rounded-full font-ui text-[11px] font-medium transition-all duration-200 ${
+              sortBy === sort.id
+                ? 'bg-purple-primary/[0.08] text-purple-primary'
+                : 'text-muted hover:text-ink hover:bg-black/[0.03]'
+            }`}
+          >
+            {sort.label}
+          </button>
+        ))}
 
-          {/* Sort Options - Always Visible */}
-          <div className="flex items-center gap-1">
-            {[
-              { id: 'trending', label: 'Trending' },
-              { id: 'newest', label: 'New' },
-              { id: 'members', label: 'Popular' },
-            ].map((sort) => (
-              <button
-                key={sort.id}
-                onClick={() => setSortBy(sort.id as SortType)}
-                className={`px-3 py-1.5 rounded-lg font-ui text-sm transition-all ${
-                  sortBy === sort.id
-                    ? 'bg-black/[0.05] text-ink font-medium'
-                    : 'text-muted hover:text-ink'
-                }`}
-              >
-                {sort.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Active Category Chip */}
-          {selectedCategory !== 'all' && (
-            <>
-              <div className="h-4 w-px bg-black/10" />
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-primary/10 text-purple-primary font-ui text-sm">
-                {CATEGORIES.find(c => c.id === selectedCategory)?.name}
-                <button
-                  onClick={() => setSelectedCategory('all')}
-                  className="hover:text-pink-vivid transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* Category Filter Panel */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-black/5 animate-fadeIn">
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    setSelectedCategory(cat.id);
-                    if (cat.id !== 'all') setShowFilters(false);
-                  }}
-                  className={`px-4 py-2 rounded-full font-ui text-sm transition-all ${
-                    selectedCategory === cat.id
-                      ? 'bg-purple-primary text-white'
-                      : 'bg-black/[0.03] text-ink/70 hover:bg-black/[0.06] hover:text-ink'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
+        {hasActiveFilters && (
+          <button
+            onClick={() => { setSelectedCategory('all'); setSortBy('trending'); }}
+            className="shrink-0 ml-auto px-3 py-1 rounded-full font-ui text-[11px] font-medium text-muted hover:text-pink-vivid hover:bg-pink-vivid/[0.06] transition-all duration-200"
+          >
+            Clear filters
+          </button>
         )}
       </div>
 
