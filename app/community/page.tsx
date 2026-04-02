@@ -152,15 +152,15 @@ export default function CommunitiesPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Hero Section - More Creative */}
-      <div className="relative mb-10 overflow-hidden">
+      <div className="relative mb-6 md:mb-10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/8 via-pink-vivid/5 to-orange-warm/8 rounded-3xl" />
         <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-purple-primary/20 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
         <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-pink-vivid/15 to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
 
-        <div className="relative px-8 py-10">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+        <div className="relative px-5 py-7 md:px-8 md:py-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 md:gap-8">
             <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/70 backdrop-blur-sm border border-purple-primary/10 mb-5 shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 md:gap-2.5 md:px-4 md:py-2 rounded-full bg-white/70 backdrop-blur-sm border border-purple-primary/10 mb-4 md:mb-5 shadow-sm">
                 <div className="relative">
                   <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid" />
                   <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid animate-ping opacity-75" />
@@ -168,14 +168,14 @@ export default function CommunitiesPage() {
                 <span className="font-ui text-xs font-semibold text-purple-primary uppercase tracking-widest">Creative Spaces</span>
               </div>
 
-              <h1 className="font-display text-4xl md:text-5xl font-bold text-ink mb-4 leading-tight">
+              <h1 className="font-display text-3xl md:text-5xl font-bold text-ink mb-3 md:mb-4 leading-tight">
                 Find Your
                 <span className="block bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-clip-text text-transparent">
                   Creative Tribe
                 </span>
               </h1>
 
-              <p className="font-body text-muted text-lg leading-relaxed">
+              <p className="font-body text-muted text-base md:text-lg leading-relaxed">
                 Connect with creatives of all kinds in spaces designed for inspiration and collaboration.
               </p>
             </div>
@@ -184,7 +184,7 @@ export default function CommunitiesPage() {
               <div className="flex-shrink-0">
                 <Link
                   href="/community/create"
-                  className="group relative inline-flex items-center gap-3 px-7 py-4 rounded-2xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold shadow-xl shadow-purple-primary/25 hover:shadow-2xl hover:shadow-pink-vivid/30 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                  className="group relative inline-flex items-center gap-2 md:gap-3 px-5 py-3 md:px-7 md:py-4 rounded-xl md:rounded-2xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm md:text-base font-semibold shadow-xl shadow-purple-primary/25 hover:shadow-2xl hover:shadow-pink-vivid/30 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-pink-vivid to-orange-warm opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <svg className="relative w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

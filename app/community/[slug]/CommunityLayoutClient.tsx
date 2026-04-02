@@ -184,7 +184,7 @@ export default function CommunityLayoutClient({
         userId={user?.id}
         onUpdate={refetch}
       />
-      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-12 lg:px-16 py-6 md:py-8">
         {children}
       </div>
     </div>

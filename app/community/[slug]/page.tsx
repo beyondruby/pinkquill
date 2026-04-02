@@ -257,6 +257,42 @@ export default function CommunityFeedPage() {
           </button>
         </div>
 
+        {/* Mobile community info — surfaces sidebar content on small screens */}
+        <div className="lg:hidden mb-6">
+          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+            <Link
+              href={`/community/${community.slug}/members`}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-black/[0.06] font-ui text-xs text-ink/70"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              {community.member_count || 0} members
+            </Link>
+            <Link
+              href={`/community/${community.slug}/about`}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-black/[0.06] font-ui text-xs text-ink/70"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              About
+            </Link>
+            {tags && tags.length > 0 && tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag.id}
+                className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-ui font-medium ${
+                  tag.tag_type === 'genre'
+                    ? 'bg-purple-primary/10 text-purple-primary'
+                    : tag.tag_type === 'theme'
+                    ? 'bg-pink-vivid/10 text-pink-vivid'
+                    : 'bg-black/[0.04] text-ink/60'
+                }`}
+              >
+                {tag.tag}
+              </span>
+            ))}
+          </div>
+        </div>
+
         {/* Pinned Posts - Enhanced */}
         {pinnedPosts.length > 0 && (
           <div className="mb-8">

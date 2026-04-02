@@ -229,12 +229,12 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
         </div>
 
         {/* Main content - positioned at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 px-6 md:px-12 lg:px-16 pb-8">
-          <div className="max-w-7xl mx-auto flex items-end gap-6 md:gap-8">
+        <div className="absolute bottom-0 left-0 right-0 px-4 md:px-12 lg:px-16 pb-6 md:pb-8">
+          <div className="max-w-7xl mx-auto flex items-end gap-3 md:gap-8">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
               <div className="absolute -inset-1 bg-white/30 rounded-full blur-sm" />
-              <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-3 border-white/40 shadow-2xl">
+              <div className="relative w-16 h-16 md:w-32 md:h-32 rounded-full overflow-hidden border-3 border-white/40 shadow-2xl">
                 {community.avatar_url ? (
                   <img
                     src={community.avatar_url}
@@ -253,7 +253,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
 
             {/* Info */}
             <div className="flex-1 min-w-0 pb-1">
-              <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-white tracking-tight drop-shadow-lg">
+              <h1 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold text-white tracking-tight drop-shadow-lg">
                 {community.name}
               </h1>
 
@@ -308,13 +308,13 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
 
       {/* Separate Tab Navigation Bar */}
       <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-ink/5 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16">
-          <div className="flex items-center justify-between">
-            {/* Tabs */}
-            <nav className="flex items-center gap-1">
+        <div className="max-w-7xl mx-auto px-4 md:px-12 lg:px-16">
+          <div className="flex items-center justify-between gap-2">
+            {/* Tabs — scrollable on mobile */}
+            <nav className="flex items-center gap-0 overflow-x-auto scrollbar-hide">
               <Link
                 href={`/community/${community.slug}`}
-                className={`relative px-5 py-4 font-ui text-sm font-medium transition-all ${
+                className={`relative shrink-0 px-3 md:px-5 py-3.5 md:py-4 font-ui text-[13px] md:text-sm font-medium transition-all ${
                   isPostsActive
                     ? 'text-purple-primary'
                     : 'text-ink/50 hover:text-ink'
@@ -327,7 +327,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
               </Link>
               <Link
                 href={`/community/${community.slug}/about`}
-                className={`relative px-5 py-4 font-ui text-sm font-medium transition-all ${
+                className={`relative shrink-0 px-3 md:px-5 py-3.5 md:py-4 font-ui text-[13px] md:text-sm font-medium transition-all ${
                   isAboutActive
                     ? 'text-purple-primary'
                     : 'text-ink/50 hover:text-ink'
@@ -340,7 +340,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
               </Link>
               <Link
                 href={`/community/${community.slug}/members`}
-                className={`relative px-5 py-4 font-ui text-sm font-medium transition-all ${
+                className={`relative shrink-0 px-3 md:px-5 py-3.5 md:py-4 font-ui text-[13px] md:text-sm font-medium transition-all ${
                   isMembersActive
                     ? 'text-purple-primary'
                     : 'text-ink/50 hover:text-ink'
@@ -354,7 +354,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
               {(isAdmin || isMod) && (
                 <Link
                   href={`/community/${community.slug}/settings`}
-                  className={`relative px-5 py-4 font-ui text-sm font-medium transition-all ${
+                  className={`relative shrink-0 px-3 md:px-5 py-3.5 md:py-4 font-ui text-[13px] md:text-sm font-medium transition-all ${
                     isSettingsActive
                       ? 'text-purple-primary'
                       : 'text-ink/50 hover:text-ink'
@@ -370,6 +370,17 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
 
             {/* Mobile actions */}
             <div className="flex md:hidden items-center gap-2">
+              {community.is_member && community.user_status === 'active' && (
+                <Link
+                  href={`/create?community=${community.slug}`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-xs font-medium"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Post
+                </Link>
+              )}
               {userId && (
                 <JoinButton
                   community={community}
