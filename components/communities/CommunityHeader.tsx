@@ -101,7 +101,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
   return (
     <div className="relative">
       {/* Full Width Hero Section */}
-      <div className="relative h-64 md:h-72 w-full overflow-hidden">
+      <div className="relative h-48 md:h-72 w-full overflow-hidden">
         {/* Gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/80 via-pink-vivid/60 to-orange-warm/50" />
 
@@ -115,12 +115,12 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
         )}
 
         {/* Top right - Menu button */}
-        <div className="absolute top-6 right-6 z-20" ref={menuRef}>
+        <div className="absolute top-3 right-3 md:top-6 md:right-6 z-20" ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center text-white transition-all border border-white/20"
+            className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center text-white transition-all border border-white/20"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="5" cy="12" r="2" />
               <circle cx="12" cy="12" r="2" />
               <circle cx="19" cy="12" r="2" />
@@ -130,10 +130,10 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
           {showMenu && (
             <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl shadow-black/15 border border-ink/5 overflow-hidden z-50 animate-fadeIn">
               {/* Horizontal menu items */}
-              <div className="flex items-center p-2 gap-1">
+              <div className="flex items-center p-1.5 md:p-2 gap-1">
                 <button
                   onClick={handleShare}
-                  className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-ink/5 hover:text-ink transition-all min-w-[72px]"
+                  className="flex flex-col items-center gap-1 md:gap-1.5 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-ink/70 hover:bg-ink/5 hover:text-ink transition-all min-w-[60px] md:min-w-[72px]"
                 >
                   {copied ? (
                     <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +156,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
                     <Link
                       href={`/community/${community.slug}/settings`}
                       onClick={() => setShowMenu(false)}
-                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-purple-primary/5 hover:text-purple-primary transition-all min-w-[72px]"
+                      className="flex flex-col items-center gap-1 md:gap-1.5 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-ink/70 hover:bg-purple-primary/5 hover:text-purple-primary transition-all min-w-[60px] md:min-w-[72px]"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -176,7 +176,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
                         setShowMenu(false);
                         setShowReportModal(true);
                       }}
-                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-red-50 hover:text-red-500 transition-all min-w-[72px]"
+                      className="flex flex-col items-center gap-1 md:gap-1.5 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-ink/70 hover:bg-red-50 hover:text-red-500 transition-all min-w-[60px] md:min-w-[72px]"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
@@ -191,29 +191,29 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
         </div>
 
         {/* Top left badges */}
-        <div className="absolute top-6 left-6 flex items-center gap-3 z-10">
+        <div className="absolute top-3 left-3 md:top-6 md:left-6 flex items-center gap-1.5 md:gap-3 z-10">
           {/* Privacy badge */}
-          <div className="px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/20 flex items-center gap-2">
+          <div className="px-2.5 py-1 md:px-4 md:py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/20 flex items-center gap-1.5">
             {community.privacy === 'private' ? (
               <>
-                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
-                <span className="font-ui text-xs font-semibold text-white">Private</span>
+                <span className="font-ui text-[10px] md:text-xs font-semibold text-white">Private</span>
               </>
             ) : (
               <>
-                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 md:w-3.5 md:h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
                 </svg>
-                <span className="font-ui text-xs font-semibold text-white">Public</span>
+                <span className="font-ui text-[10px] md:text-xs font-semibold text-white">Public</span>
               </>
             )}
           </div>
 
           {/* Role badge */}
           {community.is_member && (
-            <div className="px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/20 flex items-center gap-2">
+            <div className="px-2.5 py-1 md:px-4 md:py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/20 flex items-center gap-1.5">
               <div className={`w-1.5 h-1.5 rounded-full ${
                 community.user_role === 'admin'
                   ? 'bg-orange-warm'
@@ -221,7 +221,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
                   ? 'bg-white'
                   : 'bg-emerald-400'
               }`} />
-              <span className="font-ui text-xs font-semibold text-white capitalize">
+              <span className="font-ui text-[10px] md:text-xs font-semibold text-white capitalize">
                 {community.user_role || 'Member'}
               </span>
             </div>
@@ -252,27 +252,27 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
             </div>
 
             {/* Info */}
-            <div className="flex-1 min-w-0 pb-1">
-              <h1 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold text-white tracking-tight drop-shadow-lg">
+            <div className="flex-1 min-w-0">
+              <h1 className="font-display text-xl md:text-4xl lg:text-5xl font-bold text-white tracking-tight drop-shadow-lg line-clamp-1">
                 {community.name}
               </h1>
 
               {community.description && (
-                <p className="font-body text-base md:text-lg text-white/80 mt-2 line-clamp-1 max-w-2xl">
+                <p className="hidden md:block font-body text-lg text-white/80 mt-2 line-clamp-1 max-w-2xl">
                   {community.description}
                 </p>
               )}
 
               {/* Stats row */}
-              <div className="flex items-center gap-6 mt-4">
+              <div className="flex items-center gap-4 md:gap-6 mt-2 md:mt-4">
                 <Link
                   href={`/community/${community.slug}/members`}
-                  className="group flex items-center gap-2"
+                  className="group flex items-center gap-1.5 md:gap-2"
                 >
-                  <span className="font-display text-xl md:text-2xl font-bold text-white">
+                  <span className="font-display text-base md:text-2xl font-bold text-white">
                     {formatCount(community.member_count || 0)}
                   </span>
-                  <span className="font-ui text-sm text-white/70 group-hover:text-white transition-colors">
+                  <span className="font-ui text-xs md:text-sm text-white/70 group-hover:text-white transition-colors">
                     members
                   </span>
                 </Link>
