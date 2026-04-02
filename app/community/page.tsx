@@ -198,50 +198,47 @@ export default function CommunitiesPage() {
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-4">
-        <div className="relative flex-1">
-          <input
-            type="text"
-            placeholder="Search communities..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/90 backdrop-blur-sm border border-purple-primary/10 shadow-sm font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 focus:bg-white transition-all placeholder:text-muted/60"
-          />
-          <div className="absolute left-4 top-1/2 -translate-y-1/2">
-            <svg className="w-5 h-5 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-          </div>
+      {/* Search */}
+      <div className="relative mb-3">
+        <input
+          type="text"
+          placeholder="Search communities..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-11 pr-4 py-3 md:py-3.5 rounded-xl bg-white/90 backdrop-blur-sm border border-purple-primary/10 shadow-sm font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 focus:bg-white transition-all placeholder:text-muted/60"
+        />
+        <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
+          <svg className="w-4.5 h-4.5 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
         </div>
-
-        {/* Tabs */}
-        {user && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            {([
-              { id: 'discover' as TabType, label: 'Discover' },
-              { id: 'joined' as TabType, label: 'Joined' },
-              { id: 'created' as TabType, label: 'Created' },
-            ]).map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 px-4 py-2 rounded-full font-ui text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-pink-vivid/10 text-pink-vivid'
-                    : 'text-muted hover:text-ink hover:bg-black/[0.03]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
-
       </div>
 
-      {/* Categories — always visible, horizontally scrollable */}
-      <div className="mb-4 flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+      {/* Tabs — Discover / Joined / Created */}
+      {user && (
+        <div className="flex items-center gap-1.5 mb-3 overflow-x-auto scrollbar-hide">
+          {([
+            { id: 'discover' as TabType, label: 'Discover' },
+            { id: 'joined' as TabType, label: 'Joined' },
+            { id: 'created' as TabType, label: 'Created' },
+          ]).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-pink-vivid/10 text-pink-vivid'
+                  : 'text-muted hover:text-ink hover:bg-black/[0.03]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Categories — scrollable pill row */}
+      <div className="mb-3 flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
         {CATEGORIES.map((cat) => (
           <button
             key={cat.id}
@@ -257,8 +254,8 @@ export default function CommunitiesPage() {
         ))}
       </div>
 
-      {/* Sort + active filter indicator */}
-      <div className="flex items-center gap-1.5 mb-8">
+      {/* Sort + clear */}
+      <div className="flex items-center gap-1.5 mb-6 md:mb-8">
         {([
           { id: 'trending' as SortType, label: 'Trending' },
           { id: 'newest' as SortType, label: 'New' },

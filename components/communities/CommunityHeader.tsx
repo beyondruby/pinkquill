@@ -307,11 +307,11 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
       </div>
 
       {/* Separate Tab Navigation Bar */}
-      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-ink/5 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 md:px-12 lg:px-16">
-          <div className="flex items-center justify-between gap-2">
-            {/* Tabs — scrollable on mobile */}
-            <nav className="flex items-center gap-0 overflow-x-auto scrollbar-hide">
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-ink/5 shadow-sm safe-area-top">
+        <div className="max-w-7xl mx-auto px-3 md:px-12 lg:px-16">
+          <div className="flex items-center justify-between gap-1.5">
+            {/* Tabs — scrollable on mobile, min-w-0 enables overflow */}
+            <nav className="flex-1 min-w-0 flex items-center gap-0 overflow-x-auto scrollbar-hide">
               <Link
                 href={`/community/${community.slug}`}
                 className={`relative shrink-0 px-3 md:px-5 py-3.5 md:py-4 font-ui text-[13px] md:text-sm font-medium transition-all ${
@@ -368,17 +368,17 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
               )}
             </nav>
 
-            {/* Mobile actions */}
-            <div className="flex md:hidden items-center gap-2">
+            {/* Mobile actions — shrink-0 so they never get pushed off */}
+            <div className="flex md:hidden items-center gap-1.5 shrink-0">
               {community.is_member && community.user_status === 'active' && (
                 <Link
                   href={`/create?community=${community.slug}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-xs font-medium"
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
+                  aria-label="Create post"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                   </svg>
-                  Post
                 </Link>
               )}
               {userId && (
