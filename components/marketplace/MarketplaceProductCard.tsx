@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { Product } from "@/lib/types/store";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useToggleSaveProduct } from "@/lib/hooks/useProducts";
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
+
+const CARD_IMAGE_SIZES = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 320px";
 
 interface MarketplaceProductCardProps {
   product: Product;
@@ -21,7 +24,7 @@ export default function MarketplaceProductCard({ product }: MarketplaceProductCa
 }
 
 function CommissionMarketplaceCard({ product }: { product: Product }) {
-  const imageUrl = product.primary_image_url || "/placeholder-product.jpg";
+  const imageUrl = product.primary_image_url || "/placeholder-product.svg";
   const sellerName = product.seller?.display_name || product.seller?.username || "Creator";
   const headline =
     typeof product.service_metadata?.headline === "string"
@@ -54,10 +57,12 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
         </div>
 
         <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-pink-50 to-orange-50">
-          <img
+          <Image
             src={imageUrl}
             alt={product.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes={CARD_IMAGE_SIZES}
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
 
           <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
@@ -87,9 +92,11 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
 
         <div className="p-4 flex flex-col h-[calc(100%-0px)]">
           <div className="flex items-center gap-2 mb-2">
-            <img
+            <Image
               src={getOptimizedAvatarUrl(product.seller?.avatar_url, 28) || DEFAULT_AVATAR}
               alt={sellerName}
+              width={24}
+              height={24}
               className="w-6 h-6 rounded-full object-cover ring-1 ring-black/[0.06]"
             />
             <span className="text-xs font-body text-muted truncate">{sellerName}</span>
@@ -151,37 +158,21 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
 function ProductMarketplaceCard({ product }: { product: Product }) {
   const router = useRouter();
   const { user } = useAuth();
-  const { toggle: toggleSave, checkIsSaved } = useToggleSaveProduct();
-  const imageUrl = product.primary_image_url || "/placeholder-product.jpg";
+  const { toggle: toggleSave } = useToggleSaveProduct();
+  const imageUrl = product.primary_image_url || "/placeholder-product.svg";
   const price = product.min_price;
   const hasMultiplePrices = product.min_price !== product.max_price;
   const isDigital = product.delivery_type === "digital";
   const sellerName = product.seller?.display_name || product.seller?.username || "Creator";
-  const [isSaved, setIsSaved] = useState(false);
+
+  // Saved state defaults to whatever the parent hook batch-fetched. Local
+  // optimistic override only kicks in when the user toggles, so updates
+  // from the parent (e.g. on filter change) don't get out of sync.
+  const [optimisticSaved, setOptimisticSaved] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
-  const isSavedForUi = user?.id ? isSaved : false;
-
-  useEffect(() => {
-    let isMounted = true;
-
-    if (!user?.id) return;
-
-    checkIsSaved(product.id, user.id)
-      .then((saved) => {
-        if (isMounted) {
-          setIsSaved(saved);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setIsSaved(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [checkIsSaved, product.id, user?.id]);
+  const isSavedForUi = user?.id
+    ? optimisticSaved ?? Boolean(product.is_saved)
+    : false;
 
   const handleToggleSave = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -197,12 +188,12 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
     const previousValue = isSavedForUi;
     const nextValue = !previousValue;
 
-    setIsSaved(nextValue);
+    setOptimisticSaved(nextValue);
     setSaving(true);
 
     const success = await toggleSave(product.id, user.id, previousValue);
     if (!success) {
-      setIsSaved(previousValue);
+      setOptimisticSaved(previousValue);
     }
 
     setSaving(false);
@@ -212,10 +203,12 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
     <Link href={`/product/${product.id}`} className="group block h-full">
       <article className="h-full rounded-[22px] overflow-hidden border border-black/[0.05] bg-white shadow-sm hover:shadow-xl hover:shadow-pink-vivid/10 hover:-translate-y-1 transition-all duration-300">
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-orange-50 to-pink-50">
-          <img
+          <Image
             src={imageUrl}
             alt={product.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes={CARD_IMAGE_SIZES}
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
 
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
@@ -256,9 +249,11 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
 
         <div className="p-4">
           <div className="flex items-center gap-2 mb-2">
-            <img
+            <Image
               src={getOptimizedAvatarUrl(product.seller?.avatar_url, 24) || DEFAULT_AVATAR}
               alt={sellerName}
+              width={20}
+              height={20}
               className="w-5 h-5 rounded-full object-cover ring-1 ring-black/[0.06]"
             />
             <span className="text-xs font-body text-muted truncate">{sellerName}</span>

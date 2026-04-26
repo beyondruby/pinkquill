@@ -101,7 +101,7 @@ export { useCommunityFlairs, useManageFlairs, usePostFlair } from "./useFlair";
 export { useModQueue, useResolveReport, useModerationActions } from "./useModQueue";
 
 // Marketplace
-export { useMarketplace, useFeaturedProducts } from "./useMarketplace";
+export { useMarketplace } from "./useMarketplace";
 export type {
   MarketplaceSortOption,
   MarketplaceFilters,

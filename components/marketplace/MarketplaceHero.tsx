@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 interface MarketplaceHeroProps {
   listingType: "product" | "service";
@@ -65,15 +66,16 @@ export default function MarketplaceHero({ listingType }: MarketplaceHeroProps) {
 
               {/* Main image container */}
               <div className="relative w-full h-full rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl shadow-black/20 bg-white/10 backdrop-blur-sm">
-                <img
-                  src={isService
-                    ? "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=800&fit=crop&q=80"
-                    : "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&h=800&fit=crop&q=80"}
+                <Image
+                  src="/marketplace-hero-illustration.svg"
                   alt={isService ? "Creative professionals at work" : "Creative artwork"}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="(max-width: 1024px) 320px, 384px"
+                  priority
+                  className="object-cover"
                 />
                 {/* Overlay gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-purple-primary/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-purple-primary/20 to-transparent" />
               </div>
 
               {/* Floating accent elements */}

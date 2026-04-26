@@ -6,6 +6,10 @@ import { useBadgeCounts } from "@/components/providers/BadgeCountProvider";
 import { PRODUCT_CATEGORIES } from "@/lib/store/categories";
 import type { MarketplaceFilters, MarketplaceSortOption } from "@/lib/hooks/useMarketplace";
 import {
+  countActiveMarketplaceFilters,
+  hasActiveMarketplaceFilters,
+} from "@/lib/hooks/useMarketplace";
+import {
   COMMISSION_DELIVERY_FILTERS,
   COMMISSION_REVISION_FILTERS,
   getAllCommissionCategories,
@@ -28,7 +32,6 @@ interface MarketplaceHeaderProps {
 
 const sortOptions: { value: MarketplaceSortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
-  { value: "popular", label: "Popular" },
   { value: "price_low", label: "Price: Low to High" },
   { value: "price_high", label: "Price: High to Low" },
 ];
@@ -63,13 +66,10 @@ export default function MarketplaceHeader({
   const [showFilters, setShowFilters] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const hasActiveFilters =
-    filters.category || filters.subcategory || filters.delivery_type ||
-    filters.min_price !== undefined || filters.max_price !== undefined ||
-    filters.max_delivery_days !== undefined || filters.min_revisions !== undefined ||
-    filters.keywords?.length;
+  const hasActiveFilters = hasActiveMarketplaceFilters(filters);
+  const activeFilterCount = countActiveMarketplaceFilters(filters);
 
   const catalogType = filters.listing_type || "product";
   const categoryOptions = catalogType === "service" ? commissionCategories : categories;
@@ -102,6 +102,30 @@ export default function MarketplaceHeader({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
+
+  // Close any open subcategory dropdown when the user clicks outside or
+  // hits Escape — keyboard + touch friendly replacement for the prior
+  // hover-only behaviour.
+  useEffect(() => {
+    if (!activeDropdown) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest("[data-marketplace-category-menu]")) return;
+      setActiveDropdown(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveDropdown(null);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeDropdown]);
 
   const getActivePriceLabel = () => {
     if (filters.min_price === undefined && filters.max_price === undefined) return null;
@@ -164,6 +188,8 @@ export default function MarketplaceHeader({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
+              aria-expanded={showFilters}
+              aria-controls="marketplace-filters-panel"
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui transition-all ${
                 showFilters
                   ? catalogType === "service"
@@ -180,14 +206,7 @@ export default function MarketplaceHeader({
               <span className="hidden sm:inline">Filters</span>
               {hasActiveFilters && !showFilters && (
                 <span className="w-5 h-5 flex items-center justify-center bg-pink-vivid text-white text-xs rounded-full">
-                  {[
-                    filters.category,
-                    filters.subcategory,
-                    filters.delivery_type,
-                    filters.min_price !== undefined,
-                    filters.max_delivery_days !== undefined,
-                    filters.min_revisions !== undefined,
-                  ].filter(Boolean).length}
+                  {activeFilterCount}
                 </span>
               )}
             </button>
@@ -241,64 +260,91 @@ export default function MarketplaceHeader({
             All
           </button>
 
-          {categoryOptions.map((cat) => (
-            <div key={cat.id} className="relative flex-shrink-0">
-              <button
-                onClick={() => {
-                  if (filters.category === cat.id) {
-                    onCategoryChange(undefined);
-                    onSubcategoryChange(undefined);
-                  } else {
-                    onCategoryChange(cat.id);
-                    onSubcategoryChange(undefined);
-                  }
-                  setActiveDropdown(null);
-                }}
-                onMouseEnter={() => setActiveDropdown(cat.id)}
-                onMouseLeave={() => setActiveDropdown(null)}
-                className={`px-4 py-2 rounded-full text-sm font-ui transition-all ${
-                  filters.category === cat.id
-                    ? activeCategoryClass
-                    : "bg-white border border-black/[0.08] text-muted hover:text-ink hover:bg-gray-50"
-                }`}
+          {categoryOptions.map((cat) => {
+            const hasSubcategories = cat.subcategories.length > 0;
+            const isOpen = activeDropdown === cat.id;
+            return (
+              <div
+                key={cat.id}
+                className="relative flex-shrink-0"
+                data-marketplace-category-menu
               >
-                {cat.name}
-              </button>
-
-              {/* Subcategory Dropdown */}
-              {activeDropdown === cat.id && cat.subcategories.length > 0 && (
-                <div
-                  onMouseEnter={() => setActiveDropdown(cat.id)}
-                  onMouseLeave={() => setActiveDropdown(null)}
-                  className="absolute top-full left-0 mt-2 py-2 bg-white rounded-xl border border-black/[0.06] shadow-xl min-w-[190px] z-50 animate-fadeIn"
-                >
-                  {cat.subcategories.map((sub) => (
-                    <button
-                      key={sub.value}
-                      onClick={() => {
-                        onCategoryChange(cat.id);
-                        onSubcategoryChange(sub.value);
+                <button
+                  onClick={() => {
+                    if (hasSubcategories) {
+                      // First click: open the menu so users can pick a
+                      // subcategory. Second click on the open category:
+                      // collapse it without changing the filter.
+                      if (filters.category === cat.id && isOpen) {
                         setActiveDropdown(null);
-                      }}
-                      className={`w-full px-4 py-2.5 text-left text-sm font-body transition-colors ${
-                        filters.subcategory === sub.value
-                          ? "bg-pink-50 text-pink-vivid"
-                          : "text-ink hover:bg-gray-50"
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                        onCategoryChange(undefined);
+                        onSubcategoryChange(undefined);
+                        return;
+                      }
+                      onCategoryChange(cat.id);
+                      onSubcategoryChange(undefined);
+                      setActiveDropdown(isOpen ? null : cat.id);
+                      return;
+                    }
+
+                    if (filters.category === cat.id) {
+                      onCategoryChange(undefined);
+                      onSubcategoryChange(undefined);
+                    } else {
+                      onCategoryChange(cat.id);
+                      onSubcategoryChange(undefined);
+                    }
+                    setActiveDropdown(null);
+                  }}
+                  aria-haspopup={hasSubcategories ? "menu" : undefined}
+                  aria-expanded={hasSubcategories ? isOpen : undefined}
+                  className={`px-4 py-2 rounded-full text-sm font-ui transition-all ${
+                    filters.category === cat.id
+                      ? activeCategoryClass
+                      : "bg-white border border-black/[0.08] text-muted hover:text-ink hover:bg-gray-50"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+
+                {/* Subcategory Dropdown */}
+                {isOpen && hasSubcategories && (
+                  <div
+                    role="menu"
+                    className="absolute top-full left-0 mt-2 py-2 bg-white rounded-xl border border-black/[0.06] shadow-xl min-w-[190px] z-50 animate-fadeIn"
+                  >
+                    {cat.subcategories.map((sub) => (
+                      <button
+                        key={sub.value}
+                        role="menuitem"
+                        onClick={() => {
+                          onCategoryChange(cat.id);
+                          onSubcategoryChange(sub.value);
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full px-4 py-2.5 text-left text-sm font-body transition-colors ${
+                          filters.subcategory === sub.value
+                            ? "bg-pink-50 text-pink-vivid"
+                            : "text-ink hover:bg-gray-50"
+                        }`}
+                      >
+                        {sub.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Expanded Filter Panel */}
       {showFilters && (
-        <div className="border-t border-black/[0.04] bg-gradient-to-b from-orange-50/40 via-white to-white animate-fadeIn">
+        <div
+          id="marketplace-filters-panel"
+          className="border-t border-black/[0.04] bg-gradient-to-b from-orange-50/40 via-white to-white animate-fadeIn"
+        >
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 bg-white/90 border border-black/[0.05] rounded-2xl p-5 shadow-sm">
               <div>

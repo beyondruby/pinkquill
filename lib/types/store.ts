@@ -252,7 +252,12 @@ export interface Product {
   primary_image_url?: string;
   min_price?: number;
   max_price?: number;
+  min_delivery_days?: number;
+  max_revisions?: number;
   total_sales?: number;
+  /** Whether the current viewer has saved this product. Populated by
+   *  hooks that batch-fetch product_saves for the viewer (e.g. useMarketplace). */
+  is_saved?: boolean;
 }
 
 // ============================================================================

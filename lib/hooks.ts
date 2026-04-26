@@ -175,7 +175,7 @@ export { useSellerProfile, useUpdateSellerProfile, useSellerSetupStatus } from "
 export { useValidatePromoCode, useApplyPromoCode, useRemovePromoCode } from "./hooks/usePromoCode";
 
 // Marketplace Browser
-export { useMarketplace, useFeaturedProducts } from "./hooks/useMarketplace";
+export { useMarketplace } from "./hooks/useMarketplace";
 export type {
   MarketplaceSortOption,
   MarketplaceFilters,

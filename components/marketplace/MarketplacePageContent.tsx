@@ -4,6 +4,10 @@ import React, { useEffect, useRef, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMarketplace } from "@/lib/hooks";
+import {
+  countActiveMarketplaceFilters,
+  hasActiveMarketplaceFilters,
+} from "@/lib/hooks/useMarketplace";
 import MarketplaceHero from "./MarketplaceHero";
 import MarketplaceHeader from "./MarketplaceHeader";
 import MarketplaceProductCard from "./MarketplaceProductCard";
@@ -43,30 +47,8 @@ export default function MarketplacePageContent() {
   const isLoadingMore = useRef(false);
   const isService = filters.listing_type === "service";
 
-  const hasActiveFilters = useMemo(() => {
-    return Boolean(
-      filters.category ||
-      filters.subcategory ||
-      filters.delivery_type ||
-      filters.min_price !== undefined ||
-      filters.max_price !== undefined ||
-      filters.max_delivery_days !== undefined ||
-      filters.min_revisions !== undefined ||
-      filters.keywords?.length
-    );
-  }, [filters.category, filters.delivery_type, filters.keywords, filters.max_delivery_days, filters.max_price, filters.min_price, filters.min_revisions, filters.subcategory]);
-
-  const activeFilterCount = useMemo(() => {
-    return [
-      filters.category,
-      filters.subcategory,
-      filters.delivery_type,
-      filters.min_price !== undefined || filters.max_price !== undefined,
-      filters.max_delivery_days !== undefined,
-      filters.min_revisions !== undefined,
-      Boolean(filters.keywords?.length),
-    ].filter(Boolean).length;
-  }, [filters.category, filters.delivery_type, filters.keywords, filters.max_delivery_days, filters.max_price, filters.min_price, filters.min_revisions, filters.subcategory]);
+  const hasActiveFilters = useMemo(() => hasActiveMarketplaceFilters(filters), [filters]);
+  const activeFilterCount = useMemo(() => countActiveMarketplaceFilters(filters), [filters]);
 
   // Infinite scroll observer
   const handleObserver = useCallback(

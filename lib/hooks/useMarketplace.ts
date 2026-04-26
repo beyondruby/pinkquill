@@ -46,10 +46,26 @@ export interface UseMarketplaceReturn {
   setSortBy: (sort: MarketplaceSortOption) => void;
   setSearchQuery: (query: string) => void;
   clearFilters: () => void;
+}
 
-  // Featured/Trending
-  featuredProducts: Product[];
-  categoryCounts: Record<string, number>;
+/**
+ * Single source of truth for "how many filter dimensions are active".
+ * Used by both the header (filter button badge) and the discovery strip.
+ */
+export function countActiveMarketplaceFilters(filters: MarketplaceFilters): number {
+  return [
+    filters.category,
+    filters.subcategory,
+    filters.delivery_type,
+    filters.min_price !== undefined || filters.max_price !== undefined,
+    filters.max_delivery_days !== undefined,
+    filters.min_revisions !== undefined,
+    Boolean(filters.keywords?.length),
+  ].filter(Boolean).length;
+}
+
+export function hasActiveMarketplaceFilters(filters: MarketplaceFilters): boolean {
+  return countActiveMarketplaceFilters(filters) > 0;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -71,8 +87,6 @@ export function useMarketplace(
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<MarketplaceFilters>({
@@ -91,43 +105,50 @@ export function useMarketplace(
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
 
-  // Transform raw product data
-  type RawProduct = Omit<Product, 'keywords'> & { keywords?: { keyword: string }[] };
-  const transformProduct = useCallback((product: RawProduct): Product => {
+  // Transform raw product data. min_price/max_price are read straight
+  // from the cached columns on `products` (kept fresh by a trigger on
+  // `product_pricing`). We only fall back to a client-side computation
+  // for products that pre-date the cache.
+  const transformProduct = useCallback((product: Product): Product => {
     const media = (product.media || []).sort(
       (a: ProductMedia, b: ProductMedia) => a.position - b.position
     );
     const pricing = product.pricing || [];
 
+    const computedMin =
+      pricing.length > 0 ? Math.min(...pricing.map((p: ProductPricing) => p.price)) : undefined;
+    const computedMax =
+      pricing.length > 0 ? Math.max(...pricing.map((p: ProductPricing) => p.price)) : undefined;
+
     return {
       ...product,
       media,
       pricing,
-      keywords: (product.keywords || []).map((k: { keyword: string }) => k.keyword),
       primary_image_url:
         media.find((m: ProductMedia) => m.is_primary)?.media_url || media[0]?.media_url,
-      min_price:
-        pricing.length > 0
-          ? Math.min(...pricing.map((p: ProductPricing) => p.price))
-          : undefined,
-      max_price:
-        pricing.length > 0
-          ? Math.max(...pricing.map((p: ProductPricing) => p.price))
-          : undefined,
+      min_price: product.min_price ?? computedMin,
+      max_price: product.max_price ?? computedMax,
     };
   }, []);
 
-  // Fetch products based on current filters
+  // Track in-flight requests so a slow earlier query can't overwrite a
+  // newer one. Each new fetch increments requestIdRef and the response is
+  // discarded if a later fetch has been started in the meantime.
+  const requestIdRef = useRef(0);
+
+  // Fetch products based on current filters. All filters and the price
+  // sort are pushed to Postgres via cached aggregate columns on `products`
+  // (min_price, min_delivery_days, max_revisions) so pagination.total and
+  // has_more reflect what the user actually sees.
   const fetchProducts = useCallback(
     async (page: number, append: boolean = false) => {
-      if (fetchingRef.current) return;
+      const requestId = ++requestIdRef.current;
       fetchingRef.current = true;
 
       try {
         if (!append) setLoading(true);
         setError(null);
 
-        // Build base query - only active products
         let query = supabase
           .from("products")
           .select(
@@ -137,8 +158,7 @@ export function useMarketplace(
               id, username, display_name, avatar_url, is_verified
             ),
             media:product_media (*),
-            pricing:product_pricing (*),
-            keywords:product_keywords (keyword)
+            pricing:product_pricing (*)
           `,
             { count: "exact" }
           )
@@ -148,7 +168,6 @@ export function useMarketplace(
           query = query.eq("listing_type", filters.listing_type);
         }
 
-        // Apply category filter
         if (filters.category) {
           query = query.eq("category", filters.category);
         }
@@ -156,16 +175,39 @@ export function useMarketplace(
           query = query.eq("subcategory", filters.subcategory);
         }
 
-        // Apply delivery type filter
         if (filters.delivery_type) {
           query = query.or(
             `delivery_type.eq.${filters.delivery_type},delivery_type.eq.both`
           );
         }
 
-        // Apply keyword search server-side via title/description ilike
+        // Server-side price filter via cached min_price column.
+        if (filters.min_price !== undefined) {
+          query = query.gte("min_price", filters.min_price);
+        }
+        if (filters.max_price !== undefined) {
+          query = query.lte("min_price", filters.max_price);
+        }
+
+        // Server-side service filters via cached aggregates. Non-service
+        // products are intentionally included when listing_type filter
+        // isn't set to "service" — we don't want commissions filters to
+        // hide products in the "all" view.
+        if (filters.listing_type === "service") {
+          if (filters.max_delivery_days !== undefined) {
+            query = query.lte("min_delivery_days", filters.max_delivery_days);
+          }
+          if (filters.min_revisions !== undefined) {
+            query = query.gte("max_revisions", filters.min_revisions);
+          }
+        }
+
+        // Keyword search across title/description. The sanitizer strips
+        // PostgREST control characters; `%` and `_` (ilike wildcards) are
+        // also stripped to keep matches predictable for users.
         if (filters.keywords && filters.keywords.length > 0) {
-          const searchTerm = sanitizePostgrestSearchTerm(filters.keywords.join(" "));
+          const rawTerm = sanitizePostgrestSearchTerm(filters.keywords.join(" "));
+          const searchTerm = rawTerm.replace(/[%_]/g, " ").trim();
           if (searchTerm) {
             query = query.or(
               `title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
@@ -173,74 +215,57 @@ export function useMarketplace(
           }
         }
 
-        // Apply sorting
+        // Sorting — every option backed by an indexed column.
         switch (filters.sort_by) {
-          case "newest":
-            query = query.order("created_at", { ascending: false });
-            break;
           case "price_low":
+            query = query
+              .order("min_price", { ascending: true, nullsFirst: false })
+              .order("created_at", { ascending: false });
+            break;
           case "price_high":
-          case "popular":
-            // Price sorting requires post-processing since min_price is computed
-            // Popular falls back to newest until engagement tracking is added
+            query = query
+              .order("min_price", { ascending: false, nullsFirst: false })
+              .order("created_at", { ascending: false });
+            break;
+          case "newest":
+          default:
             query = query.order("created_at", { ascending: false });
             break;
         }
 
-        // Pagination
         const rangeStart = page * pageSize;
         const rangeEnd = rangeStart + pageSize - 1;
 
         const { data, count, error: queryError } = await query.range(rangeStart, rangeEnd);
 
+        // Drop late responses if a newer fetch is in flight or we unmounted.
+        if (!mountedRef.current || requestId !== requestIdRef.current) {
+          return;
+        }
         if (queryError) throw queryError;
-        if (!mountedRef.current) return;
 
-        // Transform products
         let transformedProducts: Product[] = (data || []).map(transformProduct);
 
-        // Post-query filtering for computed fields
-        // Note: these filters operate on joined pricing data that can't be filtered server-side
-        if (filters.min_price !== undefined || filters.max_price !== undefined) {
-          transformedProducts = transformedProducts.filter((p) => {
-            const price = p.min_price;
-            if (price === undefined) return false;
-            if (filters.min_price !== undefined && price < filters.min_price) return false;
-            if (filters.max_price !== undefined && price > filters.max_price) return false;
-            return true;
-          });
+        // Batch-fetch which of these products the viewer has saved.
+        // Replaces the previous N-queries-per-page pattern (one query per
+        // card on initial render).
+        if (userId && transformedProducts.length > 0) {
+          const productIds = transformedProducts.map((p) => p.id);
+          const { data: savedRows } = await supabase
+            .from("product_saves")
+            .select("product_id")
+            .eq("user_id", userId)
+            .in("product_id", productIds);
+
+          if (requestId === requestIdRef.current) {
+            const savedSet = new Set((savedRows || []).map((r) => r.product_id));
+            transformedProducts = transformedProducts.map((p) => ({
+              ...p,
+              is_saved: savedSet.has(p.id),
+            }));
+          }
         }
 
-        if (filters.max_delivery_days !== undefined) {
-          transformedProducts = transformedProducts.filter((p) => {
-            if (p.listing_type !== "service") return true;
-            return (p.pricing || []).some((pkg) =>
-              pkg.delivery_days !== null &&
-              pkg.delivery_days !== undefined &&
-              pkg.delivery_days <= filters.max_delivery_days!
-            );
-          });
-        }
-
-        if (filters.min_revisions !== undefined) {
-          transformedProducts = transformedProducts.filter((p) => {
-            if (p.listing_type !== "service") return true;
-            return (p.pricing || []).some((pkg) =>
-              pkg.revisions !== null &&
-              pkg.revisions !== undefined &&
-              pkg.revisions >= filters.min_revisions!
-            );
-          });
-        }
-
-        // Apply price sorting on transformed products
-        if (filters.sort_by === "price_low") {
-          transformedProducts.sort((a, b) => (a.min_price || 0) - (b.min_price || 0));
-        } else if (filters.sort_by === "price_high") {
-          transformedProducts.sort((a, b) => (b.min_price || 0) - (a.min_price || 0));
-        }
-
-        // Update state
         if (append) {
           setProducts((prev) => [...prev, ...transformedProducts]);
         } else {
@@ -254,78 +279,23 @@ export function useMarketplace(
           has_more: rangeEnd + 1 < (count ?? 0),
         });
       } catch (err: unknown) {
+        if (!mountedRef.current || requestId !== requestIdRef.current) return;
         console.error("[useMarketplace] Error:", err);
-        if (mountedRef.current) {
-          setError(err instanceof Error ? err.message : "Failed to fetch products");
-        }
+        setError(err instanceof Error ? err.message : "Failed to fetch products");
       } finally {
-        fetchingRef.current = false;
-        if (mountedRef.current) setLoading(false);
+        if (requestId === requestIdRef.current) {
+          fetchingRef.current = false;
+          if (mountedRef.current) setLoading(false);
+        }
       }
     },
-    [pageSize, filters, transformProduct]
+    [pageSize, filters, transformProduct, userId]
   );
 
-  // Fetch featured products
-  const fetchFeaturedProducts = useCallback(async () => {
-    try {
-      let query = supabase
-        .from("products")
-        .select(
-          `
-          *,
-          seller:profiles!products_seller_id_fkey (
-            id, username, display_name, avatar_url, is_verified
-          ),
-          media:product_media (*),
-          pricing:product_pricing (*)
-        `
-        )
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(8);
-
-      if (filters.listing_type) {
-        query = query.eq("listing_type", filters.listing_type);
-      }
-
-      const { data } = await query;
-
-      if (data && mountedRef.current) {
-        setFeaturedProducts(data.map(transformProduct));
-      }
-    } catch (err) {
-      console.error("[useMarketplace] Failed to fetch featured:", err);
-    }
-  }, [transformProduct, filters.listing_type]);
-
-  // Fetch category counts
-  const fetchCategoryCounts = useCallback(async () => {
-    try {
-      let query = supabase
-        .from("products")
-        .select("category")
-        .eq("status", "active");
-
-      if (filters.listing_type) {
-        query = query.eq("listing_type", filters.listing_type);
-      }
-
-      const { data } = await query;
-
-      if (data && mountedRef.current) {
-        const counts: Record<string, number> = {};
-        data.forEach((p: { category: string }) => {
-          counts[p.category] = (counts[p.category] || 0) + 1;
-        });
-        setCategoryCounts(counts);
-      }
-    } catch (err) {
-      console.error("[useMarketplace] Failed to fetch category counts:", err);
-    }
-  }, [filters.listing_type]);
-
-  // Filter setters
+  // Filter setters. Updating `filters` triggers the fetch effect which
+  // refetches from page 0 and replaces `products` — no need to also
+  // wipe state here (doing so caused a double-render and a flash of
+  // empty state on every filter click).
   const setListingType = useCallback((listing_type: ListingType | undefined) => {
     setFilters((prev) => ({
       ...prev,
@@ -336,60 +306,42 @@ export function useMarketplace(
       max_delivery_days: undefined,
       min_revisions: undefined,
     }));
-    setProducts([]);
-    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
 
   const setCategory = useCallback((category: string | undefined) => {
     setFilters((prev) => ({ ...prev, category, subcategory: undefined }));
-    setProducts([]);
-    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
 
   const setSubcategory = useCallback((subcategory: string | undefined) => {
     setFilters((prev) => ({ ...prev, subcategory }));
-    setProducts([]);
-    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
 
   const setDeliveryType = useCallback(
     (delivery_type: "physical" | "digital" | undefined) => {
       setFilters((prev) => ({ ...prev, delivery_type }));
-      setProducts([]);
-      setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
     },
     []
   );
 
   const setPriceRange = useCallback((min?: number, max?: number) => {
     setFilters((prev) => ({ ...prev, min_price: min, max_price: max }));
-    setProducts([]);
-    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
 
   const setMaxDeliveryDays = useCallback((max_delivery_days: number | undefined) => {
     setFilters((prev) => ({ ...prev, max_delivery_days }));
-    setProducts([]);
-    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
 
   const setMinRevisions = useCallback((min_revisions: number | undefined) => {
     setFilters((prev) => ({ ...prev, min_revisions }));
-    setProducts([]);
-    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
 
   const setSortBy = useCallback((sort_by: MarketplaceSortOption) => {
     setFilters((prev) => ({ ...prev, sort_by }));
-    setProducts([]);
-    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
 
   const setSearchQuery = useCallback((query: string) => {
     const keywords = query.trim() ? query.trim().split(/\s+/) : undefined;
     setFilters((prev) => ({ ...prev, keywords }));
-    setProducts([]);
-    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -397,8 +349,6 @@ export function useMarketplace(
       sort_by: "newest",
       listing_type: prev.listing_type,
     }));
-    setProducts([]);
-    setPagination((prev) => ({ ...prev, page: 0, has_more: true }));
   }, []);
 
   const loadMore = useCallback(async () => {
@@ -414,13 +364,11 @@ export function useMarketplace(
   useEffect(() => {
     mountedRef.current = true;
     fetchProducts(0);
-    fetchFeaturedProducts();
-    fetchCategoryCounts();
 
     return () => {
       mountedRef.current = false;
     };
-  }, [fetchProducts, fetchFeaturedProducts, fetchCategoryCounts]);
+  }, [fetchProducts]);
 
   return {
     products,
@@ -440,68 +388,5 @@ export function useMarketplace(
     setSortBy,
     setSearchQuery,
     clearFilters,
-    featuredProducts,
-    categoryCounts,
   };
-}
-
-// ============================================================================
-// useFeaturedProducts - Standalone hook for featured products
-// ============================================================================
-
-export function useFeaturedProducts(limit: number = 6) {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetch() {
-      try {
-        const { data } = await supabase
-          .from("products")
-          .select(
-            `
-            *,
-            seller:profiles!products_seller_id_fkey (
-              id, username, display_name, avatar_url, is_verified
-            ),
-            media:product_media (*),
-            pricing:product_pricing (*)
-          `
-          )
-          .eq("status", "active")
-          .order("created_at", { ascending: false })
-          .limit(limit);
-
-        if (data) {
-          type RawProductData = Omit<Product, 'media' | 'pricing'> & { media?: ProductMedia[]; pricing?: ProductPricing[] };
-          const transformed = data.map((p: RawProductData) => {
-            const media = (p.media || []).sort(
-              (a: ProductMedia, b: ProductMedia) => a.position - b.position
-            );
-            const pricing = p.pricing || [];
-            return {
-              ...p,
-              media,
-              pricing,
-              primary_image_url:
-                media.find((m: ProductMedia) => m.is_primary)?.media_url ||
-                media[0]?.media_url,
-              min_price:
-                pricing.length > 0
-                  ? Math.min(...pricing.map((pr: ProductPricing) => pr.price))
-                  : undefined,
-            };
-          });
-          setProducts(transformed);
-        }
-      } catch (err) {
-        console.error("[useFeaturedProducts] Error:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetch();
-  }, [limit]);
-
-  return { products, loading };
 }
