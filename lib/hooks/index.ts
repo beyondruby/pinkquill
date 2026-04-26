@@ -124,9 +124,6 @@ export {
   useCreateCommission,
   useUpdateCommission,
   useSellerCommissions,
-  useHireCommission,
-  useCommissionOrder,
-  useUpdateCommissionOrder,
 } from "./useCommissions";
 
 // Orders

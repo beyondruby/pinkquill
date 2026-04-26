@@ -1,15 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { supabase } from "../supabase";
 import type {
   CommissionPackageFormState,
   CommissionWizardState,
   Product,
-  ProductPricing,
-  ProductPurchase,
-  ProductSeller,
-  PurchaseStatus,
 } from "../types/store";
 import { useSellerProducts } from "./useProducts";
 
@@ -21,21 +17,6 @@ function generateSlug(title: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .substring(0, 50);
-}
-
-function transformProduct(product: Product): Product {
-  const media = (product.media || []).sort((a, b) => a.position - b.position);
-  const pricing = product.pricing || [];
-
-  return {
-    ...product,
-    media,
-    pricing,
-    keywords: product.keywords || [],
-    primary_image_url: media.find((m) => m.is_primary)?.media_url || media[0]?.media_url,
-    min_price: pricing.length > 0 ? Math.min(...pricing.map((p) => p.price)) : undefined,
-    max_price: pricing.length > 0 ? Math.max(...pricing.map((p) => p.price)) : undefined,
-  };
 }
 
 interface UseCreateCommissionReturn {
@@ -96,9 +77,7 @@ export function useCreateCommission(): UseCreateCommissionReturn {
           delivery_type: "digital",
           category: state.category,
           subcategory: state.subcategory,
-          attributes: {
-            requirements: state.requirements,
-          },
+          attributes: {},
           service_metadata: {
             headline: state.headline,
             requirements: state.requirements,
@@ -286,9 +265,7 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
           delivery_type: "digital",
           category: state.category,
           subcategory: state.subcategory || null,
-          attributes: {
-            requirements: normalizedRequirements,
-          },
+          attributes: {},
           service_metadata: {
             ...existingServiceMetadata,
             headline: state.headline.trim() || null,
@@ -540,252 +517,8 @@ export function useSellerCommissions(sellerId?: string): UseSellerCommissionsRet
   };
 }
 
-interface HireCommissionInput {
-  productId: string;
-  pricingId: string;
-  amount: number;
-  currency?: string;
-  brief: string;
-  requirements?: Record<string, string | string[]>;
-  dueDate?: string;
-}
-
-interface UseHireCommissionReturn {
-  hire: (payload: HireCommissionInput) => Promise<ProductPurchase | null>;
-  hiring: boolean;
-  error: string | null;
-}
-
-export function useHireCommission(): UseHireCommissionReturn {
-  const [hiring, setHiring] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const hire = useCallback(async (payload: HireCommissionInput): Promise<ProductPurchase | null> => {
-    setHiring(true);
-    setError(null);
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Please sign in to hire this creator");
-
-      const { data: listing, error: listingError } = await supabase
-        .from("products")
-        .select("id, seller_id, listing_type")
-        .eq("id", payload.productId)
-        .single();
-
-      if (listingError) throw listingError;
-      if (!listing || listing.listing_type !== "service") {
-        throw new Error("Service not found");
-      }
-      if (listing.seller_id === user.id) {
-        throw new Error("You cannot hire your own service");
-      }
-
-      const { data: order, error: orderError } = await supabase
-        .from("product_purchases")
-        .insert({
-          buyer_id: user.id,
-          product_id: payload.productId,
-          pricing_id: payload.pricingId,
-          amount: payload.amount,
-          currency: payload.currency || "USD",
-          status: "paid",
-          brief: payload.brief,
-          requirements: payload.requirements || {},
-          due_date: payload.dueDate || null,
-          paid_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-      return order as ProductPurchase;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useHireCommission] Error:", message);
-      setError(message || "Failed to hire creator");
-      return null;
-    } finally {
-      setHiring(false);
-    }
-  }, []);
-
-  return { hire, hiring, error };
-}
-
-interface UseCommissionOrderReturn {
-  order: ProductPurchase | null;
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
-
-export function useCommissionOrder(orderId?: string): UseCommissionOrderReturn {
-  const [order, setOrder] = useState<ProductPurchase | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-
-  const fetchOrder = useCallback(async () => {
-    if (!orderId) {
-      setOrder(null);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: queryError } = await supabase
-        .from("product_purchases")
-        .select(`
-          *,
-          product:products (
-            *,
-            seller:profiles!products_seller_id_fkey (
-              id, username, display_name, avatar_url, is_verified
-            ),
-            media:product_media (*),
-            pricing:product_pricing (*),
-            keywords:product_keywords (keyword)
-          ),
-          buyer:profiles!product_purchases_buyer_id_fkey (
-            id, username, display_name, avatar_url, is_verified
-          ),
-          pricing:product_pricing (*)
-        `)
-        .eq("id", orderId)
-        .single();
-
-      if (queryError) throw queryError;
-      if (!mountedRef.current) return;
-
-      const rawProduct = data.product as Product | undefined;
-      const rawKeywords = (
-        rawProduct as Product & { keywords?: Array<string | { keyword: string }> }
-      )?.keywords || [];
-      const normalizedKeywords = (rawKeywords as unknown[])
-        .map((item) => {
-          if (typeof item === "string") return item;
-          if (
-            item &&
-            typeof item === "object" &&
-            "keyword" in item &&
-            typeof (item as { keyword?: unknown }).keyword === "string"
-          ) {
-            return (item as { keyword: string }).keyword;
-          }
-          return "";
-        })
-        .filter((item): item is string => item.length > 0);
-
-      const transformedProduct = rawProduct ? transformProduct({
-        ...rawProduct,
-        keywords: normalizedKeywords,
-      }) : undefined;
-
-      const transformedOrder: ProductPurchase = {
-        ...data,
-        product: transformedProduct,
-        buyer: data.buyer as ProductSeller,
-        pricing: data.pricing as ProductPricing,
-      };
-
-      setOrder(transformedOrder);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useCommissionOrder] Error:", message);
-      if (mountedRef.current) {
-        setError(message || "Failed to fetch commission order");
-      }
-    } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [orderId]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    fetchOrder();
-
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [fetchOrder]);
-
-  return { order, loading, error, refetch: fetchOrder };
-}
-
-interface UpdateCommissionOrderPayload {
-  status: PurchaseStatus;
-  delivery_note?: string;
-  delivery_assets?: string[];
-}
-
-interface UseUpdateCommissionOrderReturn {
-  updateOrder: (orderId: string, payload: UpdateCommissionOrderPayload) => Promise<boolean>;
-  updating: boolean;
-  error: string | null;
-}
-
-export function useUpdateCommissionOrder(): UseUpdateCommissionOrderReturn {
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const updateOrder = useCallback(async (orderId: string, payload: UpdateCommissionOrderPayload) => {
-    setUpdating(true);
-    setError(null);
-
-    try {
-      // Use SECURITY DEFINER RPCs for safe status transitions
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      // Determine if user is buyer or seller for this purchase
-      const { data: purchase, error: purchaseError } = await supabase
-        .from("product_purchases")
-        .select("buyer_id, product:products!inner(seller_id)")
-        .eq("id", orderId)
-        .single();
-
-      if (purchaseError) throw purchaseError;
-
-      const productData = purchase.product as unknown as { seller_id: string } | null;
-      const isBuyer = purchase.buyer_id === user.id;
-      const isSeller = productData?.seller_id === user.id;
-
-      if (!isBuyer && !isSeller) {
-        throw new Error("Not authorized to update this order");
-      }
-
-      if (isSeller) {
-        const { error: rpcError } = await supabase.rpc("update_purchase_as_seller", {
-          p_purchase_id: orderId,
-          p_status: payload.status,
-          p_delivery_note: payload.delivery_note || null,
-          p_delivery_assets: payload.delivery_assets ? JSON.stringify(payload.delivery_assets) : null,
-        });
-        if (rpcError) throw rpcError;
-      } else {
-        const { error: rpcError } = await supabase.rpc("update_purchase_as_buyer", {
-          p_purchase_id: orderId,
-          p_status: payload.status,
-        });
-        if (rpcError) throw rpcError;
-      }
-      return true;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useUpdateCommissionOrder] Error:", message);
-      setError(message || "Failed to update order");
-      return false;
-    } finally {
-      setUpdating(false);
-    }
-  }, []);
-
-  return { updateOrder, updating, error };
-}
+// NOTE: useHireCommission, useCommissionOrder, and useUpdateCommissionOrder
+// were removed in 2026-04-26. They wrote to the legacy product_purchases
+// table and bypassed the unified /api/orders/create + payment pipeline.
+// The hire flow now goes through useCreateOrder; order viewing goes
+// through /orders/[id] (unified OrderView).

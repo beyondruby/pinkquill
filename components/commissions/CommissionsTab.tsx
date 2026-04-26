@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   useMemo,
   useRef,
@@ -547,7 +548,13 @@ function CommissionCard({
 
         <div className="aspect-[4/3] bg-gradient-to-br from-pink-50 to-violet-50 relative overflow-hidden">
           {cover ? (
-            <img src={cover} alt={commission.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            <Image
+              src={cover}
+              alt={commission.title}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 400px"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-pink-vivid/40">
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">

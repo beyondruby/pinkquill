@@ -155,7 +155,16 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
     if (order) {
       setShowHireModal(false);
-      router.push(`/orders/${order.id}`);
+      // If the seller requires approval, the order is created in
+      // pending_acceptance and the buyer waits on the order page until
+      // the seller accepts. Otherwise jump straight into checkout for
+      // immediate payment — keeps the hire flow consistent with the
+      // direct-buy product flow and the cart checkout path.
+      if (order.status === "pending_acceptance") {
+        router.push(`/orders/${order.id}`);
+      } else {
+        router.push(`/checkout/${order.id}`);
+      }
     }
   };
 
@@ -576,8 +585,8 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
               <button
                 onClick={submitHire}
-                disabled={hiring}
-                className="w-full py-3.5 rounded-xl text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60"
+                disabled={hiring || !brief.trim()}
+                className="w-full py-3.5 rounded-xl text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {hiring ? "Submitting..." : "Confirm & Start Order"}
               </button>

@@ -160,9 +160,6 @@ export {
 export {
   useCreateCommission,
   useSellerCommissions,
-  useHireCommission,
-  useCommissionOrder,
-  useUpdateCommissionOrder,
 } from "./hooks/useCommissions";
 
 // Studio Cart

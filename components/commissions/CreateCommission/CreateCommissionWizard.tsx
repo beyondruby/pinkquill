@@ -25,6 +25,12 @@ const ACCEPTED_MEDIA_TYPES = [
   "video/quicktime",
 ];
 
+// Mirror the marketplace product limits. The product-images bucket caps
+// images at 10 MB server-side; videos are larger but we still want a
+// client-side ceiling so users get fast feedback before the upload.
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200 MB
+
 const STEP_LABELS = [
   "Your Craft",
   "Packages & Pricing",
@@ -221,7 +227,11 @@ export default function CreateCommissionWizard({
 
     const nextPreset = PACKAGE_PRESETS[state.packages.length];
     const nextPackage: CommissionPackageFormState = {
-      id: nextPreset.tier,
+      // Unique id so React keys don't collide if two packages happen to
+      // share a tier (e.g., custom tiers added in the future).
+      id: typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${nextPreset.tier}-${Date.now()}`,
       tier: nextPreset.tier,
       name: nextPreset.name,
       description: "",
@@ -244,10 +254,23 @@ export default function CreateCommissionWizard({
 
     const currentCount = state.mediaPreviews.length;
     const accepted: CommissionWizardState["mediaPreviews"] = [];
+    setError(null);
 
     for (const file of Array.from(files)) {
       if (!ACCEPTED_MEDIA_TYPES.includes(file.type)) {
         setError("Use JPG, PNG, WEBP, GIF, or MP4/MOV media only.");
+        continue;
+      }
+
+      const isVideo = file.type.startsWith("video/");
+      const sizeLimit = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+      if (file.size > sizeLimit) {
+        const limitMb = Math.round(sizeLimit / (1024 * 1024));
+        setError(
+          isVideo
+            ? `Videos must be under ${limitMb} MB.`
+            : `Images must be under ${limitMb} MB.`
+        );
         continue;
       }
 
@@ -260,7 +283,7 @@ export default function CreateCommissionWizard({
         file,
         url: URL.createObjectURL(file),
         isPrimary: currentCount === 0 && accepted.length === 0,
-        mediaType: file.type.startsWith("video/") ? "video" : "image",
+        mediaType: isVideo ? "video" : "image",
       });
     }
 
@@ -306,11 +329,19 @@ export default function CreateCommissionWizard({
     }
 
     if (targetStep === 2) {
+      const hasUnderpriced = state.packages.some(
+        (pkg) => pkg.price !== null && pkg.price > 0 && pkg.price < 5
+      );
+      if (hasUnderpriced) {
+        setError("Each package must be priced at $5 or more.");
+        return false;
+      }
+
       const hasValidPackage = state.packages.some(
         (pkg) =>
           pkg.name.trim().length > 0 &&
           pkg.price !== null &&
-          pkg.price > 0 &&
+          pkg.price >= 5 &&
           pkg.description.trim().length > 0
       );
 
@@ -1015,7 +1046,10 @@ function StringListEditor({
   return (
     <div className="space-y-2 mt-2">
       {values.map((value, index) => (
-        <div key={`${index}-${value}`} className="flex items-center gap-2">
+        // Keying by index keeps the input mounted as the user types.
+        // Items here are only ever appended or removed (never reordered),
+        // so the index→item mapping is stable enough.
+        <div key={index} className="flex items-center gap-2">
           <input
             value={value}
             onChange={(event) => updateValue(index, event.target.value)}
@@ -1192,14 +1226,6 @@ function CategoryGlyph({ categoryId }: { categoryId: string }) {
     return (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19V6l12-2v13M9 19a2 2 0 11-4 0 2 2 0 014 0zm12-2a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    );
-  }
-
-  if (categoryId === "development") {
-    return (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 16l-4-4 4-4m8 8l4-4-4-4M13 4l-2 16" />
       </svg>
     );
   }
