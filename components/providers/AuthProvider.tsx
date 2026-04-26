@@ -386,11 +386,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [user, profile, fetchProfile]);
 
-  // Sign out function
+  // Sign out function — must clear BOTH the client localStorage session
+  // (supabase.auth.signOut) AND the server-side cookie session (via the
+  // /api/auth/logout endpoint). The proxy middleware gates protected
+  // routes on the presence of the cookie, so missing either side means
+  // a "still signed in"-looking experience after logout.
   const signOut = useCallback(async () => {
     try {
       setLoading(true);
-      await supabase.auth.signOut();
+
+      // Run both in parallel; tolerate either failing — the redirect
+      // happens regardless so the user lands on the public home page.
+      await Promise.allSettled([
+        supabase.auth.signOut(),
+        fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        }),
+      ]);
+
       setUser(null);
       setProfile(null);
       window.location.href = "/";

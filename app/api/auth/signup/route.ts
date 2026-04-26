@@ -45,6 +45,32 @@ function genericSuccessResponse(email: string) {
   });
 }
 
+interface AuthUserStatusRow {
+  id: string;
+  email_confirmed: boolean;
+}
+
+/** Look up an auth.users row by email through a SECURITY DEFINER RPC.
+ *  Returns null when the email isn't registered. */
+async function findUserByEmail(
+  email: string
+): Promise<{ id: string; email_confirmed_at: string | null } | null> {
+  const { data, error } = await supabaseAdmin
+    .rpc("auth_user_status_by_email", { p_email: email })
+    .maybeSingle<AuthUserStatusRow>();
+
+  if (error) {
+    console.warn("[Auth Signup] auth_user_status_by_email failed:", error.message);
+    return null;
+  }
+  if (!data) return null;
+  // Translate the boolean back into the Supabase admin shape used by callers.
+  return {
+    id: data.id,
+    email_confirmed_at: data.email_confirmed ? new Date().toISOString() : null,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const originError = enforceSameOrigin(request);
@@ -110,9 +136,16 @@ export async function POST(request: Request) {
     // Create the auth user via admin API (no email confirmation auto-sent
     // by admin.createUser; we rely on the OTP flow below).
     //
-    // We DO NOT distinguish "email already registered" from a fresh signup
-    // in the response — both return the same generic success so attackers
-    // can't enumerate emails.
+    // We DO NOT distinguish "fresh signup" from "email already taken" in
+    // the response — both return the same generic success so attackers
+    // can't enumerate emails. The behaviour DOES differ in what email we
+    // actually send:
+    //   - new email           → OTP delivered
+    //   - existing unconfirmed → OTP re-delivered (so the user can finish
+    //                            an interrupted signup)
+    //   - existing confirmed   → no email sent (the owner already has an
+    //                            account; sending an OTP would be useless
+    //                            and potentially harassing)
     const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -126,8 +159,21 @@ export async function POST(request: Request) {
     if (createError) {
       const msg = createError.message.toLowerCase();
       if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
-        // Pretend we created a fresh account; do not actually send an OTP
-        // to avoid spamming the legitimate owner with extra emails.
+        // Look up the existing user. If they never confirmed their email,
+        // resending the signup OTP is the right behaviour — they're
+        // probably the same person trying again. If they ARE confirmed,
+        // we silently no-op and return the generic message; the UI's
+        // "Already a member? Sign in" link points them to the right
+        // place without leaking whether the account exists.
+        const existing = await findUserByEmail(email);
+        if (existing && !existing.email_confirmed_at) {
+          await supabaseAdmin.auth.resend({ type: "signup", email }).catch((err: unknown) => {
+            console.warn(
+              "[Auth Signup] resend for unconfirmed existing user failed:",
+              err instanceof Error ? err.message : String(err)
+            );
+          });
+        }
         return genericSuccessResponse(email);
       }
       console.error("[Auth Signup] createUser failed:", createError.message);
