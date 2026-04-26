@@ -2,10 +2,13 @@
 
 import React from "react";
 import Image from "next/image";
+import { PLATFORM_FEES } from "@/lib/types/store";
 
 interface MarketplaceHeroProps {
   listingType: "product" | "service";
 }
+
+const PRODUCT_FEE_LABEL = `${Math.round(PLATFORM_FEES.product * 100)}% Platform Fee`;
 
 export default function MarketplaceHero({ listingType }: MarketplaceHeroProps) {
   const isService = listingType === "service";
@@ -39,7 +42,7 @@ export default function MarketplaceHero({ listingType }: MarketplaceHeroProps) {
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-sm font-ui font-medium text-white">{isService ? "Clear Package Pricing" : "Low 5% Fees"}</span>
+                <span className="text-sm font-ui font-medium text-white">{isService ? "Clear Package Pricing" : PRODUCT_FEE_LABEL}</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-sm rounded-full border border-white/20">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

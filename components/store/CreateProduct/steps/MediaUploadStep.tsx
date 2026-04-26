@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { ProductDelivery } from "@/lib/types/store";
 
 interface MediaPreview {
@@ -32,6 +32,32 @@ const MAX_IMAGES = 8;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
+// Digital downloads — keep generous enough for design/audio bundles but
+// reject anything that smells like an executable. Server-side bucket
+// policies enforce these too; client-side is just user feedback.
+const MAX_DIGITAL_FILES = 20;
+const MAX_DIGITAL_FILE_SIZE = 500 * 1024 * 1024; // 500 MB per file
+const MAX_DIGITAL_TOTAL_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB combined
+
+const FORBIDDEN_DIGITAL_EXTENSIONS = new Set([
+  "exe", "msi", "bat", "cmd", "com", "scr", "ps1", "vbs", "js", "jse",
+  "wsf", "wsh", "sh", "bash", "zsh", "ksh", "csh", "fish",
+  "app", "dmg", "pkg", "deb", "rpm", "apk", "ipa",
+  "jar", "war", "dll", "so", "dylib", "sys",
+  "lnk", "url", "html", "htm", "svg",
+]);
+
+function getFileExtension(name: string): string {
+  const idx = name.lastIndexOf(".");
+  return idx >= 0 ? name.slice(idx + 1).toLowerCase() : "";
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
 export default function MediaUploadStep({
   deliveryType,
   mediaPreviews,
@@ -43,6 +69,18 @@ export default function MediaUploadStep({
   const digitalFileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Track every blob URL we mint so we can revoke them on unmount —
+  // otherwise browsers can hold onto the underlying File data when the
+  // wizard closes mid-flow.
+  const ownedBlobUrlsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const owned = ownedBlobUrlsRef.current;
+    return () => {
+      owned.forEach((url) => URL.revokeObjectURL(url));
+      owned.clear();
+    };
+  }, []);
 
   const handleFiles = useCallback(
     (files: FileList | null) => {
@@ -68,6 +106,7 @@ export default function MediaUploadStep({
         }
 
         const url = URL.createObjectURL(file);
+        ownedBlobUrlsRef.current.add(url);
         newPreviews.push({
           file,
           url,
@@ -106,8 +145,9 @@ export default function MediaUploadStep({
   const handleRemove = useCallback(
     (index: number) => {
       const removed = mediaPreviews[index];
-      if (removed?.file) {
+      if (removed?.file && ownedBlobUrlsRef.current.has(removed.url)) {
         URL.revokeObjectURL(removed.url);
+        ownedBlobUrlsRef.current.delete(removed.url);
       }
 
       const newPreviews = mediaPreviews.filter((_, i) => i !== index);
@@ -133,15 +173,52 @@ export default function MediaUploadStep({
   const handleDigitalFiles = useCallback(
     (files: FileList | null) => {
       if (!files) return;
-      onDigitalFilesChange([
-        ...digitalFiles,
-        ...Array.from(files).map((file) => ({
+
+      setError(null);
+      const accepted: DigitalFileDraft[] = [];
+      const incoming = Array.from(files);
+
+      let runningTotalBytes = digitalFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+
+      for (const file of incoming) {
+        if (digitalFiles.length + accepted.length >= MAX_DIGITAL_FILES) {
+          setError(`Maximum ${MAX_DIGITAL_FILES} digital files per listing.`);
+          break;
+        }
+
+        const ext = getFileExtension(file.name);
+        if (FORBIDDEN_DIGITAL_EXTENSIONS.has(ext)) {
+          setError(`Files of type .${ext} cannot be uploaded.`);
+          continue;
+        }
+
+        if (file.size <= 0) {
+          setError(`"${file.name}" is empty.`);
+          continue;
+        }
+
+        if (file.size > MAX_DIGITAL_FILE_SIZE) {
+          setError(`"${file.name}" is ${formatBytes(file.size)} (max ${formatBytes(MAX_DIGITAL_FILE_SIZE)} per file).`);
+          continue;
+        }
+
+        if (runningTotalBytes + file.size > MAX_DIGITAL_TOTAL_SIZE) {
+          setError(`Total digital files would exceed ${formatBytes(MAX_DIGITAL_TOTAL_SIZE)}.`);
+          break;
+        }
+
+        runningTotalBytes += file.size;
+        accepted.push({
           file,
           name: file.name,
           size: file.size,
           type: file.type,
-        })),
-      ]);
+        });
+      }
+
+      if (accepted.length > 0) {
+        onDigitalFilesChange([...digitalFiles, ...accepted]);
+      }
     },
     [digitalFiles, onDigitalFilesChange]
   );
@@ -318,6 +395,9 @@ export default function MediaUploadStep({
                 </svg>
               </div>
               <p className="text-sm font-body text-muted">Click to upload files</p>
+              <p className="text-xs font-body text-muted/70 mt-1">
+                Up to {MAX_DIGITAL_FILES} files • {formatBytes(MAX_DIGITAL_FILE_SIZE)} each • {formatBytes(MAX_DIGITAL_TOTAL_SIZE)} total
+              </p>
             </div>
 
             <input

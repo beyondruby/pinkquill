@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { ProductDelivery, ProductWizardState } from "@/lib/types/store";
 import {
   CategoryConfig,
@@ -16,6 +16,7 @@ import MultiSelectField from "../fields/MultiSelectField";
 import NumberField from "../fields/NumberField";
 import BooleanField from "../fields/BooleanField";
 import DimensionsField from "../fields/DimensionsField";
+import TagInput from "../fields/TagInput";
 
 interface DetailsStepProps {
   deliveryType: ProductDelivery;
@@ -25,6 +26,14 @@ interface DetailsStepProps {
   wizardState: ProductWizardState;
   updateState: (updates: Partial<ProductWizardState>) => void;
 }
+
+// Computed once at module load so the dropdown options aren't rebuilt on
+// every render of the step. Refreshes on full page reload, which is fine
+// — a 100-year window doesn't need sub-page-load precision.
+const YEAR_OPTIONS = Array.from(
+  { length: 100 },
+  (_, i) => new Date().getFullYear() - i
+);
 
 // Section header component
 function SectionHeader({ children }: { children: React.ReactNode }) {
@@ -109,9 +118,6 @@ export default function DetailsStep({
     }
   };
 
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
-
   return (
     <div className="space-y-10">
       {/* Title Section */}
@@ -162,7 +168,7 @@ export default function DetailsStep({
               font-body text-ink"
           >
             <option value="">Select year</option>
-            {years.map((year) => (
+            {YEAR_OPTIONS.map((year) => (
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
@@ -223,36 +229,17 @@ export default function DetailsStep({
               <label className="block text-sm font-ui font-semibold text-ink mb-3">
                 Shipping services
               </label>
-              <div className="relative">
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                  <div className="w-full h-full rounded-xl bg-white" />
-                </div>
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    value={wizardState.shipping.shipping_services?.join(", ") || ""}
-                    onChange={(e) =>
-                      updateState({
-                        shipping: {
-                          ...wizardState.shipping,
-                          shipping_services: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                        },
-                      })
-                    }
-                    placeholder="DHL, FedEx, UPS"
-                    className="w-full px-4 py-3.5 pr-12 rounded-xl
-                      bg-transparent
-                      outline-none transition-all duration-300
-                      font-body text-ink placeholder:text-gray-400"
-                  />
-                  <div className="absolute right-4 text-orange-warm">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-muted mt-2">Separate with commas</p>
+              <TagInput
+                values={wizardState.shipping.shipping_services || []}
+                onChange={(shipping_services) =>
+                  updateState({
+                    shipping: { ...wizardState.shipping, shipping_services },
+                  })
+                }
+                placeholder="DHL, FedEx, UPS…"
+                helperText="Press Enter or comma to add"
+                max={10}
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -260,29 +247,17 @@ export default function DetailsStep({
                 <label className="block text-sm font-ui font-semibold text-ink mb-3">
                   Shipping locations
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                    <div className="w-full h-full rounded-xl bg-white" />
-                  </div>
-                  <input
-                    type="text"
-                    value={wizardState.shipping.shipping_locations?.join(", ") || ""}
-                    onChange={(e) =>
-                      updateState({
-                        shipping: {
-                          ...wizardState.shipping,
-                          shipping_locations: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                        },
-                      })
-                    }
-                    placeholder="United States, Canada, International"
-                    className="relative w-full px-4 py-3 rounded-xl
-                      bg-transparent
-                      outline-none transition-all duration-300
-                      font-body text-ink placeholder:text-gray-400"
-                  />
-                </div>
-                <p className="text-xs text-muted mt-2">Separate with commas</p>
+                <TagInput
+                  values={wizardState.shipping.shipping_locations || []}
+                  onChange={(shipping_locations) =>
+                    updateState({
+                      shipping: { ...wizardState.shipping, shipping_locations },
+                    })
+                  }
+                  placeholder="United States, Canada, International…"
+                  helperText="Press Enter or comma to add"
+                  max={20}
+                />
               </div>
 
               <div>
@@ -434,9 +409,14 @@ export default function DetailsStep({
       {/* Keywords Section */}
       <div>
         <SectionHeader>Keywords:</SectionHeader>
-        <KeywordsInput
-          keywords={wizardState.keywords}
+        <TagInput
+          values={wizardState.keywords}
           onChange={(keywords) => updateState({ keywords })}
+          placeholder="Add keywords…"
+          helperText="Press Enter or comma to add"
+          max={10}
+          lowercase
+          chipPrefix="#"
         />
       </div>
     </div>
@@ -665,92 +645,3 @@ function PricingSection({
   );
 }
 
-// Keywords Input
-function KeywordsInput({
-  keywords,
-  onChange,
-}: {
-  keywords: string[];
-  onChange: (keywords: string[]) => void;
-}) {
-  const [inputValue, setInputValue] = useState("");
-
-  const addKeyword = () => {
-    const trimmed = inputValue.trim().toLowerCase();
-    if (trimmed && !keywords.includes(trimmed) && keywords.length < 10) {
-      onChange([...keywords, trimmed]);
-      setInputValue("");
-    }
-  };
-
-  const removeKeyword = (keyword: string) => {
-    onChange(keywords.filter((k) => k !== keyword));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addKeyword();
-    }
-  };
-
-  return (
-    <div>
-      <div className="relative">
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-          <div className="w-full h-full rounded-xl bg-white" />
-        </div>
-        <div className="relative flex items-center">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={addKeyword}
-            placeholder="Add keywords..."
-            disabled={keywords.length >= 10}
-            className="w-full px-4 py-3.5 pr-12 rounded-xl
-              bg-transparent
-              outline-none transition-all duration-300
-              font-body text-ink placeholder:text-gray-400
-              disabled:opacity-60"
-          />
-          <div className="absolute right-4 text-orange-warm">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div className="flex justify-between items-center mt-2">
-        <p className="text-xs text-muted">Press Enter to add</p>
-        <p className={`text-xs font-ui ${keywords.length >= 8 ? 'text-orange-warm' : 'text-muted'}`}>
-          {keywords.length} / 10
-        </p>
-      </div>
-
-      {keywords.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-4">
-          {keywords.map((keyword) => (
-            <span
-              key={keyword}
-              className="inline-flex items-center gap-2 px-3 py-1.5
-                bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 rounded-full
-                text-sm font-ui text-pink-vivid"
-            >
-              #{keyword}
-              <button
-                onClick={() => removeKeyword(keyword)}
-                className="p-0.5 hover:bg-pink-vivid/20 rounded-full transition-colors"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}

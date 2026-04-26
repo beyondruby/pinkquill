@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import { buildAuthenticatedHeaders } from "../auth-client";
+import { safeResponseJson } from "../utils/fetch";
 import type { DownloadToken } from "../types/store";
 
 // ============================================================================
@@ -126,27 +128,29 @@ export function useDownloadFile(): UseDownloadFileReturn {
     setError(null);
 
     try {
-      const { data, error: rpcError } = await supabase.rpc(
-        "consume_download_token",
-        { p_token: token }
-      );
+      // Server route consumes the token (atomically increments use count
+      // + verifies buyer auth) and mints a short-lived signed URL.
+      const response = await fetch("/api/orders/download", {
+        method: "POST",
+        headers: await buildAuthenticatedHeaders({
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ token }),
+      });
 
-      if (rpcError) throw rpcError;
-
-      const result = data as {
-        file_url?: string;
+      const data = await safeResponseJson<{
+        url?: string;
         file_name?: string;
-        downloads_used?: number;
-        downloads_remaining?: number | null;
-      } | null;
+        error?: string;
+      }>(response);
 
-      if (!result?.file_url) {
-        throw new Error("No file URL returned");
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || `Failed to prepare download (${response.status})`);
       }
 
       return {
-        file_url: result.file_url,
-        file_name: result.file_name ?? "download",
+        file_url: data.url,
+        file_name: data.file_name ?? "download",
       };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);

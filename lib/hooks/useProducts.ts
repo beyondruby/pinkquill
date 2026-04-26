@@ -407,7 +407,9 @@ export function useCreateProduct(): UseCreateProductReturn {
         if (shippingError) throw shippingError;
       }
 
-      // Upload digital files
+      // Upload digital files. We store ONLY the storage object path here;
+      // buyers receive short-lived signed URLs minted server-side after
+      // consume_download_token validates their order.
       const uploadableDigitalFiles = wizardState.digitalFiles.filter((item) => item.file instanceof File);
       if (uploadableDigitalFiles.length > 0) {
         const fileInserts = await Promise.all(
@@ -424,14 +426,9 @@ export function useCreateProduct(): UseCreateProductReturn {
               throw uploadError;
             }
 
-            // Get signed URL (not public)
-            const { data: signedData } = await supabase.storage
-              .from("product-files")
-              .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year
-
             return {
               product_id: product.id,
-              file_url: signedData?.signedUrl || fileName,
+              file_url: fileName,
               file_name: digitalItem.name || file.name,
               file_type: digitalItem.type || file.type || file.name.split(".").pop() || null,
               file_size: file.size,
@@ -852,15 +849,13 @@ export function useUpdateProductListing(): UseUpdateProductListingReturn {
               .upload(fileName, digitalFile.file, { upsert: true });
             if (uploadDigitalError) throw uploadDigitalError;
 
-            const { data: signedData } = await supabase.storage
-              .from("product-files")
-              .createSignedUrl(fileName, 60 * 60 * 24 * 365);
-
+            // Persist the path only — fresh signed URLs are minted at
+            // download time by /api/orders/download after token check.
             const { data: insertedDigital, error: insertDigitalError } = await supabase
               .from("product_files")
               .insert({
                 product_id: productId,
-                file_url: signedData?.signedUrl || fileName,
+                file_url: fileName,
                 file_name: digitalFile.name || digitalFile.file.name,
                 file_type: digitalFile.type || digitalFile.file.type || null,
                 file_size: digitalFile.file.size,

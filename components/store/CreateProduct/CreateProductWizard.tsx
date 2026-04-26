@@ -207,9 +207,18 @@ export default function CreateProductWizard({
           return false;
         }
         return true;
-      case "details":
-        if (!wizardState.title.trim()) {
+      case "details": {
+        const trimmedTitle = wizardState.title.trim();
+        if (!trimmedTitle) {
           setError("Please enter a title");
+          return false;
+        }
+        if (trimmedTitle.length < 3) {
+          setError("Title must be at least 3 characters");
+          return false;
+        }
+        if (trimmedTitle.length > 120) {
+          setError("Title must be 120 characters or fewer");
           return false;
         }
         const hasPricing =
@@ -221,6 +230,7 @@ export default function CreateProductWizard({
           return false;
         }
         return true;
+      }
       default:
         return true;
     }

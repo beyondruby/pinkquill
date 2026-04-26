@@ -1,21 +1,18 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { ProductMedia } from "@/lib/types/store";
 
 interface ProductGalleryProps {
   media: ProductMedia[];
   title: string;
-  isLiked?: boolean;
-  onLike?: () => void;
   variant?: "product" | "service";
 }
 
 export default function ProductGallery({
   media,
   title,
-  isLiked = false,
-  onLike,
   variant = "product",
 }: ProductGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -29,7 +26,6 @@ export default function ProductGallery({
 
   const selectedImage = sortedMedia[selectedIndex];
   const isService = variant === "service";
-  const showLikeButton = Boolean(onLike);
 
   const handlePrevious = useCallback(() => {
     setSelectedIndex((prev) => (prev > 0 ? prev - 1 : sortedMedia.length - 1));
@@ -39,8 +35,12 @@ export default function ProductGallery({
     setSelectedIndex((prev) => (prev < sortedMedia.length - 1 ? prev + 1 : 0));
   }, [sortedMedia.length]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+  // Keyboard nav while the fullscreen lightbox is open. Listening on
+  // `document` (instead of an outer div with tabIndex) means users don't
+  // have to click the wrapper first to activate keyboard control.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
         handlePrevious();
       } else if (e.key === "ArrowRight") {
@@ -48,9 +48,10 @@ export default function ProductGallery({
       } else if (e.key === "Escape") {
         setIsFullscreen(false);
       }
-    },
-    [handlePrevious, handleNext]
-  );
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [isFullscreen, handlePrevious, handleNext]);
 
   if (sortedMedia.length === 0) {
     return (
@@ -78,7 +79,7 @@ export default function ProductGallery({
 
   return (
     <>
-      <div className="flex gap-4" onKeyDown={handleKeyDown} tabIndex={0}>
+      <div className="flex gap-4">
         {sortedMedia.length > 1 && (
           <div className="hidden md:flex flex-col gap-3 w-20 flex-shrink-0">
             {sortedMedia.map((item, index) => (
@@ -97,10 +98,12 @@ export default function ProductGallery({
                 aria-label={`View image ${index + 1}`}
                 aria-current={index === selectedIndex}
               >
-                <img
+                <Image
                   src={item.media_url}
                   alt={`${title} thumbnail ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="80px"
+                  className="object-cover"
                 />
               </button>
             ))}
@@ -117,44 +120,14 @@ export default function ProductGallery({
             onClick={() => setIsFullscreen(true)}
           >
             {selectedImage && (
-              <img
+              <Image
                 src={selectedImage.media_url}
                 alt={`${title} - Image ${selectedIndex + 1}`}
-                className="w-full h-full object-contain"
+                fill
+                priority
+                sizes="(max-width: 1024px) 90vw, 720px"
+                className="object-contain"
               />
-            )}
-
-            {showLikeButton && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onLike?.();
-                }}
-                className={`absolute top-4 right-4 w-12 h-12 rounded-full backdrop-blur-sm flex items-center justify-center transition-all duration-300 z-10 ${
-                  isLiked
-                    ? isService
-                      ? "bg-orange-warm text-white shadow-lg shadow-orange-warm/30"
-                      : "bg-pink-vivid text-white shadow-lg shadow-pink-vivid/30"
-                    : isService
-                    ? "bg-white/90 text-orange-warm hover:bg-white border border-orange-100"
-                    : "bg-white/90 text-muted hover:bg-white hover:text-pink-vivid hover:shadow-lg"
-                }`}
-                aria-label={isLiked ? "Unlike" : "Like"}
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill={isLiked ? "currentColor" : "none"}
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                  />
-                </svg>
-              </button>
             )}
 
             {sortedMedia.length > 1 && (
@@ -242,10 +215,12 @@ export default function ProductGallery({
                   }`}
                   aria-label={`View image ${index + 1}`}
                 >
-                  <img
+                  <Image
                     src={item.media_url}
                     alt={`${title} thumbnail ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="64px"
+                    className="object-cover"
                   />
                 </button>
               ))}
@@ -298,10 +273,14 @@ export default function ProductGallery({
             </>
           )}
 
-          <img
+          <Image
             src={selectedImage.media_url}
             alt={`${title} fullscreen ${selectedIndex + 1}`}
-            className="max-w-[90vw] max-h-[90vh] object-contain"
+            width={1920}
+            height={1920}
+            sizes="90vw"
+            priority
+            className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
             onClick={(e) => e.stopPropagation()}
           />
 

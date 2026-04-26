@@ -7,7 +7,7 @@ import { useProduct, useToggleSaveProduct, useDeleteProduct } from "@/lib/hooks/
 import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { ProductPricing, PLATFORM_FEES, ShippingAddress } from "@/lib/types/store";
+import { ProductPricing } from "@/lib/types/store";
 import {
   getCategoryConfig,
   formatAttributeValue,
@@ -38,29 +38,14 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   const [selectedPricing, setSelectedPricing] = useState<ProductPricing | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showBuyModal, setShowBuyModal] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [shippingAddress, setShippingAddress] = useState<Partial<ShippingAddress>>({
-    name: "",
-    line1: "",
-    city: "",
-    postal_code: "",
-    country: "",
-  });
 
   useEffect(() => {
     if (user && productId) {
       checkIsSaved(productId, user.id).then(setIsSaved);
     }
   }, [user, productId, checkIsSaved]);
-
-  useEffect(() => {
-    if (product?.listing_type === "service") {
-      router.replace(`/commissions/${product.id}`);
-    }
-  }, [product, router]);
 
   const handleToggleSave = async () => {
     if (!user) return;
@@ -95,7 +80,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
     router.push("/seller/listings");
   };
 
-  if (loading || product?.listing_type === "service") {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background px-4 py-10">
         <div className="max-w-6xl mx-auto">
@@ -255,8 +240,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               media={product.media || []}
               title={product.title}
               variant="product"
-              isLiked={isLiked}
-              onLike={() => setIsLiked(!isLiked)}
             />
 
             {product.description && (
@@ -425,16 +408,14 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                       return;
                     }
                     setCheckoutError(null);
-                    if (product.delivery_type !== "digital") {
-                      setShowBuyModal(true);
-                      return;
-                    }
+                    // Address collection lives on the checkout page so we
+                    // don't duplicate that flow here. Both digital and
+                    // physical orders are created the same way.
                     const order = await createOrder({
                       product_id: product.id,
                       pricing_id: activePricing.id,
                       listing_type: "product",
                     });
-
                     if (order) {
                       router.push(`/checkout/${order.id}`);
                     }
@@ -519,135 +500,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
         isDanger
         loading={deleting}
       />
-
-      {showBuyModal && activePricing && (
-        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-          <div className="max-w-xl mx-auto rounded-3xl bg-white shadow-2xl border border-black/[0.08] overflow-hidden">
-            <div className="px-6 py-4 border-b border-black/[0.06] flex items-start justify-between gap-4">
-              <div>
-                <h2 className="font-display text-2xl text-ink">Order Composer</h2>
-                <p className="text-sm font-body text-muted mt-1">
-                  {activePricing.variant_name || product.title}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowBuyModal(false)}
-                className="w-9 h-9 rounded-full hover:bg-black/[0.04] text-muted"
-                aria-label="Close"
-              >
-                <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div className="rounded-2xl border border-black/[0.06] bg-black/[0.02] p-4 space-y-2">
-                <div className="flex justify-between text-sm font-body">
-                  <span className="text-muted">Subtotal</span>
-                  <span className="text-ink font-semibold">{formatPrice(activePricing.price, activePricing.currency)}</span>
-                </div>
-                {shippingCost > 0 && (
-                  <div className="flex justify-between text-sm font-body">
-                    <span className="text-muted">Shipping</span>
-                    <span className="text-ink font-semibold">{formatPrice(shippingCost, activePricing.currency)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm font-body">
-                  <span className="text-muted">Platform fee ({Math.round(PLATFORM_FEES.product * 100)}%)</span>
-                  <span className="text-ink">
-                    {formatPrice(activePricing.price * PLATFORM_FEES.product, activePricing.currency)}
-                  </span>
-                </div>
-                <div className="border-t border-black/[0.06] pt-2 flex justify-between">
-                  <span className="font-ui font-semibold text-ink">Total</span>
-                  <span className="font-display text-xl font-semibold text-ink">
-                    {formatPrice(activePricing.price + shippingCost, activePricing.currency)}
-                  </span>
-                </div>
-              </div>
-
-              {product.delivery_type !== "digital" && (
-                <div className="space-y-3">
-                  <h3 className="font-ui font-semibold text-ink text-sm">Shipping Address</h3>
-                  <input
-                    placeholder="Full name"
-                    value={shippingAddress.name || ""}
-                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-                  />
-                  <input
-                    placeholder="Address line 1"
-                    value={shippingAddress.line1 || ""}
-                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, line1: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      placeholder="City"
-                      value={shippingAddress.city || ""}
-                      onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-                    />
-                    <input
-                      placeholder="Postal code"
-                      value={shippingAddress.postal_code || ""}
-                      onChange={(e) => setShippingAddress((prev) => ({ ...prev, postal_code: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-                    />
-                  </div>
-                  <input
-                    placeholder="Country"
-                    value={shippingAddress.country || ""}
-                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, country: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-                  />
-                </div>
-              )}
-
-              {(checkoutError || buyError) && (
-                <p className="text-sm font-body text-red-500">{checkoutError || buyError}</p>
-              )}
-
-              <button
-                onClick={async () => {
-                  const isPhysical = product.delivery_type !== "digital";
-                  setCheckoutError(null);
-
-                  if (
-                    isPhysical &&
-                    (!shippingAddress.name ||
-                      !shippingAddress.line1 ||
-                      !shippingAddress.city ||
-                      !shippingAddress.country)
-                  ) {
-                    setCheckoutError("Complete all required shipping fields before continuing.");
-                    return;
-                  }
-
-                  const order = await createOrder({
-                    product_id: product.id,
-                    pricing_id: activePricing.id,
-                    listing_type: "product",
-                    shipping_address: isPhysical ? (shippingAddress as ShippingAddress) : undefined,
-                  });
-
-                  if (order) {
-                    setShowBuyModal(false);
-                    router.push(`/checkout/${order.id}`);
-                  }
-                }}
-                disabled={buying}
-                className="w-full py-3.5 rounded-xl text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60"
-              >
-                {buying ? "Creating..." : "Start Checkout"}
-              </button>
-
-              <p className="text-xs text-center font-body text-muted">Next: complete payment and then continue to your order page.</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
