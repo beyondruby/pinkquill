@@ -11,17 +11,25 @@ export default function AccountSettingsPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
 
+  // Did the user arrive here via a password-reset recovery link?
+  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
+
   // Check for email confirmation status from callback
   useEffect(() => {
     const error = searchParams.get("error");
     const confirmed = searchParams.get("confirmed");
+    const reset = searchParams.get("reset");
 
     if (error === "email_confirmation_failed") {
       setEmailError("Email confirmation failed. Please try again.");
     }
 
+    if (reset === "true") {
+      setIsRecoveryFlow(true);
+    }
+
     // Clear the URL params after reading them
-    if (error || confirmed) {
+    if (error || confirmed || reset) {
       window.history.replaceState({}, "", "/settings/account");
     }
   }, [searchParams]);
@@ -73,7 +81,7 @@ export default function AccountSettingsPage() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!newPassword || !confirmPassword || (!isRecoveryFlow && !currentPassword)) {
       setPasswordError("Please fill in all fields");
       return;
     }
@@ -88,7 +96,7 @@ export default function AccountSettingsPage() {
       return;
     }
 
-    if (currentPassword === newPassword) {
+    if (!isRecoveryFlow && currentPassword === newPassword) {
       setPasswordError("New password must be different from current password");
       return;
     }
@@ -98,22 +106,26 @@ export default function AccountSettingsPage() {
     setPasswordSuccess(false);
 
     try {
-      // Verify current password via server-side API route.
-      // This avoids calling signInWithPassword() on the client, which would
-      // create a duplicate session.
-      const verifyResponse = await fetch("/api/auth/verify-password", {
-        method: "POST",
-        headers: await buildAuthenticatedHeaders({
-          "Content-Type": "application/json",
-        }),
-        body: JSON.stringify({ password: currentPassword }),
-      });
+      // In a recovery flow the user authenticated via the email link, so we
+      // skip current-password verification (they may not remember it).
+      if (!isRecoveryFlow) {
+        // Verify current password via server-side API route.
+        // This avoids calling signInWithPassword() on the client, which would
+        // create a duplicate session.
+        const verifyResponse = await fetch("/api/auth/verify-password", {
+          method: "POST",
+          headers: await buildAuthenticatedHeaders({
+            "Content-Type": "application/json",
+          }),
+          body: JSON.stringify({ password: currentPassword }),
+        });
 
-      if (!verifyResponse.ok) {
-        const verifyData = await safeResponseJson<{ error?: string }>(verifyResponse);
-        setPasswordError(verifyData.error || "Current password is incorrect");
-        setPasswordLoading(false);
-        return;
+        if (!verifyResponse.ok) {
+          const verifyData = await safeResponseJson<{ error?: string }>(verifyResponse);
+          setPasswordError(verifyData.error || "Current password is incorrect");
+          setPasswordLoading(false);
+          return;
+        }
       }
 
       // Current password verified — update to new password
@@ -127,6 +139,7 @@ export default function AccountSettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setIsRecoveryFlow(false);
       setTimeout(() => setPasswordSuccess(false), 3000);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to update password";
@@ -285,22 +298,30 @@ export default function AccountSettingsPage() {
         </div>
 
         <form onSubmit={handlePasswordChange} className="space-y-4">
-          <div>
-            <label className="block font-ui text-sm text-ink mb-2">
-              Current Password
-            </label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => {
-                setCurrentPassword(e.target.value);
-                setPasswordError(null);
-                setPasswordSuccess(false);
-              }}
-              placeholder="Enter current password"
-              className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
-            />
-          </div>
+          {isRecoveryFlow && (
+            <div className="p-4 rounded-xl bg-purple-primary/10 border border-purple-primary/20 font-ui text-sm text-purple-primary">
+              You arrived via a password reset link. Set a new password below — you don&apos;t need your old one.
+            </div>
+          )}
+
+          {!isRecoveryFlow && (
+            <div>
+              <label className="block font-ui text-sm text-ink mb-2">
+                Current Password
+              </label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => {
+                  setCurrentPassword(e.target.value);
+                  setPasswordError(null);
+                  setPasswordSuccess(false);
+                }}
+                placeholder="Enter current password"
+                className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block font-ui text-sm text-ink mb-2">
@@ -353,7 +374,7 @@ export default function AccountSettingsPage() {
 
           <button
             type="submit"
-            disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
+            disabled={passwordLoading || !newPassword || !confirmPassword || (!isRecoveryFlow && !currentPassword)}
             className="px-6 py-2.5 bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium rounded-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             {passwordLoading ? (

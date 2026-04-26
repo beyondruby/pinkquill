@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAuthFlow } from "@/lib/hooks/useAuthFlow";
+import { getSafeRedirectPath } from "@/lib/utils/redirect";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFeatherPointed,
@@ -17,6 +19,8 @@ import {
 
 export default function AuthForm() {
   const { state, actions } = useAuthFlow();
+  const searchParams = useSearchParams();
+  const redirectTarget = getSafeRedirectPath(searchParams.get("redirect"));
   const {
     isLogin, step, emailOrUsername, password, username, displayName,
     otpCode, pendingEmail, resendCooldown, loading, error, message,
@@ -28,14 +32,6 @@ export default function AuthForm() {
   // Refs for OTP inputs
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => actions.tickResendCooldown(), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown, actions]);
-
   // Focus first OTP input when entering OTP step
   useEffect(() => {
     if (step === "otp") {
@@ -46,14 +42,14 @@ export default function AuthForm() {
   const onCredentialsSubmit = async (e: React.FormEvent) => {
     const result = await actions.handleCredentialsSubmit(e);
     if (result === "redirect") {
-      window.location.href = "/";
+      window.location.href = redirectTarget;
     }
   };
 
   const onOtpSubmit = async (code?: string) => {
     const result = await actions.handleOtpSubmit(code);
     if (result === "redirect") {
-      window.location.href = "/";
+      window.location.href = redirectTarget;
     }
   };
 
@@ -203,7 +199,11 @@ export default function AuthForm() {
 
                   {isLogin && (
                     <div className="flex justify-end">
-                      <button type="button" className="font-ui text-xs font-medium text-muted hover:text-purple-primary transition-colors">
+                      <button
+                        type="button"
+                        onClick={actions.goToForgotPassword}
+                        className="font-ui text-xs font-medium text-muted hover:text-purple-primary transition-colors"
+                      >
                         Forgot password?
                       </button>
                     </div>
@@ -352,6 +352,83 @@ export default function AuthForm() {
                     )}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* STEP 3: Forgot Password — request reset link */}
+            {step === "forgot" && (
+              <div className="animate-fadeIn">
+                <button
+                  onClick={actions.handleBackToCredentials}
+                  className="flex items-center gap-2 text-muted hover:text-purple-primary transition-colors mb-6 group"
+                >
+                  <FontAwesomeIcon icon={faArrowLeft} className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                  <span className="font-ui text-sm">Back to sign in</span>
+                </button>
+
+                <div className="text-left mb-8">
+                  <h1 className="font-display text-3xl md:text-4xl text-ink mb-3">Reset your password</h1>
+                  <p className="font-body text-muted">
+                    Enter your account email and we&apos;ll send you a link to set a new password.
+                  </p>
+                </div>
+
+                <form onSubmit={actions.handleForgotPasswordSubmit} className="space-y-5">
+                  <div className="space-y-1">
+                    <label htmlFor="auth-form-forgot-email" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">
+                      Email
+                    </label>
+                    <input
+                      id="auth-form-forgot-email"
+                      type="email"
+                      value={emailOrUsername}
+                      onChange={(e) => actions.setEmailOrUsername(e.target.value)}
+                      placeholder="your@email.com"
+                      required
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="p-3 rounded-lg bg-red-50/80 border border-red-100 text-red-600 font-ui text-xs">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-xl font-ui font-semibold text-white bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm bg-[length:200%_auto] hover:bg-[position:right_center] transition-all duration-500 shadow-lg shadow-purple-primary/20 disabled:opacity-70 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} className="animate-spin w-4 h-4" />
+                        <span className="text-sm">Sending...</span>
+                      </>
+                    ) : (
+                      <span className="text-sm">Send reset link</span>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* STEP 4: Forgot Password — confirmation */}
+            {step === "forgot_sent" && (
+              <div className="animate-fadeIn text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center">
+                  <FontAwesomeIcon icon={faEnvelope} className="w-7 h-7 text-purple-primary" />
+                </div>
+                <h1 className="font-display text-3xl text-ink mb-3">Check your email</h1>
+                <p className="font-body text-muted text-sm mb-8">
+                  If an account exists for <span className="font-medium text-ink">{emailOrUsername}</span>, a password reset link is on its way. Follow the link to set a new password.
+                </p>
+                <button
+                  onClick={actions.handleBackToCredentials}
+                  className="font-ui text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-primary to-pink-vivid hover:opacity-80"
+                >
+                  Back to sign in
+                </button>
               </div>
             )}
 

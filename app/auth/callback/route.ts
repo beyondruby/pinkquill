@@ -1,30 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-
-// Validate redirect URL to prevent open redirect attacks
-function getSafeRedirectUrl(next: string | null): string {
-  if (!next) return "/";
-
-  // Only allow relative paths starting with /
-  // Block protocol-relative URLs (//evil.com), absolute URLs, and javascript:
-  const trimmed = next.trim();
-  if (
-    !trimmed.startsWith("/") ||
-    trimmed.startsWith("//") ||
-    trimmed.toLowerCase().includes("://") ||
-    trimmed.toLowerCase().startsWith("javascript:")
-  ) {
-    return "/";
-  }
-
-  return trimmed;
-}
+import { getSafeRedirectPath } from "@/lib/utils/redirect";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = getSafeRedirectUrl(requestUrl.searchParams.get("next"));
+  const next = getSafeRedirectPath(requestUrl.searchParams.get("next"));
   const type = requestUrl.searchParams.get("type");
 
   if (code) {

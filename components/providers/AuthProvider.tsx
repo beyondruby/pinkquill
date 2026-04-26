@@ -227,12 +227,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userProfile = await fetchOrCreateProfileWithTimeout(localSession.user);
 
           if (isMounted && fetchingProfileRef.current === userIdToFetch) {
-            setProfile(userProfile);
-            if (!userProfile) {
-              // Profile missing after timeout or failure. The user is still
-              // authenticated so the app can function with limited profile data.
-              // The next page load will retry.
-              console.warn("Auth user exists but profile is null. Will retry on next load.");
+            if (userProfile) {
+              setProfile(userProfile);
+            } else {
+              // Profile fetch timed out or failed. Don't overwrite an existing
+              // profile in state with null — features that read `profile` would
+              // silently disable. Log and let the next visibility-change /
+              // navigation retry naturally.
+              console.warn("Auth user exists but profile fetch failed. Keeping prior state.");
             }
           }
           fetchingProfileRef.current = null;
@@ -294,9 +296,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             if (isMounted && fetchingProfileRef.current === userIdToFetch) {
-              setProfile(userProfile);
-              if (!userProfile) {
-                console.warn("Profile unavailable after sign-in. Will retry on next load.");
+              if (userProfile) {
+                setProfile(userProfile);
+              } else {
+                console.warn("Profile unavailable after sign-in. Keeping prior state; will retry on next load.");
               }
             }
             fetchingProfileRef.current = null;
@@ -357,6 +360,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             return prev;
           });
+
+          // Retry profile fetch if it previously failed
+          if (!profile && fetchingProfileRef.current !== session.user.id) {
+            fetchingProfileRef.current = session.user.id;
+            const userProfile = await fetchProfile(session.user.id);
+            if (userProfile && fetchingProfileRef.current === session.user.id) {
+              setProfile(userProfile);
+            }
+            fetchingProfileRef.current = null;
+          }
         } else if (user) {
           // localStorage session is gone but React state still has a user.
           // This means Supabase cleared the session (e.g., refresh token expired).
@@ -371,7 +384,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [user]);
+  }, [user, profile, fetchProfile]);
 
   // Sign out function
   const signOut = useCallback(async () => {

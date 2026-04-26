@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { loginWithIdentifier } from "@/lib/auth-client";
+import { loginWithIdentifier, signupWithCredentials } from "@/lib/auth-client";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export type AuthStep = "credentials" | "otp";
+export type AuthStep = "credentials" | "otp" | "forgot" | "forgot_sent";
 
 /** Tracks which flow triggered the OTP so verifyOtp gets the right `type`. */
 export type OtpFlow = "signup" | "recovery";
@@ -29,13 +29,10 @@ export interface AuthFlowState {
 }
 
 export interface AuthFlowActions {
-  setIsLogin: (v: boolean) => void;
-  setStep: (v: AuthStep) => void;
   setEmailOrUsername: (v: string) => void;
   setPassword: (v: string) => void;
   setUsername: (v: string) => void;
   setDisplayName: (v: string) => void;
-  setOtpCode: (v: string[]) => void;
   setError: (v: string | null) => void;
   setMessage: (v: string | null) => void;
 
@@ -49,6 +46,12 @@ export interface AuthFlowActions {
 
   /** Resend the OTP email. */
   handleResendCode: () => Promise<void>;
+
+  /** Switch to the forgot-password step. */
+  goToForgotPassword: () => void;
+
+  /** Submit the forgot-password email. Sends a recovery link via email. */
+  handleForgotPasswordSubmit: (e: React.FormEvent) => Promise<void>;
 
   /** Go back from OTP to credentials step, resetting OTP state. */
   handleBackToCredentials: () => void;
@@ -67,9 +70,6 @@ export interface AuthFlowActions {
 
   /** Handle paste into OTP inputs. Does NOT auto-submit. */
   handleOtpPaste: (e: React.ClipboardEvent, refs: React.MutableRefObject<(HTMLInputElement | null)[]>) => void;
-
-  /** Start the resend cooldown timer. Call once per mount/step change. */
-  tickResendCooldown: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -148,11 +148,62 @@ export function useAuthFlow() {
     setMessage(null);
   }, [resetOtp]);
 
+  const goToForgotPassword = useCallback(() => {
+    setStep("forgot");
+    setError(null);
+    setMessage(null);
+  }, []);
+
+  const handleForgotPasswordSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (pendingRef.current) return;
+
+      // emailOrUsername may contain a username; only allow email here.
+      const email = emailOrUsername.trim();
+      if (!email || !email.includes("@")) {
+        setError("Please enter the email associated with your account.");
+        return;
+      }
+
+      pendingRef.current = true;
+      setLoading(true);
+      setError(null);
+      setMessage(null);
+
+      try {
+        const redirectTo =
+          typeof window !== "undefined"
+            ? `${window.location.origin}/auth/callback?type=recovery&next=/settings/account`
+            : undefined;
+
+        // Supabase returns success regardless of whether the email exists,
+        // which is the desired anti-enumeration behaviour. We surface the
+        // same generic confirmation either way.
+        await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+        setStep("forgot_sent");
+      } catch {
+        // Even on transport errors, present a generic confirmation to avoid
+        // disclosing the existence of the email. The user can retry.
+        setStep("forgot_sent");
+      } finally {
+        setLoading(false);
+        pendingRef.current = false;
+      }
+    },
+    [emailOrUsername]
+  );
+
   // ---- cooldown ticker ----
 
-  const tickResendCooldown = useCallback(() => {
-    setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
-  }, []);
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   // ---- OTP input handlers ----
 
@@ -232,7 +283,7 @@ export function useAuthFlow() {
           return "redirect";
         } else {
           // ---- SIGNUP ----
-          // Client-side username validation
+          // Client-side username validation (server validates again)
           const usernameError = validateUsername(username);
           if (usernameError) {
             throw new Error(usernameError);
@@ -240,65 +291,24 @@ export function useAuthFlow() {
 
           const cleanUsername = username.replace(/^@/, "").trim().toLowerCase();
 
-          const { data, error: signUpError } = await supabase.auth.signUp({
+          const result = await signupWithCredentials({
             email: emailOrUsername,
             password,
-            options: {
-              data: {
-                username: cleanUsername,
-                display_name: displayName,
-              },
-            },
+            username: cleanUsername,
+            displayName,
           });
 
-          if (signUpError) throw signUpError;
-
-          // User already exists (identities empty)
-          if (data.user?.identities?.length === 0) {
-            throw new Error("An account with this email already exists. Please sign in.");
+          if (!result.success) {
+            throw new Error(result.error || "Unable to create your account right now.");
           }
 
-          const needsEmailConfirmation = !data.session;
-
-          if (data.user && needsEmailConfirmation) {
-            // Try to create profile (may fail if RLS requires email verification)
-            try {
-              await supabase.from("profiles").insert({
-                id: data.user.id,
-                username: cleanUsername,
-                display_name: displayName,
-                email: emailOrUsername.toLowerCase(),
-                avatar_url: "/defaultprofile.png",
-              });
-            } catch {
-              // Profile will be created after email confirmation by AuthProvider
-            }
-
-            otpFlowRef.current = "signup";
-            setPendingEmail(emailOrUsername);
-            setResendCooldown(60);
-            setStep("otp");
-            return "otp";
-          } else if (data.session) {
-            // Auto-confirmed (shouldn't happen in production)
-            if (data.user) {
-              try {
-                await supabase.from("profiles").insert({
-                  id: data.user.id,
-                  username: cleanUsername,
-                  display_name: displayName,
-                  email: emailOrUsername.toLowerCase(),
-                  avatar_url: "/defaultprofile.png",
-                });
-              } catch {
-                // AuthProvider will handle profile creation
-              }
-            }
-            return "redirect";
-          }
+          otpFlowRef.current = "signup";
+          setPendingEmail(result.pendingEmail || emailOrUsername.toLowerCase());
+          setResendCooldown(60);
+          setStep("otp");
+          if (result.message) setMessage(result.message);
+          return "otp";
         }
-
-        return "error";
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : "An error occurred";
         setError(errorMessage);
@@ -378,15 +388,26 @@ export function useAuthFlow() {
     setMessage(null);
 
     try {
-      const resendType = otpFlowRef.current === "recovery" ? "email_change" as const : "signup" as const;
-      const { error: resendError } = await supabase.auth.resend({
-        type: resendType,
-        email: pendingEmail,
+      const resendType = otpFlowRef.current === "recovery" ? "email_change" : "signup";
+
+      const response = await fetch("/api/auth/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: pendingEmail, type: resendType }),
       });
 
-      if (resendError) throw resendError;
+      if (response.status === 429) {
+        setError("Too many attempts. Please wait a few minutes before requesting another code.");
+        return;
+      }
 
-      setMessage("New code sent! Check your email.");
+      if (!response.ok) {
+        setError("Could not resend code. Please try again.");
+        return;
+      }
+
+      // Server intentionally returns generic success; we mirror that here.
+      setMessage("If an unverified account exists for this email, a new code has been sent.");
       setResendCooldown(60);
       resetOtp();
     } catch (err: unknown) {
@@ -433,37 +454,36 @@ export function useAuthFlow() {
 
   const actions: AuthFlowActions = useMemo(
     () => ({
-      setIsLogin,
-      setStep,
       setEmailOrUsername,
       setPassword,
       setUsername,
       setDisplayName,
-      setOtpCode,
       setError,
       setMessage,
       handleCredentialsSubmit,
       handleOtpSubmit,
       handleResendCode,
       handleBackToCredentials,
+      goToForgotPassword,
+      handleForgotPasswordSubmit,
       toggleMode,
       resetForm,
       handleOtpChange,
       handleOtpKeyDown,
       handleOtpPaste,
-      tickResendCooldown,
     }),
     [
       handleCredentialsSubmit,
       handleOtpSubmit,
       handleResendCode,
       handleBackToCredentials,
+      goToForgotPassword,
+      handleForgotPasswordSubmit,
       toggleMode,
       resetForm,
       handleOtpChange,
       handleOtpKeyDown,
       handleOtpPaste,
-      tickResendCooldown,
     ]
   );
 

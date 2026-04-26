@@ -9,6 +9,48 @@ export interface LoginWithIdentifierResult {
   message?: string;
 }
 
+export interface SignupResult {
+  success: boolean;
+  error?: string;
+  pendingEmail?: string;
+  message?: string;
+}
+
+export interface SignupPayload {
+  email: string;
+  password: string;
+  username: string;
+  displayName: string;
+}
+
+export async function signupWithCredentials(payload: SignupPayload): Promise<SignupResult> {
+  const response = await fetch("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: payload.email,
+      password: payload.password,
+      username: payload.username,
+      display_name: payload.displayName,
+    }),
+  });
+
+  const data = await safeResponseJson<Record<string, unknown>>(response);
+
+  if (!response.ok) {
+    return {
+      success: false,
+      error: (data.error as string) || "Unable to create your account right now.",
+    };
+  }
+
+  return {
+    success: true,
+    pendingEmail: (data.pending_email as string) || payload.email.toLowerCase(),
+    message: (data.message as string) || undefined,
+  };
+}
+
 export async function buildAuthenticatedHeaders(
   initial?: HeadersInit
 ): Promise<Headers> {

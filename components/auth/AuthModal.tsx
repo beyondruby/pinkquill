@@ -27,7 +27,6 @@ export default function AuthModal() {
   // UI-only state
   const [showPassword, setShowPassword] = useState(false);
 
-  const modalRef = useRef<HTMLDivElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleClose = useCallback(() => {
@@ -58,14 +57,6 @@ export default function AuthModal() {
       document.body.style.overflow = "";
     };
   }, [isOpen]);
-
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => actions.tickResendCooldown(), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown, actions]);
 
   // Focus first OTP input when entering OTP step
   useEffect(() => {
@@ -101,10 +92,8 @@ export default function AuthModal() {
       />
 
       {/* Modal */}
-      <div
-        ref={modalRef}
-        className="relative w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-primary/10 border border-white/50 overflow-hidden animate-scaleIn"
-      >
+      <div className="relative w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-primary/10 border border-white/50 overflow-hidden animate-scaleIn">
+
         {/* Close button */}
         <button
           onClick={handleClose}

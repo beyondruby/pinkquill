@@ -79,7 +79,8 @@
       "Bash(npm outdated:*)",
       "Bash(jobs -l)",
       "Bash(cat:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(tee /tmp/tsc.log)"
     ]
   }
 }
