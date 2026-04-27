@@ -71,6 +71,21 @@ export async function POST(request: Request) {
 
     const user = await getAuthUser(request);
     if (!user?.id || !user.email) {
+      // Diagnostic logging to disambiguate "Not authenticated" failures.
+      // Strip after we confirm the cause and ship the proper fix.
+      const hasBearer = Boolean(request.headers.get("authorization"));
+      const cookieHeader = request.headers.get("cookie") || "";
+      const sbCookies = cookieHeader
+        .split(";")
+        .map((c) => c.trim().split("=")[0])
+        .filter((n) => n.startsWith("sb-"));
+      console.warn("[Auth Change Password] Not authenticated", {
+        hasBearer,
+        sbCookies,
+        userPresent: Boolean(user),
+        userHasId: Boolean(user?.id),
+        userHasEmail: Boolean(user?.email),
+      });
       return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
     }
 
