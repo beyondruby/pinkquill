@@ -386,18 +386,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [user, profile, fetchProfile]);
 
-  // Sign out: with cookie-based storage, supabase.auth.signOut() clears the
-  // sb-* cookies that BOTH the browser SDK and server-side @supabase/ssr
-  // client read from. One call covers both sides. We still hit
-  // /api/auth/logout afterward as defence-in-depth (idempotent, drops any
-  // residual cookies that might have been written between calls).
+  // Sign out: server route is the source of truth. /api/auth/logout uses the
+  // @supabase/ssr server client, which clears cookies with the exact same
+  // Path/Domain/SameSite attributes they were set with — this is the only
+  // 100%-reliable way to delete the session. Calling supabase.auth.signOut()
+  // from the browser is not enough on its own, because the browser client
+  // writes cookie expirations via document.cookie which can fail to match
+  // server-set attributes and leave the cookies behind.
+  //
+  // Order:
+  //  1. Hit /api/auth/logout — server returns Set-Cookie headers that expire
+  //     every sb-* cookie. Browser applies them.
+  //  2. Belt-and-suspenders: manually expire any sb-* cookie still visible
+  //     to JS, in case anything was set with a path other than "/".
+  //  3. Best-effort supabase.auth.signOut() to fire SIGNED_OUT and tear down
+  //     realtime channels.
+  //  4. Hard navigate to "/" so the next page is rendered with no session.
   const signOut = useCallback(async () => {
     try {
       setLoading(true);
-
-      await supabase.auth.signOut().catch((err) => {
-        console.warn("supabase.auth.signOut error:", err);
-      });
 
       await fetch("/api/auth/logout", {
         method: "POST",
@@ -408,14 +415,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn("/api/auth/logout failed:", err);
       });
 
+      // Manual belt-and-suspenders cookie clear. Iterate over every cookie
+      // visible to JS and expire any that look like a Supabase session
+      // cookie. We try a couple of common path values to dislodge cookies
+      // that might have been written with non-default options.
+      if (typeof document !== "undefined") {
+        const names = document.cookie
+          .split(";")
+          .map((c) => c.split("=")[0]?.trim())
+          .filter((name): name is string => Boolean(name && name.startsWith("sb-")));
+        for (const name of names) {
+          for (const path of ["/", ""]) {
+            document.cookie = `${name}=; Max-Age=0; Path=${path}; SameSite=Lax`;
+          }
+        }
+      }
+
+      await supabase.auth.signOut().catch((err) => {
+        console.warn("supabase.auth.signOut error:", err);
+      });
+
       setUser(null);
       setProfile(null);
       // Hard navigation so the next page renders with cleared cookies and
       // no stale React state from the previous session.
-      window.location.href = "/";
+      window.location.replace("/");
     } catch (err) {
       console.error("Sign out error:", err);
-      window.location.href = "/";
+      window.location.replace("/");
     }
   }, []);
 
