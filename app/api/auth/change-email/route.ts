@@ -121,26 +121,30 @@ export async function POST(request: Request) {
     );
 
     if (updateError) {
-      const msg = updateError.message.toLowerCase();
-      if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
-        // Don't reveal whether the address is already taken — generic message.
+      const message = updateError.message || "Could not start the email change.";
+      const lower = message.toLowerCase();
+      if (
+        lower.includes("already") ||
+        lower.includes("registered") ||
+        lower.includes("exists")
+      ) {
         return NextResponse.json(
           { error: "Could not start the email change. Please try a different address." },
           { status: 400 }
         );
       }
-      console.error("[Auth Change Email]", updateError);
-      return NextResponse.json(
-        { error: "Could not start the email change right now." },
-        { status: 500 }
-      );
+      // Surface the actual Supabase error so we can diagnose, instead of
+      // hiding it behind a generic 500.
+      console.error("[Auth Change Email] updateUser failed:", updateError);
+      return NextResponse.json({ error: message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[Auth Change Email]", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[Auth Change Email] unexpected:", message, error);
     return NextResponse.json(
-      { error: "Could not start the email change right now." },
+      { error: message || "Could not start the email change right now." },
       { status: 500 }
     );
   }
