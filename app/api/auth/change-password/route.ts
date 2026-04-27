@@ -23,8 +23,7 @@ interface ChangePasswordPayload {
 
 /**
  * Build a transient, non-persistent anon client used purely to verify the
- * current password. Same pattern as /api/auth/verify-password — we don't
- * want to disturb the caller's existing session.
+ * current password. We don't want to disturb the caller's existing session.
  */
 function createTransientAuthClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -71,21 +70,6 @@ export async function POST(request: Request) {
 
     const user = await getAuthUser(request);
     if (!user?.id || !user.email) {
-      // Diagnostic logging to disambiguate "Not authenticated" failures.
-      // Strip after we confirm the cause and ship the proper fix.
-      const hasBearer = Boolean(request.headers.get("authorization"));
-      const cookieHeader = request.headers.get("cookie") || "";
-      const sbCookies = cookieHeader
-        .split(";")
-        .map((c) => c.trim().split("=")[0])
-        .filter((n) => n.startsWith("sb-"));
-      console.warn("[Auth Change Password] Not authenticated", {
-        hasBearer,
-        sbCookies,
-        userPresent: Boolean(user),
-        userHasId: Boolean(user?.id),
-        userHasEmail: Boolean(user?.email),
-      });
       return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
     }
 

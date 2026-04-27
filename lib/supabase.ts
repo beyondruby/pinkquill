@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 import { recordRequestMetric } from "./utils/requestMetrics";
 
 // Validate environment variables
@@ -110,108 +110,115 @@ function deduplicatedRefresh(): Promise<string | null> {
   return _refreshPromise;
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-  global: {
-    // Add timeout to data fetch requests to prevent hanging
-    fetch: async (url, options: RequestInit = {}) => {
-      // If request already has a signal, don't override it
-      if (options.signal) {
-        return fetch(url, options);
-      }
+// Custom fetch with timeouts + 401 retry. Reused by the browser client.
+const customFetch: typeof fetch = async (url, options: RequestInit = {}) => {
+  // If request already has a signal, don't override it
+  if (options.signal) {
+    return fetch(url, options);
+  }
 
-      // Auth requests get a generous but bounded timeout (10s).
-      // Previously these had NO timeout — a hanging token refresh would
-      // block all subsequent data queries indefinitely.
-      if (isAuthRequest(url)) {
-        const authController = new AbortController();
-        const authTimeoutId = setTimeout(() => authController.abort(), TIMEOUT_AUTH);
-        try {
-          const response = await fetch(url, { ...options, signal: authController.signal });
-          clearTimeout(authTimeoutId);
-          return response;
-        } catch (error) {
-          clearTimeout(authTimeoutId);
-          throw error;
-        }
-      }
+  // Auth requests get a generous but bounded timeout (10s).
+  // Previously these had NO timeout — a hanging token refresh would
+  // block all subsequent data queries indefinitely.
+  if (isAuthRequest(url)) {
+    const authController = new AbortController();
+    const authTimeoutId = setTimeout(() => authController.abort(), TIMEOUT_AUTH);
+    try {
+      const response = await fetch(url, { ...options, signal: authController.signal });
+      clearTimeout(authTimeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(authTimeoutId);
+      throw error;
+    }
+  }
 
-      // Use longer timeout for uploads
-      const timeout = isUploadRequest(url, options) ? TIMEOUT_UPLOAD : TIMEOUT_DEFAULT;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-      const startedAt = Date.now();
+  // Use longer timeout for uploads
+  const timeout = isUploadRequest(url, options) ? TIMEOUT_UPLOAD : TIMEOUT_DEFAULT;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  const startedAt = Date.now();
 
-      try {
-        const response = await fetch(url, {
-          ...options,
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        recordRequestMetric({
-          url,
-          options,
-          status: response.status,
-          durationMs: Date.now() - startedAt,
-        });
-        maybeLogBadRequest(url, options, response.status);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    recordRequestMetric({
+      url,
+      options,
+      status: response.status,
+      durationMs: Date.now() - startedAt,
+    });
+    maybeLogBadRequest(url, options, response.status);
 
-        // 401 retry: if the JWT was expired, refresh the session and retry once.
-        // Uses deduplicatedRefresh() so N concurrent 401s only trigger ONE
-        // refreshSession() call instead of N (prevents thundering-herd).
-        if (response.status === 401 && _client && typeof window !== 'undefined') {
-          const retryHeader = options.headers instanceof Headers
-            ? options.headers.get('x-sb-retry')
-            : null;
-          if (!retryHeader) {
-            const newToken = await deduplicatedRefresh();
-            if (newToken) {
-              const retryHeaders = new Headers(options.headers);
-              retryHeaders.set('Authorization', `Bearer ${newToken}`);
-              retryHeaders.set('x-sb-retry', '1');
-              const retryController = new AbortController();
-              const retryTimeout = setTimeout(() => retryController.abort(), timeout);
-              try {
-                const retryResponse = await fetch(url, {
-                  ...options,
-                  headers: retryHeaders,
-                  signal: retryController.signal,
-                });
-                clearTimeout(retryTimeout);
-                return retryResponse;
-              } catch {
-                clearTimeout(retryTimeout);
-              }
-            }
+    // 401 retry: if the JWT was expired, refresh the session and retry once.
+    // Uses deduplicatedRefresh() so N concurrent 401s only trigger ONE
+    // refreshSession() call instead of N (prevents thundering-herd).
+    if (response.status === 401 && _client && typeof window !== 'undefined') {
+      const retryHeader = options.headers instanceof Headers
+        ? options.headers.get('x-sb-retry')
+        : null;
+      if (!retryHeader) {
+        const newToken = await deduplicatedRefresh();
+        if (newToken) {
+          const retryHeaders = new Headers(options.headers);
+          retryHeaders.set('Authorization', `Bearer ${newToken}`);
+          retryHeaders.set('x-sb-retry', '1');
+          const retryController = new AbortController();
+          const retryTimeout = setTimeout(() => retryController.abort(), timeout);
+          try {
+            const retryResponse = await fetch(url, {
+              ...options,
+              headers: retryHeaders,
+              signal: retryController.signal,
+            });
+            clearTimeout(retryTimeout);
+            return retryResponse;
+          } catch {
+            clearTimeout(retryTimeout);
           }
         }
-
-        return response;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        recordRequestMetric({
-          url,
-          options,
-          durationMs: Date.now() - startedAt,
-          errorName: error instanceof Error ? error.name : String(error),
-        });
-        // Preserve AbortError semantics so hooks can correctly handle cancellations/timeouts.
-        if (error instanceof Error && error.name === 'AbortError') {
-          throw createTimeoutAbortError(timeout);
-        }
-        throw error;
       }
-    },
-  },
+    }
+
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    recordRequestMetric({
+      url,
+      options,
+      durationMs: Date.now() - startedAt,
+      errorName: error instanceof Error ? error.name : String(error),
+    });
+    // Preserve AbortError semantics so hooks can correctly handle cancellations/timeouts.
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw createTimeoutAbortError(timeout);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Browser Supabase client.
+ *
+ * IMPORTANT: this client stores its session in **cookies**, not localStorage.
+ * Both the browser SDK and the server-side `@supabase/ssr` client read and
+ * write the same cookie store, so:
+ *   - Token auto-refresh stays in sync with the server.
+ *   - `supabase.auth.signOut()` clears cookies once → server sees logout.
+ *   - `supabase.auth.updateUser()` works without "Auth session missing!" errors.
+ *
+ * Previously we used `createClient` with `persistSession: true` (localStorage),
+ * which drifted out of sync with cookies after every silent token refresh.
+ */
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+  global: { fetch: customFetch },
   realtime: {
     params: {
       eventsPerSecond: 10,
     },
-    // Timeout for realtime connection attempts
     timeout: 30000,
   },
   db: {

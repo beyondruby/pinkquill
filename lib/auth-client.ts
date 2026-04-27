@@ -84,6 +84,9 @@ export async function loginWithIdentifier(
       identifier,
       password,
     }),
+    // Same-origin by default already includes cookies, but be explicit:
+    // this is how the cookie-based session arrives in the browser.
+    credentials: "same-origin",
   });
 
   const data = await safeResponseJson<Record<string, unknown>>(response);
@@ -98,15 +101,11 @@ export async function loginWithIdentifier(
     };
   }
 
-  // Establish the client-side session in localStorage so the Supabase client
-  // has valid tokens for auto-refresh and API calls. Without this, the session
-  // only exists in server-side cookies and the client loses auth after ~1 min.
-  if (data.access_token && data.refresh_token) {
-    await supabase.auth.setSession({
-      access_token: data.access_token as string,
-      refresh_token: data.refresh_token as string,
-    });
-  }
+  // The server route set sb-* cookies via @supabase/ssr. Our browser client
+  // (also @supabase/ssr) reads from the same store, so the session is now
+  // visible to the SDK without any explicit setSession call. Surfacing the
+  // SIGNED_IN event lets AuthProvider populate user state immediately.
+  await supabase.auth.getSession();
 
   return {
     success: true,

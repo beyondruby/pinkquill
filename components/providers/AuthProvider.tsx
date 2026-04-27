@@ -386,33 +386,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [user, profile, fetchProfile]);
 
-  // Sign out function — must clear BOTH the client localStorage session
-  // (supabase.auth.signOut) AND the server-side cookie session (via the
-  // /api/auth/logout endpoint). The proxy middleware gates protected
-  // routes on the presence of the cookie, so missing either side means
-  // a "still signed in"-looking experience after logout.
+  // Sign out: with cookie-based storage, supabase.auth.signOut() clears the
+  // sb-* cookies that BOTH the browser SDK and server-side @supabase/ssr
+  // client read from. One call covers both sides. We still hit
+  // /api/auth/logout afterward as defence-in-depth (idempotent, drops any
+  // residual cookies that might have been written between calls).
   const signOut = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Run both in parallel; tolerate either failing — the redirect
-      // happens regardless so the user lands on the public home page.
-      await Promise.allSettled([
-        supabase.auth.signOut(),
-        fetch("/api/auth/logout", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-        }),
-      ]);
+      await supabase.auth.signOut().catch((err) => {
+        console.warn("supabase.auth.signOut error:", err);
+      });
+
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      }).catch((err) => {
+        console.warn("/api/auth/logout failed:", err);
+      });
 
       setUser(null);
       setProfile(null);
+      // Hard navigation so the next page renders with cleared cookies and
+      // no stale React state from the previous session.
       window.location.href = "/";
     } catch (err) {
       console.error("Sign out error:", err);
-      // Force redirect even on error
       window.location.href = "/";
     }
   }, []);

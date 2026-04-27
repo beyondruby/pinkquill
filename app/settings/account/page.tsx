@@ -64,31 +64,27 @@ export default function AccountSettingsPage() {
     setEmailSuccess(false);
 
     try {
-      // Re-auth with current password before allowing an email change.
-      // Mirrors Instagram's flow and prevents account hijacking from an
-      // unattended browser. The verify-password route uses a transient
-      // anon client so the existing session is untouched.
-      const verifyResponse = await fetch("/api/auth/verify-password", {
+      // Re-auth + initiate the change in a single server route. The route
+      // verifies the current password with a transient anon client and
+      // then triggers updateUser({ email }) via the cookie-bound server
+      // client, so this does not depend on the browser SDK's session.
+      const response = await fetch("/api/auth/change-email", {
         method: "POST",
         headers: await buildAuthenticatedHeaders({
           "Content-Type": "application/json",
         }),
-        body: JSON.stringify({ password: currentPasswordForEmail }),
+        body: JSON.stringify({
+          email: newEmail,
+          currentPassword: currentPasswordForEmail,
+          redirectTo: `${window.location.origin}/auth/callback?next=/settings/account`,
+        }),
       });
 
-      if (!verifyResponse.ok) {
-        const verifyData = await safeResponseJson<{ error?: string }>(verifyResponse);
-        setEmailError(verifyData.error || "Current password is incorrect");
-        setEmailLoading(false);
+      if (!response.ok) {
+        const data = await safeResponseJson<{ error?: string }>(response);
+        setEmailError(data.error || "Failed to update email");
         return;
       }
-
-      const { error } = await supabase.auth.updateUser(
-        { email: newEmail },
-        { emailRedirectTo: `${window.location.origin}/auth/callback?next=/settings/account` }
-      );
-
-      if (error) throw error;
 
       setEmailSuccess(true);
       setNewEmail("");
