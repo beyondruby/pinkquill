@@ -130,34 +130,30 @@ export default function AccountSettingsPage() {
     setPasswordSuccess(false);
 
     try {
-      // In a recovery flow the user authenticated via the email link, so we
-      // skip current-password verification (they may not remember it).
-      if (!isRecoveryFlow) {
-        // Verify current password via server-side API route.
-        // This avoids calling signInWithPassword() on the client, which would
-        // create a duplicate session.
-        const verifyResponse = await fetch("/api/auth/verify-password", {
-          method: "POST",
-          headers: await buildAuthenticatedHeaders({
-            "Content-Type": "application/json",
-          }),
-          body: JSON.stringify({ password: currentPassword }),
-        });
-
-        if (!verifyResponse.ok) {
-          const verifyData = await safeResponseJson<{ error?: string }>(verifyResponse);
-          setPasswordError(verifyData.error || "Current password is incorrect");
-          setPasswordLoading(false);
-          return;
-        }
-      }
-
-      // Current password verified — update to new password
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
+      // Update via /api/auth/change-password. This does the password update
+      // server-side via the admin API, so it works regardless of whether the
+      // browser SDK still has a usable session in localStorage (a recurring
+      // pain point with supabase.auth.updateUser() — it throws "Auth session
+      // missing!" whenever the client session drifts from the cookie session).
+      //
+      // Recovery flow: omit currentPassword — the user authenticated via the
+      // email link and may not remember the old one.
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: await buildAuthenticatedHeaders({
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          password: newPassword,
+          ...(isRecoveryFlow ? {} : { currentPassword }),
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const data = await safeResponseJson<{ error?: string }>(response);
+        setPasswordError(data.error || "Failed to update password");
+        return;
+      }
 
       setPasswordSuccess(true);
       setCurrentPassword("");
