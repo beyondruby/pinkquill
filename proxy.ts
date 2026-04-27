@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
 const PROTECTED_PREFIXES = [
   "/create",
@@ -15,21 +16,32 @@ const PROTECTED_PREFIXES = [
 
 function isProtectedPath(pathname: string): boolean {
   if (pathname === "/") return true;
-
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
 }
 
-function hasSupabaseAuthCookie(request: NextRequest): boolean {
-  return request.cookies
-    .getAll()
-    .some((cookie) => cookie.name.includes("auth-token") && cookie.value.length > 0);
-}
+/**
+ * Next.js 16 proxy (formerly `middleware.ts`).
+ *
+ * Two responsibilities, in order:
+ *   1. Refresh the Supabase auth token on every request via updateSession().
+ *      This keeps the cookie session in sync between server and browser —
+ *      the missing piece that caused the "Auth session missing!" / "Not
+ *      authenticated" cycle every time we touched auth.
+ *   2. Gate protected paths: if the path is in PROTECTED_PREFIXES and the
+ *      caller has no valid session after the refresh, redirect to /login
+ *      preserving the original destination as ?redirect=.
+ *
+ * IMPORTANT: updateSession MUST run before any other logic that reads cookies
+ * — its `getUser()` call refreshes the token AND writes new cookies onto the
+ * response we return. Do not read cookies before it.
+ */
+export async function proxy(request: NextRequest) {
+  const { response, user } = await updateSession(request);
 
-export function proxy(request: NextRequest) {
-  if (!isProtectedPath(request.nextUrl.pathname) || hasSupabaseAuthCookie(request)) {
-    return NextResponse.next();
+  if (!isProtectedPath(request.nextUrl.pathname) || user) {
+    return response;
   }
 
   const loginUrl = new URL("/login", request.url);

@@ -46,38 +46,22 @@ function getBearerToken(request?: Request): string | null {
 /**
  * Gets the authenticated user from the current request.
  * Prefers an Authorization bearer token (current client session) and
- * falls back to server-side auth cookies.
+ * falls back to server-side auth cookies. Returns null when neither
+ * resolves to a valid user — the middleware has already refreshed the
+ * cookie session before we get here, so a null result here means the
+ * caller really is unauthenticated.
  */
 export async function getAuthUser(request?: Request) {
   const bearerToken = getBearerToken(request);
-  let bearerError: string | null = null;
 
   if (bearerToken) {
     const { data, error } = await supabaseAdmin.auth.getUser(bearerToken);
     if (!error && data.user) {
       return data.user;
     }
-    bearerError = error?.message ?? "no user from bearer";
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data: { user }, error: cookieError } = await supabase.auth.getUser();
-  if (user) return user;
-
-  // Diagnostic: log only when we're about to deny the caller. Lets us
-  // distinguish "no auth at all" from "stale token" without exposing
-  // anything to the client.
-  const cookieHeader = request?.headers.get("cookie") || "";
-  const sbCookies = cookieHeader
-    .split(";")
-    .map((c) => c.trim().split("=")[0])
-    .filter((n) => n.startsWith("sb-"));
-  console.warn("[getAuthUser] returning null", {
-    hasBearer: Boolean(bearerToken),
-    bearerError,
-    sbCookies,
-    cookieError: cookieError?.message ?? null,
-  });
-
-  return null;
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
 }
