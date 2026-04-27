@@ -3,6 +3,11 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { loginWithIdentifier, signupWithCredentials } from "@/lib/auth-client";
+import {
+  normalizeUsername,
+  validatePasswordStrength,
+  validateUsername,
+} from "@/lib/auth/constants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -70,21 +75,6 @@ export interface AuthFlowActions {
 
   /** Handle paste into OTP inputs. Does NOT auto-submit. */
   handleOtpPaste: (e: React.ClipboardEvent, refs: React.MutableRefObject<(HTMLInputElement | null)[]>) => void;
-}
-
-// ---------------------------------------------------------------------------
-// Username validation (alphanumeric + underscore)
-// ---------------------------------------------------------------------------
-
-const USERNAME_RE = /^[a-zA-Z0-9_]+$/;
-
-function validateUsername(raw: string): string | null {
-  const cleaned = raw.replace(/^@/, "").trim();
-  if (!cleaned) return "Username is required";
-  if (cleaned.length < 2) return "Username must be at least 2 characters";
-  if (cleaned.length > 30) return "Username must be 30 characters or fewer";
-  if (!USERNAME_RE.test(cleaned)) return "Username can only contain letters, numbers, and underscores";
-  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -283,13 +273,18 @@ export function useAuthFlow() {
           return "redirect";
         } else {
           // ---- SIGNUP ----
-          // Client-side username validation (server validates again)
+          // Client-side validation (server validates again — these are
+          // shared rules from lib/auth/constants).
           const usernameError = validateUsername(username);
           if (usernameError) {
             throw new Error(usernameError);
           }
+          const passwordCheck = validatePasswordStrength(password);
+          if (!passwordCheck.valid) {
+            throw new Error(passwordCheck.error ?? "Password is not strong enough.");
+          }
 
-          const cleanUsername = username.replace(/^@/, "").trim().toLowerCase();
+          const cleanUsername = normalizeUsername(username);
 
           const result = await signupWithCredentials({
             email: emailOrUsername,

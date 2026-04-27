@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuthFlow } from "@/lib/hooks/useAuthFlow";
 import { getSafeRedirectPath } from "@/lib/utils/redirect";
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth/constants";
+import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFeatherPointed,
@@ -184,7 +186,7 @@ export default function AuthForm() {
                         onChange={(e) => actions.setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        minLength={6}
+                        minLength={isLogin ? undefined : PASSWORD_MIN_LENGTH}
                         className="w-full px-4 py-3 pr-11 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                       />
                       <button
@@ -195,6 +197,7 @@ export default function AuthForm() {
                         <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-4 h-4" />
                       </button>
                     </div>
+                    {!isLogin && <PasswordStrengthMeter password={password} />}
                   </div>
 
                   {isLogin && (

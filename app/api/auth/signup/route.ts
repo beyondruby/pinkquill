@@ -6,6 +6,14 @@ import {
   safeJsonParse,
 } from "@/lib/api-security";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import {
+  PASSWORD_MAX_LENGTH,
+  RESERVED_USERNAMES,
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+  USERNAME_RE,
+  validatePasswordStrength,
+} from "@/lib/auth/constants";
 
 export const runtime = "nodejs";
 
@@ -15,22 +23,6 @@ interface SignupPayload {
   username?: string;
   display_name?: string;
 }
-
-const USERNAME_RE = /^[a-z0-9_]+$/;
-const RESERVED_USERNAMES = new Set([
-  "admin",
-  "administrator",
-  "root",
-  "system",
-  "support",
-  "help",
-  "moderator",
-  "mod",
-  "staff",
-  "official",
-  "pinkquill",
-  "quill",
-]);
 
 /**
  * Generic, non-enumerating success response.
@@ -100,15 +92,32 @@ export async function POST(request: Request) {
     if (!email || !email.includes("@") || email.length > 254) {
       return NextResponse.json({ error: "A valid email is required." }, { status: 400 });
     }
-    if (!password || password.length < 6 || password.length > 200) {
-      return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
+    if (password.length > PASSWORD_MAX_LENGTH) {
+      return NextResponse.json(
+        { error: `Password must be ${PASSWORD_MAX_LENGTH} characters or fewer.` },
+        { status: 400 }
+      );
     }
-    if (!usernameInput || usernameInput.length < 2 || usernameInput.length > 30) {
-      return NextResponse.json({ error: "Username must be 2–30 characters." }, { status: 400 });
+    const passwordCheck = validatePasswordStrength(password);
+    if (!passwordCheck.valid) {
+      return NextResponse.json(
+        { error: passwordCheck.error ?? "Password is not strong enough." },
+        { status: 400 }
+      );
+    }
+    if (
+      !usernameInput ||
+      usernameInput.length < USERNAME_MIN_LENGTH ||
+      usernameInput.length > USERNAME_MAX_LENGTH
+    ) {
+      return NextResponse.json(
+        { error: `Username must be ${USERNAME_MIN_LENGTH}–${USERNAME_MAX_LENGTH} characters.` },
+        { status: 400 }
+      );
     }
     if (!USERNAME_RE.test(usernameInput)) {
       return NextResponse.json(
-        { error: "Username can only contain lowercase letters, numbers, and underscores." },
+        { error: "Username can only contain letters, numbers, and underscores." },
         { status: 400 }
       );
     }

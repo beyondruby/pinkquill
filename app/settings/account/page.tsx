@@ -6,6 +6,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { buildAuthenticatedHeaders } from "@/lib/auth-client";
 import { supabase } from "@/lib/supabase";
 import { safeResponseJson } from "@/lib/utils/fetch";
+import { PASSWORD_MIN_LENGTH, validatePasswordStrength } from "@/lib/auth/constants";
+import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
 
 export default function AccountSettingsPage() {
   const { user } = useAuth();
@@ -36,6 +38,7 @@ export default function AccountSettingsPage() {
 
   // Email change state
   const [newEmail, setNewEmail] = useState("");
+  const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailSuccess, setEmailSuccess] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -54,13 +57,32 @@ export default function AccountSettingsPage() {
 
   const handleEmailChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmail.trim()) return;
+    if (!newEmail.trim() || !currentPasswordForEmail) return;
 
     setEmailLoading(true);
     setEmailError(null);
     setEmailSuccess(false);
 
     try {
+      // Re-auth with current password before allowing an email change.
+      // Mirrors Instagram's flow and prevents account hijacking from an
+      // unattended browser. The verify-password route uses a transient
+      // anon client so the existing session is untouched.
+      const verifyResponse = await fetch("/api/auth/verify-password", {
+        method: "POST",
+        headers: await buildAuthenticatedHeaders({
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ password: currentPasswordForEmail }),
+      });
+
+      if (!verifyResponse.ok) {
+        const verifyData = await safeResponseJson<{ error?: string }>(verifyResponse);
+        setEmailError(verifyData.error || "Current password is incorrect");
+        setEmailLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser(
         { email: newEmail },
         { emailRedirectTo: `${window.location.origin}/auth/callback?next=/settings/account` }
@@ -70,6 +92,7 @@ export default function AccountSettingsPage() {
 
       setEmailSuccess(true);
       setNewEmail("");
+      setCurrentPasswordForEmail("");
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to update email";
       setEmailError(errorMessage);
@@ -91,8 +114,9 @@ export default function AccountSettingsPage() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
+    const strength = validatePasswordStrength(newPassword);
+    if (!strength.valid) {
+      setPasswordError(strength.error ?? "Password is not strong enough");
       return;
     }
 
@@ -241,6 +265,27 @@ export default function AccountSettingsPage() {
             />
           </div>
 
+          <div>
+            <label className="block font-ui text-sm text-ink mb-2">
+              Current Password
+            </label>
+            <input
+              type="password"
+              value={currentPasswordForEmail}
+              onChange={(e) => {
+                setCurrentPasswordForEmail(e.target.value);
+                setEmailError(null);
+                setEmailSuccess(false);
+              }}
+              placeholder="Confirm your current password"
+              autoComplete="current-password"
+              className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+            />
+            <p className="font-body text-xs text-muted/80 mt-1.5">
+              We ask for your password to confirm it&apos;s really you.
+            </p>
+          </div>
+
           {emailError && (
             <div className="p-3 rounded-xl bg-red-50 text-red-600 font-ui text-sm">
               {emailError}
@@ -263,7 +308,7 @@ export default function AccountSettingsPage() {
 
           <button
             type="submit"
-            disabled={emailLoading || !newEmail.trim()}
+            disabled={emailLoading || !newEmail.trim() || !currentPasswordForEmail}
             className="px-6 py-2.5 bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium rounded-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             {emailLoading ? (
@@ -336,8 +381,10 @@ export default function AccountSettingsPage() {
                 setPasswordSuccess(false);
               }}
               placeholder="Enter new password"
+              minLength={PASSWORD_MIN_LENGTH}
               className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
             />
+            <PasswordStrengthMeter password={newPassword} />
           </div>
 
           <div>

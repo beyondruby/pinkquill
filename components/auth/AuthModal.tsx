@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
 import { useAuthFlow } from "@/lib/hooks/useAuthFlow";
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth/constants";
+import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFeatherPointed,
@@ -197,7 +199,7 @@ export default function AuthModal() {
                     onChange={(e) => actions.setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    minLength={6}
+                    minLength={isLogin ? undefined : PASSWORD_MIN_LENGTH}
                     className="w-full px-3 py-2.5 pr-10 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all"
                   />
                   <button
@@ -208,6 +210,7 @@ export default function AuthModal() {
                     <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-4 h-4" />
                   </button>
                 </div>
+                {!isLogin && <PasswordStrengthMeter password={password} compact />}
               </div>
 
               {error && (
