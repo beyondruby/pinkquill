@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, type CSSProperties } from "react";
 
 interface TakePlayerProps {
   src: string;
@@ -10,6 +10,16 @@ interface TakePlayerProps {
   onTap?: () => void;
   onDoubleTap?: () => void;
   onToggleMute?: () => void;
+  onPlayStart?: () => void;
+  onPauseStop?: () => void;
+  onLoop?: () => void;
+  onComplete?: () => void;
+  playbackRate?: number;
+  videoStyle?: CSSProperties;
+  soundSrc?: string | null;
+  soundStartTime?: number;
+  soundVolume?: number;
+  originalVolume?: number;
 }
 
 export default function TakePlayer({
@@ -20,8 +30,19 @@ export default function TakePlayer({
   onTap,
   onDoubleTap,
   onToggleMute,
+  onPlayStart,
+  onPauseStop,
+  onLoop,
+  onComplete,
+  playbackRate = 1,
+  videoStyle,
+  soundSrc,
+  soundStartTime = 0,
+  soundVolume = 100,
+  originalVolume = 100,
 }: TakePlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -31,6 +52,8 @@ export default function TakePlayer({
   const lastTapRef = useRef(0);
   const tapTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const pausedOverlayTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const lastPlaybackTimeRef = useRef(0);
+  const completionReportedRef = useRef(false);
   const mountedRef = useRef(true);
 
   // Cleanup all timeouts on unmount to prevent state updates on unmounted component
@@ -44,8 +67,30 @@ export default function TakePlayer({
   }, []);
 
   /* eslint-disable react-hooks/set-state-in-effect */
+  const playMedia = useCallback(() => {
+    const video = videoRef.current;
+    const audio = audioRef.current;
+    if (!video) return;
+
+    video.playbackRate = playbackRate;
+    video.play().catch(() => {});
+
+    if (audio && soundSrc) {
+      if (audio.paused || audio.ended) {
+        audio.currentTime = Math.min(soundStartTime, Math.max(0, audio.duration || soundStartTime));
+      }
+      audio.play().catch(() => {});
+    }
+  }, [playbackRate, soundSrc, soundStartTime]);
+
+  const pauseMedia = useCallback(() => {
+    videoRef.current?.pause();
+    audioRef.current?.pause();
+  }, []);
+
   useEffect(() => {
     const video = videoRef.current;
+    const audio = audioRef.current;
     if (!video) return;
 
     // Clear pending tap timeout when isActive changes to prevent stale state updates
@@ -55,26 +100,54 @@ export default function TakePlayer({
     }
 
     if (isActive) {
-      video.play().catch(() => {});
+      playMedia();
     } else {
-      video.pause();
+      pauseMedia();
       video.currentTime = 0;
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+      lastPlaybackTimeRef.current = 0;
+      completionReportedRef.current = false;
       setProgress(0);
     }
-  }, [isActive]);
+  }, [isActive, pauseMedia, playMedia]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.muted = isMuted;
+      videoRef.current.playbackRate = playbackRate;
     }
-  }, [isMuted]);
+  }, [playbackRate]);
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.volume = volume;
+      videoRef.current.muted = isMuted || originalVolume === 0;
     }
-  }, [volume]);
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted || soundVolume === 0;
+    }
+  }, [isMuted, originalVolume, soundVolume]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = Math.max(0, Math.min(1, volume * (originalVolume / 100)));
+    }
+    if (audioRef.current) {
+      audioRef.current.volume = Math.max(0, Math.min(1, volume * (soundVolume / 100)));
+    }
+  }, [volume, originalVolume, soundVolume]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !soundSrc) return;
+    audio.src = soundSrc;
+    audio.currentTime = soundStartTime;
+    if (isActive) {
+      audio.play().catch(() => {});
+    }
+  }, [isActive, soundSrc, soundStartTime]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -82,13 +155,30 @@ export default function TakePlayer({
 
     const updateProgress = () => {
       if (video.duration) {
-        setProgress((video.currentTime / video.duration) * 100);
+        const currentProgress = (video.currentTime / video.duration) * 100;
+        setProgress(currentProgress);
+
+        if (!completionReportedRef.current && currentProgress >= 95) {
+          completionReportedRef.current = true;
+          onComplete?.();
+        }
+
+        if (lastPlaybackTimeRef.current > 0 && video.currentTime < lastPlaybackTimeRef.current - 0.75) {
+          completionReportedRef.current = false;
+          if (audioRef.current && soundSrc) {
+            audioRef.current.currentTime = soundStartTime;
+            if (!video.paused) audioRef.current.play().catch(() => {});
+          }
+          onLoop?.();
+        }
+
+        lastPlaybackTimeRef.current = video.currentTime;
       }
     };
 
     video.addEventListener("timeupdate", updateProgress);
     return () => video.removeEventListener("timeupdate", updateProgress);
-  }, [isActive]);
+  }, [isActive, onComplete, onLoop, soundSrc, soundStartTime]);
 
   // Show paused overlay briefly when video is paused
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -115,7 +205,7 @@ export default function TakePlayer({
   }, [isPlaying, isActive, isLoading, hasError]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const handleTap = useCallback((e: React.MouseEvent) => {
+  const handleTap = useCallback(() => {
     const now = Date.now();
     const timeSinceLastTap = now - lastTapRef.current;
 
@@ -130,9 +220,9 @@ export default function TakePlayer({
           const video = videoRef.current;
           if (video) {
             if (video.paused) {
-              video.play();
+              playMedia();
             } else {
-              video.pause();
+              pauseMedia();
             }
           }
         }
@@ -140,7 +230,7 @@ export default function TakePlayer({
     }
 
     lastTapRef.current = now;
-  }, [onTap, onDoubleTap]);
+  }, [onTap, onDoubleTap, pauseMedia, playMedia]);
 
   const handleRetry = useCallback(() => {
     setHasError(false);
@@ -168,17 +258,38 @@ export default function TakePlayer({
         className="tiktok-player-video"
         playsInline
         loop
-        muted={isMuted}
+        muted={isMuted || originalVolume === 0}
         preload={isActive ? "auto" : "metadata"}
+        style={videoStyle}
         onLoadStart={() => setIsLoading(true)}
         onCanPlay={() => setIsLoading(false)}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPlay={() => {
+          setIsPlaying(true);
+          onPlayStart?.();
+        }}
+        onPause={() => {
+          setIsPlaying(false);
+          onPauseStop?.();
+        }}
+        onEnded={() => {
+          completionReportedRef.current = true;
+          onComplete?.();
+        }}
         onError={() => {
           setIsLoading(false);
           setHasError(true);
+          onPauseStop?.();
         }}
       />
+
+      {soundSrc && (
+        <audio
+          ref={audioRef}
+          preload={isActive ? "auto" : "metadata"}
+          loop
+          muted={isMuted || soundVolume === 0}
+        />
+      )}
 
       {/* Progress bar */}
       <div className="tiktok-progress">

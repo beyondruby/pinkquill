@@ -442,13 +442,14 @@ export function usePostViewTracker(
  */
 export function useTrackTakeImpression(
   takeId: string | undefined,
-  source: string = "feed"
+  source: string = "feed",
+  enabled: boolean = true
 ) {
   const { user } = useAuth();
   const tracked = useRef(false);
 
   useEffect(() => {
-    if (!takeId || tracked.current) return;
+    if (!enabled || !takeId || tracked.current) return;
     tracked.current = true;
 
     const recordImpression = async () => {
@@ -473,7 +474,7 @@ export function useTrackTakeImpression(
     return () => {
       cancelIdle();
     };
-  }, [takeId, user?.id, source]);
+  }, [enabled, takeId, user?.id, source]);
 }
 
 /**
@@ -493,6 +494,7 @@ export function useTrackTakeView(
   const loopCount = useRef(0);
   const hasCompleted = useRef(false);
   const isWatching = useRef(false);
+  const viewTimer = useRef<number | null>(null);
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const recordView = useCallback(async () => {
@@ -558,14 +560,29 @@ export function useTrackTakeView(
     watchStartTime.current = Date.now();
 
     // Record view after 3 seconds of watching
-    setTimeout(() => {
+    if (typeof window === "undefined") {
+      void recordView();
+      return;
+    }
+
+    if (viewTimer.current !== null) {
+      window.clearTimeout(viewTimer.current);
+    }
+
+    viewTimer.current = window.setTimeout(() => {
       if (isWatching.current) {
-        recordView();
+        void recordView();
       }
+      viewTimer.current = null;
     }, 3000);
   }, [recordView]);
 
   const stopWatching = useCallback(() => {
+    if (viewTimer.current !== null) {
+      window.clearTimeout(viewTimer.current);
+      viewTimer.current = null;
+    }
+
     if (!isWatching.current || !watchStartTime.current) return;
     isWatching.current = false;
 
@@ -597,6 +614,10 @@ export function useTrackTakeView(
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (viewTimer.current !== null) {
+        window.clearTimeout(viewTimer.current);
+        viewTimer.current = null;
+      }
       if (isWatching.current && watchStartTime.current) {
         const watchDuration = (Date.now() - watchStartTime.current) / 1000;
         totalWatchTime.current += watchDuration;

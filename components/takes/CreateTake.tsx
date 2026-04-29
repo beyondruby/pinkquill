@@ -7,6 +7,7 @@ import {
   useCreateTake,
   useSounds,
   useTrendingSounds,
+  useSound,
   TakeAspectRatio,
   TakePlaybackSpeed,
   TakeEffect,
@@ -34,7 +35,6 @@ import {
   faSearch,
   faHeart,
   faChevronRight,
-  faChevronLeft,
 } from "@fortawesome/free-solid-svg-icons";
 import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
 import { SearchableUser } from "@/lib/hooks";
@@ -43,6 +43,7 @@ import { supabase } from "@/lib/supabase";
 interface CreateTakeProps {
   onSuccess?: () => void;
   onCancel?: () => void;
+  initialSoundId?: string;
 }
 
 // Aspect ratio options
@@ -80,13 +81,14 @@ const FILTER_OPTIONS = [
 
 type EditorTab = "details" | "sound" | "effects" | "thumbnail";
 
-export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
+export default function CreateTake({ onSuccess, onCancel, initialSoundId }: CreateTakeProps) {
   const router = useRouter();
   const { user, profile, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const appliedInitialSoundRef = useRef<string | null>(null);
 
   // Video state
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -138,6 +140,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
 
   const { createTake, uploading, progress, error } = useCreateTake();
   const { communities } = useCommunities(user?.id, "joined");
+  const { sound: initialSound } = useSound(initialSoundId);
 
   // Sounds - gracefully handle if table doesn't exist yet
   const { sounds: trendingSounds = [] } = useTrendingSounds(10) || { sounds: [] };
@@ -147,6 +150,16 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
   }) || { sounds: [], loading: false };
 
   const displaySounds = soundSearch ? searchedSounds : trendingSounds;
+
+  /* eslint-disable react-hooks/set-state-in-effect -- Intentional: URL sound reuse should preselect once per sound id. */
+  useEffect(() => {
+    if (!initialSoundId || !initialSound || appliedInitialSoundRef.current === initialSoundId) return;
+    setSelectedSound(initialSound);
+    setSoundStartTime(0);
+    setActiveTab("sound");
+    appliedInitialSoundRef.current = initialSoundId;
+  }, [initialSoundId, initialSound]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Extract tags from caption (hashtags)
   /* eslint-disable react-hooks/set-state-in-effect -- Intentional: updating tags when caption changes with hashtags */
@@ -203,8 +216,8 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
       return;
     }
 
-    if (file.size > 100 * 1024 * 1024) {
-      setValidationError("Video must be under 100MB");
+    if (file.size > 200 * 1024 * 1024) {
+      setValidationError("Video must be under 200MB");
       return;
     }
 
@@ -214,8 +227,8 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
     video.preload = "metadata";
     video.onloadedmetadata = () => {
       URL.revokeObjectURL(durationCheckUrl);
-      if (video.duration > 90) {
-        setValidationError("Video must be 90 seconds or less");
+      if (video.duration > 180) {
+        setValidationError("Video must be 3 minutes or less");
         URL.revokeObjectURL(previewUrl);
         return;
       }
@@ -277,12 +290,13 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
         videoPreviewRef.current.play();
         if (audioRef.current && selectedSound) {
           audioRef.current.currentTime = soundStartTime;
+          audioRef.current.volume = addedSoundVolume / 100;
           audioRef.current.play();
         }
       }
       setIsPreviewPlaying(!isPreviewPlaying);
     }
-  }, [isPreviewPlaying, selectedSound, soundStartTime]);
+  }, [isPreviewPlaying, selectedSound, soundStartTime, addedSoundVolume]);
 
   const handleAddTag = useCallback(() => {
     const tag = tagInput.trim().toLowerCase().replace(/^#/, "");
@@ -321,12 +335,30 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
         setPlayingSoundUrl(null);
       } else {
         audioRef.current.src = sound.audio_url;
+        audioRef.current.volume = addedSoundVolume / 100;
         audioRef.current.play();
         setIsSoundPlaying(true);
         setPlayingSoundUrl(sound.audio_url);
       }
     }
-  }, [isSoundPlaying, playingSoundUrl]);
+  }, [isSoundPlaying, playingSoundUrl, addedSoundVolume]);
+
+  useEffect(() => {
+    if (videoPreviewRef.current) {
+      videoPreviewRef.current.playbackRate = playbackSpeed;
+      videoPreviewRef.current.volume = originalAudioVolume / 100;
+      videoPreviewRef.current.muted = originalAudioVolume === 0;
+    }
+    if (audioRef.current) {
+      audioRef.current.volume = addedSoundVolume / 100;
+    }
+  }, [playbackSpeed, originalAudioVolume, addedSoundVolume]);
+
+  useEffect(() => {
+    if (!audioRef.current || !selectedSound) return;
+    audioRef.current.src = selectedSound.audio_url;
+    audioRef.current.currentTime = soundStartTime;
+  }, [selectedSound, soundStartTime]);
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization -- Complex async handler with many dependencies
   const handleSubmit = useCallback(async () => {
@@ -470,7 +502,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
             <FontAwesomeIcon icon={faImage} className="w-4 h-4 text-green-400" />
             <span className="text-sm text-white/80">Custom Covers</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-full border border-orange-500/30">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-full border border-orange-500/30">
             <FontAwesomeIcon icon={faTachometerAlt} className="w-4 h-4 text-orange-400" />
             <span className="text-sm text-white/80">Speed Control</span>
           </div>
@@ -497,7 +529,7 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
                 </p>
                 <p className="text-white/40 text-sm mt-2 text-center px-4">
                   Drag & drop or click to browse<br/>
-                  MP4/MOV · Max 90s · Max 100MB
+                  MP4/MOV · Max 3 min · Max 200MB
                 </p>
                 <input
                   ref={fileInputRef}
@@ -769,6 +801,38 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
                     />
                   )}
                 </div>
+
+                {/* Collaborators and Tags */}
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FontAwesomeIcon icon={faUsers} className="w-4 h-4 text-purple-400" />
+                    <label className="text-sm font-semibold text-white">People</label>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowCollaboratorPicker(true)}
+                      className="flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+                    >
+                      <span className="flex items-center gap-2 text-sm text-white/80">
+                        <FontAwesomeIcon icon={faUsers} className="w-4 h-4 text-purple-300" />
+                        Collaborators
+                      </span>
+                      <span className="text-xs text-white/40">{collaborators.length}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowTagPeoplePicker(true)}
+                      className="flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+                    >
+                      <span className="flex items-center gap-2 text-sm text-white/80">
+                        <FontAwesomeIcon icon={faHeart} className="w-4 h-4 text-pink-300" />
+                        Tag people
+                      </span>
+                      <span className="text-xs text-white/40">{taggedPeople.length}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -848,25 +912,43 @@ export default function CreateTake({ onSuccess, onCancel }: CreateTakeProps) {
                   </div>
 
                   {selectedSound ? (
-                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30">
-                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {selectedSound.cover_url ? (
-                          <img src={selectedSound.cover_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <FontAwesomeIcon icon={faMusic} className="w-6 h-6 text-white" />
-                        )}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl border border-purple-500/30">
+                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {selectedSound.cover_url ? (
+                            <img src={selectedSound.cover_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <FontAwesomeIcon icon={faMusic} className="w-6 h-6 text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{selectedSound.name}</p>
+                          <p className="text-sm text-white/50 truncate">{selectedSound.artist || "Original Sound"}</p>
+                          <p className="text-xs text-pink-400 mt-1">{selectedSound.use_count} uses</p>
+                        </div>
+                        <button
+                          onClick={handleRemoveSound}
+                          className="p-2 hover:bg-white/10 rounded-full"
+                        >
+                          <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
+                        </button>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{selectedSound.name}</p>
-                        <p className="text-sm text-white/50 truncate">{selectedSound.artist || "Original Sound"}</p>
-                        <p className="text-xs text-pink-400 mt-1">{selectedSound.use_count} uses</p>
-                      </div>
-                      <button
-                        onClick={handleRemoveSound}
-                        className="p-2 hover:bg-white/10 rounded-full"
-                      >
-                        <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
-                      </button>
+                      {selectedSound.duration > 0 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-white/70">Sound start</span>
+                            <span className="text-sm font-medium text-pink-400">{soundStartTime}s</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max={Math.max(0, selectedSound.duration - 1)}
+                            value={Math.min(soundStartTime, Math.max(0, selectedSound.duration - 1))}
+                            onChange={(e) => setSoundStartTime(Number(e.target.value))}
+                            className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-pink-500 [&::-webkit-slider-thumb]:to-orange-500 [&::-webkit-slider-thumb]:shadow-lg"
+                          />
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <button

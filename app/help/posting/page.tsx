@@ -320,7 +320,7 @@ export default function PostingHelpPage() {
             <ol>
               <li>Go to Takes in the sidebar</li>
               <li>Click &quot;Create Take&quot;</li>
-              <li>Upload a video (max 90 seconds, 100MB)</li>
+              <li>Upload a video (max 3 minutes, 200MB)</li>
               <li>Add a caption with hashtags</li>
               <li>Add content warning if needed</li>
               <li>Optionally post to a community</li>
@@ -329,8 +329,8 @@ export default function PostingHelpPage() {
 
             <h3>Video requirements</h3>
             <ul>
-              <li><strong>Duration:</strong> Maximum 90 seconds</li>
-              <li><strong>File size:</strong> Maximum 100MB</li>
+              <li><strong>Duration:</strong> Maximum 3 minutes</li>
+              <li><strong>File size:</strong> Maximum 200MB</li>
               <li><strong>Format:</strong> MP4, WebM, or MOV</li>
               <li><strong>Orientation:</strong> Vertical works best</li>
             </ul>

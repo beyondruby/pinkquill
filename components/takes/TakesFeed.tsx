@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import TakeCard from "./TakeCard";
 import TakeCommentsPanel from "./TakeCommentsPanel";
 import { useTakes, useMuted, useTakesFollowing, useVolume } from "@/lib/hooks/useTakes";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { getSessionId } from "@/lib/hooks/useTracking";
-import { supabase } from "@/lib/supabase";
 
 interface TakesFeedProps {
   communityId?: string;
@@ -29,6 +27,7 @@ export default function TakesFeed({
   const [activeIndex, setActiveIndex] = useState(0);
   const [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
   const [commentsTakeId, setCommentsTakeId] = useState<string | null>(null);
+  const [hiddenTakeIds, setHiddenTakeIds] = useState<Set<string>>(new Set());
 
   const {
     takes,
@@ -42,88 +41,55 @@ export default function TakesFeed({
     toggleRelay,
     deleteTake,
     reportTake,
-  } = useTakes(user?.id, { communityId, soundId, authorId });
+  } = useTakes(user?.id, { communityId, soundId, authorId, initialTakeId });
 
+  const visibleTakes = useMemo(
+    () => takes.filter((take) => !hiddenTakeIds.has(take.id)),
+    [takes, hiddenTakeIds]
+  );
 
   const { isMuted, toggle: toggleMute } = useMuted();
   const { volume, setVolume } = useVolume();
   const { following, checkFollowing, toggle: toggleFollow } = useTakesFollowing(user?.id);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (takes.length > 0 && user?.id) {
-      const authorIds = [...new Set(takes.map(t => t.author_id))];
+    setHiddenTakeIds(new Set());
+    setActiveIndex(0);
+  }, [communityId, soundId, authorId, initialTakeId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (visibleTakes.length > 0 && user?.id) {
+      const authorIds = [...new Set(visibleTakes.map(t => t.author_id))];
       checkFollowing(authorIds);
     }
-  }, [takes, user?.id, checkFollowing]);
-
-  // Track take views when active take changes
-  const lastTrackedTakeId = useRef<string | null>(null);
-  const watchStartTime = useRef<number | null>(null);
-
-  useEffect(() => {
-    const activeTake = takes[activeIndex];
-    if (!activeTake) return;
-
-    // Track new take
-    if (activeTake.id !== lastTrackedTakeId.current) {
-      // Save watch time for previous take
-      if (lastTrackedTakeId.current && watchStartTime.current) {
-        const watchDuration = Math.floor((Date.now() - watchStartTime.current) / 1000);
-        const sessionId = getSessionId();
-
-        // Update previous take's watch time
-        supabase.from("take_views").upsert({
-          take_id: lastTrackedTakeId.current,
-          viewer_id: user?.id || null,
-          session_id: user?.id ? null : sessionId,
-          source: "feed",
-          watch_time_seconds: watchDuration,
-        }, {
-          onConflict: user?.id ? "take_id,viewer_id,view_date" : "take_id,session_id,view_date",
-        });
-      }
-
-      // Record impression for new take
-      const sessionId = getSessionId();
-      supabase.from("take_impressions").insert({
-        take_id: activeTake.id,
-        viewer_id: user?.id || null,
-        session_id: user?.id ? null : sessionId,
-        source: "feed",
-      });
-
-      // Record view after 3 seconds
-      const viewTimer = setTimeout(() => {
-        supabase.from("take_views").upsert({
-          take_id: activeTake.id,
-          viewer_id: user?.id || null,
-          session_id: user?.id ? null : sessionId,
-          source: "feed",
-          is_follower: following.has(activeTake.author_id),
-        }, {
-          onConflict: user?.id ? "take_id,viewer_id,view_date" : "take_id,session_id,view_date",
-          ignoreDuplicates: true,
-        });
-      }, 3000);
-
-      lastTrackedTakeId.current = activeTake.id;
-      watchStartTime.current = Date.now();
-
-      return () => clearTimeout(viewTimer);
-    }
-  }, [activeIndex, takes, user?.id, following]);
+  }, [visibleTakes, user?.id, checkFollowing]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (initialTakeId && takes.length > 0) {
-      const index = takes.findIndex(t => t.id === initialTakeId);
+    if (visibleTakes.length === 0) {
+      setActiveIndex(0);
+      return;
+    }
+
+    if (activeIndex >= visibleTakes.length) {
+      setActiveIndex(Math.max(0, visibleTakes.length - 1));
+    }
+  }, [activeIndex, visibleTakes.length]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (initialTakeId && visibleTakes.length > 0) {
+      const index = visibleTakes.findIndex(t => t.id === initialTakeId);
       if (index !== -1) {
         setActiveIndex(index);
         const el = cardRefs.current.get(initialTakeId);
         el?.scrollIntoView({ behavior: "instant" });
       }
     }
-  }, [initialTakeId, takes]);
+  }, [initialTakeId, visibleTakes]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
@@ -133,7 +99,7 @@ export default function TakesFeed({
           if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
             const takeId = entry.target.getAttribute("data-take-id");
             if (takeId) {
-              const index = takes.findIndex(t => t.id === takeId);
+              const index = visibleTakes.findIndex(t => t.id === takeId);
               if (index !== -1) setActiveIndex(index);
             }
           }
@@ -144,13 +110,13 @@ export default function TakesFeed({
 
     cardRefs.current.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [takes]);
+  }, [visibleTakes]);
 
   useEffect(() => {
-    if (activeIndex >= takes.length - 2 && hasMore && !loading) {
+    if (activeIndex >= visibleTakes.length - 2 && hasMore && !loading) {
       fetchMore();
     }
-  }, [activeIndex, takes.length, hasMore, loading, fetchMore]);
+  }, [activeIndex, visibleTakes.length, hasMore, loading, fetchMore]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -160,8 +126,8 @@ export default function TakesFeed({
         case "ArrowDown":
         case "j":
           e.preventDefault();
-          if (activeIndex < takes.length - 1) {
-            const nextTake = takes[activeIndex + 1];
+          if (activeIndex < visibleTakes.length - 1) {
+            const nextTake = visibleTakes[activeIndex + 1];
             cardRefs.current.get(nextTake.id)?.scrollIntoView({ behavior: "smooth" });
           }
           break;
@@ -169,7 +135,7 @@ export default function TakesFeed({
         case "k":
           e.preventDefault();
           if (activeIndex > 0) {
-            const prevTake = takes[activeIndex - 1];
+            const prevTake = visibleTakes[activeIndex - 1];
             cardRefs.current.get(prevTake.id)?.scrollIntoView({ behavior: "smooth" });
           }
           break;
@@ -177,11 +143,11 @@ export default function TakesFeed({
           toggleMute();
           break;
         case "l":
-          if (takes[activeIndex]) toggleAdmire(takes[activeIndex].id);
+          if (visibleTakes[activeIndex]) toggleAdmire(visibleTakes[activeIndex].id);
           break;
         case "c":
-          if (takes[activeIndex]) {
-            setCommentsTakeId(takes[activeIndex].id);
+          if (visibleTakes[activeIndex]) {
+            setCommentsTakeId(visibleTakes[activeIndex].id);
             setCommentsPanelOpen(true);
           }
           break;
@@ -193,7 +159,7 @@ export default function TakesFeed({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeIndex, takes, commentsPanelOpen, toggleMute, toggleAdmire]);
+  }, [activeIndex, visibleTakes, commentsPanelOpen, toggleMute, toggleAdmire]);
 
   const handleOpenComments = useCallback((takeId: string) => {
     setCommentsTakeId(takeId);
@@ -208,20 +174,31 @@ export default function TakesFeed({
   // Navigation handlers for desktop arrows
   const goToPrevious = useCallback(() => {
     if (activeIndex > 0) {
-      const prevTake = takes[activeIndex - 1];
+      const prevTake = visibleTakes[activeIndex - 1];
       cardRefs.current.get(prevTake.id)?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [activeIndex, takes]);
+  }, [activeIndex, visibleTakes]);
 
   const goToNext = useCallback(() => {
-    if (activeIndex < takes.length - 1) {
-      const nextTake = takes[activeIndex + 1];
+    if (activeIndex < visibleTakes.length - 1) {
+      const nextTake = visibleTakes[activeIndex + 1];
       cardRefs.current.get(nextTake.id)?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [activeIndex, takes]);
+  }, [activeIndex, visibleTakes]);
+
+  const handleHideTake = useCallback((takeId: string, index: number) => {
+    const nextTake = visibleTakes[index + 1] || visibleTakes[index - 1];
+    setHiddenTakeIds((prev) => new Set(prev).add(takeId));
+
+    if (nextTake) {
+      requestAnimationFrame(() => {
+        cardRefs.current.get(nextTake.id)?.scrollIntoView({ behavior: "smooth" });
+      });
+    }
+  }, [visibleTakes]);
 
   // Loading state
-  if (loading && takes.length === 0) {
+  if (loading && visibleTakes.length === 0) {
     return (
       <div className="tiktok-feed-container">
         <div className="aura-blob blob-1" />
@@ -313,7 +290,7 @@ export default function TakesFeed({
   }
 
   // Empty state
-  if (takes.length === 0) {
+  if (visibleTakes.length === 0) {
     return (
       <div className="tiktok-feed-container">
         <div className="aura-blob blob-1" />
@@ -378,8 +355,8 @@ export default function TakesFeed({
 
         <button
           onClick={goToNext}
-          disabled={activeIndex >= takes.length - 1}
-          className={`takes-nav-arrow ${activeIndex >= takes.length - 1 ? 'disabled' : ''}`}
+          disabled={activeIndex >= visibleTakes.length - 1}
+          className={`takes-nav-arrow ${activeIndex >= visibleTakes.length - 1 ? 'disabled' : ''}`}
           aria-label="Next take"
         >
           <svg viewBox="0 0 24 24" fill="none">
@@ -403,34 +380,42 @@ export default function TakesFeed({
 
       {/* Feed */}
       <div ref={feedRef} className="tiktok-feed">
-        {takes.map((take, index) => (
+        {visibleTakes.map((take, index) => {
+          const shouldRenderCard = Math.abs(index - activeIndex) <= 2;
+
+          return (
           <div
             key={take.id}
             ref={(el) => setCardRef(take.id, el)}
             data-take-id={take.id}
             className="tiktok-feed-item"
           >
-            <TakeCard
-              take={take}
-              isActive={index === activeIndex}
-              isMuted={isMuted}
-              volume={volume}
-              isFollowing={following.has(take.author_id) || take.author_id === user?.id}
-              isOwnTake={take.author_id === user?.id}
-              reactionCounts={take.reaction_counts}
-              onToggleMute={toggleMute}
-              onVolumeChange={setVolume}
-              onToggleAdmire={() => toggleAdmire(take.id)}
-              onToggleReaction={(type) => toggleReaction(take.id, type)}
-              onToggleSave={() => toggleSave(take.id)}
-              onToggleRelay={() => toggleRelay(take.id)}
-              onToggleFollow={() => toggleFollow(take.author_id)}
-              onOpenComments={() => handleOpenComments(take.id)}
-              onDelete={() => deleteTake(take.id)}
-              onReport={(reason, details) => reportTake(take.id, reason, details)}
-            />
+            {shouldRenderCard ? (
+              <TakeCard
+                take={take}
+                isActive={index === activeIndex}
+                isMuted={isMuted}
+                volume={volume}
+                isFollowing={following.has(take.author_id) || take.author_id === user?.id}
+                isOwnTake={take.author_id === user?.id}
+                reactionCounts={take.reaction_counts}
+                onToggleMute={toggleMute}
+                onVolumeChange={setVolume}
+                onToggleAdmire={() => toggleAdmire(take.id)}
+                onToggleReaction={(type) => toggleReaction(take.id, type)}
+                onToggleSave={() => toggleSave(take.id)}
+                onToggleRelay={() => toggleRelay(take.id)}
+                onToggleFollow={() => toggleFollow(take.author_id)}
+                onOpenComments={() => handleOpenComments(take.id)}
+                onDelete={() => deleteTake(take.id)}
+                onReport={(reason, details) => reportTake(take.id, reason, details)}
+                onHide={() => handleHideTake(take.id, index)}
+              />
+            ) : (
+              <div className="tiktok-feed-placeholder" aria-hidden="true" />
+            )}
           </div>
-        ))}
+        )})}
 
         {loading && takes.length > 0 && (
           <div className="tiktok-loading-more">

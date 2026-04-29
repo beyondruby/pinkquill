@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, memo } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, memo, type CSSProperties } from "react";
 import Link from "next/link";
 import TakePlayer from "./TakePlayer";
 import TakeReactionPicker from "./TakeReactionPicker";
@@ -9,6 +9,7 @@ import ShareModal from "@/components/ui/ShareModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
 import { Take, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
+import { useTrackTakeImpression, useTrackTakeView } from "@/lib/hooks/useTracking";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
 interface TakeCardProps {
@@ -29,6 +30,7 @@ interface TakeCardProps {
   onOpenComments: () => void;
   onDelete?: () => void;
   onReport?: (reason: string, details?: string) => Promise<void>;
+  onHide?: () => void;
 }
 
 function formatCount(n: number): string {
@@ -40,6 +42,17 @@ function formatCount(n: number): string {
 function getWordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
+
+const FILTER_STYLES: Record<string, CSSProperties> = {
+  grayscale: { filter: "grayscale(100%)" },
+  sepia: { filter: "sepia(80%)" },
+  vintage: { filter: "sepia(30%) contrast(110%) saturate(80%)" },
+  warm: { filter: "saturate(120%) hue-rotate(-10deg)" },
+  cool: { filter: "saturate(90%) hue-rotate(20deg)" },
+  dramatic: { filter: "contrast(130%) saturate(110%)" },
+  fade: { filter: "contrast(90%) brightness(110%) saturate(80%)" },
+  vivid: { filter: "saturate(150%) contrast(110%)" },
+};
 
 function TakeCard({
   take,
@@ -59,6 +72,7 @@ function TakeCard({
   onOpenComments,
   onDelete,
   onReport,
+  onHide,
 }: TakeCardProps) {
   const [showHeart, setShowHeart] = useState(false);
   const [heartPosition, setHeartPosition] = useState({ x: 0, y: 0 });
@@ -72,6 +86,23 @@ function TakeCard({
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showContent, setShowContent] = useState(!take.content_warning);
+  const { startWatching, stopWatching, recordLoop, recordCompletion } = useTrackTakeView(
+    take.id,
+    take.author_id,
+    take.duration,
+    "feed"
+  );
+
+  useTrackTakeImpression(take.id, "feed", isActive && showContent);
+
+  useEffect(() => {
+    if (!isActive || !showContent) return;
+    startWatching();
+
+    return () => {
+      stopWatching();
+    };
+  }, [isActive, showContent, startWatching, stopWatching]);
 
   // Generate the Take URL for sharing
   const takeUrl = typeof window !== "undefined"
@@ -101,6 +132,10 @@ function TakeCard({
   const caption = take.caption || "";
   const wordCount = getWordCount(caption);
   const shouldTruncate = wordCount > 10;
+  const videoStyle = useMemo(() => {
+    const filterEffect = take.effects?.find((effect) => effect.type === "filter" && effect.name);
+    return filterEffect?.name ? FILTER_STYLES[filterEffect.name] : undefined;
+  }, [take.effects]);
 
   const getTruncatedCaption = () => {
     if (!shouldTruncate || captionExpanded) return caption;
@@ -164,6 +199,16 @@ function TakeCard({
           volume={volume}
           onDoubleTap={() => handleDoubleTap()}
           onToggleMute={onToggleMute}
+          onPlayStart={startWatching}
+          onPauseStop={stopWatching}
+          onLoop={recordLoop}
+          onComplete={recordCompletion}
+          playbackRate={take.playback_speed}
+          videoStyle={videoStyle}
+          soundSrc={take.sound?.audio_url}
+          soundStartTime={take.sound_start_time}
+          soundVolume={take.added_sound_volume}
+          originalVolume={take.original_audio_volume}
         />
 
         {/* Double-tap heart */}
@@ -278,19 +323,38 @@ function TakeCard({
                     Delete Take
                   </button>
                 ) : (
-                  <button
-                    className="tiktok-menu-item"
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowReportModal(true);
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                      <line x1="4" y1="22" x2="4" y2="15" />
-                    </svg>
-                    Report
-                  </button>
+                  <>
+                    {onHide && (
+                      <button
+                        className="tiktok-menu-item"
+                        onClick={() => {
+                          setShowMenu(false);
+                          onHide();
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 3l18 18" />
+                          <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" />
+                          <path d="M9.9 4.24A9.77 9.77 0 0 1 12 4c5 0 9 4 10 8-.36 1.42-1.16 2.8-2.3 4.01" />
+                          <path d="M6.1 6.1C4.09 7.46 2.63 9.52 2 12c1 4 5 8 10 8 1.43 0 2.79-.33 4-.92" />
+                        </svg>
+                        Not interested
+                      </button>
+                    )}
+                    <button
+                      className="tiktok-menu-item"
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowReportModal(true);
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" y1="22" x2="4" y2="15" />
+                      </svg>
+                      Report
+                    </button>
+                  </>
                 )}
               </div>
             )}
@@ -315,6 +379,22 @@ function TakeCard({
                 >
                   {captionExpanded ? " less" : " more"}
                 </button>
+              )}
+            </div>
+          )}
+
+          {take.sound && (
+            <div className="tiktok-sound-row">
+              <Link href={`/takes?sound=${take.sound.id}`} className="tiktok-sound-link">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
+                </svg>
+                <span>{take.sound.name}</span>
+              </Link>
+              {take.allow_sound_use && (
+                <Link href={`/takes/create?sound=${take.sound.id}`} className="tiktok-use-sound">
+                  Use
+                </Link>
               )}
             </div>
           )}

@@ -8,11 +8,13 @@ function TakesContent() {
   const searchParams = useSearchParams();
   const communityId = searchParams.get("community") || undefined;
   const soundId = searchParams.get("sound") || undefined;
+  const initialTakeId = searchParams.get("id") || undefined;
 
   return (
     <TakesFeed
       communityId={communityId}
       soundId={soundId}
+      initialTakeId={initialTakeId}
     />
   );
 }

@@ -126,6 +126,158 @@ export interface TakeComment {
   replies?: TakeComment[];
 }
 
+interface TakesFeedRpcRow {
+  id: string;
+  author_id: string;
+  video_url: string;
+  thumbnail_url: string | null;
+  caption: string | null;
+  duration: number | null;
+  visibility: string | null;
+  content_warning: string | null;
+  sound_id: string | null;
+  view_count: number | null;
+  community_id: string | null;
+  created_at: string;
+  aspect_ratio: TakeAspectRatio | null;
+  effects: TakeEffect[] | null;
+  text_overlays: TakeTextOverlay[] | null;
+  playback_speed: TakePlaybackSpeed | number | string | null;
+  allow_sound_use: boolean | null;
+  sound_start_time: number | null;
+  original_audio_volume: number | null;
+  added_sound_volume: number | null;
+  author_username: string | null;
+  author_display_name: string | null;
+  author_avatar_url: string | null;
+  sound_name: string | null;
+  sound_artist: string | null;
+  sound_audio_url: string | null;
+  sound_cover_url: string | null;
+  sound_duration: number | null;
+  sound_genre: string | null;
+  sound_is_original: boolean | null;
+  sound_original_take_id: string | null;
+  sound_created_by: string | null;
+  sound_use_count: number | null;
+  sound_is_trending: boolean | null;
+  sound_created_at: string | null;
+  reactions_count: number | null;
+  comments_count: number | null;
+  saves_count: number | null;
+  relays_count: number | null;
+  user_reaction_type: TakeReactionType | null;
+  is_saved: boolean | null;
+  is_relayed: boolean | null;
+  reaction_counts: Partial<TakeReactionCounts> | null;
+}
+
+const VALID_ASPECT_RATIOS: TakeAspectRatio[] = ["9:16", "16:9", "4:5", "1:1", "4:3"];
+const VALID_PLAYBACK_SPEEDS: TakePlaybackSpeed[] = [0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0];
+
+function emptyReactionCounts(): TakeReactionCounts {
+  return {
+    admire: 0,
+    snap: 0,
+    ovation: 0,
+    support: 0,
+    inspired: 0,
+    applaud: 0,
+    total: 0,
+  };
+}
+
+function normalizeCount(value: number | string | null | undefined): number {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeAspectRatio(value: TakeAspectRatio | null | undefined): TakeAspectRatio {
+  return value && VALID_ASPECT_RATIOS.includes(value) ? value : "9:16";
+}
+
+function normalizePlaybackSpeed(value: TakePlaybackSpeed | number | string | null | undefined): TakePlaybackSpeed {
+  const parsed = Number(value ?? 1);
+  return VALID_PLAYBACK_SPEEDS.includes(parsed as TakePlaybackSpeed)
+    ? parsed as TakePlaybackSpeed
+    : 1.0;
+}
+
+function normalizeReactionCounts(counts: Partial<TakeReactionCounts> | null | undefined): TakeReactionCounts {
+  const normalized = emptyReactionCounts();
+
+  normalized.admire = normalizeCount(counts?.admire);
+  normalized.snap = normalizeCount(counts?.snap);
+  normalized.ovation = normalizeCount(counts?.ovation);
+  normalized.support = normalizeCount(counts?.support);
+  normalized.inspired = normalizeCount(counts?.inspired);
+  normalized.applaud = normalizeCount(counts?.applaud);
+  normalized.total = normalizeCount(counts?.total)
+    || normalized.admire + normalized.snap + normalized.ovation + normalized.support + normalized.inspired + normalized.applaud;
+
+  return normalized;
+}
+
+function takeFromRpcRow(row: TakesFeedRpcRow): Take {
+  const reactionCounts = normalizeReactionCounts(row.reaction_counts);
+  const sound: Sound | null = row.sound_id && row.sound_audio_url
+    ? {
+        id: row.sound_id,
+        name: row.sound_name || "Original sound",
+        artist: row.sound_artist,
+        audio_url: row.sound_audio_url,
+        cover_url: row.sound_cover_url,
+        duration: normalizeCount(row.sound_duration),
+        genre: row.sound_genre,
+        is_original: row.sound_is_original ?? false,
+        original_take_id: row.sound_original_take_id,
+        created_by: row.sound_created_by,
+        use_count: normalizeCount(row.sound_use_count),
+        is_trending: row.sound_is_trending ?? false,
+        created_at: row.sound_created_at || row.created_at,
+      }
+    : null;
+
+  return {
+    id: row.id,
+    author_id: row.author_id,
+    video_url: row.video_url,
+    thumbnail_url: row.thumbnail_url,
+    caption: row.caption,
+    duration: normalizeCount(row.duration),
+    visibility: row.visibility || "public",
+    content_warning: row.content_warning,
+    sound_id: row.sound_id,
+    view_count: normalizeCount(row.view_count),
+    community_id: row.community_id,
+    created_at: row.created_at,
+    aspect_ratio: normalizeAspectRatio(row.aspect_ratio),
+    effects: Array.isArray(row.effects) ? row.effects : [],
+    text_overlays: Array.isArray(row.text_overlays) ? row.text_overlays : [],
+    playback_speed: normalizePlaybackSpeed(row.playback_speed),
+    allow_sound_use: row.allow_sound_use ?? true,
+    sound_start_time: normalizeCount(row.sound_start_time),
+    original_audio_volume: row.original_audio_volume ?? 100,
+    added_sound_volume: row.added_sound_volume ?? 100,
+    sound,
+    author: {
+      username: row.author_username || "unknown",
+      display_name: row.author_display_name,
+      avatar_url: row.author_avatar_url,
+    },
+    admires_count: reactionCounts.total,
+    reactions_count: normalizeCount(row.reactions_count) || reactionCounts.total,
+    comments_count: normalizeCount(row.comments_count),
+    saves_count: normalizeCount(row.saves_count),
+    relays_count: normalizeCount(row.relays_count),
+    is_admired: !!row.user_reaction_type,
+    is_saved: row.is_saved ?? false,
+    is_relayed: row.is_relayed ?? false,
+    user_reaction_type: row.user_reaction_type,
+    reaction_counts: reactionCounts,
+  };
+}
+
 // ============================================================================
 // MAIN FEED HOOK
 // ============================================================================
@@ -135,10 +287,11 @@ interface UseTakesOptions {
   communityId?: string;
   soundId?: string;
   authorId?: string;
+  initialTakeId?: string;
 }
 
 export function useTakes(userId?: string, options: UseTakesOptions = {}) {
-  const { limit = 10, communityId, soundId, authorId } = options;
+  const { limit = 10, communityId, soundId, authorId, initialTakeId } = options;
 
   const [takes, setTakes] = useState<Take[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,41 +299,79 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
   const [hasMore, setHasMore] = useState(true);
 
   const offsetRef = useRef(0);
-  const fetchedRef = useRef(false);
   const takesRef = useRef<Take[]>(takes);
-  const lastUserIdRef = useRef<string | undefined>(userId);
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
+  const fetchingRef = useRef(false);
 
   // Keep ref in sync with state
   useEffect(() => {
     takesRef.current = takes;
   }, [takes]);
 
-  // Reset fetch state when user changes
-  useEffect(() => {
-    if (lastUserIdRef.current !== userId) {
-      fetchedRef.current = false;
-      lastUserIdRef.current = userId;
-      setTakes([]);
-      offsetRef.current = 0;
-    }
-  }, [userId]);
-
   const fetchTakes = useCallback(async (reset = true) => {
-    // Abort any in-flight request
-    if (abortControllerRef.current) {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+
+    // Abort stale reset requests when the feed query changes.
+    if (reset && abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
 
     try {
+      setLoading(true);
       if (reset) {
-        setLoading(true);
         offsetRef.current = 0;
       }
       setError(null);
+
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc("get_takes_feed", {
+          p_viewer_id: userId || null,
+          p_limit: limit,
+          p_offset: offsetRef.current,
+          p_community_id: communityId || null,
+          p_sound_id: soundId || null,
+          p_author_id: authorId || null,
+          p_initial_take_id: reset ? initialTakeId || null : null,
+        })
+        .abortSignal(signal);
+
+      if (!mountedRef.current || signal.aborted) return;
+
+      if (!rpcError && Array.isArray(rpcData)) {
+        const processedTakes = (rpcData as TakesFeedRpcRow[]).map(takeFromRpcRow);
+
+        if (reset) {
+          setTakes(processedTakes);
+        } else {
+          setTakes(prev => {
+            const existingIds = new Set(prev.map(t => t.id));
+            return [...prev, ...processedTakes.filter(t => !existingIds.has(t.id))];
+          });
+        }
+
+        const pageCount = reset && initialTakeId
+          ? processedTakes.filter(t => t.id !== initialTakeId).length
+          : processedTakes.length;
+        setHasMore(pageCount === limit);
+        offsetRef.current += pageCount;
+        return;
+      }
+
+      if (
+        rpcError
+        && rpcError.code !== "PGRST202"
+        && rpcError.code !== "42883"
+        && !rpcError.message?.includes("get_takes_feed")
+      ) {
+        console.warn("[useTakes] Optimized feed RPC failed; using fallback queries:", rpcError.message);
+      }
 
       // Build query - simplified, let RLS handle visibility
       let query = supabase
@@ -195,11 +386,34 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       if (soundId) query = query.eq("sound_id", soundId);
       if (authorId) query = query.eq("author_id", authorId);
 
-      const { data: takesData, error: takesError } = await query;
+      const { data: fetchedTakesData, error: takesError } = await query;
 
       if (!mountedRef.current || signal.aborted) return;
       if (takesError) throw takesError;
-      if (!takesData || takesData.length === 0) {
+
+      const takesData = [...(fetchedTakesData || [])];
+
+      let prependedInitialTake = false;
+      if (reset && initialTakeId && !takesData.some(t => t.id === initialTakeId)) {
+        let initialQuery = supabase
+          .from("takes")
+          .select("*")
+          .eq("id", initialTakeId)
+          .eq("visibility", "public")
+          .abortSignal(signal);
+
+        if (communityId) initialQuery = initialQuery.eq("community_id", communityId);
+        if (soundId) initialQuery = initialQuery.eq("sound_id", soundId);
+        if (authorId) initialQuery = initialQuery.eq("author_id", authorId);
+
+        const { data: initialTake } = await initialQuery.maybeSingle();
+        if (initialTake) {
+          takesData.unshift(initialTake);
+          prependedInitialTake = true;
+        }
+      }
+
+      if (takesData.length === 0) {
         if (reset) setTakes([]);
         setHasMore(false);
         return;
@@ -207,16 +421,21 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
 
       const authorIds = [...new Set(takesData.map(t => t.author_id))];
       const takeIds = takesData.map(t => t.id);
+      const soundIds = [...new Set(takesData.map(t => t.sound_id).filter(Boolean))] as string[];
 
       // Parallel fetch: authors, counts, user interactions - all in one batch
       const [
         authorsRes,
+        soundsRes,
         reactionsRes,
         commentsRes,
         savesRes,
         relaysRes,
       ] = await Promise.all([
         supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds).abortSignal(signal),
+        soundIds.length > 0
+          ? supabase.from("sounds").select("*").in("id", soundIds).abortSignal(signal)
+          : Promise.resolve({ data: [] as Sound[] }),
         supabase.from("take_reactions").select("take_id, reaction_type").in("take_id", takeIds).abortSignal(signal),
         supabase.from("take_comments").select("take_id").in("take_id", takeIds).abortSignal(signal),
         supabase.from("take_saves").select("take_id").in("take_id", takeIds).abortSignal(signal),
@@ -248,6 +467,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
 
       // Build lookup maps
       const authorMap = new Map((authorsRes.data || []).map(a => [a.id, a]));
+      const soundMap = new Map((soundsRes.data || []).map(s => [s.id, s as Sound]));
       const reactionsCount: Record<string, number> = {};
       const reactionsByType: Record<string, TakeReactionCounts> = {};
       const commentsCount: Record<string, number> = {};
@@ -288,7 +508,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         sound_start_time: take.sound_start_time || 0,
         original_audio_volume: take.original_audio_volume ?? 100,
         added_sound_volume: take.added_sound_volume ?? 100,
-        sound: null, // TODO: fetch sound data if sound_id exists
+        sound: take.sound_id ? soundMap.get(take.sound_id) || null : null,
         // Author info
         author: authorMap.get(take.author_id) || { username: "unknown", display_name: null, avatar_url: null },
         // Counts
@@ -310,11 +530,15 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       if (reset) {
         setTakes(processedTakes);
       } else {
-        setTakes(prev => [...prev, ...processedTakes]);
+        setTakes(prev => {
+          const existingIds = new Set(prev.map(t => t.id));
+          return [...prev, ...processedTakes.filter(t => !existingIds.has(t.id))];
+        });
       }
 
-      setHasMore(takesData.length === limit);
-      offsetRef.current += takesData.length;
+      const pageCount = prependedInitialTake ? takesData.length - 1 : takesData.length;
+      setHasMore(pageCount === limit);
+      offsetRef.current += pageCount;
     } catch (err: unknown) {
       // Ignore abort errors - they're expected when cancelling requests
       if ((err instanceof Error && err.name === "AbortError") || abortControllerRef.current?.signal.aborted) {
@@ -327,11 +551,14 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         if (reset) setTakes([]);
       }
     } finally {
-      if (mountedRef.current) {
+      if (requestIdRef.current === requestId) {
+        fetchingRef.current = false;
+      }
+      if (mountedRef.current && requestIdRef.current === requestId) {
         setLoading(false);
       }
     }
-  }, [limit, communityId, soundId, authorId, userId]);
+  }, [limit, communityId, soundId, authorId, initialTakeId, userId]);
 
   const fetchMore = useCallback(() => {
     if (!loading && hasMore) {
@@ -342,14 +569,11 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
   // Initial fetch and cleanup
   useEffect(() => {
     mountedRef.current = true;
-
-    if (!fetchedRef.current) {
-      fetchedRef.current = true;
-      fetchTakes();
-    }
+    fetchTakes(true);
 
     return () => {
       mountedRef.current = false;
+      fetchingRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -467,6 +691,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
               user_reaction_type: take.user_reaction_type,
               admires_count: take.admires_count,
               reactions_count: take.reactions_count,
+              reaction_counts: take.reaction_counts,
             }
           : t
       ));
@@ -496,7 +721,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     // Optimistic update
     setTakes(prev => prev.map(t =>
       t.id === takeId
-        ? { ...t, is_saved: !t.is_saved, saves_count: t.saves_count + (t.is_saved ? -1 : 1) }
+        ? { ...t, is_saved: !t.is_saved, saves_count: Math.max(0, t.saves_count + (t.is_saved ? -1 : 1)) }
         : t
     ));
 
@@ -529,7 +754,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     // Optimistic update
     setTakes(prev => prev.map(t =>
       t.id === takeId
-        ? { ...t, is_relayed: !t.is_relayed, relays_count: t.relays_count + (t.is_relayed ? -1 : 1) }
+        ? { ...t, is_relayed: !t.is_relayed, relays_count: Math.max(0, t.relays_count + (t.is_relayed ? -1 : 1)) }
         : t
     ));
 

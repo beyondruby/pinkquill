@@ -1196,8 +1196,8 @@ export default function CreatePost() {
       return;
     }
 
-    if (file.size > 100 * 1024 * 1024) {
-      setTakeValidationError("Video must be under 100MB");
+    if (file.size > 200 * 1024 * 1024) {
+      setTakeValidationError("Video must be under 200MB");
       return;
     }
 
@@ -1207,8 +1207,8 @@ export default function CreatePost() {
     video.preload = "metadata";
     video.onloadedmetadata = () => {
       URL.revokeObjectURL(durationCheckUrl);
-      if (video.duration > 90) {
-        setTakeValidationError("Video must be 90 seconds or less");
+      if (video.duration > 180) {
+        setTakeValidationError("Video must be 3 minutes or less");
         URL.revokeObjectURL(previewUrl);
         return;
       }
@@ -1288,12 +1288,32 @@ export default function CreatePost() {
     if (videoPreviewRef.current) {
       if (isTakePreviewPlaying) {
         videoPreviewRef.current.pause();
+        takeAudioRef.current?.pause();
       } else {
+        videoPreviewRef.current.playbackRate = takePlaybackSpeed;
+        videoPreviewRef.current.volume = takeOriginalVolume / 100;
         videoPreviewRef.current.play();
+        if (takeAudioRef.current && takeSelectedSound) {
+          takeAudioRef.current.src = takeSelectedSound.audio_url;
+          takeAudioRef.current.currentTime = takeSoundStartTime;
+          takeAudioRef.current.volume = takeAddedVolume / 100;
+          takeAudioRef.current.play();
+        }
       }
       setIsTakePreviewPlaying(!isTakePreviewPlaying);
     }
-  }, [isTakePreviewPlaying]);
+  }, [isTakePreviewPlaying, takeAddedVolume, takeOriginalVolume, takePlaybackSpeed, takeSelectedSound, takeSoundStartTime]);
+
+  useEffect(() => {
+    if (videoPreviewRef.current) {
+      videoPreviewRef.current.playbackRate = takePlaybackSpeed;
+      videoPreviewRef.current.volume = takeOriginalVolume / 100;
+      videoPreviewRef.current.muted = takeOriginalVolume === 0;
+    }
+    if (takeAudioRef.current) {
+      takeAudioRef.current.volume = takeAddedVolume / 100;
+    }
+  }, [takeAddedVolume, takeOriginalVolume, takePlaybackSpeed]);
 
   // Cleanup take preview URL on unmount
   useEffect(() => {
@@ -2127,7 +2147,7 @@ export default function CreatePost() {
                 </div>
                 <p className="font-ui text-[1rem] text-ink font-medium mb-1">Upload your Take</p>
                 <p className="font-body text-[0.85rem] text-muted">Drag & drop or click to browse</p>
-                <p className="font-body text-[0.75rem] text-muted/60 mt-3">MP4 or MOV · Max 90 seconds · Max 100MB</p>
+                <p className="font-body text-[0.75rem] text-muted/60 mt-3">MP4 or MOV · Max 3 min · Max 200MB</p>
                 <input
                   ref={videoInputRef}
                   type="file"
@@ -2295,15 +2315,31 @@ export default function CreatePost() {
                     {takeEditorTab === "sound" && (
                       <div className="space-y-3">
                         {takeSelectedSound ? (
-                          <div className="flex items-center gap-3 p-3 bg-[#fafafa] rounded-xl">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white flex-shrink-0">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 p-3 bg-[#fafafa] rounded-xl">
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white flex-shrink-0">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{takeSelectedSound.name}</p>
+                                <p className="text-xs text-muted truncate">{takeSelectedSound.artist || "Original Sound"}</p>
+                              </div>
+                              <button onClick={() => setTakeSelectedSound(null)} className="p-1.5 hover:bg-black/10 rounded-full text-muted">{icons.x}</button>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{takeSelectedSound.name}</p>
-                              <p className="text-xs text-muted truncate">{takeSelectedSound.artist || "Original Sound"}</p>
-                            </div>
-                            <button onClick={() => setTakeSelectedSound(null)} className="p-1.5 hover:bg-black/10 rounded-full text-muted">{icons.x}</button>
+                            {takeSelectedSound.duration > 0 && (
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs text-muted w-20">Start</span>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max={Math.max(0, takeSelectedSound.duration - 1)}
+                                  value={Math.min(takeSoundStartTime, Math.max(0, takeSelectedSound.duration - 1))}
+                                  onChange={(e) => setTakeSoundStartTime(Number(e.target.value))}
+                                  className="flex-1 h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-pink-500"
+                                />
+                                <span className="text-xs text-muted w-8 text-right">{takeSoundStartTime}s</span>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <>
