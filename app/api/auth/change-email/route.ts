@@ -6,14 +6,14 @@ import {
   rateLimitResponse,
   safeJsonParse,
 } from "@/lib/api-security";
-import { createSupabaseServerClient, getAuthUser } from "@/lib/auth-server";
+import { getAuthUser } from "@/lib/auth-server";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
 
 interface ChangeEmailPayload {
   email?: string;
   currentPassword?: string;
-  redirectTo?: string;
 }
 
 /**
@@ -38,19 +38,26 @@ function createTransientAuthClient() {
 /**
  * POST /api/auth/change-email
  *
- * Initiates an email change for the authenticated user. Done server-side via
- * the cookie-bound @supabase/ssr client so the operation does NOT depend on
- * the browser SDK having a usable in-memory session — calling
- * supabase.auth.updateUser({ email }) directly from the client used to
- * throw "Auth session missing!" whenever the client session drifted.
+ * Updates the email of the authenticated user, immediately and unconditionally.
  *
- * Always requires the current password (mirrors Instagram's flow): an
- * unattended browser can't be used to hijack the account by changing the
- * recovery email.
+ * Implementation: same pattern as /api/auth/change-password — verify the
+ * caller's current password with a transient anon client, then update via
+ * the admin API. We deliberately do NOT use the cookie-bound server client
+ * for the actual update: in production, cookie chunking, the Secure flag,
+ * domain/path edge cases, or a transient refresh-token failure can leave
+ * the SSR client unable to reconstruct the session even when the user is
+ * authenticated. That used to surface as "Auth session missing!" on form
+ * submit. Going through the admin API removes that whole class of failure.
  *
- * Supabase will email a confirmation link to the NEW address; the user
- * clicks it, our /auth/callback exchanges the code, and the email change
- * takes effect. Until then the existing email continues to work.
+ * Security: knowledge of the current password is required (verified above).
+ * That's the same proof we require for password change, and matches
+ * Instagram's flow for sensitive-account-action re-auth.
+ *
+ * Trade-off: skips Supabase's "click a link in your new inbox to confirm"
+ * step, so a user who mistypes their new email can lock themselves out.
+ * Acceptable pre-launch — we'll add a "type new email twice" UX check
+ * client-side as a typo guard, and can layer in confirm-email later if
+ * needed.
  */
 export async function POST(request: Request) {
   try {
@@ -75,7 +82,6 @@ export async function POST(request: Request) {
 
     const newEmail = String(parsed.data.email || "").trim().toLowerCase();
     const currentPassword = String(parsed.data.currentPassword || "");
-    const redirectTo = String(parsed.data.redirectTo || "");
 
     if (!newEmail || !newEmail.includes("@") || newEmail.length > 254) {
       return NextResponse.json(
@@ -111,32 +117,44 @@ export async function POST(request: Request) {
     }
     await transient.auth.signOut().catch(() => {});
 
-    // Trigger the email-change flow via the user's own cookie session so
-    // Supabase records it against the right user. updateUser sends the
-    // confirmation email to the NEW address.
-    const supabase = await createSupabaseServerClient();
-    const { error: updateError } = await supabase.auth.updateUser(
-      { email: newEmail },
-      redirectTo ? { emailRedirectTo: redirectTo } : undefined
+    // Update via admin API + mark confirmed. Mirrors the corresponding
+    // step in /api/auth/change-password and dodges every cookie-session
+    // edge case that has bitten this flow.
+    const { error: adminError } = await supabaseAdmin.auth.admin.updateUserById(
+      user.id,
+      { email: newEmail, email_confirm: true }
     );
 
-    if (updateError) {
-      const message = updateError.message || "Could not start the email change.";
+    if (adminError) {
+      const message = adminError.message || "";
       const lower = message.toLowerCase();
       if (
         lower.includes("already") ||
         lower.includes("registered") ||
-        lower.includes("exists")
+        lower.includes("exists") ||
+        lower.includes("duplicate")
       ) {
         return NextResponse.json(
-          { error: "Could not start the email change. Please try a different address." },
+          { error: "That email is already in use. Please try a different address." },
           { status: 400 }
         );
       }
-      // Surface the actual Supabase error so we can diagnose, instead of
-      // hiding it behind a generic 500.
-      console.error("[Auth Change Email] updateUser failed:", updateError);
-      return NextResponse.json({ error: message }, { status: 500 });
+      console.error("[Auth Change Email] admin update failed:", adminError);
+      return NextResponse.json(
+        { error: "Could not update email right now." },
+        { status: 500 }
+      );
+    }
+
+    // Keep the public profile email in sync too — used for username login
+    // resolution. If profile sync fails the auth email still updated, so
+    // we log and continue rather than failing the whole request.
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .update({ email: newEmail })
+      .eq("id", user.id);
+    if (profileError) {
+      console.warn("[Auth Change Email] profile email sync failed:", profileError);
     }
 
     return NextResponse.json({ success: true });
@@ -144,7 +162,7 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[Auth Change Email] unexpected:", message, error);
     return NextResponse.json(
-      { error: message || "Could not start the email change right now." },
+      { error: "Could not update email right now." },
       { status: 500 }
     );
   }

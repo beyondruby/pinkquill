@@ -64,10 +64,10 @@ export default function AccountSettingsPage() {
     setEmailSuccess(false);
 
     try {
-      // Re-auth + initiate the change in a single server route. The route
-      // verifies the current password with a transient anon client and
-      // then triggers updateUser({ email }) via the cookie-bound server
-      // client, so this does not depend on the browser SDK's session.
+      // Re-auth + update via a single server route that uses the admin
+      // API. Bypasses every cookie-session edge case the cookie-bound
+      // updateUser({ email }) call used to hit ("Auth session missing!"
+      // in production).
       const response = await fetch("/api/auth/change-email", {
         method: "POST",
         headers: await buildAuthenticatedHeaders({
@@ -76,7 +76,6 @@ export default function AccountSettingsPage() {
         body: JSON.stringify({
           email: newEmail,
           currentPassword: currentPasswordForEmail,
-          redirectTo: `${window.location.origin}/auth/callback?next=/settings/account`,
         }),
       });
 
@@ -290,10 +289,10 @@ export default function AccountSettingsPage() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="font-medium">Confirmation email sent!</span>
+                <span className="font-medium">Email updated</span>
               </div>
               <p className="text-green-600/80 text-[0.8rem] ml-7">
-                Check your new email inbox and click the confirmation link to complete the change.
+                Your account email has been changed. Use it next time you sign in.
               </p>
             </div>
           )}
