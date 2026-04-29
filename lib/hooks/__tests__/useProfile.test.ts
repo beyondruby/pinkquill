@@ -9,6 +9,7 @@ interface MockChain {
   is: ReturnType<typeof vi.fn>;
   order: ReturnType<typeof vi.fn>;
   range: ReturnType<typeof vi.fn>;
+  abortSignal: ReturnType<typeof vi.fn>;
   limit: ReturnType<typeof vi.fn>;
   in: ReturnType<typeof vi.fn>;
   single: ReturnType<typeof vi.fn>;
@@ -21,25 +22,25 @@ interface MockChain {
 // Create chainable mock factory
 const createChainableMock = (finalResult: { data: unknown; error: unknown } = { data: null, error: null }): MockChain => {
   const chain = {} as MockChain;
-  const methods: (keyof MockChain)[] = ['select', 'eq', 'is', 'order', 'range', 'limit', 'in'];
+  const terminalResult = { ...finalResult, count: 0 };
+  const createTerminal = () => Object.assign(Promise.resolve(terminalResult), {
+    abortSignal: vi.fn().mockResolvedValue(terminalResult),
+  });
+  const methods: (keyof MockChain)[] = ['select', 'eq', 'is', 'order', 'limit', 'in', 'abortSignal'];
 
   methods.forEach(method => {
     chain[method] = vi.fn().mockReturnValue(chain);
   });
 
+  chain.range = vi.fn().mockImplementation(createTerminal);
   chain.single = vi.fn().mockResolvedValue(finalResult);
   chain.maybeSingle = vi.fn().mockResolvedValue(finalResult);
   chain.insert = vi.fn().mockResolvedValue({ error: null });
   chain.delete = vi.fn().mockReturnValue(chain);
   chain.update = vi.fn().mockReturnValue(chain);
 
-  // Make terminal methods resolve
-  chain.eq.mockImplementation(() => {
-    const newChain = { ...chain };
-    newChain.eq = vi.fn().mockReturnValue(newChain);
-    newChain.single = vi.fn().mockResolvedValue(finalResult);
-    newChain.maybeSingle = vi.fn().mockResolvedValue(finalResult);
-    return newChain;
+  Object.assign(chain, {
+    then: Promise.resolve(terminalResult).then.bind(Promise.resolve(terminalResult)),
   });
 
   return chain;
@@ -117,20 +118,10 @@ describe("useProfile", () => {
         return createChainableMock({ data: null, error: null });
       }
       if (table === "follows") {
-        const chain = createChainableMock({ data: null, error: null });
-        chain.select = vi.fn().mockReturnValue({
-          ...chain,
-          count: 0,
-        });
-        return chain;
+        return createChainableMock({ data: null, error: null });
       }
       if (table === "posts") {
-        const chain = createChainableMock({ data: mockPosts, error: null });
-        chain.order = vi.fn().mockReturnValue({
-          ...chain,
-          in: vi.fn().mockResolvedValue({ data: mockPosts, error: null }),
-        });
-        return chain;
+        return createChainableMock({ data: mockPosts, error: null });
       }
       return createChainableMock();
     };
@@ -197,12 +188,7 @@ describe("useProfile", () => {
         return createChainableMock({ data: null, error: null });
       }
       if (table === "follows") {
-        const chain = createChainableMock({ data: null, error: null });
-        chain.select = vi.fn().mockReturnValue({
-          ...chain,
-          count: 0,
-        });
-        return chain;
+        return createChainableMock({ data: null, error: null });
       }
       return createChainableMock();
     };
@@ -299,33 +285,29 @@ describe("useFollowList", () => {
     vi.clearAllMocks();
 
     mockFromImplementation = () => {
-      const chain = createChainableMock();
-      chain.eq = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({
-          data: [
-            {
-              follower: {
-                id: "follower-1",
-                username: "follower1",
-                display_name: "Follower One",
-                avatar_url: null,
-                is_verified: false,
-              },
+      return createChainableMock({
+        data: [
+          {
+            follower: {
+              id: "follower-1",
+              username: "follower1",
+              display_name: "Follower One",
+              avatar_url: null,
+              is_verified: false,
             },
-            {
-              follower: {
-                id: "follower-2",
-                username: "follower2",
-                display_name: "Follower Two",
-                avatar_url: null,
-                is_verified: true,
-              },
+          },
+          {
+            follower: {
+              id: "follower-2",
+              username: "follower2",
+              display_name: "Follower Two",
+              avatar_url: null,
+              is_verified: true,
             },
-          ],
-          error: null,
-        }),
+          },
+        ],
+        error: null,
       });
-      return chain;
     };
   });
 
@@ -343,24 +325,20 @@ describe("useFollowList", () => {
 
   it("should fetch following list", async () => {
     mockFromImplementation = () => {
-      const chain = createChainableMock();
-      chain.eq = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({
-          data: [
-            {
-              following: {
-                id: "following-1",
-                username: "following1",
-                display_name: "Following One",
-                avatar_url: null,
-                is_verified: false,
-              },
+      return createChainableMock({
+        data: [
+          {
+            following: {
+              id: "following-1",
+              username: "following1",
+              display_name: "Following One",
+              avatar_url: null,
+              is_verified: false,
             },
-          ],
-          error: null,
-        }),
+          },
+        ],
+        error: null,
       });
-      return chain;
     };
 
     const { result } = renderHook(() => useFollowList("user-1", "following"));

@@ -638,8 +638,8 @@ export interface Dispute {
 // ============================================================================
 
 export const PLATFORM_FEES = {
-  product: 0.08,    // 8% flat fee
-  service: 0.10,    // 10% flat fee
+  product: 0.05,    // 5% flat fee
+  service: 0.05,    // 5% flat fee
 } as const;
 
 export function calculateFees(amount: number, listingType: ListingType) {

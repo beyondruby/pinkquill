@@ -32,6 +32,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const PROFILE_TIMEOUT_MS = 10_000;
+const PROFILE_RETRY_DELAYS_MS = [2_000, 5_000, 10_000];
+const AUTH_INIT_TIMEOUT_MS = PROFILE_TIMEOUT_MS + 2_000;
+
+function isAbortError(err: unknown) {
+  return err instanceof Error && err.name === "AbortError";
+}
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -47,15 +55,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Track if we're currently fetching a profile to prevent duplicate fetches
   const fetchingProfileRef = useRef<string | null>(null);
+  const activeUserIdRef = useRef<string | null>(null);
+  const profileRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch profile from database
-  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+  const fetchProfile = useCallback(async (userId: string, signal?: AbortSignal): Promise<Profile | null> => {
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from("profiles")
         .select("*")
-        .eq("id", userId)
-        .single();
+        .eq("id", userId);
+      const { data, error } = await (signal ? query.abortSignal(signal) : query).single();
 
       if (error) {
         // PGRST116 = no rows found - profile doesn't exist yet
@@ -68,13 +78,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return data as Profile;
     } catch (err) {
+      if (isAbortError(err)) throw err;
       console.error("Failed to fetch profile:", err);
       return null;
     }
   }, []);
 
   // Create profile for new users (with timeout protection)
-  const createProfile = useCallback(async (user: User): Promise<Profile | null> => {
+  const createProfile = useCallback(async (user: User, signal?: AbortSignal): Promise<Profile | null> => {
     try {
       const metadata = user.user_metadata || {};
       const baseUsername = metadata.username || user.email?.split("@")[0] || `user_${user.id.slice(0, 8)}`;
@@ -84,7 +95,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Try to insert, if duplicate username, add random suffix
       let attempts = 0;
       while (attempts < 3) {
-        const { data, error } = await supabase
+        if (signal?.aborted) {
+          throw new DOMException("Profile request was aborted", "AbortError");
+        }
+
+        const query = supabase
           .from("profiles")
           .insert({
             id: user.id,
@@ -93,8 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: user.email?.toLowerCase() || null,
             avatar_url: '/defaultprofile.png',
           })
-          .select()
-          .single();
+          .select();
+        const { data, error } = await (signal ? query.abortSignal(signal) : query).single();
 
         if (!error) {
           return data as Profile;
@@ -106,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           attempts++;
         } else if (error.code === "23505" && error.message.includes("profiles_pkey")) {
           // Profile already exists (race condition) - fetch and return it
-          const existingProfile = await fetchProfile(user.id);
+          const existingProfile = await fetchProfile(user.id, signal);
           if (existingProfile) {
             return existingProfile;
           }
@@ -125,66 +140,117 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Failed to create profile after multiple attempts");
       return null;
     } catch (err) {
+      if (isAbortError(err)) throw err;
       console.error("Failed to create profile:", err);
       return null;
     }
   }, [fetchProfile]);
 
   /**
-   * Fetch profile, creating it if necessary, with a hard 10s timeout
-   * so the operation never hangs indefinitely. Returns null on timeout
-   * or failure -- the user will still be set (auth works) but profile
-   * will be missing until the next page load.
+   * Fetch profile, creating it if necessary, with a hard timeout that
+   * also aborts the underlying Supabase request.
    */
   const fetchOrCreateProfileWithTimeout = useCallback(
     async (authUser: User): Promise<Profile | null> => {
-      const PROFILE_TIMEOUT_MS = 10_000;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.warn(
+          `Profile fetch/create timed out after ${PROFILE_TIMEOUT_MS / 1000}s for user ${authUser.id}`
+        );
+        controller.abort(new DOMException("Profile request timed out", "AbortError"));
+      }, PROFILE_TIMEOUT_MS);
 
-      const profilePromise = (async () => {
-        let profile = await fetchProfile(authUser.id);
+      try {
+        let profile = await fetchProfile(authUser.id, controller.signal);
         if (!profile) {
-          profile = await createProfile(authUser);
+          profile = await createProfile(authUser, controller.signal);
         }
         return profile;
-      })();
-
-      const timeoutPromise = new Promise<null>((resolve) => {
-        setTimeout(() => {
-          console.warn(
-            `Profile fetch/create timed out after ${PROFILE_TIMEOUT_MS / 1000}s for user ${authUser.id}`
-          );
-          resolve(null);
-        }, PROFILE_TIMEOUT_MS);
-      });
-
-      return Promise.race([profilePromise, timeoutPromise]);
+      } catch (err) {
+        if (!isAbortError(err)) {
+          console.error("Profile fetch/create failed:", err);
+        }
+        return null;
+      } finally {
+        clearTimeout(timeoutId);
+      }
     },
     [fetchProfile, createProfile]
   );
 
+  const clearProfileRetry = useCallback(() => {
+    if (profileRetryTimeoutRef.current) {
+      clearTimeout(profileRetryTimeoutRef.current);
+      profileRetryTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scheduleProfileRetry = useCallback(
+    (authUser: User, attempt = 0) => {
+      clearProfileRetry();
+
+      if (attempt >= PROFILE_RETRY_DELAYS_MS.length) {
+        console.warn("Profile unavailable after retries. It will retry when the tab becomes visible.");
+        return;
+      }
+
+      profileRetryTimeoutRef.current = setTimeout(async () => {
+        if (activeUserIdRef.current !== authUser.id) return;
+
+        if (fetchingProfileRef.current && fetchingProfileRef.current !== authUser.id) {
+          scheduleProfileRetry(authUser, attempt + 1);
+          return;
+        }
+
+        fetchingProfileRef.current = authUser.id;
+        const userProfile = await fetchOrCreateProfileWithTimeout(authUser);
+
+        if (activeUserIdRef.current === authUser.id) {
+          if (userProfile) {
+            setProfile(userProfile);
+          } else {
+            scheduleProfileRetry(authUser, attempt + 1);
+          }
+        }
+
+        if (fetchingProfileRef.current === authUser.id) {
+          fetchingProfileRef.current = null;
+        }
+      }, PROFILE_RETRY_DELAYS_MS[attempt]);
+    },
+    [clearProfileRetry, fetchOrCreateProfileWithTimeout]
+  );
+
+  useEffect(() => {
+    return () => clearProfileRetry();
+  }, [clearProfileRetry]);
+
   // Refresh profile (useful after profile updates)
   const refreshProfile = useCallback(async () => {
     if (!user) return;
-    const updatedProfile = await fetchProfile(user.id);
+    const updatedProfile = await fetchOrCreateProfileWithTimeout(user);
     if (updatedProfile) {
       setProfile(updatedProfile);
+    } else {
+      scheduleProfileRetry(user);
     }
-  }, [user, fetchProfile]);
+  }, [user, fetchOrCreateProfileWithTimeout, scheduleProfileRetry]);
 
   // Initialize auth state
   useEffect(() => {
     let isMounted = true;
     let authCompleted = false;
 
-    // CRITICAL: Timeout safeguard to prevent infinite loading
-    // If auth doesn't complete in 8 seconds, force loading to false
+    // CRITICAL: Timeout safeguard to prevent infinite loading.
+    // Initial auth waits for the first profile attempt, so this is slightly
+    // longer than the profile timeout.
     const timeoutId = setTimeout(() => {
       if (isMounted && !authCompleted) {
-        console.warn("Auth initialization timed out after 8s - forcing completion");
+        console.warn(`Auth initialization timed out after ${AUTH_INIT_TIMEOUT_MS / 1000}s - forcing completion`);
         setLoading(false);
         authCompleted = true;
       }
-    }, 8000);
+    }, AUTH_INIT_TIMEOUT_MS);
 
     const completeAuth = () => {
       if (!authCompleted) {
@@ -203,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!localSession?.user) {
           // No local session - user is definitely not logged in
+          activeUserIdRef.current = null;
           setUser(null);
           setProfile(null);
           setLoading(false);
@@ -210,13 +277,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // We have a local session - use it immediately for fast UI
-        // CRITICAL: Set user + loading=false so child components can start
-        // fetching data immediately. The Supabase client already has the JWT
-        // in its internal store from getSession(), so queries will work.
+        // We have a local session, but keep auth loading until the first
+        // profile attempt finishes so profile-dependent hooks do not start
+        // in a partial user-without-profile state.
+        activeUserIdRef.current = localSession.user.id;
         setUser(localSession.user);
-        setLoading(false);
-        completeAuth();
 
         // Step 2: Fetch profile immediately (doesn't need getUser validation)
         // Uses a 10s timeout so a hanging profile fetch/create never blocks forever.
@@ -230,14 +295,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (userProfile) {
               setProfile(userProfile);
             } else {
-              // Profile fetch timed out or failed. Don't overwrite an existing
-              // profile in state with null — features that read `profile` would
-              // silently disable. Log and let the next visibility-change /
-              // navigation retry naturally.
-              console.warn("Auth user exists but profile fetch failed. Keeping prior state.");
+              console.warn("Auth user exists but profile fetch failed. Scheduling retry.");
+              scheduleProfileRetry(localSession.user);
             }
+            setLoading(false);
+            completeAuth();
           }
           fetchingProfileRef.current = null;
+        } else {
+          setLoading(false);
+          completeAuth();
         }
 
         // Step 3: Session validation is handled PASSIVELY, not here.
@@ -271,6 +338,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isMounted) return;
 
         if (event === "SIGNED_OUT") {
+          activeUserIdRef.current = null;
+          clearProfileRetry();
           setUser(null);
           setProfile(null);
           fetchingProfileRef.current = null;
@@ -279,9 +348,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (event === "SIGNED_IN" && session?.user) {
+          activeUserIdRef.current = session.user.id;
+          clearProfileRetry();
           setUser(session.user);
-          setLoading(false);
-          completeAuth();
+          setLoading(true);
 
           // Fetch profile for newly signed in user with timeout protection
           const userIdToFetch = session.user.id;
@@ -299,20 +369,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (userProfile) {
                 setProfile(userProfile);
               } else {
-                console.warn("Profile unavailable after sign-in. Keeping prior state; will retry on next load.");
+                console.warn("Profile unavailable after sign-in. Scheduling retry.");
+                scheduleProfileRetry(session.user);
               }
+              setLoading(false);
+              completeAuth();
             }
             fetchingProfileRef.current = null;
+          } else {
+            setLoading(false);
+            completeAuth();
           }
         }
 
         if (event === "TOKEN_REFRESHED" && session?.user) {
           // Just update the user object, profile doesn't need refresh
+          activeUserIdRef.current = session.user.id;
           setUser(session.user);
         }
 
         // Handle USER_UPDATED event (fires when user metadata changes)
         if (event === "USER_UPDATED" && session?.user) {
+          activeUserIdRef.current = session.user.id;
           setUser(session.user);
         }
 
@@ -334,10 +412,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted = false;
+      clearProfileRetry();
       clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, [fetchProfile, createProfile, fetchOrCreateProfileWithTimeout]);
+  }, [clearProfileRetry, fetchOrCreateProfileWithTimeout, scheduleProfileRetry]);
 
   // Recover auth state when the tab becomes visible again.
   // If the session expired while the tab was hidden, the Supabase client's
@@ -354,6 +433,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user) {
           // Session exists — make sure React state matches
+          activeUserIdRef.current = session.user.id;
           setUser((prev) => {
             if (!prev || prev.id !== session.user.id) {
               return session.user;
@@ -364,9 +444,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Retry profile fetch if it previously failed
           if (!profile && fetchingProfileRef.current !== session.user.id) {
             fetchingProfileRef.current = session.user.id;
-            const userProfile = await fetchProfile(session.user.id);
+            const userProfile = await fetchOrCreateProfileWithTimeout(session.user);
             if (userProfile && fetchingProfileRef.current === session.user.id) {
               setProfile(userProfile);
+            } else if (!userProfile) {
+              scheduleProfileRetry(session.user);
             }
             fetchingProfileRef.current = null;
           }
@@ -374,6 +456,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // localStorage session is gone but React state still has a user.
           // This means Supabase cleared the session (e.g., refresh token expired).
           // Clear React state to match.
+          activeUserIdRef.current = null;
+          clearProfileRetry();
           setUser(null);
           setProfile(null);
         }
@@ -384,7 +468,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [user, profile, fetchProfile]);
+  }, [user, profile, clearProfileRetry, fetchOrCreateProfileWithTimeout, scheduleProfileRetry]);
 
   // Sign out: server route is the source of truth. /api/auth/logout uses the
   // @supabase/ssr server client, which clears cookies with the exact same
@@ -405,6 +489,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       setLoading(true);
+      clearProfileRetry();
+      activeUserIdRef.current = null;
 
       await fetch("/api/auth/logout", {
         method: "POST",
@@ -444,7 +530,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Sign out error:", err);
       window.location.replace("/");
     }
-  }, []);
+  }, [clearProfileRetry]);
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, signOut, refreshProfile }}>

@@ -63,9 +63,6 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   images: {
-    // Use custom loader for Supabase image optimization
-    loader: "custom",
-    loaderFile: "./lib/supabase-image-loader.ts",
     remotePatterns: [
       {
         protocol: "https",
@@ -82,6 +79,8 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     // Define image sizes for srcset generation
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Match the quality values used by next/image across the app.
+    qualities: [60, 75, 80],
     // Minimize image quality to reduce size while maintaining appearance
     minimumCacheTTL: 31536000, // 1 year cache for optimized images
   },

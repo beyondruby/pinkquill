@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       .select(`
         id, order_number, buyer_id, seller_id, amount, currency,
         listing_type, status, payment_status, checkout_session_id,
-        quantity,
+        quantity, pricing_id,
         product:products (id, title, listing_type)
       `)
       .eq("id", parsed.data.order_id)
@@ -72,19 +72,40 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify order amount against current product pricing
+    // Verify order amount against the exact pricing option captured on the order.
     if (order.product) {
       const productRecord = Array.isArray(order.product) ? order.product[0] : order.product;
       if (productRecord?.id) {
-        const { data: pricing } = await supabaseAdmin
+        if (!order.pricing_id) {
+          return NextResponse.json(
+            { error: "Order is missing its pricing option. Please recreate your order." },
+            { status: 409 }
+          );
+        }
+
+        const { data: pricing, error: pricingError } = await supabaseAdmin
           .from("product_pricing")
-          .select("price")
+          .select("id, product_id, price, is_available")
+          .eq("id", order.pricing_id)
           .eq("product_id", productRecord.id)
-          .eq("is_active", true)
           .single();
 
+        if (pricingError || !pricing) {
+          return NextResponse.json(
+            { error: "Pricing option is no longer available. Please recreate your order." },
+            { status: 409 }
+          );
+        }
+
+        if (pricing.is_available === false) {
+          return NextResponse.json(
+            { error: "Pricing option is no longer available. Please recreate your order." },
+            { status: 409 }
+          );
+        }
+
         const qty = order.quantity ?? 1;
-        if (pricing && Math.abs(Number(order.amount) - pricing.price * qty) > 0.01) {
+        if (Math.abs(Number(order.amount) - Number(pricing.price) * qty) > 0.01) {
           // Price changed since order was created
           return NextResponse.json(
             { error: "Product price has changed. Please recreate your order." },

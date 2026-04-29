@@ -10,6 +10,7 @@ interface MockQueryBuilder {
   in: ReturnType<typeof vi.fn>;
   order: ReturnType<typeof vi.fn>;
   range: ReturnType<typeof vi.fn>;
+  abortSignal: ReturnType<typeof vi.fn>;
   single: ReturnType<typeof vi.fn>;
   maybeSingle: ReturnType<typeof vi.fn>;
 }
@@ -17,13 +18,17 @@ interface MockQueryBuilder {
 // Mock Supabase with proper chain
 const createMockQueryBuilder = (resolvedData: unknown = [], error: unknown = null, count: number | null = null): MockQueryBuilder => {
   const mockResult = { data: resolvedData, error, count };
+  const createTerminal = () => Object.assign(Promise.resolve(mockResult), {
+    abortSignal: vi.fn().mockResolvedValue(mockResult),
+  });
 
   const builder: MockQueryBuilder = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
-    range: vi.fn().mockResolvedValue(mockResult),
+    range: vi.fn().mockImplementation(createTerminal),
+    abortSignal: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(mockResult),
     maybeSingle: vi.fn().mockResolvedValue(mockResult),
   };
@@ -36,7 +41,7 @@ const createMockQueryBuilder = (resolvedData: unknown = [], error: unknown = nul
   });
 
   // Override range to resolve
-  builder.range = vi.fn().mockResolvedValue(mockResult);
+  builder.range = vi.fn().mockImplementation(createTerminal);
 
   return builder;
 };

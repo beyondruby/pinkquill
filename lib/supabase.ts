@@ -28,6 +28,60 @@ function createTimeoutAbortError(timeoutMs: number): Error {
   return error;
 }
 
+function createRequestSignal(
+  callerSignal: AbortSignal | null | undefined,
+  timeoutMs: number
+) {
+  const controller = new AbortController();
+  let didTimeout = false;
+
+  const timeoutId = setTimeout(() => {
+    didTimeout = true;
+    controller.abort(createTimeoutAbortError(timeoutMs));
+  }, timeoutMs);
+
+  const abortFromCaller = () => {
+    controller.abort(callerSignal?.reason);
+  };
+
+  if (callerSignal?.aborted) {
+    abortFromCaller();
+  } else {
+    callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
+  }
+
+  return {
+    signal: controller.signal,
+    didTimeout: () => didTimeout,
+    cleanup: () => {
+      clearTimeout(timeoutId);
+      callerSignal?.removeEventListener("abort", abortFromCaller);
+    },
+  };
+}
+
+async function fetchWithTimeout(
+  url: RequestInfo | URL,
+  options: RequestInit,
+  timeoutMs: number
+): Promise<Response> {
+  const requestSignal = createRequestSignal(options.signal, timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: requestSignal.signal,
+    });
+  } catch (error) {
+    if (requestSignal.didTimeout()) {
+      throw createTimeoutAbortError(timeoutMs);
+    }
+    throw error;
+  } finally {
+    requestSignal.cleanup();
+  }
+}
+
 function getRequestMethod(options?: RequestInit): string {
   return (options?.method || "GET").toUpperCase();
 }
@@ -112,39 +166,13 @@ function deduplicatedRefresh(): Promise<string | null> {
 
 // Custom fetch with timeouts + 401 retry. Reused by the browser client.
 const customFetch: typeof fetch = async (url, options: RequestInit = {}) => {
-  // If request already has a signal, don't override it
-  if (options.signal) {
-    return fetch(url, options);
-  }
-
-  // Auth requests get a generous but bounded timeout (10s).
-  // Previously these had NO timeout — a hanging token refresh would
-  // block all subsequent data queries indefinitely.
-  if (isAuthRequest(url)) {
-    const authController = new AbortController();
-    const authTimeoutId = setTimeout(() => authController.abort(), TIMEOUT_AUTH);
-    try {
-      const response = await fetch(url, { ...options, signal: authController.signal });
-      clearTimeout(authTimeoutId);
-      return response;
-    } catch (error) {
-      clearTimeout(authTimeoutId);
-      throw error;
-    }
-  }
-
-  // Use longer timeout for uploads
+  const authRequest = isAuthRequest(url);
   const timeout = isUploadRequest(url, options) ? TIMEOUT_UPLOAD : TIMEOUT_DEFAULT;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  const requestTimeout = authRequest ? TIMEOUT_AUTH : timeout;
   const startedAt = Date.now();
 
   try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+    const response = await fetchWithTimeout(url, options, requestTimeout);
     recordRequestMetric({
       url,
       options,
@@ -156,7 +184,7 @@ const customFetch: typeof fetch = async (url, options: RequestInit = {}) => {
     // 401 retry: if the JWT was expired, refresh the session and retry once.
     // Uses deduplicatedRefresh() so N concurrent 401s only trigger ONE
     // refreshSession() call instead of N (prevents thundering-herd).
-    if (response.status === 401 && _client && typeof window !== 'undefined') {
+    if (!authRequest && response.status === 401 && _client && typeof window !== 'undefined') {
       const retryHeader = options.headers instanceof Headers
         ? options.headers.get('x-sb-retry')
         : null;
@@ -166,18 +194,26 @@ const customFetch: typeof fetch = async (url, options: RequestInit = {}) => {
           const retryHeaders = new Headers(options.headers);
           retryHeaders.set('Authorization', `Bearer ${newToken}`);
           retryHeaders.set('x-sb-retry', '1');
-          const retryController = new AbortController();
-          const retryTimeout = setTimeout(() => retryController.abort(), timeout);
           try {
-            const retryResponse = await fetch(url, {
+            const retryResponse = await fetchWithTimeout(url, {
               ...options,
               headers: retryHeaders,
-              signal: retryController.signal,
+            }, requestTimeout);
+            recordRequestMetric({
+              url,
+              options: { ...options, headers: retryHeaders },
+              status: retryResponse.status,
+              durationMs: Date.now() - startedAt,
             });
-            clearTimeout(retryTimeout);
+            maybeLogBadRequest(url, { ...options, headers: retryHeaders }, retryResponse.status);
             return retryResponse;
-          } catch {
-            clearTimeout(retryTimeout);
+          } catch (retryError) {
+            recordRequestMetric({
+              url,
+              options: { ...options, headers: retryHeaders },
+              durationMs: Date.now() - startedAt,
+              errorName: retryError instanceof Error ? retryError.name : String(retryError),
+            });
           }
         }
       }
@@ -185,17 +221,12 @@ const customFetch: typeof fetch = async (url, options: RequestInit = {}) => {
 
     return response;
   } catch (error) {
-    clearTimeout(timeoutId);
     recordRequestMetric({
       url,
       options,
       durationMs: Date.now() - startedAt,
       errorName: error instanceof Error ? error.name : String(error),
     });
-    // Preserve AbortError semantics so hooks can correctly handle cancellations/timeouts.
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw createTimeoutAbortError(timeout);
-    }
     throw error;
   }
 };

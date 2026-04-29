@@ -453,7 +453,11 @@ export default function CreatePost() {
 
   // Community selection - only fetch when user is loaded
   const communitySlug = searchParams.get("community");
-  const { communities: userCommunities, loading: communitiesLoading } = useCommunities(user?.id, 'joined');
+  const {
+    communities: userCommunities,
+    loading: communitiesLoading,
+    error: communitiesError,
+  } = useCommunities(user?.id, 'joined', { enabled: !!user });
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
 
@@ -3470,7 +3474,7 @@ export default function CreatePost() {
             </div>
 
             {/* Community Selector */}
-            {!isEditing && (userCommunities.length > 0 || communitiesLoading || authLoading) && (
+            {!isEditing && (selectedCommunity || userCommunities.length > 0 || communitiesLoading || authLoading) && (
               <div className="relative">
                 {selectedCommunity ? (
                   <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#8e44ad]/30 bg-[#8e44ad]/5 text-[#6b2d8b] font-ui text-[0.85rem]">
@@ -3505,17 +3509,17 @@ export default function CreatePost() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => !(communitiesLoading || authLoading) && setShowCommunityMenu(!showCommunityMenu)}
-                    disabled={communitiesLoading || authLoading}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white text-muted hover:border-[#8e44ad] hover:text-[#6b2d8b] font-ui text-[0.85rem] transition-all ${(communitiesLoading || authLoading) ? 'opacity-60 cursor-wait' : ''}`}
+                    onClick={() => !authLoading && setShowCommunityMenu(!showCommunityMenu)}
+                    disabled={authLoading}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white text-muted hover:border-[#8e44ad] hover:text-[#6b2d8b] font-ui text-[0.85rem] transition-all ${authLoading ? 'opacity-60 cursor-wait' : ''}`}
                   >
                     {(communitiesLoading || authLoading) ? (
                       <div className="w-4 h-4 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
                     ) : (
                       icons.users
                     )}
-                    <span>{(communitiesLoading || authLoading) ? 'Loading...' : 'Community'}</span>
-                    {!(communitiesLoading || authLoading) && icons.chevronDown}
+                    <span>{authLoading ? 'Loading...' : 'Community'}</span>
+                    {!authLoading && icons.chevronDown}
                   </button>
                 )}
 
@@ -3538,6 +3542,22 @@ export default function CreatePost() {
                       {icons.globe}
                       <span>Personal Feed</span>
                     </button>
+                    {communitiesLoading && (
+                      <div className="flex items-center gap-3 px-4 py-3 font-ui text-[0.85rem] text-muted">
+                        <div className="w-4 h-4 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
+                        <span>Loading communities...</span>
+                      </div>
+                    )}
+                    {!communitiesLoading && communitiesError && (
+                      <div className="px-4 py-3 font-ui text-[0.8rem] text-muted">
+                        Communities unavailable right now.
+                      </div>
+                    )}
+                    {!communitiesLoading && !communitiesError && userCommunities.length === 0 && (
+                      <div className="px-4 py-3 font-ui text-[0.8rem] text-muted">
+                        No joined communities yet.
+                      </div>
+                    )}
                     {userCommunities.map((community) => (
                       <button
                         key={community.id}

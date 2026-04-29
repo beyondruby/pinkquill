@@ -32,10 +32,22 @@ export default function CommunitiesPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState<SortType>('trending');
 
-  const { communities: discoverCommunities, trending, loading: discoverLoading } = useDiscoverCommunities();
-  const { communities: joinedCommunities, loading: joinedLoading } = useCommunities(user?.id, 'joined');
-  const { communities: createdCommunities, loading: createdLoading } = useCommunities(user?.id, 'created');
-  const { communities: suggestedCommunities, loading: suggestedLoading } = useSuggestedCommunities(user?.id, 6);
+  const { communities: discoverCommunities, trending, loading: discoverLoading, error: discoverError } = useDiscoverCommunities();
+  const { communities: joinedCommunities, loading: joinedLoading, error: joinedError } = useCommunities(
+    user?.id,
+    'joined',
+    { enabled: !!user && activeTab === 'joined' }
+  );
+  const { communities: createdCommunities, loading: createdLoading, error: createdError } = useCommunities(
+    user?.id,
+    'created',
+    { enabled: !!user && activeTab === 'created' }
+  );
+  const { communities: suggestedCommunities, loading: suggestedLoading } = useSuggestedCommunities(
+    user?.id,
+    6,
+    !!user && activeTab === 'discover'
+  );
 
   // Get featured communities based on sort option
   const featuredCommunities = useMemo(() => {
@@ -123,6 +135,8 @@ export default function CommunitiesPage() {
   const filteredCommunities = getFilteredCommunities();
   const isLoading = activeTab === 'discover' ? discoverLoading :
                     activeTab === 'joined' ? joinedLoading : createdLoading;
+  const currentError = activeTab === 'discover' ? discoverError :
+                       activeTab === 'joined' ? joinedError : createdError;
 
   // Get top communities by category for browse section
   const topByCategory = useMemo(() => {
@@ -469,7 +483,11 @@ export default function CommunitiesPage() {
       )}
 
       {/* Communities Grid */}
-      {isLoading ? (
+      {currentError ? (
+        <div className="text-center py-12">
+          <p className="font-body text-muted">{currentError}</p>
+        </div>
+      ) : isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <div className="relative">
             <div className="w-14 h-14 rounded-full border-4 border-purple-primary/20 border-t-purple-primary animate-spin" />

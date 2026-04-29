@@ -1,5 +1,9 @@
 /**
- * Custom image loader for Next.js that uses Supabase Storage Image Transformations
+ * Optional image loader for Supabase Storage Image Transformations.
+ *
+ * This file is kept for components that explicitly opt into Supabase edge
+ * transformations. The global Next.js image config uses the default optimizer
+ * so non-Supabase and local images still get normal Next image handling.
  *
  * This loader automatically:
  * - Resizes images to the requested width on Supabase's edge
@@ -22,10 +26,9 @@ export default function supabaseImageLoader({
   width,
   quality,
 }: ImageLoaderProps): string {
-  // For non-Supabase URLs, return as-is (let Next.js handle them)
+  // For non-Supabase URLs, return as-is. This helper should only be used
+  // explicitly for Supabase storage images.
   if (!src.includes('supabase.co/storage/v1/object/public/')) {
-    // For relative URLs or other hosts, just return the src
-    // Next.js will handle these through its default optimization
     return src;
   }
 

@@ -40,6 +40,27 @@ export type {
 // COMMUNITY HOOKS
 // ============================================
 
+type CountRelation = { count?: number | string | null }[] | { count?: number | string | null } | null | undefined;
+type CommunityWithCounts = Community & {
+  members?: CountRelation;
+  posts?: CountRelation;
+};
+
+function getEmbeddedCount(value: CountRelation): number {
+  const raw = Array.isArray(value) ? value[0]?.count : value?.count;
+  const count = Number(raw ?? 0);
+  return Number.isFinite(count) ? count : 0;
+}
+
+function withCommunityCounts(community: CommunityWithCounts): Community {
+  const { members, posts, ...rest } = community;
+  return {
+    ...rest,
+    member_count: getEmbeddedCount(members),
+    post_count: getEmbeddedCount(posts),
+  };
+}
+
 // Fetch a single community by slug
 export function useCommunity(slug: string, userId?: string) {
   const [community, setCommunity] = useState<Community | null>(null);
@@ -58,6 +79,7 @@ export function useCommunity(slug: string, userId?: string) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       setLoading(true);
@@ -75,6 +97,7 @@ export function useCommunity(slug: string, userId?: string) {
           )
         `)
         .eq("slug", slug)
+        .abortSignal(signal)
         .single();
 
       if (!mountedRef.current) return;
@@ -90,13 +113,13 @@ export function useCommunity(slug: string, userId?: string) {
 
       // Fetch counts and user membership in parallel
       const [membersResult, postsResult, userMemberResult, pendingRequestResult, pendingInvitationResult, rulesResult, tagsResult] = await Promise.all([
-        supabase.from("community_members").select("*", { count: "exact", head: true }).eq("community_id", communityData.id).eq("status", "active"),
-        supabase.from("posts").select("*", { count: "exact", head: true }).eq("community_id", communityData.id),
-        userId ? supabase.from("community_members").select("role, status").eq("community_id", communityData.id).eq("user_id", userId).maybeSingle() : Promise.resolve({ data: null }),
-        userId ? supabase.from("community_join_requests").select("id").eq("community_id", communityData.id).eq("user_id", userId).eq("status", "pending").maybeSingle() : Promise.resolve({ data: null }),
-        userId ? supabase.from("community_invitations").select("id").eq("community_id", communityData.id).eq("invitee_id", userId).eq("status", "pending").maybeSingle() : Promise.resolve({ data: null }),
-        supabase.from("community_rules").select("*").eq("community_id", communityData.id).order("rule_number", { ascending: true }),
-        supabase.from("community_tags").select("*").eq("community_id", communityData.id),
+        supabase.from("community_members").select("*", { count: "exact", head: true }).eq("community_id", communityData.id).eq("status", "active").abortSignal(signal),
+        supabase.from("posts").select("*", { count: "exact", head: true }).eq("community_id", communityData.id).abortSignal(signal),
+        userId ? supabase.from("community_members").select("role, status").eq("community_id", communityData.id).eq("user_id", userId).abortSignal(signal).maybeSingle() : Promise.resolve({ data: null }),
+        userId ? supabase.from("community_join_requests").select("id").eq("community_id", communityData.id).eq("user_id", userId).eq("status", "pending").abortSignal(signal).maybeSingle() : Promise.resolve({ data: null }),
+        userId ? supabase.from("community_invitations").select("id").eq("community_id", communityData.id).eq("invitee_id", userId).eq("status", "pending").abortSignal(signal).maybeSingle() : Promise.resolve({ data: null }),
+        supabase.from("community_rules").select("*").eq("community_id", communityData.id).order("rule_number", { ascending: true }).abortSignal(signal),
+        supabase.from("community_tags").select("*").eq("community_id", communityData.id).abortSignal(signal),
       ]);
 
       if (!mountedRef.current) return;
@@ -144,23 +167,61 @@ export function useCommunity(slug: string, userId?: string) {
 }
 
 // Fetch list of communities
-export function useCommunities(userId?: string, filter?: 'all' | 'joined' | 'created') {
+export function useCommunities(
+  userId?: string,
+  filter?: 'all' | 'joined' | 'created',
+  options?: { enabled?: boolean; limit?: number }
+) {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const enabled = options?.enabled ?? true;
+  const limit = options?.limit ?? 100;
 
   const fetchCommunities = useCallback(async () => {
+    if (!enabled || ((filter === 'joined' || filter === 'created') && !userId)) {
+      setCommunities([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     // Abort any in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       setLoading(true);
       setError(null);
+
+      let joinedMemberships: { community_id: string; role: string; status: string }[] = [];
+      let communityIdsForFilter: string[] | null = null;
+
+      if (filter === 'joined' && userId) {
+        const { data: memberships, error: membershipsError } = await supabase
+          .from("community_members")
+          .select("community_id, role, status")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .limit(limit)
+          .abortSignal(signal);
+
+        if (!mountedRef.current) return;
+        if (membershipsError) throw membershipsError;
+
+        joinedMemberships = memberships || [];
+        communityIdsForFilter = joinedMemberships.map((membership) => membership.community_id);
+
+        if (communityIdsForFilter.length === 0) {
+          setCommunities([]);
+          return;
+        }
+      }
 
       let query = supabase
         .from("communities")
@@ -170,16 +231,22 @@ export function useCommunities(userId?: string, filter?: 'all' | 'joined' | 'cre
             username,
             display_name,
             avatar_url
-          )
+          ),
+          members:community_members(count),
+          posts:posts(count)
         `)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(limit);
 
       // Apply filter
       if (filter === 'created' && userId) {
         query = query.eq('created_by', userId);
       }
+      if (communityIdsForFilter) {
+        query = query.in('id', communityIdsForFilter);
+      }
 
-      const { data: communitiesData, error: communitiesError } = await query;
+      const { data: communitiesData, error: communitiesError } = await query.abortSignal(signal);
 
       if (!mountedRef.current) return;
       if (communitiesError) throw communitiesError;
@@ -189,53 +256,28 @@ export function useCommunities(userId?: string, filter?: 'all' | 'joined' | 'cre
         return;
       }
 
-      // If filter is 'joined', we need to filter by membership
-      let filteredCommunities = communitiesData;
-      if (filter === 'joined' && userId) {
-        const { data: memberships } = await supabase
-          .from("community_members")
-          .select("community_id")
-          .eq("user_id", userId)
-          .eq("status", "active");
-
-        if (!mountedRef.current) return;
-
-        const joinedIds = new Set((memberships || []).map(m => m.community_id));
-        filteredCommunities = communitiesData.filter(c => joinedIds.has(c.id));
-      }
-
-      // Get counts for all communities
-      const communityIds = filteredCommunities.map(c => c.id);
-
-      const [membersResult, postsResult, userMemberships] = await Promise.all([
-        supabase.from("community_members").select("community_id").in("community_id", communityIds).eq("status", "active"),
-        supabase.from("posts").select("community_id").in("community_id", communityIds),
-        userId ? supabase.from("community_members").select("community_id, role, status").eq("user_id", userId).in("community_id", communityIds) : Promise.resolve({ data: [] }),
-      ]);
+      const communityIds = communitiesData.map((community) => community.id);
+      const userMemberships = filter === 'joined'
+        ? { data: joinedMemberships }
+        : userId && communityIds.length > 0
+          ? await supabase
+              .from("community_members")
+              .select("community_id, role, status")
+              .eq("user_id", userId)
+              .in("community_id", communityIds)
+              .abortSignal(signal)
+          : { data: [] };
 
       if (!mountedRef.current) return;
 
-      // Count members and posts per community
-      const memberCounts: Record<string, number> = {};
-      const postCounts: Record<string, number> = {};
       const userRoles: Record<string, { role: string; status: string }> = {};
 
-      (membersResult.data || []).forEach(m => {
-        memberCounts[m.community_id] = (memberCounts[m.community_id] || 0) + 1;
-      });
-      (postsResult.data || []).forEach(p => {
-        if (p.community_id) {
-          postCounts[p.community_id] = (postCounts[p.community_id] || 0) + 1;
-        }
-      });
       (userMemberships.data || []).forEach(m => {
         userRoles[m.community_id] = { role: m.role, status: m.status };
       });
 
-      const enrichedCommunities = filteredCommunities.map(c => ({
-        ...c,
-        member_count: memberCounts[c.id] || 0,
-        post_count: postCounts[c.id] || 0,
+      const enrichedCommunities = (communitiesData as CommunityWithCounts[]).map((c) => ({
+        ...withCommunityCounts(c),
         is_member: !!userRoles[c.id] && userRoles[c.id].status === 'active',
         user_role: userRoles[c.id]?.role as 'admin' | 'moderator' | 'member' | null || null,
         user_status: userRoles[c.id]?.status as 'active' | 'muted' | 'banned' | null || null,
@@ -253,7 +295,7 @@ export function useCommunities(userId?: string, filter?: 'all' | 'joined' | 'cre
         setLoading(false);
       }
     }
-  }, [userId, filter]);
+  }, [enabled, filter, limit, userId]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -289,6 +331,7 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     const fetchCommunities = async () => {
       try {
@@ -304,10 +347,11 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
               display_name,
               avatar_url
             ),
-            active_members:community_members(count)
+            members:community_members(count),
+            posts:posts(count)
           `)
-          .eq("active_members.status", "active")
           .eq("privacy", "public")
+          .order("created_at", { ascending: false })
           .limit(limit);
 
         // Filter by tag if provided
@@ -315,7 +359,8 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
           const { data: taggedCommunities } = await supabase
             .from("community_tags")
             .select("community_id")
-            .ilike("tag", `%${options.tag}%`);
+            .ilike("tag", `%${options.tag}%`)
+            .abortSignal(signal);
 
           if (!mountedRef.current) return;
 
@@ -329,7 +374,7 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
           }
         }
 
-        const { data, error: fetchError } = await query;
+        const { data, error: fetchError } = await query.abortSignal(signal);
 
         if (!mountedRef.current) return;
         if (fetchError) throw fetchError;
@@ -339,18 +384,10 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
           return;
         }
 
-        // Extract member counts from aggregate result (no separate query needed)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const enrichedCommunities = data.map((c: any) => ({
-          ...c,
-          member_count: Array.isArray(c.active_members) && c.active_members[0]?.count
-            ? c.active_members[0].count
-            : 0,
-        }));
+        const enrichedCommunities = (data as CommunityWithCounts[]).map(withCommunityCounts);
 
         // Sort by member count (most popular first)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        enrichedCommunities.sort((a: any, b: any) => (b.member_count || 0) - (a.member_count || 0));
+        enrichedCommunities.sort((a, b) => (b.member_count || 0) - (a.member_count || 0));
 
         setCommunities(enrichedCommunities);
         // Set trending as top 6 by member count
@@ -382,7 +419,7 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
 }
 
 // Get suggested communities for a user
-export function useSuggestedCommunities(userId?: string, limit: number = 10) {
+export function useSuggestedCommunities(userId?: string, limit: number = 10, enabled: boolean = true) {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
@@ -391,11 +428,18 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
   useEffect(() => {
     mountedRef.current = true;
 
+    if (!enabled || !userId) {
+      setCommunities([]);
+      setLoading(false);
+      return;
+    }
+
     // Abort any in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     const fetchSuggestions = async () => {
       try {
@@ -403,15 +447,14 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
 
         // Get communities user is already a member of
         let joinedIds: Set<string> = new Set();
-        if (userId) {
-          const { data: memberships } = await supabase
-            .from("community_members")
-            .select("community_id")
-            .eq("user_id", userId);
+        const { data: memberships } = await supabase
+          .from("community_members")
+          .select("community_id")
+          .eq("user_id", userId)
+          .abortSignal(signal);
 
-          if (!mountedRef.current) return;
-          joinedIds = new Set((memberships || []).map(m => m.community_id));
-        }
+        if (!mountedRef.current) return;
+        joinedIds = new Set((memberships || []).map(m => m.community_id));
 
         // Fetch public communities
         const { data, error } = await supabase
@@ -422,38 +465,23 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
               username,
               display_name,
               avatar_url
-            )
+            ),
+            members:community_members(count),
+            posts:posts(count)
           `)
           .eq("privacy", "public")
-          .limit(limit * 2); // Fetch more to account for filtering
+          .order("created_at", { ascending: false })
+          .limit(limit * 2)
+          .abortSignal(signal); // Fetch more to account for filtering
 
         if (!mountedRef.current) return;
         if (error) throw error;
 
         // Filter out joined communities
-        const notJoined = (data || []).filter(c => !joinedIds.has(c.id));
+        const notJoined = ((data || []) as CommunityWithCounts[]).filter(c => !joinedIds.has(c.id));
 
-        // Get member counts for sorting
         if (notJoined.length > 0) {
-          const communityIds = notJoined.map(c => c.id);
-          const { data: membersData } = await supabase
-            .from("community_members")
-            .select("community_id")
-            .in("community_id", communityIds)
-            .eq("status", "active");
-
-          if (!mountedRef.current) return;
-
-          const memberCounts: Record<string, number> = {};
-          (membersData || []).forEach(m => {
-            memberCounts[m.community_id] = (memberCounts[m.community_id] || 0) + 1;
-          });
-
-          const enriched = notJoined.map(c => ({
-            ...c,
-            member_count: memberCounts[c.id] || 0,
-          }));
-
+          const enriched = notJoined.map(withCommunityCounts);
           // Sort by member count and take limit
           enriched.sort((a, b) => (b.member_count || 0) - (a.member_count || 0));
           setCommunities(enriched.slice(0, limit));
@@ -478,7 +506,7 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10) {
         abortControllerRef.current.abort();
       }
     };
-  }, [userId, limit]);
+  }, [enabled, userId, limit]);
 
   return { communities, loading };
 }
