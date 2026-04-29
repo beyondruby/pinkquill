@@ -188,6 +188,23 @@ describe("useUnreadCount", () => {
     const { result } = renderHook(() => useUnreadCount(undefined));
     expect(typeof result.current.refetch).toBe("function");
   });
+
+  it("should reset count when userId is cleared", async () => {
+    const { result, rerender } = renderHook(
+      ({ userId }: { userId?: string }) => useUnreadCount(userId),
+      { initialProps: { userId: "user-1" as string | undefined } }
+    );
+
+    await waitFor(() => {
+      expect(result.current.count).toBe(5);
+    });
+
+    rerender({ userId: undefined });
+
+    await waitFor(() => {
+      expect(result.current.count).toBe(0);
+    });
+  });
 });
 
 describe("useMarkAsRead", () => {

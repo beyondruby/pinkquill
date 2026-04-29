@@ -315,6 +315,8 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
   useEffect(() => {
     if (userId) {
       fetchCount();
+    } else {
+      setCount(0);
     }
   }, [userId, fetchCount]);
   /* eslint-enable react-hooks/set-state-in-effect */

@@ -227,6 +227,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
   const mountedRef = useRef(true);
   const userInterestsRef = useRef<UserInterests | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const fetchingRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   // Fetch user interests for personalization
   const fetchUserInterests = useCallback(async (signal?: AbortSignal): Promise<UserInterests | null> => {
@@ -298,20 +300,22 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
   // Main fetch function
   const fetchPosts = useCallback(
     async (page: number, append: boolean = false) => {
-      // Cancel any in-flight request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (fetchingRef.current) {
+        if (append) return;
+        abortControllerRef.current?.abort();
       }
+
+      fetchingRef.current = true;
 
       // Create new abort controller for this request
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
       const signal = abortController.signal;
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
 
       try {
-        if (!append) {
-          setLoading(true);
-        }
+        setLoading(true);
         setError(null);
 
         // Fetch user interests with stale-while-revalidate pattern
@@ -685,7 +689,10 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           setError(err instanceof Error ? err.message : "Failed to fetch posts");
         }
       } finally {
-        if (mountedRef.current) {
+        if (requestIdRef.current === requestId) {
+          fetchingRef.current = false;
+        }
+        if (mountedRef.current && requestIdRef.current === requestId) {
           setLoading(false);
         }
       }
@@ -725,6 +732,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      fetchingRef.current = false;
     };
   }, [fetchPosts, activeTab, enabled]);
 

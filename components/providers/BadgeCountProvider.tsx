@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUnreadCount, useUnreadMessagesCount } from "@/lib/hooks";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
@@ -15,6 +15,25 @@ interface BadgeCountContextType {
 
 const BadgeCountContext = createContext<BadgeCountContextType | undefined>(undefined);
 
+type IdleCallback = (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void;
+type IdleWindow = Window & {
+  requestIdleCallback?: (callback: IdleCallback, options?: { timeout: number }) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
+function scheduleDeferredBadgeFetch(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+
+  const idleWindow = window as IdleWindow;
+  if (typeof idleWindow.requestIdleCallback === "function") {
+    const handle = idleWindow.requestIdleCallback(callback, { timeout: 2500 });
+    return () => idleWindow.cancelIdleCallback?.(handle);
+  }
+
+  const timer = window.setTimeout(callback, 1500);
+  return () => window.clearTimeout(timer);
+}
+
 export function useBadgeCounts() {
   const context = useContext(BadgeCountContext);
   if (!context) {
@@ -25,15 +44,31 @@ export function useBadgeCounts() {
 
 export function BadgeCountProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const [badgeFetchReady, setBadgeFetchReady] = useState(false);
+  const userId = user?.id;
 
-  // CRITICAL: Only fetch counts AFTER auth is fully loaded
-  // This prevents cascading async operations during auth initialization
-  const shouldFetchCounts = !loading && !!user;
+  /* eslint-disable react-hooks/set-state-in-effect -- badge counts are intentionally delayed until after primary content starts */
+  useEffect(() => {
+    setBadgeFetchReady(false);
+
+    if (loading || !userId) {
+      return;
+    }
+
+    return scheduleDeferredBadgeFetch(() => {
+      setBadgeFetchReady(true);
+    });
+  }, [loading, userId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // CRITICAL: Only fetch counts after auth is fully loaded and the first
+  // route paint has had a chance to request primary content.
+  const shouldFetchCounts = badgeFetchReady && !loading && !!user;
   const { count: unreadNotifications, refetch: refetchNotifications } = useUnreadCount(
-    shouldFetchCounts ? user?.id : undefined
+    shouldFetchCounts ? userId : undefined
   );
   const { count: unreadMessages, refetch: refetchMessages } = useUnreadMessagesCount(
-    shouldFetchCounts ? user?.id : undefined
+    shouldFetchCounts ? userId : undefined
   );
   const { count: cartCount } = useStudioCart();
 

@@ -60,6 +60,8 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const fetchingRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   // Track userId for realtime callbacks
   const userIdRef = useRef(userId);
@@ -69,20 +71,22 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
 
   const fetchPosts = useCallback(
     async (page: number, append: boolean = false) => {
-      // Abort any in-flight request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (fetchingRef.current) {
+        if (append) return;
+        abortControllerRef.current?.abort();
       }
+
+      fetchingRef.current = true;
 
       // Create new AbortController for this request
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
       const signal = abortController.signal;
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
 
       try {
-        if (!append) {
-          setLoading(true);
-        }
+        setLoading(true);
         setError(null);
 
         const from = page * pageSize;
@@ -320,7 +324,10 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
           setError(categorized.userMessage);
         }
       } finally {
-        if (mountedRef.current) {
+        if (requestIdRef.current === requestId) {
+          fetchingRef.current = false;
+        }
+        if (mountedRef.current && requestIdRef.current === requestId) {
           setLoading(false);
         }
       }
@@ -352,6 +359,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      fetchingRef.current = false;
     };
   }, [fetchPosts, enabled]);
 
