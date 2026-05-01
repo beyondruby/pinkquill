@@ -188,7 +188,7 @@ export default function PostPage() {
 
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleRelay } = useToggleRelay();
-  const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment } = useComments(postId, user?.id);
+  const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment, fetchReplies } = useComments(postId, user?.id);
 
   // Reaction system hooks
   const { react: toggleReaction, removeReaction } = useToggleReaction();
@@ -548,8 +548,8 @@ export default function PostPage() {
   };
 
   const handleCommentReply = async (parentId: string, content: string) => {
-    if (!user) return;
-    await addComment(user.id, content, parentId);
+    if (!user) return { success: false };
+    return await addComment(user.id, content, parentId);
   };
 
   const handleCommentDelete = (commentId: string) => {
@@ -1232,6 +1232,7 @@ export default function PostPage() {
                       currentUserId={user?.id}
                       onLike={handleCommentLike}
                       onReply={handleCommentReply}
+                      onLoadReplies={fetchReplies}
                       onDelete={handleCommentDelete}
                     />
                   ))}

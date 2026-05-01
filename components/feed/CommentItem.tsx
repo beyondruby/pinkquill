@@ -14,7 +14,8 @@ interface CommentItemProps {
   comment: Comment;
   currentUserId?: string;
   onLike: (commentId: string, isLiked: boolean) => void;
-  onReply: (parentId: string, content: string) => Promise<void>;
+  onReply: (parentId: string, content: string) => Promise<{ success: boolean; error?: string } | void>;
+  onLoadReplies?: (commentId: string) => Promise<unknown>;
   onDelete?: (commentId: string) => void;
   onBlock?: (userId: string) => void;
   isReply?: boolean;
@@ -84,6 +85,7 @@ function CommentItemComponent({
   currentUserId,
   onLike,
   onReply,
+  onLoadReplies,
   onDelete,
   onBlock,
   isReply = false,
@@ -95,6 +97,8 @@ function CommentItemComponent({
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+  const repliesFetchedRef = useRef(false);
   const [showModDeleteModal, setShowModDeleteModal] = useState(false);
   const [modDeleteReason, setModDeleteReason] = useState("");
   const [isModDeleting, setIsModDeleting] = useState(false);
@@ -197,18 +201,43 @@ function CommentItemComponent({
   };
 
   const handleSubmitReply = async () => {
-    if (!replyText.trim() || !currentUserId) return;
+    if (!replyText.trim() || !currentUserId || submitting) return;
 
     setSubmitting(true);
-    // Use effectiveParentId to maintain flat threading structure
-    await onReply(effectiveParentId, replyText.trim());
-    setReplyText("");
-    setShowReplyInput(false);
-    // Only show replies for top-level comments
-    if (!isReply) {
-      setShowReplies(true);
+    try {
+      // Use effectiveParentId to maintain flat threading structure
+      const result = await onReply(effectiveParentId, replyText.trim());
+      // onReply may return void (legacy) or { success, error }. Treat
+      // missing result as success for backward-compat.
+      if (result && result.success === false) {
+        actionToast.genericError("post reply");
+        return; // keep input populated so user can retry
+      }
+      setReplyText("");
+      setShowReplyInput(false);
+      // Auto-expand replies on the parent so the user sees their new reply.
+      // For nested replies (flat threading), the parent renders this state
+      // change, not the nested CommentItem itself.
+      if (!isReply) {
+        setShowReplies(true);
+        // Make sure pre-existing replies are loaded too, so the user sees
+        // the full thread (not just their own new reply in isolation).
+        if (!repliesFetchedRef.current && onLoadReplies) {
+          repliesFetchedRef.current = true;
+          setLoadingReplies(true);
+          try {
+            await onLoadReplies(comment.id);
+          } finally {
+            setLoadingReplies(false);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[CommentItem] handleSubmitReply error:", err);
+      actionToast.genericError("post reply");
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const handleDelete = () => {
@@ -392,7 +421,7 @@ function CommentItemComponent({
 
           {/* Reply Input */}
           {showReplyInput && currentUserId && (
-            <div className="flex gap-2 mt-3 ml-2">
+            <div className="flex gap-2 mt-3 ml-2 items-stretch">
               <input
                 type="text"
                 value={replyText}
@@ -401,12 +430,12 @@ function CommentItemComponent({
                 placeholder="Write a reply..."
                 disabled={submitting}
                 autoFocus
-                className="flex-1 px-3 py-2 rounded-full bg-black/[0.03] border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-white focus:ring-2 focus:ring-purple-primary/20 transition-all"
+                className="flex-1 min-w-0 h-9 px-3 rounded-full bg-black/[0.03] border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-white focus:ring-2 focus:ring-purple-primary/20 transition-colors"
               />
               <button
                 onClick={handleSubmitReply}
                 disabled={submitting || !replyText.trim()}
-                className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-[0.8rem] font-medium disabled:opacity-50 hover:scale-105 transition-all"
+                className="flex-shrink-0 h-9 px-4 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-[0.8rem] font-medium disabled:opacity-50 transition-opacity"
               >
                 {submitting ? "..." : "Reply"}
               </button>
@@ -414,9 +443,25 @@ function CommentItemComponent({
           )}
 
           {/* View Replies Toggle */}
-          {!isReply && comment.replies && comment.replies.length > 0 && (
+          {!isReply && comment.replies_count > 0 && (
             <button
-              onClick={() => setShowReplies(!showReplies)}
+              onClick={async () => {
+                const next = !showReplies;
+                setShowReplies(next);
+                // Lazy-load existing replies the first time the user expands.
+                // Without this, only replies added in this session appear,
+                // making it look like older replies "disappeared" and new
+                // ones "didn't post."
+                if (next && !repliesFetchedRef.current && onLoadReplies) {
+                  repliesFetchedRef.current = true;
+                  setLoadingReplies(true);
+                  try {
+                    await onLoadReplies(comment.id);
+                  } finally {
+                    setLoadingReplies(false);
+                  }
+                }
+              }}
               className="flex items-center gap-1.5 mt-2 ml-2 font-ui text-[0.8rem] text-purple-primary hover:text-pink-vivid transition-colors"
             >
               <svg
@@ -427,7 +472,11 @@ function CommentItemComponent({
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              {showReplies ? "Hide" : "View"} {comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}
+              {showReplies ? "Hide" : "View"} {comment.replies_count}{" "}
+              {comment.replies_count === 1 ? "reply" : "replies"}
+              {loadingReplies && (
+                <span className="ml-1 inline-block w-3 h-3 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
+              )}
             </button>
           )}
 
@@ -441,6 +490,7 @@ function CommentItemComponent({
                   currentUserId={currentUserId}
                   onLike={onLike}
                   onReply={onReply}
+                  onLoadReplies={onLoadReplies}
                   onDelete={onDelete}
                   onBlock={onBlock}
                   isReply
@@ -563,13 +613,19 @@ function CommentItemComponent({
   );
 }
 
-// Memoize to prevent unnecessary re-renders in comment threads
+// Memoize to prevent unnecessary re-renders in comment threads.
+// IMPORTANT: include `replies` array length AND content reference so a newly
+// added reply (which mutates the parent's `replies` array) triggers a re-
+// render even when `replies_count` happens to match.
 const CommentItem = memo(CommentItemComponent, (prevProps, nextProps) => {
   return (
     prevProps.comment.id === nextProps.comment.id &&
+    prevProps.comment.content === nextProps.comment.content &&
     prevProps.comment.user_has_liked === nextProps.comment.user_has_liked &&
     prevProps.comment.likes_count === nextProps.comment.likes_count &&
     prevProps.comment.replies_count === nextProps.comment.replies_count &&
+    (prevProps.comment.replies?.length ?? 0) === (nextProps.comment.replies?.length ?? 0) &&
+    prevProps.comment.replies === nextProps.comment.replies &&
     prevProps.currentUserId === nextProps.currentUserId &&
     prevProps.canModerateDelete === nextProps.canModerateDelete
   );

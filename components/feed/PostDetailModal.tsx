@@ -343,7 +343,7 @@ function PostDetailModalComponent({
 
   const { blockUser } = useBlock();
 
-  const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment } = useComments(post?.id || "", user?.id);
+  const { comments, loading: commentsLoading, addComment, toggleLike, deleteComment, fetchReplies } = useComments(post?.id || "", user?.id);
   const { toggle: toggleSave } = useToggleSave();
   const { toggle: toggleRelay } = useToggleRelay();
 
@@ -626,9 +626,9 @@ function PostDetailModalComponent({
   const handleCommentReply = useCallback(async (parentId: string, content: string) => {
     if (!user) {
       openAuthModal();
-      return;
+      return { success: false };
     }
-    await addComment(user.id, content, parentId);
+    return await addComment(user.id, content, parentId);
   }, [user, openAuthModal, addComment]);
 
   const handleCommentDelete = useCallback((commentId: string) => {
@@ -1181,6 +1181,7 @@ function PostDetailModalComponent({
                       currentUserId={user?.id}
                       onLike={handleCommentLike}
                       onReply={handleCommentReply}
+                      onLoadReplies={fetchReplies}
                       onDelete={handleCommentDelete}
                       canModerateDelete={canModerateDeleteComments}
                       onModeratorDelete={onModeratorDeleteComment}

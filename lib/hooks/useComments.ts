@@ -250,7 +250,7 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
     currentUserId: string,
     content: string,
     parentId?: string
-  ): Promise<{ success: boolean; comment?: Comment }> => {
+  ): Promise<{ success: boolean; comment?: Comment; error?: string }> => {
     try {
       const { data, error } = await supabase
         .from("comments")
@@ -273,6 +273,7 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
         .single();
 
       if (error) throw error;
+      if (!data) throw new Error("Comment insert returned no data");
 
       const newComment: Comment = {
         ...data,
@@ -283,47 +284,63 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
       };
 
       if (parentId) {
-        // Add as reply
+        // Add as reply, deduping in case the same comment id is already
+        // present (defensive — prevents the "ghost duplicate" bug if a
+        // realtime/refetch race fires between the insert and this update).
         setComments((current) =>
           current.map((c) => {
             if (c.id === parentId) {
+              const existingReplies = c.replies || [];
+              if (existingReplies.some((r) => r.id === newComment.id)) {
+                return c;
+              }
               return {
                 ...c,
                 replies_count: c.replies_count + 1,
-                replies: [...(c.replies || []), newComment],
+                replies: [...existingReplies, newComment],
               };
             }
             return c;
           })
         );
 
-        // Notify parent comment author
-        const { data: parentComment } = await supabase
-          .from("comments")
-          .select("user_id")
-          .eq("id", parentId)
-          .single();
+        // Notify parent comment author. Wrapped in its own try/catch so a
+        // notification failure (e.g., RLS or trigger error) does NOT roll
+        // back the user-visible reply.
+        try {
+          const { data: parentComment } = await supabase
+            .from("comments")
+            .select("user_id")
+            .eq("id", parentId)
+            .single();
 
-        if (parentComment && parentComment.user_id !== currentUserId) {
-          await createNotification(
-            parentComment.user_id,
-            currentUserId,
-            "reply",
-            postId,
-            content.substring(0, 100),
-            undefined,
-            parentId // Pass the parent comment ID for scroll-to functionality
-          );
+          if (parentComment && parentComment.user_id !== currentUserId) {
+            await createNotification(
+              parentComment.user_id,
+              currentUserId,
+              "reply",
+              postId,
+              content.substring(0, 100),
+              undefined,
+              parentId
+            );
+          }
+        } catch (notifyErr) {
+          console.warn("[useComments] reply notification failed:", notifyErr);
         }
       } else {
-        // Add as top-level comment
-        setComments((current) => [newComment, ...current]);
+        // Add as top-level comment, also deduping.
+        setComments((current) => {
+          if (current.some((c) => c.id === newComment.id)) return current;
+          return [newComment, ...current];
+        });
       }
 
       return { success: true, comment: newComment };
     } catch (err) {
-      console.error("[useComments] addComment Error:", err);
-      return { success: false };
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[useComments] addComment Error:", message, err);
+      return { success: false, error: message };
     }
   };
 
