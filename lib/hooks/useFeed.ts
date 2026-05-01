@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabase";
 import type { Post, PostMedia, PaginationState, RelayedPost, ReactionType, AggregateCount, PostAuthor, PostType, PostVisibility } from "../types";
 import { getAggregateCount } from "../types";
-import { buildPostgrestInFilter } from "../utils/postgrest";
 import { categorizeError, retryWithBackoff, isRetryableError } from "../utils/retry";
 
 // ============================================================================
@@ -59,15 +58,8 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
   // Refs for managing async operations
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const fetchingRef = useRef(false);
   const requestIdRef = useRef(0);
-
-  // Track userId for realtime callbacks
-  const userIdRef = useRef(userId);
-  useEffect(() => {
-    userIdRef.current = userId;
-  }, [userId]);
 
   const fetchPosts = useCallback(
     async (page: number, append: boolean = false) => {
@@ -363,144 +355,33 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
     };
   }, [fetchPosts, enabled]);
 
-  const postIdsFilter = useMemo(
-    () => buildPostgrestInFilter("post_id", posts.map((post) => post.id)),
-    [posts]
-  );
-
-  // Real-time subscriptions for interactions
-  // CRITICAL: Use stable channel name to prevent connection leaks
+  // Refresh feed counts when the tab regains focus. The user's own
+  // interactions update optimistically via interaction hooks; this catches
+  // changes from other users without subscribing to admires/reactions/relays
+  // for every visible post in real-time (which produced massive realtime
+  // egress). A 30s minimum gap prevents thrash if the user alt-tabs rapidly.
   useEffect(() => {
-    // Clean up previous channel if it exists
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    if (!enabled || typeof window === "undefined") return;
 
-    if (!postIdsFilter) {
-      return;
-    }
+    const MIN_REFETCH_GAP_MS = 30_000;
+    let lastRefetchAt = Date.now();
 
-    // Stable channel name - NO Date.now() to prevent connection leaks
-    const channelName = `feed-interactions-${userId || "anon"}`;
-
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "admires", filter: postIdsFilter },
-        (payload) => {
-          const newData = payload.new as { post_id?: string; user_id?: string } | null;
-          const oldData = payload.old as { post_id?: string; user_id?: string } | null;
-          const postId = newData?.post_id || oldData?.post_id;
-          if (!postId) return;
-
-          setPosts((current) =>
-            current.map((post) => {
-              if (post.id !== postId) return post;
-
-              if (payload.eventType === "INSERT") {
-                return {
-                  ...post,
-                  admires_count: post.admires_count + 1,
-                  user_has_admired: newData?.user_id === userIdRef.current ? true : post.user_has_admired,
-                };
-              } else if (payload.eventType === "DELETE") {
-                return {
-                  ...post,
-                  admires_count: Math.max(0, post.admires_count - 1),
-                  user_has_admired: oldData?.user_id === userIdRef.current ? false : post.user_has_admired,
-                };
-              }
-              return post;
-            })
-          );
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "reactions", filter: postIdsFilter },
-        (payload) => {
-          const newData = payload.new as { post_id?: string; user_id?: string; reaction_type?: string } | null;
-          const oldData = payload.old as { post_id?: string; user_id?: string } | null;
-          const postId = newData?.post_id || oldData?.post_id;
-          if (!postId) return;
-
-          setPosts((current) =>
-            current.map((post) => {
-              if (post.id !== postId) return post;
-
-              if (payload.eventType === "INSERT") {
-                return {
-                  ...post,
-                  reactions_count: post.reactions_count + 1,
-                  user_reaction_type: newData?.user_id === userIdRef.current
-                    ? (newData?.reaction_type as ReactionType) || null
-                    : post.user_reaction_type,
-                };
-              } else if (payload.eventType === "DELETE") {
-                return {
-                  ...post,
-                  reactions_count: Math.max(0, post.reactions_count - 1),
-                  user_reaction_type: oldData?.user_id === userIdRef.current
-                    ? null
-                    : post.user_reaction_type,
-                };
-              } else if (payload.eventType === "UPDATE") {
-                return {
-                  ...post,
-                  user_reaction_type: newData?.user_id === userIdRef.current
-                    ? (newData?.reaction_type as ReactionType) || null
-                    : post.user_reaction_type,
-                };
-              }
-              return post;
-            })
-          );
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "relays", filter: postIdsFilter },
-        (payload) => {
-          const newData = payload.new as { post_id?: string; user_id?: string } | null;
-          const oldData = payload.old as { post_id?: string; user_id?: string } | null;
-          const postId = newData?.post_id || oldData?.post_id;
-          if (!postId) return;
-
-          setPosts((current) =>
-            current.map((post) => {
-              if (post.id !== postId) return post;
-
-              if (payload.eventType === "INSERT") {
-                return {
-                  ...post,
-                  relays_count: post.relays_count + 1,
-                  user_has_relayed: newData?.user_id === userIdRef.current ? true : post.user_has_relayed,
-                };
-              } else if (payload.eventType === "DELETE") {
-                return {
-                  ...post,
-                  relays_count: Math.max(0, post.relays_count - 1),
-                  user_has_relayed: oldData?.user_id === userIdRef.current ? false : post.user_has_relayed,
-                };
-              }
-              return post;
-            })
-          );
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+    const maybeRefresh = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!mountedRef.current) return;
+      const now = Date.now();
+      if (now - lastRefetchAt < MIN_REFETCH_GAP_MS) return;
+      lastRefetchAt = now;
+      void fetchPosts(0, false);
     };
-  }, [postIdsFilter, userId]);
+
+    document.addEventListener("visibilitychange", maybeRefresh);
+    window.addEventListener("focus", maybeRefresh);
+    return () => {
+      document.removeEventListener("visibilitychange", maybeRefresh);
+      window.removeEventListener("focus", maybeRefresh);
+    };
+  }, [enabled, fetchPosts]);
 
   return { posts, loading, error, pagination, loadMore, refresh };
 }

@@ -22,6 +22,7 @@ import { ModalProvider } from "@/components/providers/ModalProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { AuthModalProvider } from "@/components/providers/AuthModalProvider";
 import { BadgeCountProvider } from "@/components/providers/BadgeCountProvider";
+import { UserEventsProvider } from "@/components/providers/UserEventsProvider";
 import { LightboxProvider } from "@/components/ui/Lightbox";
 import AuthModal from "@/components/auth/AuthModal";
 
@@ -222,14 +223,16 @@ export default function RootLayout({
         <div className="aura-blob blob-3" />
 
         <AuthProvider>
-          <BadgeCountProvider>
-            <AuthModalProvider>
-              <LightboxProvider>
-                <ModalProvider>{children}</ModalProvider>
-              </LightboxProvider>
-              <AuthModal />
-            </AuthModalProvider>
-          </BadgeCountProvider>
+          <UserEventsProvider>
+            <BadgeCountProvider>
+              <AuthModalProvider>
+                <LightboxProvider>
+                  <ModalProvider>{children}</ModalProvider>
+                </LightboxProvider>
+                <AuthModal />
+              </AuthModalProvider>
+            </BadgeCountProvider>
+          </UserEventsProvider>
         </AuthProvider>
         <Toaster
           position="bottom-right"

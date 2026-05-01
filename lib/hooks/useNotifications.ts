@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabase";
 import type { Notification, NotificationType } from "../types";
 import { isRetryableError, retryWithBackoff } from "../utils/retry";
+import { useUserEvent } from "@/components/providers/UserEventsProvider";
 
 // ============================================================================
 // createNotification - Helper to create notifications
@@ -66,7 +67,6 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const fetchedRef = useRef(false);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!userId) {
@@ -135,125 +135,59 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // Track the userId for which we have a subscription
-  const subscribedUserIdRef = useRef<string | null>(null);
-
-  // Real-time subscription
-  useEffect(() => {
-    if (!userId) {
-      // Clean up any existing subscription when userId is cleared
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-        subscribedUserIdRef.current = null;
-      }
+  // Live updates flow through the shared per-user broadcast channel
+  // (UserEventsProvider). DB triggers send `notification_change` events with
+  // {op, id, type, read}; we patch state in place for UPDATE/DELETE and
+  // hydrate the full row on INSERT.
+  useUserEvent("notification_change", async (payload) => {
+    if (!userId) return;
+    if (payload.op === "DELETE") {
+      setNotifications((prev) => prev.filter((n) => n.id !== payload.id));
+      return;
+    }
+    if (payload.op === "UPDATE") {
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === payload.id
+            ? { ...n, read: payload.read ?? n.read }
+            : n
+        )
+      );
       return;
     }
 
-    // If we already have a subscription for this user, don't create another
-    if (channelRef.current && subscribedUserIdRef.current === userId) {
-      return;
+    const { data: fullNotif } = await supabase
+      .from("notifications")
+      .select(
+        `
+        *,
+        actor:profiles!notifications_actor_id_fkey (
+          username,
+          display_name,
+          avatar_url
+        ),
+        post:posts (
+          title,
+          content,
+          type
+        ),
+        community:communities (
+          name,
+          slug,
+          avatar_url
+        )
+      `
+      )
+      .eq("id", payload.id)
+      .single();
+
+    if (fullNotif) {
+      setNotifications((prev) => {
+        if (prev.some((n) => n.id === fullNotif.id)) return prev;
+        return [fullNotif, ...prev].slice(0, 50);
+      });
     }
-
-    // Clean up previous subscription if userId changed
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    // CRITICAL: Use stable channel name to prevent connection leaks
-    const channelName = `notifications-realtime-${userId}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        async (payload) => {
-          // Incremental update: Add new notification without refetching all
-          const newNotif = payload.new as { id: string };
-
-          // Fetch the actor, post, and community data for the new notification
-          const { data: fullNotif } = await supabase
-            .from("notifications")
-            .select(`
-              *,
-              actor:profiles!notifications_actor_id_fkey (
-                username,
-                display_name,
-                avatar_url
-              ),
-              post:posts (
-                title,
-                content,
-                type
-              ),
-              community:communities (
-                name,
-                slug,
-                avatar_url
-              )
-            `)
-            .eq("id", newNotif.id)
-            .single();
-
-          if (fullNotif) {
-            setNotifications((prev) => {
-              // Avoid duplicates
-              if (prev.some((n) => n.id === fullNotif.id)) return prev;
-              // Add to beginning (most recent first), cap at 50
-              return [fullNotif, ...prev].slice(0, 50);
-            });
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          // Incremental update: Update specific notification
-          const updated = payload.new as { id: string; read?: boolean };
-          setNotifications((prev) =>
-            prev.map((n) => (n.id === updated.id ? { ...n, ...updated } : n))
-          );
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          // Incremental update: Remove deleted notification
-          const deleted = payload.old as { id: string };
-          setNotifications((prev) => prev.filter((n) => n.id !== deleted.id));
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-    subscribedUserIdRef.current = userId;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-        subscribedUserIdRef.current = null;
-      }
-    };
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  });
 
   return { notifications, loading, refetch: fetchNotifications };
 }
@@ -269,7 +203,6 @@ interface UseUnreadCountReturn {
 
 export function useUnreadCount(userId?: string): UseUnreadCountReturn {
   const [count, setCount] = useState(0);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchCount = useCallback(async () => {
     if (!userId) {
@@ -303,13 +236,6 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
     }
   }, [userId]);
 
-  // Use ref to access latest fetchCount in subscription callback
-  // This prevents channel recreation when fetchCount reference changes
-  const fetchCountRef = useRef(fetchCount);
-  useEffect(() => {
-    fetchCountRef.current = fetchCount;
-  }, [fetchCount]);
-
   // Initial fetch
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -321,49 +247,29 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
   }, [userId, fetchCount]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Real-time subscription - only depends on userId to prevent channel recreation
-  useEffect(() => {
-    if (!userId) {
-      // Clean up if userId becomes undefined
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+  // Live updates: every notification change updates the unread count locally
+  // without an extra DB round-trip. Triggered by the per-user broadcast
+  // channel managed by UserEventsProvider.
+  useUserEvent("notification_change", (payload) => {
+    if (!userId) return;
+    if (payload.op === "INSERT") {
+      if (payload.read !== true) {
+        setCount((c) => c + 1);
       }
       return;
     }
-
-    // Clean up previous channel if it exists
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+    if (payload.op === "DELETE") {
+      // We don't know whether the deleted row was unread; refetch is the
+      // safest correction.
+      fetchCount();
+      return;
     }
-
-    const channelName = `unread-count-realtime-${userId}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          // Use ref to get latest fetchCount
-          fetchCountRef.current();
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [userId]); // Only userId - no fetchCount to prevent recreation
+    if (payload.op === "UPDATE" && typeof payload.read === "boolean") {
+      // Read-state flip: ±1; otherwise no change. We can't know the prior
+      // state from the payload alone, so refetch on any read flip.
+      fetchCount();
+    }
+  });
 
   return { count, refetch: fetchCount };
 }
@@ -411,10 +317,13 @@ interface BlockedUsersCache {
 // Module-level cache for blocked users (persists across hook instances)
 const blockedUsersCacheByUser = new Map<string, BlockedUsersCache>();
 
+// Backstop refetch interval for community-chat unread counts. Community
+// updates no longer use realtime (the global subscription was a major source
+// of egress); instead, the count syncs on window focus and on this interval.
+const COMMUNITY_UNREAD_REFETCH_INTERVAL_MS = 60_000;
+
 export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountReturn {
   const [count, setCount] = useState(0);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const communityChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const fetchedRef = useRef(false);
   const mountedRef = useRef(true);
   const isFetchingRef = useRef(false);
@@ -640,250 +549,75 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
     };
   }, [userId, fetchCount]);
 
-  // Real-time subscription - only depends on userId
-  useEffect(() => {
-    if (!userId) {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-      if (communityChannelRef.current) {
-        supabase.removeChannel(communityChannelRef.current);
-        communityChannelRef.current = null;
+  // DM unread updates flow through the per-user broadcast channel. The
+  // database trigger fans out only to conversation participants other than
+  // the sender, so each event is already targeted — no global table stream.
+  useUserEvent("dm_unread_change", (payload) => {
+    if (!userId) return;
+
+    const { op, conversation_id, sender_id, is_read } = payload;
+
+    // Conversation we don't know about yet (e.g., user was just added or a
+    // brand-new conversation). Refetch to pick up the new participant row
+    // and recompute the count.
+    if (!conversationIdsRef.current.has(conversation_id)) {
+      fetchCountRef.current();
+      return;
+    }
+
+    if (sender_id === userId) return;
+    if (blockedUsersRef.current.has(sender_id)) return;
+
+    if (op === "INSERT") {
+      if (is_read !== true) {
+        dmUnreadCountRef.current += 1;
+        syncTotalCount();
       }
       return;
     }
 
-    // Clean up previous channel
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-
-    // Track whether this effect is still active to prevent post-cleanup timer fires
-    let active = true;
-
-    // Debounce rapid message updates - increased to 1000ms to reduce database load
-    let debounceTimer: NodeJS.Timeout | null = null;
-    const debouncedFetch = () => {
-      if (!active) return;
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        if (active && mountedRef.current) {
-          fetchCountRef.current();
-        }
-      }, 1000); // Increased from 300ms to 1000ms
-    };
-
-    const handleInsert = (payload: { new?: { conversation_id?: string; sender_id?: string; is_read?: boolean } }) => {
-      const inserted = payload.new;
-      const conversationId = inserted?.conversation_id;
-      const senderId = inserted?.sender_id;
-      if (!conversationId || !senderId) {
-        debouncedFetch();
-        return;
-      }
-
-      // Ignore events not relevant to this user
-      if (!conversationIdsRef.current.has(conversationId)) {
-        // New conversation: refresh participant list + unread totals.
-        debouncedFetch();
-        return;
-      }
-      if (senderId === userId) return;
-      if (blockedUsersRef.current.has(senderId)) return;
-
-      // New incoming unread message increments count without a DB round-trip.
-      if (inserted?.is_read !== true) {
-        dmUnreadCountRef.current += 1;
-        syncTotalCount();
-      } else {
-        debouncedFetch();
-      }
-    };
-
-    const handleUpdate = (payload: {
-      new?: { conversation_id?: string; sender_id?: string; is_read?: boolean };
-      old?: { conversation_id?: string; sender_id?: string; is_read?: boolean };
-    }) => {
-      const updated = payload.new;
-      const previous = payload.old;
-      const conversationId = updated?.conversation_id || previous?.conversation_id;
-      const senderId = updated?.sender_id || previous?.sender_id;
-
-      if (!conversationId || !senderId) {
-        debouncedFetch();
-        return;
-      }
-      if (!conversationIdsRef.current.has(conversationId)) {
-        debouncedFetch();
-        return;
-      }
-      if (senderId === userId) return;
-      if (blockedUsersRef.current.has(senderId)) return;
-
-      if (typeof previous?.is_read === "boolean" && typeof updated?.is_read === "boolean") {
-        if (!previous.is_read && updated.is_read) {
-          dmUnreadCountRef.current = Math.max(0, dmUnreadCountRef.current - 1);
-          syncTotalCount();
-          return;
-        }
-        if (previous.is_read && !updated.is_read) {
-          dmUnreadCountRef.current += 1;
-          syncTotalCount();
-          return;
-        }
-      }
-
-      debouncedFetch();
-    };
-
-    const handleDelete = (payload: { old?: { conversation_id?: string; sender_id?: string; is_read?: boolean } }) => {
-      const deleted = payload.old;
-      const conversationId = deleted?.conversation_id;
-      const senderId = deleted?.sender_id;
-      if (!conversationId || !senderId) {
-        debouncedFetch();
-        return;
-      }
-      if (!conversationIdsRef.current.has(conversationId)) {
-        debouncedFetch();
-        return;
-      }
-      if (senderId === userId) return;
-      if (blockedUsersRef.current.has(senderId)) return;
-
-      if (deleted?.is_read === false) {
+    if (op === "DELETE") {
+      if (is_read === false) {
         dmUnreadCountRef.current = Math.max(0, dmUnreadCountRef.current - 1);
         syncTotalCount();
       } else {
-        debouncedFetch();
-      }
-    };
-
-    const channelName = `unread-messages-count-${userId}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: "is_read=eq.false",
-        },
-        handleInsert
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-        },
-        handleUpdate
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "messages",
-        },
-        handleDelete
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "conversation_participants",
-          filter: `user_id=eq.${userId}`,
-        },
-        debouncedFetch
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      active = false;
-      if (debounceTimer) clearTimeout(debounceTimer);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [userId, syncTotalCount]);
-
-  // Community chat updates
-  useEffect(() => {
-    if (!userId) {
-      if (communityChannelRef.current) {
-        supabase.removeChannel(communityChannelRef.current);
-        communityChannelRef.current = null;
+        // Unknown prior unread state — refetch to stay correct.
+        fetchCountRef.current();
       }
       return;
     }
 
-    if (communityChannelRef.current) {
-      supabase.removeChannel(communityChannelRef.current);
-    }
+    // UPDATE: we don't get the prior is_read in the payload, so any toggle
+    // of read state requires a corrective refetch. This is rare compared to
+    // INSERT, so the cost is minimal.
+    fetchCountRef.current();
+  });
 
-    let active = true;
-    let debounceTimer: NodeJS.Timeout | null = null;
-    const debouncedFetch = () => {
-      if (!active) return;
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        if (active && mountedRef.current) {
-          fetchCountRef.current();
-        }
-      }, 1000);
+  // Community chat unread: no realtime. Sync on tab focus and on a slow
+  // interval. Active community chat views (per-thread channels) update their
+  // own UIs in real-time; this is just the navbar badge.
+  useEffect(() => {
+    if (!userId || typeof window === "undefined") return;
+
+    const refetchOnFocus = () => {
+      if (document.visibilityState === "visible" && mountedRef.current) {
+        fetchCountRef.current();
+      }
     };
 
-    const channelName = `unread-community-messages-count-${userId}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "community_chat_messages",
-        },
-        debouncedFetch
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "community_chat_thread_reads",
-          filter: `user_id=eq.${userId}`,
-        },
-        debouncedFetch
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "community_members",
-          filter: `user_id=eq.${userId}`,
-        },
-        debouncedFetch
-      )
-      .subscribe();
+    const interval = window.setInterval(() => {
+      if (mountedRef.current && document.visibilityState === "visible") {
+        fetchCountRef.current();
+      }
+    }, COMMUNITY_UNREAD_REFETCH_INTERVAL_MS);
 
-    communityChannelRef.current = channel;
+    document.addEventListener("visibilitychange", refetchOnFocus);
+    window.addEventListener("focus", refetchOnFocus);
 
     return () => {
-      active = false;
-      if (debounceTimer) clearTimeout(debounceTimer);
-      if (communityChannelRef.current) {
-        supabase.removeChannel(communityChannelRef.current);
-        communityChannelRef.current = null;
-      }
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refetchOnFocus);
+      window.removeEventListener("focus", refetchOnFocus);
     };
   }, [userId]);
 

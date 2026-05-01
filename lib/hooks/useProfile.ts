@@ -5,6 +5,7 @@ import { supabase } from "../supabase";
 import type { Profile, Post, PostMedia, FollowUser, FollowStatus, FollowRequest, AggregateCount } from "../types";
 import { getAggregateCount } from "../types";
 import { createNotification } from "./useNotifications";
+import { useUserEvent } from "@/components/providers/UserEventsProvider";
 
 // ============================================================================
 // useProfile - Fetch user profile and posts
@@ -562,7 +563,6 @@ export function useFollowRequests(userId?: string) {
   const [loading, setLoading] = useState(true);
   const [count, setCount] = useState(0);
   const mountedRef = useRef(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchRequests = useCallback(async () => {
     if (!userId) {
@@ -702,58 +702,24 @@ export function useFollowRequests(userId?: string) {
     };
   }, [fetchRequests]);
 
-  // Real-time subscription - only depends on userId to prevent recreation
-  useEffect(() => {
-    if (!userId) {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+  // Live updates flow through the per-user broadcast channel. Trigger fires
+  // on every follow row INSERT/UPDATE/DELETE involving this user; we only
+  // refetch when the change could affect the pending-requests list.
+  useUserEvent("follow_change", (payload) => {
+    if (!userId) return;
+    // We only care about rows where this user is the followee (the side that
+    // sees the request). UPDATE on a row where this user is the follower
+    // (e.g., they were accepted) is handled elsewhere.
+    if (payload.following_id !== userId) return;
+
+    if (payload.op === "INSERT" && payload.status === "pending") {
+      fetchRequestsRef.current();
       return;
     }
-
-    // Clean up previous channel
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+    if (payload.op === "UPDATE" || payload.op === "DELETE") {
+      fetchRequestsRef.current();
     }
-
-    const channel = supabase
-      .channel(`follow-requests-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "follows",
-          filter: `following_id=eq.${userId}`,
-        },
-        (payload) => {
-          const newData = payload.new as { status?: string } | null;
-          const oldData = payload.old as { status?: string } | null;
-          if (payload.eventType === "INSERT" && newData?.status === "pending") {
-            fetchRequestsRef.current();
-            return;
-          }
-          if (payload.eventType === "UPDATE" && (oldData?.status !== newData?.status)) {
-            fetchRequestsRef.current();
-            return;
-          }
-          if (payload.eventType === "DELETE") {
-            fetchRequestsRef.current();
-          }
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [userId]); // Only userId - prevents channel recreation when fetchRequests changes
+  });
 
   return { requests, loading, count, accept, decline, refetch: fetchRequests };
 }
