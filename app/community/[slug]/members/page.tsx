@@ -10,6 +10,7 @@ import InviteModal from "@/components/communities/InviteModal";
 import ModeratorPermissionsModal from "@/components/communities/ModeratorPermissionsModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
+import { actionToast } from "@/lib/utils/toast";
 
 type RoleFilter = 'all' | 'admin' | 'moderator' | 'member';
 type ModerationTab = 'members' | 'muted' | 'banned';
@@ -254,8 +255,11 @@ export default function CommunityMembersPage() {
     setActionLoading(true);
     const result = await approveRequest(requestId, userId, user.id);
     if (result.success) {
+      actionToast.joinRequestApproved();
       refetchRequests();
       refetch(); // Refetch members list too
+    } else {
+      actionToast.membershipError(typeof result.error === "string" ? result.error : undefined);
     }
     setActionLoading(false);
   };
@@ -265,7 +269,10 @@ export default function CommunityMembersPage() {
     setActionLoading(true);
     const result = await rejectRequest(requestId, user.id);
     if (result.success) {
+      actionToast.joinRequestRejected();
       refetchRequests();
+    } else {
+      actionToast.membershipError(typeof result.error === "string" ? result.error : undefined);
     }
     setActionLoading(false);
   };

@@ -119,6 +119,36 @@ export const actionToast = {
 
   // Network errors
   networkError: () => showToast.error("Connection failed", "Check your internet and try again"),
+
+  // Community membership actions — map RPC error codes to user-friendly toasts.
+  invitationSent: (username?: string) =>
+    showToast.success(username ? `Invited @${username}` : "Invitation sent"),
+  invitationAccepted: (community?: string) =>
+    showToast.success(community ? `Joined ${community}` : "Invitation accepted"),
+  invitationDeclined: () => showToast.info("Invitation declined"),
+  joinRequestSent: () => showToast.success("Request sent", "An admin will review it soon"),
+  joinedCommunity: (community?: string) =>
+    showToast.success(community ? `Joined ${community}` : "Joined community"),
+  joinRequestApproved: () => showToast.success("Request approved"),
+  joinRequestRejected: () => showToast.info("Request rejected"),
+  membershipError: (code?: string) => {
+    const map: Record<string, [string, string?]> = {
+      not_authenticated: ["Please sign in", "You need an account to do that"],
+      not_a_member: ["You're not a member", "Join the community first to invite others"],
+      cannot_invite_self: ["You can't invite yourself"],
+      already_member: ["Already a member"],
+      invitee_banned: ["Can't invite", "This user is banned from the community"],
+      banned: ["You're banned from this community"],
+      already_responded: ["Already responded to this invitation"],
+      not_invitee: ["This invitation isn't for you"],
+      invitation_not_found: ["Invitation not found", "It may have been revoked"],
+      request_not_found: ["Request not found"],
+      not_authorized: ["Not allowed", "Only admins or moderators can do this"],
+      already_reviewed: ["Already reviewed"],
+    };
+    const [title, detail] = map[code || ""] || ["Something went wrong", "Please try again"];
+    showToast.error(title, detail);
+  },
 };
 
 export default showToast;

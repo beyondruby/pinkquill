@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useCommunityModeration } from "@/lib/hooks";
 import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
+import { actionToast } from "@/lib/utils/toast";
 
 interface User {
   id: string;
@@ -79,9 +80,13 @@ export default function InviteModal({
 
   const handleInvite = async (userId: string) => {
     setInviting(userId);
+    const target = searchResults.find((u) => u.id === userId);
     const result = await inviteUser(inviterId, userId);
     if (result.success) {
       setInvitedUsers((prev) => new Set(prev).add(userId));
+      actionToast.invitationSent(target?.username);
+    } else {
+      actionToast.membershipError(typeof result.error === "string" ? result.error : undefined);
     }
     setInviting(null);
   };

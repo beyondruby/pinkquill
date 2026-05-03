@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useJoinCommunity, Community } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
+import { actionToast } from "@/lib/utils/toast";
 
 interface JoinButtonProps {
   community: Community;
@@ -27,25 +28,28 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
     if (loading) return;
 
     if (community.is_member) {
-      // Leave community
       const result = await leave(community.id, userId);
-      if (result.success && onUpdate) {
-        onUpdate();
+      if (result.success) {
+        if (onUpdate) onUpdate();
+      } else {
+        actionToast.genericError("leave community");
       }
     } else if (community.has_pending_request) {
-      // Cancel request
       const result = await cancelRequest(community.id, userId);
-      if (result.success && onUpdate) {
-        onUpdate();
+      if (result.success) {
+        if (onUpdate) onUpdate();
+      } else {
+        actionToast.genericError("cancel request");
       }
     } else if (community.privacy === 'private') {
-      // Show request modal for private communities
       setShowRequestModal(true);
     } else {
-      // Join public community
       const result = await join(community.id, userId);
-      if (result.success && onUpdate) {
-        onUpdate();
+      if (result.success) {
+        actionToast.joinedCommunity(community.name);
+        if (onUpdate) onUpdate();
+      } else {
+        actionToast.membershipError(typeof result.error === "string" ? result.error : undefined);
       }
     }
   };
@@ -53,9 +57,12 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
   const handleSubmitRequest = async () => {
     const result = await requestJoin(community.id, userId, requestMessage.trim() || undefined);
     if (result.success) {
+      actionToast.joinRequestSent();
       setShowRequestModal(false);
       setRequestMessage('');
       if (onUpdate) onUpdate();
+    } else {
+      actionToast.membershipError(typeof result.error === "string" ? result.error : undefined);
     }
   };
 
@@ -66,50 +73,20 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
 
     setInvitationLoading(true);
     try {
-      // SECURITY: Verify the invitation belongs to the current user before accepting
-      const { data: invitation } = await supabase
-        .from("community_invitations")
-        .select("invitee_id")
-        .eq("id", community.pending_invitation_id)
-        .single();
-
-      if (!invitation || invitation.invitee_id !== userId) {
-        console.error("[JoinButton] Invitation does not belong to current user");
+      const { data, error } = await supabase.rpc('accept_community_invitation', {
+        p_invitation_id: community.pending_invitation_id,
+      });
+      if (error) throw error;
+      const result = data as { ok: boolean; error?: string } | null;
+      if (!result?.ok) {
+        actionToast.membershipError(result?.error);
         return;
       }
-
-      // IMPORTANT: Add as member FIRST while invitation is still 'pending'
-      // The RLS policy checks for pending invitation status
-      const { error: insertError } = await supabase.from("community_members").insert({
-        community_id: community.id,
-        user_id: userId,
-        role: 'member',
-        status: 'active',
-      });
-
-      if (insertError) {
-        // Handle duplicate key error gracefully (already a member)
-        if (insertError.code === "23505") {
-          if (onUpdate) onUpdate();
-          return;
-        }
-        throw insertError;
-      }
-
-      // THEN update invitation status to 'accepted'
-      const { error: updateError } = await supabase
-        .from("community_invitations")
-        .update({ status: 'accepted', responded_at: new Date().toISOString() })
-        .eq("id", community.pending_invitation_id);
-
-      if (updateError) {
-        // If update fails, we should still consider this a success since member was added
-        console.warn("[JoinButton] Invitation update failed but member was added:", updateError);
-      }
-
+      actionToast.invitationAccepted(community.name);
       if (onUpdate) onUpdate();
     } catch (err) {
       console.error("[JoinButton] Accept invitation error:", err);
+      actionToast.membershipError();
     } finally {
       setInvitationLoading(false);
     }
@@ -122,16 +99,20 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
 
     setInvitationLoading(true);
     try {
-      const { error } = await supabase
-        .from("community_invitations")
-        .update({ status: 'declined', responded_at: new Date().toISOString() })
-        .eq("id", community.pending_invitation_id);
-
+      const { data, error } = await supabase.rpc('decline_community_invitation', {
+        p_invitation_id: community.pending_invitation_id,
+      });
       if (error) throw error;
-
+      const result = data as { ok: boolean; error?: string } | null;
+      if (!result?.ok) {
+        actionToast.membershipError(result?.error);
+        return;
+      }
+      actionToast.invitationDeclined();
       if (onUpdate) onUpdate();
     } catch (err) {
       console.error("[JoinButton] Decline invitation error:", err);
+      actionToast.membershipError();
     } finally {
       setInvitationLoading(false);
     }

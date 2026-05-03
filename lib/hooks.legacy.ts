@@ -941,51 +941,24 @@ export function useJoinCommunity() {
     }
   };
 
-  const requestJoin = async (communityId: string, userId: string, message?: string) => {
+  const requestJoin = async (communityId: string, _userId: string, message?: string) => {
+    void _userId; // RPC reads user from auth.uid()
     if (activeOperation) return { success: false, error: 'Another operation in progress' };
     setActiveOperation('requestJoin');
     try {
-      const { error } = await supabase
-        .from("community_join_requests")
-        .insert({
-          community_id: communityId,
-          user_id: userId,
-          message: message || null,
-          status: "pending",
-        });
-
+      const { data, error } = await supabase.rpc('request_to_join_community', {
+        p_community_id: communityId,
+        p_message: message || null,
+      });
       if (error) throw error;
-
-      // Notify all admins and moderators of the community about the join request
-      const { data: admins } = await supabase
-        .from("community_members")
-        .select("user_id")
-        .eq("community_id", communityId)
-        .in("role", ["admin", "moderator"]);
-
-      if (admins && admins.length > 0) {
-        const notificationContent = message
-          ? `Join request: "${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`
-          : "Someone wants to join your community";
-
-        await Promise.all(
-          admins.map((admin) =>
-            createNotification(
-              admin.user_id,
-              userId,
-              "community_join_request",
-              undefined,
-              notificationContent,
-              communityId
-            )
-          )
-        );
+      const result = data as { ok: boolean; error?: string } | null;
+      if (!result?.ok) {
+        return { success: false, error: result?.error || 'unknown_error' };
       }
-
       return { success: true };
     } catch (err) {
       console.error("[requestJoin] Error:", err);
-      return { success: false, error: err };
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     } finally {
       setActiveOperation(null);
     }
@@ -1083,46 +1056,35 @@ export function useCommunityInvitations(userId?: string) {
     };
   }, [fetchInvitations]);
 
-  const accept = async (invitationId: string, communityId: string) => {
-    if (!userId) return { success: false };
-
+  const accept = async (invitationId: string, _communityId?: string) => {
+    void _communityId; // server resolves community from invitation row
+    if (!userId) return { success: false, error: 'not_authenticated' };
     try {
-      // Insert member first — if this fails (e.g., already a member), invitation stays pending
-      const { error: memberError } = await supabase
-        .from("community_members")
-        .insert({
-          community_id: communityId,
-          user_id: userId,
-          role: "member",
-          status: "active",
-        });
-
-      if (memberError) throw memberError;
-
-      // Only mark invitation accepted after member insert succeeds
-      await supabase
-        .from("community_invitations")
-        .update({ status: "accepted", responded_at: new Date().toISOString() })
-        .eq("id", invitationId);
-
+      const { data, error } = await supabase.rpc('accept_community_invitation', {
+        p_invitation_id: invitationId,
+      });
+      if (error) throw error;
+      const result = data as { ok: boolean; error?: string } | null;
+      if (!result?.ok) return { success: false, error: result?.error || 'unknown_error' };
       return { success: true };
     } catch (err) {
       console.error("[accept] Error:", err);
-      return { success: false, error: err };
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   };
 
   const decline = async (invitationId: string) => {
     try {
-      await supabase
-        .from("community_invitations")
-        .update({ status: "declined", responded_at: new Date().toISOString() })
-        .eq("id", invitationId);
-
+      const { data, error } = await supabase.rpc('decline_community_invitation', {
+        p_invitation_id: invitationId,
+      });
+      if (error) throw error;
+      const result = data as { ok: boolean; error?: string } | null;
+      if (!result?.ok) return { success: false, error: result?.error || 'unknown_error' };
       return { success: true };
     } catch (err) {
       console.error("[decline] Error:", err);
-      return { success: false, error: err };
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   };
 
@@ -1187,53 +1149,37 @@ export function useJoinRequests(communityId: string) {
     };
   }, [fetchRequests]);
 
-  const approve = async (requestId: string, visitorUserId: string, reviewerId: string) => {
+  const approve = async (requestId: string, _visitorUserId?: string, _reviewerId?: string) => {
+    // Args kept for backward compatibility — the RPC reads everything it
+    // needs from the request row + auth.uid().
+    void _visitorUserId; void _reviewerId;
     try {
-      // Update request status
-      await supabase
-        .from("community_join_requests")
-        .update({
-          status: "approved",
-          reviewed_by: reviewerId,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", requestId);
-
-      // Add user as member
-      await supabase
-        .from("community_members")
-        .insert({
-          community_id: communityId,
-          user_id: visitorUserId,
-          role: "member",
-          status: "active",
-        });
-
-      // Notify the user
-      await createNotification(visitorUserId, reviewerId, 'community_join_approved', undefined, undefined, communityId);
-
+      const { data, error } = await supabase.rpc('approve_join_request', {
+        p_request_id: requestId,
+      });
+      if (error) throw error;
+      const result = data as { ok: boolean; error?: string } | null;
+      if (!result?.ok) return { success: false, error: result?.error || 'unknown_error' };
       return { success: true };
     } catch (err) {
       console.error("[approve] Error:", err);
-      return { success: false, error: err };
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   };
 
-  const reject = async (requestId: string, reviewerId: string) => {
+  const reject = async (requestId: string, _reviewerId?: string) => {
+    void _reviewerId;
     try {
-      await supabase
-        .from("community_join_requests")
-        .update({
-          status: "rejected",
-          reviewed_by: reviewerId,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", requestId);
-
+      const { data, error } = await supabase.rpc('reject_join_request', {
+        p_request_id: requestId,
+      });
+      if (error) throw error;
+      const result = data as { ok: boolean; error?: string } | null;
+      if (!result?.ok) return { success: false, error: result?.error || 'unknown_error' };
       return { success: true };
     } catch (err) {
       console.error("[reject] Error:", err);
-      return { success: false, error: err };
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   };
 
@@ -1904,26 +1850,24 @@ export function useCommunityModeration(communityId: string) {
     }
   };
 
-  const inviteUser = async (inviterId: string, inviteeId: string) => {
+  const inviteUser = async (_inviterId: string, inviteeId: string) => {
+    // The RPC reads inviter from auth.uid() so the inviterId arg is now
+    // informational only; we keep the parameter for API compatibility.
+    void _inviterId;
     try {
-      const { error } = await supabase
-        .from("community_invitations")
-        .insert({
-          community_id: communityId,
-          inviter_id: inviterId,
-          invitee_id: inviteeId,
-          status: 'pending',
-        });
-
+      const { data, error } = await supabase.rpc('invite_to_community', {
+        p_community_id: communityId,
+        p_invitee_id: inviteeId,
+      });
       if (error) throw error;
-
-      // Notify the invitee
-      await createNotification(inviteeId, inviterId, 'community_invite', undefined, undefined, communityId);
-
+      const result = data as { ok: boolean; error?: string } | null;
+      if (!result?.ok) {
+        return { success: false, error: result?.error || 'unknown_error' };
+      }
       return { success: true };
     } catch (err) {
       console.error("[inviteUser] Error:", err);
-      return { success: false, error: err };
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   };
 
