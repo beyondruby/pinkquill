@@ -80,7 +80,8 @@
       "Bash(jobs -l)",
       "Bash(cat:*)",
       "Bash(git checkout:*)",
-      "Bash(tee /tmp/tsc.log)"
+      "Bash(tee /tmp/tsc.log)",
+      "Bash(git stash *)"
     ]
   }
 }
