@@ -118,6 +118,7 @@ export default function CommunityInboxView() {
   const [sendAsAppeal, setSendAsAppeal] = useState(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [staffMessageMode, setStaffMessageMode] = useState<"message" | "announcement">("message");
   const headerMenuRef = useRef<HTMLDivElement>(null);
 
   const sortedMemberships = useMemo(() => {
@@ -295,7 +296,12 @@ export default function CommunityInboxView() {
     setSendAsAppeal(false);
     setDraft("");
     setShowHeaderMenu(false);
+    setStaffMessageMode("message");
   }, [selectedCommunityId]);
+
+  useEffect(() => {
+    setStaffMessageMode("message");
+  }, [selectedThreadId]);
 
   useEffect(() => {
     if (!showHeaderMenu) return;
@@ -418,6 +424,30 @@ export default function CommunityInboxView() {
     );
   };
 
+  const canToggleAnnouncement =
+    isCommunityThreadSelected && isStaff && canSendCommunityBroadcast;
+
+  const handleDraftChange = (value: string) => {
+    if (canToggleAnnouncement) {
+      // Slash shortcut: typing `/announce` or `/announcement` (with optional space)
+      // at the very start auto-flips into Announcement mode and strips the prefix.
+      const slashMatch = value.match(/^\/(announce|announcement)(\s|$)/i);
+      if (slashMatch) {
+        setStaffMessageMode("announcement");
+        setDraft(value.slice(slashMatch[0].length));
+        return;
+      }
+      // Mirror: typing `/message` flips back.
+      const messageMatch = value.match(/^\/(message|msg)(\s|$)/i);
+      if (messageMatch) {
+        setStaffMessageMode("message");
+        setDraft(value.slice(messageMatch[0].length));
+        return;
+      }
+    }
+    setDraft(value);
+  };
+
   const handleSend = async () => {
     if (!draft.trim()) return;
     if (!selectedMembership) return;
@@ -425,16 +455,28 @@ export default function CommunityInboxView() {
 
     if (isCommunityThreadSelected) {
       if (isStaff) {
-        const result = await broadcastToCommunity(selectedMembership.community_id, draft);
-        if (!result.success) {
-          showToast.error("Broadcast failed", result.error);
+        if (staffMessageMode === "announcement") {
+          const result = await broadcastToCommunity(selectedMembership.community_id, draft);
+          if (!result.success) {
+            showToast.error("Announcement failed", result.error);
+            return;
+          }
+
+          showToast.success(
+            "Announcement sent",
+            `Delivered to ${result.sentCount || 0} member${result.sentCount === 1 ? "" : "s"}`
+          );
+          setDraft("");
+          setStaffMessageMode("message");
           return;
         }
 
-        showToast.success(
-          "Broadcast sent",
-          `Delivered to ${result.sentCount || 0} member${result.sentCount === 1 ? "" : "s"}`
-        );
+        const result = await postCommunityMessage(selectedMembership.community_id, draft);
+        if (!result.success) {
+          showToast.error("Message failed", result.error);
+          return;
+        }
+
         setDraft("");
         return;
       }
@@ -445,7 +487,6 @@ export default function CommunityInboxView() {
         return;
       }
 
-      showToast.success("Sent", "Your message was posted to community chat.");
       setDraft("");
       return;
     }
@@ -1232,7 +1273,7 @@ export default function CommunityInboxView() {
                       );
                     }
 
-                    // Announcement broadcast card (centered, creative)
+                    // Announcement broadcast card — post-style, on-brand
                     if (
                       isCommunityThreadSelected &&
                       message.message_type === "announcement"
@@ -1240,34 +1281,41 @@ export default function CommunityInboxView() {
                       return (
                         <div key={message.id}>
                           {showDate && <DateDivider date={message.created_at} />}
-                          <div className="flex justify-center py-1.5">
-                            <div className="max-w-[90%] w-full relative">
-                              <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm opacity-40" />
-                              <div className="relative rounded-2xl bg-white px-5 py-4">
-                                <div className="flex items-center justify-between gap-3 mb-2.5">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-pink-vivid text-sm">✦</span>
-                                    <p className="font-ui text-[10px] uppercase tracking-wider font-medium bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent truncate">
-                                      Announcement · {communityName}
+                          <div className="flex justify-center py-2">
+                            <div className="max-w-[90%] w-full rounded-2xl bg-white shadow-sm overflow-hidden">
+                              <div className="h-1 bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm" />
+                              <div className="px-5 py-4">
+                                <div className="flex items-center justify-between gap-3 mb-3">
+                                  <div className="flex items-center gap-1.5">
+                                    <svg className="w-3.5 h-3.5 text-pink-vivid" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M10 1.5l1.7 5.3 5.55.05-4.5 3.27 1.73 5.28L10 12.13 5.52 15.43l1.73-5.28-4.5-3.27 5.55-.05L10 1.5z" />
+                                    </svg>
+                                    <p className="font-display text-[12px] text-ink font-semibold tracking-wide">
+                                      Announcement
                                     </p>
                                   </div>
-                                  <p className="font-ui text-[10px] text-muted flex-shrink-0">
+                                  <p className="font-ui text-[10px] text-muted">
                                     {formatTime(message.created_at)}
                                   </p>
                                 </div>
                                 {senderUsername && (
                                   <Link
                                     href={`/studio/${senderUsername}`}
-                                    className="inline-flex items-center gap-2 mb-2 group"
+                                    className="inline-flex items-center gap-2 mb-3 group"
                                   >
                                     <img
                                       src={senderAvatar}
                                       alt={senderName}
-                                      className="w-6 h-6 rounded-full object-cover"
+                                      className="w-7 h-7 rounded-full object-cover"
                                     />
-                                    <span className="font-ui text-[11px] text-muted group-hover:text-purple-primary transition-colors">
-                                      {senderName}
-                                    </span>
+                                    <div className="leading-tight">
+                                      <p className="font-ui text-[12px] text-ink font-medium group-hover:text-purple-primary transition-colors">
+                                        {senderName}
+                                      </p>
+                                      <p className="font-ui text-[10px] text-muted">
+                                        {senderRole === "admin" ? "Admin" : "Moderator"} · {communityName}
+                                      </p>
+                                    </div>
                                   </Link>
                                 )}
                                 <p className="font-body text-[0.95rem] text-ink leading-relaxed whitespace-pre-wrap break-words">
@@ -1361,11 +1409,55 @@ export default function CommunityInboxView() {
                   </div>
                 ) : (
                   <>
-                    {inlineHint && (
+                    {/* Staff: choose between regular Message and Announcement */}
+                    {canToggleAnnouncement && (
+                      <div className="mb-2.5 flex items-center justify-between gap-3">
+                        <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-black/[0.04]">
+                          <button
+                            onClick={() => setStaffMessageMode("message")}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-ui text-[11px] font-medium transition-all ${
+                              staffMessageMode === "message"
+                                ? "bg-white text-ink shadow-sm"
+                                : "text-muted hover:text-ink"
+                            }`}
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            Message
+                          </button>
+                          <button
+                            onClick={() => setStaffMessageMode("announcement")}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-ui text-[11px] font-medium transition-all ${
+                              staffMessageMode === "announcement"
+                                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-sm"
+                                : "text-muted hover:text-ink"
+                            }`}
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 1.5l1.7 5.3 5.55.05-4.5 3.27 1.73 5.28L10 12.13 5.52 15.43l1.73-5.28-4.5-3.27 5.55-.05L10 1.5z" />
+                            </svg>
+                            Announcement
+                          </button>
+                        </div>
+                        <p className="font-ui text-[10px] text-muted italic hidden sm:block">
+                          tip: type <span className="font-mono text-purple-primary">/announce</span>
+                        </p>
+                      </div>
+                    )}
+
+                    {staffMessageMode === "announcement" && canToggleAnnouncement && (
+                      <p className="font-ui text-[11px] text-pink-vivid italic text-center mb-2">
+                        ✦ This will be broadcast as an announcement to all joined members
+                      </p>
+                    )}
+
+                    {!(canToggleAnnouncement && staffMessageMode === "announcement") && inlineHint && (
                       <p className="font-ui text-[11px] text-muted italic text-center mb-2">
                         {inlineHint}
                       </p>
                     )}
+
                     <div className="flex items-end gap-2">
                       {canAppeal && (
                         <button
@@ -1385,7 +1477,7 @@ export default function CommunityInboxView() {
                       <input
                         type="text"
                         value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
+                        onChange={(e) => handleDraftChange(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
@@ -1393,9 +1485,11 @@ export default function CommunityInboxView() {
                           }
                         }}
                         placeholder={
-                          isCommunityThreadSelected
+                          canToggleAnnouncement && staffMessageMode === "announcement"
+                            ? "Write your announcement..."
+                            : isCommunityThreadSelected
                             ? isStaff
-                              ? "Share an update with the community..."
+                              ? "Say something to the community..."
                               : "Say something to the community..."
                             : sendAsAppeal
                             ? "Write your appeal..."
@@ -1403,16 +1497,28 @@ export default function CommunityInboxView() {
                             ? "Reply to this member..."
                             : "Message the moderators..."
                         }
-                        className="flex-1 px-4 py-2.5 rounded-full bg-black/[0.03] border-none outline-none focus:ring-2 focus:ring-purple-primary/20 font-body text-sm"
+                        className={`flex-1 px-4 py-2.5 rounded-full border-none outline-none font-body text-sm transition-all ${
+                          canToggleAnnouncement && staffMessageMode === "announcement"
+                            ? "bg-pink-vivid/[0.06] focus:ring-2 focus:ring-pink-vivid/30"
+                            : "bg-black/[0.03] focus:ring-2 focus:ring-purple-primary/20"
+                        }`}
                         disabled={!canSendInCurrentThread}
                       />
                       <button
                         onClick={handleSend}
                         disabled={!canSendInCurrentThread || !draft.trim() || isSending}
-                        className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0"
+                        className={`w-10 h-10 rounded-full text-white flex items-center justify-center disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0 ${
+                          canToggleAnnouncement && staffMessageMode === "announcement"
+                            ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm"
+                            : "bg-gradient-to-r from-purple-primary to-pink-vivid"
+                        }`}
                       >
                         {isSending ? (
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : canToggleAnnouncement && staffMessageMode === "announcement" ? (
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 1.5l1.7 5.3 5.55.05-4.5 3.27 1.73 5.28L10 12.13 5.52 15.43l1.73-5.28-4.5-3.27 5.55-.05L10 1.5z" />
+                          </svg>
                         ) : (
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
