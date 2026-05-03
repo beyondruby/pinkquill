@@ -338,6 +338,9 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
         setLoading(true);
         setError(null);
 
+        // Show both public and private communities — non-members can see
+        // private community cards and request to join. Membership-gated
+        // content (posts, members) is enforced separately by per-table RLS.
         let query = supabase
           .from("communities")
           .select(`
@@ -350,7 +353,6 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
             members:community_members(count),
             posts:posts(count)
           `)
-          .eq("privacy", "public")
           .order("created_at", { ascending: false })
           .limit(limit);
 
@@ -456,7 +458,9 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10, ena
         if (!mountedRef.current) return;
         joinedIds = new Set((memberships || []).map(m => m.community_id));
 
-        // Fetch public communities
+        // Fetch all communities (public + private). Private ones surface
+        // as suggestions with the "Invite-only" badge so users can find
+        // them and request to join.
         const { data, error } = await supabase
           .from("communities")
           .select(`
@@ -469,7 +473,6 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10, ena
             members:community_members(count),
             posts:posts(count)
           `)
-          .eq("privacy", "public")
           .order("created_at", { ascending: false })
           .limit(limit * 2)
           .abortSignal(signal); // Fetch more to account for filtering
@@ -1979,8 +1982,7 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
             .limit(limit),
           supabase
             .from("communities")
-            .select("id, slug, name, avatar_url")
-            .eq("privacy", "public")
+            .select("id, slug, name, avatar_url, privacy")
             .or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
             .limit(limit),
           supabase
