@@ -1238,18 +1238,26 @@ export function useCreateCommunity() {
 
       if (createError) throw createError;
 
-      // Add creator as admin — if this fails, delete the orphaned community
+      // The DB trigger `on_community_created` already inserts the creator
+      // as admin. We upsert here as a defensive safety net so that if the
+      // trigger is ever dropped or fails silently, the membership still
+      // exists. `ignoreDuplicates: true` makes the trigger+client overlap
+      // a no-op rather than the previous 23505 failure that triggered a
+      // bogus "Failed to set up community admin" rollback.
       const { error: adminError } = await supabase
         .from("community_members")
-        .insert({
-          community_id: community.id,
-          user_id: userId,
-          role: "admin",
-          status: "active",
-        });
+        .upsert(
+          {
+            community_id: community.id,
+            user_id: userId,
+            role: "admin",
+            status: "active",
+          },
+          { onConflict: "community_id,user_id", ignoreDuplicates: true }
+        );
 
       if (adminError) {
-        // Rollback: delete the orphaned community to prevent orphaned records
+        // Real failure (not a duplicate) — roll back the orphaned community.
         await supabase.from("communities").delete().eq("id", community.id);
         throw new Error("Failed to set up community admin. Please try again.");
       }
