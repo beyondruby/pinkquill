@@ -50,18 +50,36 @@ export default function CommunityLayoutClient({
               </svg>
             </div>
             <h1 className="font-display text-2xl font-bold text-ink mb-3">Community Not Found</h1>
-            <p className="font-body text-muted mb-8 max-w-sm mx-auto">
+            <p className="font-body text-muted mb-4 max-w-sm mx-auto">
               This community doesn&apos;t exist or you don&apos;t have permission to view it.
             </p>
-            <Link
-              href="/community"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold shadow-lg shadow-purple-primary/25 hover:shadow-xl hover:shadow-pink-vivid/30 hover:-translate-y-0.5 transition-all"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Browse Communities
-            </Link>
+            {error ? (
+              <p className="font-body text-xs text-red-500/70 mb-8 break-words px-2">
+                {error}
+              </p>
+            ) : (
+              <p className="font-body text-xs text-muted/60 mb-8">slug: <code>{slug}</code></p>
+            )}
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => refetch()}
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-black/10 text-ink font-ui font-medium hover:bg-black/[0.03] transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Retry
+              </button>
+              <Link
+                href="/community"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold shadow-lg shadow-purple-primary/25 hover:shadow-xl hover:shadow-pink-vivid/30 hover:-translate-y-0.5 transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Browse
+              </Link>
+            </div>
           </div>
         </div>
       </div>
