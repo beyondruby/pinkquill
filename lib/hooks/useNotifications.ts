@@ -131,6 +131,10 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
   useEffect(() => {
     if (userId) {
       fetchNotifications();
+    } else {
+      // Without an explicit reset, loading stays true forever when the
+      // hook is mounted before auth resolves.
+      setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);

@@ -132,7 +132,13 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
   userIdRef.current = userId;
 
   const fetchPosts = useCallback(async (page: number, append: boolean = false) => {
-    if (!tagName || fetchingRef.current) return;
+    if (!tagName) {
+      // Reset loading so the tag page doesn't render a permanent skeleton
+      // when the route param hasn't resolved yet.
+      setLoading(false);
+      return;
+    }
+    if (fetchingRef.current) return;
     fetchingRef.current = true;
 
     try {

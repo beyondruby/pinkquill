@@ -343,6 +343,11 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
     mountedRef.current = true;
     if (enabled) {
       fetchPosts(0);
+    } else {
+      // CRITICAL: when the hook is disabled (e.g., auth still resolving),
+      // the loading state initialized to `true` would otherwise stay true
+      // forever, leaving the feed skeleton on screen indefinitely.
+      setLoading(false);
     }
 
     return () => {

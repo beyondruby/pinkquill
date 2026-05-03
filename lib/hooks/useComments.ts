@@ -466,6 +466,10 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
 
     if (postId) {
       fetchComments(0, false);
+    } else {
+      // Without a postId there's nothing to fetch; reset loading so the
+      // comments panel doesn't render a permanent spinner.
+      setLoading(false);
     }
 
     return () => {

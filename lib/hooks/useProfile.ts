@@ -37,7 +37,12 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
   viewerIdRef.current = viewerId;
 
   const fetchProfile = useCallback(async () => {
-    if (!username) return;
+    if (!username) {
+      // Reset loading so the profile page doesn't render a permanent
+      // skeleton when the route param hasn't resolved yet.
+      setLoading(false);
+      return;
+    }
 
     // Abort any in-flight request
     if (abortControllerRef.current) {

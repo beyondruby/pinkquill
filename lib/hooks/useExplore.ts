@@ -724,6 +724,11 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
     mountedRef.current = true;
     if (enabled) {
       fetchPosts(0);
+    } else {
+      // Without this, loading stays true forever when the hook starts
+      // disabled (e.g. auth not ready) — explore page renders skeleton
+      // indefinitely.
+      setLoading(false);
     }
 
     return () => {

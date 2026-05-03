@@ -143,14 +143,34 @@ let _client: any = null;
 // produce 40+ token refresh requests in a single second and freeze the page.
 let _refreshPromise: Promise<string | null> | null = null;
 
+// Cooldown after a failed refresh. Without this, a permanently-broken
+// refresh token (revoked, expired, network-partitioned) keeps producing
+// 401s, which keep triggering fresh refresh attempts, which keep failing
+// — a spin loop that can fire dozens of refreshSession() calls per second
+// and look indistinguishable from a hang.
+const REFRESH_FAILURE_COOLDOWN_MS = 30_000;
+let _lastRefreshFailureAt = 0;
+
 function deduplicatedRefresh(): Promise<string | null> {
   if (_refreshPromise) return _refreshPromise;
 
+  // Short-circuit if a recent attempt failed; skip the network roundtrip
+  // and let the caller surface the 401 to the user (or the auth provider
+  // will catch SIGNED_OUT on the next retryable failure).
+  if (Date.now() - _lastRefreshFailureAt < REFRESH_FAILURE_COOLDOWN_MS) {
+    return Promise.resolve(null);
+  }
+
   _refreshPromise = (async () => {
     try {
-      const { data } = await _client.auth.refreshSession();
-      return data?.session?.access_token ?? null;
+      const { data, error } = await _client.auth.refreshSession();
+      if (error || !data?.session?.access_token) {
+        _lastRefreshFailureAt = Date.now();
+        return null;
+      }
+      return data.session.access_token;
     } catch {
+      _lastRefreshFailureAt = Date.now();
       return null;
     } finally {
       // Clear immediately so the next batch of 401s after this refresh

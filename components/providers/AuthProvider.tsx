@@ -4,6 +4,26 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 
+/**
+ * Push the current session JWT into the realtime client. Required for
+ * private broadcast channels (e.g. `user-events:${userId}`) — without an
+ * explicit token, those channels stay in "joining" state forever, which
+ * blocks every hook that depends on UserEventsProvider (notifications,
+ * unread counts, follow requests).
+ *
+ * Pass `null` on sign-out so the next subscribe attempt doesn't reuse a
+ * stale token.
+ */
+function syncRealtimeAuth(token: string | null) {
+  try {
+    // The realtime client ignores stale tokens — calling setAuth on every
+    // auth event keeps it in lockstep with the cookie store.
+    supabase.realtime.setAuth(token ?? undefined);
+  } catch (err) {
+    console.warn("[AuthProvider] realtime.setAuth failed:", err);
+  }
+}
+
 interface Profile {
   id: string;
   username: string;
@@ -270,6 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!localSession?.user) {
           // No local session - user is definitely not logged in
           activeUserIdRef.current = null;
+          syncRealtimeAuth(null);
           setUser(null);
           setProfile(null);
           setLoading(false);
@@ -281,6 +302,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // profile attempt finishes so profile-dependent hooks do not start
         // in a partial user-without-profile state.
         activeUserIdRef.current = localSession.user.id;
+        syncRealtimeAuth(localSession.access_token);
         setUser(localSession.user);
 
         // Step 2: Fetch profile immediately (doesn't need getUser validation)
@@ -339,6 +361,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (event === "SIGNED_OUT") {
           activeUserIdRef.current = null;
+          syncRealtimeAuth(null);
           clearProfileRetry();
           setUser(null);
           setProfile(null);
@@ -349,6 +372,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (event === "SIGNED_IN" && session?.user) {
           activeUserIdRef.current = session.user.id;
+          syncRealtimeAuth(session.access_token);
           clearProfileRetry();
           setUser(session.user);
           setLoading(true);
@@ -360,8 +384,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const userProfile = await fetchOrCreateProfileWithTimeout(session.user);
 
-            // Check if we're still fetching for the same user (prevents race condition)
+            // Check if we're still fetching for the same user (prevents race condition).
+            // Belt-and-suspenders: also flush loading=false so the page doesn't
+            // get stuck if the newer auth event somehow doesn't reach its own
+            // setLoading(false) (e.g., a third event interrupts that one too).
             if (fetchingProfileRef.current !== userIdToFetch) {
+              if (isMounted) {
+                setLoading(false);
+                completeAuth();
+              }
               return;
             }
 
@@ -385,6 +416,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === "TOKEN_REFRESHED" && session?.user) {
           // Just update the user object, profile doesn't need refresh
           activeUserIdRef.current = session.user.id;
+          // Push the new JWT into realtime — without this, private channels
+          // disconnect on token rotation and never re-authenticate.
+          syncRealtimeAuth(session.access_token);
           setUser(session.user);
         }
 
@@ -434,6 +468,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           // Session exists — make sure React state matches
           activeUserIdRef.current = session.user.id;
+          // The token may have rotated while the tab was hidden; re-arm
+          // the realtime client so private channels keep working.
+          syncRealtimeAuth(session.access_token);
           setUser((prev) => {
             if (!prev || prev.id !== session.user.id) {
               return session.user;
@@ -457,6 +494,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // This means Supabase cleared the session (e.g., refresh token expired).
           // Clear React state to match.
           activeUserIdRef.current = null;
+          syncRealtimeAuth(null);
           clearProfileRetry();
           setUser(null);
           setProfile(null);
@@ -517,6 +555,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      syncRealtimeAuth(null);
       await supabase.auth.signOut().catch((err) => {
         console.warn("supabase.auth.signOut error:", err);
       });

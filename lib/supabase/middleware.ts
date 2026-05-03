@@ -49,7 +49,27 @@ export async function updateSession(
   // Validates and refreshes the token if needed; the cookies adapter above
   // writes any new tokens back through supabaseResponse so the browser
   // receives the refreshed session.
-  const { data: { user } } = await supabase.auth.getUser();
+  //
+  // Race against a 5s timeout — without this cap, a hung Supabase auth
+  // call would block every Next.js request indefinitely (middleware runs
+  // on every page load), which manifests as the entire site "stuck on
+  // loading" with nothing in the browser network tab returning. Treating
+  // a timed-out auth check as "no user" is safe: pages that need auth
+  // already redirect to /login when user is null, and client-side
+  // AuthProvider re-validates from cookies anyway.
+  const AUTH_TIMEOUT_MS = 5000;
+  const user = await Promise.race([
+    supabase.auth.getUser().then(({ data }) => data.user),
+    new Promise<User | null>((resolve) =>
+      setTimeout(() => {
+        console.warn(`[middleware] auth.getUser() exceeded ${AUTH_TIMEOUT_MS}ms; treating as anonymous`);
+        resolve(null);
+      }, AUTH_TIMEOUT_MS)
+    ),
+  ]).catch((err) => {
+    console.warn("[middleware] auth.getUser() threw:", err);
+    return null;
+  });
 
   return { response: supabaseResponse, user };
 }
