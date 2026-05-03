@@ -15,6 +15,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
 import { createNotification } from "./hooks/useNotifications";
 import { sanitizePostgrestSearchTerm } from "./utils/postgrest";
+import { retryWithBackoff, isRetryableError } from "./utils/retry";
 import type {
   Post,
   Community,
@@ -85,22 +86,37 @@ export function useCommunity(slug: string, userId?: string) {
       setLoading(true);
       setError(null);
 
-      // Fetch community
-      const { data: communityData, error: communityError } = await supabase
-        .from("communities")
-        .select(`
-          *,
-          creator:profiles!communities_created_by_fkey (
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
-        .eq("slug", slug)
-        .abortSignal(signal)
-        .single();
+      // Fetch community with retry — transient network blips and the
+      // brief window during a token refresh used to surface as
+      // "Failed to fetch community", which forced manual page refreshes.
+      const { data: communityData, error: communityError } = await retryWithBackoff(
+        () =>
+          supabase
+            .from("communities")
+            .select(`
+              *,
+              creator:profiles!communities_created_by_fkey (
+                username,
+                display_name,
+                avatar_url
+              )
+            `)
+            .eq("slug", slug)
+            .abortSignal(signal)
+            .single(),
+        {
+          attempts: 3,
+          initialDelayMs: 250,
+          // PGRST116 = "no rows" — that's a real "not found", don't retry.
+          shouldRetry: (err) => {
+            const code = (err as { code?: string })?.code;
+            if (code === 'PGRST116') return false;
+            return isRetryableError(err);
+          },
+        }
+      );
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal.aborted) return;
 
       if (communityError) {
         if (communityError.code === 'PGRST116') {
@@ -111,18 +127,56 @@ export function useCommunity(slug: string, userId?: string) {
         return;
       }
 
-      // Fetch counts and user membership in parallel
+      // Fetch counts and user membership in parallel. Each individual
+      // query is wrapped so a single transient failure (e.g., a sub-query
+      // times out) doesn't blow up the whole page — we degrade to empty
+      // data for that field instead, and the user still sees the
+      // community.
+      type SafeResult<T> = { data: T; count?: number | null };
+      // Loose-typed wrapper: the postgrest response shape is heterogeneous
+      // (head queries return data:null but typed as any[]; .maybeSingle()
+      // is yet another shape). We just need .data and .count for our use.
+      const safe = async <T,>(
+        promise: PromiseLike<unknown>,
+        fallback: T
+      ): Promise<SafeResult<T>> => {
+        try {
+          const res = (await promise) as { data: T; count?: number | null };
+          return { data: (res?.data ?? fallback) as T, count: res?.count ?? null };
+        } catch (err) {
+          if (!(err instanceof Error && err.name === "AbortError")) {
+            console.warn("[useCommunity] sub-query failed:", err);
+          }
+          return { data: fallback };
+        }
+      };
+
       const [membersResult, postsResult, userMemberResult, pendingRequestResult, pendingInvitationResult, rulesResult, tagsResult] = await Promise.all([
-        supabase.from("community_members").select("*", { count: "exact", head: true }).eq("community_id", communityData.id).eq("status", "active").abortSignal(signal),
-        supabase.from("posts").select("*", { count: "exact", head: true }).eq("community_id", communityData.id).abortSignal(signal),
-        userId ? supabase.from("community_members").select("role, status").eq("community_id", communityData.id).eq("user_id", userId).abortSignal(signal).maybeSingle() : Promise.resolve({ data: null }),
-        userId ? supabase.from("community_join_requests").select("id").eq("community_id", communityData.id).eq("user_id", userId).eq("status", "pending").abortSignal(signal).maybeSingle() : Promise.resolve({ data: null }),
-        userId ? supabase.from("community_invitations").select("id").eq("community_id", communityData.id).eq("invitee_id", userId).eq("status", "pending").abortSignal(signal).maybeSingle() : Promise.resolve({ data: null }),
-        supabase.from("community_rules").select("*").eq("community_id", communityData.id).order("rule_number", { ascending: true }).abortSignal(signal),
-        supabase.from("community_tags").select("*").eq("community_id", communityData.id).abortSignal(signal),
+        safe<null>(supabase.from("community_members").select("*", { count: "exact", head: true }).eq("community_id", communityData.id).eq("status", "active").abortSignal(signal), null),
+        safe<null>(supabase.from("posts").select("*", { count: "exact", head: true }).eq("community_id", communityData.id).abortSignal(signal), null),
+        userId
+          ? safe<{ role: string; status: string } | null>(
+              supabase.from("community_members").select("role, status").eq("community_id", communityData.id).eq("user_id", userId).abortSignal(signal).maybeSingle(),
+              null
+            )
+          : Promise.resolve({ data: null } as SafeResult<{ role: string; status: string } | null>),
+        userId
+          ? safe<{ id: string } | null>(
+              supabase.from("community_join_requests").select("id").eq("community_id", communityData.id).eq("user_id", userId).eq("status", "pending").abortSignal(signal).maybeSingle(),
+              null
+            )
+          : Promise.resolve({ data: null } as SafeResult<{ id: string } | null>),
+        userId
+          ? safe<{ id: string } | null>(
+              supabase.from("community_invitations").select("id").eq("community_id", communityData.id).eq("invitee_id", userId).eq("status", "pending").abortSignal(signal).maybeSingle(),
+              null
+            )
+          : Promise.resolve({ data: null } as SafeResult<{ id: string } | null>),
+        safe<CommunityRule[]>(supabase.from("community_rules").select("*").eq("community_id", communityData.id).order("rule_number", { ascending: true }).abortSignal(signal), []),
+        safe<CommunityTag[]>(supabase.from("community_tags").select("*").eq("community_id", communityData.id).abortSignal(signal), []),
       ]);
 
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal.aborted) return;
 
       setCommunity({
         ...communityData,
@@ -140,12 +194,13 @@ export function useCommunity(slug: string, userId?: string) {
       setTags(tagsResult.data || []);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
+      if (signal.aborted) return;
       console.error("[useCommunity] Error:", err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to fetch community");
       }
     } finally {
-      if (mountedRef.current) {
+      if (mountedRef.current && !signal.aborted) {
         setLoading(false);
       }
     }
