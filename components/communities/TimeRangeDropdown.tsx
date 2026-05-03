@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import type { TopTimeRange } from "@/lib/types";
 
 interface TimeRangeDropdownProps {
@@ -17,8 +18,18 @@ const TIME_RANGE_OPTIONS: { value: TopTimeRange; label: string }[] = [
   { value: "all", label: "All Time" },
 ];
 
+const MENU_WIDTH = 160;
+const MENU_OFFSET = 6;
+
 /**
- * TimeRangeDropdown - Select time range for filtering top posts
+ * TimeRangeDropdown - Select time range for filtering top posts.
+ *
+ * The menu renders in a React portal because the trigger lives inside a
+ * horizontally-scrollable filter row (`overflow-x-auto`). Per CSS spec,
+ * setting overflow-x to a non-visible value also clips overflow-y, so an
+ * absolutely-positioned dropdown gets cut off vertically and disappears
+ * behind whatever sibling renders next (the loading spinner). Rendering
+ * in a portal escapes the clipping context entirely.
  */
 export default function TimeRangeDropdown({
   value,
@@ -26,30 +37,57 @@ export default function TimeRangeDropdown({
   disabled = false,
 }: TimeRangeDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = TIME_RANGE_OPTIONS.find((opt) => opt.value === value);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
+  // Position the portal-rendered menu under the trigger button, and keep
+  // it pinned there if the user scrolls or resizes while it's open. Stale
+  // coords from the previous open are harmless — the menu doesn't render
+  // when isOpen is false.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      // Clamp to viewport so the menu never overflows the right edge.
+      const left = Math.min(
+        rect.left,
+        window.innerWidth - MENU_WIDTH - 8
+      );
+      setMenuPos({ top: rect.bottom + MENU_OFFSET, left });
     };
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [isOpen]);
 
+  // Close on outside click. Both the trigger button and the portal menu
+  // count as "inside" — anything else closes.
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setIsOpen(false);
+    };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isOpen]);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((prev) => !prev)}
         disabled={disabled}
         className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
           disabled
@@ -73,27 +111,41 @@ export default function TimeRangeDropdown({
         </svg>
       </button>
 
-      {isOpen && (
-        <div className="absolute z-50 mt-1.5 w-40 rounded-xl bg-white border border-black/[0.06] shadow-lg shadow-black/[0.06] py-1 animate-fadeIn">
-          {TIME_RANGE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => {
-                onChange(option.value);
-                setIsOpen(false);
+      {isOpen && menuPos && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              style={{
+                position: "fixed",
+                top: menuPos.top,
+                left: menuPos.left,
+                width: MENU_WIDTH,
               }}
-              className={`w-full px-4 py-2 text-left text-sm font-ui transition-colors ${
-                value === option.value
-                  ? "text-pink-vivid bg-pink-vivid/[0.06] font-medium"
-                  : "text-ink hover:bg-black/[0.03]"
-              }`}
+              className="z-[1000] rounded-xl bg-white border border-black/[0.06] shadow-lg shadow-black/[0.06] py-1 animate-fadeIn"
             >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+              {TIME_RANGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full px-4 py-2 text-left text-sm font-ui transition-colors ${
+                    value === option.value
+                      ? "text-pink-vivid bg-pink-vivid/[0.06] font-medium"
+                      : "text-ink hover:bg-black/[0.03]"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
+    </>
   );
 }

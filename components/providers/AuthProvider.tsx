@@ -78,6 +78,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const activeUserIdRef = useRef<string | null>(null);
   const profileRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Mirror of `profile` state for reads inside event-listener closures
+  // (onAuthStateChange callback is created once and would otherwise see a
+  // stale profile value). Updated whenever `profile` state changes.
+  const profileRef = useRef<Profile | null>(null);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
+
   // Fetch profile from database
   const fetchProfile = useCallback(async (userId: string, signal?: AbortSignal): Promise<Profile | null> => {
     try {
@@ -371,8 +379,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (event === "SIGNED_IN" && session?.user) {
+          // Supabase fires SIGNED_IN on real logins AND on session
+          // re-validations (cross-tab sync, idle re-checks). For the
+          // re-validation case the user is the same one we already have
+          // loaded — flipping loading=true would cause every consumer
+          // (sidebar avatar, badges, etc.) to flash a skeleton even
+          // though nothing actually changed. Detect "same user, profile
+          // already present" and short-circuit to a JWT refresh only.
+          const sameUser = activeUserIdRef.current === session.user.id;
+          const hasProfile = profileRef.current?.id === session.user.id;
           activeUserIdRef.current = session.user.id;
           syncRealtimeAuth(session.access_token);
+
+          if (sameUser && hasProfile) {
+            setUser(session.user);
+            // No clearProfileRetry / no setLoading / no profile refetch.
+            return;
+          }
+
           clearProfileRetry();
           setUser(session.user);
           setLoading(true);
