@@ -1216,17 +1216,15 @@ export default function CommunityInboxView() {
                 <>
                   {/* Pinned welcome at top of community thread */}
                   {isCommunityThreadSelected && welcomeMessage && (
-                    <div className="px-2 py-6 max-w-2xl mx-auto text-center">
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="flex-1 h-px bg-gradient-to-r from-transparent to-purple-primary/30" />
-                        <span className="font-ui text-[10px] tracking-[0.2em] uppercase text-purple-primary font-medium">
+                    <div className="flex justify-center mb-3">
+                      <div className="max-w-[80%] px-4 py-2.5 rounded-2xl bg-white border-2 border-purple-primary/40">
+                        <p className="font-ui text-[10px] uppercase tracking-wider font-semibold text-purple-primary mb-1">
                           Welcome
-                        </span>
-                        <span className="flex-1 h-px bg-gradient-to-l from-transparent to-purple-primary/30" />
+                        </p>
+                        <p className="font-body text-sm text-ink leading-relaxed whitespace-pre-wrap break-words">
+                          {welcomeMessage}
+                        </p>
                       </div>
-                      <p className="font-body text-[1.05rem] text-ink italic leading-relaxed">
-                        {welcomeMessage}
-                      </p>
                     </div>
                   )}
 
@@ -1270,7 +1268,7 @@ export default function CommunityInboxView() {
                       );
                     }
 
-                    // Announcement — centered typography, hairline dividers
+                    // Announcement — same bubble as a regular message, just with a brand border
                     if (
                       isCommunityThreadSelected &&
                       message.message_type === "announcement"
@@ -1278,29 +1276,44 @@ export default function CommunityInboxView() {
                       return (
                         <div key={message.id}>
                           {showDate && <DateDivider date={message.created_at} />}
-                          <div className="px-2 py-6 max-w-2xl mx-auto text-center">
-                            <div className="flex items-center gap-3 mb-4">
-                              <span className="flex-1 h-px bg-gradient-to-r from-transparent to-purple-primary/30" />
-                              <span className="font-ui text-[10px] tracking-[0.2em] uppercase text-purple-primary font-medium">
-                                Announcement
-                              </span>
-                              <span className="flex-1 h-px bg-gradient-to-l from-transparent to-purple-primary/30" />
-                            </div>
-                            <p className="font-body text-[1.05rem] text-ink italic leading-relaxed whitespace-pre-wrap break-words">
-                              {message.content}
-                            </p>
-                            {senderUsername ? (
-                              <Link
-                                href={`/studio/${senderUsername}`}
-                                className="inline-block mt-4 font-ui text-[11px] text-muted hover:text-purple-primary transition-colors"
-                              >
-                                — {senderName} · {formatTime(message.created_at)}
-                              </Link>
-                            ) : (
-                              <p className="mt-4 font-ui text-[11px] text-muted">
-                                — {senderName} · {formatTime(message.created_at)}
-                              </p>
+                          <div className={`flex items-end gap-2 mb-1 ${isOwn ? "justify-end" : "justify-start"}`}>
+                            {!isOwn && (
+                              senderUsername ? (
+                                <Link href={`/studio/${senderUsername}`} className="flex-shrink-0">
+                                  <img
+                                    src={senderAvatar}
+                                    alt={senderName}
+                                    className="w-7 h-7 rounded-full object-cover"
+                                  />
+                                </Link>
+                              ) : (
+                                <div className="w-7 h-7 rounded-full bg-purple-primary/10" />
+                              )
                             )}
+                            <div className="max-w-[70%]">
+                              {!isOwn && (
+                                <p className="font-ui text-[11px] text-muted ml-1 mb-0.5 truncate">
+                                  {senderName}
+                                </p>
+                              )}
+                              <div className={`px-4 py-2.5 rounded-2xl border-2 border-pink-vivid/50 ${
+                                isOwn
+                                  ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
+                                  : "bg-white text-ink rounded-bl-md"
+                              }`}>
+                                <p className={`font-ui text-[10px] uppercase tracking-wider font-semibold mb-1 ${
+                                  isOwn ? "text-white/80" : "text-pink-vivid"
+                                }`}>
+                                  Announcement
+                                </p>
+                                <p className="font-body text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                  {message.content}
+                                </p>
+                                <p className={`font-ui text-[10px] mt-1 ${isOwn ? "text-white/70 text-right" : "text-muted"}`}>
+                                  {formatTime(message.created_at)}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
@@ -1387,47 +1400,24 @@ export default function CommunityInboxView() {
                   </div>
                 ) : (
                   <>
-                    {/* Staff: choose between regular Message and Announcement */}
-                    {canToggleAnnouncement && (
-                      <div className="mb-2.5 flex items-center justify-between gap-3">
-                        <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-black/[0.04]">
-                          <button
-                            onClick={() => setStaffMessageMode("message")}
-                            className={`px-3 py-1 rounded-full font-ui text-[11px] font-medium transition-all ${
-                              staffMessageMode === "message"
-                                ? "bg-white text-ink shadow-sm"
-                                : "text-muted hover:text-ink"
-                            }`}
-                          >
-                            Message
-                          </button>
-                          <button
-                            onClick={() => setStaffMessageMode("announcement")}
-                            className={`px-3 py-1 rounded-full font-ui text-[11px] font-medium tracking-wider uppercase transition-all ${
-                              staffMessageMode === "announcement"
-                                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-sm"
-                                : "text-muted hover:text-ink"
-                            }`}
-                          >
-                            Announcement
-                          </button>
-                        </div>
-                        <p className="font-ui text-[10px] text-muted italic hidden sm:block">
-                          tip: type <span className="font-mono text-purple-primary">/announce</span>
-                        </p>
+                    {staffMessageMode === "announcement" && canToggleAnnouncement ? (
+                      <div className="mb-2 flex items-center justify-center gap-2">
+                        <span className="font-ui text-[10px] tracking-[0.2em] uppercase text-pink-vivid font-semibold">
+                          Announcement mode
+                        </span>
+                        <button
+                          onClick={() => setStaffMessageMode("message")}
+                          className="font-ui text-[10px] text-muted hover:text-ink underline-offset-2 hover:underline"
+                        >
+                          cancel
+                        </button>
                       </div>
-                    )}
-
-                    {staffMessageMode === "announcement" && canToggleAnnouncement && (
-                      <p className="font-ui text-[10px] tracking-[0.2em] uppercase text-purple-primary text-center mb-2">
-                        Broadcasting to all joined members
-                      </p>
-                    )}
-
-                    {!(canToggleAnnouncement && staffMessageMode === "announcement") && inlineHint && (
-                      <p className="font-ui text-[11px] text-muted italic text-center mb-2">
-                        {inlineHint}
-                      </p>
+                    ) : (
+                      inlineHint && (
+                        <p className="font-ui text-[11px] text-muted italic text-center mb-2">
+                          {inlineHint}
+                        </p>
+                      )
                     )}
 
                     <div className="flex items-end gap-2">
