@@ -2168,10 +2168,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               // ========== POEMS VIEW ==========
               if (postViewMode === "poems") {
                 return (
-                  <div className="space-y-8">
-                    {filteredPosts.map((work) => {
+                  <div className="max-w-2xl mx-auto">
+                    {filteredPosts.map((work, idx) => {
                       const plainContent = work.content
-                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 200)
+                        ? decodeHtmlEntities(work.content.replace(/<[^>]*>/g, '')).substring(0, 240)
                         : '';
                       const formattedDate = new Date(work.created_at).toLocaleDateString('en-US', {
                         month: 'long',
@@ -2183,62 +2183,44 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <article
                           key={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
-                          className="group relative max-w-2xl mx-auto cursor-pointer"
+                          className="group cursor-pointer py-12 first:pt-6 last:pb-6 px-4 rounded-2xl hover:bg-white/60 transition-colors"
                         >
-                          {/* Decorative quote marks */}
-                          <div className="absolute -left-4 -top-2 text-purple-primary/10 text-6xl font-serif leading-none select-none">
-                            &quot;
-                          </div>
-
-                          <div className="relative bg-gradient-to-br from-white to-purple-primary/[0.02] rounded-2xl p-8 border border-purple-primary/10 hover:border-purple-primary/30 hover:shadow-xl hover:shadow-purple-primary/5 transition-all duration-300">
-                            {/* Title */}
-                            {work.title && (
-                              <h2 className="font-display text-2xl font-semibold text-ink text-center mb-6 group-hover:text-purple-primary transition-colors">
-                                {work.title}
-                              </h2>
-                            )}
-
-                            {/* Poem excerpt - centered, italic */}
-                            <div className="text-center">
-                              <p className="font-body text-lg text-ink/80 italic leading-loose whitespace-pre-line">
-                                {plainContent || "..."}
-                              </p>
-                              {plainContent.length >= 200 && (
-                                <span className="inline-block mt-4 text-purple-primary text-sm font-medium">
-                                  Continue reading...
-                                </span>
-                              )}
+                          {idx > 0 && (
+                            <div className="flex justify-center -mt-12 mb-12">
+                              <div className="h-px w-16 bg-purple-primary/15" />
                             </div>
+                          )}
 
-                            {/* Decorative divider */}
-                            <div className="flex items-center justify-center gap-3 my-6">
-                              <div className="h-px w-12 bg-gradient-to-r from-transparent to-purple-primary/30" />
-                              <svg className="w-4 h-4 text-purple-primary/40" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                          {work.title && (
+                            <h2 className="font-display text-2xl text-ink text-center mb-6 group-hover:text-purple-primary transition-colors">
+                              {work.title}
+                            </h2>
+                          )}
+
+                          <p className="font-body text-lg text-ink/80 italic leading-loose text-center whitespace-pre-line">
+                            {plainContent || "..."}
+                          </p>
+
+                          {plainContent.length >= 240 && (
+                            <p className="text-center mt-5 font-ui text-xs tracking-wider uppercase text-purple-primary/80 group-hover:text-purple-primary transition-colors">
+                              Continue reading
+                            </p>
+                          )}
+
+                          <div className="flex items-center justify-center gap-3 mt-8 font-ui text-xs text-muted">
+                            <span>{formattedDate}</span>
+                            <span className="text-muted/50">·</span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                               </svg>
-                              <div className="h-px w-12 bg-gradient-to-l from-transparent to-purple-primary/30" />
-                            </div>
-
-                            {/* Footer */}
-                            <div className="flex items-center justify-center gap-4 text-sm text-muted">
-                              <span>{formattedDate}</span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                </svg>
-                                {work.admires_count || 0}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <CommentIcon />
-                                {work.comments_count || 0}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Decorative closing quote */}
-                          <div className="absolute -right-4 -bottom-4 text-purple-primary/10 text-6xl font-serif leading-none select-none rotate-180">
-                            &quot;
+                              {work.admires_count || 0}
+                            </span>
+                            <span className="text-muted/50">·</span>
+                            <span className="flex items-center gap-1">
+                              <CommentIcon />
+                              {work.comments_count || 0}
+                            </span>
                           </div>
                         </article>
                       );
