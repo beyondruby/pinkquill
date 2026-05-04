@@ -846,6 +846,19 @@ export function getAggregateCount(aggregate: AggregateCount[] | null | undefined
   return aggregate?.[0]?.count ?? 0;
 }
 
+/**
+ * Unified "heart" / interaction count for a post.
+ * Pinkquill keeps a legacy `admires` table alongside the newer multi-reaction
+ * `reactions` table — both are written to depending on which UI was used.
+ * To show a single, never-undercounted number, take the larger of the two.
+ */
+export function getInteractionCount(post: {
+  admires_count?: number | null;
+  reactions_count?: number | null;
+}): number {
+  return Math.max(post.reactions_count ?? 0, post.admires_count ?? 0);
+}
+
 // ============================================================================
 // COLLECTION TYPES
 // ============================================================================

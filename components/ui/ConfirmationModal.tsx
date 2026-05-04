@@ -63,14 +63,14 @@ export default function ConfirmationModal({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] animate-fadeIn"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2100] animate-fadeIn"
         onClick={loading ? undefined : onClose}
         aria-hidden="true"
       />
       {/* Modal */}
       <div
         ref={modalRef}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw] bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden animate-scaleIn"
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw] bg-white rounded-2xl shadow-2xl z-[2101] overflow-hidden animate-scaleIn"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirmation-modal-title"

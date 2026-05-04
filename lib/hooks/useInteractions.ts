@@ -283,10 +283,18 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
     if (!mountedRef.current) return;
 
     try {
-      // Use server-side aggregation for efficiency
-      const { data, error } = await supabase.rpc("get_reaction_counts", {
-        p_post_id: postId,
-      });
+      // Fetch reactions (via RPC) and legacy admires (separate table) in parallel.
+      // The legacy admires count is folded into the heart total so posts that only
+      // ever received heart-clicks don't display 0.
+      const [reactionsResult, admiresCountResult] = await Promise.all([
+        supabase.rpc("get_reaction_counts", { p_post_id: postId }),
+        supabase
+          .from("admires")
+          .select("*", { count: "exact", head: true })
+          .eq("post_id", postId),
+      ]);
+      const { data, error } = reactionsResult;
+      const legacyAdmireCount = Math.max(0, admiresCountResult.count ?? 0);
 
       if (!mountedRef.current) return;
 
@@ -335,22 +343,29 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
               fallbackCounts.total++;
             }
           });
+          // Fold in legacy admires (heart-button writes only to admires table)
+          const extraLegacy = Math.max(0, legacyAdmireCount - fallbackCounts.admire);
+          fallbackCounts.admire += extraLegacy;
+          fallbackCounts.total += extraLegacy;
           setCounts(fallbackCounts);
           return;
         }
         throw error;
       }
 
-      // Use aggregated data from RPC
+      // Use aggregated data from RPC, then fold in any legacy admires not already represented
       const row = data?.[0];
+      const reactionsAdmire = Number(row?.admire_count) || 0;
+      const reactionsTotal = Number(row?.total_count) || 0;
+      const extraLegacy = Math.max(0, legacyAdmireCount - reactionsAdmire);
       setCounts({
-        admire: Number(row?.admire_count) || 0,
+        admire: reactionsAdmire + extraLegacy,
         snap: Number(row?.snap_count) || 0,
         ovation: Number(row?.ovation_count) || 0,
         support: Number(row?.support_count) || 0,
         inspired: Number(row?.inspired_count) || 0,
         applaud: Number(row?.applaud_count) || 0,
-        total: Number(row?.total_count) || 0,
+        total: reactionsTotal + extraLegacy,
       });
     } catch (err) {
       console.warn("[useReactionCounts] Error:", err);

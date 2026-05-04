@@ -53,10 +53,10 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] animate-fadeIn"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2100] animate-fadeIn"
         onClick={() => !submitting && handleClose()}
       />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] z-[1001] overflow-hidden animate-scaleIn">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] z-[2101] overflow-hidden animate-scaleIn">
         {submitted ? (
           /* Success State */
           <div className="p-10 text-center">

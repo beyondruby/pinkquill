@@ -30,6 +30,7 @@ import Loading from "@/components/ui/Loading";
 import StoreTab from "@/components/store/StoreTab";
 import CommissionsTab from "@/components/commissions/CommissionsTab";
 import type { Collection, Post } from "@/lib/types";
+import { getInteractionCount } from "@/lib/types";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 // Helper function to decode HTML entities
@@ -1744,7 +1745,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   post_location: work.post_location,
                   metadata: work.metadata,
                   stats: {
-                    admires: work.admires_count,
+                    admires: getInteractionCount(work),
+                    reactions: getInteractionCount(work),
                     comments: work.comments_count,
                     relays: work.relays_count || 0,
                   },
@@ -1994,7 +1996,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                     <svg className="w-4 h-4 text-pink-vivid/70" fill="currentColor" viewBox="0 0 24 24">
                                       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                                     </svg>
-                                    {work.admires_count || 0}
+                                    {getInteractionCount(work)}
                                   </span>
                                   <span className="flex items-center gap-1 text-xs text-muted">
                                     <CommentIcon />
@@ -2094,7 +2096,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                                   </svg>
-                                  {work.admires_count || 0}
+                                  {getInteractionCount(work)}
                                 </span>
                                 <span className="flex items-center gap-1.5">
                                   <CommentIcon />
@@ -2139,7 +2141,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                                 </svg>
-                                {work.admires_count || 0}
+                                {getInteractionCount(work)}
                               </span>
                               <span className="flex items-center gap-2">
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -2214,7 +2216,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                               </svg>
-                              {work.admires_count || 0}
+                              {getInteractionCount(work)}
                             </span>
                             <span className="text-muted/50">·</span>
                             <span className="flex items-center gap-1">
@@ -2377,7 +2379,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
                                   </svg>
-                                  {work.admires_count || 0}
+                                  {getInteractionCount(work)}
                                 </span>
                                 <span className="flex items-center gap-1 text-xs">
                                   <CommentIcon size="sm" />
@@ -2476,7 +2478,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         post_location: relay.post_location,
                         metadata: relay.metadata,
                         stats: {
-                          admires: relay.admires_count,
+                          admires: getInteractionCount(relay),
+                          reactions: getInteractionCount(relay),
                           comments: relay.comments_count,
                           relays: relay.relays_count || 0,
                         },
@@ -2560,7 +2563,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             </div>
                             <div className="studio-relay-stats">
                               <span className="studio-relay-stat">
-                                {icons.heart} {relay.admires_count}
+                                {icons.heart} {getInteractionCount(relay)}
                               </span>
                               <span className="studio-relay-stat">
                                 {icons.comment} {relay.comments_count}
