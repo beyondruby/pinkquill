@@ -78,9 +78,6 @@ export default function CollaborationInviteCard({
 
   return (
     <div className="collab-invite-card">
-      {/* Decorative gradient bar */}
-      <div className="collab-invite-gradient" />
-
       {/* Header */}
       <div className="collab-invite-header">
         <div className="collab-invite-icon">

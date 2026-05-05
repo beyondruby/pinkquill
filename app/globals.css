@@ -10907,15 +10907,6 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   margin-bottom: 16px;
 }
 
-.collab-invite-gradient {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--primary-purple), var(--vivid-pink), var(--warm-orange));
-}
-
 .collab-invite-header {
   display: flex;
   align-items: center;
