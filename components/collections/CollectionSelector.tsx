@@ -182,7 +182,7 @@ export default function CollectionSelector({
 
   return (
     <>
-      <div ref={containerRef} className="relative w-full max-w-2xl">
+      <div ref={containerRef} className="relative w-full">
         {/* Main Trigger Button - Full Width */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}

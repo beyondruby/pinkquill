@@ -1944,9 +1944,6 @@ export default function CreatePost() {
         } else {
           router.push(`/post/${postId}`);
         }
-      } else if (collaborators.length > 0) {
-        // Collaborator posts stay in draft until collaborators accept.
-        router.push("/pending-collaborations?created=1");
       } else if (selectedCommunity) {
         router.push(`/community/${selectedCommunity.slug}`);
       } else {
