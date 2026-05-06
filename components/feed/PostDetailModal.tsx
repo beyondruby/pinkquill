@@ -21,10 +21,11 @@ import { supabase } from "@/lib/supabase";
 import { deleteOwnPost } from "@/lib/posts-client";
 import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
+import FlairBadge from "@/components/communities/FlairBadge";
 import { createSafeHtml } from "@/lib/utils/sanitize";
 import { getTimeAgo } from "@/lib/utils/time";
 import { getBackgroundStyle, isDarkBackground, getLuminance, extractColorsFromGradient } from "@/lib/utils/background";
-import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack } from "@/lib/types";
+import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack, CommunityFlair } from "@/lib/types";
 
 // Convert number to Roman numeral
 function toRomanNumeral(num: number): string {
@@ -246,6 +247,9 @@ interface Post {
   post_location?: string | null;
   metadata?: JournalMetadata | null;
   spotify_track?: SpotifyTrack | null;
+  // Community + flair
+  community?: { slug: string; name: string; avatar_url?: string | null } | null;
+  flair?: CommunityFlair | null;
 }
 
 // Format date as "January 2, 2026"
@@ -740,9 +744,17 @@ function PostDetailModalComponent({
                     <StyledTypeLabel type={post.type} isDark={hasDarkBg} />
                   </span>
                 </div>
-                <span className={`font-ui text-[0.75rem] md:text-[0.85rem] ${mutedTextColorClass}`}>
-                  {post.timeAgo}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`font-ui text-[0.75rem] md:text-[0.85rem] ${mutedTextColorClass}`}>
+                    {post.timeAgo}
+                  </span>
+                  {post.flair && (
+                    <>
+                      <span className={`font-ui text-[0.75rem] md:text-[0.85rem] ${mutedTextColorClass}`}>·</span>
+                      <FlairBadge flair={post.flair} size="sm" />
+                    </>
+                  )}
+                </div>
               </div>
               {/* Desktop Discussion Button - with word */}
               <button

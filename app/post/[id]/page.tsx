@@ -22,6 +22,7 @@ import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
 import type { PostBackground, PostStyling } from "@/lib/types";
 import { getTimeAgo, formatDate, formatTime } from "@/lib/utils/time";
+import FlairBadge from "@/components/communities/FlairBadge";
 import { getBackgroundStyle, isDarkBackground, getLuminance, extractColorsFromGradient } from "@/lib/utils/background";
 
 interface TaggedUser {
@@ -90,6 +91,8 @@ interface Post {
   metadata?: JournalMetadata | null;
   spotify_track?: SpotifyTrack | null;
   styling?: PostStyling | null;
+  flair?: { id: string; community_id: string; name: string; color: string; emoji: string | null; position: number; created_at: string } | null;
+  community?: { id: string; slug: string; name: string; avatar_url: string | null } | null;
 }
 
 interface MentionRow {
@@ -789,9 +792,17 @@ export default function PostPage() {
                     )}
                   </span>
                 </div>
-                <span className="font-ui text-[0.7rem] md:text-[0.8rem] text-muted">
-                  {getTimeAgo(post.created_at)}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-ui text-[0.7rem] md:text-[0.8rem] text-muted">
+                    {getTimeAgo(post.created_at)}
+                  </span>
+                  {post.flair && (
+                    <>
+                      <span className="font-ui text-[0.7rem] md:text-[0.8rem] text-muted">·</span>
+                      <FlairBadge flair={post.flair} size="sm" />
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Post Options Menu */}

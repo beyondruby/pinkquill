@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, u
 import PostDetailModal from "@/components/feed/PostDetailModal";
 import TakeDetailModal, { TakeUpdate } from "@/components/takes/TakeDetailModal";
 import { Take, TakeReactionType } from "@/lib/hooks/useTakes";
-import { PostStyling, JournalMetadata } from "@/lib/types";
+import { PostStyling, JournalMetadata, CommunityFlair } from "@/lib/types";
 
 interface MediaItem {
   id: string;
@@ -63,6 +63,9 @@ interface Post {
   styling?: PostStyling | null;
   post_location?: string | null;
   metadata?: JournalMetadata | null;
+  // Community + flair (so badge can render in the modal)
+  community?: { slug: string; name: string; avatar_url?: string | null } | null;
+  flair?: CommunityFlair | null;
 }
 
 export interface PostUpdate {
