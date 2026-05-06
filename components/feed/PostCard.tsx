@@ -746,9 +746,6 @@ function PostCardComponent({
               >
                 {post.community!.name}
               </Link>
-              {post.flair && (
-                <FlairBadge flair={post.flair} size="sm" />
-              )}
               <span className="post-time-separator">·</span>
               <span className="posted-by-label">Posted by</span>
               <Link
@@ -773,6 +770,9 @@ function PostCardComponent({
                     <span className="collab-count">{acceptedCollaborators.length} others</span>
                   )}
                 </>
+              )}
+              {post.flair && (
+                <FlairBadge flair={post.flair} size="sm" />
               )}
             </div>
 
