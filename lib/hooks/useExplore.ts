@@ -373,6 +373,15 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
               name,
               avatar_url
             ),
+            flair:community_flairs (
+              id,
+              community_id,
+              name,
+              color,
+              emoji,
+              position,
+              created_at
+            ),
             admires:admires(count),
             reactions:reactions(count),
             comments:comments(count),
@@ -543,6 +552,8 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           author: post.author,
           media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
           community: post.community,
+          flair_id: post.flair_id ?? null,
+          flair: (Array.isArray(post.flair) ? post.flair[0] : post.flair) || null,
           admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
           comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
           relays_count: getAggregateCount(post.relays as AggregateCount[] | null),

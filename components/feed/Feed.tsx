@@ -65,6 +65,7 @@ function transformPostForCard(post: Post) {
       name: post.community.name,
       avatar_url: post.community.avatar_url,
     } : undefined,
+    flair: post.flair || undefined,
     collaborators: (post.collaborators || []).map(c => ({
       ...c,
       status: c.status as 'pending' | 'accepted' | 'declined',

@@ -239,6 +239,21 @@ export default function PostPage() {
             media_type,
             caption,
             position
+          ),
+          community:communities (
+            id,
+            slug,
+            name,
+            avatar_url
+          ),
+          flair:community_flairs (
+            id,
+            community_id,
+            name,
+            color,
+            emoji,
+            position,
+            created_at
           )
         `)
         .eq("id", postId)
@@ -447,7 +462,9 @@ export default function PostPage() {
             .filter((c): c is CollaboratorUser => c !== null)
         : [];
 
-      setPost({ ...postData, mentions, hashtags, collaborators });
+      const normalizedFlair = Array.isArray(postData.flair) ? postData.flair[0] : postData.flair;
+      const normalizedCommunity = Array.isArray(postData.community) ? postData.community[0] : postData.community;
+      setPost({ ...postData, flair: normalizedFlair || null, community: normalizedCommunity || null, mentions, hashtags, collaborators });
       setShowContent(!postData.content_warning);
 
       // Process relays

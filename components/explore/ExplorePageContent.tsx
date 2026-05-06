@@ -267,6 +267,7 @@ function transformPostForCard(post: {
   hashtags?: string[];
   author?: { username?: string; display_name?: string | null; avatar_url?: string | null };
   community?: { slug: string; name: string; avatar_url: string | null } | null;
+  flair?: { id: string; community_id: string; name: string; color: string; emoji: string | null; position: number; created_at: string } | null;
   collaborators?: { status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } }[];
   mentions?: { user: { id: string; username: string; display_name: string | null; avatar_url: string | null } }[];
 }) {
@@ -323,6 +324,7 @@ function transformPostForCard(post: {
     isRelayed: post.user_has_relayed,
     reactionType: post.user_reaction_type,
     community: post.community,
+    flair: post.flair || undefined,
     collaborators: post.collaborators,
     mentions: post.mentions,
     hashtags: post.hashtags,

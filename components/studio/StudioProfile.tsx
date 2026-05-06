@@ -1753,6 +1753,12 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   isAdmired: work.user_has_admired,
                   isSaved: work.user_has_saved,
                   isRelayed: work.user_has_relayed,
+                  community: work.community ? {
+                    slug: work.community.slug,
+                    name: work.community.name,
+                    avatar_url: work.community.avatar_url,
+                  } : undefined,
+                  flair: work.flair || undefined,
                 };
               };
 

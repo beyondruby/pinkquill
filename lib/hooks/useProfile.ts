@@ -162,6 +162,15 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
             name,
             avatar_url
           ),
+          flair:community_flairs (
+            id,
+            community_id,
+            name,
+            color,
+            emoji,
+            position,
+            created_at
+          ),
           admires:admires(count),
           reactions:reactions(count),
           comments:comments(count),
@@ -245,6 +254,7 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
       // Transform posts
       const postsWithStats = (postsData.data || []).map((post) => ({
         ...post,
+        flair: (Array.isArray(post.flair) ? post.flair[0] : post.flair) || null,
         media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
         admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
         comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
