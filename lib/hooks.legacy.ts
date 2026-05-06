@@ -853,6 +853,7 @@ export function useCommunityPosts(
 
       const enrichedPosts = data.map(post => ({
         ...post,
+        flair: (Array.isArray(post.flair) ? post.flair[0] : post.flair) || null,
         admires_count: admiresCounts[post.id] || 0,
         comments_count: commentsCounts[post.id] || 0,
         relays_count: relaysCounts[post.id] || 0,

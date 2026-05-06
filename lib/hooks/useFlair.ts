@@ -86,9 +86,8 @@ export function useManageFlairs(communityId: string) {
           .order("position", { ascending: false })
           .limit(1);
 
-        const nextPosition = existing?.[0]?.position
-          ? existing[0].position + 1
-          : 0;
+        const highest = existing?.[0]?.position;
+        const nextPosition = typeof highest === "number" ? highest + 1 : 0;
 
         const { data, error: createError } = await supabase
           .from("community_flairs")

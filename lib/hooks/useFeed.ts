@@ -246,6 +246,8 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
             .map((t: any) => t.tag?.name)
             .filter((tag: unknown): tag is string => typeof tag === "string" && tag.length > 0);
 
+          const flair = Array.isArray(post.flair) ? post.flair[0] : post.flair;
+
           return {
             id: post.id,
             author_id: post.author_id,
@@ -257,6 +259,8 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
             content_warning: post.content_warning,
             created_at: post.created_at,
             community_id: post.community_id,
+            flair_id: post.flair_id ?? null,
+            flair: flair || null,
             // Creative styling fields
             styling: post.styling || null,
             post_location: post.post_location || null,
@@ -508,6 +512,7 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
       // Transform posts
       const postsWithStats = postsResult.data.map((post) => ({
         ...post,
+        flair: (Array.isArray(post.flair) ? post.flair[0] : post.flair) || null,
         media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
         admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
         comments_count: getAggregateCount(post.comments as AggregateCount[] | null),

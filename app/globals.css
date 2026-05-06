@@ -11160,8 +11160,6 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     min-height: 72px;
   }
 
-  /* Active conversation item indicator on mobile */
-  .messages-sidebar > div:last-child > div[class*="bg-purple-primary/10"] {
-    border-left-width: 3px;
-  }
+  /* Active conversation item indicator on mobile — bg highlight already
+     conveys state; no accent border per brand guidelines. */
 }

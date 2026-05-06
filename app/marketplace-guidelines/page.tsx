@@ -1255,7 +1255,7 @@ function Section({
 
 function Highlight({ children }: { children: React.ReactNode }) {
   return (
-    <div className="my-6 pl-5 border-l-2 border-purple-primary/30">
+    <div className="my-6 rounded-2xl border border-black/[0.08] bg-purple-primary/[0.04] px-5 py-4">
       <p className="font-body text-[0.95rem] text-muted italic !mb-0">
         {children}
       </p>

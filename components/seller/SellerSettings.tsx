@@ -293,7 +293,7 @@ function SellerSettingsForm({
         </div>
 
         {requireApproval && (
-          <div className="ml-4 border-l-2 border-purple-primary/20 pl-4">
+          <div className="ml-4 pl-4">
             <label className="mb-1 block text-sm font-ui font-medium text-ink">
               Auto-decline after (hours)
             </label>
