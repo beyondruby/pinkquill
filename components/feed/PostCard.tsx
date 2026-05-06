@@ -746,6 +746,9 @@ function PostCardComponent({
               >
                 {post.community!.name}
               </Link>
+              {post.flair && (
+                <FlairBadge flair={post.flair} size="sm" />
+              )}
               <span className="post-time-separator">·</span>
               <span className="posted-by-label">Posted by</span>
               <Link
@@ -773,15 +776,9 @@ function PostCardComponent({
               )}
             </div>
 
-            {/* Secondary line: Time + Flair */}
+            {/* Secondary line: Time */}
             <div className="post-meta-line community-post-meta">
               <span className="post-time">{post.timeAgo}</span>
-              {post.flair && (
-                <>
-                  <span className="post-time-separator">·</span>
-                  <FlairBadge flair={post.flair} size="sm" />
-                </>
-              )}
             </div>
           </div>
           {postMenuElement}

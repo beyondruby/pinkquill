@@ -764,10 +764,13 @@ export default function PostPage() {
                 />
               </Link>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Link href={`/studio/${post.author.username}`} className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink hover:text-purple-primary transition-colors truncate">
                     {post.author.display_name || post.author.username}
                   </Link>
+                  {post.flair && (
+                    <FlairBadge flair={post.flair} size="sm" />
+                  )}
                   <span className="font-ui text-[0.75rem] md:text-[0.85rem] text-muted hidden sm:inline">
                     {post.type === "journal" ? (
                       <span className="inline-flex items-center gap-1.5">
@@ -792,17 +795,9 @@ export default function PostPage() {
                     )}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-ui text-[0.7rem] md:text-[0.8rem] text-muted">
-                    {getTimeAgo(post.created_at)}
-                  </span>
-                  {post.flair && (
-                    <>
-                      <span className="font-ui text-[0.7rem] md:text-[0.8rem] text-muted">·</span>
-                      <FlairBadge flair={post.flair} size="sm" />
-                    </>
-                  )}
-                </div>
+                <span className="font-ui text-[0.7rem] md:text-[0.8rem] text-muted">
+                  {getTimeAgo(post.created_at)}
+                </span>
               </div>
 
               {/* Post Options Menu */}

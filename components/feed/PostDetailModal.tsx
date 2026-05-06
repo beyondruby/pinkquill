@@ -730,7 +730,7 @@ function PostDetailModalComponent({
                 />
               </Link>
               <div className="flex flex-col gap-0.5 md:gap-1 flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Link
                     href={`/studio/${post.author.handle.replace('@', '')}`}
                     onClick={onClose}
@@ -740,21 +740,16 @@ function PostDetailModalComponent({
                   >
                     {post.author.name}
                   </Link>
+                  {post.flair && (
+                    <FlairBadge flair={post.flair} size="sm" />
+                  )}
                   <span className={`font-ui text-[0.8rem] md:text-[0.9rem] font-light hidden sm:inline ${mutedTextColorClass}`}>
                     <StyledTypeLabel type={post.type} isDark={hasDarkBg} />
                   </span>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`font-ui text-[0.75rem] md:text-[0.85rem] ${mutedTextColorClass}`}>
-                    {post.timeAgo}
-                  </span>
-                  {post.flair && (
-                    <>
-                      <span className={`font-ui text-[0.75rem] md:text-[0.85rem] ${mutedTextColorClass}`}>·</span>
-                      <FlairBadge flair={post.flair} size="sm" />
-                    </>
-                  )}
-                </div>
+                <span className={`font-ui text-[0.75rem] md:text-[0.85rem] ${mutedTextColorClass}`}>
+                  {post.timeAgo}
+                </span>
               </div>
               {/* Desktop Discussion Button - with word */}
               <button
