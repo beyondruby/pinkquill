@@ -431,7 +431,7 @@ export default function SavedPage() {
                   {/* Bottom info */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/30">
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-surface/30">
                         <Image
                           src={post.author?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
                           alt=""
@@ -539,7 +539,7 @@ export default function SavedPage() {
                   {/* Bottom info */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/30">
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-surface/30">
                         <Image
                           src={take.author?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
                           alt=""
@@ -639,7 +639,7 @@ export default function SavedPage() {
                   {/* Bottom info */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-white/30">
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-surface/30">
                         <Image
                           src={product.seller?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
                           alt=""

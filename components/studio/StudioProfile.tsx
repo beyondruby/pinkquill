@@ -470,12 +470,12 @@ function CollectionCard({
       {/* Glass effect container */}
       <div className="relative overflow-hidden rounded-3xl">
         {/* Background gradient layers */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-white/60 to-purple-primary/5" />
+        <div className="absolute inset-0 bg-gradient-to-br from-surface/80 via-surface/60 to-purple-primary/5" />
         <div className="absolute inset-0 bg-gradient-to-tr from-purple-primary/[0.03] via-transparent to-pink-vivid/[0.05]" />
         <div className="absolute inset-0 backdrop-blur-xl" />
 
         {/* Shimmer effect on hover */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-surface/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
 
         {/* Content */}
         <div className="relative p-6">
@@ -696,7 +696,7 @@ function CollectionCard({
         </div>
 
         {/* Glass border */}
-        <div className="absolute inset-0 rounded-3xl border border-white/60 pointer-events-none" />
+        <div className="absolute inset-0 rounded-3xl border border-surface/60 pointer-events-none" />
 
         {/* Subtle inner shadow */}
         <div className="absolute inset-0 rounded-3xl shadow-inner pointer-events-none" style={{ boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5)' }} />
@@ -1109,7 +1109,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         <div className="studio-cover-paper" />
 
         {/* Bottom Fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-[150px] bg-gradient-to-t from-[#f8f7fc] to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-[150px] bg-gradient-to-t from-canvas to-transparent" />
       </div>
 
       {/* Profile Section */}
@@ -1303,7 +1303,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {/* Private Account Notice */}
         {isPrivateAccount && !isOwnProfile && !isFollowing && (
           <div className={`mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-2' : ''}`}>
-            <div className="relative rounded-3xl bg-gradient-to-br from-purple-50/90 via-white to-pink-50/80 p-10 border border-purple-200/50 shadow-[0_8px_40px_-12px_rgba(142,68,173,0.15)] text-center">
+            <div className="relative rounded-3xl bg-gradient-to-br from-purple-50/90 via-surface to-accent-2/80 p-10 border border-purple-200/50 shadow-[0_8px_40px_-12px_rgba(142,68,173,0.15)] text-center">
               {/* Lock Icon */}
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center">
                 <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1379,7 +1379,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           <div className={`relative mb-8 md:mb-12 studio-section-animated ${pageLoaded ? 'loaded delay-3' : ''}`}>
 
             {/* The Box */}
-            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-rose-50/90 via-white to-pink-50/80 p-5 md:p-8 lg:p-10 border border-pink-200/50 shadow-[0_8px_40px_-12px_rgba(255,0,127,0.15)]">
+            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-accent-2/10 via-surface to-accent/5 p-5 md:p-8 lg:p-10 border border-accent-2/20 shadow-lg shadow-accent-2/10">
 
               {/* Subtle top accent line */}
               <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-pink-vivid/30 to-transparent" />
@@ -1806,7 +1806,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.02] via-transparent to-pink-vivid/[0.03] pointer-events-none" />
 
                             {/* Shimmer effect */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-surface/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none" />
 
                             {/* Image section - uniform height */}
                             <div className="relative h-48 overflow-hidden bg-gradient-to-br from-purple-primary/5 to-pink-vivid/5">
@@ -2648,7 +2648,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               /* Empty State - Glass Card */
               <div className="relative rounded-3xl overflow-hidden">
                 {/* Glass background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/5 via-white/80 to-pink-vivid/5 backdrop-blur-xl" />
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/5 via-surface/80 to-pink-vivid/5 backdrop-blur-xl" />
                 <div className="absolute inset-0 bg-surface/40" />
 
                 {/* Content */}
@@ -2658,7 +2658,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   <div className="absolute bottom-8 right-8 w-32 h-32 rounded-full bg-gradient-to-br from-pink-vivid/10 to-orange-warm/10 blur-2xl" />
 
                   <div className="relative">
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center backdrop-blur-sm border border-white/50">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center backdrop-blur-sm border border-surface/50">
                       <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                       </svg>
@@ -2673,7 +2673,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 </div>
 
                 {/* Border */}
-                <div className="absolute inset-0 rounded-3xl border border-white/60 pointer-events-none" />
+                <div className="absolute inset-0 rounded-3xl border border-surface/60 pointer-events-none" />
               </div>
             ) : (
               <div className="space-y-6">

@@ -74,7 +74,7 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
   if (products.length === 0) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-pink-50/80 via-white to-orange-50/60 p-8 md:p-12 lg:p-16 border border-pink-100/50">
+        <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-pink-50/80 via-surface to-orange-50/60 p-8 md:p-12 lg:p-16 border border-pink-100/50">
           {/* Decorative background elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-warm/5 to-pink-vivid/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-vivid/5 to-orange-warm/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />

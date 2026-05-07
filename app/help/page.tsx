@@ -27,7 +27,7 @@ const helpCategories = [
     label: "Getting Started",
     icon: faRocket,
     description: "New to PinkQuill? Learn the basics of creating your account, setting up your profile, and navigating the platform.",
-    color: "from-purple-500 to-purple-600"
+    color: "from-purple-primary to-purple-600"
   },
   {
     href: "/help/account",
@@ -41,7 +41,7 @@ const helpCategories = [
     label: "Creating & Sharing",
     icon: faPenNib,
     description: "Learn how to create posts, takes, and share your creative work. Explore all 11 post types and media options.",
-    color: "from-pink-500 to-pink-600"
+    color: "from-pink-vivid to-pink-600"
   },
   {
     href: "/help/communities",

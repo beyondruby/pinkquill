@@ -160,7 +160,7 @@ export default function AboutPageContent() {
             </div>
 
             <div className="ab-hero-illustration relative min-h-[510px]">
-              <div className="relative h-full overflow-hidden rounded-[2.2rem] border border-white/50 bg-surface/70 shadow-[0_30px_70px_-40px_rgba(30,30,30,0.45)]">
+              <div className="relative h-full overflow-hidden rounded-[2.2rem] border border-surface/50 bg-surface/70 shadow-[0_30px_70px_-40px_rgba(30,30,30,0.45)]">
                 <Image
                   src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=1800&auto=format&fit=crop"
                   alt="Creative person working at a desk"
@@ -170,13 +170,13 @@ export default function AboutPageContent() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-br from-ink/45 via-transparent to-purple-primary/25" />
 
-                <div className="absolute top-4 left-4 rounded-full border border-white/35 bg-surface/18 px-3 py-1.5 backdrop-blur">
+                <div className="absolute top-4 left-4 rounded-full border border-surface/35 bg-surface/18 px-3 py-1.5 backdrop-blur">
                   <span className="font-ui text-[0.62rem] uppercase tracking-[0.16em] text-white/92">
                     Warm. Honest. Creative.
                   </span>
                 </div>
 
-                <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/30 bg-black/20 p-4 backdrop-blur-sm">
+                <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-surface/30 bg-black/20 p-4 backdrop-blur-sm">
                   <p className="font-display text-2xl text-white sm:text-3xl">Make art that matters to you.</p>
                 </div>
               </div>
@@ -285,7 +285,7 @@ export default function AboutPageContent() {
                   A home for every creative voice
                 </figcaption>
               </figure>
-              <div className="rounded-[1.8rem] border border-border-light bg-gradient-to-br from-white to-pink-vivid/[0.06] p-6">
+              <div className="rounded-[1.8rem] border border-border-light bg-gradient-to-br from-surface to-pink-vivid/[0.06] p-6">
                 <p className="font-display text-[1.75rem] leading-snug text-ink">
                   &quot;What you create is a piece of who you are. It deserves to be treated that way.&quot;
                 </p>
@@ -305,7 +305,7 @@ export default function AboutPageContent() {
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/45 via-transparent to-ink/45" />
-                <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/30 bg-surface/16 p-4 backdrop-blur-sm">
+                <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-surface/30 bg-surface/16 p-4 backdrop-blur-sm">
                   <p className="font-ui text-[0.62rem] uppercase tracking-[0.16em] text-white/82">The PinkQuill Studio</p>
                   <p className="mt-1 font-display text-2xl text-white">Built to nurture your voice, not drain it.</p>
                 </div>
@@ -374,7 +374,7 @@ export default function AboutPageContent() {
                 className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-tr from-ink/55 via-transparent to-pink-vivid/25" />
-              <div className="absolute left-5 bottom-5 rounded-full border border-white/30 bg-surface/12 px-4 py-2 backdrop-blur-sm">
+              <div className="absolute left-5 bottom-5 rounded-full border border-surface/30 bg-surface/12 px-4 py-2 backdrop-blur-sm">
                 <span className="font-ui text-[0.62rem] uppercase tracking-[0.16em] text-white/90">
                   Together, not against each other
                 </span>
@@ -384,7 +384,7 @@ export default function AboutPageContent() {
         </section>
 
         <section id="vision" className="scroll-mt-36 px-6 py-16 md:py-20">
-          <div className="mx-auto w-full max-w-6xl rounded-[2rem] border border-border-light bg-gradient-to-br from-white via-white to-purple-primary/[0.06] p-8 md:p-10">
+          <div className="mx-auto w-full max-w-6xl rounded-[2rem] border border-border-light bg-gradient-to-br from-surface via-surface to-purple-primary/[0.06] p-8 md:p-10">
             <p className="mb-4 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-purple-primary/80">Vision</p>
             <h2 className="max-w-3xl font-display text-4xl leading-tight text-ink md:text-5xl">
               A creative internet that feels like it was made for you.
@@ -476,13 +476,13 @@ export default function AboutPageContent() {
                   </Link>
                   <a
                     href="mailto:hello@pinkquill.com"
-                    className="inline-flex items-center gap-2 rounded-full border border-white/35 px-6 py-3 font-ui text-sm font-medium text-white transition-colors hover:bg-surface/15"
+                    className="inline-flex items-center gap-2 rounded-full border border-surface/35 px-6 py-3 font-ui text-sm font-medium text-white transition-colors hover:bg-surface/15"
                   >
                     Talk with us
                   </a>
                 </div>
 
-                <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/30 bg-surface/12 px-4 py-2 backdrop-blur">
+                <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-surface/30 bg-surface/12 px-4 py-2 backdrop-blur">
                   <FontAwesomeIcon icon={faRocket} className="h-3.5 w-3.5 text-white" />
                   <span className="font-ui text-xs uppercase tracking-[0.14em] text-white/90">
                     Made with love, for people who make things with love.

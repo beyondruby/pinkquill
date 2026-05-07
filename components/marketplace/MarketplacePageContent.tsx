@@ -79,7 +79,7 @@ export default function MarketplacePageContent() {
   }, [handleObserver]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-white to-orange-50/30">
+    <div className="min-h-screen bg-gradient-to-b from-surface via-surface to-orange-50/30">
       <MarketplaceHero listingType={filters.listing_type || "product"} />
 
       <MarketplaceHeader

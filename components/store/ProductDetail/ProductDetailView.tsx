@@ -181,7 +181,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
     : null;
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fffefc_45%,#fff9f2_100%)] pb-16">
+    <div className="min-h-screen bg-canvas pb-16">
       <div className="max-w-6xl mx-auto px-4 pt-8">
         <div className="pb-6 border-b border-border-light">
           <div className="flex items-start justify-between gap-4">

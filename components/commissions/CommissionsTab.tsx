@@ -217,7 +217,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
       <section className="relative mb-8 rounded-2xl overflow-hidden">
         {/* Glass background with subtle brand gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.04] via-white to-pink-vivid/[0.04]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.04] via-surface to-pink-vivid/[0.04]" />
         <div className="absolute inset-0 border border-border-light rounded-2xl pointer-events-none" />
         {/* Soft decorative glow */}
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-pink-vivid/[0.06] blur-3xl pointer-events-none" />
@@ -378,7 +378,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
       {panel === "services" && (
         <>
           {!hasServices && (
-            <div className="relative rounded-[32px] border border-pink-vivid/20 bg-gradient-to-br from-pink-50/90 via-white to-violet-50/85 p-10 text-center overflow-hidden">
+            <div className="relative rounded-[32px] border border-pink-vivid/20 bg-gradient-to-br from-pink-50/90 via-surface to-violet-50/85 p-10 text-center overflow-hidden">
               <div className="absolute -top-16 -left-14 w-40 h-40 rounded-full bg-purple-primary/12 blur-2xl" />
               <div className="absolute -bottom-16 -right-14 w-44 h-44 rounded-full bg-pink-vivid/16 blur-2xl" />
 

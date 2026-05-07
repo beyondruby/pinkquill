@@ -33,7 +33,7 @@ export default function CommunityCard({ community, variant = 'default', rank }: 
       <div className={`relative h-full bg-surface/80 backdrop-blur-xl rounded-2xl overflow-hidden border transition-all duration-300 ${
         isFeatured
           ? 'border-purple-primary/20 shadow-lg shadow-purple-primary/10 hover:shadow-xl hover:shadow-purple-primary/20 hover:border-accent/30'
-          : 'border-white/60 shadow-md shadow-purple-primary/5 hover:shadow-lg hover:shadow-purple-primary/15 hover:border-accent/20'
+          : 'border-surface/60 shadow-md shadow-purple-primary/5 hover:shadow-lg hover:shadow-purple-primary/15 hover:border-accent/20'
       } hover:-translate-y-1`}>
 
         {/* Rank Badge for Featured */}

@@ -116,7 +116,7 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
 
       {/* Current step description - mobile friendly */}
       <div className="mt-6 text-center sm:hidden">
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface/60 backdrop-blur-md border border-white/40 text-sm font-medium text-purple-primary">
+        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface/60 backdrop-blur-md border border-surface/40 text-sm font-medium text-purple-primary">
           {DISPLAY_STEPS[currentIndex].fullLabel}
         </span>
       </div>

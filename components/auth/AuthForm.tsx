@@ -65,7 +65,7 @@ export default function AuthForm() {
       </div>
 
       {/* Main Container */}
-      <div className="relative z-10 w-full max-w-[1100px] bg-surface/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-white/50 flex flex-col lg:flex-row overflow-hidden min-h-[650px]">
+      <div className="relative z-10 w-full max-w-[1100px] bg-surface/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-surface/50 flex flex-col lg:flex-row overflow-hidden min-h-[650px]">
 
         {/* LEFT PANEL: The Art (Desktop Only) */}
         <div className="hidden lg:flex w-5/12 relative flex-col justify-between p-12 overflow-hidden">

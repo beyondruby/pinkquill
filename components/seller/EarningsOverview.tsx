@@ -69,7 +69,7 @@ function MetricCard({
   return (
     <div className={`rounded-xl border p-4 sm:p-5 ${
       accent
-        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
+        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-accent-2/60"
         : "border-border-light bg-surface"
     }`}>
       <div className="flex items-start justify-between">

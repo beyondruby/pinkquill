@@ -94,7 +94,7 @@ export default function AuthModal() {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-surface/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-primary/10 border border-white/50 overflow-hidden animate-scaleIn">
+      <div className="relative w-full max-w-md bg-surface/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-primary/10 border border-surface/50 overflow-hidden animate-scaleIn">
 
         {/* Close button */}
         <button

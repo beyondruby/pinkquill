@@ -51,7 +51,7 @@ export default function CommissionReviewsPanel({
     <section>
       {/* Header */}
       <div className="relative rounded-2xl overflow-hidden mb-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.04] via-white to-pink-vivid/[0.04]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.04] via-surface to-pink-vivid/[0.04]" />
         <div className="absolute inset-0 border border-border-light rounded-2xl pointer-events-none" />
         <div className="absolute -top-16 -right-16 w-36 h-36 rounded-full bg-pink-vivid/[0.05] blur-3xl pointer-events-none" />
 

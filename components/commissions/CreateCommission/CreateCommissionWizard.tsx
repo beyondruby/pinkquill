@@ -61,22 +61,22 @@ const TIER_STYLES: Record<
 > = {
   basic: {
     badge: "from-slate-500 to-slate-700",
-    card: "from-slate-100/80 via-white to-slate-50/90",
+    card: "from-slate-100/80 via-surface to-slate-50/90",
     chip: "bg-slate-100 text-slate-700",
   },
   standard: {
     badge: "from-purple-primary to-pink-vivid",
-    card: "from-purple-primary/10 via-white to-pink-vivid/10",
+    card: "from-purple-primary/10 via-surface to-pink-vivid/10",
     chip: "bg-accent/15 text-purple-primary",
   },
   premium: {
     badge: "from-orange-warm to-pink-vivid",
-    card: "from-orange-warm/10 via-white to-pink-vivid/10",
+    card: "from-orange-warm/10 via-surface to-pink-vivid/10",
     chip: "bg-orange-100 text-orange-700",
   },
   custom: {
     badge: "from-blue-500 to-indigo-600",
-    card: "from-blue-500/10 via-white to-indigo-500/10",
+    card: "from-blue-500/10 via-surface to-indigo-500/10",
     chip: "bg-blue-100 text-blue-700",
   },
 };
@@ -411,7 +411,7 @@ export default function CreateCommissionWizard({
 
   if (isEditMode && !initialProduct) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-white to-pink-50/50 flex items-center justify-center px-6">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-surface to-accent-2/50 flex items-center justify-center px-6">
         <div className="w-10 h-10 rounded-full border-2 border-border-strong border-t-[var(--color-pink-vivid)] animate-spin" />
       </div>
     );
@@ -419,7 +419,7 @@ export default function CreateCommissionWizard({
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-white to-pink-50/50 flex items-center justify-center px-6">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-surface to-accent-2/50 flex items-center justify-center px-6">
         <div className="max-w-lg text-center">
           <div className="w-24 h-24 mx-auto mb-6 rounded-[28px] bg-gradient-to-br from-purple-primary/20 to-pink-vivid/25 border border-white shadow-lg flex items-center justify-center">
             <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -654,7 +654,7 @@ export default function CreateCommissionWizard({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="relative w-full rounded-2xl border border-dashed border-pink-vivid/35 bg-gradient-to-br from-pink-50/70 via-white to-orange-50/70 px-6 py-10 text-center hover:border-pink-vivid transition-colors"
+                        className="relative w-full rounded-2xl border border-dashed border-pink-vivid/35 bg-gradient-to-br from-pink-50/70 via-surface to-orange-50/70 px-6 py-10 text-center hover:border-pink-vivid transition-colors"
                       >
                         <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-surface shadow-sm border border-pink-vivid/15 flex items-center justify-center">
                           <svg className="w-8 h-8 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -892,8 +892,8 @@ function SectionCard({
 }) {
   const toneClasses = {
     neutral: "border-border-light bg-surface",
-    purple: "border-purple-primary/15 bg-gradient-to-br from-purple-primary/[0.06] via-white to-purple-primary/[0.04]",
-    rose: "border-pink-vivid/15 bg-gradient-to-br from-pink-vivid/[0.08] via-white to-orange-warm/[0.06]",
+    purple: "border-purple-primary/15 bg-gradient-to-br from-purple-primary/[0.06] via-surface to-purple-primary/[0.04]",
+    rose: "border-pink-vivid/15 bg-gradient-to-br from-pink-vivid/[0.08] via-surface to-orange-warm/[0.06]",
   } as const;
 
   return (

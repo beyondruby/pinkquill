@@ -58,7 +58,7 @@ export default function ProductGallery({
       <div
         className={`aspect-square rounded-[28px] flex items-center justify-center border ${
           isService
-            ? "bg-gradient-to-br from-orange-50/70 to-pink-50/50 border-orange-100/70"
+            ? "bg-gradient-to-br from-orange-50/70 to-accent-2/50 border-orange-100/70"
             : "bg-gradient-to-br from-pink-50 to-orange-50 border-pink-100/50"
         }`}
       >
@@ -114,7 +114,7 @@ export default function ProductGallery({
           <div
             className={`relative aspect-square rounded-[28px] overflow-hidden group cursor-pointer border ${
               isService
-                ? "bg-gradient-to-br from-[#fff8f5] via-[#fff6fc] to-[#fefaf3] border-orange-100/70 shadow-[0_18px_48px_-28px_rgba(255,159,67,0.45)]"
+                ? "bg-canvas border-orange-100/70 shadow-[0_18px_48px_-28px_rgba(255,159,67,0.45)]"
                 : "bg-gradient-to-br from-pink-50/40 to-orange-50/40 border-border-light shadow-lg shadow-black/5"
             }`}
             onClick={() => setIsFullscreen(true)}

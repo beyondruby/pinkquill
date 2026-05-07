@@ -5057,7 +5057,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--color-pink-vivid) 5%, transparent) 0%, transparent 45%),
     radial-gradient(ellipse at 60% 80%, color-mix(in srgb, var(--color-orange-warm) 5%, transparent) 0%, transparent 50%),
     radial-gradient(ellipse at 10% 70%, color-mix(in srgb, var(--color-purple-primary) 4%, transparent) 0%, transparent 40%),
-    linear-gradient(135deg, #faf8fc 0%, #fff8fa 50%, #faf8fc 100%);
+    linear-gradient(135deg, var(--color-subtle) 0%, var(--color-surface) 50%, var(--color-subtle) 100%);
   pointer-events: none;
 }
 
@@ -5884,7 +5884,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .tiktok-feed-container {
   position: relative;
   min-height: 100vh;
-  background: linear-gradient(135deg, #fdfcfd 0%, #faf8fc 50%, #f8f5fa 100%);
+  background: linear-gradient(135deg, var(--color-canvas) 0%, var(--color-subtle) 50%, var(--color-canvas) 100%);
   display: flex;
   transition: padding-right 0.3s ease;
 }

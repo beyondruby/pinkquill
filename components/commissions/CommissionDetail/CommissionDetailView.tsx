@@ -192,7 +192,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_100%)] px-4 py-10">
+      <div className="min-h-screen bg-canvas px-4 py-10">
         <div className="max-w-6xl mx-auto">
           <div className="h-8 w-52 rounded bg-skeleton animate-pulse" />
           <div className="mt-4 h-10 w-4/5 max-w-xl rounded bg-skeleton animate-pulse" />
@@ -228,7 +228,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
   return (
     <>
-      <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_48%,#fff7f2_100%)] pb-16">
+      <div className="min-h-screen bg-canvas pb-16">
         <div className="max-w-6xl mx-auto px-4 pt-8">
           <div className="pb-6 border-b border-border-light">
             <div className="flex items-start justify-between gap-4">

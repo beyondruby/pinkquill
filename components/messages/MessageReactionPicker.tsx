@@ -108,7 +108,7 @@ export function ReactionsDisplay({
           transition-all duration-200 hover:scale-105 active:scale-95
           shadow-sm border
           ${isOwnMessage
-            ? "bg-surface/95 border-white/50"
+            ? "bg-surface/95 border-surface/50"
             : "bg-surface border-purple-primary/10"
           }
           ${userHasReacted ? "ring-1 ring-purple-primary/30" : ""}

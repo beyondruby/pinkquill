@@ -56,7 +56,7 @@ export default function PostingHelpPage() {
       {/* Header */}
       <header className="mb-12">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-vivid to-pink-600 flex items-center justify-center">
             <FontAwesomeIcon icon={faPenNib} className="w-5 h-5 text-white" />
           </div>
           <div>

@@ -90,7 +90,7 @@ const moodIcons: Record<string, React.ReactNode> = {
 const postTypeStyles: Record<string, { icon: React.ReactNode; gradient: string; label: string; prefix: string }> = {
   poem: {
     icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>,
-    gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
+    gradient: "from-violet-500 via-purple-primary to-fuchsia-500",
     label: "Poem",
     prefix: "wrote a"
   },
@@ -120,7 +120,7 @@ const postTypeStyles: Record<string, { icon: React.ReactNode; gradient: string; 
   },
   letter: {
     icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
-    gradient: "from-rose-400 via-pink-500 to-red-400",
+    gradient: "from-rose-400 via-pink-vivid to-red-400",
     label: "Letter",
     prefix: "wrote a"
   },
@@ -150,7 +150,7 @@ const postTypeStyles: Record<string, { icon: React.ReactNode; gradient: string; 
   },
   video: {
     icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
-    gradient: "from-red-400 via-rose-500 to-pink-500",
+    gradient: "from-red-400 via-rose-500 to-pink-vivid",
     label: "Video",
     prefix: "shared a"
   }
@@ -646,7 +646,7 @@ function PostDetailModalComponent({
   const hasDarkBg = isDarkBackground(post.styling?.background);
   const textColorClass = hasDarkBg ? 'text-white' : 'text-ink';
   const mutedTextColorClass = hasDarkBg ? 'text-white/70' : 'text-muted';
-  const borderColorClass = hasDarkBg ? 'border-white/10' : 'border-border-light';
+  const borderColorClass = hasDarkBg ? 'border-surface/10' : 'border-border-light';
 
   // Text styling
   const textAlignment = post.styling?.textAlignment || 'left';
@@ -723,7 +723,7 @@ function PostDetailModalComponent({
                   width={56}
                   height={56}
                   className={`w-10 h-10 md:w-14 md:h-14 rounded-full object-cover border-2 md:border-[3px] shadow-lg hover:scale-110 transition-transform ${
-                    hasDarkBg ? 'border-white/30' : 'border-white'
+                    hasDarkBg ? 'border-surface/30' : 'border-white'
                   }`}
                   sizes="56px"
                   quality={80}
@@ -857,7 +857,7 @@ function PostDetailModalComponent({
                 )}
 
                 {/* Elegant divider line */}
-                <div className={`h-px w-full ${hasDarkBg ? 'bg-gradient-to-r from-white/20 via-white/10 to-transparent' : 'bg-gradient-to-r from-purple-primary/30 via-pink-vivid/20 to-transparent'}`} />
+                <div className={`h-px w-full ${hasDarkBg ? 'bg-gradient-to-r from-surface/20 via-surface/10 to-transparent' : 'bg-gradient-to-r from-purple-primary/30 via-pink-vivid/20 to-transparent'}`} />
               </div>
             )}
 
@@ -925,7 +925,7 @@ function PostDetailModalComponent({
               {hasMedia && (
                 <div className="mt-4 md:mt-6 pb-6">
                   {/* Main Image Container - Clean single border */}
-                  <div className={`relative group rounded-lg overflow-hidden border ${hasDarkBg ? 'border-white/20' : 'border-ink/10'}`}>
+                  <div className={`relative group rounded-lg overflow-hidden border ${hasDarkBg ? 'border-surface/20' : 'border-ink/10'}`}>
                     {media[currentMediaIndex]?.media_type === "video" ? (
                       <div className="relative bg-black">
                         <video

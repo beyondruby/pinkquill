@@ -46,7 +46,7 @@ export const postTypeStyles: Record<string, PostTypeStyle> = {
         />
       </svg>
     ),
-    gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
+    gradient: "from-violet-500 via-purple-primary to-fuchsia-500",
     label: "Poem",
     prefix: "wrote a",
   },
@@ -121,7 +121,7 @@ export const postTypeStyles: Record<string, PostTypeStyle> = {
         />
       </svg>
     ),
-    gradient: "from-rose-400 via-pink-500 to-red-400",
+    gradient: "from-rose-400 via-pink-vivid to-red-400",
     label: "Letter",
     prefix: "wrote a",
   },
@@ -191,7 +191,7 @@ export const postTypeStyles: Record<string, PostTypeStyle> = {
         />
       </svg>
     ),
-    gradient: "from-red-400 via-rose-500 to-pink-500",
+    gradient: "from-red-400 via-rose-500 to-pink-vivid",
     label: "Video",
     prefix: "shared a",
   },

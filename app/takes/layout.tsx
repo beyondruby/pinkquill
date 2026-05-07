@@ -15,7 +15,7 @@ export default function TakesLayout({
     <>
       {/* No mobile header/nav for immersive full-screen Takes experience */}
       <LeftSidebar />
-      <main className="md:ml-[72px] min-h-screen bg-black md:bg-gradient-to-br md:from-[#fdfcfd] md:via-[#faf8fc] md:to-[#f8f5fa]">
+      <main className="md:ml-[72px] min-h-screen bg-canvas">
         {children}
       </main>
     </>

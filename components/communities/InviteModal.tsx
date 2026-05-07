@@ -138,7 +138,7 @@ export default function InviteModal({
             </svg>
           </div>
           <div className="relative flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-surface/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+            <div className="w-10 h-10 rounded-xl bg-surface/20 backdrop-blur-sm flex items-center justify-center border border-surface/30">
               <svg
                 className="w-5 h-5 text-white"
                 fill="none"

@@ -343,7 +343,7 @@ export default function MarketplaceHeader({
       {showFilters && (
         <div
           id="marketplace-filters-panel"
-          className="border-t border-border-light bg-gradient-to-b from-orange-50/40 via-white to-white animate-fadeIn"
+          className="border-t border-border-light bg-gradient-to-b from-orange-50/40 via-surface to-surface animate-fadeIn"
         >
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 bg-surface/90 border border-border-light rounded-2xl p-5 shadow-sm">

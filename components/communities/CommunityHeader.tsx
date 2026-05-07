@@ -118,7 +118,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
         <div className="absolute top-6 right-6 z-20" ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-sm hover:bg-surface/30 flex items-center justify-center text-white transition-all border border-white/20"
+            className="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-sm hover:bg-surface/30 flex items-center justify-center text-white transition-all border border-surface/20"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="5" cy="12" r="2" />
@@ -193,7 +193,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
         {/* Top left badges */}
         <div className="absolute top-6 left-6 flex items-center gap-3 z-10">
           {/* Privacy badge */}
-          <div className="px-4 py-2 rounded-full bg-surface/20 backdrop-blur-sm border border-white/20 flex items-center gap-2">
+          <div className="px-4 py-2 rounded-full bg-surface/20 backdrop-blur-sm border border-surface/20 flex items-center gap-2">
             {community.privacy === 'private' ? (
               <>
                 <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,7 +213,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
 
           {/* Role badge */}
           {community.is_member && (
-            <div className="px-4 py-2 rounded-full bg-surface/20 backdrop-blur-sm border border-white/20 flex items-center gap-2">
+            <div className="px-4 py-2 rounded-full bg-surface/20 backdrop-blur-sm border border-surface/20 flex items-center gap-2">
               <div className={`w-1.5 h-1.5 rounded-full ${
                 community.user_role === 'admin'
                   ? 'bg-orange-warm'
@@ -234,7 +234,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
             {/* Avatar */}
             <div className="relative flex-shrink-0">
               <div className="absolute -inset-1 bg-surface/30 rounded-full blur-sm" />
-              <div className="relative w-16 h-16 md:w-32 md:h-32 rounded-full overflow-hidden border-3 border-white/40 shadow-2xl">
+              <div className="relative w-16 h-16 md:w-32 md:h-32 rounded-full overflow-hidden border-3 border-surface/40 shadow-2xl">
                 {community.avatar_url ? (
                   <img
                     src={community.avatar_url}
@@ -285,7 +285,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
               {community.is_member && community.user_status === 'active' && (
                 <Link
                   href={`/create?community=${community.slug}`}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface/20 backdrop-blur-sm border border-white/30 text-white font-ui text-sm font-medium hover:bg-surface/30 transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface/20 backdrop-blur-sm border border-surface/30 text-white font-ui text-sm font-medium hover:bg-surface/30 transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

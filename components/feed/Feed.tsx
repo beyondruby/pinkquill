@@ -306,7 +306,7 @@ export default function Feed() {
           <p className="font-body text-red-500 mb-4">{error}</p>
           <button
             onClick={() => handleRefresh()}
-            className="px-6 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            className="px-6 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-sm font-medium text-on-accent hover:opacity-90 transition-opacity"
           >
             Try Again
           </button>
@@ -327,7 +327,7 @@ export default function Feed() {
           </p>
           <Link
             href="/create"
-            className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-white"
+            className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-on-accent"
           >
             Create Something
           </Link>
@@ -359,7 +359,7 @@ export default function Feed() {
       {/* Loading more indicator */}
       {postsLoading && posts.length > 0 && (
         <div className="flex justify-center py-8">
-          <div className="w-8 h-8 border-3 border-gray-200 border-t-purple-600 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-3 border-gray-200 border-t-purple-primary rounded-full animate-spin" />
         </div>
       )}
 

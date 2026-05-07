@@ -2019,7 +2019,7 @@ export default function CreatePost() {
 
       {/* Draft Recovery Banner */}
       {showDraftRecovery && recoveredDraft && (
-        <div className="mb-6 rounded-2xl border border-purple-primary/15 bg-gradient-to-r from-purple-primary/[0.04] via-white to-pink-vivid/[0.04] p-5 animate-fadeIn">
+        <div className="mb-6 rounded-2xl border border-purple-primary/15 bg-gradient-to-r from-purple-primary/[0.04] via-surface to-pink-vivid/[0.04] p-5 animate-fadeIn">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2139,7 +2139,7 @@ export default function CreatePost() {
                 onDragLeave={handleTakeDragLeave}
                 onClick={() => videoInputRef.current?.click()}
               >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#8e44ad] to-[#ff007f] flex items-center justify-center text-white">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white">
                   {icons.video}
                 </div>
                 <p className="font-ui text-[1rem] text-ink font-medium mb-1">Upload your Take</p>
@@ -2261,7 +2261,7 @@ export default function CreatePost() {
                               <div
                                 className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${
                                   takeSelectedFilter === filter.name
-                                    ? "border-purple-primary ring-2 ring-[#8e44ad]/20"
+                                    ? "border-purple-primary ring-2 ring-purple-primary/20"
                                     : "border-transparent"
                                 }`}
                               >
@@ -2639,7 +2639,7 @@ export default function CreatePost() {
               title="Text Color"
             >
               {icons.textColor}
-              <div className="w-4 h-1 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500" />
+              <div className="w-4 h-1 rounded-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-500" />
             </button>
 
             {showTextColorMenu && (
@@ -2988,7 +2988,7 @@ export default function CreatePost() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full rounded-2xl border border-dashed border-pink-vivid/25 bg-gradient-to-br from-pink-50/50 via-white to-purple-50/30 p-10 flex flex-col items-center gap-4 hover:border-pink-vivid/40 hover:shadow-sm transition-all group"
+                className="w-full rounded-2xl border border-dashed border-pink-vivid/25 bg-gradient-to-br from-pink-50/50 via-surface to-purple-50/30 p-10 flex flex-col items-center gap-4 hover:border-pink-vivid/40 hover:shadow-sm transition-all group"
               >
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center group-hover:scale-105 transition-transform">
                   <svg className="w-7 h-7 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3001,7 +3001,7 @@ export default function CreatePost() {
                 </div>
               </button>
             ) : (
-              <div className="rounded-2xl border border-border-light bg-gradient-to-br from-white via-pink-50/20 to-purple-50/15 p-5">
+              <div className="rounded-2xl border border-border-light bg-gradient-to-br from-surface via-pink-50/20 to-purple-50/15 p-5">
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {mediaItems.map((item, index) => (
                     <div
@@ -3522,7 +3522,7 @@ export default function CreatePost() {
                           className="w-5 h-5 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#8e44ad] to-[#8e44ad] flex items-center justify-center text-white text-[0.5rem] font-bold">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-primary to-purple-primary flex items-center justify-center text-white text-[0.5rem] font-bold">
                           {selectedCommunity.name.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -3611,7 +3611,7 @@ export default function CreatePost() {
                             className="w-6 h-6 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#8e44ad] to-[#8e44ad] flex items-center justify-center text-white text-[0.6rem] font-bold">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-primary to-purple-primary flex items-center justify-center text-white text-[0.6rem] font-bold">
                             {community.name.charAt(0).toUpperCase()}
                           </div>
                         )}
