@@ -79,6 +79,14 @@
    ============================================================================ */
 
 [data-theme="noir"] {
+  /* Identity gradient — recolored per theme so logos, CTAs, decorative
+     gradients and shadows all follow the active palette. The token names
+     stay (--color-purple-primary etc.) for backwards-compat with components
+     and Tailwind utilities; only the values shift. */
+  --color-purple-primary: #22d3ee;
+  --color-pink-vivid: #e879f9;
+  --color-orange-warm: #6366f1;
+
   /* Surfaces */
   --color-canvas: #0e0e12;
   --color-surface: #17171c;
@@ -112,6 +120,11 @@
 }
 
 [data-theme="cream"] {
+  /* Identity gradient — warm orange→amber→yellow */
+  --color-purple-primary: #d97757;
+  --color-pink-vivid: #f59e0b;
+  --color-orange-warm: #facc15;
+
   /* Surfaces — warm paper feel */
   --color-canvas: #fdf8f0;
   --color-surface: #fffbf3;
@@ -141,6 +154,11 @@
 }
 
 [data-theme="sepia"] {
+  /* Identity gradient — sepia/brown gradient */
+  --color-purple-primary: #c0703f;
+  --color-pink-vivid: #8b5a2b;
+  --color-orange-warm: #d4a04e;
+
   /* Surfaces — old paper */
   --color-canvas: #f4ecd8;
   --color-surface: #faf3e0;
@@ -170,6 +188,11 @@
 }
 
 [data-theme="ocean"] {
+  /* Identity gradient — sky→cyan→deep blue */
+  --color-purple-primary: #38bdf8;
+  --color-pink-vivid: #06b6d4;
+  --color-orange-warm: #3b82f6;
+
   /* Surfaces — deep ocean blues */
   --color-canvas: #0a1628;
   --color-surface: #14273f;
@@ -199,6 +222,11 @@
 }
 
 [data-theme="sunset"] {
+  /* Identity gradient — orange→rose→amber */
+  --color-purple-primary: #fb923c;
+  --color-pink-vivid: #f43f5e;
+  --color-orange-warm: #fbbf24;
+
   /* Surfaces — warm dark with brown undertone */
   --color-canvas: #1a0f0a;
   --color-surface: #25160f;

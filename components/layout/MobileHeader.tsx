@@ -33,7 +33,7 @@ export default function MobileHeader() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm flex items-center justify-center shadow-md shadow-purple-primary/20">
-              <FontAwesomeIcon icon={faFeatherPointed} className="w-3.5 h-3.5 text-white" />
+              <FontAwesomeIcon icon={faFeatherPointed} className="w-3.5 h-3.5 text-on-accent" />
             </div>
             <h1 className="font-display text-base font-semibold text-ink">PinkQuill</h1>
           </Link>
@@ -75,7 +75,7 @@ export default function MobileHeader() {
             ) : (
               <Link
                 href="/login"
-                className="px-4 py-2 rounded-full font-ui text-sm font-medium text-white bg-gradient-to-r from-purple-primary to-pink-vivid"
+                className="px-4 py-2 rounded-full font-ui text-sm font-medium text-on-accent bg-gradient-to-r from-purple-primary to-pink-vivid"
               >
                 Sign In
               </Link>

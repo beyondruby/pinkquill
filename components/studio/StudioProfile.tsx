@@ -1134,7 +1134,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 {profile.display_name || profile.username}
               </h1>
               {profile.is_verified && (
-                <span className="w-5 h-5 md:w-7 md:h-7 bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm rounded-full flex items-center justify-center text-white shadow-lg shadow-pink-vivid/25">
+                <span className="w-5 h-5 md:w-7 md:h-7 bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm rounded-full flex items-center justify-center text-on-accent shadow-lg shadow-pink-vivid/25">
                   {icons.verified}
                 </span>
               )}
@@ -1163,7 +1163,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       ? "bg-surface border-2 border-accent text-accent hover:bg-accent/5"
                       : isPendingRequest
                         ? "bg-surface border-2 border-muted text-muted hover:border-red-400 hover:text-red-400"
-                        : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-xl"
+                        : "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent shadow-lg shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-xl"
                   }`}
                 >
                   {followLoading

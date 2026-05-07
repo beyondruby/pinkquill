@@ -729,7 +729,7 @@ function PostCardComponent({
               />
             ) : (
               <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center border border-border-light">
-                <span className="font-ui text-sm font-semibold text-white">
+                <span className="font-ui text-sm font-semibold text-on-accent">
                   {post.community!.name.charAt(0).toUpperCase()}
                 </span>
               </div>

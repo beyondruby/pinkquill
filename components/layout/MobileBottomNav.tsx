@@ -89,7 +89,7 @@ export default function MobileBottomNav() {
               }`}
             >
               {isCreate ? (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-white shadow-lg shadow-pink-vivid/30">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-on-accent shadow-lg shadow-pink-vivid/30">
                   {icons[item.icon]}
                 </div>
               ) : (

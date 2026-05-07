@@ -262,7 +262,7 @@ function WhoToFollowSection() {
                   className={`px-3 py-1.5 rounded-full font-ui text-xs font-semibold transition-all ${
                     isFollowing
                       ? "bg-white border border-black/10 text-ink hover:border-red-300 hover:text-red-500"
-                      : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white hover:shadow-md hover:shadow-pink-vivid/20"
+                      : "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent hover:shadow-md hover:shadow-pink-vivid/20"
                   }`}
                 >
                   {isFollowing ? "Following" : "Follow"}
@@ -316,7 +316,7 @@ function CommunitiesSection() {
               />
             ) : (
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
-                <span className="font-ui text-sm font-bold text-white">
+                <span className="font-ui text-sm font-bold text-on-accent">
                   {community.name.charAt(0).toUpperCase()}
                 </span>
               </div>

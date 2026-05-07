@@ -187,7 +187,7 @@ export default function LeftSidebar() {
         {/* Logo */}
         <Link href="/" className={`flex items-center mb-6 ${isExpanded ? "gap-3 px-2" : "justify-center"}`}>
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm flex items-center justify-center shadow-lg shadow-purple-primary/20 flex-shrink-0">
-            <FontAwesomeIcon icon={faFeatherPointed} className="w-4 h-4 text-white" />
+            <FontAwesomeIcon icon={faFeatherPointed} className="w-4 h-4 text-on-accent" />
           </div>
           <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 absolute"}`}>
             <h1 className="font-display text-lg text-ink leading-tight whitespace-nowrap">PinkQuill</h1>
@@ -301,7 +301,7 @@ export default function LeftSidebar() {
           <div className={`relative mt-auto ${isExpanded ? "" : "flex justify-center"}`} ref={createMenuRef}>
             <button
               onClick={() => setShowCreateMenu(!showCreateMenu)}
-              className={`bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-white shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300 ${
+              className={`bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-on-accent shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300 ${
                 isExpanded ? "w-full h-12 rounded-xl gap-2" : "w-10 h-10 rounded-full"
               }`}
               title={!isExpanded ? "Create" : undefined}

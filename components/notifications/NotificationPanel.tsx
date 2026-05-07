@@ -1073,7 +1073,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
                 Notifications
               </h2>
               {unreadCount > 0 && (
-                <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white text-[0.7rem] font-semibold shadow-sm">
+                <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent text-[0.7rem] font-semibold shadow-sm">
                   {unreadCount}
                 </span>
               )}

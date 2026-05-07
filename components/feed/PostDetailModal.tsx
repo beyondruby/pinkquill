@@ -1224,7 +1224,7 @@ function PostDetailModalComponent({
                 <button
                   onClick={handleAddComment}
                   disabled={submitting || !commentText.trim()}
-                  className="w-[42px] h-[42px] rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-purple-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="w-[42px] h-[42px] rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-purple-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {icons.send}
                 </button>
