@@ -16,10 +16,34 @@ export const THEMES = {
     description: 'Pink & purple, light mode',
     appearance: 'light',
   },
+  cream: {
+    id: 'cream',
+    label: 'Cream',
+    description: 'Warm parchment with terracotta accents',
+    appearance: 'light',
+  },
+  sepia: {
+    id: 'sepia',
+    label: 'Sepia',
+    description: 'Old paper, monochrome warmth',
+    appearance: 'light',
+  },
   noir: {
     id: 'noir',
     label: 'Noir',
     description: 'Deep dark, cyan & fuchsia accents',
+    appearance: 'dark',
+  },
+  ocean: {
+    id: 'ocean',
+    label: 'Ocean',
+    description: 'Deep blue with sky-cyan accents',
+    appearance: 'dark',
+  },
+  sunset: {
+    id: 'sunset',
+    label: 'Sunset',
+    description: 'Warm darkness, amber & rose',
     appearance: 'dark',
   },
 } as const satisfies Record<string, ThemeMeta>;

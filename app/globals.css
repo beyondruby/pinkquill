@@ -111,6 +111,122 @@
   --color-toast-border: rgba(0, 0, 0, 0.12);
 }
 
+[data-theme="cream"] {
+  /* Surfaces — warm paper feel */
+  --color-canvas: #fdf8f0;
+  --color-surface: #fffbf3;
+  --color-elevated: #ffffff;
+  --color-overlay: rgba(58, 46, 28, 0.4);
+  --color-glass: rgba(255, 251, 243, 0.85);
+  --color-subtle: #f5ecd9;
+
+  /* Text — warm browns */
+  --color-ink: #3a2e1c;
+  --color-subdued: #6b5a3e;
+  --color-muted: #95856b;
+  --color-on-accent: #fffbf3;
+
+  --color-border-light: rgba(120, 90, 50, 0.08);
+  --color-border-strong: rgba(120, 90, 50, 0.18);
+
+  /* Accent — terracotta + amber */
+  --color-accent: #d97757;
+  --color-accent-2: #f59e0b;
+
+  --color-skeleton: #ead9b8;
+
+  --color-toast-bg: #3a2e1c;
+  --color-toast-text: #fffbf3;
+  --color-toast-border: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="sepia"] {
+  /* Surfaces — old paper */
+  --color-canvas: #f4ecd8;
+  --color-surface: #faf3e0;
+  --color-elevated: #fef9ed;
+  --color-overlay: rgba(74, 53, 32, 0.45);
+  --color-glass: rgba(244, 236, 216, 0.85);
+  --color-subtle: #ede0c2;
+
+  /* Text — deep sepia */
+  --color-ink: #4a3520;
+  --color-subdued: #6b4d2e;
+  --color-muted: #8e7150;
+  --color-on-accent: #faf3e0;
+
+  --color-border-light: rgba(74, 53, 32, 0.1);
+  --color-border-strong: rgba(74, 53, 32, 0.22);
+
+  /* Accent — warm sepia tones */
+  --color-accent: #c0703f;
+  --color-accent-2: #8b5a2b;
+
+  --color-skeleton: #ddcca6;
+
+  --color-toast-bg: #4a3520;
+  --color-toast-text: #faf3e0;
+  --color-toast-border: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="ocean"] {
+  /* Surfaces — deep ocean blues */
+  --color-canvas: #0a1628;
+  --color-surface: #14273f;
+  --color-elevated: #1c3450;
+  --color-overlay: rgba(0, 0, 0, 0.65);
+  --color-glass: rgba(20, 39, 63, 0.85);
+  --color-subtle: #1f3a5a;
+
+  /* Text */
+  --color-ink: #e8f0fc;
+  --color-subdued: #b8c8dc;
+  --color-muted: #7a92ad;
+  --color-on-accent: #0a1628;
+
+  --color-border-light: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.18);
+
+  /* Accent — sky blue + cyan */
+  --color-accent: #38bdf8;
+  --color-accent-2: #06b6d4;
+
+  --color-skeleton: #25405e;
+
+  --color-toast-bg: #e8f0fc;
+  --color-toast-text: #0a1628;
+  --color-toast-border: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="sunset"] {
+  /* Surfaces — warm dark with brown undertone */
+  --color-canvas: #1a0f0a;
+  --color-surface: #25160f;
+  --color-elevated: #2e1c14;
+  --color-overlay: rgba(0, 0, 0, 0.65);
+  --color-glass: rgba(37, 22, 15, 0.85);
+  --color-subtle: #3a1f15;
+
+  /* Text — warm cream-on-warm-dark */
+  --color-ink: #fce8d4;
+  --color-subdued: #d4b896;
+  --color-muted: #a08770;
+  --color-on-accent: #1a0f0a;
+
+  --color-border-light: rgba(255, 220, 180, 0.08);
+  --color-border-strong: rgba(255, 220, 180, 0.18);
+
+  /* Accent — warm orange + rose-red */
+  --color-accent: #fb923c;
+  --color-accent-2: #f43f5e;
+
+  --color-skeleton: #3d231a;
+
+  --color-toast-bg: #fce8d4;
+  --color-toast-text: #1a0f0a;
+  --color-toast-border: rgba(0, 0, 0, 0.1);
+}
+
 /* Lowercase legacy aliases used by animations/blobs in this file.
    The decorative aura-blob backgrounds keep brand colors so identity reads
    the same on every theme; only --paper / --ink / --glass-bg follow noir. */

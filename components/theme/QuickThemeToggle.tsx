@@ -52,6 +52,13 @@ export function QuickThemeToggle() {
     // Don't bubble up — the parent dropdown closes on outside-click and we
     // want the user to be able to flick between segments without dismissing.
     e.stopPropagation();
+    // No-op when the click matches the current category. A user on a custom
+    // light theme (e.g. Cream) clicking "Light" should NOT lose their choice
+    // and snap back to the canonical SYSTEM_LIGHT — they're already on light.
+    // Switching across categories (Light→Dark, Dark→Light, anything→System)
+    // does jump to the canonical fallback, which is the intended UX for a
+    // categorical quick-toggle. Fine-grained picks live in /settings/appearance.
+    if (id === activeSegment) return;
     if (id === "system") setTheme("system");
     else if (id === "light") setTheme(SYSTEM_LIGHT);
     else setTheme(SYSTEM_DARK);
