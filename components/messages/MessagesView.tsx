@@ -389,7 +389,7 @@ export default function MessagesView() {
   }
 
   return (
-    <div className="messages-container flex h-screen md:h-screen bg-[#f8f7fc]">
+    <div className="messages-container flex h-screen md:h-screen bg-canvas">
       {/* Conversations Sidebar - full width on mobile, hidden when conversation selected */}
       <div className={`messages-sidebar w-full md:w-[340px] bg-surface border-r border-border-light flex flex-col ${
         selectedConversation ? 'hidden md:flex' : 'flex'

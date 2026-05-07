@@ -737,7 +737,7 @@ export default function ChatView({
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-[#f8f7fc]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-canvas">
         {hasOlderMessages && (
           <div className="flex justify-center mb-4">
             <button
@@ -1057,7 +1057,7 @@ export default function ChatView({
           <div className={`flex-1 flex items-center rounded-full px-4 transition-all ${
             showVoiceRecorder
               ? "bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 ring-2 ring-purple-primary/30"
-              : "bg-[#f5f5f5] focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg"
+              : "bg-subtle focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg"
           }`}>
             {showVoiceRecorder ? (
               <VoiceRecorder

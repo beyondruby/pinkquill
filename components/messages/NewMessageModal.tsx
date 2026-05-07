@@ -285,7 +285,7 @@ export default function NewMessageModal({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for someone..."
               disabled={creating}
-              className="w-full pl-12 pr-4 py-3 rounded-xl border border-border-light bg-[#fafafa] font-ui text-[0.95rem] text-ink outline-none focus:border-purple-primary focus:bg-surface focus:ring-2 focus:ring-purple-primary/20 transition-all disabled:opacity-50"
+              className="w-full pl-12 pr-4 py-3 rounded-xl border border-border-light bg-canvas font-ui text-[0.95rem] text-ink outline-none focus:border-purple-primary focus:bg-surface focus:ring-2 focus:ring-purple-primary/20 transition-all disabled:opacity-50"
             />
           </div>
         </div>

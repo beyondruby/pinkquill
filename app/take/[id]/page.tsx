@@ -561,7 +561,7 @@ export default function SingleTakePage({ params }: PageProps) {
     return (
       <>
         <LeftSidebar />
-        <main className="ml-[72px] min-h-screen bg-[#fdfdfd]">
+        <main className="ml-[72px] min-h-screen bg-canvas">
           <div className="max-w-[680px] mx-auto py-12 px-6">
             <div className="text-center py-20">
               <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -578,7 +578,7 @@ export default function SingleTakePage({ params }: PageProps) {
     return (
       <>
         <LeftSidebar />
-        <main className="ml-[72px] min-h-screen bg-[#fdfdfd]">
+        <main className="ml-[72px] min-h-screen bg-canvas">
           <div className="max-w-[680px] mx-auto py-12 px-6">
             <div className="text-center py-20">
               <h1 className="font-display text-2xl text-ink mb-4">Take not found</h1>
@@ -596,7 +596,7 @@ export default function SingleTakePage({ params }: PageProps) {
   return (
     <ErrorBoundary>
       <LeftSidebar />
-      <main className="ml-[72px] min-h-screen bg-[#fdfdfd]">
+      <main className="ml-[72px] min-h-screen bg-canvas">
         <div className="max-w-[1100px] mx-auto py-8 px-6 flex gap-6">
           {/* Left Column - Take */}
           <div className="flex-1 min-w-0">
@@ -811,7 +811,7 @@ export default function SingleTakePage({ params }: PageProps) {
                     alt="You"
                     className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                   />
-                  <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary transition-all">
+                  <div className="flex-1 flex items-center bg-subtle rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary transition-all">
                     <input
                       type="text"
                       value={commentText}

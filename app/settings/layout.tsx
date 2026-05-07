@@ -25,7 +25,7 @@ export default function SettingsLayout({
   if (loading) {
     // Show minimal loading state - don't render sidebars to avoid hook cascades
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
         <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -43,7 +43,7 @@ export default function SettingsLayout({
         <div className="relative hidden md:block">
           <SettingsSidebar />
         </div>
-        <main className="flex-1 bg-[#fafafa] p-4 md:p-10 overflow-y-auto">
+        <main className="flex-1 bg-canvas p-4 md:p-10 overflow-y-auto">
           <div className="max-w-3xl">
             {children}
           </div>

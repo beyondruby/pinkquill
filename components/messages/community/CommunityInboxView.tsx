@@ -578,7 +578,7 @@ export default function CommunityInboxView() {
       : null;
 
   return (
-    <div className="h-screen bg-[#f8f7fc] flex flex-col md:flex-row">
+    <div className="h-screen bg-canvas flex flex-col md:flex-row">
       {/* Communities */}
       <aside className="md:w-[280px] w-full md:border-r border-border-light bg-surface flex flex-col">
         <div
@@ -865,7 +865,7 @@ export default function CommunityInboxView() {
       )}
 
       {/* Chat */}
-      <section className="flex-1 flex flex-col bg-[#f8f7fc] min-w-0">
+      <section className="flex-1 flex flex-col bg-canvas min-w-0">
         {!selectedMembership ? (
           <div className="flex-1 flex items-center justify-center px-6">
             <div className="text-center max-w-sm">

@@ -56,7 +56,7 @@ export default function AuthForm() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#FDFCFD] p-4 sm:p-6 lg:p-8 overflow-hidden relative selection:bg-purple-primary/20 selection:text-purple-primary">
+    <div className="min-h-screen w-full flex items-center justify-center bg-canvas p-4 sm:p-6 lg:p-8 overflow-hidden relative selection:bg-purple-primary/20 selection:text-purple-primary">
 
       {/* Background Ambience */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -71,7 +71,7 @@ export default function AuthForm() {
         <div className="hidden lg:flex w-5/12 relative flex-col justify-between p-12 overflow-hidden">
 
           {/* Abstract Art Layer */}
-          <div className="absolute inset-0 z-0 bg-[#faf8fc]">
+          <div className="absolute inset-0 z-0 bg-canvas">
              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-purple-primary/20 via-pink-vivid/20 to-orange-warm/20 blur-[60px] rounded-full translate-x-1/3 -translate-y-1/4" />
              <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-purple-primary/10 to-transparent blur-[80px] rounded-full -translate-x-1/4 translate-y-1/4" />
              <div className="absolute inset-0 opacity-[0.4]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>

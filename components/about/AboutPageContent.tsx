@@ -78,14 +78,14 @@ export default function AboutPageContent() {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-[#FDFCFB] text-ink">
+    <div className="relative min-h-screen overflow-x-clip bg-canvas text-ink">
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="ab-bg-orb ab-bg-orb-1" />
         <div className="ab-bg-orb ab-bg-orb-2" />
         <div className="ab-bg-orb ab-bg-orb-3" />
       </div>
 
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border-light bg-[#FDFCFB]/82 backdrop-blur-xl">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border-light bg-canvas/82 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
           <Link
             href="/"
@@ -229,7 +229,7 @@ export default function AboutPageContent() {
           </div>
         </section>
 
-        <section className="sticky top-16 z-30 border-y border-border-light bg-[#FDFCFB]/90 px-6 py-3 backdrop-blur-xl">
+        <section className="sticky top-16 z-30 border-y border-border-light bg-canvas/90 px-6 py-3 backdrop-blur-xl">
           <div className="mx-auto w-full max-w-6xl overflow-x-auto scrollbar-hide">
             <nav className="flex w-max items-center gap-2">
               {navItems.map((item) => (

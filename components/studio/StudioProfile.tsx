@@ -1062,7 +1062,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8f7fc] flex items-center justify-center">
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
         <Loading text="Loading profile" size="large" />
       </div>
     );
@@ -1070,7 +1070,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
   if (error || !profile || isBlockedByUser) {
     return (
-      <div className="min-h-screen bg-[#f8f7fc] flex items-center justify-center">
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="text-center">
           <h1 className="font-display text-2xl text-ink mb-4">User not found</h1>
           <p className="font-body text-muted">This user doesn&apos;t exist or is unavailable.</p>
@@ -1080,7 +1080,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f7fc]">
+    <div className="min-h-screen bg-canvas">
       {/* Cover Section - Soft Watercolor Aesthetic */}
       <div className="relative h-[200px] md:h-[320px] overflow-hidden">
         {/* Base watercolor background */}
@@ -1122,7 +1122,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             <img
               src={profile.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"}
               alt={profile.display_name || profile.username}
-              className="studio-avatar w-24 h-24 md:w-40 md:h-40 rounded-full object-cover border-[4px] md:border-[5px] border-[#f8f7fc] shadow-xl"
+              className="studio-avatar w-24 h-24 md:w-40 md:h-40 rounded-full object-cover border-[4px] md:border-[5px] border-surface shadow-xl"
             />
           </div>
 

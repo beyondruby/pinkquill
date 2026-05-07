@@ -2131,8 +2131,8 @@ export default function CreatePost() {
               <div
                 className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all max-w-md mx-auto ${
                   takeDragActive
-                    ? "border-[#8e44ad] bg-[#8e44ad]/5"
-                    : "border-border-light hover:border-[#8e44ad]/50 hover:bg-[#8e44ad]/[0.02]"
+                    ? "border-purple-primary bg-purple-primary/5"
+                    : "border-border-light hover:border-purple-primary/50 hover:bg-purple-primary/[0.02]"
                 }`}
                 onDrop={handleTakeDrop}
                 onDragOver={handleTakeDragOver}
@@ -2178,7 +2178,7 @@ export default function CreatePost() {
                         className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
                         onClick={handleToggleTakePreview}
                       >
-                        <div className="w-14 h-14 rounded-full bg-surface/90 flex items-center justify-center text-[#6b2d8b]">
+                        <div className="w-14 h-14 rounded-full bg-surface/90 flex items-center justify-center text-accent">
                           {isTakePreviewPlaying ? icons.pause : icons.play}
                         </div>
                       </div>
@@ -2228,7 +2228,7 @@ export default function CreatePost() {
                       placeholder="Write a caption..."
                       maxLength={500}
                       rows={3}
-                      className="w-full p-3 rounded-xl border border-border-light bg-[#fafafa] font-body text-[0.9rem] text-ink resize-none outline-none focus:border-[#8e44ad] focus:bg-surface transition-all placeholder:text-muted/50"
+                      className="w-full p-3 rounded-xl border border-border-light bg-canvas font-body text-[0.9rem] text-ink resize-none outline-none focus:border-purple-primary focus:bg-surface transition-all placeholder:text-muted/50"
                     />
                     <div className="text-right font-ui text-[0.7rem] text-muted mt-1">{takeCaption.length}/500</div>
                   </div>
@@ -2261,7 +2261,7 @@ export default function CreatePost() {
                               <div
                                 className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${
                                   takeSelectedFilter === filter.name
-                                    ? "border-[#8e44ad] ring-2 ring-[#8e44ad]/20"
+                                    ? "border-purple-primary ring-2 ring-[#8e44ad]/20"
                                     : "border-transparent"
                                 }`}
                               >
@@ -2270,7 +2270,7 @@ export default function CreatePost() {
                                   style={filter.style}
                                 />
                               </div>
-                              <span className={`text-[0.65rem] font-medium ${takeSelectedFilter === filter.name ? "text-[#6b2d8b]" : "text-muted"}`}>
+                              <span className={`text-[0.65rem] font-medium ${takeSelectedFilter === filter.name ? "text-accent" : "text-muted"}`}>
                                 {filter.label}
                               </span>
                             </button>
@@ -2313,7 +2313,7 @@ export default function CreatePost() {
                       <div className="space-y-3">
                         {takeSelectedSound ? (
                           <div className="space-y-3">
-                            <div className="flex items-center gap-3 p-3 bg-[#fafafa] rounded-xl">
+                            <div className="flex items-center gap-3 p-3 bg-canvas rounded-xl">
                               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white flex-shrink-0">
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                               </div>
@@ -2345,7 +2345,7 @@ export default function CreatePost() {
                               placeholder="Search sounds..."
                               value={takeSoundSearch}
                               onChange={(e) => setTakeSoundSearch(e.target.value)}
-                              className="w-full p-2.5 rounded-lg border border-border-light bg-[#fafafa] text-sm outline-none focus:border-[#8e44ad]"
+                              className="w-full p-2.5 rounded-lg border border-border-light bg-canvas text-sm outline-none focus:border-purple-primary"
                             />
                             <div className="max-h-36 overflow-y-auto space-y-1">
                               {searchingSounds ? (
@@ -2443,7 +2443,7 @@ export default function CreatePost() {
                         {takeThumbnailFromVideo ? (
                           <button
                             onClick={() => { setTakeThumbnailPreview(null); setTakeThumbnailFile(null); }}
-                            className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${!takeThumbnailPreview ? "border-[#8e44ad]" : "border-transparent hover:border-gray-300"}`}
+                            className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${!takeThumbnailPreview ? "border-purple-primary" : "border-transparent hover:border-gray-300"}`}
                           >
                             <img src={takeThumbnailFromVideo} alt="" className="w-full h-full object-cover" />
                             <span className="absolute bottom-1 left-1 right-1 text-[0.6rem] text-white text-center bg-black/50 rounded px-1 py-0.5">From Video</span>
@@ -2453,7 +2453,7 @@ export default function CreatePost() {
                         )}
                         <button
                           onClick={() => thumbnailInputRef.current?.click()}
-                          className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${takeThumbnailPreview ? "border-[#8e44ad]" : "border-dashed border-gray-200 hover:border-gray-300"}`}
+                          className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${takeThumbnailPreview ? "border-purple-primary" : "border-dashed border-gray-200 hover:border-gray-300"}`}
                         >
                           {takeThumbnailPreview ? (
                             <>
@@ -3471,8 +3471,8 @@ export default function CreatePost() {
                 disabled={isCommunityPost}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full border bg-surface font-ui text-[0.85rem] transition-all ${
                   isCommunityPost
-                    ? "border-[#8e44ad]/30 text-[#6b2d8b] cursor-not-allowed"
-                    : "border-border-light text-muted hover:border-[#8e44ad] hover:text-[#6b2d8b]"
+                    ? "border-purple-primary/30 text-accent cursor-not-allowed"
+                    : "border-border-light text-muted hover:border-purple-primary hover:text-accent"
                 }`}
               >
                 {icons[currentVisibility?.icon || "globe"]}
@@ -3491,7 +3491,7 @@ export default function CreatePost() {
                       }}
                       className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                         visibility === option.id
-                          ? "bg-[#f3e8f7] text-[#6b2d8b]"
+                          ? "bg-accent/15 text-accent"
                           : "text-ink hover:bg-subtle"
                       }`}
                     >
@@ -3510,7 +3510,7 @@ export default function CreatePost() {
             {!isEditing && (selectedCommunity || userCommunities.length > 0 || communitiesLoading || authLoading) && (
               <div className="relative">
                 {selectedCommunity ? (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#8e44ad]/30 bg-[#8e44ad]/5 text-[#6b2d8b] font-ui text-[0.85rem]">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-primary/30 bg-purple-primary/5 text-accent font-ui text-[0.85rem]">
                     <span
                       onClick={() => setShowCommunityMenu(!showCommunityMenu)}
                       className="flex items-center gap-2 cursor-pointer"
@@ -3544,7 +3544,7 @@ export default function CreatePost() {
                   <button
                     onClick={() => !authLoading && setShowCommunityMenu(!showCommunityMenu)}
                     disabled={authLoading}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-border-light bg-surface text-muted hover:border-[#8e44ad] hover:text-[#6b2d8b] font-ui text-[0.85rem] transition-all ${authLoading ? 'opacity-60 cursor-wait' : ''}`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-border-light bg-surface text-muted hover:border-purple-primary hover:text-accent font-ui text-[0.85rem] transition-all ${authLoading ? 'opacity-60 cursor-wait' : ''}`}
                   >
                     {(communitiesLoading || authLoading) ? (
                       <div className="w-4 h-4 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
@@ -3568,7 +3568,7 @@ export default function CreatePost() {
                       }}
                         className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                           !selectedCommunity
-                            ? "bg-[#f3e8f7] text-[#6b2d8b]"
+                            ? "bg-accent/15 text-accent"
                             : "text-ink hover:bg-subtle"
                         }`}
                     >
@@ -3600,7 +3600,7 @@ export default function CreatePost() {
                         }}
                         className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                           selectedCommunity?.id === community.id
-                            ? "bg-[#f3e8f7] text-[#6b2d8b]"
+                            ? "bg-accent/15 text-accent"
                             : "text-ink hover:bg-subtle"
                         }`}
                       >

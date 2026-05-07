@@ -401,7 +401,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
 
       {/* Panel - Side panel on desktop, bottom sheet on mobile */}
       <div
-        className={`take-comments-panel fixed z-50 flex flex-col bg-surface md:bg-[#fafafa] transform transition-transform duration-300 ease-out inset-x-0 bottom-0 h-[85vh] rounded-t-3xl md:inset-auto md:top-0 md:right-0 md:h-full md:w-[380px] md:rounded-none ${isOpen ? "translate-y-0 md:translate-x-0" : "translate-y-full md:translate-y-0 md:translate-x-full"}`}
+        className={`take-comments-panel fixed z-50 flex flex-col bg-surface md:bg-canvas transform transition-transform duration-300 ease-out inset-x-0 bottom-0 h-[85vh] rounded-t-3xl md:inset-auto md:top-0 md:right-0 md:h-full md:w-[380px] md:rounded-none ${isOpen ? "translate-y-0 md:translate-x-0" : "translate-y-full md:translate-y-0 md:translate-x-full"}`}
       >
         {/* Mobile drag handle */}
         <div className="md:hidden flex justify-center pt-3 pb-1">
@@ -495,7 +495,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
               </div>
             )}
             <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2">
-              <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
+              <div className="flex-1 flex items-center bg-subtle rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
                 <input
                   ref={inputRef}
                   type="text"

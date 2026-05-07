@@ -671,7 +671,7 @@ export default function TakeDetailModal({
                     alt="You"
                     className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                   />
-                  <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-3xl px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
+                  <div className="flex-1 flex items-center bg-subtle rounded-3xl px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
                     <input
                       type="text"
                       value={commentText}

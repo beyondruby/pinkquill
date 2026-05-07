@@ -195,7 +195,7 @@ export default function CommunityLayoutClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f7fc]">
+    <div className="min-h-screen bg-canvas">
       <CommunityHeader
         community={community}
         tags={tags}
