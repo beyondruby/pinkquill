@@ -12,20 +12,20 @@ import { getTimeAgoCompact } from "@/lib/utils/time";
 // Loading skeleton
 function PostSkeleton() {
   return (
-    <div className="bg-white rounded-2xl p-5 animate-pulse">
+    <div className="bg-surface rounded-2xl p-5 animate-pulse">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-11 h-11 rounded-full bg-gray-100" />
+        <div className="w-11 h-11 rounded-full bg-skeleton" />
         <div className="flex-1">
-          <div className="h-4 bg-gray-100 rounded w-32 mb-2" />
-          <div className="h-3 bg-gray-100 rounded w-24" />
+          <div className="h-4 bg-skeleton rounded w-32 mb-2" />
+          <div className="h-3 bg-skeleton rounded w-24" />
         </div>
       </div>
       <div className="space-y-2 mb-4">
-        <div className="h-4 bg-gray-100 rounded w-full" />
-        <div className="h-4 bg-gray-100 rounded w-5/6" />
-        <div className="h-4 bg-gray-100 rounded w-4/6" />
+        <div className="h-4 bg-skeleton rounded w-full" />
+        <div className="h-4 bg-skeleton rounded w-5/6" />
+        <div className="h-4 bg-skeleton rounded w-4/6" />
       </div>
-      <div className="h-48 bg-gray-100 rounded-xl" />
+      <div className="h-48 bg-skeleton rounded-xl" />
     </div>
   );
 }
@@ -134,13 +134,13 @@ export default function TagPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-black/[0.05]">
+      <header className="sticky top-0 z-40 bg-surface border-b border-border-light">
         <div className="max-w-[640px] mx-auto px-4">
           <div className="flex items-center h-[56px] gap-4">
             {/* Back Button */}
             <Link
               href="/explore"
-              className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-black/[0.04] text-muted hover:text-ink transition-all"
+              className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-skeleton/60 text-muted hover:text-ink transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -173,7 +173,7 @@ export default function TagPage() {
                 <Link
                   key={tag.name}
                   href={`/tag/${encodeURIComponent(tag.name)}`}
-                  className="px-3 py-1.5 rounded-full bg-black/[0.04] text-ink font-ui text-sm hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+                  className="px-3 py-1.5 rounded-full bg-skeleton/70 text-ink font-ui text-sm hover:bg-accent/10 hover:text-accent transition-all"
                 >
                   #{tag.name}
                 </Link>
@@ -201,7 +201,7 @@ export default function TagPage() {
         {/* Empty State */}
         {!loading && posts.length === 0 && (
           <div className="text-center py-20">
-            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-black/[0.03] flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-skeleton/60 flex items-center justify-center">
               <svg className="w-7 h-7 text-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
               </svg>
@@ -234,7 +234,7 @@ export default function TagPage() {
             {/* Loading More */}
             {loading && posts.length > 0 && (
               <div className="flex justify-center py-8">
-                <div className="w-5 h-5 border-[1.5px] border-black/10 border-t-ink/60 rounded-full animate-spin" />
+                <div className="w-5 h-5 border-[1.5px] border-border-light border-t-ink/60 rounded-full animate-spin" />
               </div>
             )}
 

@@ -54,7 +54,7 @@ export default function DeliveryTypeStep({ value, onChange }: DeliveryTypeStepPr
                 className={`
                   relative w-36 h-36 rounded-full flex items-center justify-center
                   transition-all duration-300 mb-6
-                  backdrop-blur-sm bg-white/80
+                  backdrop-blur-sm bg-surface/80
                   ${isSelected
                     ? "shadow-xl shadow-pink-vivid/20"
                     : "shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/10"

@@ -278,7 +278,7 @@ export default function CreateProductWizard({
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-subtle">
         <div className="text-center px-6">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-orange-warm/20 to-pink-vivid/20 flex items-center justify-center">
             <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,8 +298,8 @@ export default function CreateProductWizard({
 
   if (isEditMode && !initialProduct) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-10 h-10 rounded-full border-2 border-black/20 border-t-[var(--color-pink-vivid)] animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-subtle">
+        <div className="w-10 h-10 rounded-full border-2 border-border-strong border-t-[var(--color-pink-vivid)] animate-spin" />
       </div>
     );
   }
@@ -313,7 +313,7 @@ export default function CreateProductWizard({
   const progressPercent = stepNumber === 1 ? 16 : stepNumber === 2 ? 50 : 100;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-surface">
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Step Label */}
         <p className="text-center text-sm font-ui text-muted uppercase tracking-wider mb-4">
@@ -340,7 +340,7 @@ export default function CreateProductWizard({
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold
                     ${stepNumber >= step.number
                       ? "bg-gradient-to-r from-orange-warm to-pink-vivid text-white"
-                      : "bg-gray-200 text-gray-500"
+                      : "bg-skeleton text-gray-500"
                     }`}
                 >
                   {step.number}
@@ -357,7 +357,7 @@ export default function CreateProductWizard({
           </div>
 
           {/* Progress Bar */}
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
@@ -420,7 +420,7 @@ export default function CreateProductWizard({
           {currentStep !== "delivery" ? (
             <button
               onClick={goToPreviousStep}
-              className="flex items-center gap-2 px-6 py-3 rounded-full bg-purple-primary text-white font-ui font-semibold hover:bg-purple-primary/90 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-purple-primary text-white font-ui font-semibold hover:bg-accent/90 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -435,7 +435,7 @@ export default function CreateProductWizard({
             <button
               onClick={handleNext}
               disabled={submitting}
-              className="flex items-center gap-2 px-8 py-3 rounded-full bg-purple-primary text-white font-ui font-semibold hover:bg-purple-primary/90 transition-colors"
+              className="flex items-center gap-2 px-8 py-3 rounded-full bg-purple-primary text-white font-ui font-semibold hover:bg-accent/90 transition-colors"
             >
               Next Step
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -42,7 +42,7 @@ export default function MetricCard({
   const numericValue = typeof value === "number" ? value : 0;
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-black/[0.04] hover:shadow-md transition-shadow">
+    <div className="bg-surface rounded-2xl p-5 border border-border-light hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <span className="font-ui text-sm text-muted">{label}</span>
         {icon && <span className="text-purple-primary/60">{icon}</span>}

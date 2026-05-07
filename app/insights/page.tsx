@@ -222,8 +222,8 @@ export default function InsightsOverviewPage() {
 
       {/* Top Content */}
       {insights.topContent.length > 0 && (
-        <div className="bg-white rounded-2xl border border-black/[0.04] overflow-hidden">
-          <div className="p-4 border-b border-black/[0.04] flex items-center justify-between">
+        <div className="bg-surface rounded-2xl border border-border-light overflow-hidden">
+          <div className="p-4 border-b border-border-light flex items-center justify-between">
             <h3 className="font-ui text-sm font-medium text-ink">Top Performing Content</h3>
             <Link
               href="/insights/content"
@@ -232,12 +232,12 @@ export default function InsightsOverviewPage() {
               View all
             </Link>
           </div>
-          <div className="divide-y divide-black/[0.04]">
+          <div className="divide-y divide-border-light">
             {insights.topContent.slice(0, 5).map((item) => (
               <Link
                 key={item.id}
                 href={`/insights/content/${item.type}/${item.id}`}
-                className="flex items-center gap-4 p-4 hover:bg-black/[0.01] transition-colors"
+                className="flex items-center gap-4 p-4 hover:bg-subtle/30 transition-colors"
               >
                 <div className="w-12 h-12 rounded-lg bg-purple-primary/5 flex items-center justify-center">
                   {item.type === "take" ? (

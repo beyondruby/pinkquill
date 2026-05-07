@@ -27,7 +27,7 @@ export default function ShippingTracker({ order }: { order: Order }) {
   const trackingUrl = getTrackingUrl(order.tracking_carrier, order.tracking_number || "");
 
   return (
-    <section className="rounded-2xl border border-black/[0.06] bg-white p-5">
+    <section className="rounded-2xl border border-border-light bg-surface p-5">
       <h3 className="font-display text-lg text-ink mb-4">Shipping Status</h3>
 
       {/* Progress bar */}
@@ -38,10 +38,10 @@ export default function ShippingTracker({ order }: { order: Order }) {
           </div>
           <span className="text-xs font-ui text-emerald-700 ml-1">Packed</span>
         </div>
-        <div className={`flex-1 h-1 rounded ${isShipped ? "bg-emerald-400" : "bg-black/[0.08]"}`} />
+        <div className={`flex-1 h-1 rounded ${isShipped ? "bg-emerald-400" : "bg-skeleton"}`} />
         <div className="flex items-center gap-1">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isShipped ? "bg-emerald-500" : "bg-black/[0.08]"
+            isShipped ? "bg-emerald-500" : "bg-skeleton"
           }`}>
             <FontAwesomeIcon icon={faTruck} className={isShipped ? "text-white text-xs" : "text-muted/60 text-xs"} />
           </div>
@@ -49,10 +49,10 @@ export default function ShippingTracker({ order }: { order: Order }) {
             Shipped
           </span>
         </div>
-        <div className={`flex-1 h-1 rounded ${isDelivered ? "bg-emerald-400" : "bg-black/[0.08]"}`} />
+        <div className={`flex-1 h-1 rounded ${isDelivered ? "bg-emerald-400" : "bg-skeleton"}`} />
         <div className="flex items-center gap-1">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isDelivered ? "bg-emerald-500" : "bg-black/[0.08]"
+            isDelivered ? "bg-emerald-500" : "bg-skeleton"
           }`}>
             <FontAwesomeIcon icon={faCheckCircle} className={isDelivered ? "text-white text-xs" : "text-muted/60 text-xs"} />
           </div>
@@ -64,7 +64,7 @@ export default function ShippingTracker({ order }: { order: Order }) {
 
       {/* Tracking details */}
       {hasTracking && (
-        <div className="rounded-xl bg-black/[0.02] border border-black/[0.04] p-4">
+        <div className="rounded-xl bg-subtle border border-border-light p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-ui text-muted uppercase tracking-wider mb-1">
@@ -84,7 +84,7 @@ export default function ShippingTracker({ order }: { order: Order }) {
                 href={trackingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 rounded-lg text-xs font-ui font-semibold text-purple-primary border border-purple-primary/30 hover:bg-purple-50 transition-colors"
+                className="px-4 py-2 rounded-lg text-xs font-ui font-semibold text-purple-primary border border-purple-primary/30 hover:bg-accent/10 transition-colors"
               >
                 Track <FontAwesomeIcon icon={faExternalLinkAlt} className="ml-1 text-[10px]" />
               </a>

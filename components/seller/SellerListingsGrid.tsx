@@ -19,8 +19,8 @@ import type { Product, ProductStatus } from "@/lib/types/store";
 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
   active: { label: "Active", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
   paused: { label: "Paused", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
-  draft: { label: "Draft", dot: "bg-muted/60", bg: "bg-black/[0.02]", text: "text-ink/60" },
-  sold: { label: "Sold", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
+  draft: { label: "Draft", dot: "bg-muted/60", bg: "bg-subtle", text: "text-ink/60" },
+  sold: { label: "Sold", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
   archived: { label: "Archived", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
 };
 
@@ -74,9 +74,9 @@ function ListingCard({
   }, [product.id, onDelete]);
 
   return (
-    <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden group hover:shadow-sm hover:border-black/[0.1] transition-all">
+    <div className="rounded-xl border border-border-light bg-surface overflow-hidden group hover:shadow-sm hover:border-border-light transition-all">
       {/* Image */}
-      <div className="aspect-[4/3] bg-black/[0.02] relative overflow-hidden">
+      <div className="aspect-[4/3] bg-subtle relative overflow-hidden">
         {primaryImage ? (
           <Image src={primaryImage} alt="" fill className="object-cover group-hover:scale-[1.02] transition-transform duration-300" />
         ) : (
@@ -94,7 +94,7 @@ function ListingCard({
         </span>
 
         {/* Type Badge */}
-        <span className="absolute top-2.5 right-2.5 text-[10px] font-ui font-medium px-2 py-0.5 rounded-full bg-white/90 text-ink backdrop-blur-sm border border-black/[0.04]">
+        <span className="absolute top-2.5 right-2.5 text-[10px] font-ui font-medium px-2 py-0.5 rounded-full bg-surface/90 text-ink backdrop-blur-sm border border-border-light">
           {isService ? "Commission" : "Product"}
         </span>
       </div>
@@ -111,7 +111,7 @@ function ListingCard({
               : "No price"}
           </span>
           {product.category && (
-            <span className="text-[10px] font-ui text-muted bg-black/[0.02] px-1.5 py-0.5 rounded">
+            <span className="text-[10px] font-ui text-muted bg-subtle px-1.5 py-0.5 rounded">
               {product.category}
             </span>
           )}
@@ -121,7 +121,7 @@ function ListingCard({
         <div className="mt-3 flex gap-2 relative">
           <Link
             href={isService ? `/commissions/${product.id}` : `/product/${product.id}`}
-            className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-muted border border-black/[0.06] rounded-lg hover:bg-black/[0.02] transition-colors"
+            className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-muted border border-border-light rounded-lg hover:bg-subtle transition-colors"
           >
             View
           </Link>
@@ -129,12 +129,12 @@ function ListingCard({
             onClick={() => {
               router.push(`/sell/edit/${product.id}`);
             }}
-            className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-ink border border-black/[0.06] rounded-lg hover:bg-black/[0.02] transition-colors"
+            className="flex-1 text-center py-1.5 text-xs font-ui font-medium text-ink border border-border-light rounded-lg hover:bg-subtle transition-colors"
           >
             Edit
           </button>
           <ActionMenu
-            buttonClassName="px-2.5 py-1.5 text-xs font-ui text-muted border border-black/[0.06] rounded-lg hover:bg-black/[0.02] transition-colors disabled:opacity-50 flex items-center justify-center"
+            buttonClassName="px-2.5 py-1.5 text-xs font-ui text-muted border border-border-light rounded-lg hover:bg-subtle transition-colors disabled:opacity-50 flex items-center justify-center"
             buttonIconClassName="w-3.5 h-3.5"
             widthClassName="w-44"
             buttonDisabled={busy}
@@ -225,7 +225,7 @@ export default function SellerListingsGrid() {
         <div className="flex gap-2">
           <Link
             href="/sell"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-primary text-white rounded-lg text-sm font-ui font-semibold hover:bg-purple-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-primary text-white rounded-lg text-sm font-ui font-semibold hover:bg-accent/90 transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -234,7 +234,7 @@ export default function SellerListingsGrid() {
           </Link>
           <Link
             href="/sell/service"
-            className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-border-light bg-surface rounded-lg text-sm font-ui font-medium text-ink hover:bg-subtle transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -245,7 +245,7 @@ export default function SellerListingsGrid() {
       </div>
 
       {/* Filter tabs */}
-      <div className="border-b border-black/[0.06]">
+      <div className="border-b border-border-light">
         <div className="flex gap-0 -mb-px">
           {(["all", "product", "service"] as const).map((f) => (
             <button
@@ -254,7 +254,7 @@ export default function SellerListingsGrid() {
               className={`px-4 py-3 text-sm font-ui font-medium border-b-2 transition-colors ${
                 filter === f
                   ? "border-purple-primary text-purple-primary"
-                  : "border-transparent text-muted hover:text-ink hover:border-black/[0.06]"
+                  : "border-transparent text-muted hover:text-ink hover:border-border-light"
               }`}
             >
               {f === "all" ? "All" : f === "product" ? "Products" : "Commissions"}
@@ -268,7 +268,7 @@ export default function SellerListingsGrid() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="rounded-xl bg-black/[0.02] animate-pulse border border-black/[0.04] aspect-[3/4]" />
+            <div key={i} className="rounded-xl bg-subtle animate-pulse border border-border-light aspect-[3/4]" />
           ))}
         </div>
       ) : filtered.length === 0 ? (

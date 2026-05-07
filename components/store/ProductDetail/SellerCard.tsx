@@ -16,10 +16,10 @@ interface SellerCardProps {
 
 export default function SellerCard({ seller, className = "" }: SellerCardProps) {
   return (
-    <div className={`rounded-xl bg-gray-50 ${className}`}>
+    <div className={`rounded-xl bg-subtle ${className}`}>
       <Link
         href={`/studio/${seller.username}`}
-        className="flex items-center gap-3 p-3 hover:bg-gray-100 transition-colors group rounded-xl"
+        className="flex items-center gap-3 p-3 hover:bg-skeleton transition-colors group rounded-xl"
       >
         {/* Avatar */}
         <div className="relative">
@@ -50,7 +50,7 @@ export default function SellerCard({ seller, className = "" }: SellerCardProps) 
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="font-medium text-gray-900 truncate group-hover:text-purple-primary transition-colors">
+            <span className="font-medium text-gray-900 truncate group-hover:text-accent transition-colors">
               {seller.display_name || seller.username}
             </span>
           </div>
@@ -59,7 +59,7 @@ export default function SellerCard({ seller, className = "" }: SellerCardProps) 
 
         {/* Arrow */}
         <svg
-          className="w-5 h-5 text-gray-400 group-hover:text-purple-primary group-hover:translate-x-0.5 transition-all"
+          className="w-5 h-5 text-gray-400 group-hover:text-accent group-hover:translate-x-0.5 transition-all"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

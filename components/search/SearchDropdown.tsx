@@ -42,7 +42,7 @@ export default function SearchDropdown({
   const hasHistory = history.length > 0;
 
   return (
-    <div className="absolute left-full top-0 ml-4 w-[320px] max-h-[450px] overflow-y-auto overflow-x-hidden bg-white rounded-2xl border border-purple-primary/10 shadow-2xl shadow-purple-primary/10 z-[200] animate-searchDropdownIn">
+    <div className="absolute left-full top-0 ml-4 w-[320px] max-h-[450px] overflow-y-auto overflow-x-hidden bg-surface rounded-2xl border border-purple-primary/10 shadow-2xl shadow-purple-primary/10 z-[200] animate-searchDropdownIn">
       {/* Decorative gradient line at top */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm rounded-t-2xl" />
 

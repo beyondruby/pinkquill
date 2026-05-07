@@ -70,7 +70,7 @@ function MetricCard({
     <div className={`rounded-xl border p-4 sm:p-5 ${
       accent
         ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
-        : "border-black/[0.06] bg-white"
+        : "border-border-light bg-surface"
     }`}>
       <div className="flex items-start justify-between">
         <div>
@@ -80,7 +80,7 @@ function MetricCard({
           </p>
         </div>
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-black/[0.04] text-muted"
+          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-skeleton/70 text-muted"
         }`}>
           {icon}
         </div>
@@ -97,9 +97,9 @@ function TransactionRow({ tx }: { tx: Transaction }) {
   const config = TX_CONFIG[tx.type] || { label: tx.type, color: "text-ink", sign: "", icon: null };
 
   return (
-    <div className="flex items-center gap-3 py-3 px-4 sm:px-5 border-b border-black/[0.04] last:border-0">
+    <div className="flex items-center gap-3 py-3 px-4 sm:px-5 border-b border-border-light last:border-0">
       {/* Icon */}
-      <div className="w-8 h-8 rounded-lg bg-black/[0.02] flex items-center justify-center shrink-0">
+      <div className="w-8 h-8 rounded-lg bg-subtle flex items-center justify-center shrink-0">
         {config.icon}
       </div>
 
@@ -138,10 +138,10 @@ export default function EarningsOverview() {
   if (earningsLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-7 w-32 bg-black/[0.04] rounded-lg animate-pulse" />
+        <div className="h-7 w-32 bg-skeleton/70 rounded-lg animate-pulse" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-[100px] bg-black/[0.02] rounded-xl animate-pulse border border-black/[0.04]" />
+            <div key={i} className="h-[100px] bg-subtle rounded-xl animate-pulse border border-border-light" />
           ))}
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function EarningsOverview() {
         </div>
         <button
           onClick={openDashboard}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-border-light bg-surface rounded-lg text-sm font-ui font-medium text-ink hover:bg-subtle transition-colors"
         >
           {isPlaceholder ? "Payment Setup" : `${providerLabel} Dashboard`}
           <svg className="w-3.5 h-3.5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -209,7 +209,7 @@ export default function EarningsOverview() {
       </div>
 
       {/* Fee Info */}
-      <div className="flex items-start gap-3 rounded-lg bg-purple-50/60 border border-purple-100 p-4">
+      <div className="flex items-start gap-3 rounded-lg bg-accent/10/60 border border-purple-100 p-4">
         <svg className="w-4.5 h-4.5 text-purple-primary shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
@@ -222,14 +222,14 @@ export default function EarningsOverview() {
       </div>
 
       {/* Transaction History */}
-      <section className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-black/[0.06]">
+      <section className="rounded-xl border border-border-light bg-surface overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-border-light">
           <h2 className="font-display text-base font-bold text-ink">Transaction History</h2>
         </div>
 
         {txLoading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-black/[0.06] border-t-purple-primary mx-auto" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-border-light border-t-purple-primary mx-auto" />
           </div>
         ) : transactions.length === 0 ? (
           <div className="p-16 text-center">
@@ -244,10 +244,10 @@ export default function EarningsOverview() {
               <TransactionRow key={tx.id} tx={tx} />
             ))}
             {hasMore && (
-              <div className="p-4 text-center border-t border-black/[0.04]">
+              <div className="p-4 text-center border-t border-border-light">
                 <button
                   onClick={loadMore}
-                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-purple-50/50 hover:bg-purple-50 transition-colors"
+                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-accent/10 transition-colors"
                 >
                   Load More
                 </button>

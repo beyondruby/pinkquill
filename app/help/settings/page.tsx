@@ -95,28 +95,28 @@ export default function SettingsHelpPage() {
 
             <h3>Settings sections</h3>
             <div className="space-y-3 my-6">
-              <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faUser} className="w-5 h-5 text-purple-primary" />
                 <div>
                   <h4 className="font-ui font-semibold text-ink">Edit Profile</h4>
                   <p className="font-body text-sm text-muted mb-0">Update your profile information</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faLock} className="w-5 h-5 text-purple-primary" />
                 <div>
                   <h4 className="font-ui font-semibold text-ink">Account</h4>
                   <p className="font-body text-sm text-muted mb-0">Email, password, and account management</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faBell} className="w-5 h-5 text-purple-primary" />
                 <div>
                   <h4 className="font-ui font-semibold text-ink">Notifications</h4>
                   <p className="font-body text-sm text-muted mb-0">Control how you receive notifications</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faShield} className="w-5 h-5 text-purple-primary" />
                 <div>
                   <h4 className="font-ui font-semibold text-ink">Privacy</h4>

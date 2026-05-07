@@ -67,7 +67,7 @@ const TIER_STYLES: Record<
   standard: {
     badge: "from-purple-primary to-pink-vivid",
     card: "from-purple-primary/10 via-white to-pink-vivid/10",
-    chip: "bg-purple-100 text-purple-primary",
+    chip: "bg-accent/15 text-purple-primary",
   },
   premium: {
     badge: "from-orange-warm to-pink-vivid",
@@ -412,7 +412,7 @@ export default function CreateCommissionWizard({
   if (isEditMode && !initialProduct) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-white to-pink-50/50 flex items-center justify-center px-6">
-        <div className="w-10 h-10 rounded-full border-2 border-black/20 border-t-[var(--color-pink-vivid)] animate-spin" />
+        <div className="w-10 h-10 rounded-full border-2 border-border-strong border-t-[var(--color-pink-vivid)] animate-spin" />
       </div>
     );
   }
@@ -436,7 +436,7 @@ export default function CreateCommissionWizard({
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-surface">
       <div className="max-w-4xl mx-auto px-6 py-12">
         <p className="text-center text-sm font-ui text-muted uppercase tracking-wider mb-4">
           STEP {step}
@@ -454,7 +454,7 @@ export default function CreateCommissionWizard({
 
         <div className="mb-12">
           <StepRail currentStep={step} />
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
@@ -488,7 +488,7 @@ export default function CreateCommissionWizard({
                               className={`group text-left rounded-2xl p-4 border transition-all duration-300 ${
                                 selected
                                   ? "border-transparent shadow-md shadow-pink-vivid/20"
-                                  : "border-black/[0.08] bg-white hover:border-pink-vivid/40 hover:shadow-sm"
+                                  : "border-border-light bg-surface hover:border-pink-vivid/40 hover:shadow-sm"
                               }`}
                               style={{
                                 backgroundImage: selected
@@ -502,7 +502,7 @@ export default function CreateCommissionWizard({
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                                   selected
                                     ? "bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 text-pink-vivid"
-                                    : "bg-gray-100 text-gray-500 group-hover:text-pink-vivid group-hover:bg-pink-50"
+                                    : "bg-skeleton text-gray-500 group-hover:text-pink-vivid group-hover:bg-pink-50"
                                 }`}>
                                   <CategoryGlyph categoryId={category.id} />
                                 </div>
@@ -533,8 +533,8 @@ export default function CreateCommissionWizard({
                                 onClick={() => updateState({ subcategory: subcategory.value })}
                                 className={`text-left rounded-xl p-3.5 border transition-all ${
                                   selected
-                                    ? "border-purple-primary/40 bg-purple-50/70 shadow-sm"
-                                    : "border-black/[0.08] bg-white hover:border-purple-primary/40"
+                                    ? "border-purple-primary/40 bg-accent/10/70 shadow-sm"
+                                    : "border-border-light bg-surface hover:border-accent/40"
                                 }`}
                               >
                                 <p className="font-ui text-sm font-semibold text-ink">{subcategory.label}</p>
@@ -562,7 +562,7 @@ export default function CreateCommissionWizard({
                             value={state.title}
                             onChange={(event) => updateState({ title: event.target.value })}
                             placeholder="e.g., Custom watercolor portrait of your pet, family, or loved one"
-                            className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid transition-colors"
+                            className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid transition-colors"
                           />
                         </div>
 
@@ -576,7 +576,7 @@ export default function CreateCommissionWizard({
                             value={state.headline}
                             onChange={(event) => updateState({ headline: event.target.value })}
                             placeholder="e.g., Handcrafted with love, delivered in high-res with full rights"
-                            className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid transition-colors"
+                            className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid transition-colors"
                           />
                         </div>
 
@@ -591,7 +591,7 @@ export default function CreateCommissionWizard({
                             value={state.description}
                             onChange={(event) => updateState({ description: event.target.value })}
                             placeholder="Share your creative process, what inspires your work, and what makes it uniquely yours."
-                            className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
+                            className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
                           />
                         </div>
                       </div>
@@ -622,7 +622,7 @@ export default function CreateCommissionWizard({
                           <button
                             type="button"
                             onClick={addPackage}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui font-semibold text-purple-primary bg-purple-50 hover:bg-purple-100 transition-colors"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui font-semibold text-purple-primary bg-accent/10 hover:bg-accent/15 transition-colors"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -656,7 +656,7 @@ export default function CreateCommissionWizard({
                         onClick={() => fileInputRef.current?.click()}
                         className="relative w-full rounded-2xl border border-dashed border-pink-vivid/35 bg-gradient-to-br from-pink-50/70 via-white to-orange-50/70 px-6 py-10 text-center hover:border-pink-vivid transition-colors"
                       >
-                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white shadow-sm border border-pink-vivid/15 flex items-center justify-center">
+                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-surface shadow-sm border border-pink-vivid/15 flex items-center justify-center">
                           <svg className="w-8 h-8 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4v16m8-8H4" />
                           </svg>
@@ -669,7 +669,7 @@ export default function CreateCommissionWizard({
                       {state.mediaPreviews.length > 0 && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                           {state.mediaPreviews.map((media, index) => (
-                            <div key={media.id || media.url} className="relative rounded-xl overflow-hidden border border-black/[0.08] group bg-white">
+                            <div key={media.id || media.url} className="relative rounded-xl overflow-hidden border border-border-light group bg-surface">
                               {isVideoMedia(media) ? (
                                 <video
                                   src={media.url}
@@ -772,7 +772,7 @@ export default function CreateCommissionWizard({
                         {state.packages.map((pkg) => {
                           const style = TIER_STYLES[pkg.tier];
                           return (
-                            <div key={pkg.id} className={`rounded-2xl p-4 border border-black/[0.08] bg-gradient-to-br ${style.card}`}>
+                            <div key={pkg.id} className={`rounded-2xl p-4 border border-border-light bg-gradient-to-br ${style.card}`}>
                               <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold uppercase tracking-wider text-white bg-gradient-to-r ${style.badge}`}>
                                 {pkg.name || pkg.tier}
                               </span>
@@ -806,7 +806,7 @@ export default function CreateCommissionWizard({
                 type="button"
                 onClick={goBack}
                 disabled={step === 1 || submitting}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-ui font-semibold text-ink bg-white border border-black/[0.08] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-ui font-semibold text-ink bg-surface border border-border-light hover:bg-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -864,7 +864,7 @@ function StepRail({ currentStep }: { currentStep: number }) {
               className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${
                 isActive
                   ? "bg-gradient-to-r from-orange-warm to-pink-vivid text-white"
-                  : "bg-gray-200 text-gray-500"
+                  : "bg-skeleton text-gray-500"
               }`}
             >
               {isCompleted ? "✓" : step}
@@ -891,7 +891,7 @@ function SectionCard({
   tone?: "neutral" | "purple" | "rose";
 }) {
   const toneClasses = {
-    neutral: "border-black/[0.08] bg-white",
+    neutral: "border-border-light bg-surface",
     purple: "border-purple-primary/15 bg-gradient-to-br from-purple-primary/[0.06] via-white to-purple-primary/[0.04]",
     rose: "border-pink-vivid/15 bg-gradient-to-br from-pink-vivid/[0.08] via-white to-orange-warm/[0.06]",
   } as const;
@@ -930,7 +930,7 @@ function PackageEditor({
   const style = TIER_STYLES[pkg.tier];
 
   return (
-    <div className={`rounded-2xl border border-black/[0.08] p-4 bg-gradient-to-br ${style.card} space-y-4`}>
+    <div className={`rounded-2xl border border-border-light p-4 bg-gradient-to-br ${style.card} space-y-4`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-ui font-semibold uppercase tracking-wider text-white bg-gradient-to-r ${style.badge}`}>
@@ -952,7 +952,7 @@ function PackageEditor({
             value={pkg.name}
             onChange={(event) => onChange({ name: event.target.value })}
             placeholder="Package name"
-            className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
+            className="w-full px-3 py-2.5 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
           />
         </div>
         <div className="space-y-1.5">
@@ -964,7 +964,7 @@ function PackageEditor({
             value={pkg.price ?? ""}
             onChange={(event) => onChange({ price: event.target.value ? Number(event.target.value) : null })}
             placeholder="Price (USD)"
-            className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
+            className="w-full px-3 py-2.5 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
           />
         </div>
       </div>
@@ -976,7 +976,7 @@ function PackageEditor({
           value={pkg.description}
           onChange={(event) => onChange({ description: event.target.value })}
           placeholder="Describe what the person will receive and the creative process involved."
-          className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
+          className="w-full px-3 py-2.5 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
         />
       </div>
 
@@ -989,7 +989,7 @@ function PackageEditor({
             value={pkg.deliveryDays}
             onChange={(event) => onChange({ deliveryDays: Math.max(1, Number(event.target.value || 1)) })}
             placeholder="Delivery days"
-            className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
+            className="w-full px-3 py-2.5 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
           />
         </div>
         <div className="space-y-1.5">
@@ -1000,7 +1000,7 @@ function PackageEditor({
             value={pkg.revisions}
             onChange={(event) => onChange({ revisions: Math.max(0, Number(event.target.value || 0)) })}
             placeholder="Revisions"
-            className="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
+            className="w-full px-3 py-2.5 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
           />
         </div>
       </div>
@@ -1054,7 +1054,7 @@ function StringListEditor({
             value={value}
             onChange={(event) => updateValue(index, event.target.value)}
             placeholder={placeholder}
-            className={`flex-1 rounded-lg border border-black/[0.08] bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid ${
+            className={`flex-1 rounded-lg border border-border-light bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid ${
               compact ? "px-3 py-2 text-sm" : "px-3 py-2.5"
             }`}
           />
@@ -1093,19 +1093,19 @@ function FaqEditor({
   return (
     <div className="space-y-3">
       {values.map((item, index) => (
-        <div key={index} className="rounded-xl border border-black/[0.08] bg-white p-3 space-y-2">
+        <div key={index} className="rounded-xl border border-border-light bg-surface p-3 space-y-2">
           <input
             value={item.question}
             onChange={(event) => updateItem(index, { question: event.target.value })}
             placeholder="Question"
-            className="w-full px-3 py-2 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
+            className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid"
           />
           <textarea
             rows={2}
             value={item.answer}
             onChange={(event) => updateItem(index, { answer: event.target.value })}
             placeholder="Answer"
-            className="w-full px-3 py-2 rounded-lg border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
+            className="w-full px-3 py-2 rounded-lg border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 focus:border-pink-vivid resize-y"
           />
           <button type="button" onClick={() => removeItem(index)} className="text-xs font-ui text-red-500 hover:text-red-600">
             Remove FAQ
@@ -1122,7 +1122,7 @@ function FaqEditor({
 
 function ReviewItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-black/[0.08] bg-white px-3 py-3">
+    <div className="rounded-xl border border-border-light bg-surface px-3 py-3">
       <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{label}</p>
       <p className="text-sm font-ui font-semibold text-ink mt-1">{value}</p>
     </div>
@@ -1141,13 +1141,13 @@ function ListingPreviewCard({
   const primaryMedia = state.mediaPreviews.find((item) => item.isPrimary) ?? state.mediaPreviews[0];
 
   return (
-    <div className="rounded-2xl border border-black/[0.07] bg-white/90 backdrop-blur-sm shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-black/[0.06] bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10">
+    <div className="rounded-2xl border border-border-light bg-surface/90 backdrop-blur-sm shadow-sm overflow-hidden">
+      <div className="px-4 py-3 border-b border-border-light bg-gradient-to-r from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10">
         <p className="text-[11px] font-ui font-semibold uppercase tracking-wider text-muted">Listing preview</p>
       </div>
 
       <div className="p-4 space-y-3">
-        <div className="rounded-xl overflow-hidden border border-black/[0.08] bg-gradient-to-br from-orange-50 to-pink-50">
+        <div className="rounded-xl overflow-hidden border border-border-light bg-gradient-to-br from-orange-50 to-pink-50">
           {primaryMedia ? (
             isVideoMedia(primaryMedia) ? (
               <video src={primaryMedia.url} className="w-full aspect-[4/3] object-cover" muted playsInline />
@@ -1177,10 +1177,10 @@ function ListingPreviewCard({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <span className="inline-flex px-2 py-1 rounded-full bg-gray-100 text-[11px] font-ui text-gray-700">
+          <span className="inline-flex px-2 py-1 rounded-full bg-skeleton text-[11px] font-ui text-gray-700">
             {state.packages.length} tier{state.packages.length === 1 ? "" : "s"}
           </span>
-          <span className="inline-flex px-2 py-1 rounded-full bg-gray-100 text-[11px] font-ui text-gray-700">
+          <span className="inline-flex px-2 py-1 rounded-full bg-skeleton text-[11px] font-ui text-gray-700">
             {state.mediaPreviews.length} media
           </span>
         </div>

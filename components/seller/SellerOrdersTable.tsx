@@ -47,9 +47,9 @@ const STATUS_TABS: { label: string; value: OrderStatus | "all"; icon: React.Reac
 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
   pending_acceptance: { label: "Pending", dot: "bg-amber-400", bg: "bg-amber-50", text: "text-amber-700" },
   pending_payment: { label: "Awaiting Payment", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
-  processing: { label: "Processing", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
-  in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
+  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
+  processing: { label: "Processing", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
+  in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
   submitted: { label: "Delivered", dot: "bg-indigo-400", bg: "bg-indigo-50", text: "text-indigo-700" },
   revision_requested: { label: "Revision", dot: "bg-orange-400", bg: "bg-orange-50", text: "text-orange-700" },
   completed: { label: "Completed", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
@@ -65,12 +65,12 @@ const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; te
 // ---------------------------------------------------------------------------
 
 function OrderRow({ order }: { order: Order }) {
-  const config = STATUS_CONFIG[order.status] || { label: order.status, dot: "bg-muted/60", bg: "bg-black/[0.02]", text: "text-ink/60" };
+  const config = STATUS_CONFIG[order.status] || { label: order.status, dot: "bg-muted/60", bg: "bg-subtle", text: "text-ink/60" };
 
   return (
     <Link
       href={`/orders/${order.id}`}
-      className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 border-b border-black/[0.04] last:border-0 hover:bg-black/[0.02] transition-colors"
+      className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 border-b border-border-light last:border-0 hover:bg-subtle transition-colors"
     >
       {/* Buyer avatar */}
       {order.buyer?.avatar_url ? (
@@ -94,7 +94,7 @@ function OrderRow({ order }: { order: Order }) {
       </div>
 
       {/* Type */}
-      <span className="hidden sm:inline-flex px-2 py-0.5 text-[10px] font-ui font-medium text-muted bg-black/[0.02] border border-black/[0.04] rounded">
+      <span className="hidden sm:inline-flex px-2 py-0.5 text-[10px] font-ui font-medium text-muted bg-subtle border border-border-light rounded">
         {order.listing_type === "service" ? "Commission" : "Product"}
       </span>
 
@@ -140,7 +140,7 @@ export default function SellerOrdersTable() {
       </div>
 
       {/* Tab bar */}
-      <div className="border-b border-black/[0.06]">
+      <div className="border-b border-border-light">
         <div className="flex gap-0 overflow-x-auto -mb-px">
           {STATUS_TABS.map((tab) => (
             <button
@@ -149,7 +149,7 @@ export default function SellerOrdersTable() {
               className={`flex items-center gap-2 px-4 py-3 text-sm font-ui font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === tab.value
                   ? "border-purple-primary text-purple-primary"
-                  : "border-transparent text-muted hover:text-ink hover:border-black/[0.06]"
+                  : "border-transparent text-muted hover:text-ink hover:border-border-light"
               }`}
             >
               <span className={activeTab === tab.value ? "text-purple-primary" : "text-muted"}>
@@ -162,9 +162,9 @@ export default function SellerOrdersTable() {
       </div>
 
       {/* Orders table */}
-      <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+      <div className="rounded-xl border border-border-light bg-surface overflow-hidden">
         {/* Table Header */}
-        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-black/[0.06] bg-black/[0.02] text-[11px] font-ui uppercase tracking-wider text-muted">
+        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-border-light bg-subtle text-[11px] font-ui uppercase tracking-wider text-muted">
           <div className="w-9" />
           <div className="flex-1">Order</div>
           <div className="hidden sm:block w-20 text-center">Type</div>
@@ -175,7 +175,7 @@ export default function SellerOrdersTable() {
 
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-black/[0.06] border-t-purple-primary mx-auto" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-border-light border-t-purple-primary mx-auto" />
           </div>
         ) : error ? (
           <div className="p-12 text-center">
@@ -198,10 +198,10 @@ export default function SellerOrdersTable() {
               <OrderRow key={order.id} order={order} />
             ))}
             {hasMore && (
-              <div className="p-4 text-center border-t border-black/[0.04]">
+              <div className="p-4 text-center border-t border-border-light">
                 <button
                   onClick={loadMore}
-                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-purple-50/50 hover:bg-purple-50 transition-colors"
+                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-accent/10 transition-colors"
                 >
                   Load More
                 </button>

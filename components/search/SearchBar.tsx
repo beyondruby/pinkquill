@@ -144,14 +144,14 @@ export default function SearchBar({ className = "" }: SearchBarProps) {
       <div
         className={`relative flex items-center w-full h-11 rounded-2xl transition-all duration-300 ${
           isFocused
-            ? "bg-white shadow-xl shadow-purple-primary/15 ring-2 ring-purple-primary/20"
+            ? "bg-surface shadow-xl shadow-purple-primary/15 ring-2 ring-purple-primary/20"
             : "bg-gradient-to-r from-purple-primary/[0.06] to-pink-vivid/[0.04] hover:from-purple-primary/[0.1] hover:to-pink-vivid/[0.08]"
         }`}
       >
         {/* Gradient Border Effect (visible when not focused) */}
         {!isFocused && (
           <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-r from-purple-primary/20 via-pink-vivid/20 to-orange-warm/20 -z-10">
-            <div className="w-full h-full rounded-2xl bg-white/95" />
+            <div className="w-full h-full rounded-2xl bg-surface/95" />
           </div>
         )}
 

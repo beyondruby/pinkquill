@@ -312,7 +312,7 @@ export default function EditProfilePage() {
             value={form.display_name}
             onChange={handleChange}
             placeholder="Your display name"
-            className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
         </div>
 
@@ -322,7 +322,7 @@ export default function EditProfilePage() {
             Username
           </label>
           <div className="flex items-center">
-            <span className="px-4 py-3 bg-black/[0.05] rounded-l-xl font-ui text-muted text-sm border-r border-black/[0.05]">
+            <span className="px-4 py-3 bg-skeleton rounded-l-xl font-ui text-muted text-sm border-r border-border-light">
               @
             </span>
             <input
@@ -330,7 +330,7 @@ export default function EditProfilePage() {
               name="username"
               value={form.username}
               disabled
-              className="flex-1 px-4 py-3 rounded-r-xl bg-black/[0.03] border-none outline-none font-body text-muted cursor-not-allowed"
+              className="flex-1 px-4 py-3 rounded-r-xl bg-skeleton/60 border-none outline-none font-body text-muted cursor-not-allowed"
             />
           </div>
           <p className="font-body text-xs text-muted mt-2">
@@ -350,7 +350,7 @@ export default function EditProfilePage() {
             onChange={handleChange}
             placeholder="A short tagline about yourself"
             maxLength={100}
-            className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
         </div>
 
@@ -366,7 +366,7 @@ export default function EditProfilePage() {
             placeholder="Tell us about yourself..."
             rows={4}
             maxLength={500}
-            className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all resize-none"
+            className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all resize-none"
           />
           <p className="font-body text-xs text-muted mt-1 text-right">
             {form.bio.length}/500
@@ -384,7 +384,7 @@ export default function EditProfilePage() {
             value={form.role}
             onChange={handleChange}
             placeholder="e.g., Writer, Poet, Artist"
-            className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
         </div>
 
@@ -399,7 +399,7 @@ export default function EditProfilePage() {
             value={form.location}
             onChange={handleChange}
             placeholder="Where are you based?"
-            className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
         </div>
 
@@ -414,7 +414,7 @@ export default function EditProfilePage() {
             value={form.education}
             onChange={handleChange}
             placeholder="Your educational background"
-            className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
         </div>
 
@@ -429,7 +429,7 @@ export default function EditProfilePage() {
             value={form.languages}
             onChange={handleChange}
             placeholder="e.g., English, Spanish, French"
-            className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
           />
           <p className="font-body text-xs text-muted mt-2">
             Separate multiple languages with commas
@@ -449,11 +449,11 @@ export default function EditProfilePage() {
           {socialLinks.length > 0 && (
             <div className="space-y-3 mb-4">
               {socialLinks.map((link, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.03]">
+                <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-skeleton/60">
                   <select
                     value={link.platform}
                     onChange={(e) => handleUpdatePlatform(index, e.target.value)}
-                    className="w-36 px-3 py-2 rounded-lg bg-white border border-black/10 font-ui text-sm text-ink focus:ring-2 focus:ring-purple-primary/20 outline-none"
+                    className="w-36 px-3 py-2 rounded-lg bg-surface border border-border-light font-ui text-sm text-ink focus:ring-2 focus:ring-purple-primary/20 outline-none"
                   >
                     {Object.entries(PLATFORMS).map(([key, { name }]) => (
                       <option key={key} value={key}>{name}</option>
@@ -467,7 +467,7 @@ export default function EditProfilePage() {
                       updated[index].url = e.target.value;
                       setSocialLinks(updated);
                     }}
-                    className="flex-1 px-3 py-2 rounded-lg bg-white border border-black/10 font-body text-sm text-ink focus:ring-2 focus:ring-purple-primary/20 outline-none"
+                    className="flex-1 px-3 py-2 rounded-lg bg-surface border border-border-light font-body text-sm text-ink focus:ring-2 focus:ring-purple-primary/20 outline-none"
                   />
                   <button
                     type="button"
@@ -488,7 +488,7 @@ export default function EditProfilePage() {
             <select
               value={newLinkPlatform}
               onChange={(e) => setNewLinkPlatform(e.target.value)}
-              className="w-36 px-3 py-3 rounded-xl bg-black/[0.03] border-none font-ui text-sm text-ink focus:ring-2 focus:ring-purple-primary/20 outline-none"
+              className="w-36 px-3 py-3 rounded-xl bg-skeleton/60 border-none font-ui text-sm text-ink focus:ring-2 focus:ring-purple-primary/20 outline-none"
             >
               {Object.entries(PLATFORMS).map(([key, { name }]) => (
                 <option key={key} value={key}>{name}</option>
@@ -512,13 +512,13 @@ export default function EditProfilePage() {
                 }
               }}
               placeholder="Enter URL or username"
-              className="flex-1 px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+              className="flex-1 px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
             />
             <button
               type="button"
               onClick={handleAddLink}
               disabled={!newLinkUrl.trim()}
-              className="px-5 py-3 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-purple-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="px-5 py-3 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               Add
             </button>

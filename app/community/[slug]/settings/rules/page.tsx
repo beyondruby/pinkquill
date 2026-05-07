@@ -112,8 +112,8 @@ export default function CommunityRulesSettingsPage() {
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`group flex items-start gap-3 p-4 bg-white rounded-xl border transition-all cursor-move ${
-                  draggedIndex === index ? 'border-purple-primary shadow-lg' : 'border-black/5 hover:border-purple-primary/20'
+                className={`group flex items-start gap-3 p-4 bg-surface rounded-xl border transition-all cursor-move ${
+                  draggedIndex === index ? 'border-purple-primary shadow-lg' : 'border-border-light hover:border-accent/20'
                 }`}
               >
                 <div className="flex flex-col items-center gap-1 pt-2 text-muted">
@@ -157,7 +157,7 @@ export default function CommunityRulesSettingsPage() {
         )}
 
         {/* Add New Rule */}
-        <div className="p-4 rounded-xl border border-dashed border-black/10 bg-black/[0.01]">
+        <div className="p-4 rounded-xl border border-dashed border-border-light bg-subtle/30">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-6 h-6 rounded-full bg-black/10 text-muted flex items-center justify-center text-xs font-ui font-semibold">
               {rules.length + 1}
@@ -169,20 +169,20 @@ export default function CommunityRulesSettingsPage() {
             value={newRule.title}
             onChange={(e) => setNewRule(prev => ({ ...prev, title: e.target.value }))}
             placeholder="Rule title (e.g., Be respectful)"
-            className="w-full px-3 py-2 mb-2 bg-white rounded-lg border border-black/5 font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+            className="w-full px-3 py-2 mb-2 bg-surface rounded-lg border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
           />
           <textarea
             value={newRule.description}
             onChange={(e) => setNewRule(prev => ({ ...prev, description: e.target.value }))}
             placeholder="Description (optional)"
             rows={2}
-            className="w-full px-3 py-2 mb-3 bg-white rounded-lg border border-black/5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 resize-none"
+            className="w-full px-3 py-2 mb-3 bg-surface rounded-lg border border-border-light font-body text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 resize-none"
           />
           <button
             type="button"
             onClick={addRule}
             disabled={!newRule.title.trim()}
-            className="px-4 py-2 rounded-lg bg-purple-primary/10 text-purple-primary font-ui text-sm font-medium hover:bg-purple-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 rounded-lg bg-purple-primary/10 text-purple-primary font-ui text-sm font-medium hover:bg-accent/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Add Rule
           </button>
@@ -221,7 +221,7 @@ export default function CommunityRulesSettingsPage() {
           <button
             type="button"
             onClick={() => router.push(`/community/${slug}/settings`)}
-            className="px-5 py-2.5 rounded-full bg-black/5 text-ink font-ui font-medium hover:bg-black/10 transition-colors"
+            className="px-5 py-2.5 rounded-full bg-skeleton text-ink font-ui font-medium hover:bg-black/10 transition-colors"
           >
             Cancel
           </button>

@@ -421,7 +421,7 @@ export default function ReactionPicker({
           aria-activedescendant={focusedIndex >= 0 ? `reaction-option-${reactions[focusedIndex].type}` : undefined}
         >
           {/* Picker Container */}
-          <div className="bg-white rounded-2xl shadow-xl border border-black/[0.08] backdrop-blur-xl overflow-hidden">
+          <div className="bg-surface rounded-2xl shadow-xl border border-border-light backdrop-blur-xl overflow-hidden">
             {/* Reaction buttons row */}
             <div className="flex items-center gap-0.5 px-2 py-2">
               {reactions.map((reaction, index) => {
@@ -454,7 +454,7 @@ export default function ReactionPicker({
                     className={`relative flex flex-col items-center justify-center w-12 h-14 rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-primary focus-visible:ring-offset-1 ${
                       isSelected
                         ? 'bg-gradient-to-b from-purple-primary/15 to-pink-vivid/10 scale-105'
-                        : 'hover:bg-black/[0.04]'
+                        : 'hover:bg-skeleton/60'
                     } ${isHovered || isFocused ? 'scale-110' : ''}`}
                     role="option"
                     aria-selected={isSelected}
@@ -485,10 +485,10 @@ export default function ReactionPicker({
 
             {/* Active reactions summary (only if there are reactions) */}
             {activeReactions.length > 0 && (
-              <div className="px-3 py-2 border-t border-black/[0.04] bg-gradient-to-r from-purple-primary/[0.02] to-pink-vivid/[0.02]">
+              <div className="px-3 py-2 border-t border-border-light bg-gradient-to-r from-purple-primary/[0.02] to-pink-vivid/[0.02]">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {activeReactions.slice(0, 4).map((reaction) => (
-                    <div key={reaction.type} className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white shadow-sm">
+                    <div key={reaction.type} className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-surface shadow-sm">
                       <span className="w-3.5 h-3.5">{reaction.icon}</span>
                       <span className="text-[0.6rem] font-ui font-semibold text-muted">
                         {reactionCounts[reaction.type]}
@@ -507,7 +507,7 @@ export default function ReactionPicker({
 
           {/* Arrow pointing down */}
           <div className="absolute top-full left-6 -mt-1">
-            <div className="w-3 h-3 bg-white rotate-45 border-r border-b border-black/[0.08]" />
+            <div className="w-3 h-3 bg-surface rotate-45 border-r border-b border-border-light" />
           </div>
         </div>
       )}

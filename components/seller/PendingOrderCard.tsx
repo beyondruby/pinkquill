@@ -33,8 +33,8 @@ export default function PendingOrderCard({
   const isUrgent = hoursLeft !== null && hoursLeft <= 24;
 
   return (
-    <div className={`rounded-xl border bg-white overflow-hidden ${
-      isUrgent ? "border-orange-200" : "border-black/[0.06]"
+    <div className={`rounded-xl border bg-surface overflow-hidden ${
+      isUrgent ? "border-orange-200" : "border-border-light"
     }`}>
       <div className="p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -83,7 +83,7 @@ export default function PendingOrderCard({
 
         {/* Brief preview */}
         {isCommission && order.brief && (
-          <div className="mt-4 p-3 rounded-lg bg-black/[0.02] border border-black/[0.04]">
+          <div className="mt-4 p-3 rounded-lg bg-subtle border border-border-light">
             <p className="text-[11px] font-ui uppercase tracking-wider text-muted mb-1">Brief</p>
             <p className="text-sm font-body text-ink/80 line-clamp-2">{order.brief}</p>
           </div>
@@ -95,7 +95,7 @@ export default function PendingOrderCard({
             <button
               onClick={() => onAccept(order.id)}
               disabled={accepting || declining}
-              className="px-5 py-2 rounded-lg text-sm font-ui font-semibold text-white bg-purple-primary hover:bg-purple-primary/90 disabled:opacity-50 transition-colors"
+              className="px-5 py-2 rounded-lg text-sm font-ui font-semibold text-white bg-purple-primary hover:bg-accent/90 disabled:opacity-50 transition-colors"
             >
               {accepting ? "Accepting..." : "Accept Order"}
             </button>
@@ -120,7 +120,7 @@ export default function PendingOrderCard({
               value={declineReason}
               onChange={(e) => setDeclineReason(e.target.value)}
               placeholder="Reason for declining (optional)..."
-              className="w-full px-3.5 py-2.5 rounded-lg border border-black/[0.08] text-sm font-body text-ink placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300 transition-all resize-none"
+              className="w-full px-3.5 py-2.5 rounded-lg border border-border-light text-sm font-body text-ink placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300 transition-all resize-none"
             />
             <div className="flex gap-2">
               <button

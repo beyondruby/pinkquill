@@ -229,7 +229,7 @@ export default function CommunityFeedPage() {
                 className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
                   sortBy === option.id
                     ? 'bg-pink-vivid/10 text-pink-vivid'
-                    : 'text-muted hover:text-ink hover:bg-black/[0.03]'
+                    : 'text-muted hover:text-ink hover:bg-subtle'
                 }`}
               >
                 {option.icon}
@@ -262,14 +262,14 @@ export default function CommunityFeedPage() {
           <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
             <Link
               href={`/community/${community.slug}/members`}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-black/[0.06] font-ui text-xs text-ink/70"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface/80 border border-border-light font-ui text-xs text-ink/70"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               {community.member_count || 0} members
             </Link>
             <Link
               href={`/community/${community.slug}/about`}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-black/[0.06] font-ui text-xs text-ink/70"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface/80 border border-border-light font-ui text-xs text-ink/70"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -284,7 +284,7 @@ export default function CommunityFeedPage() {
                     ? 'bg-purple-primary/10 text-purple-primary'
                     : tag.tag_type === 'theme'
                     ? 'bg-pink-vivid/10 text-pink-vivid'
-                    : 'bg-black/[0.04] text-ink/60'
+                    : 'bg-skeleton/70 text-ink/60'
                 }`}
               >
                 {tag.tag}
@@ -394,7 +394,7 @@ export default function CommunityFeedPage() {
       <div className="hidden lg:block">
         <div className="sticky top-16 space-y-5">
           {/* About Card - Combined with members */}
-          <div className="relative overflow-hidden rounded-2xl bg-white/80 backdrop-blur-sm border border-purple-primary/10 p-5">
+          <div className="relative overflow-hidden rounded-2xl bg-surface/80 backdrop-blur-sm border border-purple-primary/10 p-5">
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-purple-primary/5 to-transparent rounded-bl-full" />
 
             <div className="relative">
@@ -416,7 +416,7 @@ export default function CommunityFeedPage() {
                   <div className="w-2 h-2 rounded-full bg-emerald-400" />
                   <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-40" />
                 </div>
-                <span className="font-ui text-sm text-ink/70 group-hover:text-purple-primary transition-colors">
+                <span className="font-ui text-sm text-ink/70 group-hover:text-accent transition-colors">
                   {community.member_count || 0} members
                 </span>
               </Link>
@@ -489,7 +489,7 @@ export default function CommunityFeedPage() {
           {/* Community Guidelines Quick Link */}
           <Link
             href={`/community/${community.slug}/about`}
-            className="group block relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-primary/5 via-pink-vivid/5 to-orange-warm/5 border border-purple-primary/10 p-5 hover:border-purple-primary/20 transition-all"
+            className="group block relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-primary/5 via-pink-vivid/5 to-orange-warm/5 border border-purple-primary/10 p-5 hover:border-accent/20 transition-all"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-purple-primary/0 via-pink-vivid/5 to-purple-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
 
@@ -500,14 +500,14 @@ export default function CommunityFeedPage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="font-ui text-sm font-semibold text-ink group-hover:text-purple-primary transition-colors">
+                <p className="font-ui text-sm font-semibold text-ink group-hover:text-accent transition-colors">
                   Community Guidelines
                 </p>
                 <p className="font-ui text-xs text-muted mt-0.5">
                   View rules and guidelines
                 </p>
               </div>
-              <svg className="w-5 h-5 text-muted group-hover:text-purple-primary group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-muted group-hover:text-accent group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>

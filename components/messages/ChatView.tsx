@@ -650,12 +650,12 @@ export default function ChatView({
     <div className="chat-view flex-1 flex flex-col h-full">
       {/* Header */}
       <div
-        className="flex items-center gap-3 md:gap-4 px-3 md:px-4 py-3 md:py-4 bg-white border-b border-black/[0.06]"
+        className="flex items-center gap-3 md:gap-4 px-3 md:px-4 py-3 md:py-4 bg-surface border-b border-border-light"
         style={{ paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}
       >
         <button
           onClick={onBack}
-          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all md:hidden"
+          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all md:hidden"
         >
           {icons.back}
         </button>
@@ -671,7 +671,7 @@ export default function ChatView({
             loading="lazy"
           />
           <div>
-            <h2 className="font-ui text-[1rem] font-medium text-ink group-hover:text-purple-primary transition-colors">
+            <h2 className="font-ui text-[1rem] font-medium text-ink group-hover:text-accent transition-colors">
               {participant?.display_name || participant?.username}
             </h2>
             <p className="font-ui text-[0.8rem] text-muted">
@@ -683,13 +683,13 @@ export default function ChatView({
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-purple-primary hover:bg-purple-primary/10 transition-all"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-accent/10 transition-all"
           >
             {icons.info}
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50 animate-fadeIn md:right-0 right-0">
+            <div className="absolute right-0 top-full mt-2 w-52 bg-surface rounded-xl shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn md:right-0 right-0">
               <button
                 onClick={() => {
                   setShowMenu(false);
@@ -699,7 +699,7 @@ export default function ChatView({
                     setShowBlockConfirm(true);
                   }
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-skeleton/60 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -711,14 +711,14 @@ export default function ChatView({
                   setShowMenu(false);
                   setShowReportModal(true);
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-skeleton/60 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 Report @{participant?.username}
               </button>
-              <div className="h-px bg-black/[0.06] mx-3" />
+              <div className="h-px bg-skeleton mx-3" />
               <button
                 onClick={() => {
                   setShowMenu(false);
@@ -743,7 +743,7 @@ export default function ChatView({
             <button
               onClick={loadOlderMessages}
               disabled={loadingOlder}
-              className="text-sm font-ui text-purple-primary hover:text-purple-primary/80 disabled:opacity-50 transition-colors"
+              className="text-sm font-ui text-purple-primary hover:text-accent/80 disabled:opacity-50 transition-colors"
             >
               {loadingOlder ? "Loading..." : "Load older messages"}
             </button>
@@ -788,7 +788,7 @@ export default function ChatView({
                 {/* Date Divider */}
                 {showDate && (
                   <div className="flex items-center justify-center my-4">
-                    <span className="px-3 py-1 bg-white rounded-full font-ui text-[0.75rem] text-muted shadow-sm">
+                    <span className="px-3 py-1 bg-surface rounded-full font-ui text-[0.75rem] text-muted shadow-sm">
                       {formatDateDivider(message.created_at)}
                     </span>
                   </div>
@@ -818,7 +818,7 @@ export default function ChatView({
                         className={`max-w-[280px] rounded-2xl overflow-hidden ${
                           isOwn
                             ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
-                            : "bg-white shadow-sm rounded-bl-md"
+                            : "bg-surface shadow-sm rounded-bl-md"
                         }`}
                       >
                         <VoiceNotePlayer
@@ -847,7 +847,7 @@ export default function ChatView({
                         className={`max-w-[280px] rounded-2xl overflow-hidden ${
                           isOwn
                             ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
-                            : "bg-white shadow-sm rounded-bl-md"
+                            : "bg-surface shadow-sm rounded-bl-md"
                         }`}
                       >
                         {message.media_type === "image" ? (
@@ -886,7 +886,7 @@ export default function ChatView({
                         className={`rounded-2xl overflow-hidden ${
                           isOwn
                             ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
-                            : "bg-white shadow-sm rounded-bl-md"
+                            : "bg-surface shadow-sm rounded-bl-md"
                         }`}
                       >
                         <div className={isOwn ? "p-1" : "p-1"}>
@@ -924,7 +924,7 @@ export default function ChatView({
                         className={`px-4 py-2.5 rounded-2xl ${
                           isOwn
                             ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
-                            : "bg-white text-ink shadow-sm rounded-bl-md"
+                            : "bg-surface text-ink shadow-sm rounded-bl-md"
                         }`}
                       >
                         <p className="font-body text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words">
@@ -989,7 +989,7 @@ export default function ChatView({
 
       {/* Input Area */}
       <div
-        className="p-3 md:p-4 bg-white border-t border-black/[0.06]"
+        className="p-3 md:p-4 bg-surface border-t border-border-light"
         style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
       >
         {/* Media Error Toast */}
@@ -1005,7 +1005,7 @@ export default function ChatView({
         {/* Media Preview */}
         {mediaPreview && (
           <div className="mb-3 relative inline-block">
-            <div className="relative rounded-xl overflow-hidden border border-black/10 shadow-sm bg-black/5">
+            <div className="relative rounded-xl overflow-hidden border border-border-light shadow-sm bg-skeleton">
               {mediaPreview.type === 'image' ? (
                 <img
                   src={mediaPreview.url}
@@ -1049,7 +1049,7 @@ export default function ChatView({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={sendingMedia}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-purple-primary hover:bg-purple-primary/10 transition-all disabled:opacity-50"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-accent/10 transition-all disabled:opacity-50"
           >
             {icons.image}
           </button>
@@ -1057,7 +1057,7 @@ export default function ChatView({
           <div className={`flex-1 flex items-center rounded-full px-4 transition-all ${
             showVoiceRecorder
               ? "bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 ring-2 ring-purple-primary/30"
-              : "bg-[#f5f5f5] focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg"
+              : "bg-[#f5f5f5] focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg"
           }`}>
             {showVoiceRecorder ? (
               <VoiceRecorder
@@ -1082,7 +1082,7 @@ export default function ChatView({
                 <div className="relative">
                   <button
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className="w-8 h-8 flex items-center justify-center text-muted hover:text-purple-primary transition-all"
+                    className="w-8 h-8 flex items-center justify-center text-muted hover:text-accent transition-all"
                     aria-label="Add emoji"
                     aria-expanded={showEmojiPicker}
                   >
@@ -1096,7 +1096,7 @@ export default function ChatView({
                 </div>
                 <button
                   onClick={() => setShowVoiceRecorder(true)}
-                  className="w-8 h-8 flex items-center justify-center text-muted hover:text-purple-primary transition-all ml-1"
+                  className="w-8 h-8 flex items-center justify-center text-muted hover:text-accent transition-all ml-1"
                   aria-label="Record voice note"
                 >
                   {icons.mic}
@@ -1127,7 +1127,7 @@ export default function ChatView({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !blockLoading && setShowBlockConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] p-5 md:p-6">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[420px] bg-surface rounded-2xl shadow-2xl z-[1001] p-5 md:p-6">
             <h3 className="font-display text-xl text-ink mb-3">
               Block @{participant?.username}?
             </h3>
@@ -1138,7 +1138,7 @@ export default function ChatView({
               <button
                 onClick={() => setShowBlockConfirm(false)}
                 disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -1168,7 +1168,7 @@ export default function ChatView({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !reportLoading && setShowReportModal(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[480px] bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden max-h-[90vh] overflow-y-auto">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[480px] bg-surface rounded-2xl shadow-2xl z-[1001] overflow-hidden max-h-[90vh] overflow-y-auto">
             {reportSuccess ? (
               <div className="p-8 text-center">
                 <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
@@ -1183,7 +1183,7 @@ export default function ChatView({
               </div>
             ) : (
               <>
-                <div className="p-6 border-b border-black/[0.06]">
+                <div className="p-6 border-b border-border-light">
                   <h3 className="font-display text-xl text-ink">
                     Report @{participant?.username}
                   </h3>
@@ -1201,7 +1201,7 @@ export default function ChatView({
                     onChange={(e) => setReportReason(e.target.value)}
                     placeholder="Please describe the issue..."
                     rows={4}
-                    className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all resize-none"
                   />
 
                   <div className="mt-4 space-y-2">
@@ -1214,7 +1214,7 @@ export default function ChatView({
                           className={`px-3 py-1.5 rounded-full font-ui text-xs transition-all ${
                             reportReason === reason
                               ? "bg-purple-primary text-white"
-                              : "bg-black/[0.04] text-muted hover:bg-black/[0.08]"
+                              : "bg-skeleton/70 text-muted hover:bg-skeleton"
                           }`}
                         >
                           {reason}
@@ -1224,14 +1224,14 @@ export default function ChatView({
                   </div>
                 </div>
 
-                <div className="p-6 border-t border-black/[0.06] flex justify-end gap-3">
+                <div className="p-6 border-t border-border-light flex justify-end gap-3">
                   <button
                     onClick={() => {
                       setShowReportModal(false);
                       setReportReason("");
                     }}
                     disabled={reportLoading}
-                    className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
+                    className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -1285,7 +1285,7 @@ export default function ChatView({
           </div>
           <button
             onClick={() => setLightboxImage(null)}
-            className="fixed top-4 right-4 z-[1002] w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-all"
+            className="fixed top-4 right-4 z-[1002] w-10 h-10 rounded-full bg-surface/10 text-white flex items-center justify-center hover:bg-surface/20 transition-all"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

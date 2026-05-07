@@ -144,7 +144,7 @@ export default function CheckoutCompletePage() {
             <p className="font-body text-muted">
               Redirecting to your order{redirectCountdown > 0 ? ` in ${redirectCountdown}s` : ""}...
             </p>
-            <div className="w-full bg-gray-100 rounded-full h-1 mt-2 overflow-hidden">
+            <div className="w-full bg-skeleton rounded-full h-1 mt-2 overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full transition-all duration-[2000ms] ease-linear"
                 style={{ width: status === "success" ? "100%" : "0%" }}

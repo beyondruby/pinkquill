@@ -85,7 +85,7 @@ export default function AboutPageContent() {
         <div className="ab-bg-orb ab-bg-orb-3" />
       </div>
 
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-black/[0.06] bg-[#FDFCFB]/82 backdrop-blur-xl">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border-light bg-[#FDFCFB]/82 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
           <Link
             href="/"
@@ -137,22 +137,22 @@ export default function AboutPageContent() {
                 </Link>
                 <a
                   href="#manifesto"
-                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/75 px-6 py-3 font-ui text-sm font-medium text-ink transition-colors hover:border-purple-primary/30 hover:text-purple-primary"
+                  className="inline-flex items-center gap-2 rounded-full border border-border-light bg-surface/75 px-6 py-3 font-ui text-sm font-medium text-ink transition-colors hover:border-accent/30 hover:text-accent"
                 >
                   Read the Manifesto
                 </a>
               </div>
 
               <div className="mt-10 grid max-w-xl grid-cols-3 gap-3">
-                <div className="rounded-2xl border border-black/[0.06] bg-white/70 p-4 backdrop-blur-sm">
+                <div className="rounded-2xl border border-border-light bg-surface/70 p-4 backdrop-blur-sm">
                   <p className="font-display text-3xl text-purple-primary">11</p>
                   <p className="mt-1 font-ui text-[0.68rem] uppercase tracking-[0.15em] text-muted">Post Types</p>
                 </div>
-                <div className="rounded-2xl border border-black/[0.06] bg-white/70 p-4 backdrop-blur-sm">
+                <div className="rounded-2xl border border-border-light bg-surface/70 p-4 backdrop-blur-sm">
                   <p className="font-display text-3xl text-pink-vivid">0</p>
                   <p className="mt-1 font-ui text-[0.68rem] uppercase tracking-[0.15em] text-muted">Ads in Feed</p>
                 </div>
-                <div className="rounded-2xl border border-black/[0.06] bg-white/70 p-4 backdrop-blur-sm">
+                <div className="rounded-2xl border border-border-light bg-surface/70 p-4 backdrop-blur-sm">
                   <p className="font-display text-3xl text-orange-warm">100%</p>
                   <p className="mt-1 font-ui text-[0.68rem] uppercase tracking-[0.15em] text-muted">Creator Owned</p>
                 </div>
@@ -160,7 +160,7 @@ export default function AboutPageContent() {
             </div>
 
             <div className="ab-hero-illustration relative min-h-[510px]">
-              <div className="relative h-full overflow-hidden rounded-[2.2rem] border border-white/50 bg-white/70 shadow-[0_30px_70px_-40px_rgba(30,30,30,0.45)]">
+              <div className="relative h-full overflow-hidden rounded-[2.2rem] border border-white/50 bg-surface/70 shadow-[0_30px_70px_-40px_rgba(30,30,30,0.45)]">
                 <Image
                   src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=1800&auto=format&fit=crop"
                   alt="Creative person working at a desk"
@@ -170,7 +170,7 @@ export default function AboutPageContent() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-br from-ink/45 via-transparent to-purple-primary/25" />
 
-                <div className="absolute top-4 left-4 rounded-full border border-white/35 bg-white/18 px-3 py-1.5 backdrop-blur">
+                <div className="absolute top-4 left-4 rounded-full border border-white/35 bg-surface/18 px-3 py-1.5 backdrop-blur">
                   <span className="font-ui text-[0.62rem] uppercase tracking-[0.16em] text-white/92">
                     Warm. Honest. Creative.
                   </span>
@@ -181,14 +181,14 @@ export default function AboutPageContent() {
                 </div>
               </div>
 
-              <div className="ab-note-card ab-note-card-1 absolute -left-7 top-7 w-[230px] rounded-2xl border border-black/[0.07] bg-white p-4 shadow-xl shadow-black/10">
+              <div className="ab-note-card ab-note-card-1 absolute -left-7 top-7 w-[230px] rounded-2xl border border-border-light bg-surface p-4 shadow-xl shadow-black/10">
                 <p className="font-ui text-[0.62rem] uppercase tracking-[0.18em] text-muted">Edition 01</p>
                 <p className="mt-2 font-body text-sm leading-relaxed text-ink/80">
                   Calm enough to think. Alive enough to feel. Built with creators in mind.
                 </p>
               </div>
 
-              <div className="ab-note-card ab-note-card-2 absolute -right-6 bottom-8 w-[210px] overflow-hidden rounded-2xl border border-black/[0.07] bg-white shadow-xl shadow-black/10">
+              <div className="ab-note-card ab-note-card-2 absolute -right-6 bottom-8 w-[210px] overflow-hidden rounded-2xl border border-border-light bg-surface shadow-xl shadow-black/10">
                 <Image
                   src="https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?q=80&w=900&auto=format&fit=crop"
                   alt="Designer sketching ideas"
@@ -229,7 +229,7 @@ export default function AboutPageContent() {
           </div>
         </section>
 
-        <section className="sticky top-16 z-30 border-y border-black/[0.06] bg-[#FDFCFB]/90 px-6 py-3 backdrop-blur-xl">
+        <section className="sticky top-16 z-30 border-y border-border-light bg-[#FDFCFB]/90 px-6 py-3 backdrop-blur-xl">
           <div className="mx-auto w-full max-w-6xl overflow-x-auto scrollbar-hide">
             <nav className="flex w-max items-center gap-2">
               {navItems.map((item) => (
@@ -239,7 +239,7 @@ export default function AboutPageContent() {
                   className={`rounded-full border px-4 py-2 font-ui text-[0.67rem] uppercase tracking-[0.14em] transition-all ${
                     activeSection === item.id
                       ? "border-purple-primary/35 bg-purple-primary/10 text-purple-primary"
-                      : "border-black/10 bg-white/75 text-muted hover:border-black/20 hover:text-ink"
+                      : "border-border-light bg-surface/75 text-muted hover:border-border-strong hover:text-ink"
                   }`}
                 >
                   {item.label}
@@ -251,7 +251,7 @@ export default function AboutPageContent() {
 
         <section id="manifesto" className="scroll-mt-36 px-6 py-16 md:py-20">
           <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-            <article className="rounded-[2rem] border border-black/[0.06] bg-white/80 p-8 md:p-10">
+            <article className="rounded-[2rem] border border-border-light bg-surface/80 p-8 md:p-10">
               <p className="mb-5 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-purple-primary/75">Manifesto</p>
               <h2 className="font-display text-4xl leading-tight text-ink md:text-5xl">
                 Creativity deserves more than a scroll.
@@ -273,7 +273,7 @@ export default function AboutPageContent() {
             </article>
 
             <div className="grid gap-8">
-              <figure className="relative min-h-[250px] overflow-hidden rounded-[1.8rem] border border-black/[0.06]">
+              <figure className="relative min-h-[250px] overflow-hidden rounded-[1.8rem] border border-border-light">
                 <Image
                   src="https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=1600&auto=format&fit=crop"
                   alt="Notebook and camera in editorial creative setup"
@@ -285,7 +285,7 @@ export default function AboutPageContent() {
                   A home for every creative voice
                 </figcaption>
               </figure>
-              <div className="rounded-[1.8rem] border border-black/[0.06] bg-gradient-to-br from-white to-pink-vivid/[0.06] p-6">
+              <div className="rounded-[1.8rem] border border-border-light bg-gradient-to-br from-white to-pink-vivid/[0.06] p-6">
                 <p className="font-display text-[1.75rem] leading-snug text-ink">
                   &quot;What you create is a piece of who you are. It deserves to be treated that way.&quot;
                 </p>
@@ -297,7 +297,7 @@ export default function AboutPageContent() {
         <section id="studio" className="scroll-mt-36 px-6 py-16 md:py-20">
           <div className="mx-auto w-full max-w-6xl">
             <div className="grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-              <div className="relative min-h-[480px] overflow-hidden rounded-[2rem] border border-black/[0.06]">
+              <div className="relative min-h-[480px] overflow-hidden rounded-[2rem] border border-border-light">
                 <Image
                   src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=1800&auto=format&fit=crop"
                   alt="Creative team planning work together"
@@ -305,13 +305,13 @@ export default function AboutPageContent() {
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/45 via-transparent to-ink/45" />
-                <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/30 bg-white/16 p-4 backdrop-blur-sm">
+                <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/30 bg-surface/16 p-4 backdrop-blur-sm">
                   <p className="font-ui text-[0.62rem] uppercase tracking-[0.16em] text-white/82">The PinkQuill Studio</p>
                   <p className="mt-1 font-display text-2xl text-white">Built to nurture your voice, not drain it.</p>
                 </div>
               </div>
 
-              <div className="rounded-[2rem] border border-black/[0.06] bg-white/85 p-8 md:p-10">
+              <div className="rounded-[2rem] border border-border-light bg-surface/85 p-8 md:p-10">
                 <p className="mb-4 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-pink-vivid/80">The Studio</p>
                 <h2 className="font-display text-4xl leading-tight text-ink md:text-5xl">Thoughtfully crafted for the creative mind.</h2>
                 <p className="mt-5 font-body text-base leading-relaxed text-ink/74">
@@ -322,7 +322,7 @@ export default function AboutPageContent() {
                   {studioCards.map((card) => (
                     <div
                       key={card.title}
-                      className="rounded-2xl border border-black/[0.06] bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-purple-primary/20 hover:shadow-lg hover:shadow-purple-primary/10"
+                      className="rounded-2xl border border-border-light bg-surface p-4 transition-all hover:-translate-y-0.5 hover:border-accent/20 hover:shadow-lg hover:shadow-purple-primary/10"
                     >
                       <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-purple-primary/16 via-pink-vivid/16 to-orange-warm/20 text-purple-primary">
                         <FontAwesomeIcon icon={card.icon} className="h-3.5 w-3.5" />
@@ -339,7 +339,7 @@ export default function AboutPageContent() {
 
         <section id="mission" className="scroll-mt-36 px-6 py-16 md:py-20">
           <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-            <article className="rounded-[2rem] border border-black/[0.06] bg-white/82 p-8 md:p-10">
+            <article className="rounded-[2rem] border border-border-light bg-surface/82 p-8 md:p-10">
               <p className="mb-4 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-orange-warm">Mission</p>
               <h2 className="font-display text-4xl text-ink md:text-5xl">Champion the people who create.</h2>
               <div className="mt-5 space-y-4 font-body text-base leading-relaxed text-ink/75">
@@ -366,7 +366,7 @@ export default function AboutPageContent() {
               </ul>
             </article>
 
-            <div className="relative min-h-[450px] overflow-hidden rounded-[2rem] border border-black/[0.06]">
+            <div className="relative min-h-[450px] overflow-hidden rounded-[2rem] border border-border-light">
               <Image
                 src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1800&auto=format&fit=crop"
                 alt="Diverse creators discussing ideas together"
@@ -374,7 +374,7 @@ export default function AboutPageContent() {
                 className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-tr from-ink/55 via-transparent to-pink-vivid/25" />
-              <div className="absolute left-5 bottom-5 rounded-full border border-white/30 bg-white/12 px-4 py-2 backdrop-blur-sm">
+              <div className="absolute left-5 bottom-5 rounded-full border border-white/30 bg-surface/12 px-4 py-2 backdrop-blur-sm">
                 <span className="font-ui text-[0.62rem] uppercase tracking-[0.16em] text-white/90">
                   Together, not against each other
                 </span>
@@ -384,7 +384,7 @@ export default function AboutPageContent() {
         </section>
 
         <section id="vision" className="scroll-mt-36 px-6 py-16 md:py-20">
-          <div className="mx-auto w-full max-w-6xl rounded-[2rem] border border-black/[0.06] bg-gradient-to-br from-white via-white to-purple-primary/[0.06] p-8 md:p-10">
+          <div className="mx-auto w-full max-w-6xl rounded-[2rem] border border-border-light bg-gradient-to-br from-white via-white to-purple-primary/[0.06] p-8 md:p-10">
             <p className="mb-4 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-purple-primary/80">Vision</p>
             <h2 className="max-w-3xl font-display text-4xl leading-tight text-ink md:text-5xl">
               A creative internet that feels like it was made for you.
@@ -395,7 +395,7 @@ export default function AboutPageContent() {
             </p>
             <div className="mt-8 grid gap-4 md:grid-cols-2">
               {visionPoints.map((point, index) => (
-                <div key={point} className="rounded-2xl border border-black/[0.06] bg-white/85 p-5">
+                <div key={point} className="rounded-2xl border border-border-light bg-surface/85 p-5">
                   <p className="font-ui text-[0.62rem] uppercase tracking-[0.16em] text-muted">
                     Vision {String(index + 1).padStart(2, "0")}
                   </p>
@@ -410,7 +410,7 @@ export default function AboutPageContent() {
           <div className="mx-auto w-full max-w-6xl">
             <div className="grid gap-6 lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]">
               <div className="grid gap-6">
-                <div className="relative min-h-[240px] overflow-hidden rounded-[1.7rem] border border-black/[0.06]">
+                <div className="relative min-h-[240px] overflow-hidden rounded-[1.7rem] border border-border-light">
                   <Image
                     src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1600&auto=format&fit=crop"
                     alt="Creative team collaborating in a modern studio"
@@ -419,7 +419,7 @@ export default function AboutPageContent() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-ink/45 via-transparent to-transparent" />
                 </div>
-                <div className="relative min-h-[240px] overflow-hidden rounded-[1.7rem] border border-black/[0.06]">
+                <div className="relative min-h-[240px] overflow-hidden rounded-[1.7rem] border border-border-light">
                   <Image
                     src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1600&auto=format&fit=crop"
                     alt="Artists reviewing their portfolio work"
@@ -430,7 +430,7 @@ export default function AboutPageContent() {
                 </div>
               </div>
 
-              <article className="rounded-[2rem] border border-black/[0.06] bg-white/82 p-8 md:p-10">
+              <article className="rounded-[2rem] border border-border-light bg-surface/82 p-8 md:p-10">
                 <p className="mb-4 font-ui text-[0.65rem] uppercase tracking-[0.2em] text-pink-vivid/85">Community</p>
                 <h2 className="font-display text-4xl leading-tight text-ink md:text-5xl">People who get it.</h2>
                 <div className="mt-5 space-y-4 font-body text-base leading-relaxed text-ink/75">
@@ -452,7 +452,7 @@ export default function AboutPageContent() {
         </section>
 
         <section id="join" className="scroll-mt-36 px-6 pt-16 pb-20 md:pt-20 md:pb-24">
-          <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-[2rem] border border-black/[0.06]">
+          <div className="mx-auto w-full max-w-6xl overflow-hidden rounded-[2rem] border border-border-light">
             <div className="ab-cta-gradient relative px-8 py-12 md:px-12 md:py-16">
               <div className="ab-cta-orb ab-cta-orb-1" />
               <div className="ab-cta-orb ab-cta-orb-2" />
@@ -470,19 +470,19 @@ export default function AboutPageContent() {
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-ui text-sm font-semibold text-purple-primary transition-transform hover:-translate-y-0.5"
+                    className="inline-flex items-center gap-2 rounded-full bg-surface px-6 py-3 font-ui text-sm font-semibold text-purple-primary transition-transform hover:-translate-y-0.5"
                   >
                     Start on PinkQuill
                   </Link>
                   <a
                     href="mailto:hello@pinkquill.com"
-                    className="inline-flex items-center gap-2 rounded-full border border-white/35 px-6 py-3 font-ui text-sm font-medium text-white transition-colors hover:bg-white/15"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/35 px-6 py-3 font-ui text-sm font-medium text-white transition-colors hover:bg-surface/15"
                   >
                     Talk with us
                   </a>
                 </div>
 
-                <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/12 px-4 py-2 backdrop-blur">
+                <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/30 bg-surface/12 px-4 py-2 backdrop-blur">
                   <FontAwesomeIcon icon={faRocket} className="h-3.5 w-3.5 text-white" />
                   <span className="font-ui text-xs uppercase tracking-[0.14em] text-white/90">
                     Made with love, for people who make things with love.
@@ -493,14 +493,14 @@ export default function AboutPageContent() {
           </div>
         </section>
 
-        <footer className="border-t border-black/[0.06] px-6 py-8">
+        <footer className="border-t border-border-light px-6 py-8">
           <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3">
             <p className="font-ui text-xs text-muted/70">© {new Date().getFullYear()} PinkQuill</p>
             <div className="flex items-center gap-6">
-              <Link href="/privacy" className="font-ui text-xs text-muted/70 transition-colors hover:text-purple-primary">
+              <Link href="/privacy" className="font-ui text-xs text-muted/70 transition-colors hover:text-accent">
                 Privacy
               </Link>
-              <Link href="/terms" className="font-ui text-xs text-muted/70 transition-colors hover:text-purple-primary">
+              <Link href="/terms" className="font-ui text-xs text-muted/70 transition-colors hover:text-accent">
                 Terms
               </Link>
               <Link href="/about" className="font-ui text-xs text-purple-primary">

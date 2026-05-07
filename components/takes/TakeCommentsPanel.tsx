@@ -125,11 +125,11 @@ function CommentItem({
 
         <div className="flex-1 min-w-0">
           {/* Comment bubble */}
-          <div className="bg-black/[0.03] rounded-2xl px-4 py-2.5 relative">
+          <div className="bg-skeleton/60 rounded-2xl px-4 py-2.5 relative">
             <div className="flex items-center gap-2 mb-0.5">
               <Link
                 href={`/studio/${comment.author.username}`}
-                className="font-ui text-[0.85rem] font-medium text-ink hover:text-purple-primary transition-colors"
+                className="font-ui text-[0.85rem] font-medium text-ink hover:text-accent transition-colors"
               >
                 {comment.author.display_name || comment.author.username}
               </Link>
@@ -142,7 +142,7 @@ function CommentItem({
                 <div className="relative ml-auto" ref={menuRef}>
                   <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-muted/50 hover:text-muted hover:bg-black/[0.05] opacity-0 group-hover:opacity-100 transition-all"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-muted/50 hover:text-muted hover:bg-skeleton opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
@@ -150,7 +150,7 @@ function CommentItem({
                   </button>
 
                   {showMenu && (
-                    <div className="absolute right-0 top-full mt-1 w-28 bg-white rounded-lg shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
+                    <div className="absolute right-0 top-full mt-1 w-28 bg-surface rounded-lg shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
                       {isOwner ? (
                         <button
                           onClick={() => {
@@ -219,7 +219,7 @@ function CommentItem({
             {!isReply && user && (
               <button
                 onClick={() => setShowReplyInput(!showReplyInput)}
-                className="font-ui text-[0.75rem] text-muted hover:text-purple-primary transition-colors"
+                className="font-ui text-[0.75rem] text-muted hover:text-accent transition-colors"
               >
                 Reply
               </button>
@@ -236,7 +236,7 @@ function CommentItem({
                 onKeyDown={(e) => e.key === "Enter" && !submittingReply && handleSubmitReply()}
                 placeholder="Write a reply..."
                 disabled={submittingReply}
-                className="flex-1 px-3 py-2 rounded-full bg-black/[0.03] border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-white focus:ring-2 focus:ring-purple-primary/20 transition-all"
+                className="flex-1 px-3 py-2 rounded-full bg-skeleton/60 border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-surface focus:ring-2 focus:ring-purple-primary/20 transition-all"
               />
               <button
                 onClick={handleSubmitReply}
@@ -293,7 +293,7 @@ function CommentItem({
             className="fixed inset-0 bg-black/50 z-[60]"
             onClick={() => !reportSubmitting && setShowReportModal(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[340px] bg-white rounded-2xl shadow-2xl z-[61] p-5">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[340px] bg-surface rounded-2xl shadow-2xl z-[61] p-5">
             {reportSubmitted ? (
               <div className="text-center py-4">
                 <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
@@ -317,7 +317,7 @@ function CommentItem({
                       className={`w-full text-left px-4 py-2.5 rounded-lg font-ui text-sm transition-colors ${
                         reportReason === reason
                           ? "bg-purple-primary/10 text-purple-primary"
-                          : "bg-black/[0.03] text-ink hover:bg-black/[0.06]"
+                          : "bg-skeleton/60 text-ink hover:bg-skeleton"
                       }`}
                     >
                       {reason}
@@ -401,7 +401,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
 
       {/* Panel - Side panel on desktop, bottom sheet on mobile */}
       <div
-        className={`take-comments-panel fixed z-50 flex flex-col bg-white md:bg-[#fafafa] transform transition-transform duration-300 ease-out inset-x-0 bottom-0 h-[85vh] rounded-t-3xl md:inset-auto md:top-0 md:right-0 md:h-full md:w-[380px] md:rounded-none ${isOpen ? "translate-y-0 md:translate-x-0" : "translate-y-full md:translate-y-0 md:translate-x-full"}`}
+        className={`take-comments-panel fixed z-50 flex flex-col bg-surface md:bg-[#fafafa] transform transition-transform duration-300 ease-out inset-x-0 bottom-0 h-[85vh] rounded-t-3xl md:inset-auto md:top-0 md:right-0 md:h-full md:w-[380px] md:rounded-none ${isOpen ? "translate-y-0 md:translate-x-0" : "translate-y-full md:translate-y-0 md:translate-x-full"}`}
       >
         {/* Mobile drag handle */}
         <div className="md:hidden flex justify-center pt-3 pb-1">
@@ -409,7 +409,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
         </div>
 
         {/* Header */}
-        <div className="px-5 py-4 md:p-5 border-b border-black/[0.06] bg-white md:bg-white/60 flex justify-between items-center">
+        <div className="px-5 py-4 md:p-5 border-b border-border-light bg-surface md:bg-surface/60 flex justify-between items-center">
           <div className="flex items-center gap-3">
             {/* Mobile close button (left side) */}
             <button
@@ -454,7 +454,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
 
           {!loading && !error && comments.length === 0 && (
             <div className="text-center py-12 md:py-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-black/[0.03] flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-skeleton/60 flex items-center justify-center">
                 <CommentIcon size="lg" className="w-8 h-8" />
               </div>
               <p className="font-ui text-[0.95rem] text-ink mb-1">No comments yet</p>
@@ -480,7 +480,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
         {/* Input */}
         {user ? (
           <div
-            className="p-3 md:p-4 bg-white border-t border-black/[0.06] flex gap-2.5 items-center"
+            className="p-3 md:p-4 bg-surface border-t border-border-light flex gap-2.5 items-center"
             style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
           >
             {profile?.avatar_url ? (
@@ -495,7 +495,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
               </div>
             )}
             <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2">
-              <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-full px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
+              <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
                 <input
                   ref={inputRef}
                   type="text"
@@ -519,7 +519,7 @@ export default function TakeCommentsPanel({ isOpen, onClose, takeId }: TakeComme
           </div>
         ) : (
           <div
-            className="p-4 bg-white border-t border-black/[0.06] text-center"
+            className="p-4 bg-surface border-t border-border-light text-center"
             style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}
           >
             <p className="font-ui text-[0.9rem] text-muted">

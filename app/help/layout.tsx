@@ -40,7 +40,7 @@ export default function HelpLayout({
   return (
     <div className="min-h-screen bg-[#FDFCFB]">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#FDFCFB]/90 backdrop-blur-md border-b border-black/[0.04]">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#FDFCFB]/90 backdrop-blur-md border-b border-border-light">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link
             href="/"
@@ -59,7 +59,7 @@ export default function HelpLayout({
       <div className="pt-14 flex">
         {/* Sidebar - hidden on index page */}
         {!isIndex && (
-          <aside className="hidden lg:block w-[260px] flex-shrink-0 border-r border-black/[0.04] bg-white/50">
+          <aside className="hidden lg:block w-[260px] flex-shrink-0 border-r border-border-light bg-surface/50">
             <nav className="sticky top-14 p-6 max-h-[calc(100vh-3.5rem)] overflow-y-auto">
               <Link
                 href="/help"
@@ -79,7 +79,7 @@ export default function HelpLayout({
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                         isActive
                           ? "bg-purple-primary/10 text-purple-primary"
-                          : "text-ink/70 hover:bg-black/[0.03] hover:text-ink"
+                          : "text-ink/70 hover:bg-subtle hover:text-ink"
                       }`}
                     >
                       <FontAwesomeIcon icon={cat.icon} className="w-4 h-4 opacity-70" />
@@ -99,7 +99,7 @@ export default function HelpLayout({
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-black/[0.06] py-8 px-6 bg-white/50">
+      <footer className="border-t border-border-light py-8 px-6 bg-surface/50">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="font-ui text-xs text-muted/60">
             Need more help? Contact us at{" "}
@@ -108,10 +108,10 @@ export default function HelpLayout({
             </a>
           </p>
           <div className="flex items-center gap-6">
-            <Link href="/privacy" className="font-ui text-xs text-muted/60 hover:text-purple-primary transition-colors">
+            <Link href="/privacy" className="font-ui text-xs text-muted/60 hover:text-accent transition-colors">
               Privacy
             </Link>
-            <Link href="/terms" className="font-ui text-xs text-muted/60 hover:text-purple-primary transition-colors">
+            <Link href="/terms" className="font-ui text-xs text-muted/60 hover:text-accent transition-colors">
               Terms
             </Link>
           </div>

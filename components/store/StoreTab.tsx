@@ -132,7 +132,7 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
                   { icon: "📚", label: "Books & Zines" },
                   { icon: "🎵", label: "Music & Audio" },
                 ].map((item, i) => (
-                  <div key={i} className="p-3 rounded-xl bg-white/60 border border-pink-100/50">
+                  <div key={i} className="p-3 rounded-xl bg-surface/60 border border-pink-100/50">
                     <span className="text-2xl mb-1 block">{item.icon}</span>
                     <span className="text-xs text-muted font-ui">{item.label}</span>
                   </div>
@@ -160,7 +160,7 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
               className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
                 filter === tab.id
                   ? "bg-pink-vivid/10 text-pink-vivid"
-                  : "text-muted hover:text-ink hover:bg-black/[0.03]"
+                  : "text-muted hover:text-ink hover:bg-subtle"
               }`}
             >
               {tab.label}
@@ -188,7 +188,7 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
       {/* Empty filtered state */}
       {filteredProducts.length === 0 && products.length > 0 && (
         <div className="text-center py-16">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-50 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-subtle flex items-center justify-center">
             <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
@@ -341,7 +341,7 @@ function ProductCard({
             {/* Digital indicator - subtle top right */}
             {product.delivery_type === "digital" && (
               <div className="absolute top-3 right-3 w-8 h-8 rounded-full
-                bg-white/90 backdrop-blur-sm flex items-center justify-center
+                bg-surface/90 backdrop-blur-sm flex items-center justify-center
                 shadow-sm">
                 <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -355,7 +355,7 @@ function ProductCard({
                 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0
                 transition-all duration-500">
                 <div className="inline-block px-4 py-2 rounded-full
-                  bg-white/95 backdrop-blur-sm shadow-sm">
+                  bg-surface/95 backdrop-blur-sm shadow-sm">
                   <span className="text-base font-display font-bold text-pink-vivid">
                     {priceDisplay}
                   </span>

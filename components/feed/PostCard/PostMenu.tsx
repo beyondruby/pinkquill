@@ -52,7 +52,7 @@ function PostMenuComponent({
   return (
     <div className="relative" ref={menuRef}>
       <button
-        className="action-btn p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+        className="action-btn p-1.5 rounded-full hover:bg-skeleton transition-colors"
         onClick={(e) => {
           e.stopPropagation();
           onToggle();
@@ -69,7 +69,7 @@ function PostMenuComponent({
           {isOwner ? (
             <>
               <button
-                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-gray-50 flex items-center gap-2"
+                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-subtle flex items-center gap-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit();
@@ -94,7 +94,7 @@ function PostMenuComponent({
           ) : (
             <>
               <button
-                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-gray-50 flex items-center gap-2"
+                className="w-full px-4 py-2 text-left text-sm text-ink hover:bg-subtle flex items-center gap-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   onReport();

@@ -58,7 +58,7 @@ export default function DigitalDownloadCard({ token }: { token: DownloadToken })
   };
 
   return (
-    <div className="flex items-center gap-4 p-4 rounded-xl border border-black/[0.06] bg-white">
+    <div className="flex items-center gap-4 p-4 rounded-xl border border-border-light bg-surface">
       {/* File icon */}
       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center shrink-0">
         <FontAwesomeIcon
@@ -102,7 +102,7 @@ export default function DigitalDownloadCard({ token }: { token: DownloadToken })
           downloaded
             ? "bg-emerald-100 text-emerald-700"
             : disabled
-              ? "bg-black/[0.04] text-muted/60 cursor-not-allowed"
+              ? "bg-skeleton/70 text-muted/60 cursor-not-allowed"
               : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white hover:opacity-90"
         }`}
       >

@@ -44,7 +44,7 @@ export default function FollowRequestCard({
   const timeAgo = getTimeAgo(request.requested_at);
 
   return (
-    <div className="bg-white rounded-2xl border border-black/[0.06] p-4 hover:border-purple-primary/20 transition-all">
+    <div className="bg-surface rounded-2xl border border-border-light p-4 hover:border-accent/20 transition-all">
       {/* Header with gradient accent */}
       <div className="h-1 w-full bg-gradient-to-r from-purple-primary via-pink-vivid to-warm-orange rounded-full mb-4 -mt-4 -mx-4 px-4" style={{ width: 'calc(100% + 2rem)', marginLeft: '-1rem' }} />
 
@@ -63,7 +63,7 @@ export default function FollowRequestCard({
           <div className="flex items-center gap-2 flex-wrap">
             <Link
               href={`/studio/${requester.username}`}
-              className="font-ui text-[0.95rem] font-medium text-ink hover:text-purple-primary transition-colors"
+              className="font-ui text-[0.95rem] font-medium text-ink hover:text-accent transition-colors"
             >
               {requester.display_name || requester.username}
             </Link>
@@ -105,7 +105,7 @@ export default function FollowRequestCard({
             <button
               onClick={handleDecline}
               disabled={accepting || declining}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-black/10 bg-white text-ink font-ui text-sm font-medium hover:border-black/20 hover:bg-black/[0.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-border-light bg-surface text-ink font-ui text-sm font-medium hover:border-border-strong hover:bg-subtle transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {declining ? (
                 <>

@@ -40,8 +40,8 @@ export default function OrderMessages({ orderId }: OrderMessagesProps) {
   };
 
   return (
-    <section className="rounded-2xl border border-black/[0.06] bg-white overflow-hidden">
-      <div className="px-5 py-4 border-b border-black/[0.06]">
+    <section className="rounded-2xl border border-border-light bg-surface overflow-hidden">
+      <div className="px-5 py-4 border-b border-border-light">
         <h2 className="font-display text-xl text-ink">Order Messages</h2>
         <p className="text-xs font-body text-muted mt-1">
           Communicate with your {user ? "partner" : "..."} about this order
@@ -71,14 +71,14 @@ export default function OrderMessages({ orderId }: OrderMessagesProps) {
       </div>
 
       {/* Input */}
-      <div className="px-5 py-3 border-t border-black/[0.06] flex gap-2">
+      <div className="px-5 py-3 border-t border-border-light flex gap-2">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           rows={1}
-          className="flex-1 px-4 py-2.5 rounded-xl border border-black/[0.08] text-sm font-body resize-none focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+          className="flex-1 px-4 py-2.5 rounded-xl border border-border-light text-sm font-body resize-none focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
         />
         <button
           onClick={handleSend}
@@ -98,7 +98,7 @@ function MessageBubble({ message, isOwn }: { message: OrderMessage; isOwn: boole
   if (isSystem) {
     return (
       <div className="flex justify-center">
-        <div className="px-3 py-1.5 rounded-full bg-black/[0.02] border border-black/[0.06]">
+        <div className="px-3 py-1.5 rounded-full bg-subtle border border-border-light">
           <p className="text-xs font-ui text-muted">{message.content}</p>
           <p className="text-[10px] font-ui text-muted/60 text-center mt-0.5">
             {new Date(message.created_at).toLocaleString(undefined, {
@@ -139,7 +139,7 @@ function MessageBubble({ message, isOwn }: { message: OrderMessage; isOwn: boole
           className={`px-3.5 py-2.5 rounded-2xl text-sm font-body ${
             isOwn
               ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-tr-sm"
-              : "bg-black/[0.02] border border-black/[0.06] text-ink rounded-tl-sm"
+              : "bg-subtle border border-border-light text-ink rounded-tl-sm"
           }`}
         >
           <p className="whitespace-pre-wrap">{message.content}</p>

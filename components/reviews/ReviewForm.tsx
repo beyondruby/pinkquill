@@ -46,7 +46,7 @@ function QuillInput({ value, onChange }: { value: number; onChange: (score: numb
             className={`w-9 h-9 rounded-full text-[15px] transition-colors ${
               score <= active
                 ? "bg-pink-vivid/12 text-pink-vivid"
-                : "text-purple-primary/35 hover:text-purple-primary/70"
+                : "text-purple-primary/35 hover:text-accent/70"
             }`}
             aria-label={`${score} quills`}
           >
@@ -157,7 +157,7 @@ export default function ReviewForm({ orderId, onSubmitted }: ReviewFormProps) {
                 className={`px-3 py-1.5 rounded-full text-xs font-ui border transition-colors ${
                   selected
                     ? "bg-pink-vivid/10 border-pink-vivid/30 text-pink-vivid"
-                    : "bg-white border-purple-primary/15 text-muted hover:text-ink"
+                    : "bg-surface border-purple-primary/15 text-muted hover:text-ink"
                 }`}
               >
                 {option}

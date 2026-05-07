@@ -91,8 +91,8 @@ export default function TimeRangeDropdown({
         disabled={disabled}
         className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
           disabled
-            ? "bg-black/[0.03] text-muted/50 cursor-not-allowed"
-            : "bg-purple-primary/[0.08] text-purple-primary hover:bg-purple-primary/[0.12]"
+            ? "bg-skeleton/60 text-muted/50 cursor-not-allowed"
+            : "bg-purple-primary/[0.08] text-purple-primary hover:bg-accent/[0.12]"
         }`}
       >
         <span>{selectedOption?.label || "All Time"}</span>
@@ -122,7 +122,7 @@ export default function TimeRangeDropdown({
                 left: menuPos.left,
                 width: MENU_WIDTH,
               }}
-              className="z-[1000] rounded-xl bg-white border border-black/[0.06] shadow-lg shadow-black/[0.06] py-1 animate-fadeIn"
+              className="z-[1000] rounded-xl bg-surface border border-border-light shadow-lg shadow-black/[0.06] py-1 animate-fadeIn"
             >
               {TIME_RANGE_OPTIONS.map((option) => (
                 <button
@@ -136,7 +136,7 @@ export default function TimeRangeDropdown({
                   className={`w-full px-4 py-2 text-left text-sm font-ui transition-colors ${
                     value === option.value
                       ? "text-pink-vivid bg-pink-vivid/[0.06] font-medium"
-                      : "text-ink hover:bg-black/[0.03]"
+                      : "text-ink hover:bg-subtle"
                   }`}
                 >
                   {option.label}

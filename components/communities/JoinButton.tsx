@@ -129,7 +129,7 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
     return (
       <button
         disabled
-        className={`font-ui font-semibold rounded-full bg-white/90 text-purple-primary cursor-default shadow-lg ${sizeClasses[size]} ${className}`}
+        className={`font-ui font-semibold rounded-full bg-surface/90 text-purple-primary cursor-default shadow-lg ${sizeClasses[size]} ${className}`}
       >
         Admin
       </button>
@@ -145,8 +145,8 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
         disabled={loading}
         className={`font-ui font-semibold rounded-full transition-all duration-200 shadow-lg ${sizeClasses[size]} ${className} ${
           isHovering
-            ? 'bg-white text-red-500'
-            : 'bg-white/90 text-purple-primary'
+            ? 'bg-surface text-red-500'
+            : 'bg-surface/90 text-purple-primary'
         } hover:shadow-xl disabled:opacity-50`}
       >
         {loading ? (
@@ -180,8 +180,8 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
         disabled={loading}
         className={`font-ui font-semibold rounded-full transition-all duration-200 shadow-lg ${sizeClasses[size]} ${className} ${
           isHovering
-            ? 'bg-white text-red-500'
-            : 'bg-white/90 text-orange-500'
+            ? 'bg-surface text-red-500'
+            : 'bg-surface/90 text-orange-500'
         } hover:shadow-xl disabled:opacity-50`}
       >
         {loading ? (
@@ -235,7 +235,7 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
         <button
           onClick={handleDeclineInvitation}
           disabled={invitationLoading}
-          className={`font-ui font-semibold rounded-full bg-white/90 text-muted hover:text-red-500 hover:bg-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 ${sizeClasses[size]}`}
+          className={`font-ui font-semibold rounded-full bg-surface/90 text-muted hover:text-red-500 hover:bg-surface shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 ${sizeClasses[size]}`}
         >
           <span className="flex items-center justify-center gap-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -254,7 +254,7 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
       <button
         onClick={handleClick}
         disabled={loading}
-        className={`font-ui font-semibold rounded-full bg-white text-purple-primary hover:bg-white hover:text-pink-vivid shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 disabled:opacity-50 ${sizeClasses[size]} ${className}`}
+        className={`font-ui font-semibold rounded-full bg-surface text-purple-primary hover:bg-surface hover:text-pink-vivid shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 disabled:opacity-50 ${sizeClasses[size]} ${className}`}
       >
         {loading ? (
           <span className="flex items-center gap-2">
@@ -288,7 +288,7 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !loading && setShowRequestModal(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden animate-fadeIn">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-surface rounded-2xl shadow-2xl z-[1001] overflow-hidden animate-fadeIn">
             {/* Header */}
             <div className="relative h-24 bg-gradient-to-br from-purple-primary via-pink-vivid/80 to-orange-warm/60 flex items-center justify-center">
               <div className="absolute inset-0 opacity-20">
@@ -302,7 +302,7 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
                 </svg>
               </div>
               <div className="relative flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 overflow-hidden">
+                <div className="w-12 h-12 rounded-full bg-surface/20 backdrop-blur-sm flex items-center justify-center border border-white/30 overflow-hidden">
                   {community.avatar_url ? (
                     <img src={getOptimizedAvatarUrl(community.avatar_url, 48)} alt="" className="w-full h-full object-cover" loading="lazy" />
                   ) : (
@@ -327,7 +327,7 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
                 placeholder="Tell the community why you'd like to join..."
                 rows={3}
                 maxLength={500}
-                className="w-full px-4 py-3 rounded-xl bg-black/[0.02] border border-black/10 font-body text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
+                className="w-full px-4 py-3 rounded-xl bg-subtle border border-border-light font-body text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
                 disabled={loading}
               />
               <p className="mt-2 font-ui text-xs text-muted text-right">
@@ -341,7 +341,7 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
                     setRequestMessage('');
                   }}
                   disabled={loading}
-                  className="flex-1 px-5 py-2.5 rounded-full bg-black/5 text-ink font-ui font-medium hover:bg-black/10 transition-colors disabled:opacity-50"
+                  className="flex-1 px-5 py-2.5 rounded-full bg-skeleton text-ink font-ui font-medium hover:bg-black/10 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>

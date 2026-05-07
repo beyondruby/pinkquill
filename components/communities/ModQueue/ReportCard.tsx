@@ -34,7 +34,7 @@ function getStatusStyles(status: string): string {
     case "resolved":
       return "bg-emerald-100 text-emerald-700";
     default:
-      return "bg-black/[0.04] text-ink/70";
+      return "bg-skeleton/70 text-ink/70";
   }
 }
 
@@ -72,9 +72,9 @@ export default function ReportCard({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-black/[0.06] overflow-hidden">
+    <div className="bg-surface rounded-xl border border-border-light overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-black/[0.06]">
+      <div className="p-4 border-b border-border-light">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             {/* Reporter Avatar */}
@@ -114,7 +114,7 @@ export default function ReportCard({
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusStyles(report.status)}`}>
                   {report.status}
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-black/[0.04] text-ink/60 text-xs">
+                <span className="px-2 py-0.5 rounded-full bg-skeleton/70 text-ink/60 text-xs">
                   {report.type}
                 </span>
               </div>
@@ -156,7 +156,7 @@ export default function ReportCard({
 
         {/* Reported content preview */}
         {report.reported_post && (
-          <div className="mt-4 p-3 bg-black/[0.02] rounded-lg">
+          <div className="mt-4 p-3 bg-subtle rounded-lg">
             <span className="text-xs text-muted uppercase tracking-wide">Reported Content</span>
             <div className="mt-2">
               {report.reported_post.title && (
@@ -201,14 +201,14 @@ export default function ReportCard({
             <div className="flex gap-2">
               <button
                 onClick={() => setShowActions(true)}
-                className="flex-1 px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-purple-primary/90 transition-colors font-ui text-sm"
+                className="flex-1 px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-accent/90 transition-colors font-ui text-sm"
               >
                 Take Action
               </button>
               <button
                 onClick={() => onDismiss()}
                 disabled={resolving}
-                className="px-4 py-2 text-muted hover:text-ink border border-black/[0.08] rounded-lg hover:border-black/[0.12] transition-colors font-ui text-sm"
+                className="px-4 py-2 text-muted hover:text-ink border border-border-light rounded-lg hover:border-border-strong transition-colors font-ui text-sm"
               >
                 Dismiss
               </button>
@@ -237,7 +237,7 @@ export default function ReportCard({
                             : action.color === "amber"
                               ? "bg-amber-500 text-white"
                               : "bg-purple-primary text-white"
-                          : "bg-black/[0.04] text-ink/70 hover:bg-black/[0.06]"
+                          : "bg-skeleton/70 text-ink/70 hover:bg-skeleton"
                       }`}
                     >
                       {action.label}
@@ -255,7 +255,7 @@ export default function ReportCard({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add any notes about this action..."
-                  className="w-full px-3 py-2 border border-black/[0.08] rounded-lg text-sm focus:border-purple-primary focus:outline-none resize-none"
+                  className="w-full px-3 py-2 border border-border-light rounded-lg text-sm focus:border-purple-primary focus:outline-none resize-none"
                   rows={2}
                 />
               </div>
@@ -265,7 +265,7 @@ export default function ReportCard({
                 <button
                   onClick={handleAction}
                   disabled={!selectedAction || resolving}
-                  className="flex-1 px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-purple-primary/90 transition-colors font-ui text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-accent/90 transition-colors font-ui text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {resolving ? "Processing..." : "Confirm Action"}
                 </button>

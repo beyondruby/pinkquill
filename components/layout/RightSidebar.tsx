@@ -39,7 +39,7 @@ function SectionCard({
       {showMoreHref && (
         <Link
           href={showMoreHref}
-          className="block px-4 py-2.5 text-sm font-ui font-medium text-purple-primary hover:bg-purple-primary/5 transition-colors border-t border-border-light"
+          className="block px-4 py-2.5 text-sm font-ui font-medium text-purple-primary hover:bg-accent/5 transition-colors border-t border-border-light"
         >
           {showMoreLabel}
         </Link>
@@ -79,7 +79,7 @@ function TrendingSection() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-ui font-semibold text-ink text-[0.9rem] group-hover:text-purple-primary transition-colors">
+                <p className="font-ui font-semibold text-ink text-[0.9rem] group-hover:text-accent transition-colors">
                   #{tag.name}
                 </p>
                 <p className="text-xs text-muted font-body mt-0.5">
@@ -248,7 +248,7 @@ function WhoToFollowSection() {
               </Link>
               <div className="flex-1 min-w-0">
                 <Link href={`/studio/${suggestedUser.username}`}>
-                  <p className="font-ui font-semibold text-ink text-sm truncate hover:text-purple-primary transition-colors">
+                  <p className="font-ui font-semibold text-ink text-sm truncate hover:text-accent transition-colors">
                     {suggestedUser.display_name || suggestedUser.username}
                   </p>
                   <p className="text-muted text-xs font-body truncate">
@@ -261,7 +261,7 @@ function WhoToFollowSection() {
                   onClick={() => handleFollow(suggestedUser.id)}
                   className={`px-3 py-1.5 rounded-full font-ui text-xs font-semibold transition-all ${
                     isFollowing
-                      ? "bg-white border border-black/10 text-ink hover:border-red-300 hover:text-red-500"
+                      ? "bg-surface border border-border-light text-ink hover:border-red-300 hover:text-red-500"
                       : "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent hover:shadow-md hover:shadow-pink-vivid/20"
                   }`}
                 >
@@ -322,7 +322,7 @@ function CommunitiesSection() {
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="font-ui font-semibold text-ink text-sm truncate group-hover:text-purple-primary transition-colors">
+              <p className="font-ui font-semibold text-ink text-sm truncate group-hover:text-accent transition-colors">
                 {community.name}
               </p>
               <p className="text-muted text-xs font-body">
@@ -352,17 +352,17 @@ export default function RightSidebar() {
         {/* Footer */}
         <nav className="px-1 pt-2">
           <div className="flex flex-wrap gap-x-2 gap-y-1 text-[0.7rem] text-muted/70 font-body">
-            <Link href="/terms" className="hover:text-purple-primary transition-colors">Terms</Link>
+            <Link href="/terms" className="hover:text-accent transition-colors">Terms</Link>
             <span>·</span>
-            <Link href="/privacy" className="hover:text-purple-primary transition-colors">Privacy</Link>
+            <Link href="/privacy" className="hover:text-accent transition-colors">Privacy</Link>
             <span>·</span>
-            <Link href="/community-guidelines" className="hover:text-purple-primary transition-colors">Guidelines</Link>
+            <Link href="/community-guidelines" className="hover:text-accent transition-colors">Guidelines</Link>
             <span>·</span>
-            <Link href="/marketplace-guidelines" className="hover:text-purple-primary transition-colors">Marketplace</Link>
+            <Link href="/marketplace-guidelines" className="hover:text-accent transition-colors">Marketplace</Link>
             <span>·</span>
-            <Link href="/about" className="hover:text-purple-primary transition-colors">About</Link>
+            <Link href="/about" className="hover:text-accent transition-colors">About</Link>
             <span>·</span>
-            <Link href="/help" className="hover:text-purple-primary transition-colors">Help</Link>
+            <Link href="/help" className="hover:text-accent transition-colors">Help</Link>
           </div>
           <p className="text-[0.65rem] text-muted font-body mt-2">
             © 2025 PinkQuill

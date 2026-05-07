@@ -55,7 +55,7 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
       <div className="max-w-md mx-auto">
         <div className="relative flex items-center justify-between">
           {/* Connection line - background */}
-          <div className="absolute top-1/2 left-[10%] right-[10%] h-[2px] -translate-y-1/2 bg-gray-200/50 rounded-full" />
+          <div className="absolute top-1/2 left-[10%] right-[10%] h-[2px] -translate-y-1/2 bg-skeleton/50 rounded-full" />
 
           {/* Connection line - progress */}
           <div
@@ -81,7 +81,7 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
                       ? "bg-gradient-to-br from-purple-primary via-pink-vivid to-pink-vivid shadow-lg shadow-purple-primary/30 scale-110"
                       : isCompleted
                       ? "bg-gradient-to-br from-purple-primary/90 to-pink-vivid/90 shadow-md"
-                      : "bg-white/80 backdrop-blur-md border border-gray-200/50 shadow-sm"
+                      : "bg-surface/80 backdrop-blur-md border border-gray-200/50 shadow-sm"
                     }
                   `}
                 >
@@ -116,7 +116,7 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
 
       {/* Current step description - mobile friendly */}
       <div className="mt-6 text-center sm:hidden">
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-md border border-white/40 text-sm font-medium text-purple-primary">
+        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface/60 backdrop-blur-md border border-white/40 text-sm font-medium text-purple-primary">
           {DISPLAY_STEPS[currentIndex].fullLabel}
         </span>
       </div>

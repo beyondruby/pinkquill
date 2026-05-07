@@ -133,7 +133,7 @@ export default function CommunityGeneralSettingsPage() {
           <label className="block font-ui text-sm font-medium text-ink mb-2">
             Cover Image
           </label>
-          <div className="relative h-40 rounded-xl overflow-hidden bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 border border-black/5">
+          <div className="relative h-40 rounded-xl overflow-hidden bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 border border-border-light">
             {coverPreview && (
               <img
                 src={coverPreview}
@@ -142,7 +142,7 @@ export default function CommunityGeneralSettingsPage() {
               />
             )}
             <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
-              <span className="px-4 py-2 rounded-lg bg-white/90 text-ink font-ui text-sm font-medium">
+              <span className="px-4 py-2 rounded-lg bg-surface/90 text-ink font-ui text-sm font-medium">
                 Change Cover
               </span>
               <input
@@ -201,7 +201,7 @@ export default function CommunityGeneralSettingsPage() {
             type="text"
             value={formData.name}
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full px-4 py-3 rounded-xl bg-white border border-black/5 font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
             maxLength={100}
           />
         </div>
@@ -215,7 +215,7 @@ export default function CommunityGeneralSettingsPage() {
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={4}
-            className="w-full px-4 py-3 rounded-xl bg-white border border-black/5 font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
+            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
             maxLength={500}
           />
         </div>
@@ -233,7 +233,7 @@ export default function CommunityGeneralSettingsPage() {
                 className={`p-4 rounded-xl border text-left transition-all ${
                   formData.privacy === 'public'
                     ? 'border-purple-primary bg-purple-primary/5'
-                    : 'border-black/5 hover:border-purple-primary/30'
+                    : 'border-border-light hover:border-accent/30'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -250,7 +250,7 @@ export default function CommunityGeneralSettingsPage() {
                 className={`p-4 rounded-xl border text-left transition-all ${
                   formData.privacy === 'private'
                     ? 'border-purple-primary bg-purple-primary/5'
-                    : 'border-black/5 hover:border-purple-primary/30'
+                    : 'border-border-light hover:border-accent/30'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -284,7 +284,7 @@ export default function CommunityGeneralSettingsPage() {
           <button
             type="button"
             onClick={() => router.push(`/community/${slug}/settings`)}
-            className="px-5 py-2.5 rounded-full bg-black/5 text-ink font-ui font-medium hover:bg-black/10 transition-colors"
+            className="px-5 py-2.5 rounded-full bg-skeleton text-ink font-ui font-medium hover:bg-black/10 transition-colors"
           >
             Cancel
           </button>

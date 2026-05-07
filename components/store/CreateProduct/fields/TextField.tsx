@@ -19,7 +19,7 @@ export default function TextField({ field, value, onChange }: TextFieldProps) {
       {/* Gradient border wrapper */}
       <div className="relative">
         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-          <div className="w-full h-full rounded-xl bg-white" />
+          <div className="w-full h-full rounded-xl bg-surface" />
         </div>
         <div className="relative flex items-center">
           <input

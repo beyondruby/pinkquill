@@ -101,10 +101,10 @@ export default function OrderTracker({
                 </div>
               ) : step.status === "active" ? (
                 <div className="w-5 h-5 rounded-full bg-purple-primary ring-4 ring-purple-primary/15 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-surface" />
                 </div>
               ) : (
-                <div className="w-5 h-5 rounded-full border-2 border-black/[0.08] bg-white" />
+                <div className="w-5 h-5 rounded-full border-2 border-border-light bg-surface" />
               )}
             </div>
             {!compact && (
@@ -125,7 +125,7 @@ export default function OrderTracker({
           {i < steps.length - 1 && (
             <div
               className={`h-[2px] flex-1 min-w-3 ${compact ? "" : "mt-[-14px]"} ${
-                step.status === "done" ? "bg-emerald-400" : "bg-black/[0.08]"
+                step.status === "done" ? "bg-emerald-400" : "bg-skeleton"
               }`}
             />
           )}

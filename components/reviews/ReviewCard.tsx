@@ -53,7 +53,7 @@ export default function ReviewCard({ review }: ReviewCardProps) {
     .replace(/\//g, ".");
 
   return (
-    <article className="rounded-2xl bg-white/60 border border-black/[0.05] p-5 sm:p-6 transition-colors hover:border-black/[0.08]">
+    <article className="rounded-2xl bg-surface/60 border border-border-light p-5 sm:p-6 transition-colors hover:border-border-light">
       <div className="flex items-start gap-4">
         {/* Compact avatar + name */}
         <div className="shrink-0 flex flex-col items-center gap-1.5 w-12">

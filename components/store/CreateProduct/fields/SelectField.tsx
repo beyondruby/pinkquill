@@ -24,7 +24,7 @@ export default function SelectField({ field, value, onChange }: SelectFieldProps
       {/* Gradient border wrapper - contains both button and options */}
       <div className="relative">
         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-          <div className="w-full h-full rounded-xl bg-white" />
+          <div className="w-full h-full rounded-xl bg-surface" />
         </div>
 
         <div className="relative">

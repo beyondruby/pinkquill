@@ -84,22 +84,22 @@ export default function EmojiPicker({ onSelect, isOpen, onClose }: EmojiPickerPr
   return (
     <div
       ref={pickerRef}
-      className="absolute bottom-full mb-2 right-0 w-[320px] bg-white rounded-2xl shadow-xl border border-black/[0.08] overflow-hidden z-50"
+      className="absolute bottom-full mb-2 right-0 w-[320px] bg-surface rounded-2xl shadow-xl border border-border-light overflow-hidden z-50"
     >
       {/* Search */}
-      <div className="p-3 border-b border-black/[0.06]">
+      <div className="p-3 border-b border-border-light">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search emojis..."
-          className="w-full px-3 py-2 rounded-lg bg-black/[0.04] border-none outline-none font-ui text-sm text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20"
+          className="w-full px-3 py-2 rounded-lg bg-skeleton/70 border-none outline-none font-ui text-sm text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20"
         />
       </div>
 
       {/* Category tabs */}
       {!searchQuery && (
-        <div className="flex overflow-x-auto px-2 py-2 border-b border-black/[0.06] gap-1 scrollbar-hide">
+        <div className="flex overflow-x-auto px-2 py-2 border-b border-border-light gap-1 scrollbar-hide">
           {categories.map((category) => (
             <button
               key={category}
@@ -107,7 +107,7 @@ export default function EmojiPicker({ onSelect, isOpen, onClose }: EmojiPickerPr
               className={`px-3 py-1.5 rounded-lg font-ui text-xs whitespace-nowrap transition-all ${
                 activeCategory === category
                   ? "bg-purple-primary text-white"
-                  : "text-muted hover:bg-black/[0.04]"
+                  : "text-muted hover:bg-skeleton/60"
               }`}
             >
               {category}
@@ -126,7 +126,7 @@ export default function EmojiPicker({ onSelect, isOpen, onClose }: EmojiPickerPr
                 onSelect(emoji);
                 onClose();
               }}
-              className="w-9 h-9 flex items-center justify-center text-xl hover:bg-black/[0.06] rounded-lg transition-colors"
+              className="w-9 h-9 flex items-center justify-center text-xl hover:bg-skeleton rounded-lg transition-colors"
             >
               {emoji}
             </button>

@@ -753,9 +753,9 @@ export default function PostPage() {
           {/* Left Column - Post */}
           <div className="flex-1 min-w-0">
             {/* Post Card */}
-            <article className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden">
+            <article className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden">
             {/* Author Header */}
-            <div className="flex items-center gap-3 md:gap-4 p-4 md:p-6 border-b border-black/[0.06]">
+            <div className="flex items-center gap-3 md:gap-4 p-4 md:p-6 border-b border-border-light">
               <Link href={`/studio/${post.author.username}`}>
                 <img
                   src={post.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
@@ -765,7 +765,7 @@ export default function PostPage() {
               </Link>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Link href={`/studio/${post.author.username}`} className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink hover:text-purple-primary transition-colors truncate">
+                  <Link href={`/studio/${post.author.username}`} className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink hover:text-accent transition-colors truncate">
                     {post.author.display_name || post.author.username}
                   </Link>
                   {post.flair && (
@@ -805,20 +805,20 @@ export default function PostPage() {
                 <div className="relative" ref={menuRef}>
                   <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
                   >
                     {icons.moreHorizontal}
                   </button>
 
                   {/* Dropdown Menu */}
                   {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
+                    <div className="absolute right-0 top-full mt-2 w-40 bg-surface rounded-xl shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
                       <button
                         onClick={() => {
                           setShowMenu(false);
                           handleEdit();
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-skeleton/60 transition-colors"
                       >
                         {icons.edit}
                         Edit
@@ -840,20 +840,20 @@ export default function PostPage() {
                 <div className="relative" ref={menuRef}>
                   <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
                   >
                     {icons.moreHorizontal}
                   </button>
 
                   {/* Dropdown Menu */}
                   {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
+                    <div className="absolute right-0 top-full mt-2 w-40 bg-surface rounded-xl shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
                       <button
                         onClick={() => {
                           setShowMenu(false);
                           setShowBlockConfirm(true);
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-black/[0.04] transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-skeleton/60 transition-colors"
                       >
                         {icons.block}
                         Block
@@ -913,7 +913,7 @@ export default function PostPage() {
                       <h2 className={`font-display text-2xl md:text-3xl font-normal tracking-tight ${hasDarkBackground ? "text-white" : "text-purple-primary"}`}>
                         {formatDate(post.created_at)}
                       </h2>
-                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui ${hasDarkBackground ? "bg-white/20 text-white" : "bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary"}`}>
+                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui ${hasDarkBackground ? "bg-surface/20 text-white" : "bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary"}`}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <circle cx="12" cy="12" r="10" />
                           <path d="M12 6v6l4 2" />
@@ -1034,7 +1034,7 @@ export default function PostPage() {
               {/* Media Gallery */}
               {hasMedia && (
                 <div className="mt-6">
-                  <div className="relative rounded-xl overflow-hidden bg-black/[0.02]">
+                  <div className="relative rounded-xl overflow-hidden bg-subtle">
                     {post.media[currentMediaIndex].media_type === "video" ? (
                       <video
                         src={post.media[currentMediaIndex].media_url}
@@ -1059,13 +1059,13 @@ export default function PostPage() {
                       <>
                         <button
                           onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? post.media.length - 1 : prev - 1))}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-white transition-all"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-all"
                         >
                           {icons.chevronLeft}
                         </button>
                         <button
                           onClick={() => setCurrentMediaIndex((prev) => (prev === post.media.length - 1 ? 0 : prev + 1))}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-white transition-all"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-all"
                         >
                           {icons.chevronRight}
                         </button>
@@ -1102,7 +1102,7 @@ export default function PostPage() {
                 </div>
                 {/* Content Warning Overlay */}
                 {post.content_warning && !showContent && (
-                  <div className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-2xl ${hasDarkBackground ? "bg-black/40" : "bg-white/40"} rounded-xl`}>
+                  <div className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-2xl ${hasDarkBackground ? "bg-black/40" : "bg-surface/40"} rounded-xl`}>
                     <div className="relative text-center px-8 py-10">
                       <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-5">
                         <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1135,7 +1135,7 @@ export default function PostPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 md:py-4 border-t border-black/[0.06] flex-wrap">
+            <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-3 md:py-4 border-t border-border-light flex-wrap">
               {/* Reaction Picker */}
               <ReactionPicker
                 currentReaction={userReaction}
@@ -1146,7 +1146,7 @@ export default function PostPage() {
               />
 
               <button
-                className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+                className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent transition-all"
               >
                 {icons.comment}
                 {comments.length > 0 && <span className="text-xs md:text-sm font-medium">{comments.length}</span>}
@@ -1159,7 +1159,7 @@ export default function PostPage() {
                   className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                     isRelayed
                       ? "bg-green-500/10 text-green-600"
-                      : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                      : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
                   } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {icons.relay}
@@ -1171,7 +1171,7 @@ export default function PostPage() {
 
               <button
                 onClick={() => setShowShareModal(true)}
-                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-accent/10 hover:text-accent transition-all"
               >
                 {icons.share}
               </button>
@@ -1182,7 +1182,7 @@ export default function PostPage() {
                 className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${
                   isSaved
                     ? "bg-amber-500/10 text-amber-600"
-                    : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                    : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {isSaved ? icons.bookmarkFilled : icons.bookmark}
@@ -1193,8 +1193,8 @@ export default function PostPage() {
 
           {/* Right Column - Discussion */}
           <div className="w-full lg:w-[360px] flex-shrink-0">
-            <section className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden lg:sticky lg:top-[86px]">
-              <div className="p-4 md:p-5 border-b border-black/[0.06]">
+            <section className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden lg:sticky lg:top-[86px]">
+              <div className="p-4 md:p-5 border-b border-border-light">
                 <h2 className="font-ui text-[0.9rem] md:text-[1rem] font-medium text-ink flex items-center gap-2">
                   {icons.comment}
                   Discussion ({comments.length})
@@ -1203,13 +1203,13 @@ export default function PostPage() {
 
             {/* Comment Input */}
             {user ? (
-              <div className="p-4 border-b border-black/[0.06] flex gap-3 items-center">
+              <div className="p-4 border-b border-border-light flex gap-3 items-center">
                 <img
                   src={profile?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
                   alt="You"
                   className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                 />
-                <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-full px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-primary transition-all">
+                <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary transition-all">
                   <input
                     type="text"
                     value={commentText}
@@ -1229,7 +1229,7 @@ export default function PostPage() {
                 </button>
               </div>
             ) : (
-              <div className="p-4 border-b border-black/[0.06] text-center">
+              <div className="p-4 border-b border-border-light text-center">
                 <p className="font-ui text-[0.9rem] text-muted">
                   <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
                 </p>
@@ -1296,7 +1296,7 @@ export default function PostPage() {
       {/* Block Confirmation Modal */}
       {showBlockConfirm && post && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
+          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
             <h3 className="font-display text-lg font-semibold text-ink mb-2">
               Block @{post.author.username}?
             </h3>
@@ -1306,7 +1306,7 @@ export default function PostPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowBlockConfirm(false)}
-                className="flex-1 py-2.5 rounded-full border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/[0.03] transition-colors"
+                className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors"
               >
                 Cancel
               </button>

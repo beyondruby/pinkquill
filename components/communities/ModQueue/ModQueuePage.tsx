@@ -55,7 +55,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-black/[0.06] p-4">
+        <div className="bg-surface rounded-xl border border-border-light p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
               <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +69,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-black/[0.06] p-4">
+        <div className="bg-surface rounded-xl border border-border-light p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
               <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +86,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 p-1 bg-white rounded-lg border border-black/[0.06]">
+        <div className="flex items-center gap-1 p-1 bg-surface rounded-lg border border-border-light">
           {[
             { value: "pending" as ReportStatus, label: "Pending" },
             { value: "reviewed" as ReportStatus, label: "Reviewed" },
@@ -99,7 +99,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
               className={`px-3 py-1.5 rounded-md font-ui text-sm transition-colors ${
                 statusFilter === option.value
                   ? "bg-purple-primary text-white"
-                  : "text-muted hover:text-ink hover:bg-black/[0.02]"
+                  : "text-muted hover:text-ink hover:bg-subtle"
               }`}
             >
               {option.label}
@@ -107,7 +107,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
           ))}
         </div>
 
-        <div className="flex items-center gap-1 p-1 bg-white rounded-lg border border-black/[0.06]">
+        <div className="flex items-center gap-1 p-1 bg-surface rounded-lg border border-border-light">
           {[
             { value: undefined, label: "All Types" },
             { value: "post" as ReportType, label: "Posts" },
@@ -120,7 +120,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
               className={`px-3 py-1.5 rounded-md font-ui text-sm transition-colors ${
                 typeFilter === option.value
                   ? "bg-purple-primary text-white"
-                  : "text-muted hover:text-ink hover:bg-black/[0.02]"
+                  : "text-muted hover:text-ink hover:bg-subtle"
               }`}
             >
               {option.label}
@@ -130,7 +130,7 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
 
         <button
           onClick={() => refetch()}
-          className="ml-auto p-2 text-muted hover:text-purple-primary hover:bg-purple-primary/[0.04] rounded-lg transition-colors"
+          className="ml-auto p-2 text-muted hover:text-accent hover:bg-accent/[0.04] rounded-lg transition-colors"
           title="Refresh"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

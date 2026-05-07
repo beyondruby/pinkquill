@@ -195,7 +195,7 @@ export default function CreateCommunityPage() {
                   ? 'bg-purple-primary text-white'
                   : s < step
                   ? 'bg-purple-primary/20 text-purple-primary cursor-pointer'
-                  : 'bg-black/5 text-muted'
+                  : 'bg-skeleton text-muted'
               }`}
             >
               {s}
@@ -217,7 +217,7 @@ export default function CreateCommunityPage() {
               value={formData.name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="Give your community a name"
-              className="w-full px-0 py-2 bg-transparent border-0 border-b border-black/10 font-body text-lg text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-primary transition-colors"
+              className="w-full px-0 py-2 bg-transparent border-0 border-b border-border-light font-body text-lg text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-primary transition-colors"
               maxLength={100}
               autoFocus
             />
@@ -225,7 +225,7 @@ export default function CreateCommunityPage() {
 
           <div>
             <label className="block font-ui text-xs tracking-wide text-muted mb-3">URL</label>
-            <div className="flex items-baseline gap-0.5 py-2 border-b border-black/10 focus-within:border-purple-primary transition-colors">
+            <div className="flex items-baseline gap-0.5 py-2 border-b border-border-light focus-within:border-purple-primary transition-colors">
               <span className="font-body text-lg text-muted/30">pinkquill.com/c/</span>
               <input
                 type="text"
@@ -247,7 +247,7 @@ export default function CreateCommunityPage() {
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="What is this community about?"
               rows={3}
-              className="w-full px-0 py-2 bg-transparent border-0 border-b border-black/10 font-body text-base text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-primary transition-colors resize-none"
+              className="w-full px-0 py-2 bg-transparent border-0 border-b border-border-light font-body text-base text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-primary transition-colors resize-none"
               maxLength={500}
             />
           </div>
@@ -266,7 +266,7 @@ export default function CreateCommunityPage() {
                   className={`flex-1 py-4 px-5 rounded-xl text-left transition-all ${
                     formData.privacy === option.id
                       ? 'bg-purple-primary/5 ring-1 ring-purple-primary'
-                      : 'bg-black/[0.02] hover:bg-black/[0.04]'
+                      : 'bg-subtle hover:bg-skeleton/60'
                   }`}
                 >
                   <span className={`font-ui text-sm font-medium block ${
@@ -282,7 +282,7 @@ export default function CreateCommunityPage() {
             <button
               onClick={() => setStep(2)}
               disabled={!formData.name.trim() || !formData.slug.trim()}
-              className="w-full py-3.5 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-purple-primary/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-full py-3.5 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Continue
             </button>
@@ -305,7 +305,7 @@ export default function CreateCommunityPage() {
                   className={`group py-3 px-4 rounded-lg text-left transition-all ${
                     formData.category === category.id
                       ? 'bg-purple-primary'
-                      : 'hover:bg-black/[0.03]'
+                      : 'hover:bg-subtle'
                   }`}
                 >
                   <span className={`font-ui text-[0.8rem] transition-colors ${
@@ -338,7 +338,7 @@ export default function CreateCommunityPage() {
                     className={`px-3.5 py-1.5 rounded-full font-ui text-[0.8rem] transition-all ${
                       formData.selectedGenres.includes(genre)
                         ? 'bg-purple-primary text-white'
-                        : 'bg-black/[0.04] text-ink/60 hover:bg-black/[0.07] hover:text-ink'
+                        : 'bg-skeleton/70 text-ink/60 hover:bg-skeleton hover:text-ink'
                     }`}
                   >
                     {genre}
@@ -374,7 +374,7 @@ export default function CreateCommunityPage() {
                     }
                   }}
                   placeholder="Add custom genre"
-                  className="flex-1 px-3.5 py-2 rounded-full bg-black/[0.03] border border-dashed border-black/10 font-ui text-[0.8rem] text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-primary/40"
+                  className="flex-1 px-3.5 py-2 rounded-full bg-skeleton/60 border border-dashed border-border-light font-ui text-[0.8rem] text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-primary/40"
                 />
               </div>
             </div>
@@ -400,7 +400,7 @@ export default function CreateCommunityPage() {
                     className={`px-3.5 py-1.5 rounded-full font-ui text-[0.8rem] transition-all ${
                       formData.selectedThemes.includes(theme)
                         ? 'bg-pink-vivid text-white'
-                        : 'bg-black/[0.04] text-ink/60 hover:bg-black/[0.07] hover:text-ink'
+                        : 'bg-skeleton/70 text-ink/60 hover:bg-skeleton hover:text-ink'
                     }`}
                   >
                     {theme}
@@ -436,7 +436,7 @@ export default function CreateCommunityPage() {
                     }
                   }}
                   placeholder="Add custom theme"
-                  className="flex-1 px-3.5 py-2 rounded-full bg-black/[0.03] border border-dashed border-black/10 font-ui text-[0.8rem] text-ink placeholder:text-muted/40 focus:outline-none focus:border-pink-vivid/40"
+                  className="flex-1 px-3.5 py-2 rounded-full bg-skeleton/60 border border-dashed border-border-light font-ui text-[0.8rem] text-ink placeholder:text-muted/40 focus:outline-none focus:border-pink-vivid/40"
                 />
               </div>
             </div>
@@ -457,7 +457,7 @@ export default function CreateCommunityPage() {
                     className={`px-3.5 py-1.5 rounded-full font-ui text-[0.8rem] transition-all ${
                       formData.communityType === type.id
                         ? 'bg-purple-primary text-white'
-                        : 'bg-black/[0.04] text-ink/60 hover:bg-black/[0.07] hover:text-ink'
+                        : 'bg-skeleton/70 text-ink/60 hover:bg-skeleton hover:text-ink'
                     }`}
                   >
                     {type.name}
@@ -470,14 +470,14 @@ export default function CreateCommunityPage() {
           <div className="flex gap-3 pt-6">
             <button
               onClick={() => setStep(1)}
-              className="px-6 py-3.5 rounded-xl bg-black/[0.03] text-ink font-ui text-sm font-medium hover:bg-black/[0.06] transition-colors"
+              className="px-6 py-3.5 rounded-xl bg-skeleton/60 text-ink font-ui text-sm font-medium hover:bg-skeleton transition-colors"
             >
               Back
             </button>
             <button
               onClick={() => setStep(3)}
               disabled={!formData.category}
-              className="flex-1 py-3.5 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-purple-primary/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex-1 py-3.5 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Continue
             </button>
@@ -497,7 +497,7 @@ export default function CreateCommunityPage() {
             {formData.rules.length > 0 && (
               <div className="space-y-3 mb-6">
                 {formData.rules.map((rule, index) => (
-                  <div key={index} className="py-4 px-5 rounded-xl bg-black/[0.02]">
+                  <div key={index} className="py-4 px-5 rounded-xl bg-subtle">
                     <div className="flex items-start gap-3">
                       <span className="w-5 h-5 rounded-full bg-purple-primary/10 text-purple-primary flex items-center justify-center flex-shrink-0 font-ui text-[0.65rem] font-bold mt-0.5">
                         {index + 1}
@@ -523,7 +523,7 @@ export default function CreateCommunityPage() {
               </div>
             )}
 
-            <div className="space-y-3 p-5 rounded-xl border border-dashed border-black/10">
+            <div className="space-y-3 p-5 rounded-xl border border-dashed border-border-light">
               <input
                 type="text"
                 value={newRule.title}
@@ -542,7 +542,7 @@ export default function CreateCommunityPage() {
                 type="button"
                 onClick={addRule}
                 disabled={!newRule.title.trim()}
-                className="px-4 py-2 rounded-lg bg-purple-primary/10 text-purple-primary font-ui text-xs font-medium hover:bg-purple-primary/20 transition-colors disabled:opacity-30"
+                className="px-4 py-2 rounded-lg bg-purple-primary/10 text-purple-primary font-ui text-xs font-medium hover:bg-accent/20 transition-colors disabled:opacity-30"
               >
                 Add Rule
               </button>
@@ -550,7 +550,7 @@ export default function CreateCommunityPage() {
           </div>
 
           {/* Summary */}
-          <div className="py-6 border-t border-black/5">
+          <div className="py-6 border-t border-border-light">
             <p className="font-ui text-xs tracking-wide text-muted mb-4">Summary</p>
             <dl className="space-y-3">
               <div className="flex justify-between">
@@ -586,14 +586,14 @@ export default function CreateCommunityPage() {
           <div className="flex gap-3 pt-4">
             <button
               onClick={() => setStep(2)}
-              className="px-6 py-3.5 rounded-xl bg-black/[0.03] text-ink font-ui text-sm font-medium hover:bg-black/[0.06] transition-colors"
+              className="px-6 py-3.5 rounded-xl bg-skeleton/60 text-ink font-ui text-sm font-medium hover:bg-skeleton transition-colors"
             >
               Back
             </button>
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="flex-1 py-3.5 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-purple-primary/90 transition-colors disabled:opacity-60"
+              className="flex-1 py-3.5 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-60"
             >
               {loading ? 'Creating...' : 'Create Community'}
             </button>

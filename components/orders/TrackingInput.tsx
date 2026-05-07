@@ -46,14 +46,14 @@ export default function TrackingInput({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-black/[0.06] bg-white p-4 space-y-3">
+    <form onSubmit={handleSubmit} className="rounded-xl border border-border-light bg-surface p-4 space-y-3">
       <h4 className="font-ui font-semibold text-ink text-sm">Add Tracking Information</h4>
 
       <div className="flex gap-3">
         <select
           value={carrier}
           onChange={(e) => setCarrier(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-black/[0.08] bg-white text-sm font-ui text-ink focus:ring-2 focus:ring-purple-primary/30 focus:border-purple-primary outline-none"
+          className="px-3 py-2 rounded-lg border border-border-light bg-surface text-sm font-ui text-ink focus:ring-2 focus:ring-purple-primary/30 focus:border-purple-primary outline-none"
         >
           {CARRIERS.map((c) => (
             <option key={c.value} value={c.value}>
@@ -66,7 +66,7 @@ export default function TrackingInput({
           value={trackingNumber}
           onChange={(e) => setTrackingNumber(e.target.value)}
           placeholder="Tracking number"
-          className="flex-1 px-3 py-2 rounded-lg border border-black/[0.08] bg-white text-sm font-ui text-ink placeholder:text-muted focus:ring-2 focus:ring-purple-primary/30 focus:border-purple-primary outline-none"
+          className="flex-1 px-3 py-2 rounded-lg border border-border-light bg-surface text-sm font-ui text-ink placeholder:text-muted focus:ring-2 focus:ring-purple-primary/30 focus:border-purple-primary outline-none"
         />
       </div>
 

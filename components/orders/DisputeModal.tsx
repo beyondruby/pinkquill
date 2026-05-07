@@ -29,14 +29,14 @@ export default function DisputeModal({ orderId, onSuccess, onClose }: DisputeMod
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden">
+      <div className="w-full max-w-lg bg-surface rounded-2xl shadow-xl overflow-hidden">
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-black/[0.06]">
+        <div className="px-6 pt-6 pb-4 border-b border-border-light">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-xl text-ink">Open a Dispute</h2>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.05] text-muted"
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-skeleton text-muted"
               aria-label="Close"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +57,7 @@ export default function DisputeModal({ orderId, onSuccess, onClose }: DisputeMod
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value as DisputeReason)}
-              className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body text-ink bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+              className="w-full px-4 py-3 rounded-xl border border-border-light text-sm font-body text-ink bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
             >
               <option value="">Select a reason...</option>
               {REASONS.map(([value, label]) => (
@@ -74,7 +74,7 @@ export default function DisputeModal({ orderId, onSuccess, onClose }: DisputeMod
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Explain the issue in detail. Include any relevant information that can help resolve this dispute..."
-              className="w-full px-4 py-3 rounded-xl border border-black/[0.08] text-sm font-body text-ink focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-border-light text-sm font-body text-ink focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 resize-none"
             />
           </div>
 
@@ -84,7 +84,7 @@ export default function DisputeModal({ orderId, onSuccess, onClose }: DisputeMod
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-black/[0.06] flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-border-light flex justify-end gap-3">
           <button
             onClick={onClose}
             className="px-5 py-2.5 rounded-xl text-sm font-ui text-muted hover:text-ink"

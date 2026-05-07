@@ -70,7 +70,7 @@ export default function ConfirmationModal({
       {/* Modal */}
       <div
         ref={modalRef}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw] bg-white rounded-2xl shadow-2xl z-[2101] overflow-hidden animate-scaleIn"
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw] bg-surface rounded-2xl shadow-2xl z-[2101] overflow-hidden animate-scaleIn"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirmation-modal-title"
@@ -146,7 +146,7 @@ export default function ConfirmationModal({
             <button
               onClick={onClose}
               disabled={loading}
-              className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-muted hover:text-ink border border-black/[0.08] hover:border-black/[0.15] bg-white hover:bg-black/[0.02] transition-all disabled:opacity-50"
+              className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-muted hover:text-ink border border-border-light hover:border-border-strong bg-surface hover:bg-subtle transition-all disabled:opacity-50"
             >
               {cancelText}
             </button>

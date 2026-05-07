@@ -157,7 +157,7 @@ export default function InteractionsHelpPage() {
 
             <div className="space-y-3 my-6">
               {reactionTypes.map((reaction) => (
-                <div key={reaction.name} className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/5">
+                <div key={reaction.name} className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light">
                   <span className="text-2xl">{reaction.emoji}</span>
                   <div>
                     <h4 className="font-ui font-semibold text-ink">{reaction.name}</h4>

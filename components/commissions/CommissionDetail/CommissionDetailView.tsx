@@ -194,14 +194,14 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
     return (
       <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_100%)] px-4 py-10">
         <div className="max-w-6xl mx-auto">
-          <div className="h-8 w-52 rounded bg-gray-100 animate-pulse" />
-          <div className="mt-4 h-10 w-4/5 max-w-xl rounded bg-gray-100 animate-pulse" />
+          <div className="h-8 w-52 rounded bg-skeleton animate-pulse" />
+          <div className="mt-4 h-10 w-4/5 max-w-xl rounded bg-skeleton animate-pulse" />
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_360px] gap-10">
             <div className="aspect-square rounded-[28px] bg-gradient-to-br from-pink-50 to-orange-50 animate-pulse" />
             <div className="space-y-4">
-              <div className="h-10 w-full rounded bg-gray-100 animate-pulse" />
-              <div className="h-10 w-full rounded bg-gray-100 animate-pulse" />
-              <div className="h-10 w-full rounded bg-gray-100 animate-pulse" />
+              <div className="h-10 w-full rounded bg-skeleton animate-pulse" />
+              <div className="h-10 w-full rounded bg-skeleton animate-pulse" />
+              <div className="h-10 w-full rounded bg-skeleton animate-pulse" />
             </div>
           </div>
         </div>
@@ -230,7 +230,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
     <>
       <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fff9fb_48%,#fff7f2_100%)] pb-16">
         <div className="max-w-6xl mx-auto px-4 pt-8">
-          <div className="pb-6 border-b border-black/[0.08]">
+          <div className="pb-6 border-b border-border-light">
             <div className="flex items-start justify-between gap-4">
               <div className="max-w-4xl">
                 <p className="text-[11px] font-ui uppercase tracking-[0.15em] text-muted">Commission Service</p>
@@ -273,7 +273,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
               </div>
 
               <ActionMenu
-                buttonClassName="w-10 h-10 rounded-full border border-black/[0.08] bg-white text-muted hover:text-ink hover:bg-black/[0.02] transition-colors flex items-center justify-center"
+                buttonClassName="w-10 h-10 rounded-full border border-border-light bg-surface text-muted hover:text-ink hover:bg-subtle transition-colors flex items-center justify-center"
                 buttonIconClassName="w-5 h-5"
                 widthClassName="w-44"
                 items={[
@@ -320,7 +320,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
               <ProductGallery media={product.media || []} title={product.title} variant="service" />
 
               {product.description && (
-                <section className="pt-8 border-t border-black/[0.08]">
+                <section className="pt-8 border-t border-border-light">
                   <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Overview</h2>
                   <p className="mt-3 text-sm md:text-base font-body leading-relaxed text-ink/85">
                     {product.description}
@@ -328,7 +328,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                 </section>
               )}
 
-              <section className="pt-8 border-t border-black/[0.08]">
+              <section className="pt-8 border-t border-border-light">
                 <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Process</h2>
                 <ol className="mt-4 space-y-3">
                   <li className="flex items-start gap-3">
@@ -347,7 +347,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
               </section>
 
               {(serviceIncludes.length > 0 || serviceExcludes.length > 0) && (
-                <section className="pt-8 border-t border-black/[0.08] grid grid-cols-1 md:grid-cols-2 gap-8">
+                <section className="pt-8 border-t border-border-light grid grid-cols-1 md:grid-cols-2 gap-8">
                   {serviceIncludes.length > 0 && (
                     <div>
                       <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Includes</h3>
@@ -379,7 +379,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
               )}
 
               {(serviceRequirements.length > 0 || serviceFaqs.length > 0 || Boolean(deliveryNotes) || serviceKeywords.length > 0) && (
-                <section className="pt-8 border-t border-black/[0.08] space-y-8">
+                <section className="pt-8 border-t border-border-light space-y-8">
                   {serviceRequirements.length > 0 && (
                     <div>
                       <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">What I Need From You</h3>
@@ -429,7 +429,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
               )}
             </div>
 
-            <aside className="lg:sticky lg:top-8 lg:self-start lg:pl-8 lg:border-l lg:border-black/[0.08]">
+            <aside className="lg:sticky lg:top-8 lg:self-start lg:pl-8 lg:border-l lg:border-border-light">
               <div>
                 <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Commission Planner</h2>
 
@@ -445,7 +445,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-2">
-                            <span className={`mt-1 inline-flex w-2.5 h-2.5 rounded-full ${selected ? "bg-pink-vivid" : "bg-black/15"}`} />
+                            <span className={`mt-1 inline-flex w-2.5 h-2.5 rounded-full ${selected ? "bg-pink-vivid" : "bg-border-strong"}`} />
                             <div>
                               <p className={`text-sm font-ui ${selected ? "text-ink" : "text-muted"}`}>
                                 {pkg.variant_name || "Package"}
@@ -503,13 +503,13 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                         image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
                       });
                     }}
-                    className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-pink-vivid/40 transition-colors"
+                    className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-pink-vivid/40 transition-colors"
                   >
                     {isQueued ? "In Cart" : "Add to Cart"}
                   </button>
                   <button
                     onClick={() => router.push("/cart")}
-                    className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-purple-primary/40 transition-colors"
+                    className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-accent/40 transition-colors"
                   >
                     Open Cart
                   </button>
@@ -526,8 +526,8 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
       {showHireModal && selectedPackage && (
         <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-          <div className="max-w-2xl mx-auto rounded-3xl bg-white shadow-2xl border border-black/[0.08] overflow-hidden">
-            <div className="px-6 py-4 border-b border-black/[0.06] bg-gradient-to-r from-purple-primary/6 to-pink-vivid/6 flex items-center justify-between gap-4">
+          <div className="max-w-2xl mx-auto rounded-3xl bg-surface shadow-2xl border border-border-light overflow-hidden">
+            <div className="px-6 py-4 border-b border-border-light bg-gradient-to-r from-purple-primary/6 to-pink-vivid/6 flex items-center justify-between gap-4">
               <div>
                 <h2 className="font-display text-2xl text-ink">Hire this package</h2>
                 <p className="text-sm font-body text-muted mt-1">
@@ -536,7 +536,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
               </div>
               <button
                 onClick={() => setShowHireModal(false)}
-                className="w-9 h-9 rounded-full hover:bg-black/[0.04] text-muted"
+                className="w-9 h-9 rounded-full hover:bg-skeleton/60 text-muted"
                 aria-label="Close"
               >
                 <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,7 +553,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                   value={brief}
                   onChange={(event) => setBrief(event.target.value)}
                   placeholder="Describe goals, style references, scope, and must-have deliverables."
-                  className="w-full px-4 py-3 rounded-xl border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+                  className="w-full px-4 py-3 rounded-xl border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
                 />
               </div>
 
@@ -567,7 +567,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                     onChange={(event) =>
                       setTimelineDays(Math.max(selectedPackage.delivery_days || 1, Number(event.target.value || 1)))
                     }
-                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+                    className="w-full px-4 py-3 rounded-xl border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
                   />
                 </div>
                 <div>
@@ -576,7 +576,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                     value={requirementsText}
                     onChange={(event) => setRequirementsText(event.target.value)}
                     placeholder="Links, files, constraints"
-                    className="w-full px-4 py-3 rounded-xl border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
+                    className="w-full px-4 py-3 rounded-xl border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
                   />
                 </div>
               </div>

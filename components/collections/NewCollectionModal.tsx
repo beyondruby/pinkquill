@@ -446,14 +446,14 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
     >
       <div
         ref={modalRef}
-        className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-scaleIn"
+        className="w-full max-w-md bg-surface rounded-2xl shadow-2xl overflow-hidden animate-scaleIn"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-border-light flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold text-ink">New Collection</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.05] transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -469,7 +469,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border-2 border-dashed border-purple-primary/30 flex items-center justify-center hover:border-purple-primary/50 transition-all group"
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border-2 border-dashed border-purple-primary/30 flex items-center justify-center hover:border-accent/50 transition-all group"
               >
                 {iconUrl ? (
                   <img src={iconUrl} alt="" className="w-full h-full object-cover rounded-xl" />
@@ -482,7 +482,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                     {/^[0-9A-Fa-f]+$/.test(iconEmoji) ? String.fromCodePoint(parseInt(iconEmoji, 16)) : iconEmoji}
                   </span>
                 ) : (
-                  <svg className="w-8 h-8 text-purple-primary/50 group-hover:text-purple-primary/70 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 text-purple-primary/50 group-hover:text-accent/70 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 )}
@@ -490,7 +490,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
 
               {/* Emoji & Icon Picker Dropdown */}
               {showEmojiPicker && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-black/[0.08] z-10 overflow-hidden">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-surface rounded-2xl shadow-xl border border-border-light z-10 overflow-hidden">
                   {/* Scrollable content */}
                   <div className="max-h-80 overflow-y-auto p-4">
                     {/* Icons Section */}
@@ -511,7 +511,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                               setIconUrl(null);
                               setShowEmojiPicker(false);
                             }}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-purple-primary/10 transition-colors text-purple-primary ${
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-accent/10 transition-colors text-purple-primary ${
                               iconEmoji === icon.id ? "bg-purple-primary/20 ring-2 ring-purple-primary/30" : ""
                             }`}
                             title={icon.label}
@@ -541,7 +541,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                                 setIconUrl(null);
                                 setShowEmojiPicker(false);
                               }}
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-purple-primary/10 transition-colors ${
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-accent/10 transition-colors ${
                                 iconEmoji === option.emoji ? "bg-purple-primary/20 ring-2 ring-purple-primary/30" : ""
                               }`}
                               title={option.label}
@@ -559,14 +559,14 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                   </div>
 
                   {/* Upload custom icon button */}
-                  <div className="border-t border-black/[0.06] p-3">
+                  <div className="border-t border-border-light p-3">
                     <button
                       type="button"
                       onClick={() => {
                         setShowEmojiPicker(false);
                         fileInputRef.current?.click();
                       }}
-                      className="w-full py-2.5 text-center text-sm font-medium text-purple-primary hover:bg-purple-primary/5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                      className="w-full py-2.5 text-center text-sm font-medium text-purple-primary hover:bg-accent/5 rounded-xl transition-colors flex items-center justify-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -598,7 +598,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               className={`relative w-full h-32 rounded-xl border-2 border-dashed cursor-pointer overflow-hidden transition-all ${
                 coverUrl
                   ? "border-purple-primary/30"
-                  : "border-black/[0.12] hover:border-purple-primary/30"
+                  : "border-border-strong hover:border-accent/30"
               }`}
             >
               {coverUrl ? (
@@ -658,7 +658,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Music, Books, Writings..."
-              className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white font-body text-[0.95rem] text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-[0.95rem] text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all"
               required
             />
           </div>
@@ -673,7 +673,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What will this collection contain?"
               rows={2}
-              className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white font-body text-[0.95rem] text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-[0.95rem] text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all resize-none"
             />
           </div>
 
@@ -687,7 +687,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-2.5 rounded-xl border border-black/[0.08] font-ui text-[0.9rem] text-muted hover:text-ink hover:border-black/20 transition-all"
+              className="flex-1 px-5 py-2.5 rounded-xl border border-border-light font-ui text-[0.9rem] text-muted hover:text-ink hover:border-border-strong transition-all"
             >
               Cancel
             </button>

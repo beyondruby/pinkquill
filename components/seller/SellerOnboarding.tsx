@@ -80,7 +80,7 @@ export default function SellerOnboarding() {
           Your seller account is almost ready. Complete the {providerLabel} onboarding to start receiving payouts.
         </p>
 
-        <div className="bg-black/[0.02] rounded-lg p-4 mb-6 text-left space-y-2">
+        <div className="bg-subtle rounded-lg p-4 mb-6 text-left space-y-2">
           <StatusRow label="Account created" done />
           <StatusRow label="Identity verified" done={account.onboarding_complete} />
           <StatusRow label="Payouts enabled" done={account.payouts_enabled} />
@@ -99,7 +99,7 @@ export default function SellerOnboarding() {
           </button>
           <button
             onClick={checkStatus}
-            className="px-6 py-2.5 border border-black/[0.12] rounded-lg text-sm font-medium text-ink/70 hover:bg-black/[0.02]"
+            className="px-6 py-2.5 border border-border-strong rounded-lg text-sm font-medium text-ink/70 hover:bg-subtle"
           >
             Refresh Status
           </button>
@@ -121,7 +121,7 @@ export default function SellerOnboarding() {
           : `Your ${providerLabel} account is set up and ready to receive payouts.`}
       </p>
 
-      <div className="bg-black/[0.02] rounded-lg p-4 mb-6 text-left space-y-2">
+      <div className="bg-subtle rounded-lg p-4 mb-6 text-left space-y-2">
         <StatusRow label="Identity verified" done />
         <StatusRow label="Payouts enabled" done={account.payouts_enabled} />
         {account.country && (

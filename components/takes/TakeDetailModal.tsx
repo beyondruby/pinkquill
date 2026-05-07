@@ -410,11 +410,11 @@ export default function TakeDetailModal({
           {/* Main Content Area */}
           <div
             className={`flex flex-col overflow-y-auto p-10 ${
-              showComments ? "flex-1 border-r border-black/5" : "flex-1"
+              showComments ? "flex-1 border-r border-border-light" : "flex-1"
             }`}
           >
             {/* Author Header */}
-            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-black/[0.06]">
+            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border-light">
               <Link href={`/studio/${take.author.username}`} onClick={onClose}>
                 <img
                   src={take.author.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
@@ -427,7 +427,7 @@ export default function TakeDetailModal({
                   <Link
                     href={`/studio/${take.author.username}`}
                     onClick={onClose}
-                    className="font-ui text-[1.1rem] font-medium text-ink hover:text-purple-primary transition-colors"
+                    className="font-ui text-[1.1rem] font-medium text-ink hover:text-accent transition-colors"
                   >
                     {take.author.display_name || take.author.username}
                   </Link>
@@ -454,7 +454,7 @@ export default function TakeDetailModal({
               {(isOwner || user) && (
                 <ActionMenu
                   items={takeMenuItems}
-                  buttonClassName="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+                  buttonClassName="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
                   widthClassName="w-40"
                   buttonAriaLabel="Take options menu"
                 />
@@ -509,7 +509,7 @@ export default function TakeDetailModal({
                           </div>
                           <button
                             onClick={() => setShowContent(true)}
-                            className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-white/20 hover:bg-white/30 transition-colors"
+                            className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-surface/20 hover:bg-surface/30 transition-colors"
                           >
                             Show Content
                           </button>
@@ -523,7 +523,7 @@ export default function TakeDetailModal({
                         className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer"
                         onClick={handleVideoClick}
                       >
-                        <div className="w-20 h-20 rounded-full bg-white/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-purple-primary hover:scale-110 transition-transform">
+                        <div className="w-20 h-20 rounded-full bg-surface/95 backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex items-center justify-center text-purple-primary hover:scale-110 transition-transform">
                           {icons.play}
                         </div>
                       </div>
@@ -555,7 +555,7 @@ export default function TakeDetailModal({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 mt-auto pt-6 border-t border-black/[0.06]">
+            <div className="flex items-center gap-2 mt-auto pt-6 border-t border-border-light">
               {/* Reaction Picker */}
               <TakeReactionPicker
                 currentReaction={userReaction}
@@ -569,7 +569,7 @@ export default function TakeDetailModal({
               {/* Comment Button */}
               <button
                 onClick={() => setShowComments(true)}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent transition-all"
               >
                 <CommentIcon className="shrink-0" />
                 {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
@@ -582,7 +582,7 @@ export default function TakeDetailModal({
                 className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
                   isRelayed
                     ? "bg-green-500/10 text-green-600"
-                    : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                    : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
                 } ${(!user || take.author_id === user?.id) ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
@@ -592,7 +592,7 @@ export default function TakeDetailModal({
               {/* Share Button */}
               <button
                 onClick={() => setShowShareModal(true)}
-                className="w-11 h-11 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+                className="w-11 h-11 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-accent/10 hover:text-accent transition-all"
               >
                 {icons.share}
               </button>
@@ -604,7 +604,7 @@ export default function TakeDetailModal({
                 className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
                   isSaved
                     ? "bg-amber-500/10 text-amber-600"
-                    : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                    : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {isSaved ? (
@@ -622,7 +622,7 @@ export default function TakeDetailModal({
           {showComments && (
             <div className="discussion-panel">
               {/* Comments Header */}
-              <div className="p-5 border-b border-black/[0.06] bg-white/60 flex justify-between items-center">
+              <div className="p-5 border-b border-border-light bg-surface/60 flex justify-between items-center">
                 <span className="font-ui text-[0.8rem] font-medium tracking-[0.12em] uppercase text-muted">
                   Discussion
                 </span>
@@ -665,13 +665,13 @@ export default function TakeDetailModal({
 
               {/* Comment Input */}
               {user ? (
-                <div className="p-4 bg-white border-t border-black/[0.06] flex gap-2.5 items-center">
+                <div className="p-4 bg-surface border-t border-border-light flex gap-2.5 items-center">
                   <img
                     src={profile?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
                     alt="You"
                     className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                   />
-                  <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-3xl px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
+                  <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-3xl px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
                     <input
                       type="text"
                       value={commentText}
@@ -691,7 +691,7 @@ export default function TakeDetailModal({
                   </button>
                 </div>
               ) : (
-                <div className="p-4 bg-white border-t border-black/[0.06] text-center">
+                <div className="p-4 bg-surface border-t border-border-light text-center">
                   <p className="font-ui text-[0.9rem] text-muted">
                     <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
                   </p>

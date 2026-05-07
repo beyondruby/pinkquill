@@ -85,7 +85,7 @@ function MetricCard({
       className={`relative rounded-xl border p-4 sm:p-5 overflow-hidden ${
         accent
           ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
-          : "border-black/[0.06] bg-white"
+          : "border-border-light bg-surface"
       }`}
     >
       <div className="flex items-start justify-between">
@@ -99,7 +99,7 @@ function MetricCard({
           )}
         </div>
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-black/[0.04] text-muted"
+          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-skeleton/70 text-muted"
         }`}>
           {icon}
         </div>
@@ -113,18 +113,18 @@ function MetricCard({
 // ---------------------------------------------------------------------------
 
 function MetricSkeleton() {
-  return <div className="h-[100px] bg-black/[0.02] rounded-xl animate-pulse border border-black/[0.04]" />;
+  return <div className="h-[100px] bg-subtle rounded-xl animate-pulse border border-border-light" />;
 }
 
 function OrderSkeleton() {
   return (
-    <div className="rounded-xl border border-black/[0.04] bg-white p-5">
+    <div className="rounded-xl border border-border-light bg-surface p-5">
       <div className="flex gap-4">
-        <div className="w-[72px] h-[72px] rounded-lg bg-black/[0.04] animate-pulse shrink-0" />
+        <div className="w-[72px] h-[72px] rounded-lg bg-skeleton/70 animate-pulse shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 w-3/4 bg-black/[0.04] rounded animate-pulse" />
-          <div className="h-3 w-1/2 bg-black/[0.02] rounded animate-pulse" />
-          <div className="h-3 w-1/3 bg-black/[0.02] rounded animate-pulse" />
+          <div className="h-4 w-3/4 bg-skeleton/70 rounded animate-pulse" />
+          <div className="h-3 w-1/2 bg-subtle rounded animate-pulse" />
+          <div className="h-3 w-1/3 bg-subtle rounded animate-pulse" />
         </div>
       </div>
     </div>
@@ -157,7 +157,7 @@ export default function BuyerDashboard() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-purple-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a4 4 0 0 0-8 0v2" />
             </svg>
@@ -166,7 +166,7 @@ export default function BuyerDashboard() {
           <p className="font-body text-sm text-muted mb-6">Log in to track your purchases and commissions.</p>
           <Link
             href="/login"
-            className="inline-flex px-6 py-2.5 rounded-lg text-sm font-ui font-semibold text-white bg-purple-primary hover:bg-purple-primary/90 transition-colors"
+            className="inline-flex px-6 py-2.5 rounded-lg text-sm font-ui font-semibold text-white bg-purple-primary hover:bg-accent/90 transition-colors"
           >
             Sign In
           </Link>
@@ -187,7 +187,7 @@ export default function BuyerDashboard() {
           <div className="flex gap-2">
             <Link
               href="/cart"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-black/[0.08] bg-white text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border-light bg-surface text-sm font-ui font-medium text-ink hover:bg-subtle transition-colors"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
@@ -196,7 +196,7 @@ export default function BuyerDashboard() {
             </Link>
             <Link
               href="/shop"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-primary text-white text-sm font-ui font-semibold hover:bg-purple-primary/90 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-primary text-white text-sm font-ui font-semibold hover:bg-accent/90 transition-colors"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
@@ -258,7 +258,7 @@ export default function BuyerDashboard() {
         ) : null}
 
         {/* Tab bar */}
-        <div className="border-b border-black/[0.06] mb-6">
+        <div className="border-b border-border-light mb-6">
           <div className="flex gap-0 overflow-x-auto -mb-px">
             {STATUS_TABS.map((tab, idx) => (
               <button
@@ -267,7 +267,7 @@ export default function BuyerDashboard() {
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-ui font-medium whitespace-nowrap border-b-2 transition-colors ${
                   activeTabIdx === idx
                     ? "border-purple-primary text-purple-primary"
-                    : "border-transparent text-muted hover:text-ink hover:border-black/[0.08]"
+                    : "border-transparent text-muted hover:text-ink hover:border-border-light"
                 }`}
               >
                 <span className={activeTabIdx === idx ? "text-purple-primary" : "text-muted"}>{tab.icon}</span>
@@ -286,7 +286,7 @@ export default function BuyerDashboard() {
 
         {!loading && filteredOrders.length === 0 && (
           <div className="text-center py-20">
-            <div className="w-16 h-16 rounded-2xl bg-black/[0.02] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-subtle flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-muted/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a4 4 0 0 0-8 0v2" />
               </svg>
@@ -301,7 +301,7 @@ export default function BuyerDashboard() {
             </p>
             <Link
               href="/shop"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-ui font-semibold text-white bg-purple-primary hover:bg-purple-primary/90 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-ui font-semibold text-white bg-purple-primary hover:bg-accent/90 transition-colors"
             >
               Explore Marketplace
             </Link>
@@ -318,7 +318,7 @@ export default function BuyerDashboard() {
           <div className="text-center mt-8">
             <button
               onClick={loadMore}
-              className="px-6 py-2.5 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-purple-50/50 hover:bg-purple-50 transition-colors"
+              className="px-6 py-2.5 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-accent/10 transition-colors"
             >
               Load More Orders
             </button>

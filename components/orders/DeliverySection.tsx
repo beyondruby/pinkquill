@@ -111,8 +111,8 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
   };
 
   return (
-    <section className="rounded-2xl border border-black/[0.06] bg-white overflow-hidden">
-      <div className="px-5 py-4 border-b border-black/[0.04]">
+    <section className="rounded-2xl border border-border-light bg-surface overflow-hidden">
+      <div className="px-5 py-4 border-b border-border-light">
         <h3 className="font-display text-lg text-ink">
           {canDeliver ? "Submit Delivery" : "Delivery"}
         </h3>
@@ -126,7 +126,7 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
 
       {/* Existing delivery assets */}
       {order.delivery_assets && order.delivery_assets.length > 0 && (
-        <div className="p-5 border-b border-black/[0.04]">
+        <div className="p-5 border-b border-border-light">
           <p className="text-xs font-ui text-muted uppercase tracking-wider mb-3">
             Delivered Files
           </p>
@@ -137,7 +137,7 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-black/[0.06] overflow-hidden hover:border-purple-primary/30 transition-colors group"
+                className="rounded-xl border border-border-light overflow-hidden hover:border-accent/30 transition-colors group"
               >
                 {isImageUrl(url) ? (
                   <Image
@@ -148,10 +148,10 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
                     className="w-full h-28 object-cover"
                   />
                 ) : (
-                  <div className="w-full h-28 bg-black/[0.02] flex flex-col items-center justify-center gap-2">
+                  <div className="w-full h-28 bg-subtle flex flex-col items-center justify-center gap-2">
                     <FontAwesomeIcon
                       icon={fileTypeIcon(url)}
-                      className="text-2xl text-muted group-hover:text-purple-primary transition-colors"
+                      className="text-2xl text-muted group-hover:text-accent transition-colors"
                     />
                     <span className="text-[10px] font-ui text-muted truncate max-w-[90%] px-2">
                       {url.split("/").pop()}
@@ -162,7 +162,7 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
             ))}
           </div>
           {order.delivery_note && (
-            <div className="mt-3 p-3 rounded-lg bg-black/[0.02]">
+            <div className="mt-3 p-3 rounded-lg bg-subtle">
               <p className="text-xs font-ui text-muted mb-1">Seller note:</p>
               <p className="text-sm font-body text-ink">{order.delivery_note}</p>
             </div>
@@ -178,11 +178,11 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
             onChange={(e) => setDeliveryNote(e.target.value)}
             placeholder="Add a note about this delivery..."
             rows={3}
-            className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white text-sm font-body text-ink placeholder:text-muted focus:ring-2 focus:ring-purple-primary/30 focus:border-purple-primary outline-none resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface text-sm font-body text-ink placeholder:text-muted focus:ring-2 focus:ring-purple-primary/30 focus:border-purple-primary outline-none resize-none"
           />
 
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 px-4 py-2 rounded-xl border border-dashed border-black/[0.12] cursor-pointer hover:border-purple-primary/40 hover:bg-purple-50/50 transition-colors">
+            <label className="flex items-center gap-2 px-4 py-2 rounded-xl border border-dashed border-border-strong cursor-pointer hover:border-accent/40 hover:bg-accent/5 transition-colors">
               <FontAwesomeIcon icon={faUpload} className="text-muted text-sm" />
               <span className="text-sm font-ui text-muted">
                 {files.length > 0 ? `${files.length} file${files.length > 1 ? "s" : ""} selected` : "Attach files"}

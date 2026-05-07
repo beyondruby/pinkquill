@@ -50,9 +50,9 @@ export default function InsightsSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-[280px] border-r border-black/[0.04] min-h-full bg-white/50 flex flex-col">
+    <aside className="w-[280px] border-r border-border-light min-h-full bg-surface/50 flex flex-col">
       {/* Header */}
-      <div className="px-6 py-8 border-b border-black/[0.04]">
+      <div className="px-6 py-8 border-b border-border-light">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-muted hover:text-ink transition-colors mb-4"
@@ -85,7 +85,7 @@ export default function InsightsSidebar() {
               className={`flex items-center gap-3 p-4 rounded-2xl mb-2 transition-all ${
                 isActive
                   ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/20"
-                  : "hover:bg-black/[0.02]"
+                  : "hover:bg-subtle"
               }`}
             >
               <span className={isActive ? "text-white" : "text-purple-primary"}>
@@ -109,7 +109,7 @@ export default function InsightsSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-6 border-t border-black/[0.04]">
+      <div className="p-6 border-t border-border-light">
         <p className="font-body text-xs text-muted/60 text-center">
           Data updated in real-time
         </p>

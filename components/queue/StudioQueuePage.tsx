@@ -75,7 +75,7 @@ function CartItemCard({
   const isService = item.listing_type === "service";
 
   return (
-    <div className="group rounded-2xl border border-black/[0.06] bg-white hover:border-black/[0.1] transition-colors">
+    <div className="group rounded-2xl border border-border-light bg-surface hover:border-border-light transition-colors">
       {/* Item header */}
       <div className="flex items-start gap-4 p-4 sm:p-5">
         {/* Thumbnail */}
@@ -133,7 +133,7 @@ function CartItemCard({
       {/* Service brief form */}
       {isService && (
         <div className="px-4 sm:px-5 pb-1 space-y-3">
-          <div className="h-px bg-black/[0.04]" />
+          <div className="h-px bg-skeleton/70" />
           <label className="block">
             <span className="text-xs font-ui font-medium text-ink/70 mb-1 block">
               Project Brief <span className="text-red-400">*</span>
@@ -143,7 +143,7 @@ function CartItemCard({
               value={serviceFields.brief}
               onChange={(e) => onUpdateField("brief", e.target.value)}
               placeholder="Describe your vision — goals, references, must-have deliverables..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] text-sm font-body placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 resize-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 resize-none"
             />
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -154,7 +154,7 @@ function CartItemCard({
                 min={1}
                 value={serviceFields.timelineDays}
                 onChange={(e) => onUpdateField("timelineDays", Math.max(1, Number(e.target.value || 1)))}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30"
               />
             </label>
             <label className="block">
@@ -163,7 +163,7 @@ function CartItemCard({
                 value={serviceFields.notes}
                 onChange={(e) => onUpdateField("notes", e.target.value)}
                 placeholder="Optional"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] text-sm font-body placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30"
               />
             </label>
           </div>
@@ -171,7 +171,7 @@ function CartItemCard({
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-between px-4 sm:px-5 py-3 mt-1 border-t border-black/[0.04]">
+      <div className="flex items-center justify-between px-4 sm:px-5 py-3 mt-1 border-t border-border-light">
         <button
           onClick={onRemove}
           className="text-xs font-ui text-muted hover:text-red-500 transition-colors"
@@ -200,7 +200,7 @@ function OrderSummary({ items }: { items: StudioQueueItem[] }) {
   const productCount = items.length - serviceCount;
 
   return (
-    <div className="rounded-2xl border border-black/[0.06] bg-white p-5 sticky top-24">
+    <div className="rounded-2xl border border-border-light bg-surface p-5 sticky top-24">
       <h2 className="font-ui font-semibold text-ink text-base mb-4">Summary</h2>
 
       <div className="space-y-2.5">
@@ -212,7 +212,7 @@ function OrderSummary({ items }: { items: StudioQueueItem[] }) {
         ))}
       </div>
 
-      <div className="h-px bg-black/[0.06] my-4" />
+      <div className="h-px bg-skeleton my-4" />
 
       <div className="flex justify-between font-ui text-base font-semibold text-ink">
         <span>Subtotal</span>
@@ -222,7 +222,7 @@ function OrderSummary({ items }: { items: StudioQueueItem[] }) {
         Platform fees calculated at checkout
       </p>
 
-      <div className="mt-4 pt-3 border-t border-black/[0.04]">
+      <div className="mt-4 pt-3 border-t border-border-light">
         <div className="flex flex-wrap gap-2 text-[11px] font-ui text-muted">
           {productCount > 0 && (
             <span className="px-2 py-0.5 rounded-md bg-emerald-500/8 text-emerald-600">
@@ -327,10 +327,10 @@ export default function StudioCartPage() {
     return (
       <div className="min-h-screen bg-background py-8 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="h-6 w-32 rounded-lg bg-gray-100 animate-pulse mb-6" />
+          <div className="h-6 w-32 rounded-lg bg-skeleton animate-pulse mb-6" />
           <div className="space-y-4">
             {[1, 2].map((i) => (
-              <div key={i} className="h-36 rounded-2xl bg-gray-100 animate-pulse" />
+              <div key={i} className="h-36 rounded-2xl bg-skeleton animate-pulse" />
             ))}
           </div>
         </div>
@@ -348,7 +348,7 @@ export default function StudioCartPage() {
           <div className="flex items-center gap-3">
             <h1 className="font-display text-2xl sm:text-3xl text-ink">Cart</h1>
             {hasItems && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-ui font-semibold bg-black/[0.05] text-ink/60">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-ui font-semibold bg-skeleton text-ink/60">
                 {items.length}
               </span>
             )}
@@ -393,7 +393,7 @@ export default function StudioCartPage() {
               <div className="pt-2">
                 <Link
                   href="/shop"
-                  className="inline-flex items-center gap-1.5 text-sm font-ui text-muted hover:text-purple-primary transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm font-ui text-muted hover:text-accent transition-colors"
                 >
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />

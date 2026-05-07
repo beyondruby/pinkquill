@@ -145,7 +145,7 @@ export default function InsightsHelpPage() {
             </p>
 
             <div className="space-y-4 my-6">
-              <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-start gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faEye} className="w-5 h-5 text-purple-primary mt-0.5" />
                 <div>
                   <h4 className="font-ui font-semibold text-ink">Views</h4>
@@ -156,7 +156,7 @@ export default function InsightsHelpPage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-start gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faUsers} className="w-5 h-5 text-purple-primary mt-0.5" />
                 <div>
                   <h4 className="font-ui font-semibold text-ink">Reach</h4>
@@ -167,7 +167,7 @@ export default function InsightsHelpPage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-start gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faHeart} className="w-5 h-5 text-purple-primary mt-0.5" />
                 <div>
                   <h4 className="font-ui font-semibold text-ink">Engagement Rate</h4>
@@ -178,7 +178,7 @@ export default function InsightsHelpPage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-start gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faArrowUp} className="w-5 h-5 text-purple-primary mt-0.5" />
                 <div>
                   <h4 className="font-ui font-semibold text-ink">Follower Growth</h4>

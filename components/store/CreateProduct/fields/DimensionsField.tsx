@@ -32,7 +32,7 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
                 px-4 py-2 rounded-xl text-sm font-ui transition-all duration-200
                 ${shipping.dimensions_unit === unit.value
                   ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm text-white"
-                  : "bg-white text-muted hover:bg-pink-vivid/5"
+                  : "bg-surface text-muted hover:bg-pink-vivid/5"
                 }
               `}
               style={{
@@ -73,7 +73,7 @@ export default function DimensionsField({ shipping, onChange }: DimensionsFieldP
           <label className="block text-sm font-ui text-muted mb-2">Weight</label>
           <div className="relative">
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-              <div className="w-full h-full rounded-xl bg-white" />
+              <div className="w-full h-full rounded-xl bg-surface" />
             </div>
             <div className="relative flex items-center">
               <input
@@ -115,7 +115,7 @@ function DimensionInput({
       <label className="block text-sm font-ui text-muted mb-2">{label}</label>
       <div className="relative">
         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-          <div className="w-full h-full rounded-xl bg-white" />
+          <div className="w-full h-full rounded-xl bg-surface" />
         </div>
         <div className="relative flex items-center">
           <input

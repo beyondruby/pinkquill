@@ -43,7 +43,7 @@ export default function SearchResultItem(props: SearchResultItemProps) {
       <Link
         href={`/studio/${data.username}`}
         onClick={onClick}
-        className="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-primary/5 transition-colors duration-200 cursor-pointer"
+        className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors duration-200 cursor-pointer"
       >
         <img
           src={data.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop"}
@@ -68,7 +68,7 @@ export default function SearchResultItem(props: SearchResultItemProps) {
       <Link
         href={`/community/${data.slug}`}
         onClick={onClick}
-        className="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-primary/5 transition-colors duration-200 cursor-pointer"
+        className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors duration-200 cursor-pointer"
       >
         {data.avatar_url ? (
           <img
@@ -101,7 +101,7 @@ export default function SearchResultItem(props: SearchResultItemProps) {
       <Link
         href={`/explore?tag=${encodeURIComponent(data.tag)}`}
         onClick={onClick}
-        className="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-primary/5 transition-colors duration-200 cursor-pointer"
+        className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors duration-200 cursor-pointer"
       >
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center">
           <span className="text-white font-ui text-[0.9rem] font-bold">#</span>
@@ -153,13 +153,13 @@ export default function SearchResultItem(props: SearchResultItemProps) {
     };
 
     return (
-      <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-purple-primary/5 transition-colors duration-200 group">
+      <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors duration-200 group">
         <Link
           href={getHref()}
           onClick={onClick}
           className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
         >
-          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-skeleton flex items-center justify-center">
             {getIcon()}
           </div>
           <span className="font-ui text-[0.85rem] text-ink truncate">
@@ -173,7 +173,7 @@ export default function SearchResultItem(props: SearchResultItemProps) {
               e.stopPropagation();
               onRemove();
             }}
-            className="p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-200 transition-all"
+            className="p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-skeleton transition-all"
           >
             <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

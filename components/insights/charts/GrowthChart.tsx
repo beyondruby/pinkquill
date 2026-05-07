@@ -35,7 +35,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   if (active && payload && payload.length) {
     const point = payload[0].payload;
     return (
-      <div className="bg-white px-4 py-3 rounded-xl shadow-lg border border-black/10">
+      <div className="bg-surface px-4 py-3 rounded-xl shadow-lg border border-border-light">
         <p className="font-ui text-sm text-ink font-medium mb-1">{label}</p>
         <div className="space-y-1">
           <p className="font-body text-sm text-muted">
@@ -82,7 +82,7 @@ export default function GrowthChart({
 
   if (data.history.length === 0) {
     return (
-      <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+      <div className="bg-surface rounded-2xl p-6 border border-border-light">
         <h3 className="font-ui text-sm font-medium text-ink mb-4">{title}</h3>
         <div
           className="flex items-center justify-center text-muted font-body text-sm"
@@ -95,7 +95,7 @@ export default function GrowthChart({
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+    <div className="bg-surface rounded-2xl p-6 border border-border-light">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-ui text-sm font-medium text-ink">{title}</h3>
         <div className="flex items-center gap-4">
@@ -113,7 +113,7 @@ export default function GrowthChart({
               -{"lost" in data ? data.lost : data.left}
             </span>
           </div>
-          <div className="flex items-center gap-2 pl-2 border-l border-black/10">
+          <div className="flex items-center gap-2 pl-2 border-l border-border-light">
             <span className="font-body text-xs text-muted">Net</span>
             <span
               className={`font-ui text-sm font-medium ${

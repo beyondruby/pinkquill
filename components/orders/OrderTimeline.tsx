@@ -61,7 +61,7 @@ export default function OrderTimeline({ order }: OrderTimelineProps) {
   const isRevisionRequested = order.status === "revision_requested";
 
   return (
-    <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6">
+    <section className="rounded-2xl border border-border-light bg-surface p-5 sm:p-6">
       <h2 className="font-display text-2xl text-ink mb-4">Timeline</h2>
 
       {isCancelled && (
@@ -113,7 +113,7 @@ export default function OrderTimeline({ order }: OrderTimelineProps) {
                   ? "border-red-200/60 bg-red-50/30 opacity-50"
                   : isActive
                     ? "border-pink-vivid/40 bg-pink-50/50"
-                    : "border-black/[0.08]"
+                    : "border-border-light"
               }`}
             >
               <p className="text-xs font-ui uppercase tracking-wider text-muted">Step {index + 1}</p>

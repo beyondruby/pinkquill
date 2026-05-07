@@ -568,7 +568,7 @@ export default function ShareModal({
             )}
 
             {/* Copy Link */}
-            <div className="flex items-center gap-2 rounded-xl bg-black/[0.03] p-1.5">
+            <div className="flex items-center gap-2 rounded-xl bg-skeleton/60 p-1.5">
               <input
                 type="text"
                 value={url}
@@ -598,7 +598,7 @@ export default function ShareModal({
                   title={`Share on ${social.name}`}
                 >
                   <span
-                    className="w-11 h-11 flex items-center justify-center rounded-full bg-black/[0.04] text-muted transition-all group-hover:scale-110 group-hover:text-white group-hover:shadow-lg"
+                    className="w-11 h-11 flex items-center justify-center rounded-full bg-skeleton/70 text-muted transition-all group-hover:scale-110 group-hover:text-white group-hover:shadow-lg"
                     style={{
                       "--hover-bg": social.color,
                     } as React.CSSProperties}

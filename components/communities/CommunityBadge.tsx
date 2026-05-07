@@ -28,7 +28,7 @@ export default function CommunityBadge({ community, size = 'sm', showAvatar = tr
     <Link
       href={`/community/${community.slug}`}
       onClick={(e) => e.stopPropagation()}
-      className={`inline-flex items-center gap-1.5 rounded-full bg-purple-primary/10 text-purple-primary hover:bg-purple-primary/20 transition-colors font-ui font-medium ${sizeClasses[size]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full bg-purple-primary/10 text-purple-primary hover:bg-accent/20 transition-colors font-ui font-medium ${sizeClasses[size]}`}
     >
       {showAvatar && (
         <div className={`${avatarSizes[size]} rounded-full overflow-hidden flex-shrink-0`}>

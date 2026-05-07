@@ -50,7 +50,7 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
 
   return (
     <Link href={`/commissions/${product.id}`} className="group block h-full">
-      <article className="h-full relative rounded-[24px] border border-black/[0.06] overflow-hidden bg-white shadow-sm hover:shadow-2xl hover:shadow-pink-vivid/15 hover:-translate-y-1 transition-all duration-300">
+      <article className="h-full relative rounded-[24px] border border-border-light overflow-hidden bg-surface shadow-sm hover:shadow-2xl hover:shadow-pink-vivid/15 hover:-translate-y-1 transition-all duration-300">
         <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="absolute -top-16 -right-12 w-40 h-40 rounded-full bg-pink-vivid/10 blur-2xl" />
           <div className="absolute -bottom-16 -left-12 w-40 h-40 rounded-full bg-purple-primary/10 blur-2xl" />
@@ -66,7 +66,7 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
           />
 
           <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-            <span className="px-2.5 py-1 bg-white/90 text-pink-vivid text-[0.65rem] font-ui font-semibold uppercase tracking-wide rounded-full border border-pink-vivid/15">
+            <span className="px-2.5 py-1 bg-surface/90 text-pink-vivid text-[0.65rem] font-ui font-semibold uppercase tracking-wide rounded-full border border-pink-vivid/15">
               Commission
             </span>
             {minDeliveryDays !== undefined && (
@@ -78,11 +78,11 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
 
           <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/65 via-black/30 to-transparent">
             <div className="flex flex-wrap gap-1.5">
-              <span className="px-2 py-0.5 rounded-full bg-white/90 text-[11px] font-ui text-gray-700">
+              <span className="px-2 py-0.5 rounded-full bg-surface/90 text-[11px] font-ui text-gray-700">
                 {packageCount} tier{packageCount === 1 ? "" : "s"}
               </span>
               {maxRevisions !== undefined && (
-                <span className="px-2 py-0.5 rounded-full bg-white/90 text-[11px] font-ui text-gray-700">
+                <span className="px-2 py-0.5 rounded-full bg-surface/90 text-[11px] font-ui text-gray-700">
                   {maxRevisions} revision{maxRevisions === 1 ? "" : "s"}
                 </span>
               )}
@@ -123,14 +123,14 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
           {firstFeatures.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {firstFeatures.map((feature) => (
-                <span key={feature} className="px-2 py-0.5 rounded-full bg-gray-100 text-[11px] font-ui text-gray-700">
+                <span key={feature} className="px-2 py-0.5 rounded-full bg-skeleton text-[11px] font-ui text-gray-700">
                   {feature}
                 </span>
               ))}
             </div>
           )}
 
-          <div className="mt-4 pt-3 border-t border-black/[0.05] flex items-end justify-between gap-3">
+          <div className="mt-4 pt-3 border-t border-border-light flex items-end justify-between gap-3">
             {startingPrice !== undefined ? (
               <div className="flex items-baseline gap-1">
                 <span className="text-[11px] font-body text-muted">From</span>
@@ -201,7 +201,7 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
 
   return (
     <Link href={`/product/${product.id}`} className="group block h-full">
-      <article className="h-full rounded-[22px] overflow-hidden border border-black/[0.05] bg-white shadow-sm hover:shadow-xl hover:shadow-pink-vivid/10 hover:-translate-y-1 transition-all duration-300">
+      <article className="h-full rounded-[22px] overflow-hidden border border-border-light bg-surface shadow-sm hover:shadow-xl hover:shadow-pink-vivid/10 hover:-translate-y-1 transition-all duration-300">
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-orange-50 to-pink-50">
           <Image
             src={imageUrl}
@@ -217,7 +217,7 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
                 Digital
               </span>
             ) : (
-              <span className="px-2.5 py-1 rounded-full bg-white/90 text-ink text-[0.65rem] font-ui font-medium uppercase tracking-wide">
+              <span className="px-2.5 py-1 rounded-full bg-surface/90 text-ink text-[0.65rem] font-ui font-medium uppercase tracking-wide">
                 Physical
               </span>
             )}
@@ -229,8 +229,8 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
               aria-pressed={isSavedForUi}
               className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm border transition-all ${
                 isSavedForUi
-                  ? "bg-white text-pink-vivid border-pink-vivid/30 shadow-md"
-                  : "bg-white/90 text-gray-500 border-black/[0.08] hover:text-pink-vivid hover:border-pink-vivid/30"
+                  ? "bg-surface text-pink-vivid border-pink-vivid/30 shadow-md"
+                  : "bg-surface/90 text-gray-500 border-border-light hover:text-pink-vivid hover:border-pink-vivid/30"
               }`}
               disabled={saving}
             >

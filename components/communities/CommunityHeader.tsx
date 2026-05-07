@@ -118,7 +118,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
         <div className="absolute top-6 right-6 z-20" ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center text-white transition-all border border-white/20"
+            className="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-sm hover:bg-surface/30 flex items-center justify-center text-white transition-all border border-white/20"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="5" cy="12" r="2" />
@@ -128,7 +128,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl shadow-black/15 border border-ink/5 overflow-hidden z-50 animate-fadeIn">
+            <div className="absolute right-0 top-full mt-2 bg-surface rounded-2xl shadow-2xl shadow-black/15 border border-ink/5 overflow-hidden z-50 animate-fadeIn">
               {/* Horizontal menu items */}
               <div className="flex items-center p-2 gap-1">
                 <button
@@ -156,7 +156,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
                     <Link
                       href={`/community/${community.slug}/settings`}
                       onClick={() => setShowMenu(false)}
-                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-purple-primary/5 hover:text-purple-primary transition-all min-w-[72px]"
+                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-accent/5 hover:text-accent transition-all min-w-[72px]"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -193,7 +193,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
         {/* Top left badges */}
         <div className="absolute top-6 left-6 flex items-center gap-3 z-10">
           {/* Privacy badge */}
-          <div className="px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/20 flex items-center gap-2">
+          <div className="px-4 py-2 rounded-full bg-surface/20 backdrop-blur-sm border border-white/20 flex items-center gap-2">
             {community.privacy === 'private' ? (
               <>
                 <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,12 +213,12 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
 
           {/* Role badge */}
           {community.is_member && (
-            <div className="px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/20 flex items-center gap-2">
+            <div className="px-4 py-2 rounded-full bg-surface/20 backdrop-blur-sm border border-white/20 flex items-center gap-2">
               <div className={`w-1.5 h-1.5 rounded-full ${
                 community.user_role === 'admin'
                   ? 'bg-orange-warm'
                   : community.user_role === 'moderator'
-                  ? 'bg-white'
+                  ? 'bg-surface'
                   : 'bg-emerald-400'
               }`} />
               <span className="font-ui text-xs font-semibold text-white capitalize">
@@ -233,7 +233,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
           <div className="max-w-7xl mx-auto flex items-end gap-3 md:gap-8">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="absolute -inset-1 bg-white/30 rounded-full blur-sm" />
+              <div className="absolute -inset-1 bg-surface/30 rounded-full blur-sm" />
               <div className="relative w-16 h-16 md:w-32 md:h-32 rounded-full overflow-hidden border-3 border-white/40 shadow-2xl">
                 {community.avatar_url ? (
                   <img
@@ -242,7 +242,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <div className="w-full h-full bg-surface/20 backdrop-blur-sm flex items-center justify-center">
                     <span className="text-white text-3xl md:text-4xl font-display font-bold drop-shadow-lg">
                       {community.name.charAt(0).toUpperCase()}
                     </span>
@@ -285,7 +285,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
               {community.is_member && community.user_status === 'active' && (
                 <Link
                   href={`/create?community=${community.slug}`}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white font-ui text-sm font-medium hover:bg-white/30 transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface/20 backdrop-blur-sm border border-white/30 text-white font-ui text-sm font-medium hover:bg-surface/30 transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -307,7 +307,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
       </div>
 
       {/* Separate Tab Navigation Bar */}
-      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-ink/5 shadow-sm">
+      <div className="sticky top-0 z-40 bg-surface/95 backdrop-blur-xl border-b border-ink/5 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 md:px-12 lg:px-16">
           <div className="flex items-center justify-between gap-2">
             {/* Tabs — scrollable on mobile */}

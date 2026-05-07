@@ -293,7 +293,7 @@ export default function CommunityMembersPage() {
               placeholder="Search members..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg bg-white border border-black/5 font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+              className="w-full pl-9 pr-4 py-2 rounded-lg bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -335,7 +335,7 @@ export default function CommunityMembersPage() {
             {joinRequests.map((request) => (
               <div
                 key={request.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-white rounded-xl border border-black/5"
+                className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-surface rounded-xl border border-border-light"
               >
                 {/* User Info */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -362,7 +362,7 @@ export default function CommunityMembersPage() {
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/studio/${request.profile?.username}`}
-                      className="font-ui font-medium text-ink hover:text-purple-primary transition-colors"
+                      className="font-ui font-medium text-ink hover:text-accent transition-colors"
                     >
                       {request.profile?.display_name || request.profile?.username}
                     </Link>
@@ -373,7 +373,7 @@ export default function CommunityMembersPage() {
                 {/* Message */}
                 {request.message && (
                   <div className="flex-1 sm:max-w-[300px]">
-                    <p className="font-body text-sm text-ink/80 bg-black/5 rounded-lg px-3 py-2 italic">
+                    <p className="font-body text-sm text-ink/80 bg-skeleton rounded-lg px-3 py-2 italic">
                       &quot;{request.message}&quot;
                     </p>
                   </div>
@@ -402,7 +402,7 @@ export default function CommunityMembersPage() {
                   <button
                     onClick={() => handleRejectRequest(request.id)}
                     disabled={actionLoading}
-                    className="px-4 py-2 rounded-lg bg-black/5 text-ink font-ui text-sm font-medium hover:bg-black/10 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg bg-skeleton text-ink font-ui text-sm font-medium hover:bg-black/10 transition-colors disabled:opacity-50"
                   >
                     Decline
                   </button>
@@ -415,13 +415,13 @@ export default function CommunityMembersPage() {
 
       {/* Main Tabs: Members / Muted / Banned (for admins/mods) */}
       {canManage && (
-        <div className="flex items-center gap-1 mb-4 border-b border-black/5">
+        <div className="flex items-center gap-1 mb-4 border-b border-border-light">
           <button
             onClick={() => setModerationTab('members')}
             className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
               moderationTab === 'members'
                 ? 'text-purple-primary border-purple-primary'
-                : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
+                : 'text-muted border-transparent hover:text-ink hover:border-border-strong'
             }`}
           >
             Members ({members.length})
@@ -431,7 +431,7 @@ export default function CommunityMembersPage() {
             className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
               moderationTab === 'muted'
                 ? 'text-yellow-600 border-yellow-500'
-                : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
+                : 'text-muted border-transparent hover:text-ink hover:border-border-strong'
             }`}
           >
             Muted ({mutedMembers.length})
@@ -441,7 +441,7 @@ export default function CommunityMembersPage() {
             className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
               moderationTab === 'banned'
                 ? 'text-red-600 border-red-500'
-                : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
+                : 'text-muted border-transparent hover:text-ink hover:border-border-strong'
             }`}
           >
             Banned ({bannedMembers.length})
@@ -451,7 +451,7 @@ export default function CommunityMembersPage() {
 
       {/* Role Filters - only show in members tab */}
       {(!canManage || moderationTab === 'members') && (
-        <div className="flex items-center gap-2 mb-4 border-b border-black/5 pb-4">
+        <div className="flex items-center gap-2 mb-4 border-b border-border-light pb-4">
           {(['all', 'admin', 'moderator', 'member'] as RoleFilter[]).map((role) => (
             <button
               key={role}
@@ -459,7 +459,7 @@ export default function CommunityMembersPage() {
               className={`px-3 py-1.5 rounded-full text-sm font-ui font-medium transition-colors ${
                 roleFilter === role
                   ? 'bg-purple-primary text-white'
-                  : 'bg-black/5 text-muted hover:bg-black/10 hover:text-ink'
+                  : 'bg-skeleton text-muted hover:bg-black/10 hover:text-ink'
               }`}
             >
               {role === 'all' ? 'All' : role.charAt(0).toUpperCase() + role.slice(1)}s
@@ -480,7 +480,7 @@ export default function CommunityMembersPage() {
               {filteredMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/5 hover:border-purple-primary/10 transition-colors"
+                  className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light hover:border-accent/10 transition-colors"
                 >
                   {/* Avatar */}
                   <Link
@@ -509,7 +509,7 @@ export default function CommunityMembersPage() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/studio/${member.profile?.username}`}
-                        className="font-ui font-medium text-ink hover:text-purple-primary transition-colors truncate"
+                        className="font-ui font-medium text-ink hover:text-accent transition-colors truncate"
                       >
                         {member.profile?.display_name || member.profile?.username}
                       </Link>
@@ -550,7 +550,7 @@ export default function CommunityMembersPage() {
                   {/* Actions */}
                   {canManage && member.user_id !== user?.id && member.role !== 'admin' && (
                     <div className="relative group">
-                      <button className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-muted hover:text-ink transition-colors">
+                      <button className="w-8 h-8 rounded-full bg-skeleton hover:bg-black/10 flex items-center justify-center text-muted hover:text-ink transition-colors">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                           <circle cx="5" cy="12" r="2" />
                           <circle cx="12" cy="12" r="2" />
@@ -559,7 +559,7 @@ export default function CommunityMembersPage() {
                       </button>
 
                       {/* Dropdown */}
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-black/5 overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-surface rounded-xl shadow-lg border border-border-light overflow-hidden z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                         {isAdmin && member.role === 'member' && (
                           <button
                             onClick={() => openPermissionsModal(
@@ -567,7 +567,7 @@ export default function CommunityMembersPage() {
                               member.profile?.display_name || member.profile?.username || 'User'
                             )}
                             disabled={actionLoading}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-accent/5 transition-colors disabled:opacity-50"
                           >
                             <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -584,7 +584,7 @@ export default function CommunityMembersPage() {
                                 member.permissions || undefined
                               )}
                               disabled={actionLoading}
-                              className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-accent/5 transition-colors disabled:opacity-50"
                             >
                               <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -595,7 +595,7 @@ export default function CommunityMembersPage() {
                             <button
                               onClick={() => handleDemote(member.user_id)}
                               disabled={actionLoading}
-                              className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-accent/5 transition-colors disabled:opacity-50"
                             >
                               <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -608,7 +608,7 @@ export default function CommunityMembersPage() {
                           <button
                             onClick={() => openMuteModal(member.user_id, member.profile?.display_name || member.profile?.username || 'User')}
                             disabled={actionLoading}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-purple-primary/5 transition-colors disabled:opacity-50"
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm font-ui text-ink hover:bg-accent/5 transition-colors disabled:opacity-50"
                           >
                             <svg className="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
@@ -663,7 +663,7 @@ export default function CommunityMembersPage() {
               {mutedMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center gap-4 p-4 bg-white rounded-xl border border-yellow-200"
+                  className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-yellow-200"
                 >
                   {/* Avatar */}
                   <Link href={`/studio/${member.profile?.username}`} className="flex-shrink-0">
@@ -688,7 +688,7 @@ export default function CommunityMembersPage() {
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/studio/${member.profile?.username}`}
-                      className="font-ui font-medium text-ink hover:text-purple-primary transition-colors"
+                      className="font-ui font-medium text-ink hover:text-accent transition-colors"
                     >
                       {member.profile?.display_name || member.profile?.username}
                     </Link>
@@ -757,7 +757,7 @@ export default function CommunityMembersPage() {
               {bannedMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center gap-4 p-4 bg-white rounded-xl border border-red-200"
+                  className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-red-200"
                 >
                   {/* Avatar */}
                   <Link href={`/studio/${member.profile?.username}`} className="flex-shrink-0">
@@ -782,7 +782,7 @@ export default function CommunityMembersPage() {
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/studio/${member.profile?.username}`}
-                      className="font-ui font-medium text-ink hover:text-purple-primary transition-colors"
+                      className="font-ui font-medium text-ink hover:text-accent transition-colors"
                     >
                       {member.profile?.display_name || member.profile?.username}
                     </Link>
@@ -852,8 +852,8 @@ export default function CommunityMembersPage() {
       {/* Mute Modal */}
       {showMuteModal && muteTargetUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-black/5">
+          <div className="w-full max-w-md bg-surface rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-border-light">
               <h3 className="font-display text-lg font-semibold text-ink">
                 Mute {muteTargetUser.name}
               </h3>
@@ -877,7 +877,7 @@ export default function CommunityMembersPage() {
                       className={`px-4 py-3 rounded-xl font-ui text-sm font-medium transition-all ${
                         selectedMuteDuration === duration.hours
                           ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-400'
-                          : 'bg-black/5 text-ink hover:bg-black/10'
+                          : 'bg-skeleton text-ink hover:bg-black/10'
                       }`}
                     >
                       {duration.label}
@@ -913,12 +913,12 @@ export default function CommunityMembersPage() {
                   onChange={(e) => setMuteReason(e.target.value)}
                   placeholder="Explain why this user is being muted..."
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-black/10 bg-white font-body text-sm placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 focus:border-yellow-400 resize-none"
+                  className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-sm placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 focus:border-yellow-400 resize-none"
                 />
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-black/5 flex gap-3">
+            <div className="px-6 py-4 border-t border-border-light flex gap-3">
               <button
                 onClick={() => {
                   setShowMuteModal(false);
@@ -926,7 +926,7 @@ export default function CommunityMembersPage() {
                   setMuteReason("");
                   setCustomMuteHours("");
                 }}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/5 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl border border-border-light font-ui text-sm font-medium text-ink hover:bg-skeleton transition-colors"
               >
                 Cancel
               </button>
@@ -945,8 +945,8 @@ export default function CommunityMembersPage() {
       {/* Ban Modal */}
       {showBanModal && banTargetUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-black/5">
+          <div className="w-full max-w-md bg-surface rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-border-light">
               <h3 className="font-display text-lg font-semibold text-red-600">
                 Ban {banTargetUser.name}
               </h3>
@@ -970,7 +970,7 @@ export default function CommunityMembersPage() {
                       className={`px-4 py-3 rounded-xl font-ui text-sm font-medium transition-all ${
                         selectedBanDuration === duration.hours
                           ? 'bg-red-100 text-red-700 ring-2 ring-red-400'
-                          : 'bg-black/5 text-ink hover:bg-black/10'
+                          : 'bg-skeleton text-ink hover:bg-black/10'
                       }`}
                     >
                       {duration.label}
@@ -1006,12 +1006,12 @@ export default function CommunityMembersPage() {
                   onChange={(e) => setBanReason(e.target.value)}
                   placeholder="Explain why this user is being banned..."
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-black/10 bg-white font-body text-sm placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-red-400/30 focus:border-red-400 resize-none"
+                  className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-sm placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-red-400/30 focus:border-red-400 resize-none"
                 />
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-black/5 flex gap-3">
+            <div className="px-6 py-4 border-t border-border-light flex gap-3">
               <button
                 onClick={() => {
                   setShowBanModal(false);
@@ -1019,7 +1019,7 @@ export default function CommunityMembersPage() {
                   setBanReason("");
                   setCustomBanHours("");
                 }}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/5 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl border border-border-light font-ui text-sm font-medium text-ink hover:bg-skeleton transition-colors"
               >
                 Cancel
               </button>

@@ -43,7 +43,7 @@ export default function CommunityLayoutClient({
           {/* Decorative background */}
           <div className="absolute inset-0 -m-8 bg-gradient-to-br from-red-500/5 via-pink-vivid/5 to-purple-primary/5 rounded-3xl blur-xl" />
 
-          <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl border border-red-200/50 p-10 shadow-xl">
+          <div className="relative bg-surface/80 backdrop-blur-sm rounded-3xl border border-red-200/50 p-10 shadow-xl">
             <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-red-100 to-pink-100 flex items-center justify-center">
               <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -63,7 +63,7 @@ export default function CommunityLayoutClient({
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={() => refetch()}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-black/10 text-ink font-ui font-medium hover:bg-black/[0.03] transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-surface border border-border-light text-ink font-ui font-medium hover:bg-subtle transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -93,7 +93,7 @@ export default function CommunityLayoutClient({
         <div className="relative">
           <div className="absolute inset-0 -m-8 bg-gradient-to-br from-red-500/5 via-pink-vivid/5 to-purple-primary/5 rounded-3xl blur-xl" />
 
-          <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl border border-red-200/50 p-10 shadow-xl">
+          <div className="relative bg-surface/80 backdrop-blur-sm rounded-3xl border border-red-200/50 p-10 shadow-xl">
             <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-red-100 to-pink-100 flex items-center justify-center">
               <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -126,7 +126,7 @@ export default function CommunityLayoutClient({
           {/* Decorative background */}
           <div className="absolute inset-0 -m-8 bg-gradient-to-br from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10 rounded-3xl blur-xl" />
 
-          <div className="relative bg-white/90 backdrop-blur-xl rounded-3xl border border-purple-primary/20 overflow-hidden shadow-2xl shadow-purple-primary/10">
+          <div className="relative bg-surface/90 backdrop-blur-xl rounded-3xl border border-purple-primary/20 overflow-hidden shadow-2xl shadow-purple-primary/10">
             {/* Header decoration */}
             <div className="h-32 bg-gradient-to-br from-purple-primary via-pink-vivid/80 to-orange-warm/60 relative overflow-hidden">
               <div className="absolute inset-0 opacity-20">
@@ -140,7 +140,7 @@ export default function CommunityLayoutClient({
                 </svg>
               </div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                <div className="w-20 h-20 rounded-2xl bg-surface/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
                   <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>

@@ -601,9 +601,9 @@ export default function SingleTakePage({ params }: PageProps) {
           {/* Left Column - Take */}
           <div className="flex-1 min-w-0">
             {/* Take Card */}
-            <article className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden">
+            <article className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden">
               {/* Author Header */}
-              <div className="flex items-center gap-4 p-6 border-b border-black/[0.06]">
+              <div className="flex items-center gap-4 p-6 border-b border-border-light">
                 <Link href={`/studio/${take.author.username}`}>
                   <img
                     src={take.author.avatar_url || "/defaultprofile.png"}
@@ -613,7 +613,7 @@ export default function SingleTakePage({ params }: PageProps) {
                 </Link>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <Link href={`/studio/${take.author.username}`} className="font-ui text-[1rem] font-medium text-ink hover:text-purple-primary transition-colors">
+                    <Link href={`/studio/${take.author.username}`} className="font-ui text-[1rem] font-medium text-ink hover:text-accent transition-colors">
                       {take.author.display_name || take.author.username}
                     </Link>
                     <span className="font-ui text-[0.85rem] text-muted">
@@ -631,7 +631,7 @@ export default function SingleTakePage({ params }: PageProps) {
                     onClick={handleFollow}
                     className={`px-4 py-1.5 rounded-full font-ui text-sm font-medium transition-all ${
                       isFollowing
-                        ? "bg-black/[0.04] text-ink hover:bg-black/[0.08]"
+                        ? "bg-skeleton/70 text-ink hover:bg-skeleton"
                         : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white hover:scale-105"
                     }`}
                   >
@@ -642,7 +642,7 @@ export default function SingleTakePage({ params }: PageProps) {
                 {(isOwner || user) && (
                   <ActionMenu
                     items={takeMenuItems}
-                    buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+                    buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
                     widthClassName="w-40"
                     buttonAriaLabel="Take options menu"
                   />
@@ -694,7 +694,7 @@ export default function SingleTakePage({ params }: PageProps) {
                         </div>
                         <button
                           onClick={() => setShowContent(true)}
-                          className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-white/20 hover:bg-white/30 transition-colors"
+                          className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-surface/20 hover:bg-surface/30 transition-colors"
                         >
                           Show Content
                         </button>
@@ -708,7 +708,7 @@ export default function SingleTakePage({ params }: PageProps) {
                       className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer"
                       onClick={togglePlayPause}
                     >
-                      <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
+                      <div className="w-16 h-16 rounded-full bg-surface/20 backdrop-blur-sm flex items-center justify-center hover:bg-surface/30 transition-colors">
                         <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z" />
                         </svg>
@@ -736,7 +736,7 @@ export default function SingleTakePage({ params }: PageProps) {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 px-6 py-4 border-t border-black/[0.06]">
+              <div className="flex items-center gap-2 px-6 py-4 border-t border-border-light">
                 {/* Reaction Picker */}
                 <TakeReactionPicker
                   currentReaction={userReaction}
@@ -748,7 +748,7 @@ export default function SingleTakePage({ params }: PageProps) {
                 />
 
                 <button
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent transition-all"
                 >
                   <CommentIcon className="shrink-0" />
                   {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
@@ -761,7 +761,7 @@ export default function SingleTakePage({ params }: PageProps) {
                     className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
                       isRelayed
                         ? "bg-green-500/10 text-green-600"
-                        : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                        : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
                     } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {icons.relay}
@@ -773,7 +773,7 @@ export default function SingleTakePage({ params }: PageProps) {
 
                 <button
                   onClick={() => setShowShareModal(true)}
-                  className="w-10 h-10 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:bg-purple-primary/10 hover:text-purple-primary transition-all"
+                  className="w-10 h-10 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-accent/10 hover:text-accent transition-all"
                 >
                   {icons.share}
                 </button>
@@ -784,7 +784,7 @@ export default function SingleTakePage({ params }: PageProps) {
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                     isSaved
                       ? "bg-amber-500/10 text-amber-600"
-                      : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                      : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
                   } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {isSaved ? icons.bookmarkFilled : icons.bookmark}
@@ -795,8 +795,8 @@ export default function SingleTakePage({ params }: PageProps) {
 
           {/* Right Column - Discussion */}
           <div className="w-[360px] flex-shrink-0">
-            <section className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden sticky top-[86px]">
-              <div className="p-5 border-b border-black/[0.06]">
+            <section className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden sticky top-[86px]">
+              <div className="p-5 border-b border-border-light">
                 <h2 className="font-ui text-[1rem] font-medium text-ink flex items-center gap-2">
                   <CommentIcon className="shrink-0" />
                   Discussion ({comments.length})
@@ -805,13 +805,13 @@ export default function SingleTakePage({ params }: PageProps) {
 
               {/* Comment Input */}
               {user ? (
-                <div className="p-4 border-b border-black/[0.06] flex gap-3 items-center">
+                <div className="p-4 border-b border-border-light flex gap-3 items-center">
                   <img
                     src={profile?.avatar_url || "/defaultprofile.png"}
                     alt="You"
                     className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                   />
-                  <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-full px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-primary transition-all">
+                  <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-full px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-purple-primary transition-all">
                     <input
                       type="text"
                       value={commentText}
@@ -831,7 +831,7 @@ export default function SingleTakePage({ params }: PageProps) {
                   </button>
                 </div>
               ) : (
-                <div className="p-4 border-b border-black/[0.06] text-center">
+                <div className="p-4 border-b border-border-light text-center">
                   <p className="font-ui text-[0.9rem] text-muted">
                     <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
                   </p>
@@ -905,7 +905,7 @@ export default function SingleTakePage({ params }: PageProps) {
       {/* Block Confirmation Modal */}
       {showBlockConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
+          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
             <h3 className="font-display text-lg font-semibold text-ink mb-2">
               Block @{take.author.username}?
             </h3>
@@ -915,7 +915,7 @@ export default function SingleTakePage({ params }: PageProps) {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowBlockConfirm(false)}
-                className="flex-1 py-2.5 rounded-full border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/[0.03] transition-colors"
+                className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors"
               >
                 Cancel
               </button>

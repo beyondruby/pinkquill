@@ -34,8 +34,8 @@ export function ReactionButton({
         transition-all duration-200
         opacity-0 group-hover:opacity-100 focus:opacity-100
         ${isOwnMessage
-          ? "text-white/50 hover:text-white hover:bg-white/20"
-          : "text-muted/40 hover:text-purple-primary hover:bg-purple-primary/10"
+          ? "text-white/50 hover:text-white hover:bg-surface/20"
+          : "text-muted/40 hover:text-accent hover:bg-accent/10"
         }
         ${disabled ? "cursor-not-allowed !opacity-20" : "hover:scale-110 active:scale-95"}
       `}
@@ -108,8 +108,8 @@ export function ReactionsDisplay({
           transition-all duration-200 hover:scale-105 active:scale-95
           shadow-sm border
           ${isOwnMessage
-            ? "bg-white/95 border-white/50"
-            : "bg-white border-purple-primary/10"
+            ? "bg-surface/95 border-white/50"
+            : "bg-surface border-purple-primary/10"
           }
           ${userHasReacted ? "ring-1 ring-purple-primary/30" : ""}
         `}
@@ -142,13 +142,13 @@ export function ReactionsDisplay({
             absolute z-[60] w-52
             ${isOwnMessage ? "right-0" : "left-0"}
             bottom-full mb-2
-            bg-white rounded-xl shadow-xl
-            border border-black/[0.06]
+            bg-surface rounded-xl shadow-xl
+            border border-border-light
             overflow-hidden animate-scaleIn
           `}
         >
           {/* Header */}
-          <div className="relative px-3 py-2 border-b border-black/[0.05]">
+          <div className="relative px-3 py-2 border-b border-border-light">
             <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-purple-primary to-pink-vivid" />
             <p className="font-ui text-xs font-semibold text-ink">Reactions</p>
           </div>
@@ -158,7 +158,7 @@ export function ReactionsDisplay({
             {reactions.map((reaction) => (
               <div
                 key={reaction.id}
-                className="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-primary/[0.03] transition-colors"
+                className="flex items-center gap-2.5 px-3 py-2 hover:bg-accent/[0.03] transition-colors"
               >
                 <span className="text-base">{reaction.emoji}</span>
                 <div className="flex-1 min-w-0">
@@ -249,7 +249,7 @@ export default function MessageReactionPicker({
             animate-scaleIn
           `}
         >
-          <div className="flex items-center gap-0.5 px-2 py-1.5 bg-white rounded-full shadow-xl border border-black/[0.06]">
+          <div className="flex items-center gap-0.5 px-2 py-1.5 bg-surface rounded-full shadow-xl border border-border-light">
             {MESSAGE_REACTION_EMOJIS.map((emoji) => (
               <button
                 key={emoji}
@@ -257,7 +257,7 @@ export default function MessageReactionPicker({
                 className={`
                   w-8 h-8 flex items-center justify-center rounded-full
                   transition-all duration-150
-                  hover:scale-125 active:scale-100 hover:bg-purple-primary/[0.08]
+                  hover:scale-125 active:scale-100 hover:bg-accent/[0.08]
                   ${userReaction?.emoji === emoji ? "bg-purple-primary/10 scale-110" : ""}
                 `}
                 aria-label={`React with ${emoji}`}

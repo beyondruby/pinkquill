@@ -252,7 +252,7 @@ export default function AccountSettingsPage() {
                 setEmailSuccess(false);
               }}
               placeholder="Enter new email address"
-              className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
             />
           </div>
 
@@ -270,7 +270,7 @@ export default function AccountSettingsPage() {
               }}
               placeholder="Confirm your current password"
               autoComplete="current-password"
-              className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
             />
             <p className="font-body text-xs text-muted/80 mt-1.5">
               We ask for your password to confirm it&apos;s really you.
@@ -315,7 +315,7 @@ export default function AccountSettingsPage() {
       </section>
 
       {/* Divider */}
-      <div className="h-px bg-black/[0.06] mb-12" />
+      <div className="h-px bg-skeleton mb-12" />
 
       {/* Password Section */}
       <section>
@@ -354,7 +354,7 @@ export default function AccountSettingsPage() {
                   setPasswordSuccess(false);
                 }}
                 placeholder="Enter current password"
-                className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
               />
             </div>
           )}
@@ -373,7 +373,7 @@ export default function AccountSettingsPage() {
               }}
               placeholder="Enter new password"
               minLength={PASSWORD_MIN_LENGTH}
-              className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
             />
             <PasswordStrengthMeter password={newPassword} />
           </div>
@@ -391,7 +391,7 @@ export default function AccountSettingsPage() {
                 setPasswordSuccess(false);
               }}
               placeholder="Confirm new password"
-              className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all"
             />
           </div>
 
@@ -435,7 +435,7 @@ export default function AccountSettingsPage() {
         </p>
         {!showDeleteConfirm ? (
           <button
-            className="px-6 py-2.5 bg-white border border-red-300 text-red-600 font-ui text-sm font-medium rounded-xl hover:bg-red-50 transition-all"
+            className="px-6 py-2.5 bg-surface border border-red-300 text-red-600 font-ui text-sm font-medium rounded-xl hover:bg-red-50 transition-all"
             onClick={() => {
               setShowDeleteConfirm(true);
               setDeleteError(null);
@@ -445,7 +445,7 @@ export default function AccountSettingsPage() {
           </button>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-xl border border-red-200 bg-white p-4">
+            <div className="rounded-xl border border-red-200 bg-surface p-4">
               <p className="font-ui text-sm text-red-700">
                 Type <span className="font-medium">DELETE</span> to permanently remove your account and content.
               </p>
@@ -457,7 +457,7 @@ export default function AccountSettingsPage() {
                   if (deleteError) setDeleteError(null);
                 }}
                 placeholder='Type "DELETE" to confirm'
-                className="mt-3 w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-red-200 transition-all"
+                className="mt-3 w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-red-200 transition-all"
               />
             </div>
 
@@ -476,7 +476,7 @@ export default function AccountSettingsPage() {
                 {deleteLoading ? "Deleting..." : "Permanently Delete Account"}
               </button>
               <button
-                className="px-6 py-2.5 bg-white border border-red-300 text-red-600 font-ui text-sm font-medium rounded-xl hover:bg-red-50 transition-all disabled:opacity-50"
+                className="px-6 py-2.5 bg-surface border border-red-300 text-red-600 font-ui text-sm font-medium rounded-xl hover:bg-red-50 transition-all disabled:opacity-50"
                 disabled={deleteLoading}
                 onClick={() => {
                   setShowDeleteConfirm(false);

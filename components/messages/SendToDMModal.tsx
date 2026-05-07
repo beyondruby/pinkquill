@@ -245,7 +245,7 @@ export default function SendToDMModal({
       />
 
       {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-[440px] bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden max-h-[85vh] flex flex-col animate-scaleIn">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-[440px] bg-surface rounded-2xl shadow-2xl z-[1001] overflow-hidden max-h-[85vh] flex flex-col animate-scaleIn">
         {success ? (
           // Success state
           <div className="p-8 text-center">
@@ -272,13 +272,13 @@ export default function SendToDMModal({
         ) : (
           <>
             {/* Header */}
-            <div className="relative px-5 py-4 border-b border-black/[0.06]">
+            <div className="relative px-5 py-4 border-b border-border-light">
               <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-purple-primary to-pink-vivid" />
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-lg text-ink">Send to</h2>
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -307,7 +307,7 @@ export default function SendToDMModal({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search people..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-black/[0.03] rounded-full border-none outline-none font-ui text-sm text-ink placeholder:text-muted/60 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-skeleton/60 rounded-full border-none outline-none font-ui text-sm text-ink placeholder:text-muted/60 focus:ring-2 focus:ring-purple-primary/20 transition-all"
                 />
               </div>
 
@@ -367,7 +367,7 @@ export default function SendToDMModal({
                         className={`w-full flex items-center gap-3 px-5 py-3 transition-colors ${
                           isSelected
                             ? "bg-purple-primary/[0.06]"
-                            : "hover:bg-black/[0.02]"
+                            : "hover:bg-subtle"
                         }`}
                       >
                         <div className="relative">
@@ -400,7 +400,7 @@ export default function SendToDMModal({
                           className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                             isSelected
                               ? "border-purple-primary bg-purple-primary"
-                              : "border-black/20"
+                              : "border-border-strong"
                           }`}
                         >
                           {isSelected && (
@@ -427,7 +427,7 @@ export default function SendToDMModal({
             </div>
 
             {/* Footer with optional message and send button */}
-            <div className="border-t border-black/[0.06] p-4">
+            <div className="border-t border-border-light p-4">
               {/* Optional message input */}
               <div className="mb-3">
                 <input
@@ -435,12 +435,12 @@ export default function SendToDMModal({
                   value={optionalMessage}
                   onChange={(e) => setOptionalMessage(e.target.value)}
                   placeholder="Add a message... (optional)"
-                  className="w-full px-4 py-2.5 bg-black/[0.03] rounded-xl border-none outline-none font-body text-sm text-ink placeholder:text-muted/60 focus:ring-2 focus:ring-purple-primary/20 transition-all"
+                  className="w-full px-4 py-2.5 bg-skeleton/60 rounded-xl border-none outline-none font-body text-sm text-ink placeholder:text-muted/60 focus:ring-2 focus:ring-purple-primary/20 transition-all"
                 />
               </div>
 
               {/* Post preview mini */}
-              <div className="mb-3 p-2.5 bg-black/[0.02] rounded-xl flex items-center gap-2.5">
+              <div className="mb-3 p-2.5 bg-subtle rounded-xl flex items-center gap-2.5">
                 {post.media?.[0] && (
                   <img
                     src={post.media[0].media_url}

@@ -70,9 +70,9 @@ export default function SellerSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-[260px] border-r border-black/[0.06] min-h-full bg-white">
+    <aside className="w-[260px] border-r border-border-light min-h-full bg-surface">
       {/* Header */}
-      <div className="px-5 pt-6 pb-5 border-b border-black/[0.06]">
+      <div className="px-5 pt-6 pb-5 border-b border-border-light">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-muted hover:text-ink transition-colors mb-3"
@@ -97,7 +97,7 @@ export default function SellerSidebar() {
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 transition-all ${
                 isActive
                   ? "bg-purple-primary/[0.08] text-purple-primary"
-                  : "text-ink hover:bg-black/[0.03]"
+                  : "text-ink hover:bg-subtle"
               }`}
             >
               <span className={isActive ? "text-purple-primary" : "text-muted"}>

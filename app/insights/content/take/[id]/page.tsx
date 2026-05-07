@@ -220,7 +220,7 @@ export default function TakeInsightsPage() {
         <TrafficSourcesChart data={insights.trafficSources} title="Traffic Sources" height={250} />
 
         {/* Audience Breakdown */}
-        <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+        <div className="bg-surface rounded-2xl p-6 border border-border-light">
           <h3 className="font-ui text-sm font-medium text-ink mb-4">Audience Breakdown</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -266,7 +266,7 @@ export default function TakeInsightsPage() {
       </div>
 
       {/* Engagement Breakdown */}
-      <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+      <div className="bg-surface rounded-2xl p-6 border border-border-light">
         <h3 className="font-ui text-sm font-medium text-ink mb-4">Engagement Breakdown</h3>
         <div className="grid grid-cols-4 gap-6">
           <div className="text-center">

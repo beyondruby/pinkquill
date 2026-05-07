@@ -237,7 +237,7 @@ export default function VoiceRecorder({
         {/* Cancel button */}
         <button
           onClick={handleCancel}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-purple-primary hover:bg-purple-primary/10 transition-all"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-accent/10 transition-all"
           title="Cancel"
         >
           {icons.close}
@@ -287,7 +287,7 @@ export default function VoiceRecorder({
         {/* Play/Pause button */}
         <button
           onClick={player.toggle}
-          className="w-8 h-8 rounded-full bg-purple-primary text-white flex items-center justify-center hover:bg-purple-primary/90 transition-all"
+          className="w-8 h-8 rounded-full bg-purple-primary text-white flex items-center justify-center hover:bg-accent/90 transition-all"
           title={player.isPlaying ? "Pause" : "Play"}
         >
           {player.isPlaying ? icons.pause : icons.play}

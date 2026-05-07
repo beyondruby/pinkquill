@@ -35,10 +35,10 @@ interface ActionMenuProps {
 }
 
 const ITEM_STYLES: Record<NonNullable<ActionMenuItem["tone"]>, string> = {
-  default: "text-ink hover:bg-black/[0.04]",
+  default: "text-ink hover:bg-skeleton/60",
   danger: "text-red-500 hover:bg-red-50",
   success: "text-emerald-600 hover:bg-emerald-50",
-  accent: "text-purple-primary hover:bg-purple-50/70",
+  accent: "text-purple-primary hover:bg-accent/10/70",
   warning: "text-orange-600 hover:bg-orange-50",
 };
 
@@ -107,7 +107,7 @@ export default function ActionMenu({
 
   const defaultMenuClassName = `${
     portal ? "" : "absolute right-0 top-full mt-2 "
-  }${widthClassName} bg-white rounded-xl shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn`;
+  }${widthClassName} bg-surface rounded-xl shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn`;
   const resolvedMenuClassName = menuClassName || defaultMenuClassName;
   const portalMenuStyle: CSSProperties | undefined =
     portal && menuPosition
@@ -131,7 +131,7 @@ export default function ActionMenu({
     >
       {visibleItems.map((item, index) => (
         <div key={`${item.label}-${index}`}>
-          {item.dividerBefore && <div className="h-px bg-black/[0.06] mx-3" />}
+          {item.dividerBefore && <div className="h-px bg-skeleton mx-3" />}
           <button
             type="button"
             role="menuitem"
@@ -182,7 +182,7 @@ export default function ActionMenu({
         }}
         className={
           buttonClassName
-          || "w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all"
+          || "w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
         }
       >
         <EllipsisIcon className={buttonIconClassName} />

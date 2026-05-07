@@ -381,8 +381,8 @@ export default function LeftSidebar() {
             <div className={`flex items-center ${isExpanded ? "gap-3 p-3" : "p-1"}`}>
               <div className={`rounded-full bg-skeleton animate-pulse flex-shrink-0 ${isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"}`} />
               <div className={`flex flex-col gap-1.5 transition-all duration-300 ${isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"}`}>
-                <div className="w-24 h-4 bg-gray-200 rounded animate-pulse" />
-                <div className="w-16 h-3 bg-gray-200 rounded animate-pulse" />
+                <div className="w-24 h-4 bg-skeleton rounded animate-pulse" />
+                <div className="w-16 h-3 bg-skeleton rounded animate-pulse" />
               </div>
             </div>
           </div>

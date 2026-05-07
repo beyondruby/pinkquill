@@ -65,7 +65,7 @@ export default function AuthForm() {
       </div>
 
       {/* Main Container */}
-      <div className="relative z-10 w-full max-w-[1100px] bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-white/50 flex flex-col lg:flex-row overflow-hidden min-h-[650px]">
+      <div className="relative z-10 w-full max-w-[1100px] bg-surface/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-white/50 flex flex-col lg:flex-row overflow-hidden min-h-[650px]">
 
         {/* LEFT PANEL: The Art (Desktop Only) */}
         <div className="hidden lg:flex w-5/12 relative flex-col justify-between p-12 overflow-hidden">
@@ -105,7 +105,7 @@ export default function AuthForm() {
         </div>
 
         {/* RIGHT PANEL: The Form */}
-        <div className="w-full lg:w-7/12 p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-white/50 relative">
+        <div className="w-full lg:w-7/12 p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-surface/50 relative">
 
           {/* Mobile Header */}
           <div className="lg:hidden mb-8 flex items-center justify-between">
@@ -143,7 +143,7 @@ export default function AuthForm() {
                           onChange={(e) => actions.setUsername(e.target.value)}
                           placeholder="@yourname"
                           required={!isLogin}
-                          className="w-full px-4 py-3 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
+                          className="w-full px-4 py-3 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                         />
                       </div>
                       <div className="space-y-1">
@@ -155,7 +155,7 @@ export default function AuthForm() {
                           onChange={(e) => actions.setDisplayName(e.target.value)}
                           placeholder="Jane Doe"
                           required={!isLogin}
-                          className="w-full px-4 py-3 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
+                          className="w-full px-4 py-3 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                         />
                       </div>
                     </div>
@@ -172,7 +172,7 @@ export default function AuthForm() {
                       onChange={(e) => actions.setEmailOrUsername(e.target.value)}
                       placeholder={isLogin ? "Email or username" : "Email"}
                       required
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
+                      className="w-full px-4 py-3 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                     />
                   </div>
 
@@ -187,12 +187,12 @@ export default function AuthForm() {
                         placeholder="••••••••"
                         required
                         minLength={isLogin ? undefined : PASSWORD_MIN_LENGTH}
-                        className="w-full px-4 py-3 pr-11 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
+                        className="w-full px-4 py-3 pr-11 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted/40 hover:text-purple-primary transition-colors p-1"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted/40 hover:text-accent transition-colors p-1"
                       >
                         <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-4 h-4" />
                       </button>
@@ -205,7 +205,7 @@ export default function AuthForm() {
                       <button
                         type="button"
                         onClick={actions.goToForgotPassword}
-                        className="font-ui text-xs font-medium text-muted hover:text-purple-primary transition-colors"
+                        className="font-ui text-xs font-medium text-muted hover:text-accent transition-colors"
                       >
                         Forgot password?
                       </button>
@@ -263,7 +263,7 @@ export default function AuthForm() {
                 {/* Back Button */}
                 <button
                   onClick={actions.handleBackToCredentials}
-                  className="flex items-center gap-2 text-muted hover:text-purple-primary transition-colors mb-6 group"
+                  className="flex items-center gap-2 text-muted hover:text-accent transition-colors mb-6 group"
                 >
                   <FontAwesomeIcon icon={faArrowLeft} className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                   <span className="font-ui text-sm">Back</span>
@@ -300,7 +300,7 @@ export default function AuthForm() {
                       onKeyDown={(e) => actions.handleOtpKeyDown(index, e, otpInputRefs)}
                       onPaste={index === 0 ? (e) => actions.handleOtpPaste(e, otpInputRefs) : undefined}
                       disabled={loading}
-                      className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold text-ink rounded-xl bg-gray-50/50 border-2 border-gray-200 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/10 transition-all duration-200 disabled:opacity-50"
+                      className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold text-ink rounded-xl bg-subtle/50 border-2 border-gray-200 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/10 transition-all duration-200 disabled:opacity-50"
                     />
                   ))}
                 </div>
@@ -363,7 +363,7 @@ export default function AuthForm() {
               <div className="animate-fadeIn">
                 <button
                   onClick={actions.handleBackToCredentials}
-                  className="flex items-center gap-2 text-muted hover:text-purple-primary transition-colors mb-6 group"
+                  className="flex items-center gap-2 text-muted hover:text-accent transition-colors mb-6 group"
                 >
                   <FontAwesomeIcon icon={faArrowLeft} className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                   <span className="font-ui text-sm">Back to sign in</span>
@@ -388,7 +388,7 @@ export default function AuthForm() {
                       onChange={(e) => actions.setEmailOrUsername(e.target.value)}
                       placeholder="your@email.com"
                       required
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
+                      className="w-full px-4 py-3 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                     />
                   </div>
 
@@ -436,8 +436,8 @@ export default function AuthForm() {
             )}
 
             <div className="mt-8 flex justify-center gap-6">
-              <Link href="/terms" className="text-xs text-muted hover:text-purple-primary transition-colors">Terms</Link>
-              <Link href="/privacy" className="text-xs text-muted hover:text-purple-primary transition-colors">Privacy</Link>
+              <Link href="/terms" className="text-xs text-muted hover:text-accent transition-colors">Terms</Link>
+              <Link href="/privacy" className="text-xs text-muted hover:text-accent transition-colors">Privacy</Link>
             </div>
           </div>
         </div>

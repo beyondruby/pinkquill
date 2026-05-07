@@ -128,7 +128,7 @@ export default function DetailsStep({
         {/* Gradient border wrapper */}
         <div className="relative">
           <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-            <div className="w-full h-full rounded-xl bg-white" />
+            <div className="w-full h-full rounded-xl bg-surface" />
           </div>
           <div className="relative flex items-center">
             <input
@@ -157,7 +157,7 @@ export default function DetailsStep({
         </label>
         <div className="relative w-48">
           <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-            <div className="w-full h-full rounded-xl bg-white" />
+            <div className="w-full h-full rounded-xl bg-surface" />
           </div>
           <select
             value={wizardState.yearCreated || ""}
@@ -266,7 +266,7 @@ export default function DetailsStep({
                 </label>
                 <div className="relative">
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                    <div className="w-full h-full rounded-xl bg-white" />
+                    <div className="w-full h-full rounded-xl bg-surface" />
                   </div>
                   <select
                     value={wizardState.shipping.packaging || ""}
@@ -302,7 +302,7 @@ export default function DetailsStep({
                 </label>
                 <div className="relative">
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                    <div className="w-full h-full rounded-xl bg-white" />
+                    <div className="w-full h-full rounded-xl bg-surface" />
                   </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-pink-vivid font-medium">$</span>
@@ -335,7 +335,7 @@ export default function DetailsStep({
                 </label>
                 <div className="relative">
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                    <div className="w-full h-full rounded-xl bg-white" />
+                    <div className="w-full h-full rounded-xl bg-surface" />
                   </div>
                   <input
                     type="number"
@@ -378,7 +378,7 @@ export default function DetailsStep({
         <SectionHeader>Description:</SectionHeader>
         <div className="relative">
           <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-            <div className="w-full h-full rounded-xl bg-white" />
+            <div className="w-full h-full rounded-xl bg-surface" />
           </div>
           <div className="relative">
             <textarea
@@ -469,7 +469,7 @@ function PricingSection({
             <div className="pl-8">
               <div className="relative w-48">
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                  <div className="w-full h-full rounded-xl bg-white" />
+                  <div className="w-full h-full rounded-xl bg-surface" />
                 </div>
                 <div className="relative flex items-center">
                   <span className="absolute left-4 text-pink-vivid font-medium">$</span>
@@ -545,7 +545,7 @@ function PricingSection({
                   </label>
                   <div className="relative w-48">
                     <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                      <div className="w-full h-full rounded-xl bg-white" />
+                      <div className="w-full h-full rounded-xl bg-surface" />
                     </div>
                     <div className="relative flex items-center">
                       <span className="absolute left-4 text-pink-vivid font-medium">$</span>
@@ -618,7 +618,7 @@ function PricingSection({
                 <label className="block text-sm font-ui text-muted mb-2">Price</label>
                 <div className="relative w-48">
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-                    <div className="w-full h-full rounded-xl bg-white" />
+                    <div className="w-full h-full rounded-xl bg-surface" />
                   </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-pink-vivid font-medium">$</span>

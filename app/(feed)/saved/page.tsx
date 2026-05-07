@@ -236,7 +236,7 @@ export default function SavedPage() {
     <RequireAuth loadingText="Loading your saved items">
       <div className="min-h-screen pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-xl border-b border-black/[0.04]">
+      <div className="sticky top-0 z-10 bg-surface/90 backdrop-blur-xl border-b border-border-light">
         <div className="max-w-5xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-5">
@@ -261,7 +261,7 @@ export default function SavedPage() {
               className={`px-4 py-2 rounded-full font-ui text-sm transition-all ${
                 activeTab === "all"
                   ? "bg-purple-primary text-white shadow-md"
-                  : "bg-gray-100 text-muted hover:bg-gray-200"
+                  : "bg-skeleton text-muted hover:bg-skeleton"
               }`}
             >
               All ({totalCount})
@@ -271,7 +271,7 @@ export default function SavedPage() {
               className={`px-4 py-2 rounded-full font-ui text-sm transition-all ${
                 activeTab === "posts"
                   ? "bg-purple-primary text-white shadow-md"
-                  : "bg-gray-100 text-muted hover:bg-gray-200"
+                  : "bg-skeleton text-muted hover:bg-skeleton"
               }`}
             >
               Posts ({visiblePosts.length})
@@ -281,7 +281,7 @@ export default function SavedPage() {
               className={`px-4 py-2 rounded-full font-ui text-sm transition-all ${
                 activeTab === "takes"
                   ? "bg-purple-primary text-white shadow-md"
-                  : "bg-gray-100 text-muted hover:bg-gray-200"
+                  : "bg-skeleton text-muted hover:bg-skeleton"
               }`}
             >
               Takes ({visibleTakes.length})
@@ -291,7 +291,7 @@ export default function SavedPage() {
               className={`px-4 py-2 rounded-full font-ui text-sm transition-all ${
                 activeTab === "products"
                   ? "bg-purple-primary text-white shadow-md"
-                  : "bg-gray-100 text-muted hover:bg-gray-200"
+                  : "bg-skeleton text-muted hover:bg-skeleton"
               }`}
             >
               Products ({visibleProducts.length})
@@ -316,7 +316,7 @@ export default function SavedPage() {
             <p className="font-body text-red-500 mb-6 text-lg">{error}</p>
             <button
               onClick={() => { refetchPosts(); refetchTakes(); refetchProducts(); }}
-              className="px-6 py-3 rounded-xl bg-purple-primary/10 text-purple-primary font-ui font-medium hover:bg-purple-primary/20 transition-all"
+              className="px-6 py-3 rounded-xl bg-purple-primary/10 text-purple-primary font-ui font-medium hover:bg-accent/20 transition-all"
             >
               Try Again
             </button>
@@ -400,7 +400,7 @@ export default function SavedPage() {
 
                   {/* Type badge */}
                   <div className="absolute top-3 left-3">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/90 backdrop-blur-sm">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-surface/90 backdrop-blur-sm">
                       <span className="text-purple-primary">{getTypeIcon(post.type)}</span>
                       <span className="font-ui text-[0.7rem] font-medium text-ink/80">{getTypeLabel(post.type)}</span>
                     </div>
@@ -409,7 +409,7 @@ export default function SavedPage() {
                   {/* Unsave button */}
                   <button
                     onClick={(e) => handleUnsavePost(e, post.id)}
-                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white hover:scale-110"
+                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface hover:scale-110"
                   >
                     <svg className="w-4 h-4 text-purple-primary" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -511,7 +511,7 @@ export default function SavedPage() {
 
                   {/* Play icon */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-14 h-14 rounded-full bg-surface/20 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z" />
                       </svg>
@@ -520,7 +520,7 @@ export default function SavedPage() {
 
                   {/* Type badge */}
                   <div className="absolute top-3 left-3">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/90 backdrop-blur-sm">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-surface/90 backdrop-blur-sm">
                       <span className="text-rose-500">{getTypeIcon("take")}</span>
                       <span className="font-ui text-[0.7rem] font-medium text-ink/80">Take</span>
                     </div>
@@ -529,7 +529,7 @@ export default function SavedPage() {
                   {/* Unsave button */}
                   <button
                     onClick={(e) => handleUnsaveTake(e, take.id)}
-                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white hover:scale-110 z-10"
+                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface hover:scale-110 z-10"
                   >
                     <svg className="w-4 h-4 text-purple-primary" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -618,7 +618,7 @@ export default function SavedPage() {
 
                   {/* Type badge */}
                   <div className="absolute top-3 left-3">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/90 backdrop-blur-sm">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-surface/90 backdrop-blur-sm">
                       <svg className="w-3.5 h-3.5 text-orange-warm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                       </svg>
@@ -629,7 +629,7 @@ export default function SavedPage() {
                   {/* Unsave button */}
                   <button
                     onClick={(e) => handleUnsaveProduct(e, product.id)}
-                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white hover:scale-110 z-10"
+                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface hover:scale-110 z-10"
                   >
                     <svg className="w-4 h-4 text-purple-primary" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />

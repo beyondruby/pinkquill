@@ -59,7 +59,7 @@ function UserCard({
   };
 
   return (
-    <div className="flex items-center gap-4 p-4 hover:bg-black/[0.02] rounded-xl transition-all">
+    <div className="flex items-center gap-4 p-4 hover:bg-subtle rounded-xl transition-all">
       <Link href={`/studio/${user.username}`} className="flex-shrink-0">
         <img
           src={getOptimizedAvatarUrl(user.avatar_url, 48) || DEFAULT_AVATAR}
@@ -96,7 +96,7 @@ function UserCard({
         <button
           onClick={handleUnfollow}
           disabled={unfollowLoading}
-          className="px-4 py-2 rounded-full border border-black/10 bg-white font-ui text-[0.85rem] text-muted hover:border-red-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-50"
+          className="px-4 py-2 rounded-full border border-border-light bg-surface font-ui text-[0.85rem] text-muted hover:border-red-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-50"
         >
           {unfollowLoading ? "..." : "Unfollow"}
         </button>
@@ -139,17 +139,17 @@ export default function FollowersModal({
       onClick={onClose}
     >
       <div
-        className="w-[95%] max-w-[480px] max-h-[70vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn"
+        className="w-[95%] max-w-[480px] max-h-[70vh] bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-black/[0.06]">
+        <div className="flex items-center justify-between p-5 border-b border-border-light">
           <h2 className="font-display text-[1.3rem] text-ink capitalize">
             {type}
           </h2>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-black/[0.04] flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.08] transition-all hover:rotate-90"
+            className="w-9 h-9 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all hover:rotate-90"
           >
             {icons.close}
           </button>

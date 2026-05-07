@@ -326,7 +326,7 @@ export default function JournalMetadataPanel({
             value={location}
             onChange={(e) => onLocationChange(e.target.value)}
             placeholder="Paris, France"
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-purple-primary/20 bg-white font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-purple-primary/20 bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
           />
         </div>
       </div>
@@ -344,7 +344,7 @@ export default function JournalMetadataPanel({
               className={`flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all ${
                 value.timeOfDay === time.id
                   ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/30"
-                  : "bg-white border border-gray-200 text-muted hover:border-purple-primary/50 hover:text-purple-primary"
+                  : "bg-surface border border-gray-200 text-muted hover:border-accent/50 hover:text-accent"
               }`}
             >
               {timeIcons[time.icon]}
@@ -367,7 +367,7 @@ export default function JournalMetadataPanel({
               className={`flex flex-col items-center gap-1 p-2.5 rounded-xl transition-all ${
                 value.weather === weather.id
                   ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/30"
-                  : "bg-white border border-gray-200 text-muted hover:border-purple-primary/50 hover:text-purple-primary"
+                  : "bg-surface border border-gray-200 text-muted hover:border-accent/50 hover:text-accent"
               }`}
               title={weather.label}
             >
@@ -393,12 +393,12 @@ export default function JournalMetadataPanel({
               value={tempValue}
               onChange={(e) => handleTempChange(e.target.value)}
               placeholder="15"
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-purple-primary/20 bg-white font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-purple-primary/20 bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
             />
           </div>
           <button
             onClick={toggleTempUnit}
-            className="px-4 py-2.5 rounded-xl border border-purple-primary/20 bg-white font-ui text-sm font-medium text-purple-primary hover:bg-purple-primary/5 transition-colors"
+            className="px-4 py-2.5 rounded-xl border border-purple-primary/20 bg-surface font-ui text-sm font-medium text-purple-primary hover:bg-accent/5 transition-colors"
           >
             °{tempUnit}
           </button>
@@ -418,7 +418,7 @@ export default function JournalMetadataPanel({
               className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
                 value.mood === mood.id
                   ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/30"
-                  : "bg-white border border-gray-200 text-muted hover:border-purple-primary/50 hover:text-purple-primary"
+                  : "bg-surface border border-gray-200 text-muted hover:border-accent/50 hover:text-accent"
               }`}
               title={mood.label}
             >

@@ -4,10 +4,10 @@ export default function MessagesLoading() {
       <div className="w-80 border-r border-gray-200 p-4 space-y-4">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-200" />
+            <div className="w-10 h-10 rounded-full bg-skeleton" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 bg-gray-200 rounded w-24" />
-              <div className="h-2 bg-gray-100 rounded w-40" />
+              <div className="h-3 bg-skeleton rounded w-24" />
+              <div className="h-2 bg-skeleton rounded w-40" />
             </div>
           </div>
         ))}

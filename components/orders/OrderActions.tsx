@@ -79,7 +79,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
         </div>
 
         {order.brief && (
-          <div className="p-3 rounded-xl border border-black/[0.06] bg-white/80 mb-3">
+          <div className="p-3 rounded-xl border border-border-light bg-surface/80 mb-3">
             <p className="text-[11px] font-ui uppercase tracking-wider text-muted mb-1">Brief</p>
             <p className="text-sm font-body text-ink whitespace-pre-wrap">{order.brief}</p>
           </div>
@@ -154,7 +154,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
         </div>
 
         {order.cancel_reason && (
-          <div className="p-3 rounded-xl border border-orange-200/50 bg-white/60 mb-3">
+          <div className="p-3 rounded-xl border border-orange-200/50 bg-surface/60 mb-3">
             <p className="text-[11px] font-ui uppercase tracking-wider text-orange-500/60 mb-1">Reason</p>
             <p className="text-sm font-body text-orange-800">{order.cancel_reason}</p>
           </div>
@@ -169,7 +169,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
             <button
               onClick={async () => { const s = await declineRefund(order.id); if (s && onUpdate) onUpdate({ ...order, status: "paid" }); }}
               disabled={approvingRefund || decliningRefund}
-              className="px-4 py-2.5 rounded-xl text-sm font-ui font-semibold text-orange-600 border border-orange-200 bg-white hover:bg-orange-50 disabled:opacity-60 transition-colors">
+              className="px-4 py-2.5 rounded-xl text-sm font-ui font-semibold text-orange-600 border border-orange-200 bg-surface hover:bg-orange-50 disabled:opacity-60 transition-colors">
               {decliningRefund ? "Declining..." : "Decline Request"}
             </button>
           </div>
@@ -198,7 +198,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6 space-y-4">
+    <div className="rounded-2xl border border-border-light bg-surface p-5 sm:p-6 space-y-4">
 
       {/* ─── Seller Main Actions ──────────────────────────────── */}
       {isSeller && (
@@ -215,7 +215,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
             <div className="space-y-3">
               <textarea rows={3} value={deliveryNote} onChange={(e) => setDeliveryNote(e.target.value)}
                 placeholder="Add delivery summary, file links, and notes..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-shadow" />
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-shadow" />
               <PrimaryButton onClick={() => handleAction("submitted", { deliveryNote })} disabled={updating} label="Submit Delivery" />
             </div>
           )}
@@ -228,7 +228,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
             <div className="space-y-3">
               <input type="text" value={deliveryNote} onChange={(e) => setDeliveryNote(e.target.value)}
                 placeholder="Tracking number (optional)"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-shadow" />
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-shadow" />
               <PrimaryButton onClick={() => handleAction("shipped", { trackingNumber: deliveryNote || undefined })} disabled={updating} label="Mark as Shipped" />
             </div>
           )}
@@ -348,7 +348,7 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
 
 function ActionCard({ children, accent }: { children: React.ReactNode; accent: "purple" | "orange" | "red" }) {
   const borderMap = { purple: "border-purple-primary/15", orange: "border-orange-200/60", red: "border-red-200/60" };
-  const bgMap = { purple: "bg-purple-50/30", orange: "bg-orange-50/30", red: "bg-red-50/30" };
+  const bgMap = { purple: "bg-accent/10/30", orange: "bg-orange-50/30", red: "bg-red-50/30" };
   return (
     <div className={`rounded-2xl border ${borderMap[accent]} ${bgMap[accent]} p-5 sm:p-6`}>
       {children}
@@ -357,7 +357,7 @@ function ActionCard({ children, accent }: { children: React.ReactNode; accent: "
 }
 
 function ActionIcon({ color, path }: { color: "purple" | "orange" | "red"; path: string }) {
-  const colorMap = { purple: "bg-purple-100 text-purple-primary", orange: "bg-orange-100 text-orange-500", red: "bg-red-100 text-red-500" };
+  const colorMap = { purple: "bg-accent/15 text-purple-primary", orange: "bg-orange-100 text-orange-500", red: "bg-red-100 text-red-500" };
   return (
     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${colorMap[color]}`}>
       <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -428,7 +428,7 @@ function InlineForm({ title, subtitle, placeholder, value, onChange, onConfirm, 
 
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-3 rounded-xl border border-black/[0.04] bg-black/[0.02]">
+    <div className="p-3 rounded-xl border border-border-light bg-subtle">
       <p className="text-[11px] font-ui uppercase tracking-wider text-muted mb-1">{label}</p>
       <p className="font-body text-sm text-ink/90 whitespace-pre-wrap">{value}</p>
     </div>

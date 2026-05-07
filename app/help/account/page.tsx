@@ -189,7 +189,7 @@ export default function AccountHelpPage() {
               {["Twitter/X", "Instagram", "GitHub", "LinkedIn", "YouTube", "TikTok",
                 "Threads", "Facebook", "Behance", "Dribbble", "Spotify", "SoundCloud",
                 "Medium", "Substack", "Patreon", "Ko-fi"].map((platform) => (
-                <div key={platform} className="px-3 py-2 bg-black/[0.02] rounded-lg font-ui text-sm text-ink">
+                <div key={platform} className="px-3 py-2 bg-subtle rounded-lg font-ui text-sm text-ink">
                   {platform}
                 </div>
               ))}

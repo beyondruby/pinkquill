@@ -59,14 +59,14 @@ export default function CategoryStep({
             onClick={() => setShowSubcategories(false)}
             className="flex items-center gap-3 mb-8 group"
           >
-            <div className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center group-hover:shadow-lg transition-shadow">
+            <div className="w-10 h-10 rounded-full bg-surface shadow-md flex items-center justify-center group-hover:shadow-lg transition-shadow">
               <svg className="w-5 h-5 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </div>
             {selectedCategoryConfig && (
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-pink-vivid">
+                <div className="w-10 h-10 rounded-full bg-surface shadow-md flex items-center justify-center text-pink-vivid">
                   <div className="scale-90">{getCategoryIcon(selectedCategoryConfig.icon)}</div>
                 </div>
                 <span className="text-sm font-medium text-ink">{selectedCategoryConfig.name}</span>
@@ -92,7 +92,7 @@ export default function CategoryStep({
                     className={`
                       relative px-5 py-4 rounded-xl text-left
                       transition-all duration-300 flex items-center gap-3
-                      bg-white
+                      bg-surface
                       ${isSelected
                         ? "shadow-lg shadow-pink-vivid/10"
                         : "shadow-sm hover:shadow-md"
@@ -174,7 +174,7 @@ function CategoryCard({
         className={`
           relative w-24 h-24 rounded-full flex items-center justify-center
           transition-all duration-300 mb-4
-          backdrop-blur-sm bg-white/80
+          backdrop-blur-sm bg-surface/80
           ${isSelected
             ? "shadow-xl shadow-pink-vivid/20"
             : "shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/10"

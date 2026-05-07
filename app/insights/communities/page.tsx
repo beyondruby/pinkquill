@@ -40,18 +40,18 @@ function CommunityInsightsCard({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-6 border border-black/[0.04] animate-pulse">
+      <div className="bg-surface rounded-2xl p-6 border border-border-light animate-pulse">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 rounded-xl bg-gray-200" />
+          <div className="w-12 h-12 rounded-xl bg-skeleton" />
           <div className="flex-1">
-            <div className="h-5 bg-gray-200 rounded w-1/2 mb-2" />
-            <div className="h-4 bg-gray-100 rounded w-1/3" />
+            <div className="h-5 bg-skeleton rounded w-1/2 mb-2" />
+            <div className="h-4 bg-skeleton rounded w-1/3" />
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4">
-          <div className="h-20 bg-gray-100 rounded-xl" />
-          <div className="h-20 bg-gray-100 rounded-xl" />
-          <div className="h-20 bg-gray-100 rounded-xl" />
+          <div className="h-20 bg-skeleton rounded-xl" />
+          <div className="h-20 bg-skeleton rounded-xl" />
+          <div className="h-20 bg-skeleton rounded-xl" />
         </div>
       </div>
     );
@@ -59,7 +59,7 @@ function CommunityInsightsCard({
 
   if (error || !insights) {
     return (
-      <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+      <div className="bg-surface rounded-2xl p-6 border border-border-light">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 rounded-xl bg-purple-primary/5 flex items-center justify-center">
             {community.avatar_url ? (
@@ -84,7 +84,7 @@ function CommunityInsightsCard({
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+    <div className="bg-surface rounded-2xl p-6 border border-border-light">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-purple-primary/5 flex items-center justify-center overflow-hidden">
@@ -116,19 +116,19 @@ function CommunityInsightsCard({
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="text-center p-3 bg-gray-50 rounded-xl">
+        <div className="text-center p-3 bg-subtle rounded-xl">
           <p className="font-ui text-xl text-ink">{formatNumber(insights.pageViews)}</p>
           <p className="font-body text-xs text-muted">Page Views</p>
         </div>
-        <div className="text-center p-3 bg-gray-50 rounded-xl">
+        <div className="text-center p-3 bg-subtle rounded-xl">
           <p className="font-ui text-xl text-ink">{formatNumber(insights.uniqueVisitors)}</p>
           <p className="font-body text-xs text-muted">Unique Visitors</p>
         </div>
-        <div className="text-center p-3 bg-gray-50 rounded-xl">
+        <div className="text-center p-3 bg-subtle rounded-xl">
           <p className="font-ui text-xl text-ink">{formatNumber(insights.postsCreated)}</p>
           <p className="font-body text-xs text-muted">Posts Created</p>
         </div>
-        <div className="text-center p-3 bg-gray-50 rounded-xl">
+        <div className="text-center p-3 bg-subtle rounded-xl">
           <p className={`font-ui text-xl ${
             insights.memberGrowth.netChange > 0
               ? "text-green-500"
@@ -153,7 +153,7 @@ function CommunityInsightsCard({
 
       {/* Top Contributors */}
       {insights.topContributors.length > 0 && (
-        <div className="mt-6 pt-6 border-t border-black/[0.04]">
+        <div className="mt-6 pt-6 border-t border-border-light">
           <h4 className="font-ui text-sm font-medium text-ink mb-4">Top Contributors</h4>
           <div className="space-y-3">
             {insights.topContributors.slice(0, 5).map((contributor, index) => (

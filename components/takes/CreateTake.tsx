@@ -460,7 +460,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
             onClick={onCancel || (() => router.back())}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            className="p-2 hover:bg-surface/10 rounded-full transition-colors"
           >
             <FontAwesomeIcon icon={faTimes} className="w-5 h-5" />
           </button>
@@ -474,7 +474,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
           </button>
         </div>
         {uploading && (
-          <div className="h-1 bg-white/10">
+          <div className="h-1 bg-surface/10">
             <div
               className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
               style={{ width: `${progress}%` }}
@@ -514,7 +514,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
             {!videoPreview ? (
               <div
                 className={`aspect-[9/16] max-h-[70vh] rounded-2xl border-2 border-dashed transition-colors cursor-pointer flex flex-col items-center justify-center bg-gradient-to-b from-white/5 to-transparent ${
-                  dragActive ? "border-purple-500 bg-purple-500/10" : "border-white/20 hover:border-white/40"
+                  dragActive ? "border-purple-500 bg-accent/100/10" : "border-white/20 hover:border-white/40"
                 }`}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
@@ -566,7 +566,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                     className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
                     onClick={handleTogglePreview}
                   >
-                    <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-surface/20 backdrop-blur-sm flex items-center justify-center">
                       <FontAwesomeIcon icon={isPreviewPlaying ? faPause : faPlay} className="w-6 h-6 text-white" />
                     </div>
                   </div>
@@ -605,8 +605,8 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                       onClick={() => setActiveTab(tab)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-colors ${
                         activeTab === tab
-                          ? "bg-purple-500 text-white"
-                          : "bg-white/10 text-white/70 hover:bg-white/20"
+                          ? "bg-accent/100 text-white"
+                          : "bg-surface/10 text-white/70 hover:bg-surface/20"
                       }`}
                     >
                       <FontAwesomeIcon icon={icon} className="w-4 h-4" />
@@ -628,7 +628,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
           {/* Editor Panel - Takes 3 columns */}
           <div className="lg:col-span-3 space-y-6">
             {/* Tab navigation with icons */}
-            <div className="flex gap-1 p-1.5 bg-white/5 rounded-2xl border border-white/10">
+            <div className="flex gap-1 p-1.5 bg-surface/5 rounded-2xl border border-white/10">
               {[
                 { tab: "details" as EditorTab, label: "Details", icon: faFont },
                 { tab: "effects" as EditorTab, label: "Effects", icon: faMagic },
@@ -641,7 +641,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
                     activeTab === tab
                       ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg"
-                      : "text-white/50 hover:text-white/70 hover:bg-white/5"
+                      : "text-white/50 hover:text-white/70 hover:bg-surface/5"
                   }`}
                 >
                   <FontAwesomeIcon icon={icon} className="w-4 h-4" />
@@ -657,7 +657,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                 <div>
                   <label className="block text-sm font-medium mb-2 text-white/70">Caption</label>
                   <textarea
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-500 resize-none"
+                    className="w-full bg-surface/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-500 resize-none"
                     placeholder="Write a caption... Use #hashtags"
                     value={caption}
                     onChange={(e) => setCaption(e.target.value)}
@@ -673,7 +673,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+                      className="flex-1 bg-surface/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
                       placeholder="Add a tag..."
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
@@ -682,7 +682,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                     <button
                       onClick={handleAddTag}
                       disabled={!tagInput.trim()}
-                      className="px-4 py-2 bg-purple-500 rounded-xl font-medium text-sm disabled:opacity-50"
+                      className="px-4 py-2 bg-accent/100 rounded-xl font-medium text-sm disabled:opacity-50"
                     >
                       Add
                     </button>
@@ -692,7 +692,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                       {tags.map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm"
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-accent/100/20 text-purple-300 rounded-full text-sm"
                         >
                           #{tag}
                           <button onClick={() => handleRemoveTag(tag)} className="hover:text-white">
@@ -705,7 +705,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                 </div>
 
                 {/* Aspect Ratio */}
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <div className="bg-surface/5 rounded-2xl p-4 border border-white/10">
                   <div className="flex items-center gap-2 mb-4">
                     <FontAwesomeIcon icon={faCrop} className="w-4 h-4 text-blue-400" />
                     <label className="text-sm font-semibold text-white">Aspect Ratio</label>
@@ -718,7 +718,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                         className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
                           aspectRatio === ar.value
                             ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg"
-                            : "bg-white/5 text-white/60 hover:bg-white/10 border border-white/10"
+                            : "bg-surface/5 text-white/60 hover:bg-surface/10 border border-white/10"
                         }`}
                       >
                         <div
@@ -743,7 +743,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                     <label className="block text-sm font-medium mb-2 text-white/70">Post to Community</label>
                     <button
                       onClick={() => setShowCommunityPicker(!showCommunityPicker)}
-                      className="w-full flex items-center justify-between px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-left hover:bg-white/10 transition-colors"
+                      className="w-full flex items-center justify-between px-4 py-3 bg-surface/5 border border-white/10 rounded-xl text-left hover:bg-surface/10 transition-colors"
                     >
                       <span className={selectedCommunity ? "text-white" : "text-white/40"}>
                         {selectedCommunity
@@ -753,12 +753,12 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                       <FontAwesomeIcon icon={faChevronRight} className="w-4 h-4 text-white/40" />
                     </button>
                     {showCommunityPicker && (
-                      <div className="mt-2 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                      <div className="mt-2 bg-surface/5 border border-white/10 rounded-xl overflow-hidden">
                         {communities.map((community) => (
                           <button
                             key={community.id}
-                            className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/10 transition-colors ${
-                              selectedCommunity === community.id ? "bg-purple-500/20" : ""
+                            className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface/10 transition-colors ${
+                              selectedCommunity === community.id ? "bg-accent/100/20" : ""
                             }`}
                             onClick={() => {
                               setSelectedCommunity(community.id === selectedCommunity ? null : community.id);
@@ -786,14 +786,14 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                       type="checkbox"
                       checked={showContentWarning}
                       onChange={(e) => setShowContentWarning(e.target.checked)}
-                      className="w-5 h-5 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500"
+                      className="w-5 h-5 rounded border-white/20 bg-surface/5 text-purple-500 focus:ring-purple-500"
                     />
                     <span className="text-sm text-white/70">Add content warning</span>
                   </label>
                   {showContentWarning && (
                     <input
                       type="text"
-                      className="w-full mt-3 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+                      className="w-full mt-3 bg-surface/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
                       placeholder="Describe the warning..."
                       value={contentWarning}
                       onChange={(e) => setContentWarning(e.target.value)}
@@ -803,7 +803,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                 </div>
 
                 {/* Collaborators and Tags */}
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <div className="bg-surface/5 rounded-2xl p-4 border border-white/10">
                   <div className="flex items-center gap-2 mb-4">
                     <FontAwesomeIcon icon={faUsers} className="w-4 h-4 text-purple-400" />
                     <label className="text-sm font-semibold text-white">People</label>
@@ -812,7 +812,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                     <button
                       type="button"
                       onClick={() => setShowCollaboratorPicker(true)}
-                      className="flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+                      className="flex items-center justify-between gap-3 px-4 py-3 bg-surface/5 border border-white/10 rounded-xl hover:bg-surface/10 transition-colors"
                     >
                       <span className="flex items-center gap-2 text-sm text-white/80">
                         <FontAwesomeIcon icon={faUsers} className="w-4 h-4 text-purple-300" />
@@ -823,7 +823,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                     <button
                       type="button"
                       onClick={() => setShowTagPeoplePicker(true)}
-                      className="flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+                      className="flex items-center justify-between gap-3 px-4 py-3 bg-surface/5 border border-white/10 rounded-xl hover:bg-surface/10 transition-colors"
                     >
                       <span className="flex items-center gap-2 text-sm text-white/80">
                         <FontAwesomeIcon icon={faHeart} className="w-4 h-4 text-pink-300" />
@@ -840,7 +840,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
             {activeTab === "effects" && (
               <div className="space-y-6">
                 {/* Filters */}
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <div className="bg-surface/5 rounded-2xl p-4 border border-white/10">
                   <div className="flex items-center gap-2 mb-4">
                     <FontAwesomeIcon icon={faMagic} className="w-4 h-4 text-purple-400" />
                     <label className="text-sm font-semibold text-white">Video Filters</label>
@@ -864,7 +864,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                           {filter.label}
                         </span>
                         {selectedFilter === filter.name && (
-                          <div className="absolute top-1 right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                          <div className="absolute top-1 right-1 w-5 h-5 bg-accent/100 rounded-full flex items-center justify-center">
                             <FontAwesomeIcon icon={faCheck} className="w-3 h-3 text-white" />
                           </div>
                         )}
@@ -874,7 +874,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                 </div>
 
                 {/* Speed */}
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <div className="bg-surface/5 rounded-2xl p-4 border border-white/10">
                   <div className="flex items-center gap-2 mb-4">
                     <FontAwesomeIcon icon={faTachometerAlt} className="w-4 h-4 text-orange-400" />
                     <label className="text-sm font-semibold text-white">Playback Speed</label>
@@ -887,7 +887,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                         className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                           playbackSpeed === speed.value
                             ? "bg-gradient-to-r from-orange-500 to-yellow-500 text-white shadow-lg"
-                            : "bg-white/5 text-white/60 hover:bg-white/10 border border-white/10"
+                            : "bg-surface/5 text-white/60 hover:bg-surface/10 border border-white/10"
                         }`}
                       >
                         {speed.label}
@@ -905,7 +905,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
             {activeTab === "sound" && (
               <div className="space-y-5">
                 {/* Current Sound */}
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <div className="bg-surface/5 rounded-2xl p-4 border border-white/10">
                   <div className="flex items-center gap-2 mb-4">
                     <FontAwesomeIcon icon={faMusic} className="w-4 h-4 text-pink-400" />
                     <label className="text-sm font-semibold text-white">Add Music or Sound</label>
@@ -928,7 +928,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                         </div>
                         <button
                           onClick={handleRemoveSound}
-                          className="p-2 hover:bg-white/10 rounded-full"
+                          className="p-2 hover:bg-surface/10 rounded-full"
                         >
                           <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
                         </button>
@@ -945,7 +945,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                             max={Math.max(0, selectedSound.duration - 1)}
                             value={Math.min(soundStartTime, Math.max(0, selectedSound.duration - 1))}
                             onChange={(e) => setSoundStartTime(Number(e.target.value))}
-                            className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-pink-500 [&::-webkit-slider-thumb]:to-orange-500 [&::-webkit-slider-thumb]:shadow-lg"
+                            className="w-full h-2 bg-surface/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-pink-500 [&::-webkit-slider-thumb]:to-orange-500 [&::-webkit-slider-thumb]:shadow-lg"
                           />
                         </div>
                       )}
@@ -967,7 +967,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                 </div>
 
                 {/* Volume Controls */}
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <div className="bg-surface/5 rounded-2xl p-4 border border-white/10">
                   <div className="flex items-center gap-2 mb-4">
                     <FontAwesomeIcon icon={faVolumeUp} className="w-4 h-4 text-cyan-400" />
                     <label className="text-sm font-semibold text-white">Volume Mixer</label>
@@ -989,7 +989,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                         max="100"
                         value={originalAudioVolume}
                         onChange={(e) => setOriginalAudioVolume(Number(e.target.value))}
-                        className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-purple-500 [&::-webkit-slider-thumb]:to-pink-500 [&::-webkit-slider-thumb]:shadow-lg"
+                        className="w-full h-2 bg-surface/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-purple-500 [&::-webkit-slider-thumb]:to-pink-500 [&::-webkit-slider-thumb]:shadow-lg"
                       />
                     </div>
                     {selectedSound && (
@@ -1009,7 +1009,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                           max="100"
                           value={addedSoundVolume}
                           onChange={(e) => setAddedSoundVolume(Number(e.target.value))}
-                          className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-pink-500 [&::-webkit-slider-thumb]:to-orange-500 [&::-webkit-slider-thumb]:shadow-lg"
+                          className="w-full h-2 bg-surface/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-pink-500 [&::-webkit-slider-thumb]:to-orange-500 [&::-webkit-slider-thumb]:shadow-lg"
                         />
                       </div>
                     )}
@@ -1017,13 +1017,13 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                 </div>
 
                 {/* Allow Sound Use */}
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <div className="bg-surface/5 rounded-2xl p-4 border border-white/10">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={allowSoundUse}
                       onChange={(e) => setAllowSoundUse(e.target.checked)}
-                      className="w-5 h-5 rounded-lg border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500"
+                      className="w-5 h-5 rounded-lg border-white/20 bg-surface/5 text-purple-500 focus:ring-purple-500"
                     />
                     <div>
                       <span className="text-sm font-medium text-white">Allow others to use this sound</span>
@@ -1045,7 +1045,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                         placeholder="Search sounds..."
                         value={soundSearch}
                         onChange={(e) => setSoundSearch(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
+                        className="w-full bg-surface/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-500"
                       />
                     </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -1060,7 +1060,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                           <button
                             key={sound.id}
                             onClick={() => handleSelectSound(sound)}
-                            className="w-full flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
+                            className="w-full flex items-center gap-3 p-3 bg-surface/5 hover:bg-surface/10 rounded-xl transition-colors"
                           >
                             <div
                               className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -1082,7 +1082,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                                 e.stopPropagation();
                                 handlePreviewSound(sound);
                               }}
-                              className="p-2 hover:bg-white/10 rounded-full"
+                              className="p-2 hover:bg-surface/10 rounded-full"
                             >
                               <FontAwesomeIcon
                                 icon={isSoundPlaying && playingSoundUrl === sound.audio_url ? faPause : faPlay}
@@ -1101,7 +1101,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
             {/* Thumbnail Tab */}
             {activeTab === "thumbnail" && (
               <div className="space-y-5">
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <div className="bg-surface/5 rounded-2xl p-4 border border-white/10">
                   <div className="flex items-center gap-2 mb-2">
                     <FontAwesomeIcon icon={faImage} className="w-4 h-4 text-green-400" />
                     <label className="text-sm font-semibold text-white">Cover Image</label>
@@ -1132,7 +1132,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                         )}
                       </button>
                     ) : (
-                      <div className="aspect-[9/16] rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center bg-white/5 text-white/30">
+                      <div className="aspect-[9/16] rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center bg-surface/5 text-white/30">
                         <FontAwesomeIcon icon={faPlay} className="w-8 h-8 mb-2" />
                         <span className="text-xs text-center px-4">Upload a video first to capture a frame</span>
                       </div>
@@ -1156,7 +1156,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                           </div>
                         </>
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center bg-white/5">
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-surface/5">
                           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500/20 to-teal-500/20 flex items-center justify-center mb-3">
                             <FontAwesomeIcon icon={faCloudUploadAlt} className="w-5 h-5 text-green-400" />
                           </div>

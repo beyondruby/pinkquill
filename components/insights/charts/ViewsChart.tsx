@@ -35,7 +35,7 @@ function formatNumber(num: number): string {
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white px-4 py-3 rounded-xl shadow-lg border border-black/10">
+      <div className="bg-surface px-4 py-3 rounded-xl shadow-lg border border-border-light">
         <p className="font-ui text-sm text-ink font-medium mb-1">{label}</p>
         <p className="font-body text-sm text-muted">
           <span className="text-purple-primary font-medium">
@@ -62,7 +62,7 @@ export default function ViewsChart({
 
   if (data.length === 0) {
     return (
-      <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+      <div className="bg-surface rounded-2xl p-6 border border-border-light">
         <h3 className="font-ui text-sm font-medium text-ink mb-4">{title}</h3>
         <div
           className="flex items-center justify-center text-muted font-body text-sm"
@@ -75,7 +75,7 @@ export default function ViewsChart({
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+    <div className="bg-surface rounded-2xl p-6 border border-border-light">
       <h3 className="font-ui text-sm font-medium text-ink mb-4">{title}</h3>
       <ResponsiveContainer width="100%" height={height}>
         {showArea ? (

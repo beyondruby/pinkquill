@@ -30,20 +30,20 @@ const CATEGORY_FILTERS: { id: ExploreTab; label: string }[] = [
 // Loading skeleton component
 function PostSkeleton() {
   return (
-    <div className="bg-white rounded-2xl p-5 animate-pulse">
+    <div className="bg-surface rounded-2xl p-5 animate-pulse">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-11 h-11 rounded-full bg-gray-100" />
+        <div className="w-11 h-11 rounded-full bg-skeleton" />
         <div className="flex-1">
-          <div className="h-4 bg-gray-100 rounded w-32 mb-2" />
-          <div className="h-3 bg-gray-100 rounded w-24" />
+          <div className="h-4 bg-skeleton rounded w-32 mb-2" />
+          <div className="h-3 bg-skeleton rounded w-24" />
         </div>
       </div>
       <div className="space-y-2 mb-4">
-        <div className="h-4 bg-gray-100 rounded w-full" />
-        <div className="h-4 bg-gray-100 rounded w-5/6" />
-        <div className="h-4 bg-gray-100 rounded w-4/6" />
+        <div className="h-4 bg-skeleton rounded w-full" />
+        <div className="h-4 bg-skeleton rounded w-5/6" />
+        <div className="h-4 bg-skeleton rounded w-4/6" />
       </div>
-      <div className="h-48 bg-gray-100 rounded-xl" />
+      <div className="h-48 bg-skeleton rounded-xl" />
     </div>
   );
 }
@@ -54,13 +54,13 @@ function TrendingSidebar() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-5 animate-pulse">
-        <div className="h-5 bg-gray-100 rounded w-32 mb-4" />
+      <div className="bg-surface rounded-2xl p-5 animate-pulse">
+        <div className="h-5 bg-skeleton rounded w-32 mb-4" />
         <div className="space-y-3">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="h-4 bg-gray-100 rounded w-24" />
-              <div className="h-3 bg-gray-100 rounded w-12 ml-auto" />
+              <div className="h-4 bg-skeleton rounded w-24" />
+              <div className="h-3 bg-skeleton rounded w-12 ml-auto" />
             </div>
           ))}
         </div>
@@ -73,18 +73,18 @@ function TrendingSidebar() {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-black/[0.04]">
+    <div className="bg-surface rounded-2xl p-5 border border-border-light">
       <h3 className="font-display text-sm text-ink mb-4">Trending Topics</h3>
       <div className="space-y-2">
         {tags.map((tag, index) => (
           <Link
             key={tag.name}
             href={`/explore?tag=${encodeURIComponent(tag.name)}`}
-            className="flex items-center justify-between group py-2 px-2.5 -mx-2.5 rounded-lg hover:bg-purple-primary/[0.04] transition-colors"
+            className="flex items-center justify-between group py-2 px-2.5 -mx-2.5 rounded-lg hover:bg-accent/[0.04] transition-colors"
           >
             <div className="flex items-center gap-3">
               <span className="font-ui text-[11px] text-muted w-3 tabular-nums">{index + 1}</span>
-              <span className="font-body text-sm text-ink group-hover:text-purple-primary transition-colors">
+              <span className="font-body text-sm text-ink group-hover:text-accent transition-colors">
                 {tag.name}
               </span>
             </div>
@@ -104,11 +104,11 @@ function TopicsTabView() {
     return (
       <div className="space-y-3">
         {[...Array(8)].map((_, i) => (
-          <div key={i} className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/[0.04] animate-pulse">
-            <div className="w-10 h-10 rounded-lg bg-gray-100" />
+          <div key={i} className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light animate-pulse">
+            <div className="w-10 h-10 rounded-lg bg-skeleton" />
             <div className="flex-1">
-              <div className="h-4 bg-gray-100 rounded w-32 mb-2" />
-              <div className="h-3 bg-gray-100 rounded w-20" />
+              <div className="h-4 bg-skeleton rounded w-32 mb-2" />
+              <div className="h-3 bg-skeleton rounded w-20" />
             </div>
           </div>
         ))}
@@ -119,7 +119,7 @@ function TopicsTabView() {
   if (tags.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-black/[0.03] flex items-center justify-center">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-skeleton/60 flex items-center justify-center">
           <svg className="w-6 h-6 text-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
           </svg>
@@ -138,7 +138,7 @@ function TopicsTabView() {
         <Link
           key={tag.name}
           href={`/tag/${encodeURIComponent(tag.name)}`}
-          className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/[0.04] hover:border-purple-primary/20 hover:shadow-md transition-all group"
+          className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light hover:border-accent/20 hover:shadow-md transition-all group"
         >
           {/* Rank Badge */}
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-ui text-sm font-semibold flex-shrink-0 ${
@@ -148,14 +148,14 @@ function TopicsTabView() {
               ? "bg-purple-primary/20 text-purple-primary"
               : index === 2
               ? "bg-purple-primary/10 text-purple-primary/80"
-              : "bg-black/[0.04] text-muted"
+              : "bg-skeleton/70 text-muted"
           }`}>
             {index + 1}
           </div>
 
           {/* Tag Info */}
           <div className="flex-1 min-w-0">
-            <div className="font-ui text-[0.95rem] font-medium text-ink truncate group-hover:text-purple-primary transition-colors">
+            <div className="font-ui text-[0.95rem] font-medium text-ink truncate group-hover:text-accent transition-colors">
               #{tag.name}
             </div>
             <div className="font-body text-[0.75rem] text-muted">
@@ -169,7 +169,7 @@ function TopicsTabView() {
           </div>
 
           {/* Arrow */}
-          <svg className="w-5 h-5 text-muted/40 group-hover:text-purple-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-muted/40 group-hover:text-accent group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>
@@ -235,7 +235,7 @@ function EmptyState({ tab }: { tab: ExploreTab }) {
 
   return (
     <div className="text-center py-20">
-      <div className="w-12 h-12 mx-auto mb-5 rounded-full bg-black/[0.03] flex items-center justify-center">
+      <div className="w-12 h-12 mx-auto mb-5 rounded-full bg-skeleton/60 flex items-center justify-center">
         <svg className="w-5 h-5 text-muted/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>
@@ -411,7 +411,7 @@ export default function ExplorePageContent() {
   return (
     <div className="min-h-screen">
       {/* Header - Desktop */}
-      <header className="sticky top-0 z-40 bg-white border-b border-black/[0.05] hidden md:block">
+      <header className="sticky top-0 z-40 bg-surface border-b border-border-light hidden md:block">
         <div className="max-w-[640px] lg:max-w-[780px] mx-auto px-4">
           {/* Navigation Bar */}
           <div className="flex items-center h-[52px]">
@@ -439,7 +439,7 @@ export default function ExplorePageContent() {
             </div>
 
             {/* Divider */}
-            <div className="w-px h-5 bg-black/[0.08] mx-3" />
+            <div className="w-px h-5 bg-skeleton mx-3" />
 
             {/* Categories Dropdown */}
             <div className="relative">
@@ -448,7 +448,7 @@ export default function ExplorePageContent() {
                 className={`flex items-center gap-1.5 h-8 px-3 rounded-lg font-ui text-[13px] transition-all ${
                   isCategory
                     ? "text-purple-primary bg-purple-primary/[0.06]"
-                    : "text-muted hover:text-ink hover:bg-black/[0.03]"
+                    : "text-muted hover:text-ink hover:bg-subtle"
                 }`}
               >
                 {isCategory ? currentCategory?.label : "All types"}
@@ -464,13 +464,13 @@ export default function ExplorePageContent() {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowCategories(false)}
                   />
-                  <div className="absolute top-full left-0 mt-2 w-44 bg-white rounded-xl shadow-xl shadow-black/[0.08] border border-black/[0.05] py-1.5 z-50">
+                  <div className="absolute top-full left-0 mt-2 w-44 bg-surface rounded-xl shadow-xl shadow-black/[0.08] border border-border-light py-1.5 z-50">
                     <button
                       onClick={() => handlePrimaryTabSelect("for-you")}
                       className={`w-full flex items-center justify-between px-4 py-2 text-left font-ui text-[13px] transition-colors ${
                         !isCategory
                           ? "text-purple-primary bg-purple-primary/[0.04]"
-                          : "text-ink hover:bg-black/[0.03]"
+                          : "text-ink hover:bg-subtle"
                       }`}
                     >
                       <span>All types</span>
@@ -480,7 +480,7 @@ export default function ExplorePageContent() {
                         </svg>
                       )}
                     </button>
-                    <div className="h-px bg-black/[0.05] my-1.5 mx-3" />
+                    <div className="h-px bg-skeleton my-1.5 mx-3" />
                     {CATEGORY_FILTERS.map((category) => (
                       <button
                         key={category.id}
@@ -488,7 +488,7 @@ export default function ExplorePageContent() {
                         className={`w-full flex items-center justify-between px-4 py-2 text-left font-ui text-[13px] transition-colors ${
                           activeTab === category.id
                             ? "text-purple-primary bg-purple-primary/[0.04]"
-                            : "text-ink hover:bg-black/[0.03]"
+                            : "text-ink hover:bg-subtle"
                         }`}
                       >
                         <span>{category.label}</span>
@@ -508,7 +508,7 @@ export default function ExplorePageContent() {
       </header>
 
       {/* Header - Mobile */}
-      <header className="sticky top-0 z-40 bg-white border-b border-black/[0.05] md:hidden">
+      <header className="sticky top-0 z-40 bg-surface border-b border-border-light md:hidden">
         {/* Title Row with Filter Button */}
         <div className="flex items-center justify-between px-4 h-12">
           <h1 className="font-display text-lg text-ink">Explore</h1>
@@ -519,7 +519,7 @@ export default function ExplorePageContent() {
             className={`flex items-center gap-1.5 h-8 px-3 rounded-full font-ui text-[13px] transition-all ${
               isCategory
                 ? "text-purple-primary bg-purple-primary/10"
-                : "text-muted bg-black/[0.04]"
+                : "text-muted bg-skeleton/70"
             }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -543,7 +543,7 @@ export default function ExplorePageContent() {
                 className={`relative flex-shrink-0 h-9 px-4 rounded-full font-ui text-[13px] transition-all ${
                   activeTab === tab.id && isPrimaryTab
                     ? "text-white bg-gradient-to-r from-purple-primary to-pink-vivid font-medium"
-                    : "text-ink bg-black/[0.04] active:bg-black/[0.08]"
+                    : "text-ink bg-skeleton/70 active:bg-skeleton"
                 }`}
               >
                 {tab.label}
@@ -563,18 +563,18 @@ export default function ExplorePageContent() {
           />
 
           {/* Bottom Sheet */}
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[70vh] overflow-hidden animate-slideUp">
+          <div className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-2xl max-h-[70vh] overflow-hidden animate-slideUp">
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 rounded-full bg-black/10" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pb-3 border-b border-black/[0.05]">
+            <div className="flex items-center justify-between px-5 pb-3 border-b border-border-light">
               <h3 className="font-ui text-base font-medium text-ink">Filter by Type</h3>
               <button
                 onClick={() => setShowMobileFilter(false)}
-                className="w-8 h-8 rounded-full bg-black/[0.05] flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-skeleton flex items-center justify-center"
               >
                 <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -590,12 +590,12 @@ export default function ExplorePageContent() {
                 className={`w-full flex items-center justify-between p-4 rounded-xl mb-2 transition-all ${
                   !isCategory
                     ? "bg-purple-primary/10 border-2 border-purple-primary"
-                    : "bg-black/[0.03] border-2 border-transparent"
+                    : "bg-skeleton/60 border-2 border-transparent"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    !isCategory ? "bg-purple-primary text-white" : "bg-black/[0.06] text-muted"
+                    !isCategory ? "bg-purple-primary text-white" : "bg-skeleton text-muted"
                   }`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -621,7 +621,7 @@ export default function ExplorePageContent() {
                     className={`flex items-center gap-2 p-3 rounded-xl transition-all ${
                       activeTab === category.id
                         ? "bg-purple-primary/10 border-2 border-purple-primary"
-                        : "bg-black/[0.03] border-2 border-transparent active:bg-black/[0.06]"
+                        : "bg-skeleton/60 border-2 border-transparent active:bg-skeleton"
                     }`}
                   >
                     <span className={`font-ui text-[14px] ${
@@ -688,7 +688,7 @@ export default function ExplorePageContent() {
             {/* Loading More Indicator */}
             {loading && posts.length > 0 && (
               <div className="flex justify-center py-8">
-                <div className="w-5 h-5 border-[1.5px] border-black/10 border-t-ink/60 rounded-full animate-spin" />
+                <div className="w-5 h-5 border-[1.5px] border-border-light border-t-ink/60 rounded-full animate-spin" />
               </div>
             )}
 

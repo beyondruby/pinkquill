@@ -202,7 +202,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
   const renderPreview = () => {
     if (!value) {
       return (
-        <div className="w-full h-32 rounded-xl bg-white border-2 border-dashed border-gray-200 flex items-center justify-center">
+        <div className="w-full h-32 rounded-xl bg-surface border-2 border-dashed border-gray-200 flex items-center justify-center">
           <span className="text-muted text-sm font-ui">No background selected</span>
         </div>
       );
@@ -250,13 +250,13 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-scaleIn">
+      <div className="relative bg-surface rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-scaleIn">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.06]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border-light">
           <h2 className="font-display text-xl text-ink">Choose Background</h2>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full hover:bg-black/5 flex items-center justify-center text-muted transition-colors"
+            className="w-10 h-10 rounded-full hover:bg-skeleton flex items-center justify-center text-muted transition-colors"
           >
             {icons.close}
           </button>
@@ -276,7 +276,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
               className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-ui text-sm transition-all ${
                 activeTab === tab.id
                   ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/30"
-                  : "text-muted hover:bg-black/5"
+                  : "text-muted hover:bg-skeleton"
               }`}
             >
               {tab.icon}
@@ -315,7 +315,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
                     {isSelected("solid", c.color) && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                          c.color === "#ffffff" || c.color.startsWith("#f") ? "bg-purple-primary text-white" : "bg-white text-purple-primary"
+                          c.color === "#ffffff" || c.color.startsWith("#f") ? "bg-purple-primary text-white" : "bg-surface text-purple-primary"
                         }`}>
                           {icons.check}
                         </div>
@@ -326,7 +326,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
               </div>
 
               {/* Custom Color */}
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-3 p-3 bg-subtle rounded-xl">
                 <input
                   type="color"
                   value={customColor}
@@ -373,7 +373,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
                 >
                   {isSelected("gradient", g.value) && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-6 h-6 rounded-full bg-white text-purple-primary flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-surface text-purple-primary flex items-center justify-center">
                         {icons.check}
                       </div>
                     </div>
@@ -412,7 +412,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
                       </div>
                     </div>
                   )}
-                  <span className="absolute bottom-1.5 left-1.5 right-1.5 text-center text-xs font-ui text-ink/80 bg-white/80 rounded-md px-2 py-1 backdrop-blur-sm">
+                  <span className="absolute bottom-1.5 left-1.5 right-1.5 text-center text-xs font-ui text-ink/80 bg-surface/80 rounded-md px-2 py-1 backdrop-blur-sm">
                     {p.label}
                   </span>
                 </button>
@@ -426,7 +426,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
               {!imagePreview ? (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-purple-primary/30 rounded-2xl p-8 text-center cursor-pointer hover:border-purple-primary/50 hover:bg-purple-primary/[0.02] transition-all"
+                  className="border-2 border-dashed border-purple-primary/30 rounded-2xl p-8 text-center cursor-pointer hover:border-accent/50 hover:bg-accent/[0.02] transition-all"
                 >
                   <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white shadow-lg shadow-purple-primary/30">
                     {icons.upload}
@@ -498,7 +498,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
                   {/* Change Image Button */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full px-4 py-2.5 rounded-xl border border-purple-primary/30 text-purple-primary font-ui text-sm hover:bg-purple-primary/5 transition-colors"
+                    className="w-full px-4 py-2.5 rounded-xl border border-purple-primary/30 text-purple-primary font-ui text-sm hover:bg-accent/5 transition-colors"
                   >
                     Change Image
                   </button>
@@ -519,10 +519,10 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-black/[0.06] bg-gray-50">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-light bg-subtle">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-full font-ui text-sm text-muted hover:bg-black/5 transition-colors"
+            className="px-6 py-2.5 rounded-full font-ui text-sm text-muted hover:bg-skeleton transition-colors"
           >
             Cancel
           </button>

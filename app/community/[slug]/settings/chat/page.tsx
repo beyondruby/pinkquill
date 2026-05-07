@@ -78,7 +78,7 @@ export default function CommunityChatSettingsPage() {
         </p>
       </div>
 
-      <div className="mb-6 rounded-xl border border-black/5 bg-white p-4">
+      <div className="mb-6 rounded-xl border border-border-light bg-surface p-4">
         <h3 className="font-ui text-sm font-semibold text-ink mb-2">Thread structure</h3>
         <p className="font-body text-sm text-muted">
           Staff use the <span className="font-semibold text-ink">General</span> thread for
@@ -86,13 +86,13 @@ export default function CommunityChatSettingsPage() {
         </p>
         <Link
           href={`/messages/community?community=${community.slug}`}
-          className="inline-flex mt-3 px-3 py-1.5 rounded-full bg-black/[0.04] hover:bg-black/[0.08] text-xs font-ui text-ink transition-colors"
+          className="inline-flex mt-3 px-3 py-1.5 rounded-full bg-skeleton/70 hover:bg-skeleton text-xs font-ui text-ink transition-colors"
         >
           Open Community Inbox
         </Link>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-5 rounded-xl border border-black/5 bg-white p-5">
+      <form onSubmit={handleSave} className="space-y-5 rounded-xl border border-border-light bg-surface p-5">
         <div className="space-y-3">
           <h3 className="font-ui text-sm font-semibold text-ink">Chat Controls</h3>
 
@@ -107,7 +107,7 @@ export default function CommunityChatSettingsPage() {
             className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
               communityChatEnabled
                 ? "bg-emerald-50 border-emerald-200"
-                : "bg-black/[0.02] border-black/10"
+                : "bg-subtle border-border-light"
             } ${!canManageToggles ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <div>
@@ -132,7 +132,7 @@ export default function CommunityChatSettingsPage() {
             className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
               allowMemberMessages
                 ? "bg-purple-primary/[0.04] border-purple-primary/15"
-                : "bg-black/[0.02] border-black/10"
+                : "bg-subtle border-border-light"
             } ${!canManageToggles ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <div>
@@ -158,8 +158,8 @@ export default function CommunityChatSettingsPage() {
             }
             className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
               allowModmail
-                ? "bg-purple-50 border-purple-200"
-                : "bg-black/[0.02] border-black/10"
+                ? "bg-accent/10 border-purple-200"
+                : "bg-subtle border-border-light"
             } ${!canManageToggles ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <div>
@@ -191,7 +191,7 @@ export default function CommunityChatSettingsPage() {
             onChange={(event) => setWelcomeMessageDraft(event.target.value)}
             rows={4}
             placeholder="This message is sent when a new member joins."
-            className="w-full px-4 py-3 rounded-xl bg-white border border-black/5 font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
+            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
             maxLength={1000}
           />
           <p className="mt-1 font-ui text-xs text-muted text-right">
@@ -199,7 +199,7 @@ export default function CommunityChatSettingsPage() {
           </p>
         </div>
 
-        <div className="rounded-lg bg-black/[0.03] border border-black/[0.06] px-3 py-2">
+        <div className="rounded-lg bg-skeleton/60 border border-border-light px-3 py-2">
           <p className="font-ui text-xs text-muted">
             Members must be in community chat to participate when chat is enabled.
           </p>

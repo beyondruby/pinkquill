@@ -189,14 +189,14 @@ export default function CollectionSelector({
           className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl border transition-all duration-200 ${
             hasSelection
               ? "border-purple-primary/30 bg-purple-primary/[0.03]"
-              : "border-black/10 hover:border-purple-primary/20 bg-white"
+              : "border-border-light hover:border-accent/20 bg-surface"
           }`}
         >
           {/* Icon */}
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
             hasSelection
               ? "bg-purple-primary/10"
-              : "bg-black/[0.03]"
+              : "bg-skeleton/60"
           }`}>
             {selectedCollection ? (
               renderCollectionIcon(selectedCollection, "md")
@@ -256,7 +256,7 @@ export default function CollectionSelector({
                 </svg>
               </span>
             )}
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-black/[0.03] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-skeleton/60 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
               <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -266,12 +266,12 @@ export default function CollectionSelector({
 
         {/* Expanded Panel - Full Width */}
         {isExpanded && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-black/[0.08] overflow-hidden z-50">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-surface rounded-2xl shadow-xl border border-border-light overflow-hidden z-50">
             {/* Two Column Layout */}
             <div className="flex min-h-[320px] max-h-[420px]">
               {/* Collections Column */}
-              <div className="w-1/2 border-r border-black/[0.06] flex flex-col">
-                <div className="px-5 py-3 border-b border-black/[0.06]">
+              <div className="w-1/2 border-r border-border-light flex flex-col">
+                <div className="px-5 py-3 border-b border-border-light">
                   <h4 className="font-ui text-sm font-semibold text-ink">
                     Collections
                   </h4>
@@ -284,7 +284,7 @@ export default function CollectionSelector({
                       setIsExpanded(false);
                       setShowNewCollectionModal(true);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-purple-primary hover:bg-purple-primary/5 transition-colors mb-2"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-purple-primary hover:bg-accent/5 transition-colors mb-2"
                   >
                     <div className="w-10 h-10 rounded-xl border-2 border-dashed border-purple-primary/30 flex items-center justify-center">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,7 +295,7 @@ export default function CollectionSelector({
                   </button>
 
                   {/* Divider */}
-                  <div className="h-px bg-black/[0.06] my-2" />
+                  <div className="h-px bg-skeleton my-2" />
 
                   {/* No Collection Option */}
                   <button
@@ -306,10 +306,10 @@ export default function CollectionSelector({
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                       !selectedCollection
                         ? "bg-purple-primary/10"
-                        : "hover:bg-black/[0.02]"
+                        : "hover:bg-subtle"
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-black/[0.04] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-skeleton/70 flex items-center justify-center">
                       <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                       </svg>
@@ -345,7 +345,7 @@ export default function CollectionSelector({
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                         selectedCollection?.id === collection.id
                           ? "bg-purple-primary/10"
-                          : "hover:bg-black/[0.02]"
+                          : "hover:bg-subtle"
                       }`}
                     >
                       <div className="w-10 h-10 rounded-xl bg-purple-primary/5 flex items-center justify-center">
@@ -372,8 +372,8 @@ export default function CollectionSelector({
               </div>
 
               {/* Items Column */}
-              <div className="w-1/2 flex flex-col bg-black/[0.01]">
-                <div className="px-5 py-3 border-b border-black/[0.06]">
+              <div className="w-1/2 flex flex-col bg-subtle/30">
+                <div className="px-5 py-3 border-b border-border-light">
                   <h4 className="font-ui text-sm font-semibold text-ink">
                     {selectedCollection ? "Items" : "Select Collection First"}
                   </h4>
@@ -382,7 +382,7 @@ export default function CollectionSelector({
                 <div className="flex-1 overflow-y-auto p-3">
                   {!selectedCollection ? (
                     <div className="h-full flex flex-col items-center justify-center text-center px-6">
-                      <div className="w-14 h-14 rounded-2xl bg-black/[0.04] flex items-center justify-center mb-4">
+                      <div className="w-14 h-14 rounded-2xl bg-skeleton/70 flex items-center justify-center mb-4">
                         <svg className="w-7 h-7 text-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                         </svg>
@@ -410,7 +410,7 @@ export default function CollectionSelector({
                       </button>
 
                       {/* Divider */}
-                      <div className="h-px bg-black/[0.06] my-2" />
+                      <div className="h-px bg-skeleton my-2" />
 
                       {/* Collection Only Option */}
                       <button
@@ -418,10 +418,10 @@ export default function CollectionSelector({
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                           !selectedItem
                             ? "bg-pink-vivid/10"
-                            : "hover:bg-black/[0.02]"
+                            : "hover:bg-subtle"
                         }`}
                       >
-                        <div className="w-10 h-10 rounded-xl bg-black/[0.04] flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-skeleton/70 flex items-center justify-center">
                           <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                           </svg>
@@ -456,7 +456,7 @@ export default function CollectionSelector({
                           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                             selectedItem?.id === item.id
                               ? "bg-pink-vivid/10"
-                              : "hover:bg-black/[0.02]"
+                              : "hover:bg-subtle"
                           }`}
                         >
                           <div className="w-10 h-10 rounded-xl overflow-hidden bg-pink-vivid/5 flex items-center justify-center flex-shrink-0">
@@ -492,7 +492,7 @@ export default function CollectionSelector({
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-4 border-t border-black/[0.06] flex items-center justify-between">
+            <div className="px-5 py-4 border-t border-border-light flex items-center justify-between">
               <p className="font-body text-xs text-muted">
                 {selectedCollection
                   ? selectedItem
@@ -503,7 +503,7 @@ export default function CollectionSelector({
               </p>
               <button
                 onClick={() => setIsExpanded(false)}
-                className="px-5 py-2 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-purple-primary/90 transition-colors"
+                className="px-5 py-2 rounded-xl bg-purple-primary text-white font-ui text-sm font-medium hover:bg-accent/90 transition-colors"
               >
                 Done
               </button>

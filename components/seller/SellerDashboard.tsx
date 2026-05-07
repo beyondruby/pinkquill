@@ -15,8 +15,8 @@ import type { Order } from "@/lib/types/store";
 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
   pending_acceptance: { label: "Pending", dot: "bg-amber-400", bg: "bg-amber-50", text: "text-amber-700" },
   pending_payment: { label: "Awaiting Payment", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
-  in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
+  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
+  in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
   submitted: { label: "Delivered", dot: "bg-indigo-400", bg: "bg-indigo-50", text: "text-indigo-700" },
   revision_requested: { label: "Revision", dot: "bg-orange-400", bg: "bg-orange-50", text: "text-orange-700" },
   completed: { label: "Completed", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
@@ -48,7 +48,7 @@ function MetricCard({
     <div className={`rounded-xl border p-4 sm:p-5 ${
       accent
         ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
-        : "border-black/[0.06] bg-white"
+        : "border-border-light bg-surface"
     }`}>
       <div className="flex items-start justify-between">
         <div>
@@ -59,7 +59,7 @@ function MetricCard({
           {sublabel && <p className="text-[11px] font-body text-muted mt-0.5">{sublabel}</p>}
         </div>
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-black/[0.04] text-muted"
+          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-skeleton/70 text-muted"
         }`}>
           {icon}
         </div>
@@ -73,12 +73,12 @@ function MetricCard({
 // ---------------------------------------------------------------------------
 
 function RecentOrderRow({ order }: { order: Order }) {
-  const config = STATUS_CONFIG[order.status] || { label: order.status, dot: "bg-muted/60", bg: "bg-black/[0.02]", text: "text-ink/60" };
+  const config = STATUS_CONFIG[order.status] || { label: order.status, dot: "bg-muted/60", bg: "bg-subtle", text: "text-ink/60" };
 
   return (
     <Link
       href={`/orders/${order.id}`}
-      className="flex items-center gap-3 px-4 py-3 hover:bg-black/[0.02] transition-colors border-b border-black/[0.04] last:border-0"
+      className="flex items-center gap-3 px-4 py-3 hover:bg-subtle transition-colors border-b border-border-light last:border-0"
     >
       {/* Buyer avatar */}
       {order.buyer?.avatar_url ? (
@@ -145,13 +145,13 @@ export default function SellerDashboard() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-7 w-40 bg-black/[0.04] rounded-lg animate-pulse" />
+        <div className="h-7 w-40 bg-skeleton/70 rounded-lg animate-pulse" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-[100px] bg-black/[0.02] rounded-xl animate-pulse border border-black/[0.04]" />
+            <div key={i} className="h-[100px] bg-subtle rounded-xl animate-pulse border border-border-light" />
           ))}
         </div>
-        <div className="h-80 bg-black/[0.02] rounded-xl animate-pulse border border-black/[0.04]" />
+        <div className="h-80 bg-subtle rounded-xl animate-pulse border border-border-light" />
       </div>
     );
   }
@@ -161,7 +161,7 @@ export default function SellerDashboard() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-purple-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
             </svg>
@@ -172,7 +172,7 @@ export default function SellerDashboard() {
           </p>
           <Link
             href="/seller/onboarding"
-            className="inline-flex px-6 py-2.5 bg-purple-primary text-white rounded-lg font-ui text-sm font-semibold hover:bg-purple-primary/90 transition-colors"
+            className="inline-flex px-6 py-2.5 bg-purple-primary text-white rounded-lg font-ui text-sm font-semibold hover:bg-accent/90 transition-colors"
           >
             Complete Setup
           </Link>
@@ -278,7 +278,7 @@ export default function SellerDashboard() {
       <div className="flex gap-2 flex-wrap">
         <Link
           href="/sell"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-primary text-white rounded-lg text-sm font-ui font-semibold hover:bg-purple-primary/90 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-primary text-white rounded-lg text-sm font-ui font-semibold hover:bg-accent/90 transition-colors"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -287,7 +287,7 @@ export default function SellerDashboard() {
         </Link>
         <Link
           href="/sell/service"
-          className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-border-light bg-surface rounded-lg text-sm font-ui font-medium text-ink hover:bg-subtle transition-colors"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -296,19 +296,19 @@ export default function SellerDashboard() {
         </Link>
         <Link
           href="/seller/orders"
-          className="inline-flex items-center gap-2 px-4 py-2 border border-black/[0.08] bg-white rounded-lg text-sm font-ui font-medium text-ink hover:bg-black/[0.02] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-border-light bg-surface rounded-lg text-sm font-ui font-medium text-ink hover:bg-subtle transition-colors"
         >
           View All Orders
         </Link>
       </div>
 
       {/* Recent Orders */}
-      <section className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-black/[0.06]">
+      <section className="rounded-xl border border-border-light bg-surface overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border-light">
           <h2 className="font-display text-base font-bold text-ink">Recent Orders</h2>
           <Link
             href="/seller/orders"
-            className="text-xs font-ui font-medium text-purple-primary hover:text-purple-primary/80 transition-colors"
+            className="text-xs font-ui font-medium text-purple-primary hover:text-accent/80 transition-colors"
           >
             View all
           </Link>
@@ -316,7 +316,7 @@ export default function SellerDashboard() {
 
         {ordersLoading ? (
           <div className="p-10 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-black/[0.06] border-t-purple-primary mx-auto" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-border-light border-t-purple-primary mx-auto" />
           </div>
         ) : ordersError ? (
           <div className="p-10 text-center">

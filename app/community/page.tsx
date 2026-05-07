@@ -174,7 +174,7 @@ export default function CommunitiesPage() {
         <div className="relative px-5 py-7 md:px-8 md:py-10">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 md:gap-8">
             <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 md:gap-2.5 md:px-4 md:py-2 rounded-full bg-white/70 backdrop-blur-sm border border-purple-primary/10 mb-4 md:mb-5 shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 md:gap-2.5 md:px-4 md:py-2 rounded-full bg-surface/70 backdrop-blur-sm border border-purple-primary/10 mb-4 md:mb-5 shadow-sm">
                 <div className="relative">
                   <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid" />
                   <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid animate-ping opacity-75" />
@@ -220,7 +220,7 @@ export default function CommunitiesPage() {
             placeholder="Search communities..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/90 backdrop-blur-sm border border-purple-primary/10 shadow-sm font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 focus:bg-white transition-all placeholder:text-muted/60"
+            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-surface/90 backdrop-blur-sm border border-purple-primary/10 shadow-sm font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 focus:bg-surface transition-all placeholder:text-muted/60"
           />
           <div className="absolute left-4 top-1/2 -translate-y-1/2">
             <svg className="w-5 h-5 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +243,7 @@ export default function CommunitiesPage() {
                 className={`shrink-0 px-4 py-2 rounded-full font-ui text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-pink-vivid/10 text-pink-vivid'
-                    : 'text-muted hover:text-ink hover:bg-black/[0.03]'
+                    : 'text-muted hover:text-ink hover:bg-subtle'
                 }`}
               >
                 {tab.label}
@@ -263,7 +263,7 @@ export default function CommunitiesPage() {
             className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
               selectedCategory === cat.id
                 ? 'bg-pink-vivid/10 text-pink-vivid'
-                : 'text-muted hover:text-ink hover:bg-black/[0.03]'
+                : 'text-muted hover:text-ink hover:bg-subtle'
             }`}
           >
             {cat.name}
@@ -284,7 +284,7 @@ export default function CommunitiesPage() {
             className={`shrink-0 px-3 py-1 rounded-full font-ui text-[11px] font-medium transition-all duration-200 ${
               sortBy === sort.id
                 ? 'bg-purple-primary/[0.08] text-purple-primary'
-                : 'text-muted hover:text-ink hover:bg-black/[0.03]'
+                : 'text-muted hover:text-ink hover:bg-subtle'
             }`}
           >
             {sort.label}
@@ -385,16 +385,16 @@ export default function CommunitiesPage() {
                     <Link
                       key={community.id}
                       href={`/community/${community.slug}`}
-                      className="group p-4 rounded-xl bg-white/80 backdrop-blur-sm border border-purple-primary/10 hover:border-purple-primary/30 hover:shadow-lg hover:shadow-purple-primary/10 transition-all duration-300"
+                      className="group p-4 rounded-xl bg-surface/80 backdrop-blur-sm border border-purple-primary/10 hover:border-accent/30 hover:shadow-lg hover:shadow-purple-primary/10 transition-all duration-300"
                     >
                       {community.cover_url ? (
-                        <div className="w-full h-20 rounded-lg mb-3 overflow-hidden bg-black/5">
+                        <div className="w-full h-20 rounded-lg mb-3 overflow-hidden bg-skeleton">
                           <img src={community.cover_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         </div>
                       ) : (
                         <div className="w-full h-20 rounded-lg mb-3 bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10" />
                       )}
-                      <h4 className="font-ui text-sm font-medium text-ink group-hover:text-purple-primary transition-colors truncate">
+                      <h4 className="font-ui text-sm font-medium text-ink group-hover:text-accent transition-colors truncate">
                         {community.name}
                       </h4>
                       <p className="font-ui text-xs text-muted mt-1">

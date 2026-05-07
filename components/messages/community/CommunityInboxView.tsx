@@ -47,13 +47,13 @@ function getStatusBadgeClass(status: "active" | "muted" | "banned") {
 function getRoleBadgeClass(role: "admin" | "moderator" | "member") {
   if (role === "admin") return "bg-orange-warm/10 text-orange-warm";
   if (role === "moderator") return "bg-purple-primary/10 text-purple-primary";
-  return "bg-black/[0.04] text-muted";
+  return "bg-skeleton/70 text-muted";
 }
 
 function DateDivider({ date }: { date: string }) {
   return (
     <div className="flex items-center justify-center my-4">
-      <span className="px-3 py-1 rounded-full bg-white shadow-sm font-ui text-[0.75rem] text-muted">
+      <span className="px-3 py-1 rounded-full bg-surface shadow-sm font-ui text-[0.75rem] text-muted">
         {formatDateDivider(date)}
       </span>
     </div>
@@ -580,9 +580,9 @@ export default function CommunityInboxView() {
   return (
     <div className="h-screen bg-[#f8f7fc] flex flex-col md:flex-row">
       {/* Communities */}
-      <aside className="md:w-[280px] w-full md:border-r border-black/[0.06] bg-white flex flex-col">
+      <aside className="md:w-[280px] w-full md:border-r border-border-light bg-surface flex flex-col">
         <div
-          className="px-4 py-3 border-b border-black/[0.06] flex items-center justify-between"
+          className="px-4 py-3 border-b border-border-light flex items-center justify-between"
           style={{ paddingTop: "calc(12px + env(safe-area-inset-top, 0px))" }}
         >
           <div>
@@ -591,7 +591,7 @@ export default function CommunityInboxView() {
           </div>
           <Link
             href="/messages"
-            className="px-3 py-1.5 rounded-full bg-black/[0.04] hover:bg-black/[0.08] text-xs font-ui text-ink transition-colors"
+            className="px-3 py-1.5 rounded-full bg-skeleton/70 hover:bg-skeleton text-xs font-ui text-ink transition-colors"
           >
             DMs
           </Link>
@@ -623,8 +623,8 @@ export default function CommunityInboxView() {
                     setSelectedThreadIdState(null);
                     setSendAsAppeal(false);
                   }}
-                  className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
-                    isSelected ? "bg-purple-primary/8" : "hover:bg-black/[0.02]"
+                  className={`w-full text-left px-4 py-3 border-b border-border-light transition-colors ${
+                    isSelected ? "bg-purple-primary/8" : "hover:bg-subtle"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -673,8 +673,8 @@ export default function CommunityInboxView() {
 
       {/* Thread list */}
       {selectedMembership && (
-        <aside className="hidden md:flex w-[280px] border-r border-black/[0.06] bg-white flex-col">
-          <div className="px-4 py-3 border-b border-black/[0.06]">
+        <aside className="hidden md:flex w-[280px] border-r border-border-light bg-surface flex-col">
+          <div className="px-4 py-3 border-b border-border-light">
             <p className="font-ui text-[11px] uppercase tracking-wider text-muted font-medium">Channels</p>
           </div>
 
@@ -684,10 +684,10 @@ export default function CommunityInboxView() {
               setSelectedStaffTarget(null);
               setSendAsAppeal(false);
             }}
-            className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
+            className={`w-full text-left px-4 py-3 border-b border-border-light transition-colors ${
               selectedThreadId === COMMUNITY_THREAD_ID
                 ? "bg-purple-primary/8"
-                : "hover:bg-black/[0.02]"
+                : "hover:bg-subtle"
             }`}
           >
             <div className="flex items-center gap-3">
@@ -717,10 +717,10 @@ export default function CommunityInboxView() {
                   setSendAsAppeal(false);
                 }
               }}
-              className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
+              className={`w-full text-left px-4 py-3 border-b border-border-light transition-colors ${
                 selectedThreadId === memberDirectThreadId
                   ? "bg-purple-primary/8"
-                  : "hover:bg-black/[0.02]"
+                  : "hover:bg-subtle"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -739,7 +739,7 @@ export default function CommunityInboxView() {
 
           {isStaff && (
             <>
-              <div className="px-4 py-3 border-b border-black/[0.06]">
+              <div className="px-4 py-3 border-b border-border-light">
                 <label className="block font-ui text-[11px] uppercase tracking-wider text-muted font-medium mb-2">
                   Find a member
                 </label>
@@ -748,7 +748,7 @@ export default function CommunityInboxView() {
                   value={memberSearchQuery}
                   onChange={(event) => setMemberSearchQuery(event.target.value)}
                   placeholder="Name or @username"
-                  className="w-full px-3 py-2 rounded-full bg-black/[0.04] border-none outline-none focus:ring-2 focus:ring-purple-primary/20 font-ui text-sm text-ink"
+                  className="w-full px-3 py-2 rounded-full bg-skeleton/70 border-none outline-none focus:ring-2 focus:ring-purple-primary/20 font-ui text-sm text-ink"
                 />
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -781,8 +781,8 @@ export default function CommunityInboxView() {
                               });
                               setSendAsAppeal(false);
                             }}
-                            className={`w-full text-left px-4 py-3 border-t border-black/[0.04] transition-colors ${
-                              isSelected ? "bg-purple-primary/8" : "hover:bg-black/[0.02]"
+                            className={`w-full text-left px-4 py-3 border-t border-border-light transition-colors ${
+                              isSelected ? "bg-purple-primary/8" : "hover:bg-subtle"
                             }`}
                           >
                             <div className="flex items-center gap-3">
@@ -830,8 +830,8 @@ export default function CommunityInboxView() {
                       <button
                         key={member.user_id}
                         onClick={() => openStaffThreadForMember(member)}
-                        className={`w-full text-left px-4 py-3 border-b border-black/[0.04] transition-colors ${
-                          isSelected ? "bg-purple-primary/8" : "hover:bg-black/[0.02]"
+                        className={`w-full text-left px-4 py-3 border-b border-border-light transition-colors ${
+                          isSelected ? "bg-purple-primary/8" : "hover:bg-subtle"
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -883,7 +883,7 @@ export default function CommunityInboxView() {
         ) : !isChatEnabled ? (
           <div className="flex-1 flex items-center justify-center px-6">
             <div className="max-w-sm text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-black/[0.04] flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-skeleton/70 flex items-center justify-center">
                 <svg className="w-7 h-7 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636" />
                 </svg>
@@ -907,7 +907,7 @@ export default function CommunityInboxView() {
         ) : (
           <>
             {/* Header */}
-            <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-black/[0.06]">
+            <div className="flex items-center gap-3 px-4 py-3 bg-surface border-b border-border-light">
               {isCommunityThreadSelected ? (
                 <Link
                   href={`/community/${communitySlug}`}
@@ -919,7 +919,7 @@ export default function CommunityInboxView() {
                     className="w-11 h-11 rounded-full object-cover group-hover:ring-2 group-hover:ring-purple-primary/30 transition-all"
                   />
                   <div className="min-w-0">
-                    <h2 className="font-ui text-[1rem] font-medium text-ink truncate group-hover:text-purple-primary transition-colors">
+                    <h2 className="font-ui text-[1rem] font-medium text-ink truncate group-hover:text-accent transition-colors">
                       {headerTitle}
                     </h2>
                     <p className="font-ui text-[0.78rem] text-muted truncate">
@@ -938,7 +938,7 @@ export default function CommunityInboxView() {
                     className="w-11 h-11 rounded-full object-cover group-hover:ring-2 group-hover:ring-purple-primary/30 transition-all"
                   />
                   <div className="min-w-0">
-                    <h2 className="font-ui text-[1rem] font-medium text-ink truncate group-hover:text-purple-primary transition-colors">
+                    <h2 className="font-ui text-[1rem] font-medium text-ink truncate group-hover:text-accent transition-colors">
                       {headerTitle}
                     </h2>
                     <p className="font-ui text-[0.78rem] text-muted truncate">
@@ -967,7 +967,7 @@ export default function CommunityInboxView() {
               <div className="relative" ref={headerMenuRef}>
                 <button
                   onClick={() => setShowHeaderMenu((prev) => !prev)}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-purple-primary hover:bg-purple-primary/10 transition-all"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-accent/10 transition-all"
                   aria-label="Chat options"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -977,11 +977,11 @@ export default function CommunityInboxView() {
                   </svg>
                 </button>
                 {showHeaderMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50 animate-fadeIn">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-surface rounded-xl shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
                     <Link
                       href={`/community/${communitySlug}`}
                       onClick={() => setShowHeaderMenu(false)}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-skeleton/60 transition-colors"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -992,7 +992,7 @@ export default function CommunityInboxView() {
                       <Link
                         href={`/community/${communitySlug}/settings`}
                         onClick={() => setShowHeaderMenu(false)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-skeleton/60 transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -1003,7 +1003,7 @@ export default function CommunityInboxView() {
                     )}
                     {showLeaveAction && (
                       <>
-                        <div className="h-px bg-black/[0.06] mx-3" />
+                        <div className="h-px bg-skeleton mx-3" />
                         <button
                           onClick={() => {
                             setShowHeaderMenu(false);
@@ -1025,7 +1025,7 @@ export default function CommunityInboxView() {
 
             {/* Mobile thread switcher */}
             {selectedMembership && (
-              <div className="md:hidden px-4 py-3 bg-white border-b border-black/[0.06] flex flex-col gap-2">
+              <div className="md:hidden px-4 py-3 bg-surface border-b border-border-light flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
@@ -1036,7 +1036,7 @@ export default function CommunityInboxView() {
                     className={`flex-1 px-3 py-2 rounded-full font-ui text-xs transition-colors ${
                       selectedThreadId === COMMUNITY_THREAD_ID
                         ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
-                        : "bg-black/[0.04] text-ink"
+                        : "bg-skeleton/70 text-ink"
                     }`}
                   >
                     Community
@@ -1052,7 +1052,7 @@ export default function CommunityInboxView() {
                       className={`flex-1 px-3 py-2 rounded-full font-ui text-xs transition-colors ${
                         selectedThreadId === memberDirectThreadId
                           ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
-                          : "bg-black/[0.04] text-ink"
+                          : "bg-skeleton/70 text-ink"
                       }`}
                     >
                       Mod Team
@@ -1066,10 +1066,10 @@ export default function CommunityInboxView() {
                       value={memberSearchQuery}
                       onChange={(event) => setMemberSearchQuery(event.target.value)}
                       placeholder="Search a member..."
-                      className="w-full px-3 py-2 rounded-full bg-black/[0.04] border-none outline-none focus:ring-2 focus:ring-purple-primary/20 font-ui text-xs text-ink"
+                      className="w-full px-3 py-2 rounded-full bg-skeleton/70 border-none outline-none focus:ring-2 focus:ring-purple-primary/20 font-ui text-xs text-ink"
                     />
                     {staffRecentThreads.length > 0 && !memberSearchQuery.trim() && (
-                      <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+                      <div className="rounded-xl border border-border-light bg-surface overflow-hidden">
                         {staffRecentThreads.slice(0, 4).map((thread) => (
                           <button
                             key={`mobile-recent-${thread.memberId}`}
@@ -1078,7 +1078,7 @@ export default function CommunityInboxView() {
                               setSelectedStaffTarget(thread);
                               setSendAsAppeal(false);
                             }}
-                            className="w-full text-left px-3 py-2 border-b border-black/[0.04] last:border-b-0 hover:bg-black/[0.02]"
+                            className="w-full text-left px-3 py-2 border-b border-border-light last:border-b-0 hover:bg-subtle"
                           >
                             <p className="font-ui text-xs text-ink truncate">
                               {thread.displayName || thread.username}
@@ -1089,7 +1089,7 @@ export default function CommunityInboxView() {
                       </div>
                     )}
                     {memberSearchQuery.trim().length >= 2 && (
-                      <div className="rounded-xl border border-black/[0.06] bg-white max-h-44 overflow-y-auto">
+                      <div className="rounded-xl border border-border-light bg-surface max-h-44 overflow-y-auto">
                         {memberSearchLoading ? (
                           <div className="py-3 flex justify-center">
                             <div className="w-5 h-5 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin" />
@@ -1101,7 +1101,7 @@ export default function CommunityInboxView() {
                             <button
                               key={member.user_id}
                               onClick={() => openStaffThreadForMember(member)}
-                              className="w-full text-left px-3 py-2 border-b border-black/[0.04] last:border-b-0 hover:bg-black/[0.02]"
+                              className="w-full text-left px-3 py-2 border-b border-border-light last:border-b-0 hover:bg-subtle"
                             >
                               <p className="font-ui text-xs text-ink truncate">
                                 {member.profile?.display_name || member.profile?.username || "Member"}
@@ -1139,7 +1139,7 @@ export default function CommunityInboxView() {
                       Welcome to {communityName}
                     </h3>
                     {welcomeMessage ? (
-                      <div className="px-5 py-4 rounded-2xl bg-white border border-black/[0.05] shadow-sm mb-5">
+                      <div className="px-5 py-4 rounded-2xl bg-surface border border-border-light shadow-sm mb-5">
                         <p className="font-body text-[0.95rem] text-ink leading-relaxed italic">
                           &ldquo;{welcomeMessage}&rdquo;
                         </p>
@@ -1217,7 +1217,7 @@ export default function CommunityInboxView() {
                   {/* Pinned welcome at top of community thread */}
                   {isCommunityThreadSelected && welcomeMessage && (
                     <div className="flex justify-center mb-3">
-                      <div className="max-w-[80%] px-4 py-2.5 rounded-2xl bg-white border-2 border-purple-primary/40">
+                      <div className="max-w-[80%] px-4 py-2.5 rounded-2xl bg-surface border-2 border-purple-primary/40">
                         <p className="font-ui text-[10px] uppercase tracking-wider font-semibold text-purple-primary mb-1">
                           Welcome
                         </p>
@@ -1299,7 +1299,7 @@ export default function CommunityInboxView() {
                               <div className={`px-4 py-2.5 rounded-2xl border-2 border-pink-vivid/50 ${
                                 isOwn
                                   ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
-                                  : "bg-white text-ink rounded-bl-md"
+                                  : "bg-surface text-ink rounded-bl-md"
                               }`}>
                                 <p className={`font-ui text-[10px] uppercase tracking-wider font-semibold mb-1 ${
                                   isOwn ? "text-white/80" : "text-pink-vivid"
@@ -1358,13 +1358,13 @@ export default function CommunityInboxView() {
                               className={`px-4 py-2.5 rounded-2xl ${
                                 isOwn
                                   ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
-                                  : "bg-white shadow-sm text-ink rounded-bl-md"
+                                  : "bg-surface shadow-sm text-ink rounded-bl-md"
                               }`}
                             >
                               {message.message_type === "appeal" && (
                                 <span
                                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wide font-ui mb-1.5 ${
-                                    isOwn ? "bg-white/20 text-white" : "bg-purple-primary/10 text-purple-primary"
+                                    isOwn ? "bg-surface/20 text-white" : "bg-purple-primary/10 text-purple-primary"
                                   }`}
                                 >
                                   Appeal
@@ -1393,9 +1393,9 @@ export default function CommunityInboxView() {
 
             {/* Input */}
             {!showJoinCTA && (
-              <div className="px-3 py-3 bg-white border-t border-black/[0.06]">
+              <div className="px-3 py-3 bg-surface border-t border-border-light">
                 {inputDisabledReason ? (
-                  <div className="rounded-2xl bg-black/[0.03] px-4 py-3 text-center">
+                  <div className="rounded-2xl bg-skeleton/60 px-4 py-3 text-center">
                     <p className="font-ui text-xs text-muted italic">{inputDisabledReason}</p>
                   </div>
                 ) : (
@@ -1428,7 +1428,7 @@ export default function CommunityInboxView() {
                           className={`w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
                             sendAsAppeal
                               ? "bg-purple-primary text-white"
-                              : "bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary"
+                              : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
                           }`}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1459,7 +1459,7 @@ export default function CommunityInboxView() {
                             ? "Reply to this member..."
                             : "Message the moderators..."
                         }
-                        className="flex-1 px-4 py-2.5 rounded-full bg-black/[0.03] border-none outline-none focus:ring-2 focus:ring-purple-primary/20 font-body text-sm"
+                        className="flex-1 px-4 py-2.5 rounded-full bg-skeleton/60 border-none outline-none focus:ring-2 focus:ring-purple-primary/20 font-body text-sm"
                         disabled={!canSendInCurrentThread}
                       />
                       <button

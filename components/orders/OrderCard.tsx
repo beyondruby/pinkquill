@@ -10,7 +10,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; d
   pending_payment: { label: "Awaiting Payment", bg: "bg-yellow-50", text: "text-yellow-700", dot: "bg-yellow-400" },
   paid: { label: "Paid", bg: "bg-purple-primary/[0.04]", text: "text-purple-primary", dot: "bg-purple-primary" },
   processing: { label: "Processing", bg: "bg-purple-primary/[0.04]", text: "text-purple-primary", dot: "bg-purple-primary" },
-  in_progress: { label: "In Progress", bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-400" },
+  in_progress: { label: "In Progress", bg: "bg-accent/10", text: "text-purple-700", dot: "bg-purple-400" },
   submitted: { label: "Delivered", bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-400" },
   revision_requested: { label: "Revision", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
   completed: { label: "Completed", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
@@ -25,7 +25,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; d
 };
 
 function StatusBadge({ status }: { status: OrderStatus }) {
-  const config = STATUS_CONFIG[status] || { label: status, bg: "bg-black/[0.02]", text: "text-ink/60", dot: "bg-muted/60" };
+  const config = STATUS_CONFIG[status] || { label: status, bg: "bg-subtle", text: "text-ink/60", dot: "bg-muted/60" };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-ui font-medium ${config.bg} ${config.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
@@ -61,7 +61,7 @@ export default function OrderCard({ order }: { order: Order }) {
   const timeAgo = getTimeAgo(order.created_at);
 
   return (
-    <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden hover:shadow-sm hover:border-black/[0.1] transition-all group">
+    <div className="rounded-xl border border-border-light bg-surface overflow-hidden hover:shadow-sm hover:border-border-light transition-all group">
       <Link href={`/orders/${order.id}`} className="block">
         <div className="p-4 sm:p-5">
           <div className="flex gap-4">
@@ -76,14 +76,14 @@ export default function OrderCard({ order }: { order: Order }) {
                   className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-lg object-cover"
                 />
               ) : (
-                <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-lg bg-gradient-to-br from-purple-primary/8 to-pink-vivid/8 flex items-center justify-center border border-black/[0.04]">
+                <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-lg bg-gradient-to-br from-purple-primary/8 to-pink-vivid/8 flex items-center justify-center border border-border-light">
                   <span className="text-lg font-display font-bold text-purple-primary/40">
                     {typeInfo.icon}
                   </span>
                 </div>
               )}
               {/* Type badge on thumbnail */}
-              <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 text-[9px] font-ui font-semibold rounded bg-white border border-black/[0.06] text-muted shadow-sm">
+              <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 text-[9px] font-ui font-semibold rounded bg-surface border border-border-light text-muted shadow-sm">
                 {typeInfo.label}
               </span>
             </div>
@@ -92,7 +92,7 @@ export default function OrderCard({ order }: { order: Order }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="font-ui text-[15px] font-semibold text-ink truncate group-hover:text-purple-primary transition-colors">
+                  <h3 className="font-ui text-[15px] font-semibold text-ink truncate group-hover:text-accent transition-colors">
                     {order.product?.title || "Order"}
                   </h3>
                   <p className="text-xs font-body text-muted mt-0.5">
@@ -148,7 +148,7 @@ export default function OrderCard({ order }: { order: Order }) {
       </Link>
 
       {/* Progress tracker + Quick action */}
-      <div className="border-t border-black/[0.04] px-4 sm:px-5 py-3 flex items-center gap-4 bg-black/[0.015]">
+      <div className="border-t border-border-light px-4 sm:px-5 py-3 flex items-center gap-4 bg-subtle/40">
         <div className="flex-1 min-w-0">
           <OrderTracker
             status={order.status}
@@ -162,8 +162,8 @@ export default function OrderCard({ order }: { order: Order }) {
             href={action.href}
             className={`shrink-0 px-4 py-1.5 rounded-lg text-xs font-ui font-semibold transition-all ${
               action.variant === "primary"
-                ? "bg-purple-primary text-white hover:bg-purple-primary/90"
-                : "text-purple-primary border border-purple-primary/20 bg-purple-50 hover:bg-purple-100"
+                ? "bg-purple-primary text-white hover:bg-accent/90"
+                : "text-purple-primary border border-purple-primary/20 bg-accent/10 hover:bg-accent/15"
             }`}
           >
             {action.label}

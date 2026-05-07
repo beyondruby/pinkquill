@@ -153,7 +153,7 @@ export default function PeoplePickerModal({
       onClick={onClose}
     >
       <div
-        className="w-[95%] max-w-[500px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn"
+        className="w-[95%] max-w-[500px] bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -178,7 +178,7 @@ export default function PeoplePickerModal({
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-full hover:bg-skeleton flex items-center justify-center transition-colors"
             >
               <FontAwesomeIcon icon={faTimes} className="text-gray-500" />
             </button>
@@ -198,7 +198,7 @@ export default function PeoplePickerModal({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search people..."
-              className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-ink placeholder:text-gray-400 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/20 transition-all font-ui"
+              className="w-full pl-11 pr-4 py-3 bg-subtle border border-gray-200 rounded-xl text-ink placeholder:text-gray-400 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/20 transition-all font-ui"
             />
             {loading && (
               <FontAwesomeIcon
@@ -262,7 +262,7 @@ export default function PeoplePickerModal({
                       {mode === "collaborators" && (
                         <button
                           onClick={() => setEditingRoleFor(editingRoleFor === user.id ? null : user.id)}
-                          className="w-6 h-6 rounded-full hover:bg-purple-primary/10 flex items-center justify-center transition-colors"
+                          className="w-6 h-6 rounded-full hover:bg-accent/10 flex items-center justify-center transition-colors"
                           title="Edit role"
                         >
                           <FontAwesomeIcon
@@ -285,7 +285,7 @@ export default function PeoplePickerModal({
 
                   {/* Role editor (for collaborators mode) */}
                   {mode === "collaborators" && editingRoleFor === user.id && (
-                    <div className="ml-8 flex flex-col gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100 animate-fadeIn">
+                    <div className="ml-8 flex flex-col gap-2 p-3 bg-subtle rounded-xl border border-gray-100 animate-fadeIn">
                       <label className="text-xs font-medium text-muted-text font-ui uppercase tracking-wide">
                         Role (optional)
                       </label>
@@ -300,7 +300,7 @@ export default function PeoplePickerModal({
                             className={`px-2.5 py-1 text-xs font-medium rounded-full transition-all ${
                               user.role === role
                                 ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
-                                : "bg-white border border-gray-200 text-gray-600 hover:border-purple-primary hover:text-purple-primary"
+                                : "bg-surface border border-gray-200 text-gray-600 hover:border-accent hover:text-accent"
                             }`}
                           >
                             {role}
@@ -317,7 +317,7 @@ export default function PeoplePickerModal({
                         />
                         <button
                           onClick={() => setEditingRoleFor(null)}
-                          className="px-3 py-1.5 text-xs font-medium text-purple-primary hover:bg-purple-primary/10 rounded-lg transition-colors"
+                          className="px-3 py-1.5 text-xs font-medium text-purple-primary hover:bg-accent/10 rounded-lg transition-colors"
                         >
                           Done
                         </button>
@@ -350,7 +350,7 @@ export default function PeoplePickerModal({
                 </div>
               ) : !loading ? (
                 <div className="py-8 text-center">
-                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-skeleton flex items-center justify-center">
                     <FontAwesomeIcon
                       icon={faSearch}
                       className="text-gray-400 text-xl"
@@ -393,7 +393,7 @@ export default function PeoplePickerModal({
               )}
               {filteredSuggestions.length === 0 && selected.length === 0 && (
                 <div className="py-8 text-center">
-                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-skeleton flex items-center justify-center">
                     <FontAwesomeIcon
                       icon={faSearch}
                       className="text-gray-400 text-xl"
@@ -410,7 +410,7 @@ export default function PeoplePickerModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-gray-100 bg-subtle/50 flex items-center justify-between">
           <button
             onClick={onClose}
             className="px-5 py-2.5 text-gray-600 hover:text-ink font-medium font-ui transition-colors"
@@ -449,7 +449,7 @@ function UserRow({ user, isSelected, onClick, disabled }: UserRowProps) {
           ? "bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 border border-purple-primary/20"
           : disabled
           ? "opacity-50 cursor-not-allowed"
-          : "hover:bg-gray-50 border border-transparent"
+          : "hover:bg-subtle border border-transparent"
       }`}
     >
       {/* Avatar */}

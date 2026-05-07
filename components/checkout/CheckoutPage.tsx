@@ -221,7 +221,7 @@ function PromoCodeSection({
           </button>
         </div>
 
-        <div className="rounded-xl bg-white/80 border border-green-200 px-3 py-2 text-sm font-body text-green-900">
+        <div className="rounded-xl bg-surface/80 border border-green-200 px-3 py-2 text-sm font-body text-green-900">
           <span className="text-green-700">Total updated:</span>{" "}
           <span className="line-through opacity-70">
             {formatCurrency(applied.originalAmount, currency)}
@@ -596,7 +596,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
   if (authLoading || orderLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-black/20 border-t-[var(--color-purple-primary)]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border-strong border-t-[var(--color-purple-primary)]" />
       </div>
     );
   }
@@ -689,7 +689,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
       <div className="relative mx-auto max-w-6xl px-4 py-8 sm:py-10">
         {/* Header */}
-        <header className="mb-6 sm:mb-8 rounded-3xl border border-black/[0.08] bg-white/80 backdrop-blur px-5 py-5 sm:px-6">
+        <header className="mb-6 sm:mb-8 rounded-3xl border border-border-light bg-surface/80 backdrop-blur px-5 py-5 sm:px-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-ui uppercase tracking-[0.16em] text-pink-vivid">
@@ -701,7 +701,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
               <p className="mt-2 max-w-2xl text-sm font-body text-muted">
                 {checkoutIntro}
               </p>
-              <p className="mt-2 inline-flex rounded-full border border-black/[0.08] bg-white px-3 py-1 text-[11px] font-ui uppercase tracking-[0.12em] text-muted">
+              <p className="mt-2 inline-flex rounded-full border border-border-light bg-surface px-3 py-1 text-[11px] font-ui uppercase tracking-[0.12em] text-muted">
                 {deliveryLabel}
               </p>
             </div>
@@ -725,7 +725,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 className={`rounded-full border px-3 py-1 text-[11px] font-ui uppercase tracking-[0.12em] ${
                   paymentReady
                     ? "border-purple-primary/25 bg-purple-primary/10 text-purple-primary"
-                    : "border-black/[0.12] bg-black/[0.03] text-muted"
+                    : "border-border-strong bg-skeleton/60 text-muted"
                 }`}
               >
                 {isPhysicalProduct ? "3 Payment" : "2 Payment"}
@@ -736,9 +736,9 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.05fr)_380px]">
           {/* Main section */}
-          <section className="rounded-3xl border border-black/[0.08] bg-white/90 backdrop-blur p-5 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.05)] space-y-6">
+          <section className="rounded-3xl border border-border-light bg-surface/90 backdrop-blur p-5 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.05)] space-y-6">
             {/* Promo Code */}
-            <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(130deg,rgba(255,255,255,0.97),rgba(255,246,252,0.95),rgba(255,251,246,0.95))] p-4 sm:p-5">
+            <div className="rounded-2xl border border-border-light bg-[linear-gradient(130deg,rgba(255,255,255,0.97),rgba(255,246,252,0.95),rgba(255,251,246,0.95))] p-4 sm:p-5">
               <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
                 Step 1
               </p>
@@ -775,7 +775,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
             </div>
 
             {/* Note to Seller */}
-            <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(135deg,rgba(255,255,255,0.97),rgba(255,252,246,0.95),rgba(255,248,252,0.95))] p-4 sm:p-5">
+            <div className="rounded-2xl border border-border-light bg-[linear-gradient(135deg,rgba(255,255,255,0.97),rgba(255,252,246,0.95),rgba(255,248,252,0.95))] p-4 sm:p-5">
               <h2 className="text-lg font-display text-ink">
                 Note to Seller
               </h2>
@@ -857,7 +857,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                       buyerNote.length > 500 ||
                       !noteHasChanges
                     }
-                    className="rounded-lg border border-black/[0.12] px-3 py-1.5 text-xs font-ui font-semibold text-muted hover:text-ink hover:border-black/20 disabled:opacity-50"
+                    className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-ui font-semibold text-muted hover:text-ink hover:border-border-strong disabled:opacity-50"
                   >
                     {updatingDraft ? "Saving..." : "Save Note"}
                   </button>
@@ -883,7 +883,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
             {/* Shipping Details (physical products only) */}
             {isPhysicalProduct && (
-              <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(245,250,255,0.94))] p-4 sm:p-5">
+              <div className="rounded-2xl border border-border-light bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(245,250,255,0.94))] p-4 sm:p-5">
                 <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
                   Step 2
                 </p>
@@ -1074,7 +1074,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
             )}
 
             {/* Payment Section */}
-            <div className="rounded-2xl border border-black/[0.06] bg-[linear-gradient(160deg,rgba(255,255,255,0.98),rgba(249,248,255,0.95))] p-4 sm:p-5">
+            <div className="rounded-2xl border border-border-light bg-[linear-gradient(160deg,rgba(255,255,255,0.98),rgba(249,248,255,0.95))] p-4 sm:p-5">
               <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
                 {paymentStepLabel}
               </p>
@@ -1108,7 +1108,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 requiresSecurityCheck &&
                 !paymentUnlocked &&
                 !checkoutLoading && (
-                  <div className="mt-4 space-y-4 rounded-xl border border-purple-primary/15 bg-white/80 p-4">
+                  <div className="mt-4 space-y-4 rounded-xl border border-purple-primary/15 bg-surface/80 p-4">
                     <div>
                       <p className="text-sm font-ui font-semibold text-ink">
                         Quick security check
@@ -1135,8 +1135,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
               {/* Loading */}
               {checkoutLoading && !requiresShippingDetails && (
-                <div className="mt-4 flex items-center justify-center rounded-xl border border-black/[0.06] bg-white/80 py-10">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-black/20 border-t-[var(--color-purple-primary)]" />
+                <div className="mt-4 flex items-center justify-center rounded-xl border border-border-light bg-surface/80 py-10">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-border-strong border-t-[var(--color-purple-primary)]" />
                 </div>
               )}
 
@@ -1227,12 +1227,12 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
           </section>
 
           {/* Order Summary Sidebar */}
-          <aside className="rounded-3xl border border-black/[0.08] bg-[linear-gradient(165deg,rgba(255,255,255,0.98),rgba(254,249,255,0.97))] p-5 sm:p-6 xl:sticky xl:top-8 h-fit shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
+          <aside className="rounded-3xl border border-border-light bg-[linear-gradient(165deg,rgba(255,255,255,0.98),rgba(254,249,255,0.97))] p-5 sm:p-6 xl:sticky xl:top-8 h-fit shadow-[0_20px_60px_rgba(0,0,0,0.05)]">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-display text-ink">
                 Order Summary
               </h2>
-              <span className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-ui uppercase tracking-[0.14em] text-muted">
+              <span className="rounded-full border border-border-light bg-surface px-2.5 py-1 text-[10px] font-ui uppercase tracking-[0.14em] text-muted">
                 {order.order_number}
               </span>
             </div>
@@ -1287,7 +1287,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
               </div>
             )}
 
-            <div className="mt-5 rounded-2xl border border-black/[0.06] bg-white/90 p-4 space-y-2 text-sm font-body">
+            <div className="mt-5 rounded-2xl border border-border-light bg-surface/90 p-4 space-y-2 text-sm font-body">
               <div className="flex justify-between">
                 <span className="text-muted">Subtotal</span>
                 <span className="text-ink">
@@ -1320,7 +1320,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 </span>
               </div>
 
-              <div className="border-t border-black/[0.08] pt-2 flex justify-between text-base font-ui font-semibold text-ink">
+              <div className="border-t border-border-light pt-2 flex justify-between text-base font-ui font-semibold text-ink">
                 <span>Total</span>
                 <span>{formatCurrency(amount, currency)}</span>
               </div>
@@ -1334,14 +1334,14 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
             )}
 
             {!zeroTotal && (
-              <p className="mt-4 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3 text-xs font-body text-muted">
+              <p className="mt-4 rounded-xl border border-border-light bg-subtle p-3 text-xs font-body text-muted">
                 Secure checkout powered by Stripe. Your payment details are
                 never stored on our servers.
               </p>
             )}
 
             {order.listing_type === "service" && (
-              <p className="mt-4 rounded-xl border border-black/[0.06] bg-black/[0.02] p-3 text-xs font-body text-muted">
+              <p className="mt-4 rounded-xl border border-border-light bg-subtle p-3 text-xs font-body text-muted">
                 Commission payments are held securely and released to the
                 seller after you approve delivery.
               </p>

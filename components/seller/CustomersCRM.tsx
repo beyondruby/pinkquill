@@ -14,8 +14,8 @@ import type { SellerCustomer } from "@/lib/hooks/useSellerCustomers";
 const STATUS_CONFIG: Record<string, { bg: string; text: string }> = {
   pending_payment: { bg: "bg-yellow-50", text: "text-yellow-700" },
   pending_acceptance: { bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { bg: "bg-purple-50", text: "text-purple-700" },
-  in_progress: { bg: "bg-purple-50", text: "text-purple-700" },
+  paid: { bg: "bg-accent/10", text: "text-purple-700" },
+  in_progress: { bg: "bg-accent/10", text: "text-purple-700" },
   submitted: { bg: "bg-indigo-50", text: "text-indigo-700" },
   revision_requested: { bg: "bg-orange-50", text: "text-orange-700" },
   completed: { bg: "bg-emerald-50", text: "text-emerald-700" },
@@ -45,7 +45,7 @@ function MetricCard({
     <div className={`rounded-xl border p-4 sm:p-5 ${
       accent
         ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
-        : "border-black/[0.06] bg-white"
+        : "border-border-light bg-surface"
     }`}>
       <div className="flex items-start justify-between">
         <div>
@@ -55,7 +55,7 @@ function MetricCard({
           </p>
         </div>
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-black/[0.04] text-muted"
+          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-skeleton/70 text-muted"
         }`}>
           {icon}
         </div>
@@ -76,10 +76,10 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
     : null;
 
   return (
-    <div className="border-b border-black/[0.04] last:border-0">
+    <div className="border-b border-border-light last:border-0">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 hover:bg-black/[0.02] transition-colors text-left"
+        className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 hover:bg-subtle transition-colors text-left"
       >
         {/* Avatar */}
         {customer.avatar_url ? (
@@ -146,7 +146,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
       {/* Expanded detail */}
       {expanded && (
         <div className="px-4 sm:px-5 pb-4 pt-0">
-          <div className="bg-black/[0.02] rounded-lg p-4 sm:p-5 space-y-4">
+          <div className="bg-subtle rounded-lg p-4 sm:p-5 space-y-4">
             {/* Info grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Contact */}
@@ -211,12 +211,12 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
               <h4 className="text-[11px] font-ui font-semibold text-muted uppercase tracking-wider mb-2">Orders</h4>
               <div className="space-y-0.5">
                 {customer.orders.map((order) => {
-                  const sc = STATUS_CONFIG[order.status] || { bg: "bg-black/[0.02]", text: "text-ink/70" };
+                  const sc = STATUS_CONFIG[order.status] || { bg: "bg-subtle", text: "text-ink/70" };
                   return (
                     <Link
                       key={order.id}
                       href={`/orders/${order.id}`}
-                      className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white transition-colors"
+                      className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface transition-colors"
                     >
                       <span className="text-xs font-ui text-muted w-20 shrink-0">{order.order_number}</span>
                       <span className="text-sm font-body text-ink flex-1 truncate">{order.product_title || "Order"}</span>
@@ -318,14 +318,14 @@ export default function CustomersCRM() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search customers..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-black/[0.08] bg-white font-body text-sm text-ink placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-surface font-body text-sm text-ink placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
         />
       </div>
 
       {/* Customer table */}
-      <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+      <div className="rounded-xl border border-border-light bg-surface overflow-hidden">
         {/* Header */}
-        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-black/[0.06] bg-black/[0.02] text-[11px] font-ui uppercase tracking-wider text-muted">
+        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-border-light bg-subtle text-[11px] font-ui uppercase tracking-wider text-muted">
           <div className="w-10" />
           <div className="flex-1">Customer</div>
           <div className="hidden sm:block w-16 text-center">Orders</div>
@@ -337,7 +337,7 @@ export default function CustomersCRM() {
 
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-black/[0.06] border-t-purple-primary mx-auto" />
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-border-light border-t-purple-primary mx-auto" />
           </div>
         ) : error ? (
           <div className="p-12 text-center">

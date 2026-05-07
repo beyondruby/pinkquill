@@ -13,7 +13,7 @@ export default function SellerRating({ sellerId, compact = false }: SellerRating
   const { stats, loading } = useSellerStats(sellerId);
 
   if (loading) {
-    return <div className="h-5 w-24 bg-gray-100 rounded animate-pulse" />;
+    return <div className="h-5 w-24 bg-skeleton rounded animate-pulse" />;
   }
 
   if (!stats || stats.total_reviews === 0) {

@@ -241,19 +241,19 @@ export default function NewMessageModal({
       <div
         className="fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2
                    w-full h-full md:w-[480px] md:h-auto md:max-h-[600px]
-                   bg-white md:rounded-2xl shadow-2xl z-[1001]
+                   bg-surface md:rounded-2xl shadow-2xl z-[1001]
                    flex flex-col overflow-hidden"
       >
         {/* Header */}
         <div
-          className="flex items-center gap-3 px-4 py-3 md:p-5 border-b border-black/[0.06] bg-white"
+          className="flex items-center gap-3 px-4 py-3 md:p-5 border-b border-border-light bg-surface"
           style={{ paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}
         >
           {/* Mobile back button */}
           <button
             onClick={() => !creating && onClose()}
             disabled={creating}
-            className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.04] transition-all disabled:opacity-50"
+            className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all disabled:opacity-50"
           >
             {icons.back}
           </button>
@@ -266,14 +266,14 @@ export default function NewMessageModal({
           <button
             onClick={() => !creating && onClose()}
             disabled={creating}
-            className="hidden md:flex w-10 h-10 rounded-full bg-black/[0.04] items-center justify-center text-muted hover:text-ink hover:bg-black/[0.08] transition-all hover:rotate-90 disabled:opacity-50"
+            className="hidden md:flex w-10 h-10 rounded-full bg-skeleton/70 items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all hover:rotate-90 disabled:opacity-50"
           >
             {icons.close}
           </button>
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b border-black/[0.06]">
+        <div className="p-4 border-b border-border-light">
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
               {icons.search}
@@ -285,7 +285,7 @@ export default function NewMessageModal({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for someone..."
               disabled={creating}
-              className="w-full pl-12 pr-4 py-3 rounded-xl border border-black/[0.08] bg-[#fafafa] font-ui text-[0.95rem] text-ink outline-none focus:border-purple-primary focus:bg-white focus:ring-2 focus:ring-purple-primary/20 transition-all disabled:opacity-50"
+              className="w-full pl-12 pr-4 py-3 rounded-xl border border-border-light bg-[#fafafa] font-ui text-[0.95rem] text-ink outline-none focus:border-purple-primary focus:bg-surface focus:ring-2 focus:ring-purple-primary/20 transition-all disabled:opacity-50"
             />
           </div>
         </div>
@@ -335,7 +335,7 @@ export default function NewMessageModal({
                     className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group ${
                       isSelected
                         ? 'bg-purple-primary/10 ring-2 ring-purple-primary'
-                        : 'hover:bg-purple-primary/5 active:bg-purple-primary/10'
+                        : 'hover:bg-accent/5 active:bg-purple-primary/10'
                     } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <img
@@ -350,7 +350,7 @@ export default function NewMessageModal({
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className={`font-ui text-[0.95rem] font-medium truncate transition-colors ${
-                        isSelected ? 'text-purple-primary' : 'text-ink group-hover:text-purple-primary'
+                        isSelected ? 'text-purple-primary' : 'text-ink group-hover:text-accent'
                       }`}>
                         {user.display_name || user.username}
                       </h3>

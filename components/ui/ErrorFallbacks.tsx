@@ -71,7 +71,7 @@ export const PostCardErrorFallback = memo(function PostCardErrorFallback({
   onRetry,
 }: ErrorFallbackProps) {
   return (
-    <div className="post p-6 text-center bg-paper rounded-2xl border border-black/[0.06]">
+    <div className="post p-6 text-center bg-paper rounded-2xl border border-border-light">
       <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
         <svg
           className="w-5 h-5 text-amber-600"
@@ -223,7 +223,7 @@ export const ModalErrorFallback = memo(function ModalErrorFallback({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="px-4 py-2 rounded-full bg-black/5 text-ink font-ui text-sm font-medium hover:bg-black/10 transition-colors"
+          className="px-4 py-2 rounded-full bg-skeleton text-ink font-ui text-sm font-medium hover:bg-black/10 transition-colors"
         >
           Retry
         </button>

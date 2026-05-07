@@ -68,7 +68,7 @@ export default function TagInput({
     <div>
       <div className="relative">
         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
-          <div className="w-full h-full rounded-xl bg-white" />
+          <div className="w-full h-full rounded-xl bg-surface" />
         </div>
         <div className="relative flex items-center">
           <input

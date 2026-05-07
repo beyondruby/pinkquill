@@ -187,14 +187,14 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
         <div className="space-y-3 mb-8">
-          <div className="h-3 w-32 rounded bg-black/[0.05] animate-pulse" />
-          <div className="h-4 w-80 rounded bg-black/[0.05] animate-pulse" />
-          <div className="mt-5 h-[2.5px] rounded-full bg-black/[0.05] animate-pulse" />
+          <div className="h-3 w-32 rounded bg-skeleton animate-pulse" />
+          <div className="h-4 w-80 rounded bg-skeleton animate-pulse" />
+          <div className="mt-5 h-[2.5px] rounded-full bg-skeleton animate-pulse" />
         </div>
-        <div className="flex gap-0 border-b border-black/[0.05] mb-6">
+        <div className="flex gap-0 border-b border-border-light mb-6">
           {Array.from({ length: 3 }).map((_, index) => (
             <div key={index} className="px-5 py-3">
-              <div className="h-4 w-24 rounded bg-black/[0.05] animate-pulse" />
+              <div className="h-4 w-24 rounded bg-skeleton animate-pulse" />
             </div>
           ))}
         </div>
@@ -218,7 +218,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
       <section className="relative mb-8 rounded-2xl overflow-hidden">
         {/* Glass background with subtle brand gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.04] via-white to-pink-vivid/[0.04]" />
-        <div className="absolute inset-0 border border-black/[0.06] rounded-2xl pointer-events-none" />
+        <div className="absolute inset-0 border border-border-light rounded-2xl pointer-events-none" />
         {/* Soft decorative glow */}
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-pink-vivid/[0.06] blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-purple-primary/[0.05] blur-3xl pointer-events-none" />
@@ -236,7 +236,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                 )}
               </div>
               {/* Quill rating badge */}
-              <div className="flex items-center gap-2 shrink-0 px-3 py-2 rounded-xl bg-white/70 backdrop-blur-sm border border-black/[0.04]">
+              <div className="flex items-center gap-2 shrink-0 px-3 py-2 rounded-xl bg-surface/70 backdrop-blur-sm border border-border-light">
                 <QuillIcon className="h-5 w-5" gradient={Boolean(sellerStats?.total_reviews)} />
                 <span className="font-display text-lg font-semibold text-ink leading-none">
                   {sellerStats?.total_reviews ? sellerStats.avg_quill_score.toFixed(1) : "--"}
@@ -249,21 +249,21 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
 
             {/* Stats row as subtle chips */}
             <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-white/60 border border-black/[0.04]">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-surface/60 border border-border-light">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 {stats.active} active
               </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-white/60 border border-black/[0.04]">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-surface/60 border border-border-light">
                 {sellerStats?.completed_orders ?? 0} completed
               </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-white/60 border border-black/[0.04]">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-surface/60 border border-border-light">
                 {formatResponseTime(responseTimeHours)} avg response
               </span>
             </div>
 
             {/* Skills & Services */}
             {((sellerProfile?.skills?.length ?? 0) > 0 || (sellerProfile?.services?.length ?? 0) > 0) && (
-              <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-black/[0.05]">
+              <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-border-light">
                 {(sellerProfile?.skills?.length ?? 0) > 0 && (
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-ui uppercase tracking-[0.15em] text-muted/80 mb-2">Skills</p>
@@ -321,7 +321,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                   className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
                     isActive
                       ? "bg-pink-vivid/10 text-pink-vivid"
-                      : "text-muted hover:text-ink hover:bg-black/[0.03]"
+                      : "text-muted hover:text-ink hover:bg-subtle"
                   }`}
                 >
                   {item.label}
@@ -338,7 +338,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-ui font-medium transition-all duration-200 ${
                   filter !== "all"
                     ? "text-pink-vivid bg-pink-vivid/10"
-                    : "text-muted hover:text-ink hover:bg-black/[0.03]"
+                    : "text-muted hover:text-ink hover:bg-subtle"
                 }`}
                 title="Filter services"
               >
@@ -348,7 +348,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                 {filter !== "all" && <span className="capitalize">{filter}</span>}
               </button>
               {showFilterMenu && (
-                <div className="absolute right-0 top-full mt-1 w-40 rounded-xl bg-white border border-black/[0.06] shadow-lg shadow-black/[0.06] z-20 py-1 animate-fadeIn">
+                <div className="absolute right-0 top-full mt-1 w-40 rounded-xl bg-surface border border-border-light shadow-lg shadow-black/[0.06] z-20 py-1 animate-fadeIn">
                   {([
                     { value: "all" as StatusFilter, label: "All services" },
                     { value: "active" as StatusFilter, label: "Active" },
@@ -362,7 +362,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                         setShowFilterMenu(false);
                       }}
                       className={`w-full text-left px-4 py-2 text-sm font-ui transition-colors ${
-                        filter === option.value ? "text-pink-vivid bg-pink-vivid/[0.06]" : "text-ink hover:bg-black/[0.04]"
+                        filter === option.value ? "text-pink-vivid bg-pink-vivid/[0.06]" : "text-ink hover:bg-skeleton/60"
                       }`}
                     >
                       {option.label}
@@ -411,7 +411,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
           )}
 
           {hasServices && filtered.length === 0 && (
-            <div className="rounded-2xl border border-purple-primary/15 bg-white p-8 text-center">
+            <div className="rounded-2xl border border-purple-primary/15 bg-surface p-8 text-center">
               <p className="font-ui text-purple-primary">No services in this filter yet.</p>
             </div>
           )}
@@ -539,7 +539,7 @@ function CommissionCard({
     <div className="relative group">
       <Link
         href={`/commissions/${commission.id}`}
-        className="block rounded-[24px] border border-purple-primary/12 overflow-hidden bg-white shadow-sm hover:shadow-xl hover:shadow-pink-vivid/15 hover:-translate-y-1 transition-all duration-300"
+        className="block rounded-[24px] border border-purple-primary/12 overflow-hidden bg-surface shadow-sm hover:shadow-xl hover:shadow-pink-vivid/15 hover:-translate-y-1 transition-all duration-300"
         style={{ animationDelay: `${index * 50}ms` }}
       >
         <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
@@ -592,7 +592,7 @@ function CommissionCard({
               <p className="text-sm font-body text-muted">Price on request</p>
             )}
 
-            <span className="inline-flex items-center gap-1 text-xs font-ui font-semibold text-pink-vivid group-hover:text-purple-primary transition-colors">
+            <span className="inline-flex items-center gap-1 text-xs font-ui font-semibold text-pink-vivid group-hover:text-accent transition-colors">
               View Service
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

@@ -24,7 +24,7 @@ function statusColor(status: OrderStatus): string {
       return "bg-purple-primary/10 text-purple-primary";
     case "in_progress":
     case "submitted":
-      return "bg-purple-100 text-purple-700";
+      return "bg-accent/15 text-purple-700";
     case "revision_requested":
       return "bg-amber-100 text-amber-700";
     case "completed":
@@ -37,7 +37,7 @@ function statusColor(status: OrderStatus): string {
     case "refunded":
       return "bg-red-100 text-red-600";
     default:
-      return "bg-black/[0.04] text-ink/60";
+      return "bg-skeleton/70 text-ink/60";
   }
 }
 
@@ -55,7 +55,7 @@ export default function BuyerOrdersList() {
           <h1 className="font-display text-3xl text-ink">Buyers Dashboard</h1>
           <Link
             href="/cart"
-            className="px-4 py-2 rounded-xl border border-purple-primary/30 bg-purple-50 text-sm font-ui font-semibold text-purple-primary hover:bg-purple-100"
+            className="px-4 py-2 rounded-xl border border-purple-primary/30 bg-accent/10 text-sm font-ui font-semibold text-purple-primary hover:bg-accent/15"
           >
             Open Studio Cart
           </Link>
@@ -70,7 +70,7 @@ export default function BuyerOrdersList() {
               className={`px-4 py-2 rounded-full text-sm font-ui font-medium whitespace-nowrap transition-colors ${
                 activeTab === tab.value
                   ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
-                  : "bg-white border border-black/[0.08] text-muted hover:text-ink"
+                  : "bg-surface border border-border-light text-muted hover:text-ink"
               }`}
             >
               {tab.label}
@@ -82,7 +82,7 @@ export default function BuyerOrdersList() {
         {loading && orders.length === 0 && (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 bg-black/[0.04] rounded-2xl animate-pulse" />
+              <div key={i} className="h-24 bg-skeleton/70 rounded-2xl animate-pulse" />
             ))}
           </div>
         )}
@@ -135,7 +135,7 @@ function OrderCard({ order }: { order: Order }) {
   return (
     <Link
       href={`/orders/${order.id}`}
-      className="block rounded-2xl border border-black/[0.06] bg-white p-4 hover:border-pink-vivid/30 transition-colors"
+      className="block rounded-2xl border border-border-light bg-surface p-4 hover:border-pink-vivid/30 transition-colors"
     >
       <div className="flex gap-4">
         {/* Thumbnail */}

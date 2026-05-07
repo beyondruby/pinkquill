@@ -89,14 +89,14 @@ function PendingCollaborationsPageContent() {
       )}
 
       {pendingPosts.length === 0 ? (
-        <div className="rounded-2xl border border-black/[0.08] bg-white p-8 text-center">
+        <div className="rounded-2xl border border-border-light bg-surface p-8 text-center">
           <h2 className="font-display text-[1.3rem] text-ink mb-2">No pending collaboration drafts</h2>
           <p className="font-body text-muted mb-6">
             All collaboration requests are resolved or you have not created any collaboration posts yet.
           </p>
           <Link
             href="/create"
-            className="inline-block px-5 py-2.5 rounded-full border border-black/[0.08] font-ui text-[0.9rem] text-muted hover:border-purple-primary hover:text-purple-primary transition-all"
+            className="inline-block px-5 py-2.5 rounded-full border border-border-light font-ui text-[0.9rem] text-muted hover:border-accent hover:text-accent transition-all"
           >
             Create Post
           </Link>
@@ -104,7 +104,7 @@ function PendingCollaborationsPageContent() {
       ) : (
         <div className="space-y-4">
           {pendingPosts.map((post) => (
-            <article key={post.id} className="rounded-2xl border border-black/[0.08] bg-white p-5">
+            <article key={post.id} className="rounded-2xl border border-border-light bg-surface p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="font-ui text-[0.75rem] uppercase tracking-wide text-muted mb-1">{post.type}</p>
@@ -123,7 +123,7 @@ function PendingCollaborationsPageContent() {
               <div className="flex flex-wrap gap-2 mt-4">
                 <Link
                   href={`/create?edit=${post.id}`}
-                  className="px-4 py-2 rounded-full border border-black/[0.08] font-ui text-[0.85rem] text-muted hover:border-purple-primary hover:text-purple-primary transition-all"
+                  className="px-4 py-2 rounded-full border border-border-light font-ui text-[0.85rem] text-muted hover:border-accent hover:text-accent transition-all"
                 >
                   Edit Draft
                 </Link>

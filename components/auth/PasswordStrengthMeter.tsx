@@ -10,7 +10,7 @@ interface Props {
 
 const LABELS = ["", "Weak", "Fair", "Good", "Strong"] as const;
 const BAR_COLORS = [
-  "bg-gray-200",
+  "bg-skeleton",
   "bg-red-400",
   "bg-orange-warm",
   "bg-yellow-500",
@@ -37,7 +37,7 @@ export default function PasswordStrengthMeter({ password, compact }: Props) {
           <div
             key={i}
             className={`flex-1 ${barH} rounded-full transition-colors duration-200 ${
-              i <= score ? BAR_COLORS[score] : "bg-gray-200"
+              i <= score ? BAR_COLORS[score] : "bg-skeleton"
             }`}
           />
         ))}

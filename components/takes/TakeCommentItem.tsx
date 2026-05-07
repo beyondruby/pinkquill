@@ -201,12 +201,12 @@ export default function TakeCommentItem({
           />
         </Link>
         <div className="flex-1 min-w-0">
-          <div className="bg-black/[0.03] rounded-2xl px-4 py-2.5 relative">
+          <div className="bg-skeleton/60 rounded-2xl px-4 py-2.5 relative">
             <div className="flex items-center gap-2 mb-0.5">
               <Link
                 href={`/studio/${comment.author.username}`}
                 onClick={onModalClose}
-                className="font-ui text-[0.85rem] font-medium text-ink hover:text-purple-primary transition-colors"
+                className="font-ui text-[0.85rem] font-medium text-ink hover:text-accent transition-colors"
               >
                 {comment.author.display_name || comment.author.username}
               </Link>
@@ -219,13 +219,13 @@ export default function TakeCommentItem({
                 <div className="relative ml-auto" ref={menuRef}>
                   <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-muted/50 hover:text-muted hover:bg-black/[0.05] opacity-0 group-hover:opacity-100 transition-all"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-muted/50 hover:text-muted hover:bg-skeleton opacity-0 group-hover:opacity-100 transition-all"
                   >
                     {icons.moreHorizontal}
                   </button>
 
                   {showMenu && (
-                    <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
+                    <div className="absolute right-0 top-full mt-1 w-32 bg-surface rounded-lg shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
                       {isOwner && onDelete ? (
                         <button
                           onClick={() => {
@@ -244,7 +244,7 @@ export default function TakeCommentItem({
                               setShowMenu(false);
                               setShowBlockConfirm(true);
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-ink hover:bg-black/[0.03] transition-colors"
+                            className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-ink hover:bg-subtle transition-colors"
                           >
                             {icons.block}
                             Block
@@ -301,7 +301,7 @@ export default function TakeCommentItem({
             <button
               onClick={handleOpenReply}
               disabled={!currentUserId}
-              className={`font-ui text-[0.75rem] text-muted hover:text-purple-primary transition-colors ${
+              className={`font-ui text-[0.75rem] text-muted hover:text-accent transition-colors ${
                 !currentUserId ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
@@ -320,7 +320,7 @@ export default function TakeCommentItem({
                 placeholder="Write a reply..."
                 disabled={submitting}
                 autoFocus
-                className="flex-1 px-3 py-2 rounded-full bg-black/[0.03] border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-white focus:ring-2 focus:ring-purple-primary/20 transition-all"
+                className="flex-1 px-3 py-2 rounded-full bg-skeleton/60 border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-surface focus:ring-2 focus:ring-purple-primary/20 transition-all"
               />
               <button
                 onClick={handleSubmitReply}
@@ -375,7 +375,7 @@ export default function TakeCommentItem({
       {/* Block Confirmation Modal */}
       {showBlockConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
+          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
             <h3 className="font-display text-lg font-semibold text-ink mb-2">
               Block @{comment.author.username}?
             </h3>
@@ -385,7 +385,7 @@ export default function TakeCommentItem({
             <div className="flex gap-3">
               <button
                 onClick={() => setShowBlockConfirm(false)}
-                className="flex-1 py-2.5 rounded-full border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/[0.03] transition-colors"
+                className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors"
               >
                 Cancel
               </button>

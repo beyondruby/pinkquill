@@ -34,7 +34,7 @@ type OrderTab = "overview" | "activity" | "reviews";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgClass: string; textClass: string; icon: string }> = {
   pending_acceptance: { label: "Pending Approval", color: "#f59e0b", bgClass: "bg-amber-500/10", textClass: "text-amber-600", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-  pending_payment:    { label: "Awaiting Payment", color: "#8e44ad", bgClass: "bg-purple-500/10", textClass: "text-purple-600", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
+  pending_payment:    { label: "Awaiting Payment", color: "#8e44ad", bgClass: "bg-accent/100/10", textClass: "text-purple-600", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   paid:               { label: "Paid", color: "#8e44ad", bgClass: "bg-purple-primary/10", textClass: "text-purple-primary", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
   in_progress:        { label: "In Progress", color: "#8e44ad", bgClass: "bg-purple-primary/10", textClass: "text-purple-primary", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
   submitted:          { label: "Delivered", color: "#6366f1", bgClass: "bg-indigo-500/10", textClass: "text-indigo-600", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
@@ -43,12 +43,12 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgClass: str
   shipped:            { label: "Shipped", color: "#06b6d4", bgClass: "bg-cyan-500/10", textClass: "text-cyan-600", icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" },
   delivered:          { label: "Delivered", color: "#10b981", bgClass: "bg-emerald-500/10", textClass: "text-emerald-600", icon: "M5 13l4 4L19 7" },
   completed:          { label: "Completed", color: "#10b981", bgClass: "bg-emerald-500/10", textClass: "text-emerald-600", icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" },
-  cancelled:          { label: "Cancelled", color: "#777777", bgClass: "bg-black/[0.04]", textClass: "text-muted", icon: "M6 18L18 6M6 6l12 12" },
+  cancelled:          { label: "Cancelled", color: "#777777", bgClass: "bg-skeleton/70", textClass: "text-muted", icon: "M6 18L18 6M6 6l12 12" },
   refund_requested:   { label: "Refund Requested", color: "#f97316", bgClass: "bg-orange-500/10", textClass: "text-orange-600", icon: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" },
   refunded:           { label: "Refunded", color: "#ef4444", bgClass: "bg-red-500/10", textClass: "text-red-500", icon: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" },
   disputed:           { label: "Disputed", color: "#ef4444", bgClass: "bg-red-500/10", textClass: "text-red-500", icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" },
   resolved:           { label: "Resolved", color: "#10b981", bgClass: "bg-emerald-500/10", textClass: "text-emerald-600", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
-  declined:           { label: "Declined", color: "#777777", bgClass: "bg-black/[0.04]", textClass: "text-muted", icon: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" },
+  declined:           { label: "Declined", color: "#777777", bgClass: "bg-skeleton/70", textClass: "text-muted", icon: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" },
 };
 
 function getDefaultTab(order: Order): OrderTab {
@@ -161,15 +161,15 @@ export default function OrderView({ orderId }: OrderViewProps) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-          <div className="h-5 w-20 bg-black/[0.04] rounded animate-pulse mb-6" />
+          <div className="h-5 w-20 bg-skeleton/70 rounded animate-pulse mb-6" />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
-              <div className="h-48 bg-black/[0.04] rounded-2xl animate-pulse" />
-              <div className="h-64 bg-black/[0.04] rounded-2xl animate-pulse" />
+              <div className="h-48 bg-skeleton/70 rounded-2xl animate-pulse" />
+              <div className="h-64 bg-skeleton/70 rounded-2xl animate-pulse" />
             </div>
             <div className="space-y-5">
-              <div className="h-56 bg-black/[0.04] rounded-2xl animate-pulse" />
-              <div className="h-40 bg-black/[0.04] rounded-2xl animate-pulse" />
+              <div className="h-56 bg-skeleton/70 rounded-2xl animate-pulse" />
+              <div className="h-40 bg-skeleton/70 rounded-2xl animate-pulse" />
             </div>
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="max-w-sm text-center">
-          <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-black/[0.04] flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-skeleton/70 flex items-center justify-center">
             <svg className="w-8 h-8 text-muted/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -272,7 +272,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
 
         {/* ─── Breadcrumb ────────────────────────────────────────── */}
         <nav className="flex items-center gap-2 text-sm font-ui text-muted mb-6">
-          <Link href="/orders" className="hover:text-purple-primary transition-colors">Orders</Link>
+          <Link href="/orders" className="hover:text-accent transition-colors">Orders</Link>
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           <span className="text-ink font-medium truncate max-w-[200px]">{order.order_number}</span>
         </nav>
@@ -283,7 +283,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
             <div className="flex items-start gap-4 min-w-0">
               {/* Product thumbnail */}
               {productImage ? (
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-black/[0.04] ring-1 ring-black/[0.06]">
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-skeleton/70 ring-1 ring-black/[0.06]">
                   <Image src={productImage} alt="" fill className="object-cover" />
                 </div>
               ) : (
@@ -320,7 +320,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
           </div>
 
           {/* Key metrics strip */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 py-3 border-t border-b border-black/[0.05] text-sm font-body">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 py-3 border-t border-b border-border-light text-sm font-body">
             <div>
               <span className="text-muted">Total</span>
               <span className="ml-1.5 font-semibold text-ink text-base">{formatCurrency(order.amount)}</span>
@@ -350,7 +350,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
                     {(counterparty.display_name || counterparty.username)[0].toUpperCase()}
                   </div>
                 )}
-                <span className="text-sm font-ui text-muted group-hover:text-purple-primary transition-colors">
+                <span className="text-sm font-ui text-muted group-hover:text-accent transition-colors">
                   {counterparty.display_name || counterparty.username}
                   <span className="text-xs text-muted/60 ml-1">({isBuyer ? "seller" : "buyer"})</span>
                 </span>
@@ -366,7 +366,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
         <OrderActions order={order} onUpdate={() => refetch()} />
 
         {/* ─── Tab Navigation ────────────────────────────────────── */}
-        <div className="mt-6 mb-5 border-b border-black/[0.06]">
+        <div className="mt-6 mb-5 border-b border-border-light">
           <nav className="flex gap-0">
             {([
               { key: "overview" as OrderTab, label: "Overview" },
@@ -448,7 +448,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
                   <CardHeader title="Commission Brief" />
                   <p className="font-body text-sm text-ink/90 whitespace-pre-wrap leading-relaxed">{order.brief}</p>
                   {order.requirements && Object.keys(order.requirements).length > 0 && (
-                    <div className="mt-4 p-3.5 rounded-xl bg-black/[0.02] border border-black/[0.04]">
+                    <div className="mt-4 p-3.5 rounded-xl bg-subtle border border-border-light">
                       <p className="text-[11px] font-ui uppercase tracking-wider text-muted mb-2.5">Requirements</p>
                       <div className="space-y-1.5">
                         {Object.entries(order.requirements).map(([key, value]) => (
@@ -513,7 +513,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
                   {isBuyer && (
                     <SummaryRow label="Platform Fee" value={formatCurrency(order.platform_fee)} muted />
                   )}
-                  <div className="border-t border-black/[0.06] pt-3 flex justify-between font-semibold text-ink">
+                  <div className="border-t border-border-light pt-3 flex justify-between font-semibold text-ink">
                     <span>Total</span>
                     <span className="text-base">{formatCurrency(order.amount)}</span>
                   </div>
@@ -535,7 +535,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-ui font-semibold text-ink group-hover:text-purple-primary transition-colors">
+                      <p className="text-sm font-ui font-semibold text-ink group-hover:text-accent transition-colors">
                         {counterparty.display_name || counterparty.username}
                       </p>
                       <p className="text-xs font-body text-muted">@{counterparty.username}</p>
@@ -608,7 +608,7 @@ export default function OrderView({ orderId }: OrderViewProps) {
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6 ${className}`}>
+    <section className={`rounded-2xl border border-border-light bg-surface p-5 sm:p-6 ${className}`}>
       {children}
     </section>
   );
@@ -664,7 +664,7 @@ function BannerSection({ order, isBuyer }: { order: Order; isBuyer: boolean }) {
 
   if (order.status === "pending_payment" && !isBuyer) {
     return (
-      <div className="rounded-2xl border border-purple-primary/15 bg-purple-50/30 p-5 text-center">
+      <div className="rounded-2xl border border-purple-primary/15 bg-accent/10/30 p-5 text-center">
         <p className="text-sm font-body text-muted">
           <span className="font-semibold text-ink">Awaiting payment</span> — the buyer hasn&apos;t completed checkout yet.
         </p>
@@ -714,7 +714,7 @@ function DraftEditor({
   draftValidationError: string | null; updateDraftError: string | null; draftNotice: string | null;
   updatingDraft: boolean; onSave: () => void;
 }) {
-  const inputClass = "w-full px-3.5 py-2.5 rounded-xl border border-black/[0.08] text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-shadow";
+  const inputClass = "w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-shadow";
 
   return (
     <div className="space-y-4">
@@ -768,7 +768,7 @@ function OrderReviewSection({ order, userId }: { order: Order; userId?: string }
   if (!REVIEWABLE_STATUSES.has(order.status) || !userId) {
     return (
       <Card className="text-center py-10">
-        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-black/[0.02] flex items-center justify-center">
+        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-subtle flex items-center justify-center">
           <svg className="w-6 h-6 text-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
           </svg>
@@ -804,7 +804,7 @@ function OrderReviewSection({ order, userId }: { order: Order; userId?: string }
 
       {canLeaveReview && !hasReviewed && !showForm && (
         <button onClick={() => setShowForm(true)}
-          className="w-full py-3 rounded-xl border-2 border-dashed border-purple-primary/25 text-purple-primary font-ui font-semibold text-sm hover:bg-purple-50/40 hover:border-purple-primary/40 transition-all">
+          className="w-full py-3 rounded-xl border-2 border-dashed border-purple-primary/25 text-purple-primary font-ui font-semibold text-sm hover:bg-accent/10/40 hover:border-accent/40 transition-all">
           Leave a Review
         </button>
       )}

@@ -66,16 +66,16 @@ export default function SharedPostCard({
   // Loading skeleton
   if (loading) {
     return (
-      <div className="w-[240px] rounded-xl overflow-hidden bg-white border border-gray-200">
+      <div className="w-[240px] rounded-xl overflow-hidden bg-surface border border-gray-200">
         <div className="animate-pulse">
-          <div className="h-[160px] bg-gray-100" />
+          <div className="h-[160px] bg-skeleton" />
           <div className="p-3">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-6 h-6 rounded-full bg-gray-100" />
-              <div className="h-3 bg-gray-100 rounded w-20" />
+              <div className="w-6 h-6 rounded-full bg-skeleton" />
+              <div className="h-3 bg-skeleton rounded w-20" />
             </div>
-            <div className="h-3 bg-gray-100 rounded w-full mb-1.5" />
-            <div className="h-3 bg-gray-100 rounded w-3/4" />
+            <div className="h-3 bg-skeleton rounded w-full mb-1.5" />
+            <div className="h-3 bg-skeleton rounded w-3/4" />
           </div>
         </div>
       </div>
@@ -85,9 +85,9 @@ export default function SharedPostCard({
   // Error state
   if (error || !post) {
     return (
-      <div className="w-[240px] rounded-xl overflow-hidden bg-white border border-gray-200">
+      <div className="w-[240px] rounded-xl overflow-hidden bg-surface border border-gray-200">
         <div className="p-6 text-center">
-          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gray-100 flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-skeleton flex items-center justify-center">
             <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
             </svg>
@@ -103,10 +103,10 @@ export default function SharedPostCard({
 
   return (
     <Link href={`/post/${post.id}`} className="block">
-      <div className="w-[240px] rounded-xl overflow-hidden bg-white border border-gray-200 hover:border-gray-300 transition-colors active:scale-[0.98] transition-transform">
+      <div className="w-[240px] rounded-xl overflow-hidden bg-surface border border-gray-200 hover:border-gray-300 transition-colors active:scale-[0.98] transition-transform">
         {/* Media preview */}
         {hasMedia ? (
-          <div className="relative h-[160px] bg-gray-100">
+          <div className="relative h-[160px] bg-skeleton">
             <img
               src={post.media!.media_url}
               alt=""
@@ -152,7 +152,7 @@ export default function SharedPostCard({
               </p>
             </div>
             {!hasMedia && (
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 font-ui text-[10px] font-medium text-purple-700">
+              <span className="px-2 py-0.5 rounded-full bg-accent/15 font-ui text-[10px] font-medium text-purple-700">
                 {typeLabel}
               </span>
             )}

@@ -276,10 +276,10 @@ export default function NewCollectionItemModal({
     >
       <div
         ref={modalRef}
-        className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-scaleIn"
+        className="w-full max-w-md bg-surface rounded-2xl shadow-2xl overflow-hidden animate-scaleIn"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-black/[0.06]">
+        <div className="px-6 py-4 border-b border-border-light">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-display text-lg font-semibold text-ink">Add to Collection</h2>
@@ -299,7 +299,7 @@ export default function NewCollectionItemModal({
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.05] transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -321,7 +321,7 @@ export default function NewCollectionItemModal({
                 <button
                   type="button"
                   onClick={() => setShowIconPicker(!showIconPicker)}
-                  className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border-2 border-dashed border-purple-primary/30 flex items-center justify-center hover:border-purple-primary/50 transition-all group"
+                  className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border-2 border-dashed border-purple-primary/30 flex items-center justify-center hover:border-accent/50 transition-all group"
                 >
                   {iconEmoji?.startsWith("url:") ? (
                     <img src={iconEmoji.replace("url:", "")} alt="" className="w-full h-full object-cover rounded-lg" />
@@ -336,7 +336,7 @@ export default function NewCollectionItemModal({
                         : iconEmoji}
                     </span>
                   ) : (
-                    <svg className="w-6 h-6 text-purple-primary/50 group-hover:text-purple-primary/70 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-purple-primary/50 group-hover:text-accent/70 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   )}
@@ -344,7 +344,7 @@ export default function NewCollectionItemModal({
 
                 {/* Icon Picker Dropdown */}
                 {showIconPicker && (
-                  <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-black/[0.08] z-10 overflow-hidden">
+                  <div className="absolute top-full left-0 mt-2 w-72 bg-surface rounded-xl shadow-xl border border-border-light z-10 overflow-hidden">
                     <div className="max-h-64 overflow-y-auto p-3">
                       {/* Icons */}
                       <div className="mb-3">
@@ -358,7 +358,7 @@ export default function NewCollectionItemModal({
                                 setIconEmoji(icon.id);
                                 setShowIconPicker(false);
                               }}
-                              className={`w-7 h-7 rounded-lg flex items-center justify-center hover:bg-purple-primary/10 transition-colors text-purple-primary ${
+                              className={`w-7 h-7 rounded-lg flex items-center justify-center hover:bg-accent/10 transition-colors text-purple-primary ${
                                 iconEmoji === icon.id ? "bg-purple-primary/20 ring-2 ring-purple-primary/30" : ""
                               }`}
                               title={icon.label}
@@ -384,7 +384,7 @@ export default function NewCollectionItemModal({
                                   setIconEmoji(option.emoji);
                                   setShowIconPicker(false);
                                 }}
-                                className={`w-7 h-7 rounded-lg flex items-center justify-center hover:bg-purple-primary/10 transition-colors ${
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center hover:bg-accent/10 transition-colors ${
                                   iconEmoji === option.emoji ? "bg-purple-primary/20 ring-2 ring-purple-primary/30" : ""
                                 }`}
                                 title={option.label}
@@ -402,14 +402,14 @@ export default function NewCollectionItemModal({
                     </div>
 
                     {/* Upload custom icon */}
-                    <div className="border-t border-black/[0.06] p-2">
+                    <div className="border-t border-border-light p-2">
                       <button
                         type="button"
                         onClick={() => {
                           setShowIconPicker(false);
                           iconInputRef.current?.click();
                         }}
-                        className="w-full py-2 text-center text-xs font-medium text-purple-primary hover:bg-purple-primary/5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                        className="w-full py-2 text-center text-xs font-medium text-purple-primary hover:bg-accent/5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -437,7 +437,7 @@ export default function NewCollectionItemModal({
               </label>
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="relative w-full h-16 rounded-xl bg-gradient-to-br from-purple-primary/5 to-pink-vivid/5 border-2 border-dashed border-purple-primary/20 flex items-center justify-center cursor-pointer hover:border-purple-primary/40 transition-all group overflow-hidden"
+                className="relative w-full h-16 rounded-xl bg-gradient-to-br from-purple-primary/5 to-pink-vivid/5 border-2 border-dashed border-purple-primary/20 flex items-center justify-center cursor-pointer hover:border-accent/40 transition-all group overflow-hidden"
               >
                 {coverUrl ? (
                   <>
@@ -455,7 +455,7 @@ export default function NewCollectionItemModal({
                     <span className="text-xs">Uploading...</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-muted group-hover:text-purple-primary transition-colors">
+                  <div className="flex items-center gap-2 text-muted group-hover:text-accent transition-colors">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -483,7 +483,7 @@ export default function NewCollectionItemModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={getPlaceholderText()}
-              className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white font-body text-[0.95rem] text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-[0.95rem] text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all"
               required
             />
           </div>
@@ -498,7 +498,7 @@ export default function NewCollectionItemModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add a brief description..."
               rows={2}
-              className="w-full px-4 py-3 rounded-xl border border-black/[0.08] bg-white font-body text-[0.95rem] text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface font-body text-[0.95rem] text-ink placeholder:text-muted/50 focus:outline-none focus:border-purple-primary focus:ring-2 focus:ring-purple-primary/10 transition-all resize-none"
             />
           </div>
 
@@ -512,7 +512,7 @@ export default function NewCollectionItemModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-2.5 rounded-xl border border-black/[0.08] font-ui text-[0.9rem] text-muted hover:text-ink hover:border-black/20 transition-all"
+              className="flex-1 px-5 py-2.5 rounded-xl border border-border-light font-ui text-[0.9rem] text-muted hover:text-ink hover:border-border-strong transition-all"
             >
               Cancel
             </button>

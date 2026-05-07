@@ -286,11 +286,11 @@ function CommentItemComponent({
           />
         </Link>
         <div className="flex-1 min-w-0">
-          <div className="bg-black/[0.03] rounded-2xl px-4 py-2.5 relative">
+          <div className="bg-skeleton/60 rounded-2xl px-4 py-2.5 relative">
             <div className="flex items-center gap-2 mb-0.5">
               <Link
                 href={`/studio/${comment.author.username}`}
-                className="font-ui text-[0.85rem] font-medium text-ink hover:text-purple-primary transition-colors"
+                className="font-ui text-[0.85rem] font-medium text-ink hover:text-accent transition-colors"
               >
                 {comment.author.display_name || comment.author.username}
               </Link>
@@ -303,7 +303,7 @@ function CommentItemComponent({
                 <div className="relative ml-auto" ref={menuRef}>
                   <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-muted/50 hover:text-muted hover:bg-black/[0.05] opacity-0 group-hover:opacity-100 transition-all"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-muted/50 hover:text-muted hover:bg-skeleton opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
@@ -311,7 +311,7 @@ function CommentItemComponent({
                   </button>
 
                   {showMenu && (
-                    <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-black/[0.08] overflow-hidden z-50 animate-fadeIn">
+                    <div className="absolute right-0 top-full mt-1 w-36 bg-surface rounded-lg shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
                       {/* Owner delete option */}
                       {isOwner && onDelete && (
                         <button
@@ -350,7 +350,7 @@ function CommentItemComponent({
                               setShowMenu(false);
                               setShowBlockConfirm(true);
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-ink hover:bg-black/[0.03] transition-colors"
+                            className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-ink hover:bg-subtle transition-colors"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -411,7 +411,7 @@ function CommentItemComponent({
             <button
               onClick={handleOpenReply}
               disabled={!currentUserId}
-              className={`font-ui text-[0.75rem] text-muted hover:text-purple-primary transition-colors ${
+              className={`font-ui text-[0.75rem] text-muted hover:text-accent transition-colors ${
                 !currentUserId ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
@@ -430,7 +430,7 @@ function CommentItemComponent({
                 placeholder="Write a reply..."
                 disabled={submitting}
                 autoFocus
-                className="flex-1 min-w-0 h-9 px-3 rounded-full bg-black/[0.03] border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-white focus:ring-2 focus:ring-purple-primary/20 transition-colors"
+                className="flex-1 min-w-0 h-9 px-3 rounded-full bg-skeleton/60 border-none outline-none font-body text-[0.85rem] text-ink placeholder:text-muted/50 focus:bg-surface focus:ring-2 focus:ring-purple-primary/20 transition-colors"
               />
               <button
                 onClick={handleSubmitReply}
@@ -507,7 +507,7 @@ function CommentItemComponent({
       {/* Block Confirmation Modal */}
       {showBlockConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
+          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
             <h3 className="font-display text-lg font-semibold text-ink mb-2">
               Block @{comment.author.username}?
             </h3>
@@ -517,7 +517,7 @@ function CommentItemComponent({
             <div className="flex gap-3">
               <button
                 onClick={() => setShowBlockConfirm(false)}
-                className="flex-1 py-2.5 rounded-full border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/[0.03] transition-colors"
+                className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors"
               >
                 Cancel
               </button>
@@ -550,7 +550,7 @@ function CommentItemComponent({
       {/* Moderator Delete Confirmation Modal */}
       {showModDeleteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
+          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
             <h3 className="font-display text-lg font-semibold text-ink mb-2">
               Delete Comment (Moderator)
             </h3>
@@ -566,7 +566,7 @@ function CommentItemComponent({
                 value={modDeleteReason}
                 onChange={(e) => setModDeleteReason(e.target.value)}
                 placeholder="e.g., Violates community guidelines"
-                className="w-full px-3 py-2 rounded-lg border border-black/10 font-body text-sm text-ink placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/50"
+                className="w-full px-3 py-2 rounded-lg border border-border-light font-body text-sm text-ink placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/50"
               />
             </div>
             <div className="flex gap-3">
@@ -576,7 +576,7 @@ function CommentItemComponent({
                   setModDeleteReason("");
                 }}
                 disabled={isModDeleting}
-                className="flex-1 py-2.5 rounded-full border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/[0.03] transition-colors disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

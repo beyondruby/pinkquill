@@ -179,7 +179,7 @@ export default function InsightsContentPage() {
             className={`px-4 py-2 rounded-full font-ui text-sm transition-colors ${
               filter === "all"
                 ? "bg-purple-primary text-white"
-                : "bg-white border border-black/10 text-ink hover:bg-black/[0.02]"
+                : "bg-surface border border-border-light text-ink hover:bg-subtle"
             }`}
           >
             All ({content?.length || 0})
@@ -189,7 +189,7 @@ export default function InsightsContentPage() {
             className={`px-4 py-2 rounded-full font-ui text-sm transition-colors ${
               filter === "posts"
                 ? "bg-purple-primary text-white"
-                : "bg-white border border-black/10 text-ink hover:bg-black/[0.02]"
+                : "bg-surface border border-border-light text-ink hover:bg-subtle"
             }`}
           >
             Posts ({content?.filter(c => c.type === "post").length || 0})
@@ -199,7 +199,7 @@ export default function InsightsContentPage() {
             className={`px-4 py-2 rounded-full font-ui text-sm transition-colors ${
               filter === "takes"
                 ? "bg-purple-primary text-white"
-                : "bg-white border border-black/10 text-ink hover:bg-black/[0.02]"
+                : "bg-surface border border-border-light text-ink hover:bg-subtle"
             }`}
           >
             Takes ({content?.filter(c => c.type === "take").length || 0})
@@ -209,7 +209,7 @@ export default function InsightsContentPage() {
         {/* Sort Dropdown */}
         <div className="flex items-center gap-2">
           <span className="font-ui text-xs text-muted">Sort by:</span>
-          <div className="flex bg-white border border-black/10 rounded-lg overflow-hidden">
+          <div className="flex bg-surface border border-border-light rounded-lg overflow-hidden">
             <button
               onClick={() => handleSort("views")}
               className={`px-3 py-1.5 font-ui text-xs transition-colors ${
@@ -222,7 +222,7 @@ export default function InsightsContentPage() {
             </button>
             <button
               onClick={() => handleSort("engagement")}
-              className={`px-3 py-1.5 font-ui text-xs border-l border-black/10 transition-colors ${
+              className={`px-3 py-1.5 font-ui text-xs border-l border-border-light transition-colors ${
                 sortField === "engagement"
                   ? "bg-purple-primary/10 text-purple-primary"
                   : "text-muted hover:text-ink"
@@ -232,7 +232,7 @@ export default function InsightsContentPage() {
             </button>
             <button
               onClick={() => handleSort("date")}
-              className={`px-3 py-1.5 font-ui text-xs border-l border-black/10 transition-colors ${
+              className={`px-3 py-1.5 font-ui text-xs border-l border-border-light transition-colors ${
                 sortField === "date"
                   ? "bg-purple-primary/10 text-purple-primary"
                   : "text-muted hover:text-ink"
@@ -250,7 +250,7 @@ export default function InsightsContentPage() {
           <Link
             key={`${item.type}-${item.id}`}
             href={`/insights/content/${item.type}/${item.id}`}
-            className="block bg-white rounded-xl border border-black/[0.04] hover:border-purple-primary/20 hover:shadow-md transition-all duration-200"
+            className="block bg-surface rounded-xl border border-border-light hover:border-accent/20 hover:shadow-md transition-all duration-200"
           >
             <div className="flex items-center p-4 gap-4">
               {/* Thumbnail */}
@@ -265,7 +265,7 @@ export default function InsightsContentPage() {
                     {/* Video play indicator overlay */}
                     {item.type === "take" && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <div className="w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-full bg-surface/90 flex items-center justify-center">
                           <svg className="w-3 h-3 text-purple-primary ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8 5v14l11-7z" />
                           </svg>
@@ -334,7 +334,7 @@ export default function InsightsContentPage() {
                   <p className="font-ui text-lg font-medium text-ink">{formatNumber(item.comments)}</p>
                   <p className="font-body text-xs text-muted">comments</p>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-black/[0.02] flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-subtle flex items-center justify-center flex-shrink-0">
                   <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
@@ -346,7 +346,7 @@ export default function InsightsContentPage() {
       </div>
 
       {/* Summary */}
-      <div className="mt-6 pt-6 border-t border-black/[0.04]">
+      <div className="mt-6 pt-6 border-t border-border-light">
         <p className="font-body text-sm text-muted text-center">
           Showing {filteredContent.length} {filteredContent.length === 1 ? "item" : "items"}
           {filter !== "all" && ` (filtered)`}

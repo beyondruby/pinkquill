@@ -78,7 +78,7 @@ export default function DateRangePicker({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-black/10 rounded-xl hover:border-purple-primary/30 transition-all font-ui text-sm text-ink"
+        className="flex items-center gap-2 px-4 py-2.5 bg-surface border border-border-light rounded-xl hover:border-accent/30 transition-all font-ui text-sm text-ink"
       >
         <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -95,7 +95,7 @@ export default function DateRangePicker({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-black/10 overflow-hidden z-50 animate-fadeIn">
+        <div className="absolute top-full right-0 mt-2 w-64 bg-surface rounded-2xl shadow-xl border border-border-light overflow-hidden z-50 animate-fadeIn">
           {!showCustom ? (
             <div className="py-2">
               {(Object.keys(timeRangeLabels) as TimeRange[]).map((range) => (
@@ -105,7 +105,7 @@ export default function DateRangePicker({
                   className={`w-full px-4 py-2.5 text-left font-ui text-sm transition-colors flex items-center justify-between ${
                     value === range
                       ? "bg-purple-primary/5 text-purple-primary"
-                      : "text-ink hover:bg-black/[0.02]"
+                      : "text-ink hover:bg-subtle"
                   }`}
                 >
                   <span>{timeRangeLabels[range]}</span>
@@ -127,7 +127,7 @@ export default function DateRangePicker({
                     type="date"
                     value={tempStart}
                     onChange={(e) => setTempStart(e.target.value)}
-                    className="w-full px-3 py-2 border border-black/10 rounded-lg font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+                    className="w-full px-3 py-2 border border-border-light rounded-lg font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
                   />
                 </div>
                 <div>
@@ -136,13 +136,13 @@ export default function DateRangePicker({
                     type="date"
                     value={tempEnd}
                     onChange={(e) => setTempEnd(e.target.value)}
-                    className="w-full px-3 py-2 border border-black/10 rounded-lg font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+                    className="w-full px-3 py-2 border border-border-light rounded-lg font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
                   />
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowCustom(false)}
-                    className="flex-1 px-3 py-2 border border-black/10 rounded-lg font-ui text-sm text-muted hover:bg-black/[0.02] transition-colors"
+                    className="flex-1 px-3 py-2 border border-border-light rounded-lg font-ui text-sm text-muted hover:bg-subtle transition-colors"
                   >
                     Cancel
                   </button>

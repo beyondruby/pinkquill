@@ -24,7 +24,7 @@ export default function ProductReviewsSection({ productId }: ProductReviewsSecti
       {/* Header card */}
       <div className="relative rounded-2xl overflow-hidden mb-6">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.04] via-white to-pink-vivid/[0.04]" />
-        <div className="absolute inset-0 border border-black/[0.06] rounded-2xl pointer-events-none" />
+        <div className="absolute inset-0 border border-border-light rounded-2xl pointer-events-none" />
         <div className="absolute -top-16 -right-16 w-36 h-36 rounded-full bg-pink-vivid/[0.05] blur-3xl pointer-events-none" />
 
         <div className="relative px-6 py-5 flex items-center justify-between gap-4">
@@ -54,13 +54,13 @@ export default function ProductReviewsSection({ productId }: ProductReviewsSecti
       {loading && (
         <div className="space-y-4">
           {Array.from({ length: 2 }).map((_, index) => (
-            <div key={index} className="rounded-2xl border border-black/[0.05] bg-white/60 p-5 sm:p-6 animate-pulse">
+            <div key={index} className="rounded-2xl border border-border-light bg-surface/60 p-5 sm:p-6 animate-pulse">
               <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-full bg-black/[0.06] shrink-0" />
+                <div className="w-11 h-11 rounded-full bg-skeleton shrink-0" />
                 <div className="flex-1 space-y-3">
-                  <div className="h-3 w-32 rounded bg-black/[0.06]" />
-                  <div className="h-4 w-full rounded bg-black/[0.06]" />
-                  <div className="h-4 w-3/4 rounded bg-black/[0.06]" />
+                  <div className="h-3 w-32 rounded bg-skeleton" />
+                  <div className="h-4 w-full rounded bg-skeleton" />
+                  <div className="h-4 w-3/4 rounded bg-skeleton" />
                 </div>
               </div>
             </div>
@@ -71,7 +71,7 @@ export default function ProductReviewsSection({ productId }: ProductReviewsSecti
       {error && <p className="mt-4 text-sm font-body text-red-500">{error}</p>}
 
       {!loading && !error && reviews.length === 0 && (
-        <div className="rounded-2xl border border-black/[0.05] bg-white/60 p-8 text-center">
+        <div className="rounded-2xl border border-border-light bg-surface/60 p-8 text-center">
           <QuillIcon className="h-6 w-6 mx-auto mb-3 text-muted/30" />
           <p className="text-sm font-body text-muted">
             No reviews yet. Reviews appear after orders are completed.

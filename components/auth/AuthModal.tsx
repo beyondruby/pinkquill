@@ -94,12 +94,12 @@ export default function AuthModal() {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-primary/10 border border-white/50 overflow-hidden animate-scaleIn">
+      <div className="relative w-full max-w-md bg-surface/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-primary/10 border border-white/50 overflow-hidden animate-scaleIn">
 
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/5 flex items-center justify-center text-muted hover:text-ink hover:bg-black/10 transition-all z-10"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-skeleton flex items-center justify-center text-muted hover:text-ink hover:bg-black/10 transition-all z-10"
         >
           <FontAwesomeIcon icon={faXmark} className="w-4 h-4" />
         </button>
@@ -156,7 +156,7 @@ export default function AuthModal() {
                       onChange={(e) => actions.setUsername(e.target.value)}
                       placeholder="@poet"
                       required={!isLogin}
-                      className="w-full px-3 py-2.5 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all"
+                      className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                     />
                   </div>
                   <div>
@@ -168,7 +168,7 @@ export default function AuthModal() {
                       onChange={(e) => actions.setDisplayName(e.target.value)}
                       placeholder="Jane Doe"
                       required={!isLogin}
-                      className="w-full px-3 py-2.5 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all"
+                      className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                     />
                   </div>
                 </div>
@@ -185,7 +185,7 @@ export default function AuthModal() {
                   onChange={(e) => actions.setEmailOrUsername(e.target.value)}
                   placeholder={isLogin ? "Email or username" : "your@email.com"}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all"
+                  className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                 />
               </div>
 
@@ -200,12 +200,12 @@ export default function AuthModal() {
                     placeholder="••••••••"
                     required
                     minLength={isLogin ? undefined : PASSWORD_MIN_LENGTH}
-                    className="w-full px-3 py-2.5 pr-10 rounded-xl bg-gray-50/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/5 transition-all"
+                    className="w-full px-3 py-2.5 pr-10 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted/40 hover:text-purple-primary transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted/40 hover:text-accent transition-colors"
                   >
                     <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-4 h-4" />
                   </button>
@@ -260,7 +260,7 @@ export default function AuthModal() {
                 <Link
                   href="/login"
                   onClick={handleClose}
-                  className="font-ui text-xs text-muted/60 hover:text-purple-primary transition-colors"
+                  className="font-ui text-xs text-muted/60 hover:text-accent transition-colors"
                 >
                   Go to full login page
                 </Link>
@@ -273,7 +273,7 @@ export default function AuthModal() {
             <div className="animate-fadeIn">
               <button
                 onClick={actions.handleBackToCredentials}
-                className="flex items-center gap-2 text-muted hover:text-purple-primary transition-colors mb-4 group"
+                className="flex items-center gap-2 text-muted hover:text-accent transition-colors mb-4 group"
               >
                 <FontAwesomeIcon icon={faArrowLeft} className="w-3 h-3 group-hover:-translate-x-1 transition-transform" />
                 <span className="font-ui text-xs">Back</span>
@@ -292,7 +292,7 @@ export default function AuthModal() {
                     onKeyDown={(e) => actions.handleOtpKeyDown(index, e, otpInputRefs)}
                     onPaste={index === 0 ? (ev) => actions.handleOtpPaste(ev, otpInputRefs) : undefined}
                     disabled={loading}
-                    className="w-11 h-13 text-center text-xl font-bold text-ink rounded-xl bg-gray-50/50 border-2 border-gray-200 outline-none focus:border-purple-primary focus:bg-white focus:ring-4 focus:ring-purple-primary/10 transition-all disabled:opacity-50"
+                    className="w-11 h-13 text-center text-xl font-bold text-ink rounded-xl bg-subtle/50 border-2 border-gray-200 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/10 transition-all disabled:opacity-50"
                   />
                 ))}
               </div>

@@ -135,18 +135,18 @@ export default function CommunitySettingsPage() {
             <Link
               key={option.title}
               href={option.href}
-              className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/5 hover:border-purple-primary/20 hover:shadow-md transition-all group"
+              className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light hover:border-accent/20 hover:shadow-md transition-all group"
             >
               <div className="w-12 h-12 rounded-xl bg-purple-primary/10 flex items-center justify-center text-purple-primary group-hover:bg-purple-primary group-hover:text-white transition-colors">
                 {option.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-ui font-semibold text-ink group-hover:text-purple-primary transition-colors">
+                <h3 className="font-ui font-semibold text-ink group-hover:text-accent transition-colors">
                   {option.title}
                 </h3>
                 <p className="font-body text-sm text-muted">{option.description}</p>
               </div>
-              <svg className="w-5 h-5 text-muted group-hover:text-purple-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-muted group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </Link>
@@ -181,7 +181,7 @@ export default function CommunitySettingsPage() {
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !deleting && setShowDeleteModal(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] bg-white rounded-2xl shadow-2xl z-[1001] p-6">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] bg-surface rounded-2xl shadow-2xl z-[1001] p-6">
             <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center mx-auto mb-4">
               <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -200,7 +200,7 @@ export default function CommunitySettingsPage() {
                 type="text"
                 value={confirmName}
                 onChange={(e) => setConfirmName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-black/10 font-body text-sm focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+                className="w-full px-4 py-2.5 rounded-xl border border-border-light font-body text-sm focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
                 placeholder="Community name"
                 disabled={deleting}
               />
@@ -213,7 +213,7 @@ export default function CommunitySettingsPage() {
                   setConfirmName('');
                 }}
                 disabled={deleting}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

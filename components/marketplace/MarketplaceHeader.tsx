@@ -136,11 +136,11 @@ export default function MarketplaceHeader({
   };
 
   return (
-    <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-black/[0.06] shadow-sm">
+    <div className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-border-light shadow-sm">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Main Bar */}
         <div className="flex items-center justify-between gap-3 h-16 sm:h-[72px]">
-          <div className="hidden sm:flex items-center p-1.5 bg-gradient-to-r from-orange-50 via-pink-50 to-purple-50 rounded-full border border-black/[0.05] shadow-sm">
+          <div className="hidden sm:flex items-center p-1.5 bg-gradient-to-r from-orange-50 via-pink-50 to-purple-50 rounded-full border border-border-light shadow-sm">
             <button
               onClick={() => onListingTypeChange("product")}
               className={`px-3 py-1.5 rounded-full text-xs font-ui font-semibold transition-all ${
@@ -171,7 +171,7 @@ export default function MarketplaceHeader({
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder={catalogType === "service" ? "Search commissions..." : "Search products..."}
-                className="w-full h-10 pl-10 pr-4 bg-white rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-black/[0.08] shadow-sm focus:border-pink-vivid/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 transition-all"
+                className="w-full h-10 pl-10 pr-4 bg-surface rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-border-light shadow-sm focus:border-pink-vivid/30 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 transition-all"
               />
               <svg
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
@@ -197,7 +197,7 @@ export default function MarketplaceHeader({
                     : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
                   : hasActiveFilters
                   ? "bg-pink-50 text-pink-vivid border border-pink-vivid/20"
-                  : "bg-white text-ink border border-black/[0.08] hover:bg-gray-50"
+                  : "bg-surface text-ink border border-border-light hover:bg-subtle"
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +214,7 @@ export default function MarketplaceHeader({
             <select
               value={filters.sort_by}
               onChange={(e) => onSortChange(e.target.value as MarketplaceSortOption)}
-              className="h-10 px-4 bg-white rounded-full text-sm font-ui text-ink border border-black/[0.08] focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 cursor-pointer"
+              className="h-10 px-4 bg-surface rounded-full text-sm font-ui text-ink border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 cursor-pointer"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -225,7 +225,7 @@ export default function MarketplaceHeader({
 
             <Link
               href="/cart"
-              className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-black/[0.08] text-muted hover:text-purple-primary hover:bg-purple-primary/[0.04] transition-all"
+              className="relative flex items-center justify-center w-10 h-10 rounded-full bg-surface border border-border-light text-muted hover:text-accent hover:bg-accent/[0.04] transition-all"
               title="Studio Cart"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -254,7 +254,7 @@ export default function MarketplaceHeader({
             className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-ui transition-all ${
               !filters.category
                 ? activeCategoryClass
-                : "bg-white border border-black/[0.08] text-muted hover:text-ink hover:bg-gray-50"
+                : "bg-surface border border-border-light text-muted hover:text-ink hover:bg-subtle"
             }`}
           >
             All
@@ -301,7 +301,7 @@ export default function MarketplaceHeader({
                   className={`px-4 py-2 rounded-full text-sm font-ui transition-all ${
                     filters.category === cat.id
                       ? activeCategoryClass
-                      : "bg-white border border-black/[0.08] text-muted hover:text-ink hover:bg-gray-50"
+                      : "bg-surface border border-border-light text-muted hover:text-ink hover:bg-subtle"
                   }`}
                 >
                   {cat.name}
@@ -311,7 +311,7 @@ export default function MarketplaceHeader({
                 {isOpen && hasSubcategories && (
                   <div
                     role="menu"
-                    className="absolute top-full left-0 mt-2 py-2 bg-white rounded-xl border border-black/[0.06] shadow-xl min-w-[190px] z-50 animate-fadeIn"
+                    className="absolute top-full left-0 mt-2 py-2 bg-surface rounded-xl border border-border-light shadow-xl min-w-[190px] z-50 animate-fadeIn"
                   >
                     {cat.subcategories.map((sub) => (
                       <button
@@ -325,7 +325,7 @@ export default function MarketplaceHeader({
                         className={`w-full px-4 py-2.5 text-left text-sm font-body transition-colors ${
                           filters.subcategory === sub.value
                             ? "bg-pink-50 text-pink-vivid"
-                            : "text-ink hover:bg-gray-50"
+                            : "text-ink hover:bg-subtle"
                         }`}
                       >
                         {sub.label}
@@ -343,10 +343,10 @@ export default function MarketplaceHeader({
       {showFilters && (
         <div
           id="marketplace-filters-panel"
-          className="border-t border-black/[0.04] bg-gradient-to-b from-orange-50/40 via-white to-white animate-fadeIn"
+          className="border-t border-border-light bg-gradient-to-b from-orange-50/40 via-white to-white animate-fadeIn"
         >
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 bg-white/90 border border-black/[0.05] rounded-2xl p-5 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 bg-surface/90 border border-border-light rounded-2xl p-5 shadow-sm">
               <div>
                 <h4 className="text-xs font-ui font-semibold uppercase tracking-wider text-muted mb-3">Section</h4>
                 <div className="space-y-1">
@@ -360,7 +360,7 @@ export default function MarketplaceHeader({
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         catalogType === option.value
                           ? "bg-pink-50 text-pink-vivid"
-                          : "text-ink hover:bg-gray-50"
+                          : "text-ink hover:bg-subtle"
                       }`}
                     >
                       <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
@@ -388,8 +388,8 @@ export default function MarketplaceHeader({
                         onClick={() => onDeliveryTypeChange(type.value)}
                         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.delivery_type === type.value
-                            ? "bg-purple-50 text-purple-primary"
-                            : "text-ink hover:bg-gray-50"
+                            ? "bg-accent/10 text-purple-primary"
+                            : "text-ink hover:bg-subtle"
                         }`}
                       >
                         <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
@@ -414,8 +414,8 @@ export default function MarketplaceHeader({
                       onClick={() => onMaxDeliveryDaysChange(undefined)}
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         filters.max_delivery_days === undefined
-                          ? "bg-purple-50 text-purple-primary"
-                          : "text-ink hover:bg-gray-50"
+                          ? "bg-accent/10 text-purple-primary"
+                          : "text-ink hover:bg-subtle"
                       }`}
                     >
                       <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
@@ -431,8 +431,8 @@ export default function MarketplaceHeader({
                         onClick={() => onMaxDeliveryDaysChange(option.value)}
                         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.max_delivery_days === option.value
-                            ? "bg-purple-50 text-purple-primary"
-                            : "text-ink hover:bg-gray-50"
+                            ? "bg-accent/10 text-purple-primary"
+                            : "text-ink hover:bg-subtle"
                         }`}
                       >
                         <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
@@ -456,7 +456,7 @@ export default function MarketplaceHeader({
                     className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                       filters.min_price === undefined && filters.max_price === undefined
                         ? "bg-orange-50 text-orange-warm"
-                        : "text-ink hover:bg-gray-50"
+                        : "text-ink hover:bg-subtle"
                     }`}
                   >
                     <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
@@ -477,7 +477,7 @@ export default function MarketplaceHeader({
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         filters.min_price === range.min && filters.max_price === range.max
                           ? "bg-orange-50 text-orange-warm"
-                          : "text-ink hover:bg-gray-50"
+                          : "text-ink hover:bg-subtle"
                       }`}
                     >
                       <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
@@ -504,7 +504,7 @@ export default function MarketplaceHeader({
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         filters.min_revisions === undefined
                           ? "bg-orange-50 text-orange-warm"
-                          : "text-ink hover:bg-gray-50"
+                          : "text-ink hover:bg-subtle"
                       }`}
                     >
                       <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
@@ -521,7 +521,7 @@ export default function MarketplaceHeader({
                         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.min_revisions === option.value
                             ? "bg-orange-50 text-orange-warm"
-                            : "text-ink hover:bg-gray-50"
+                            : "text-ink hover:bg-subtle"
                         }`}
                       >
                         <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
@@ -548,7 +548,7 @@ export default function MarketplaceHeader({
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         !filters.subcategory
                           ? "bg-pink-50 text-pink-vivid"
-                          : "text-ink hover:bg-gray-50"
+                          : "text-ink hover:bg-subtle"
                       }`}
                     >
                       <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
@@ -567,7 +567,7 @@ export default function MarketplaceHeader({
                         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.subcategory === sub.value
                             ? "bg-pink-50 text-pink-vivid"
-                            : "text-ink hover:bg-gray-50"
+                            : "text-ink hover:bg-subtle"
                         }`}
                       >
                         <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
@@ -599,12 +599,12 @@ export default function MarketplaceHeader({
 
             {/* Active Filters Tags */}
             {hasActiveFilters && (
-              <div className="flex items-center gap-2 flex-wrap mt-6 pt-4 border-t border-black/[0.04]">
+              <div className="flex items-center gap-2 flex-wrap mt-6 pt-4 border-t border-border-light">
                 <span className="text-xs font-ui text-muted">Active:</span>
                 {filters.category && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-primary text-white text-xs font-ui rounded-full">
                     {selectedCategory?.name}
-                    <button onClick={() => { onCategoryChange(undefined); onSubcategoryChange(undefined); }} className="hover:bg-white/20 rounded-full p-0.5">
+                    <button onClick={() => { onCategoryChange(undefined); onSubcategoryChange(undefined); }} className="hover:bg-surface/20 rounded-full p-0.5">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
@@ -614,7 +614,7 @@ export default function MarketplaceHeader({
                 {filters.subcategory && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-pink-vivid text-white text-xs font-ui rounded-full">
                     {selectedCategory?.subcategories.find(s => s.value === filters.subcategory)?.label}
-                    <button onClick={() => onSubcategoryChange(undefined)} className="hover:bg-white/20 rounded-full p-0.5">
+                    <button onClick={() => onSubcategoryChange(undefined)} className="hover:bg-surface/20 rounded-full p-0.5">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
@@ -624,7 +624,7 @@ export default function MarketplaceHeader({
                 {filters.delivery_type && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-primary/80 text-white text-xs font-ui rounded-full capitalize">
                     {filters.delivery_type}
-                    <button onClick={() => onDeliveryTypeChange(undefined)} className="hover:bg-white/20 rounded-full p-0.5">
+                    <button onClick={() => onDeliveryTypeChange(undefined)} className="hover:bg-surface/20 rounded-full p-0.5">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
@@ -634,7 +634,7 @@ export default function MarketplaceHeader({
                 {filters.max_delivery_days !== undefined && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-primary/80 text-white text-xs font-ui rounded-full">
                     {`Up to ${filters.max_delivery_days} days`}
-                    <button onClick={() => onMaxDeliveryDaysChange(undefined)} className="hover:bg-white/20 rounded-full p-0.5">
+                    <button onClick={() => onMaxDeliveryDaysChange(undefined)} className="hover:bg-surface/20 rounded-full p-0.5">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
@@ -644,7 +644,7 @@ export default function MarketplaceHeader({
                 {filters.min_revisions !== undefined && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-warm text-white text-xs font-ui rounded-full">
                     {`${filters.min_revisions}+ revisions`}
-                    <button onClick={() => onMinRevisionsChange(undefined)} className="hover:bg-white/20 rounded-full p-0.5">
+                    <button onClick={() => onMinRevisionsChange(undefined)} className="hover:bg-surface/20 rounded-full p-0.5">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
@@ -654,7 +654,7 @@ export default function MarketplaceHeader({
                 {getActivePriceLabel() && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-warm text-white text-xs font-ui rounded-full">
                     {getActivePriceLabel()}
-                    <button onClick={() => onPriceRangeChange(undefined, undefined)} className="hover:bg-white/20 rounded-full p-0.5">
+                    <button onClick={() => onPriceRangeChange(undefined, undefined)} className="hover:bg-surface/20 rounded-full p-0.5">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>

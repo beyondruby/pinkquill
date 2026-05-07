@@ -827,11 +827,11 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   position: relative;
   margin-bottom: 1.75rem;
   cursor: pointer;
-  background: white;
+  background: var(--color-surface);
   border-radius: 20px;
   padding: 1.75rem;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--color-border-light);
   transition: all 0.3s ease;
   overflow: visible;
   word-wrap: break-word;
@@ -839,8 +839,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   word-break: break-word;
 }
 .post:hover {
-  box-shadow: 0 8px 40px rgba(142, 68, 173, 0.1);
-  border-color: rgba(142, 68, 173, 0.1);
+  box-shadow: 0 8px 40px color-mix(in oklab, var(--color-purple-primary) 12%, transparent);
+  border-color: color-mix(in oklab, var(--color-purple-primary) 18%, transparent);
   transform: translateY(-2px);
 }
 
@@ -857,7 +857,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 44px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid white;
+  border: 2px solid var(--color-surface);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   flex-shrink: 0;
@@ -951,7 +951,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 44px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid white;
+  border: 2px solid var(--color-surface);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   margin-left: -14px;
@@ -972,7 +972,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 1rem;
   font-weight: 600;
@@ -1046,7 +1046,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   left: 50%;
   transform: translateX(-50%) translateY(4px);
   padding: 4px 12px;
-  background: white;
+  background: var(--color-surface);
   color: var(--primary-purple);
   font-family: var(--font-ui);
   font-size: 0.68rem;
@@ -1205,7 +1205,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.8rem;
   font-weight: 600;
@@ -1502,7 +1502,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 /* Audio Post */
 .type-audio {
-  background: white;
+  background: var(--color-surface);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
@@ -1520,7 +1520,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -1532,7 +1532,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 .sound-bar {
   width: 4px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 2px;
   animation: soundWave 1s ease-in-out infinite;
 }
@@ -1561,7 +1561,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 /* Video Post */
 .type-video {
-  background: white;
+  background: var(--color-surface);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
@@ -1611,7 +1611,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   bottom: 12px;
   right: 12px;
   background: rgba(0, 0, 0, 0.75);
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.8rem;
   padding: 4px 10px;
@@ -1638,7 +1638,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
    Format: Title → 20 words → Square Images
    ======================================== */
 .type-unified {
-  background: white;
+  background: var(--color-surface);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
@@ -1697,7 +1697,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   position: relative;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  background: #f5f5f5;
+  background: var(--color-subtle);
 }
 
 .unified-media-item.single {
@@ -1766,7 +1766,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-ui);
   font-size: 1.5rem;
   font-weight: 600;
-  color: white;
+  color: var(--color-on-accent);
 }
 
 /* Single legacy image */
@@ -1776,7 +1776,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 /* Carousel Post */
 .type-carousel {
-  background: white;
+  background: var(--color-surface);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
@@ -1814,7 +1814,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   right: 0;
   padding: 2.5rem 2rem 1.5rem;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
-  color: white;
+  color: var(--color-on-accent);
 }
 .carousel-caption h4 {
   font-family: var(--font-display);
@@ -1847,7 +1847,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   z-index: 10;
 }
 .carousel-nav:hover {
-  background: white;
+  background: var(--color-surface);
   transform: translateY(-50%) scale(1.1);
 }
 .carousel-nav.prev { left: 15px; }
@@ -1871,7 +1871,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   transition: all 0.3s ease;
 }
 .carousel-dot.active {
-  background: white;
+  background: var(--color-surface);
   transform: scale(1.3);
 }
 .carousel-title {
@@ -1916,7 +1916,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #888;
+  color: var(--color-muted);
   font-family: var(--font-body);
   font-size: 0.85rem;
   transition: all 0.25s ease;
@@ -1959,7 +1959,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   width: 95%;
   max-width: 1000px;
   height: 90vh;
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 24px;
   box-shadow: 0 30px 100px rgba(0, 0, 0, 0.4);
   display: flex;
@@ -2038,7 +2038,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .view-discussion-btn .discussion-count,
 .view-discussion-btn .badge {
   background: var(--primary-purple);
-  color: white;
+  color: var(--color-on-accent);
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 0.75rem;
@@ -2058,7 +2058,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 56px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid white;
+  border: 3px solid var(--color-surface);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 .modal-author-info {
@@ -2147,7 +2147,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: var(--color-muted);
   font-size: 1.15rem;
   transition: all 0.25s ease;
 }
@@ -2163,7 +2163,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 /* Comments Area */
 .modal-comments-area,
 .discussion-panel {
-  background: #fafafa;
+  background: var(--color-subtle);
   display: flex;
   flex-direction: column;
   width: 380px;
@@ -2267,7 +2267,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .comment-input-box {
   padding: 1rem 1.5rem;
-  background: white;
+  background: var(--color-surface);
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   gap: 10px;
@@ -2277,14 +2277,14 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   flex: 1;
   display: flex;
   align-items: center;
-  background: #f5f5f5;
+  background: var(--color-subtle);
   border-radius: 24px;
   padding: 6px 16px;
   transition: all 0.3s ease;
   border: 2px solid transparent;
 }
 .comment-input-wrapper:focus-within {
-  background: white;
+  background: var(--color-surface);
   border-color: var(--primary-purple);
   box-shadow: 0 0 0 4px rgba(142, 68, 173, 0.1);
 }
@@ -2299,7 +2299,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   color: var(--ink);
 }
 .comment-input-wrapper input::placeholder {
-  color: #aaa;
+  color: var(--color-muted);
   font-style: italic;
 }
 .comment-send-btn {
@@ -2308,7 +2308,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   border-radius: 50%;
   border: none;
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   font-size: 1rem;
   display: flex;
@@ -2353,7 +2353,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 .modal-gallery-nav:hover {
-  background: white;
+  background: var(--color-surface);
   transform: translateY(-50%) scale(1.1);
 }
 .modal-gallery-nav.prev { left: 10px; }
@@ -2808,7 +2808,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .share-modal {
-  background: white;
+  background: var(--color-surface);
   border-radius: 20px;
   width: 90%;
   max-width: 420px;
@@ -2901,7 +2901,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-ui);
   font-size: 0.8rem;
   font-weight: 500;
-  color: white;
+  color: var(--color-on-accent);
   background: var(--ink);
   border: none;
   border-radius: 8px;
@@ -2941,7 +2941,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .share-embed-code pre {
   font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
   font-size: 0.8rem;
-  color: #e0e0e0;
+  color: var(--color-muted);
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
@@ -2957,7 +2957,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .share-embed-preview {
-  background: #f8f8f8;
+  background: var(--color-subtle);
   border-radius: 12px;
   padding: 1rem;
 }
@@ -2974,7 +2974,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .share-embed-preview-box {
-  background: white;
+  background: var(--color-surface);
   border-radius: 10px;
   padding: 1rem;
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -3141,7 +3141,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-body);
   font-size: 0.38rem;
   font-style: italic;
-  color: #444;
+  color: var(--color-ink);
   line-height: 1.35;
   text-align: center;
   margin: 0;
@@ -3155,7 +3155,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .story-card-follow {
   font-family: var(--font-ui);
   font-size: 0.42rem;
-  color: #666;
+  color: var(--color-subdued);
   text-align: center;
   margin-top: auto;
   padding-top: 6px;
@@ -3233,7 +3233,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-ui);
   font-size: 0.55rem;
   font-weight: 600;
-  color: white;
+  color: var(--color-on-accent);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -3249,7 +3249,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-display);
   font-size: 0.7rem;
   font-weight: 600;
-  color: white;
+  color: var(--color-on-accent);
   margin-bottom: 6px;
   line-height: 1.25;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -3317,7 +3317,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-ui);
   font-size: 0.5rem;
   font-weight: 600;
-  color: white;
+  color: var(--color-on-accent);
   text-align: center;
   padding: 6px 10px;
   background: rgba(255, 255, 255, 0.2);
@@ -3339,14 +3339,14 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .story-preview-icon {
   font-size: 0.6rem;
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .story-preview-name {
   font-family: var(--font-ui);
   font-size: 0.6rem;
   font-weight: 600;
-  color: white;
+  color: var(--color-on-accent);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
@@ -3363,7 +3363,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-ui);
   font-size: 0.95rem;
   font-weight: 500;
-  color: white;
+  color: var(--color-on-accent);
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink), var(--warm-orange));
   border: none;
   border-radius: 12px;
@@ -3388,7 +3388,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--ink);
-  background: #f5f5f5;
+  background: var(--color-subtle);
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -3396,7 +3396,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .story-download-btn:hover:not(:disabled) {
-  background: #ebebeb;
+  background: var(--color-skeleton);
   transform: translateY(-1px);
 }
 
@@ -3479,7 +3479,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   border-image: linear-gradient(180deg, #8e44ad 0%, #ff007f 100%) 1;
   border-radius: 0 12px 12px 0;
   font-style: italic;
-  color: #555;
+  color: var(--color-subdued);
 }
 
 .editor-content blockquote::before {
@@ -3540,7 +3540,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 1.5rem;
   background: linear-gradient(135deg, #8e44ad 0%, #ff007f 100%);
   border-radius: 50%;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.75rem;
   font-weight: 600;
@@ -3602,7 +3602,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   border-image: linear-gradient(180deg, #8e44ad 0%, #ff007f 100%) 1;
   border-radius: 0 10px 10px 0;
   font-style: italic;
-  color: #555;
+  color: var(--color-subdued);
 }
 
 .post-content ul {
@@ -3651,7 +3651,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 1.25rem;
   background: linear-gradient(135deg, #8e44ad 0%, #ff007f 100%);
   border-radius: 50%;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.65rem;
   font-weight: 600;
@@ -3914,7 +3914,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .studio-filter-btn.active {
-  color: white;
+  color: var(--color-on-accent);
   background: linear-gradient(135deg, var(--primary-purple) 0%, var(--vivid-pink) 100%);
   box-shadow: 0 4px 15px rgba(142, 68, 173, 0.25);
 }
@@ -3976,7 +3976,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .journal-card {
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
@@ -3996,7 +3996,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   width: 100%;
   height: 140px;
   overflow: hidden;
-  background: #f5f5f5;
+  background: var(--color-subtle);
 }
 
 .journal-card-image img {
@@ -4015,7 +4015,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   top: 8px;
   right: 8px;
   background: rgba(0, 0, 0, 0.6);
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.65rem;
   font-weight: 600;
@@ -4053,7 +4053,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-body);
   font-size: 0.85rem;
   line-height: 1.55;
-  color: #777;
+  color: var(--color-muted);
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -4127,7 +4127,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   padding: 0.35rem 0.65rem;
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
   border-radius: 9999px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.65rem;
   font-weight: 600;
@@ -4171,7 +4171,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #a09090;
+  color: var(--color-muted);
   margin-bottom: 0.6rem;
   position: relative;
 }
@@ -4193,7 +4193,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 500;
-  color: #3a3030;
+  color: var(--color-ink);
   line-height: 1.4;
   letter-spacing: -0.01em;
   margin-bottom: 0.6rem;
@@ -4214,7 +4214,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-body);
   font-size: 0.88rem;
   line-height: 1.65;
-  color: #6a5a50;
+  color: var(--color-subdued);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -4264,7 +4264,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   top: 0.6rem;
   right: 0.6rem;
   background: rgba(30, 30, 30, 0.65);
-  color: white;
+  color: var(--color-on-accent);
   padding: 0.25rem 0.55rem;
   border-radius: 6px;
   font-family: var(--font-ui);
@@ -4296,7 +4296,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .studio-work-date {
   font-family: var(--font-ui);
   font-size: 0.7rem;
-  color: #a09080;
+  color: var(--color-muted);
   font-weight: 500;
   letter-spacing: 0.02em;
 }
@@ -4314,7 +4314,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-ui);
   font-size: 0.75rem;
   font-weight: 500;
-  color: #8a7a6a;
+  color: var(--color-muted);
 }
 
 .studio-work-stat svg {
@@ -4340,7 +4340,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .studio-work-like-btn.active {
-  color: #c07080;
+  color: var(--color-accent-2);
 }
 
 .studio-work-like-btn.active svg {
@@ -4392,7 +4392,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   -webkit-line-clamp: 5;
   font-family: var(--font-open-sans), sans-serif;
   font-size: 0.92rem;
-  color: #444;
+  color: var(--color-ink);
   line-height: 1.65;
 }
 
@@ -4401,7 +4401,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   grid-column: 1 / -1;
   text-align: center;
   padding: 4rem 2rem;
-  background: #fafafa;
+  background: var(--color-subtle);
   border-radius: 12px;
 }
 
@@ -4478,19 +4478,19 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .studio-work-card[data-type="poem"] .studio-work-title-text {
   font-style: italic;
-  color: #6a4a5a;
+  color: var(--color-subdued);
 }
 
 .studio-work-card[data-type="poem"] .studio-work-preview-text {
   font-style: italic;
   line-height: 2;
-  color: #7a5a6a;
+  color: var(--color-subdued);
   font-size: 0.95rem;
 }
 
 /* --- VISUAL CARDS (Polaroid Style) --- */
 .studio-work-card[data-type="visual"] {
-  background: #fffffe;
+  background: var(--color-surface);
   padding: 0.8rem 0.8rem 0;
   box-shadow:
     0 4px 20px rgba(0, 0, 0, 0.06),
@@ -4542,7 +4542,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .studio-work-card[data-type="visual"] .studio-work-title-text {
-  color: #3a3a3a;
+  color: var(--color-ink);
   font-size: 1rem;
 }
 
@@ -4558,7 +4558,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .studio-work-card[data-type="visual"] .studio-work-date,
 .studio-work-card[data-type="visual"] .studio-work-stat {
-  color: #888;
+  color: var(--color-muted);
 }
 
 /* --- JOURNAL CARDS --- */
@@ -4591,7 +4591,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .studio-work-card[data-type="journal"] .studio-work-preview-text {
   font-style: italic;
-  color: #5a4a3a;
+  color: var(--color-subdued);
 }
 
 /* --- THOUGHT CARDS (Soft Lavender Watercolor) --- */
@@ -4617,11 +4617,11 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .studio-work-card[data-type="thought"] .studio-work-title-text {
   font-size: 1.2rem;
   font-weight: 600;
-  color: #4a3a5c;
+  color: var(--color-subdued);
 }
 
 .studio-work-card[data-type="thought"] .studio-work-preview-text {
-  color: #6a5a7a;
+  color: var(--color-muted);
   font-size: 0.95rem;
   line-height: 1.75;
 }
@@ -4668,12 +4668,12 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .studio-work-card[data-type="quote"] .studio-work-title-text {
-  color: #5a4a3a;
+  color: var(--color-subdued);
   font-style: italic;
 }
 
 .studio-work-card[data-type="quote"] .studio-work-preview-text {
-  color: #7a6a5a;
+  color: var(--color-muted);
   font-style: italic;
   line-height: 1.8;
 }
@@ -4739,16 +4739,16 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .studio-work-card[data-type="audio"] .studio-work-title-text {
-  color: #5a4030;
+  color: var(--color-subdued);
 }
 
 .studio-work-card[data-type="audio"] .studio-work-preview-text {
-  color: #7a6050;
+  color: var(--color-muted);
 }
 
 /* --- VIDEO CARDS (Cinema Frame) --- */
 .studio-work-card[data-type="video"] {
-  background: #fefefe;
+  background: var(--color-surface);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -4760,7 +4760,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 /* --- SCREENPLAY CARDS (Script Style) --- */
 .studio-work-card[data-type="screenplay"] {
-  background: #fffff8;
+  background: var(--color-surface);
   border: 1px solid rgba(0, 0, 0, 0.08);
   font-family: 'Courier New', Courier, monospace;
 }
@@ -4864,7 +4864,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   padding: 6px 12px;
   background: linear-gradient(135deg, rgba(142, 68, 173, 0.9) 0%, rgba(255, 0, 127, 0.85) 100%);
   border-radius: 20px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.7rem;
   font-weight: 500;
@@ -4915,7 +4915,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .studio-relay-preview {
   font-family: var(--font-body);
   font-size: 0.9rem;
-  color: #666;
+  color: var(--color-subdued);
   line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -5024,7 +5024,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .studio-relay-card[data-type="visual"] {
-  background: #fffffe;
+  background: var(--color-surface);
 }
 
 .studio-relay-card[data-type="visual"] .studio-relay-preview {
@@ -5759,7 +5759,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .community-tab.active {
-  color: white;
+  color: var(--color-on-accent);
   background: linear-gradient(135deg, var(--primary-purple) 0%, var(--vivid-pink) 100%);
   box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3);
 }
@@ -5822,7 +5822,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--primary-purple) 0%, var(--vivid-pink) 100%);
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.75rem;
   font-weight: 700;
@@ -5866,7 +5866,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 0.35rem;
   padding: 0.35rem 0.75rem;
   background: linear-gradient(135deg, var(--primary-purple) 0%, var(--vivid-pink) 100%);
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.7rem;
   font-weight: 600;
@@ -6287,7 +6287,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   backdrop-filter: blur(8px);
   border: none;
   border-radius: 50%;
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -6344,7 +6344,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   appearance: none;
   width: 12px;
   height: 12px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 50%;
   cursor: pointer;
   transition: transform 0.15s ease;
@@ -6357,7 +6357,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .tiktok-volume-range::-moz-range-thumb {
   width: 12px;
   height: 12px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 50%;
   border: none;
   cursor: pointer;
@@ -6375,7 +6375,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   backdrop-filter: blur(8px);
   border: none;
   border-radius: 50%;
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -6473,7 +6473,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-ui);
   font-size: 16px;
   font-weight: 700;
-  color: white;
+  color: var(--color-on-accent);
   text-decoration: none;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
   margin-bottom: 8px;
@@ -6488,7 +6488,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.5;
-  color: white;
+  color: var(--color-on-accent);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
@@ -6504,7 +6504,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .tiktok-caption-toggle:hover {
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .tiktok-sound-row {
@@ -6522,7 +6522,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 6px;
   padding: 6px 10px;
   border-radius: 999px;
-  color: white;
+  color: var(--color-on-accent);
   background: rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(12px);
   font-family: var(--font-ui);
@@ -6547,7 +6547,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   flex: 0 0 auto;
   padding: 6px 10px;
   border-radius: 999px;
-  color: white;
+  color: var(--color-on-accent);
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
   font-family: var(--font-ui);
   font-size: 12px;
@@ -6579,7 +6579,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 52px;
   border-radius: 50%;
   overflow: hidden;
-  border: 3px solid white;
+  border: 3px solid var(--color-surface);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: transform 0.2s ease;
 }
@@ -6601,7 +6601,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-weight: 700;
   font-size: 20px;
@@ -6615,7 +6615,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   width: 24px;
   height: 24px;
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
-  border: 2px solid white;
+  border: 2px solid var(--color-surface);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -6628,7 +6628,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .tiktok-follow-btn svg {
   width: 14px;
   height: 14px;
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .tiktok-follow-btn:hover {
@@ -6850,7 +6850,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   box-shadow: 0 8px 32px rgba(142, 68, 173, 0.5);
   animation: playPulse 2s ease-in-out infinite;
 }
@@ -6915,7 +6915,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
   border: none;
   border-radius: 24px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 14px;
   font-weight: 600;
@@ -6945,7 +6945,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   right: 0;
   width: 400px;
   height: 100vh;
-  background: white;
+  background: var(--color-surface);
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
   z-index: 1001;
   display: flex;
@@ -7050,7 +7050,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-weight: 600;
   font-size: 16px;
@@ -7140,7 +7140,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
-  background: white;
+  background: var(--color-surface);
 }
 
 .tiktok-comments-input-avatar {
@@ -7160,7 +7160,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .tiktok-comments-input input {
   flex: 1;
   padding: 12px 16px;
-  background: #f5f5f5;
+  background: var(--color-subtle);
   border: 2px solid transparent;
   border-radius: 24px;
   font-family: var(--font-body);
@@ -7170,7 +7170,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .tiktok-comments-input input:focus {
-  background: white;
+  background: var(--color-surface);
   border-color: var(--primary-purple);
 }
 
@@ -7187,7 +7187,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
   border: none;
   border-radius: 50%;
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
@@ -7321,11 +7321,11 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   .tiktok-action-icon svg {
     width: 22px;
     height: 22px;
-    color: white;
+    color: var(--color-on-accent);
   }
 
   .tiktok-action-btn span {
-    color: white;
+    color: var(--color-on-accent);
     font-size: 11px;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   }
@@ -7344,7 +7344,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   .tiktok-profile-link {
     width: 48px;
     height: 48px;
-    border: 2px solid white;
+    border: 2px solid var(--color-surface);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
@@ -7414,7 +7414,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   .tiktok-menu-btn svg {
     width: 18px;
     height: 18px;
-    color: white;
+    color: var(--color-on-accent);
   }
 
   /* Paused overlay layout adjustment for mobile - stack mute above play */
@@ -7437,7 +7437,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     border: none;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-on-accent);
     cursor: pointer;
     transition: all 0.2s ease;
     z-index: 15;
@@ -7496,7 +7496,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   }
 
   .tiktok-status p {
-    color: white;
+    color: var(--color-on-accent);
   }
 
   .tiktok-status-sub {
@@ -7504,7 +7504,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   }
 
   .tiktok-status-icon {
-    color: white;
+    color: var(--color-on-accent);
   }
 
   /* Loading animation adjustments */
@@ -7528,7 +7528,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   }
 
   .tiktok-menu-item {
-    color: white;
+    color: var(--color-on-accent);
   }
 
   .tiktok-menu-item:hover {
@@ -7621,7 +7621,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .take-player-play-btn svg {
@@ -7667,7 +7667,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
   border: none;
   border-radius: 20px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 14px;
   font-weight: 600;
@@ -7698,7 +7698,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   right: 0;
   height: 65vh;
   max-height: 600px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 24px 24px 0 0;
   z-index: 1200;
   display: flex;
@@ -7797,7 +7797,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-weight: 600;
   font-size: 14px;
@@ -7922,7 +7922,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 12px;
   padding: 12px 16px;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
-  background: white;
+  background: var(--color-surface);
 }
 
 .take-comments-input-avatar {
@@ -7936,7 +7936,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .take-comments-input {
   flex: 1;
   padding: 10px 16px;
-  background: #f5f5f5;
+  background: var(--color-subtle);
   border: 2px solid transparent;
   border-radius: 20px;
   font-family: var(--font-body);
@@ -7946,7 +7946,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .take-comments-input:focus {
-  background: white;
+  background: var(--color-surface);
   border-color: var(--primary-purple);
 }
 
@@ -7963,7 +7963,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
   border: none;
   border-radius: 50%;
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
@@ -8045,7 +8045,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   margin: 16px 0;
   border-radius: 16px;
   overflow: hidden;
-  background: #f5f5f5;
+  background: var(--color-subtle);
   aspect-ratio: 9/16;
   max-height: 420px;
   cursor: pointer;
@@ -8075,7 +8075,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .take-play-btn {
   width: 64px;
   height: 64px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -8105,7 +8105,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
   border-radius: 8px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.75rem;
   font-weight: 600;
@@ -8123,7 +8123,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   padding: 6px 12px;
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
   border-radius: 20px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.7rem;
   font-weight: 700;
@@ -8198,7 +8198,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   gap: 16px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.9rem;
   font-weight: 600;
@@ -8410,7 +8410,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .take-player-play-icon {
   width: 64px;
   height: 64px;
-  color: white;
+  color: var(--color-on-accent);
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
 
@@ -8473,7 +8473,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   font-size: 16px;
 }
 
@@ -8486,7 +8486,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   font-size: 16px;
   border: none;
   cursor: pointer;
@@ -8512,7 +8512,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   font-size: 18px;
   border: none;
   cursor: pointer;
@@ -8542,7 +8542,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  color: white;
+  color: var(--color-on-accent);
   background: none;
   border: none;
   cursor: pointer;
@@ -8597,7 +8597,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 2px solid white;
+  border: 2px solid var(--color-surface);
   object-fit: cover;
 }
 
@@ -8613,7 +8613,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   font-size: 14px;
   font-weight: bold;
 }
@@ -8632,7 +8632,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .take-author-row {
@@ -8646,7 +8646,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   gap: 8px;
   text-decoration: none;
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .take-author-avatar {
@@ -8654,7 +8654,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 36px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid white;
+  border: 2px solid var(--color-surface);
 }
 
 .take-author-username {
@@ -8667,9 +8667,9 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .take-follow-btn {
   padding: 6px 16px;
   background: transparent;
-  border: 1px solid white;
+  border: 1px solid var(--color-surface);
   border-radius: 6px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 600;
@@ -8678,7 +8678,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .take-follow-btn:hover {
-  background: white;
+  background: var(--color-surface);
   color: #000;
 }
 
@@ -8696,7 +8696,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.5;
-  color: white;
+  color: var(--color-on-accent);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
@@ -8719,7 +8719,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .take-tag {
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 600;
@@ -8747,7 +8747,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   backdrop-filter: blur(8px);
   border-radius: 20px;
   text-decoration: none;
-  color: white;
+  color: var(--color-on-accent);
   max-width: fit-content;
 }
 
@@ -8906,7 +8906,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.9);
-  color: white;
+  color: var(--color-on-accent);
   text-align: center;
   padding: 2rem;
   z-index: 50;
@@ -8935,7 +8935,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .take-cw-button {
   padding: 12px 24px;
   background: var(--primary-purple);
-  color: white;
+  color: var(--color-on-accent);
   border: none;
   border-radius: 8px;
   font-family: var(--font-ui);
@@ -8961,7 +8961,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   justify-content: center;
   background: #000;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
 }
 
@@ -8982,7 +8982,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  color: white;
+  color: var(--color-on-accent);
   font-size: 24px;
   z-index: 50;
 }
@@ -9005,7 +9005,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   left: 0;
   right: 0;
   height: 60vh;
-  background: white;
+  background: var(--color-surface);
   border-radius: 20px 20px 0 0;
   z-index: 1200;
   display: flex;
@@ -9208,7 +9208,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 12px;
   padding: 12px 16px;
   border-top: 1px solid var(--border-light);
-  background: white;
+  background: var(--color-surface);
 }
 
 .take-comments-input-avatar {
@@ -9222,7 +9222,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .take-comments-input {
   flex: 1;
   padding: 10px 16px;
-  background: #f5f5f5;
+  background: var(--color-subtle);
   border: 2px solid transparent;
   border-radius: 20px;
   font-family: var(--font-body);
@@ -9232,7 +9232,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .take-comments-input:focus {
-  background: white;
+  background: var(--color-surface);
   border-color: var(--primary-purple);
 }
 
@@ -9249,7 +9249,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
   border: none;
   border-radius: 50%;
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -9315,7 +9315,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   justify-content: center;
   background: #000;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   gap: 12px;
 }
@@ -9374,7 +9374,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   backdrop-filter: blur(8px);
   border: none;
   border-radius: 50%;
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -9454,7 +9454,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-weight: 600;
   font-size: 16px;
@@ -9472,7 +9472,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-ui);
   font-size: 14px;
   font-weight: 600;
-  color: white;
+  color: var(--color-on-accent);
   text-decoration: none;
 }
 
@@ -9491,7 +9491,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: var(--vivid-pink);
   border: none;
   border-radius: 20px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 600;
@@ -9531,7 +9531,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .take-card-caption-toggle:hover {
-  color: white;
+  color: var(--color-on-accent);
 }
 
 /* Action Bar */
@@ -9568,7 +9568,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .take-card-action:hover {
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .take-card-action.active {
@@ -9628,7 +9628,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .take-player-paused-icon {
   width: 64px;
   height: 64px;
-  color: white;
+  color: var(--color-on-accent);
   opacity: 0.9;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
@@ -9687,7 +9687,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   max-width: 500px;
   height: 70vh;
   max-height: 600px;
-  background: white;
+  background: var(--color-surface);
   border: none;
   border-radius: 16px;
   padding: 0;
@@ -9815,7 +9815,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-weight: 600;
   font-size: 14px;
@@ -9904,13 +9904,13 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 12px;
   padding: 12px 20px;
   border-top: 1px solid var(--border-light);
-  background: white;
+  background: var(--color-surface);
 }
 
 .take-comments-input input {
   flex: 1;
   padding: 10px 16px;
-  background: #f5f5f5;
+  background: var(--color-subtle);
   border: 2px solid transparent;
   border-radius: 20px;
   font-family: var(--font-body);
@@ -9920,7 +9920,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .take-comments-input input:focus {
-  background: white;
+  background: var(--color-surface);
   border-color: var(--primary-purple);
 }
 
@@ -9933,7 +9933,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
   border: none;
   border-radius: 20px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 14px;
   font-weight: 600;
@@ -9981,7 +9981,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .create-take-container {
   max-width: 900px;
   margin: 0 auto;
-  background: white;
+  background: var(--color-surface);
   border-radius: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
@@ -10045,7 +10045,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .create-take-dropzone {
   aspect-ratio: 9/16;
   max-height: 500px;
-  background: #f8f8f8;
+  background: var(--color-subtle);
   border: 2px dashed var(--border-light);
   border-radius: 16px;
   display: flex;
@@ -10128,7 +10128,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .create-take-preview-play {
   font-size: 48px;
-  color: white;
+  color: var(--color-on-accent);
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
 
@@ -10141,7 +10141,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: rgba(0, 0, 0, 0.6);
   border: none;
   border-radius: 50%;
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -10161,7 +10161,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   padding: 4px 8px;
   background: rgba(0, 0, 0, 0.6);
   border-radius: 4px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.8rem;
   font-weight: 600;
@@ -10202,7 +10202,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .create-take-textarea,
 .create-take-input {
   padding: 12px 16px;
-  background: #f8f8f8;
+  background: var(--color-subtle);
   border: 2px solid transparent;
   border-radius: 12px;
   font-family: var(--font-body);
@@ -10215,7 +10215,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .create-take-textarea:focus,
 .create-take-input:focus {
-  background: white;
+  background: var(--color-surface);
   border-color: var(--primary-purple);
 }
 
@@ -10235,7 +10235,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .create-take-tag-input {
   flex: 1;
   padding: 10px 14px;
-  background: #f8f8f8;
+  background: var(--color-subtle);
   border: 2px solid transparent;
   border-radius: 10px;
   font-family: var(--font-body);
@@ -10245,7 +10245,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .create-take-tag-input:focus {
-  background: white;
+  background: var(--color-surface);
   border-color: var(--primary-purple);
 }
 
@@ -10254,7 +10254,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: var(--primary-purple);
   border: none;
   border-radius: 10px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-weight: 600;
   cursor: pointer;
@@ -10311,7 +10311,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: #f8f8f8;
+  background: var(--color-subtle);
   border: 2px solid transparent;
   border-radius: 12px;
   font-family: var(--font-ui);
@@ -10344,7 +10344,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   max-height: 200px;
   overflow-y: auto;
   padding: 8px;
-  background: #f8f8f8;
+  background: var(--color-subtle);
   border-radius: 12px;
 }
 
@@ -10353,7 +10353,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: white;
+  background: var(--color-surface);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -10433,7 +10433,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-ui);
   font-size: 1rem;
   font-weight: 600;
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -10487,7 +10487,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   width: 90%;
   max-width: 500px;
   max-height: 80vh;
-  background: white;
+  background: var(--color-surface);
   border-radius: 20px;
   display: flex;
   flex-direction: column;
@@ -10535,7 +10535,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   gap: 10px;
   margin: 1rem 1.5rem;
   padding: 10px 14px;
-  background: #f5f5f5;
+  background: var(--color-subtle);
   border-radius: 10px;
 }
 
@@ -10655,12 +10655,12 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .sound-picker-play:hover {
   background: var(--primary-purple);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .sound-picker-play.playing {
   background: var(--vivid-pink);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .sound-picker-info {
@@ -10698,7 +10698,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .sound-picker-badge {
   padding: 2px 6px;
   background: var(--vivid-pink);
-  color: white;
+  color: var(--color-on-accent);
   border-radius: 4px;
   font-size: 0.65rem;
   font-weight: 700;
@@ -10710,7 +10710,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   background: var(--primary-purple);
   border: none;
   border-radius: 8px;
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 0.85rem;
   font-weight: 600;
@@ -10735,7 +10735,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .sound-picker-original {
   width: 100%;
   padding: 12px;
-  background: #f5f5f5;
+  background: var(--color-subtle);
   border: none;
   border-radius: 10px;
   font-family: var(--font-ui);
@@ -10828,7 +10828,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 44px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
-  color: white;
+  color: var(--color-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10925,7 +10925,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 40px;
   border-radius: 50%;
   background: #ef4444;
-  color: white;
+  color: var(--color-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10945,7 +10945,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  background: #f5f5f5;
+  background: var(--color-subtle);
   border-radius: 2rem;
 }
 
@@ -10979,7 +10979,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 36px;
   border-radius: 50%;
   background: var(--primary-purple);
-  color: white;
+  color: var(--color-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10998,7 +10998,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 40px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
-  color: white;
+  color: var(--color-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11023,7 +11023,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .voice-note-player.own {
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .voice-note-player.other {
@@ -11047,7 +11047,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .voice-note-player.other .voice-note-play-button {
   background: var(--primary-purple);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .voice-note-play-button:hover {
@@ -11132,7 +11132,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .collab-invite-card {
   position: relative;
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
@@ -11192,7 +11192,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   height: 44px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid white;
+  border: 2px solid var(--color-surface);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -11201,7 +11201,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
-  color: white;
+  color: var(--color-on-accent);
   font-family: var(--font-ui);
   font-size: 1.1rem;
   font-weight: 600;
@@ -11314,7 +11314,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .collab-invite-btn-accept {
   background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
-  color: white;
+  color: var(--color-on-accent);
   box-shadow: 0 4px 12px rgba(142, 68, 173, 0.25);
 }
 

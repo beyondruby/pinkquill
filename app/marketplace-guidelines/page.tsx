@@ -55,7 +55,7 @@ export default function MarketplaceGuidelinesPage() {
   return (
     <div className="min-h-screen bg-[#FDFCFB]">
       {/* Minimal Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#FDFCFB]/90 backdrop-blur-md border-b border-black/[0.04]">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#FDFCFB]/90 backdrop-blur-md border-b border-border-light">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link
             href="/"
@@ -141,7 +141,7 @@ export default function MarketplaceGuidelinesPage() {
             </div>
 
             {/* Mobile Table of Contents */}
-            <nav className="lg:hidden mb-20 py-8 border-y border-black/[0.06]">
+            <nav className="lg:hidden mb-20 py-8 border-y border-border-light">
               <p className="font-ui text-[0.65rem] tracking-[0.2em] uppercase text-muted mb-6 text-center">
                 Contents
               </p>
@@ -150,7 +150,7 @@ export default function MarketplaceGuidelinesPage() {
                   <a
                     key={id}
                     href={`#${id}`}
-                    className="font-body text-sm text-muted hover:text-purple-primary transition-colors py-1 flex items-baseline gap-2"
+                    className="font-body text-sm text-muted hover:text-accent transition-colors py-1 flex items-baseline gap-2"
                   >
                     <span className="text-[0.7rem] text-muted/50">{String(i + 1).padStart(2, "0")}</span>
                     {label}
@@ -1108,7 +1108,7 @@ export default function MarketplaceGuidelinesPage() {
             </div>
 
             {/* Closing */}
-            <div className="mt-24 pt-16 border-t border-black/[0.06] text-center lg:text-left">
+            <div className="mt-24 pt-16 border-t border-border-light text-center lg:text-left">
               <div className="flex items-center justify-center lg:justify-start gap-3 mb-8">
                 <span className="w-8 h-px bg-gradient-to-r from-transparent to-purple-primary/30" />
                 <FontAwesomeIcon icon={faFeatherPointed} className="w-5 h-5 text-purple-primary/50" />
@@ -1131,16 +1131,16 @@ export default function MarketplaceGuidelinesPage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-black/[0.06] py-8 px-6">
+      <footer className="border-t border-border-light py-8 px-6">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <p className="font-ui text-xs text-muted/60">
             © {new Date().getFullYear()} PinkQuill
           </p>
           <div className="flex items-center gap-6">
-            <Link href="/privacy" className="font-ui text-xs text-muted/60 hover:text-purple-primary transition-colors">
+            <Link href="/privacy" className="font-ui text-xs text-muted/60 hover:text-accent transition-colors">
               Privacy
             </Link>
-            <Link href="/terms" className="font-ui text-xs text-muted/60 hover:text-purple-primary transition-colors">
+            <Link href="/terms" className="font-ui text-xs text-muted/60 hover:text-accent transition-colors">
               Terms
             </Link>
             <Link href="/marketplace-guidelines" className="font-ui text-xs text-purple-primary">
@@ -1255,7 +1255,7 @@ function Section({
 
 function Highlight({ children }: { children: React.ReactNode }) {
   return (
-    <div className="my-6 rounded-2xl border border-black/[0.08] bg-purple-primary/[0.04] px-5 py-4">
+    <div className="my-6 rounded-2xl border border-border-light bg-purple-primary/[0.04] px-5 py-4">
       <p className="font-body text-[0.95rem] text-muted italic !mb-0">
         {children}
       </p>

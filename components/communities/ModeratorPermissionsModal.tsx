@@ -106,7 +106,7 @@ const colorClasses: Record<string, { bg: string; border: string; text: string; r
   yellow: { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-600", ring: "ring-yellow-400" },
   red: { bg: "bg-red-50", border: "border-red-200", text: "text-red-500", ring: "ring-red-400" },
   orange: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-500", ring: "ring-orange-400" },
-  purple: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-600", ring: "ring-purple-400" },
+  purple: { bg: "bg-accent/10", border: "border-purple-200", text: "text-purple-600", ring: "ring-purple-400" },
   blue: { bg: "bg-purple-primary/[0.04]", border: "border-purple-primary/15", text: "text-purple-primary", ring: "ring-purple-primary" },
 };
 
@@ -160,9 +160,9 @@ export default function ModeratorPermissionsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-scaleIn">
+      <div className="w-full max-w-lg bg-surface rounded-2xl shadow-2xl overflow-hidden animate-scaleIn">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-black/5 bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5">
+        <div className="px-6 py-5 border-b border-border-light bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-primary to-purple-primary/90 flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,20 +181,20 @@ export default function ModeratorPermissionsModal({
         </div>
 
         {/* Quick Actions */}
-        <div className="px-6 py-3 border-b border-black/5 flex items-center justify-between">
+        <div className="px-6 py-3 border-b border-border-light flex items-center justify-between">
           <span className="font-ui text-sm text-muted">
             {enabledCount} of {permissionOptions.length} enabled
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={selectAll}
-              className="px-3 py-1.5 rounded-lg text-xs font-ui font-medium text-purple-primary hover:bg-purple-primary/10 transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs font-ui font-medium text-purple-primary hover:bg-accent/10 transition-colors"
             >
               Select All
             </button>
             <button
               onClick={selectNone}
-              className="px-3 py-1.5 rounded-lg text-xs font-ui font-medium text-muted hover:bg-black/5 transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs font-ui font-medium text-muted hover:bg-skeleton transition-colors"
             >
               Clear All
             </button>
@@ -215,12 +215,12 @@ export default function ModeratorPermissionsModal({
                   className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
                     isEnabled
                       ? `${colors.bg} ${colors.border} ring-2 ${colors.ring}/20`
-                      : "bg-white border-black/5 hover:border-black/10"
+                      : "bg-surface border-border-light hover:border-border-light"
                   }`}
                 >
                   <div
                     className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                      isEnabled ? colors.bg : "bg-black/5"
+                      isEnabled ? colors.bg : "bg-skeleton"
                     }`}
                   >
                     <span className={isEnabled ? colors.text : "text-muted"}>
@@ -252,7 +252,7 @@ export default function ModeratorPermissionsModal({
                       }`}
                     >
                       <div
-                        className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform mt-0.5 ${
+                        className={`w-5 h-5 rounded-full bg-surface shadow-md transform transition-transform mt-0.5 ${
                           isEnabled ? "translate-x-4.5 ml-0.5" : "translate-x-0.5"
                         }`}
                       />
@@ -265,11 +265,11 @@ export default function ModeratorPermissionsModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-black/5 flex gap-3 bg-black/[0.02]">
+        <div className="px-6 py-4 border-t border-border-light flex gap-3 bg-subtle">
           <button
             onClick={onClose}
             disabled={loading}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-black/10 font-ui text-sm font-medium text-ink hover:bg-white transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-border-light font-ui text-sm font-medium text-ink hover:bg-surface transition-colors disabled:opacity-50"
           >
             Cancel
           </button>

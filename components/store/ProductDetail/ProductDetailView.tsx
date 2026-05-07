@@ -84,14 +84,14 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
     return (
       <div className="min-h-screen bg-background px-4 py-10">
         <div className="max-w-6xl mx-auto">
-          <div className="h-8 w-48 rounded bg-gray-100 animate-pulse" />
-          <div className="mt-4 h-10 w-4/5 max-w-xl rounded bg-gray-100 animate-pulse" />
+          <div className="h-8 w-48 rounded bg-skeleton animate-pulse" />
+          <div className="mt-4 h-10 w-4/5 max-w-xl rounded bg-skeleton animate-pulse" />
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_340px] gap-10">
             <div className="aspect-square rounded-[28px] bg-gradient-to-br from-pink-50 to-orange-50 animate-pulse" />
             <div className="space-y-4">
-              <div className="h-7 w-2/3 rounded bg-gray-100 animate-pulse" />
-              <div className="h-10 w-full rounded bg-gray-100 animate-pulse" />
-              <div className="h-10 w-full rounded bg-gray-100 animate-pulse" />
+              <div className="h-7 w-2/3 rounded bg-skeleton animate-pulse" />
+              <div className="h-10 w-full rounded bg-skeleton animate-pulse" />
+              <div className="h-10 w-full rounded bg-skeleton animate-pulse" />
             </div>
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#fffefc_45%,#fff9f2_100%)] pb-16">
       <div className="max-w-6xl mx-auto px-4 pt-8">
-        <div className="pb-6 border-b border-black/[0.08]">
+        <div className="pb-6 border-b border-border-light">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-3 max-w-4xl">
               <div className="flex flex-wrap items-center gap-2 text-[11px] font-ui uppercase tracking-[0.15em] text-muted">
@@ -243,7 +243,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             />
 
             {product.description && (
-              <section className="pt-8 border-t border-black/[0.08]">
+              <section className="pt-8 border-t border-border-light">
                 <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Artist Note</h2>
                 <p className="mt-3 text-sm md:text-base font-body leading-relaxed text-ink/85 max-w-3xl">
                   {product.description}
@@ -252,11 +252,11 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             )}
 
             {displayAttributes.length > 0 && (
-              <section className="pt-8 border-t border-black/[0.08]">
+              <section className="pt-8 border-t border-border-light">
                 <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Specifications</h2>
                 <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
                   {displayAttributes.map((attr, index) => (
-                    <div key={`${attr.label}-${index}`} className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
+                    <div key={`${attr.label}-${index}`} className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
                       <dt className="text-sm font-body text-muted">{attr.label}</dt>
                       <dd className="text-sm font-ui text-ink text-right">{attr.value}</dd>
                     </div>
@@ -266,13 +266,13 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             )}
 
             {(dimensions.length > 0 || product.delivery_type !== "digital" || (product.keywords && product.keywords.length > 0)) && (
-              <section className="pt-8 border-t border-black/[0.08] space-y-7">
+              <section className="pt-8 border-t border-border-light space-y-7">
                 {dimensions.length > 0 && (
                   <div>
                     <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Dimensions</h3>
                     <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
                       {dimensions.map((item) => (
-                        <div key={item.label} className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
+                        <div key={item.label} className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
                           <dt className="text-sm font-body text-muted">{item.label}</dt>
                           <dd className="text-sm font-ui text-ink text-right">
                             {item.value} {item.unit}
@@ -288,36 +288,36 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                     <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Shipping</h3>
                     {product.shipping ? (
                       <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-                        <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
+                        <div className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
                           <dt className="text-sm font-body text-muted">Shipping price</dt>
                           <dd className="text-sm font-ui text-ink text-right">
                             {shippingCost > 0 ? formatPrice(shippingCost, activePricing?.currency || "USD") : "Free"}
                           </dd>
                         </div>
-                        <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
+                        <div className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
                           <dt className="text-sm font-body text-muted">Coverage</dt>
                           <dd className="text-sm font-ui text-ink text-right">{shippingCoverageLabel}</dd>
                         </div>
                         {shippingServices.length > 0 && (
-                          <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
+                          <div className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
                             <dt className="text-sm font-body text-muted">Shipping service</dt>
                             <dd className="text-sm font-ui text-ink text-right">{shippingServices.join(", ")}</dd>
                           </div>
                         )}
                         {shippingLocations.length > 0 && (
-                          <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
+                          <div className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
                             <dt className="text-sm font-body text-muted">Ships to</dt>
                             <dd className="text-sm font-ui text-ink text-right">{shippingLocations.join(", ")}</dd>
                           </div>
                         )}
                         {product.shipping.processing_days && (
-                          <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
+                          <div className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
                             <dt className="text-sm font-body text-muted">Processing</dt>
                             <dd className="text-sm font-ui text-ink text-right">{product.shipping.processing_days} business days</dd>
                           </div>
                         )}
                         {normalizedPackaging && (
-                          <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] pb-2">
+                          <div className="flex items-baseline justify-between gap-3 border-b border-border-light pb-2">
                             <dt className="text-sm font-body text-muted">Packaging</dt>
                             <dd className="text-sm font-ui text-ink text-right capitalize">{normalizedPackaging}</dd>
                           </div>
@@ -347,13 +347,13 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             <ProductReviewsSection productId={product.id} />
 
             {product.seller && (
-              <div className="lg:hidden pt-8 border-t border-black/[0.08]">
+              <div className="lg:hidden pt-8 border-t border-border-light">
                 <SellerCard seller={product.seller} />
               </div>
             )}
           </div>
 
-          <aside className="lg:sticky lg:top-8 lg:self-start lg:pl-8 lg:border-l lg:border-black/[0.08]">
+          <aside className="lg:sticky lg:top-8 lg:self-start lg:pl-8 lg:border-l lg:border-border-light">
             {activePricing ? (
               <div className="space-y-5">
                 <div>
@@ -381,7 +381,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-start gap-2">
-                                <span className={`mt-1 inline-flex w-2.5 h-2.5 rounded-full ${isActive ? "bg-pink-vivid" : "bg-black/15"}`} />
+                                <span className={`mt-1 inline-flex w-2.5 h-2.5 rounded-full ${isActive ? "bg-pink-vivid" : "bg-border-strong"}`} />
                                 <div>
                                   <p className={`text-sm font-ui ${isActive ? "text-ink" : "text-muted"}`}>
                                     {pricing.variant_name || getPricingTypeLabel(pricing.pricing_type)}
@@ -441,13 +441,13 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                         image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
                       });
                     }}
-                    className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-pink-vivid/40 transition-colors"
+                    className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-pink-vivid/40 transition-colors"
                   >
                     {isQueued ? "In Cart" : "Add to Cart"}
                   </button>
                   <button
                     onClick={() => router.push("/cart")}
-                    className="w-full py-2.5 rounded-full border border-black/[0.12] text-ink text-sm font-ui font-medium hover:border-purple-primary/40 transition-colors"
+                    className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-accent/40 transition-colors"
                   >
                     Open Cart
                   </button>
@@ -458,7 +458,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                     href="/messages"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2.5 text-sm font-ui font-medium text-pink-vivid hover:text-purple-primary transition-colors group"
+                    className="inline-flex items-center gap-2.5 text-sm font-ui font-medium text-pink-vivid hover:text-accent transition-colors group"
                   >
                     <svg className="w-4 h-4 transition-transform duration-200 group-hover:-rotate-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20.24 3.76a5.5 5.5 0 0 0-7.78 0L4 12.22V20h7.78l8.46-8.46a5.5 5.5 0 0 0 0-7.78Z" />
@@ -536,7 +536,7 @@ function MoreMenu({
 }) {
   return (
     <ActionMenu
-      buttonClassName="w-10 h-10 rounded-full border border-black/[0.08] bg-white text-muted hover:text-ink hover:bg-black/[0.02] transition-colors flex items-center justify-center"
+      buttonClassName="w-10 h-10 rounded-full border border-border-light bg-surface text-muted hover:text-ink hover:bg-subtle transition-colors flex items-center justify-center"
       buttonIconClassName="w-5 h-5"
       widthClassName="w-44"
       items={[

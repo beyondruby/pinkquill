@@ -80,13 +80,13 @@ export default function CommunityMembersSettingsPage() {
       </p>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 border-b border-black/5">
+      <div className="flex items-center gap-1 mb-6 border-b border-border-light">
         <button
           onClick={() => setActiveTab('moderators')}
           className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'moderators'
               ? 'text-purple-primary border-purple-primary'
-              : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
+              : 'text-muted border-transparent hover:text-ink hover:border-border-strong'
           }`}
         >
           Moderators ({moderators.length})
@@ -97,7 +97,7 @@ export default function CommunityMembersSettingsPage() {
             className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors relative ${
               activeTab === 'requests'
                 ? 'text-purple-primary border-purple-primary'
-                : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
+                : 'text-muted border-transparent hover:text-ink hover:border-border-strong'
             }`}
           >
             Join Requests
@@ -122,7 +122,7 @@ export default function CommunityMembersSettingsPage() {
               {moderators.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/5"
+                  className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light"
                 >
                   <Link
                     href={`/studio/${member.profile?.username}`}
@@ -143,7 +143,7 @@ export default function CommunityMembersSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/studio/${member.profile?.username}`}
-                        className="font-ui font-medium text-ink hover:text-purple-primary transition-colors"
+                        className="font-ui font-medium text-ink hover:text-accent transition-colors"
                       >
                         {member.profile?.display_name || member.profile?.username}
                       </Link>
@@ -202,7 +202,7 @@ export default function CommunityMembersSettingsPage() {
               {pendingRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="p-4 bg-white rounded-xl border border-black/5"
+                  className="p-4 bg-surface rounded-xl border border-border-light"
                 >
                   <div className="flex items-start gap-4">
                     <Link
@@ -223,14 +223,14 @@ export default function CommunityMembersSettingsPage() {
                     <div className="flex-1 min-w-0">
                       <Link
                         href={`/studio/${request.profile?.username}`}
-                        className="font-ui font-medium text-ink hover:text-purple-primary transition-colors"
+                        className="font-ui font-medium text-ink hover:text-accent transition-colors"
                       >
                         {request.profile?.display_name || request.profile?.username}
                       </Link>
                       <p className="font-ui text-sm text-muted">@{request.profile?.username}</p>
 
                       {request.message && (
-                        <div className="mt-2 p-3 rounded-lg bg-black/[0.02] border border-black/5">
+                        <div className="mt-2 p-3 rounded-lg bg-subtle border border-border-light">
                           <p className="font-body text-sm text-ink">{request.message}</p>
                         </div>
                       )}
@@ -245,7 +245,7 @@ export default function CommunityMembersSettingsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-4 pt-4 border-t border-black/5">
+                  <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border-light">
                     <button
                       onClick={() => handleApprove(request.id, request.user_id)}
                       className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium hover:shadow-lg transition-all"
@@ -254,7 +254,7 @@ export default function CommunityMembersSettingsPage() {
                     </button>
                     <button
                       onClick={() => handleReject(request.id)}
-                      className="flex-1 px-4 py-2 rounded-lg bg-black/5 text-ink font-ui text-sm font-medium hover:bg-black/10 transition-colors"
+                      className="flex-1 px-4 py-2 rounded-lg bg-skeleton text-ink font-ui text-sm font-medium hover:bg-black/10 transition-colors"
                     >
                       Decline
                     </button>
@@ -282,7 +282,7 @@ export default function CommunityMembersSettingsPage() {
         <button
           type="button"
           onClick={() => router.push(`/community/${slug}/settings`)}
-          className="px-5 py-2.5 rounded-full bg-black/5 text-ink font-ui font-medium hover:bg-black/10 transition-colors"
+          className="px-5 py-2.5 rounded-full bg-skeleton text-ink font-ui font-medium hover:bg-black/10 transition-colors"
         >
           Back to Settings
         </button>

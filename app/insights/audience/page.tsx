@@ -148,7 +148,7 @@ export default function InsightsAudiencePage() {
       {/* Growth Details */}
       <div className="grid grid-cols-2 gap-6 mb-8">
         {/* Gained vs Lost */}
-        <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+        <div className="bg-surface rounded-2xl p-6 border border-border-light">
           <h3 className="font-ui text-sm font-medium text-ink mb-4">Follower Changes</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -179,7 +179,7 @@ export default function InsightsAudiencePage() {
               </div>
               <p className="font-ui text-xl text-red-500">-{formatNumber(insights.followerGrowth.lost)}</p>
             </div>
-            <div className="pt-4 border-t border-black/[0.04]">
+            <div className="pt-4 border-t border-border-light">
               <div className="flex items-center justify-between">
                 <p className="font-ui text-sm text-ink font-medium">Net Change</p>
                 <p className={`font-ui text-xl font-medium ${
@@ -198,7 +198,7 @@ export default function InsightsAudiencePage() {
         </div>
 
         {/* Profile Engagement */}
-        <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+        <div className="bg-surface rounded-2xl p-6 border border-border-light">
           <h3 className="font-ui text-sm font-medium text-ink mb-4">Profile Engagement</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -231,7 +231,7 @@ export default function InsightsAudiencePage() {
               <p className="font-ui text-xl text-ink">{formatNumber(insights.uniqueViewers)}</p>
             </div>
             {insights.profileViews > 0 && insights.followerGrowth.gained > 0 && (
-              <div className="pt-4 border-t border-black/[0.04]">
+              <div className="pt-4 border-t border-border-light">
                 <div className="flex items-center justify-between">
                   <p className="font-ui text-sm text-ink">Follow Rate</p>
                   <p className="font-ui text-xl text-purple-primary">
@@ -249,7 +249,7 @@ export default function InsightsAudiencePage() {
 
       {/* Best Posting Times Placeholder */}
       {insights.bestPostingTimes && insights.bestPostingTimes.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-black/[0.04]">
+        <div className="bg-surface rounded-2xl p-6 border border-border-light">
           <h3 className="font-ui text-sm font-medium text-ink mb-4">Best Times to Post</h3>
           <p className="font-body text-sm text-muted">
             Based on when your audience is most active and engaged with your content.

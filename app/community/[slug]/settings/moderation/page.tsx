@@ -93,13 +93,13 @@ export default function CommunityModerationSettingsPage() {
       </p>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 border-b border-black/5">
+      <div className="flex items-center gap-1 mb-6 border-b border-border-light">
         <button
           onClick={() => setActiveTab('mod-log')}
           className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'mod-log'
               ? 'text-purple-primary border-purple-primary'
-              : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
+              : 'text-muted border-transparent hover:text-ink hover:border-border-strong'
           }`}
         >
           Mod Log
@@ -109,7 +109,7 @@ export default function CommunityModerationSettingsPage() {
           className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'muted'
               ? 'text-yellow-600 border-yellow-500'
-              : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
+              : 'text-muted border-transparent hover:text-ink hover:border-border-strong'
           }`}
         >
           Muted ({mutedMembers.length})
@@ -119,7 +119,7 @@ export default function CommunityModerationSettingsPage() {
           className={`px-4 py-3 font-ui text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'banned'
               ? 'text-red-600 border-red-500'
-              : 'text-muted border-transparent hover:text-ink hover:border-black/[0.12]'
+              : 'text-muted border-transparent hover:text-ink hover:border-border-strong'
           }`}
         >
           Banned ({bannedMembers.length})
@@ -138,7 +138,7 @@ export default function CommunityModerationSettingsPage() {
               {modLogEntries.map((entry) => (
                 <div
                   key={entry.id}
-                  className="p-4 bg-white rounded-xl border border-black/5 hover:border-purple-primary/10 transition-colors"
+                  className="p-4 bg-surface rounded-xl border border-border-light hover:border-accent/10 transition-colors"
                 >
                   <div className="flex items-start gap-3">
                     {/* Moderator Avatar */}
@@ -167,7 +167,7 @@ export default function CommunityModerationSettingsPage() {
                       <p className="font-ui text-sm text-ink">
                         <Link
                           href={`/studio/${entry.moderator_profile?.username || ''}`}
-                          className="font-semibold hover:text-purple-primary transition-colors"
+                          className="font-semibold hover:text-accent transition-colors"
                         >
                           {entry.moderator_profile?.display_name || entry.moderator_profile?.username || 'Unknown'}
                         </Link>
@@ -187,7 +187,7 @@ export default function CommunityModerationSettingsPage() {
                             {' '}by{' '}
                             <Link
                               href={`/studio/${entry.author_profile.username}`}
-                              className="font-medium text-ink hover:text-purple-primary transition-colors"
+                              className="font-medium text-ink hover:text-accent transition-colors"
                             >
                               @{entry.author_profile.username}
                             </Link>
@@ -197,7 +197,7 @@ export default function CommunityModerationSettingsPage() {
 
                       {/* Content Snapshot */}
                       {entry.content_snapshot && (
-                        <div className="mt-2 px-3 py-2.5 rounded-lg bg-black/[0.02] border border-black/5">
+                        <div className="mt-2 px-3 py-2.5 rounded-lg bg-subtle border border-border-light">
                           {entry.content_snapshot.title && (
                             <p className="font-ui text-sm font-semibold text-ink/80 mb-1">
                               {entry.content_snapshot.title}
@@ -235,7 +235,7 @@ export default function CommunityModerationSettingsPage() {
                 <div className="flex justify-center pt-2">
                   <button
                     onClick={loadMoreModLog}
-                    className="px-5 py-2.5 rounded-full bg-black/5 text-ink font-ui text-sm font-medium hover:bg-black/10 transition-colors"
+                    className="px-5 py-2.5 rounded-full bg-skeleton text-ink font-ui text-sm font-medium hover:bg-black/10 transition-colors"
                   >
                     Load more
                   </button>
@@ -274,7 +274,7 @@ export default function CommunityModerationSettingsPage() {
             {currentMembers.map((member) => (
               <div
                 key={member.id}
-                className="flex items-center gap-4 p-4 bg-white rounded-xl border border-black/5"
+                className="flex items-center gap-4 p-4 bg-surface rounded-xl border border-border-light"
               >
                 {/* Avatar */}
                 <Link
@@ -300,7 +300,7 @@ export default function CommunityModerationSettingsPage() {
                 <div className="flex-1 min-w-0">
                   <Link
                     href={`/studio/${member.profile?.username}`}
-                    className="font-ui font-medium text-ink hover:text-purple-primary transition-colors"
+                    className="font-ui font-medium text-ink hover:text-accent transition-colors"
                   >
                     {member.profile?.display_name || member.profile?.username}
                   </Link>
@@ -394,7 +394,7 @@ export default function CommunityModerationSettingsPage() {
         <button
           type="button"
           onClick={() => router.push(`/community/${slug}/settings`)}
-          className="px-5 py-2.5 rounded-full bg-black/5 text-ink font-ui font-medium hover:bg-black/10 transition-colors"
+          className="px-5 py-2.5 rounded-full bg-skeleton text-ink font-ui font-medium hover:bg-black/10 transition-colors"
         >
           Back to Settings
         </button>

@@ -67,7 +67,7 @@ export default function CommunityFlairsSettingsPage() {
       </div>
 
       {/* Flair Manager */}
-      <div className="bg-white rounded-xl border border-black/[0.06] p-6">
+      <div className="bg-surface rounded-xl border border-border-light p-6">
         <FlairManager communityId={community.id} />
       </div>
     </div>

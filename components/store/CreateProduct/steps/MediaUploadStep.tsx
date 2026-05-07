@@ -339,14 +339,14 @@ export default function MediaUploadStep({
                 {!preview.isPrimary && (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleSetPrimary(index); }}
-                    className="px-2 py-1 bg-white/90 rounded-lg text-xs font-ui text-pink-vivid"
+                    className="px-2 py-1 bg-surface/90 rounded-lg text-xs font-ui text-pink-vivid"
                   >
                     Set main
                   </button>
                 )}
                 <button
                   onClick={(e) => { e.stopPropagation(); handleRemove(index); }}
-                  className="p-1.5 bg-white/90 rounded-lg text-red-500"
+                  className="p-1.5 bg-surface/90 rounded-lg text-red-500"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -385,7 +385,7 @@ export default function MediaUploadStep({
           <div
             onClick={() => digitalFileInputRef.current?.click()}
             className="flex items-center justify-center py-10 px-6 rounded-xl cursor-pointer
-              border-2 border-dashed border-gray-200 bg-gray-50/50
+              border-2 border-dashed border-gray-200 bg-subtle/50
               hover:border-pink-vivid/30 hover:bg-pink-vivid/5 transition-all"
           >
             <div className="text-center">
@@ -415,7 +415,7 @@ export default function MediaUploadStep({
               {digitalFiles.map((file, index) => (
                 <div
                   key={`${file.id || file.name}-${index}`}
-                  className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100"
+                  className="flex items-center justify-between p-3 bg-surface rounded-xl border border-gray-100"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-warm to-pink-vivid flex items-center justify-center">

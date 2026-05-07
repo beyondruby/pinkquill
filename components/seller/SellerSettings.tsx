@@ -88,7 +88,7 @@ function TagInput({
     <div ref={wrapperRef}>
       <label className="block text-sm font-ui font-medium text-ink mb-1">{label}</label>
       <div className="relative">
-        <div className="flex min-h-[48px] flex-wrap gap-1.5 rounded-xl border border-black/[0.08] p-3 focus-within:ring-2 focus-within:ring-purple-primary/20">
+        <div className="flex min-h-[48px] flex-wrap gap-1.5 rounded-xl border border-border-light p-3 focus-within:ring-2 focus-within:ring-purple-primary/20">
           {tags.map((tag) => (
             <span
               key={tag}
@@ -120,7 +120,7 @@ function TagInput({
         </div>
 
         {showSuggestions && filtered.length > 0 && (
-          <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-40 overflow-y-auto rounded-xl border border-black/[0.06] bg-white shadow-lg shadow-black/[0.06]">
+          <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-40 overflow-y-auto rounded-xl border border-border-light bg-surface shadow-lg shadow-black/[0.06]">
             {filtered.slice(0, 8).map((suggestion) => (
               <button
                 key={suggestion}
@@ -129,7 +129,7 @@ function TagInput({
                   addTag(suggestion);
                   setShowSuggestions(false);
                 }}
-                className="w-full px-4 py-2 text-left text-sm font-body text-ink transition-colors hover:bg-purple-primary/[0.04]"
+                className="w-full px-4 py-2 text-left text-sm font-body text-ink transition-colors hover:bg-accent/[0.04]"
               >
                 {suggestion}
               </button>
@@ -188,7 +188,7 @@ function SellerSettingsForm({
     <div className="space-y-6">
       <h1 className="font-display text-2xl text-ink">Seller Settings</h1>
 
-      <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6 space-y-4">
+      <section className="rounded-2xl border border-border-light bg-surface p-5 sm:p-6 space-y-4">
         <div>
           <h2 className="font-display text-lg text-ink">Commissions Studio</h2>
           <p className="mt-0.5 text-xs font-body text-muted">
@@ -202,7 +202,7 @@ function SellerSettingsForm({
             type="text"
             value={storeName}
             onChange={(event) => setStoreName(event.target.value)}
-            className="w-full rounded-xl border border-black/[0.08] px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+            className="w-full rounded-xl border border-border-light px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
           />
         </div>
 
@@ -213,7 +213,7 @@ function SellerSettingsForm({
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="e.g. Graphic Designer and Cover Artist"
-            className="w-full rounded-xl border border-black/[0.08] px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+            className="w-full rounded-xl border border-border-light px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
           />
         </div>
 
@@ -222,7 +222,7 @@ function SellerSettingsForm({
           <select
             value={experienceLevel}
             onChange={(event) => setExperienceLevel(event.target.value)}
-            className="w-full rounded-xl border border-black/[0.08] bg-white px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+            className="w-full rounded-xl border border-border-light bg-surface px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
           >
             <option value="">Not specified</option>
             {EXPERIENCE_LEVELS.map((level) => (
@@ -248,7 +248,7 @@ function SellerSettingsForm({
         />
       </section>
 
-      <section className="rounded-2xl border border-black/[0.06] bg-white p-5 sm:p-6 space-y-5">
+      <section className="rounded-2xl border border-border-light bg-surface p-5 sm:p-6 space-y-5">
         <h2 className="font-display text-lg text-ink">Order Preferences</h2>
 
         <div className="flex items-center justify-between gap-4">
@@ -262,10 +262,10 @@ function SellerSettingsForm({
             type="button"
             onClick={() => setIsAcceptingCommissions((value) => !value)}
             className={`relative h-7 w-12 rounded-full transition-colors ${
-              isAcceptingCommissions ? "bg-purple-primary" : "bg-black/[0.12]"
+              isAcceptingCommissions ? "bg-purple-primary" : "bg-border-strong"
             }`}
           >
-            <span className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+            <span className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-surface shadow transition-transform ${
               isAcceptingCommissions ? "translate-x-5" : "translate-x-0"
             }`} />
           </button>
@@ -283,10 +283,10 @@ function SellerSettingsForm({
             type="button"
             onClick={() => setRequireApproval((value) => !value)}
             className={`relative h-7 w-12 rounded-full transition-colors ${
-              requireApproval ? "bg-purple-primary" : "bg-black/[0.12]"
+              requireApproval ? "bg-purple-primary" : "bg-border-strong"
             }`}
           >
-            <span className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+            <span className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-surface shadow transition-transform ${
               requireApproval ? "translate-x-5" : "translate-x-0"
             }`} />
           </button>
@@ -309,7 +309,7 @@ function SellerSettingsForm({
                 const nextValue = Number(event.target.value || 72);
                 setAutoDeclineHours(Math.max(1, Math.min(720, nextValue)));
               }}
-              className="w-32 rounded-xl border border-black/[0.08] px-4 py-2.5 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+              className="w-32 rounded-xl border border-border-light px-4 py-2.5 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
             />
           </div>
         )}
@@ -330,7 +330,7 @@ function SellerSettingsForm({
               const nextValue = Number(event.target.value || 24);
               setResponseTimeHours(Math.max(1, Math.min(168, nextValue)));
             }}
-            className="w-32 rounded-xl border border-black/[0.08] px-4 py-2.5 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
+            className="w-32 rounded-xl border border-border-light px-4 py-2.5 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
           />
         </div>
       </section>
@@ -363,8 +363,8 @@ export default function SellerSettings() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-black/[0.04]" />
-        <div className="h-64 animate-pulse rounded-2xl bg-black/[0.04]" />
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-skeleton/70" />
+        <div className="h-64 animate-pulse rounded-2xl bg-skeleton/70" />
       </div>
     );
   }
@@ -373,7 +373,7 @@ export default function SellerSettings() {
     return (
       <div className="space-y-4">
         <h1 className="font-display text-2xl text-ink">Seller Settings</h1>
-        <div className="rounded-2xl border border-black/[0.06] bg-white p-5 text-sm text-muted">
+        <div className="rounded-2xl border border-border-light bg-surface p-5 text-sm text-muted">
           Complete seller setup to manage your commissions studio settings.
         </div>
       </div>

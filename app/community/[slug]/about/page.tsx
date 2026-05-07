@@ -33,7 +33,7 @@ export default function CommunityAboutPage() {
       {/* Main Content */}
       <div className="lg:col-span-2 space-y-6">
         {/* Description */}
-        <div className="bg-white rounded-xl border border-black/5 p-6">
+        <div className="bg-surface rounded-xl border border-border-light p-6">
           <h2 className="font-display text-xl font-bold text-ink mb-4">About</h2>
           {community.description ? (
             <p className="font-body text-ink/80 whitespace-pre-wrap">
@@ -47,7 +47,7 @@ export default function CommunityAboutPage() {
         </div>
 
         {/* Rules */}
-        <div className="bg-white rounded-xl border border-black/5 p-6">
+        <div className="bg-surface rounded-xl border border-border-light p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-bold text-ink">Community Rules</h2>
             {(isAdmin || isMod) && (
@@ -85,7 +85,7 @@ export default function CommunityAboutPage() {
 
         {/* Tags - Organized by Category */}
         {tags.length > 0 && (
-          <div className="bg-white rounded-xl border border-black/5 p-6">
+          <div className="bg-surface rounded-xl border border-border-light p-6">
             <h2 className="font-display text-xl font-bold text-ink mb-5">Tags</h2>
             <div className="space-y-5">
               {/* Genres */}
@@ -99,7 +99,7 @@ export default function CommunityAboutPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {genreTags.map((tag) => (
-                      <span key={tag.id} className="px-3 py-1.5 rounded-full text-sm font-ui font-medium bg-purple-100 text-purple-700">
+                      <span key={tag.id} className="px-3 py-1.5 rounded-full text-sm font-ui font-medium bg-accent/15 text-purple-700">
                         {tag.tag}
                       </span>
                     ))}
@@ -156,7 +156,7 @@ export default function CommunityAboutPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {customTags.map((tag) => (
-                      <span key={tag.id} className="px-3 py-1.5 rounded-full text-sm font-ui font-medium bg-black/[0.04] text-ink/70">
+                      <span key={tag.id} className="px-3 py-1.5 rounded-full text-sm font-ui font-medium bg-skeleton/70 text-ink/70">
                         {tag.tag}
                       </span>
                     ))}
@@ -171,7 +171,7 @@ export default function CommunityAboutPage() {
       {/* Sidebar */}
       <div className="space-y-4">
         {/* Community Info */}
-        <div className="bg-white rounded-xl border border-black/5 p-4">
+        <div className="bg-surface rounded-xl border border-border-light p-4">
           <h3 className="font-ui text-sm font-semibold text-ink mb-4">Community Info</h3>
           <dl className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
@@ -225,7 +225,7 @@ export default function CommunityAboutPage() {
 
         {/* Moderators */}
         {(admins.length > 0 || moderators.length > 0) && (
-          <div className="bg-white rounded-xl border border-black/5 p-4">
+          <div className="bg-surface rounded-xl border border-border-light p-4">
             <h3 className="font-ui text-sm font-semibold text-ink mb-3">Moderators</h3>
             <div className="space-y-3">
               {/* Admins */}
@@ -260,7 +260,7 @@ export default function CommunityAboutPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-ui font-medium text-ink group-hover:text-purple-primary transition-colors">
+                      <p className="font-ui font-medium text-ink group-hover:text-accent transition-colors">
                         {admin.profile?.display_name || admin.profile?.username}
                       </p>
                       <span className="px-1.5 py-0.5 rounded text-[0.6rem] font-ui font-bold uppercase bg-orange-warm/20 text-orange-warm">
@@ -304,7 +304,7 @@ export default function CommunityAboutPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-ui font-medium text-ink group-hover:text-purple-primary transition-colors">
+                      <p className="font-ui font-medium text-ink group-hover:text-accent transition-colors">
                         {mod.profile?.display_name || mod.profile?.username}
                       </p>
                       <span className="px-1.5 py-0.5 rounded text-[0.6rem] font-ui font-bold uppercase bg-purple-primary/20 text-purple-primary">

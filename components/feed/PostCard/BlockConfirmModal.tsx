@@ -46,7 +46,7 @@ function BlockConfirmModalComponent({
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-ink hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-ink hover:bg-subtle transition-colors disabled:opacity-50"
           >
             Cancel
           </button>

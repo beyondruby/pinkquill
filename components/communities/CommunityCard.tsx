@@ -30,10 +30,10 @@ export default function CommunityCard({ community, variant = 'default', rank }: 
       href={`/community/${community.slug}`}
       className="group block community-card"
     >
-      <div className={`relative h-full bg-white/80 backdrop-blur-xl rounded-2xl overflow-hidden border transition-all duration-300 ${
+      <div className={`relative h-full bg-surface/80 backdrop-blur-xl rounded-2xl overflow-hidden border transition-all duration-300 ${
         isFeatured
-          ? 'border-purple-primary/20 shadow-lg shadow-purple-primary/10 hover:shadow-xl hover:shadow-purple-primary/20 hover:border-purple-primary/30'
-          : 'border-white/60 shadow-md shadow-purple-primary/5 hover:shadow-lg hover:shadow-purple-primary/15 hover:border-purple-primary/20'
+          ? 'border-purple-primary/20 shadow-lg shadow-purple-primary/10 hover:shadow-xl hover:shadow-purple-primary/20 hover:border-accent/30'
+          : 'border-white/60 shadow-md shadow-purple-primary/5 hover:shadow-lg hover:shadow-purple-primary/15 hover:border-accent/20'
       } hover:-translate-y-1`}>
 
         {/* Rank Badge for Featured */}
@@ -78,8 +78,8 @@ export default function CommunityCard({ community, variant = 'default', rank }: 
           {/* Privacy Badge */}
           <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[0.65rem] font-ui font-semibold uppercase tracking-wide backdrop-blur-md ${
             community.privacy === 'private'
-              ? 'bg-white/90 text-purple-primary'
-              : 'bg-white/90 text-emerald-600'
+              ? 'bg-surface/90 text-purple-primary'
+              : 'bg-surface/90 text-emerald-600'
           }`}>
             {community.privacy === 'private' ? (
               <span className="flex items-center gap-1">
@@ -101,7 +101,7 @@ export default function CommunityCard({ community, variant = 'default', rank }: 
 
         {/* Avatar - Overlapping */}
         <div className="relative px-4 -mt-8 z-10">
-          <div className={`rounded-full overflow-hidden border-4 border-white shadow-lg bg-white ${
+          <div className={`rounded-full overflow-hidden border-4 border-white shadow-lg bg-surface ${
             isFeatured ? 'w-16 h-16' : 'w-14 h-14'
           }`}>
             {community.avatar_url ? (
@@ -120,7 +120,7 @@ export default function CommunityCard({ community, variant = 'default', rank }: 
 
         {/* Content */}
         <div className="p-4 pt-3">
-          <h3 className={`font-display font-semibold text-ink line-clamp-1 group-hover:text-purple-primary transition-colors ${
+          <h3 className={`font-display font-semibold text-ink line-clamp-1 group-hover:text-accent transition-colors ${
             isFeatured ? 'text-lg' : 'text-base'
           }`}>
             {community.name}

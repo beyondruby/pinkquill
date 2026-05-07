@@ -27,7 +27,7 @@ export default function EditListingPage({ listingId }: EditListingPageProps) {
   if (authLoading || listingLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-black/20 border-t-[var(--color-pink-vivid)] animate-spin" />
+        <div className="w-10 h-10 rounded-full border-2 border-border-strong border-t-[var(--color-pink-vivid)] animate-spin" />
       </div>
     );
   }
@@ -65,7 +65,7 @@ export default function EditListingPage({ listingId }: EditListingPageProps) {
           </p>
           <Link
             href="/seller/listings"
-            className="mt-6 inline-flex items-center rounded-full border border-black/[0.12] px-5 py-2.5 text-sm font-ui font-semibold text-ink hover:bg-black/[0.03]"
+            className="mt-6 inline-flex items-center rounded-full border border-border-strong px-5 py-2.5 text-sm font-ui font-semibold text-ink hover:bg-subtle"
           >
             Go to My Listings
           </Link>

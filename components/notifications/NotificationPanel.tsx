@@ -871,7 +871,7 @@ function NotificationItem({
       onClick={handleClick}
       className={`group relative flex gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-300 block ${
         notification.read
-          ? "hover:bg-black/[0.02]"
+          ? "hover:bg-subtle"
           : "bg-gradient-to-r from-purple-primary/[0.04] via-pink-vivid/[0.03] to-orange-warm/[0.02]"
       }`}
     >

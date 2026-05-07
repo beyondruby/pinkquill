@@ -47,7 +47,7 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
       {/* Gradient border wrapper - contains both button and options */}
       <div className="relative">
         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-          <div className="w-full h-full rounded-xl bg-white" />
+          <div className="w-full h-full rounded-xl bg-surface" />
         </div>
 
         <div className="relative">
@@ -140,7 +140,7 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
                     onChange={(e) => setCustomValue(e.target.value)}
                     placeholder="Custom"
                     className="flex-1 px-3 py-2 rounded-lg text-sm
-                      border border-pink-vivid/30 bg-white
+                      border border-pink-vivid/30 bg-surface
                       focus:border-pink-vivid focus:outline-none
                       transition-all font-body"
                     autoFocus
@@ -173,7 +173,7 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
             <span
               key={val}
               className="inline-flex items-center gap-2 px-3 py-1.5
-                bg-white border border-pink-vivid/20 rounded-full shadow-sm
+                bg-surface border border-pink-vivid/20 rounded-full shadow-sm
                 text-sm font-ui text-pink-vivid"
             >
               {getLabel(val)}

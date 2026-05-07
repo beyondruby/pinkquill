@@ -391,19 +391,19 @@ export default function MessagesView() {
   return (
     <div className="messages-container flex h-screen md:h-screen bg-[#f8f7fc]">
       {/* Conversations Sidebar - full width on mobile, hidden when conversation selected */}
-      <div className={`messages-sidebar w-full md:w-[340px] bg-white border-r border-black/[0.06] flex flex-col ${
+      <div className={`messages-sidebar w-full md:w-[340px] bg-surface border-r border-border-light flex flex-col ${
         selectedConversation ? 'hidden md:flex' : 'flex'
       }`}>
         {/* Header */}
         <div
-          className="flex items-center justify-between px-4 py-3 md:p-5 border-b border-black/[0.06]"
+          className="flex items-center justify-between px-4 py-3 md:p-5 border-b border-border-light"
           style={{ paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}
         >
           <h1 className="font-display text-[1.2rem] md:text-[1.4rem] text-ink">Messages</h1>
           <div className="flex items-center gap-2">
             <button
               onClick={() => router.push("/messages/community")}
-              className="relative w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/[0.04] text-ink flex items-center justify-center hover:bg-black/[0.08] transition-all"
+              className="relative w-9 h-9 md:w-10 md:h-10 rounded-full bg-skeleton/70 text-ink flex items-center justify-center hover:bg-skeleton transition-all"
               title="Community Inbox"
               aria-label="Open community inbox"
             >

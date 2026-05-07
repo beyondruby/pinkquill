@@ -22,7 +22,7 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
           onClick={() => onChange(true)}
           className={`
             flex items-center gap-2.5 px-5 py-3 rounded-xl transition-all duration-200
-            bg-white
+            bg-surface
             ${value === true
               ? "shadow-md shadow-pink-vivid/10"
               : "shadow-sm hover:shadow-md"
@@ -49,7 +49,7 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
             `}
           >
             {value === true && (
-              <div className="w-2 h-2 rounded-full bg-white" />
+              <div className="w-2 h-2 rounded-full bg-surface" />
             )}
           </div>
           <span className={`text-sm font-ui ${value === true ? "text-pink-vivid font-medium" : "text-ink"}`}>
@@ -62,7 +62,7 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
           onClick={() => onChange(false)}
           className={`
             flex items-center gap-2.5 px-5 py-3 rounded-xl transition-all duration-200
-            bg-white
+            bg-surface
             ${value === false
               ? "shadow-md shadow-pink-vivid/10"
               : "shadow-sm hover:shadow-md"
@@ -89,7 +89,7 @@ export default function BooleanField({ field, value, onChange }: BooleanFieldPro
             `}
           >
             {value === false && (
-              <div className="w-2 h-2 rounded-full bg-white" />
+              <div className="w-2 h-2 rounded-full bg-surface" />
             )}
           </div>
           <span className={`text-sm font-ui ${value === false ? "text-pink-vivid font-medium" : "text-ink"}`}>

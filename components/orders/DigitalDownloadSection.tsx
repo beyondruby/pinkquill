@@ -8,11 +8,11 @@ export default function DigitalDownloadSection({ orderId }: { orderId: string })
 
   if (loading) {
     return (
-      <section className="rounded-2xl border border-black/[0.06] bg-white p-5">
+      <section className="rounded-2xl border border-border-light bg-surface p-5">
         <h3 className="font-display text-lg text-ink mb-3">Your Downloads</h3>
         <div className="space-y-3">
           {[1, 2].map((i) => (
-            <div key={i} className="h-20 bg-black/[0.04] rounded-xl animate-pulse" />
+            <div key={i} className="h-20 bg-skeleton/70 rounded-xl animate-pulse" />
           ))}
         </div>
       </section>
@@ -30,7 +30,7 @@ export default function DigitalDownloadSection({ orderId }: { orderId: string })
   if (tokens.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-black/[0.06] bg-white p-5">
+    <section className="rounded-2xl border border-border-light bg-surface p-5">
       <h3 className="font-display text-lg text-ink mb-1">Your Downloads</h3>
       <p className="text-xs font-body text-muted mb-4">
         Download your files below. Each file has a limited number of downloads.

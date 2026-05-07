@@ -253,28 +253,28 @@ export default function GettingStartedPage() {
             <p>Now that you&apos;re set up, here are some things to try:</p>
 
             <div className="grid gap-4 my-6">
-              <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-start gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faCheckCircle} className="w-5 h-5 text-green-500 mt-0.5" />
                 <div>
                   <p className="font-ui font-medium text-ink mb-1">Complete your profile</p>
                   <p className="font-body text-sm text-muted mb-0">Add a bio, avatar, and social links</p>
                 </div>
               </div>
-              <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-start gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faCheckCircle} className="w-5 h-5 text-green-500 mt-0.5" />
                 <div>
                   <p className="font-ui font-medium text-ink mb-1">Follow 5 creators</p>
                   <p className="font-body text-sm text-muted mb-0">Build your feed with inspiring content</p>
                 </div>
               </div>
-              <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-start gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faCheckCircle} className="w-5 h-5 text-green-500 mt-0.5" />
                 <div>
                   <p className="font-ui font-medium text-ink mb-1">Join a community</p>
                   <p className="font-body text-sm text-muted mb-0">Find your creative tribe</p>
                 </div>
               </div>
-              <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-black/5">
+              <div className="flex items-start gap-4 p-4 bg-surface rounded-xl border border-border-light">
                 <FontAwesomeIcon icon={faCheckCircle} className="w-5 h-5 text-green-500 mt-0.5" />
                 <div>
                   <p className="font-ui font-medium text-ink mb-1">Share your first post</p>

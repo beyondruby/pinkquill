@@ -72,10 +72,10 @@ function ConversationList({
         <div
           key={conversation.id}
           onClick={() => onSelect(conversation.id)}
-          className={`flex items-center gap-3 p-4 cursor-pointer transition-all border-b border-black/[0.04] ${
+          className={`flex items-center gap-3 p-4 cursor-pointer transition-all border-b border-border-light ${
             selectedId === conversation.id
               ? "bg-purple-primary/10 border-l-[3px] border-l-purple-primary"
-              : "hover:bg-purple-primary/5"
+              : "hover:bg-accent/5"
           }`}
         >
           {/* Avatar */}

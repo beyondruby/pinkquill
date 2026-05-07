@@ -118,7 +118,7 @@ function TagPicker({
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
               selected.includes(opt)
                 ? "bg-[var(--color-purple-primary)] text-white"
-                : "bg-black/[0.04] text-ink/60 hover:bg-black/[0.06]"
+                : "bg-skeleton/70 text-ink/60 hover:bg-skeleton"
             }`}
           >
             {opt}
@@ -132,7 +132,7 @@ function TagPicker({
             value={customInput}
             onChange={(e) => setCustomInput(e.target.value)}
             placeholder="Add custom..."
-            className="flex-1 rounded-lg border border-black/[0.08] px-3 py-1.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+            className="flex-1 rounded-lg border border-border-light px-3 py-1.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && customInput.trim()) {
                 e.preventDefault();
@@ -176,7 +176,7 @@ function StoreBasicsStep({ state, setState }: { state: WizardState; setState: (s
           value={state.storeName}
           onChange={(e) => setState({ ...state, storeName: e.target.value })}
           placeholder="e.g., Ruby's Art Studio"
-          className="w-full rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] focus:ring-1 focus:ring-[var(--color-purple-primary)] outline-none"
+          className="w-full rounded-lg border border-border-light px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] focus:ring-1 focus:ring-[var(--color-purple-primary)] outline-none"
           maxLength={60}
         />
       </div>
@@ -187,7 +187,7 @@ function StoreBasicsStep({ state, setState }: { state: WizardState; setState: (s
           value={state.storeTagline}
           onChange={(e) => setState({ ...state, storeTagline: e.target.value })}
           placeholder="e.g., Bringing stories to life through art"
-          className="w-full rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+          className="w-full rounded-lg border border-border-light px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
           maxLength={120}
         />
       </div>
@@ -198,7 +198,7 @@ function StoreBasicsStep({ state, setState }: { state: WizardState; setState: (s
           onChange={(e) => setState({ ...state, storeDescription: e.target.value })}
           placeholder="Tell buyers about your work, experience, and what makes your creations special..."
           rows={4}
-          className="w-full rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none resize-none"
+          className="w-full rounded-lg border border-border-light px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none resize-none"
           maxLength={1000}
         />
         <p className="text-xs text-muted/60 mt-1">{state.storeDescription.length}/1000</p>
@@ -241,8 +241,8 @@ function ServicesSkillsStep({ state, setState }: { state: WizardState; setState:
               onClick={() => setState({ ...state, experienceLevel: level })}
               className={`px-4 py-2.5 rounded-lg border text-sm font-medium capitalize transition-colors ${
                 state.experienceLevel === level
-                  ? "border-[var(--color-purple-primary)] bg-purple-50 text-[var(--color-purple-primary)]"
-                  : "border-black/[0.08] text-ink/60 hover:bg-black/[0.02]"
+                  ? "border-[var(--color-purple-primary)] bg-accent/10 text-[var(--color-purple-primary)]"
+                  : "border-border-light text-ink/60 hover:bg-subtle"
               }`}
             >
               {level}
@@ -260,7 +260,7 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between rounded-lg border border-black/[0.08] p-4">
+      <div className="flex items-center justify-between rounded-lg border border-border-light p-4">
         <div>
           <p className="text-sm font-medium text-ink">Accepting Commissions</p>
           <p className="text-xs text-muted">Allow buyers to hire you for custom work</p>
@@ -269,18 +269,18 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
           type="button"
           onClick={() => setState({ ...state, isAcceptingCommissions: !state.isAcceptingCommissions })}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            state.isAcceptingCommissions ? "bg-[var(--color-purple-primary)]" : "bg-black/[0.12]"
+            state.isAcceptingCommissions ? "bg-[var(--color-purple-primary)]" : "bg-border-strong"
           }`}
         >
           <span
-            className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+            className={`inline-block h-4 w-4 rounded-full bg-surface transition-transform ${
               state.isAcceptingCommissions ? "translate-x-6" : "translate-x-1"
             }`}
           />
         </button>
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-black/[0.08] p-4">
+      <div className="flex items-center justify-between rounded-lg border border-border-light p-4">
         <div>
           <p className="text-sm font-medium text-ink">Require Approval Before Payment</p>
           <p className="text-xs text-muted">
@@ -291,11 +291,11 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
           type="button"
           onClick={() => setState({ ...state, requireApproval: !state.requireApproval })}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            state.requireApproval ? "bg-[var(--color-purple-primary)]" : "bg-black/[0.12]"
+            state.requireApproval ? "bg-[var(--color-purple-primary)]" : "bg-border-strong"
           }`}
         >
           <span
-            className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+            className={`inline-block h-4 w-4 rounded-full bg-surface transition-transform ${
               state.requireApproval ? "translate-x-6" : "translate-x-1"
             }`}
           />
@@ -311,7 +311,7 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
             max={720}
             value={state.autoDeclineHours}
             onChange={(e) => setState({ ...state, autoDeclineHours: Math.max(1, Math.min(720, Number(e.target.value || 72))) })}
-            className="w-40 rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+            className="w-40 rounded-lg border border-border-light px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
           />
           <p className="mt-1 text-xs text-muted">
             Orders without a response in this window are automatically declined.
@@ -324,7 +324,7 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
         <select
           value={state.responseTimeHours}
           onChange={(e) => setState({ ...state, responseTimeHours: Number(e.target.value) })}
-          className="w-full rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+          className="w-full rounded-lg border border-border-light px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
         >
           <option value={1}>Within 1 hour</option>
           <option value={4}>Within 4 hours</option>
@@ -350,7 +350,7 @@ function AvailabilityStep({ state, setState }: { state: WizardState; setState: (
           value={state.location}
           onChange={(e) => setState({ ...state, location: e.target.value })}
           placeholder="e.g., Toronto, Canada"
-          className="w-full rounded-lg border border-black/[0.08] px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
+          className="w-full rounded-lg border border-border-light px-4 py-2.5 text-sm focus:border-[var(--color-purple-primary)] outline-none"
         />
       </div>
     </div>
@@ -369,7 +369,7 @@ function PaymentStep({ onStartOnboarding, onboardingLoading }: { onStartOnboardi
           Connect your payment account to start receiving earnings. You can also skip this step and set it up later.
         </p>
       </div>
-      <div className="bg-black/[0.02] rounded-lg p-4 text-left text-sm space-y-2">
+      <div className="bg-subtle rounded-lg p-4 text-left text-sm space-y-2">
         <div className="flex items-start gap-2">
           <FontAwesomeIcon icon={faCheck} className="text-emerald-500 mt-0.5 text-xs" />
           <span>Quill charges 5% on all sales</span>
@@ -471,7 +471,7 @@ export default function SellerSetupWizard() {
                     ? "bg-emerald-500 text-white"
                     : i === step
                       ? "bg-[var(--color-purple-primary)] text-white"
-                      : "bg-black/[0.06] text-muted"
+                      : "bg-skeleton text-muted"
                 }`}
               >
                 {i < step ? <FontAwesomeIcon icon={faCheck} /> : i + 1}
@@ -482,7 +482,7 @@ export default function SellerSetupWizard() {
                 {s.label}
               </span>
               {i < STEPS.length - 1 && (
-                <div className={`w-8 sm:w-16 h-0.5 mx-1 ${i < step ? "bg-emerald-500" : "bg-black/[0.06]"}`} />
+                <div className={`w-8 sm:w-16 h-0.5 mx-1 ${i < step ? "bg-emerald-500" : "bg-skeleton"}`} />
               )}
             </div>
           ))}
@@ -501,7 +501,7 @@ export default function SellerSetupWizard() {
       </div>
 
       {/* Step Content */}
-      <div className="bg-white rounded-2xl border border-black/[0.06] p-6 mb-6">
+      <div className="bg-surface rounded-2xl border border-border-light p-6 mb-6">
         {step === 0 && <StoreBasicsStep state={state} setState={setState} />}
         {step === 1 && <ServicesSkillsStep state={state} setState={setState} />}
         {step === 2 && <AvailabilityStep state={state} setState={setState} />}
@@ -531,7 +531,7 @@ export default function SellerSetupWizard() {
             <button
               onClick={() => handleFinish(true)}
               disabled={updating}
-              className="px-5 py-2.5 text-sm font-medium text-ink/60 border border-black/[0.12] rounded-lg hover:bg-black/[0.02] disabled:opacity-50"
+              className="px-5 py-2.5 text-sm font-medium text-ink/60 border border-border-strong rounded-lg hover:bg-subtle disabled:opacity-50"
             >
               Skip & Finish
             </button>

@@ -516,7 +516,7 @@ function CollectionCard({
                     className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
                       index === 0
                         ? 'text-muted/30 cursor-not-allowed'
-                        : 'text-muted hover:text-ink hover:bg-black/[0.05]'
+                        : 'text-muted hover:text-ink hover:bg-skeleton'
                     }`}
                     title="Move up"
                   >
@@ -530,7 +530,7 @@ function CollectionCard({
                     className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
                       index === totalCount - 1
                         ? 'text-muted/30 cursor-not-allowed'
-                        : 'text-muted hover:text-ink hover:bg-black/[0.05]'
+                        : 'text-muted hover:text-ink hover:bg-skeleton'
                     }`}
                     title="Move down"
                   >
@@ -544,7 +544,7 @@ function CollectionCard({
               {/* Collapse toggle */}
               <button
                 onClick={onToggleCollapse}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.05] transition-all"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
                 title={collection.is_collapsed ? "Expand" : "Collapse"}
               >
                 <svg
@@ -562,7 +562,7 @@ function CollectionCard({
                 <div className="relative" ref={menuRef}>
                   <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.05] transition-all"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="5" cy="12" r="2" />
@@ -585,7 +585,7 @@ function CollectionCard({
                         </svg>
                         Edit Collection
                       </button>
-                      <div className="h-px bg-black/[0.06]" />
+                      <div className="h-px bg-skeleton" />
                       <button
                         onClick={() => {
                           setShowMenu(false);
@@ -1255,7 +1255,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       setShowMenu(false);
                       setShowShareModal(true);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-skeleton/60 transition-colors"
                   >
                     {icons.share}
                     Share Profile
@@ -1263,7 +1263,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
                   {!isOwnProfile && user && (
                     <>
-                      <div className="h-px bg-black/[0.06] mx-3" />
+                      <div className="h-px bg-skeleton mx-3" />
                       <button
                         onClick={() => {
                           setShowMenu(false);
@@ -1273,7 +1273,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             setShowBlockConfirm(true);
                           }
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-black/[0.04] transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-skeleton/60 transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -1842,9 +1842,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                       }}
                                       className={`absolute top-3 ${isPinned(work.id) ? 'left-12' : 'left-3'} w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 ${
                                         isPinned(work.id)
-                                          ? 'bg-white/90 hover:bg-white text-purple-primary'
+                                          ? 'bg-surface/90 hover:bg-surface text-purple-primary'
                                           : canPin
-                                            ? 'bg-black/40 hover:bg-purple-primary/90 text-white'
+                                            ? 'bg-black/40 hover:bg-accent/90 text-white'
                                             : 'bg-black/20 text-white/50 cursor-not-allowed'
                                       }`}
                                       title={isPinned(work.id) ? 'Unpin post' : canPin ? 'Pin to profile' : 'Max 6 pinned posts'}
@@ -1870,7 +1870,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
                                   {/* Type badge overlaid on image */}
                                   <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                                    <span className="px-3 py-1 rounded-full bg-white/95 backdrop-blur-sm text-purple-primary text-xs font-semibold shadow-sm">
+                                    <span className="px-3 py-1 rounded-full bg-surface/95 backdrop-blur-sm text-purple-primary text-xs font-semibold shadow-sm">
                                       {typeLabels[work.type] || work.type}
                                     </span>
                                     {isCollab && (
@@ -1907,7 +1907,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                       }}
                                       className={`absolute top-3 ${isPinned(work.id) ? 'left-12' : 'left-3'} w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 ${
                                         isPinned(work.id)
-                                          ? 'bg-white/90 hover:bg-white text-purple-primary'
+                                          ? 'bg-surface/90 hover:bg-surface text-purple-primary'
                                           : canPin
                                             ? 'bg-accent/20 hover:bg-accent/80 hover:text-on-accent text-accent'
                                             : 'bg-black/10 text-muted cursor-not-allowed'
@@ -1995,7 +1995,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                               </p>
 
                               {/* Footer */}
-                              <div className="flex items-center justify-between pt-3 border-t border-black/[0.05]">
+                              <div className="flex items-center justify-between pt-3 border-t border-border-light">
                                 <span className="text-xs text-muted">{formattedDate}</span>
                                 <div className="flex items-center gap-3">
                                   <span className="flex items-center gap-1 text-xs text-muted">
@@ -2013,7 +2013,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             </div>
 
                             {/* Glass border */}
-                            <div className="absolute inset-0 rounded-2xl border border-black/[0.05] pointer-events-none" />
+                            <div className="absolute inset-0 rounded-2xl border border-border-light pointer-events-none" />
                           </div>
 
                           {/* Hover glow effect */}
@@ -2132,7 +2132,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <div
                           key={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
-                          className="group relative aspect-square cursor-pointer overflow-hidden bg-black/[0.03] rounded-sm sm:rounded-lg"
+                          className="group relative aspect-square cursor-pointer overflow-hidden bg-skeleton/60 rounded-sm sm:rounded-lg"
                         >
                           <img
                             src={work.media[0].media_url}
@@ -2649,7 +2649,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               <div className="relative rounded-3xl overflow-hidden">
                 {/* Glass background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/5 via-white/80 to-pink-vivid/5 backdrop-blur-xl" />
-                <div className="absolute inset-0 bg-white/40" />
+                <div className="absolute inset-0 bg-surface/40" />
 
                 {/* Content */}
                 <div className="relative p-10 md:p-16 text-center">
@@ -2761,7 +2761,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               <button
                 onClick={() => setShowBlockConfirm(false)}
                 disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -2824,7 +2824,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     onChange={(e) => setReportReason(e.target.value)}
                     placeholder="Please describe the issue..."
                     rows={4}
-                    className="w-full px-4 py-3 rounded-xl bg-black/[0.03] border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-skeleton/60 border-none outline-none font-body text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-purple-primary/20 transition-all resize-none"
                   />
 
                   <div className="mt-4 space-y-2">
@@ -2854,7 +2854,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       setReportReason("");
                     }}
                     disabled={reportLoading}
-                    className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
+                    className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -2892,7 +2892,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               <h3 className="font-display text-lg text-ink">Communities</h3>
               <button
                 onClick={() => setShowCommunitiesModal(false)}
-                className="w-8 h-8 rounded-full hover:bg-black/[0.04] flex items-center justify-center text-muted transition-colors"
+                className="w-8 h-8 rounded-full hover:bg-skeleton/60 flex items-center justify-center text-muted transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2907,7 +2907,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   key={community.id}
                   href={`/community/${community.slug || community.id}`}
                   onClick={() => setShowCommunitiesModal(false)}
-                  className="flex items-center gap-3 p-4 hover:bg-black/[0.02] transition-colors border-b border-border-light last:border-b-0"
+                  className="flex items-center gap-3 p-4 hover:bg-subtle transition-colors border-b border-border-light last:border-b-0"
                 >
                   {/* Community Avatar */}
                   <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0">

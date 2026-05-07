@@ -143,7 +143,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
         {!showForm && flairs.length < MAX_FLAIRS && (
           <button
             onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-purple-primary/90 transition-colors font-ui text-sm"
+            className="px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-accent/90 transition-colors font-ui text-sm"
           >
             Add Flair
           </button>
@@ -154,7 +154,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="bg-black/[0.02] rounded-lg p-4 space-y-4"
+          className="bg-subtle rounded-lg p-4 space-y-4"
         >
           <div className="flex items-start gap-4">
             {/* Emoji Input */}
@@ -169,7 +169,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
                   setFormData({ ...formData, emoji: e.target.value.slice(0, 2) })
                 }
                 placeholder="Optional"
-                className="w-16 px-3 py-2 rounded-lg border border-black/[0.08] focus:border-purple-primary focus:outline-none text-center"
+                className="w-16 px-3 py-2 rounded-lg border border-border-light focus:border-purple-primary focus:outline-none text-center"
                 maxLength={2}
               />
             </div>
@@ -186,7 +186,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder="e.g., Discussion, Question, Announcement"
-                className="w-full px-3 py-2 rounded-lg border border-black/[0.08] focus:border-purple-primary focus:outline-none"
+                className="w-full px-3 py-2 rounded-lg border border-border-light focus:border-purple-primary focus:outline-none"
                 maxLength={30}
                 required
               />
@@ -257,7 +257,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
             <button
               type="submit"
               disabled={!formData.name.trim() || saving}
-              className="px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-purple-primary/90 transition-colors font-ui text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-purple-primary text-white rounded-lg hover:bg-accent/90 transition-colors font-ui text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving
                 ? "Saving..."
@@ -275,7 +275,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
           {flairs.map((flair, index) => (
             <div
               key={flair.id}
-              className="flex items-center gap-3 p-3 bg-white rounded-lg border border-black/[0.08]"
+              className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border-light"
             >
               {/* Reorder buttons */}
               <div className="flex flex-col gap-0.5">
@@ -330,7 +330,7 @@ export default function FlairManager({ communityId }: FlairManagerProps) {
               {/* Edit/Delete buttons */}
               <button
                 onClick={() => handleEdit(flair)}
-                className="p-2 text-muted hover:text-purple-primary transition-colors"
+                className="p-2 text-muted hover:text-accent transition-colors"
                 title="Edit flair"
               >
                 <svg

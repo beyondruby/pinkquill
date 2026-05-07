@@ -115,7 +115,7 @@ export default function ProductGallery({
             className={`relative aspect-square rounded-[28px] overflow-hidden group cursor-pointer border ${
               isService
                 ? "bg-gradient-to-br from-[#fff8f5] via-[#fff6fc] to-[#fefaf3] border-orange-100/70 shadow-[0_18px_48px_-28px_rgba(255,159,67,0.45)]"
-                : "bg-gradient-to-br from-pink-50/40 to-orange-50/40 border-black/[0.06] shadow-lg shadow-black/5"
+                : "bg-gradient-to-br from-pink-50/40 to-orange-50/40 border-border-light shadow-lg shadow-black/5"
             }`}
             onClick={() => setIsFullscreen(true)}
           >
@@ -139,8 +139,8 @@ export default function ProductGallery({
                   }}
                   className={`absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 ${
                     isService
-                      ? "bg-white/95 hover:bg-white border border-orange-100"
-                      : "bg-white/95 hover:bg-white border border-pink-vivid/10"
+                      ? "bg-surface/95 hover:bg-surface border border-orange-100"
+                      : "bg-surface/95 hover:bg-surface border border-pink-vivid/10"
                   }`}
                   aria-label="Previous image"
                 >
@@ -160,8 +160,8 @@ export default function ProductGallery({
                   }}
                   className={`absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 ${
                     isService
-                      ? "bg-white/95 hover:bg-white border border-orange-100"
-                      : "bg-white/95 hover:bg-white border border-pink-vivid/10"
+                      ? "bg-surface/95 hover:bg-surface border border-orange-100"
+                      : "bg-surface/95 hover:bg-surface border border-pink-vivid/10"
                   }`}
                   aria-label="Next image"
                 >
@@ -191,7 +191,7 @@ export default function ProductGallery({
                         ? isService
                           ? "bg-orange-warm"
                           : "bg-pink-vivid"
-                        : "bg-white/60 hover:bg-white"
+                        : "bg-surface/60 hover:bg-surface"
                     }`}
                     aria-label={`Go to image ${index + 1}`}
                   />
@@ -236,7 +236,7 @@ export default function ProductGallery({
         >
           <button
             onClick={() => setIsFullscreen(false)}
-            className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors z-10"
+            className="absolute top-6 right-6 w-12 h-12 rounded-full bg-surface/10 text-white flex items-center justify-center hover:bg-surface/20 transition-colors z-10"
             aria-label="Close fullscreen"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +251,7 @@ export default function ProductGallery({
                   e.stopPropagation();
                   handlePrevious();
                 }}
-                className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"
+                className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-surface/10 text-white flex items-center justify-center hover:bg-surface/20 transition-colors"
                 aria-label="Previous image"
               >
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,7 +263,7 @@ export default function ProductGallery({
                   e.stopPropagation();
                   handleNext();
                 }}
-                className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"
+                className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-surface/10 text-white flex items-center justify-center hover:bg-surface/20 transition-colors"
                 aria-label="Next image"
               >
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">

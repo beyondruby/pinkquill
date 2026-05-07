@@ -104,7 +104,7 @@ export default function HelpCenterPage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-purple-primary/5 to-transparent pt-20 pb-16 px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-black/5 shadow-sm mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border-light shadow-sm mb-6">
             <FontAwesomeIcon icon={faQuestionCircle} className="w-4 h-4 text-purple-primary" />
             <span className="font-ui text-sm text-muted">Help Center</span>
           </div>
@@ -131,7 +131,7 @@ export default function HelpCenterPage() {
               placeholder="Search for help..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white border border-black/10 shadow-sm font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
+              className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-surface border border-border-light shadow-sm font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
             />
           </div>
         </div>
@@ -153,12 +153,12 @@ export default function HelpCenterPage() {
             <Link
               key={cat.href}
               href={cat.href}
-              className="group relative bg-white rounded-2xl border border-black/5 p-6 hover:shadow-lg hover:shadow-black/5 hover:border-purple-primary/20 transition-all duration-300"
+              className="group relative bg-surface rounded-2xl border border-border-light p-6 hover:shadow-lg hover:shadow-black/5 hover:border-accent/20 transition-all duration-300"
             >
               <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                 <FontAwesomeIcon icon={cat.icon} className="w-5 h-5 text-white" />
               </div>
-              <h3 className="font-ui text-lg font-semibold text-ink mb-2 group-hover:text-purple-primary transition-colors">
+              <h3 className="font-ui text-lg font-semibold text-ink mb-2 group-hover:text-accent transition-colors">
                 {cat.label}
               </h3>
               <p className="font-body text-sm text-muted leading-relaxed">
@@ -166,7 +166,7 @@ export default function HelpCenterPage() {
               </p>
               <FontAwesomeIcon
                 icon={faChevronRight}
-                className="absolute top-6 right-6 w-4 h-4 text-muted/30 group-hover:text-purple-primary group-hover:translate-x-1 transition-all"
+                className="absolute top-6 right-6 w-4 h-4 text-muted/30 group-hover:text-accent group-hover:translate-x-1 transition-all"
               />
             </Link>
           ))}
@@ -186,12 +186,12 @@ export default function HelpCenterPage() {
               <li key={topic.href}>
                 <Link
                   href={topic.href}
-                  className="flex items-center justify-between py-2 text-ink/80 hover:text-purple-primary transition-colors group"
+                  className="flex items-center justify-between py-2 text-ink/80 hover:text-accent transition-colors group"
                 >
                   <span className="font-body text-[0.95rem]">{topic.label}</span>
                   <FontAwesomeIcon
                     icon={faChevronRight}
-                    className="w-3 h-3 text-muted/40 group-hover:text-purple-primary group-hover:translate-x-1 transition-all"
+                    className="w-3 h-3 text-muted/40 group-hover:text-accent group-hover:translate-x-1 transition-all"
                   />
                 </Link>
               </li>
@@ -203,7 +203,7 @@ export default function HelpCenterPage() {
       {/* Quick Links */}
       <section className="px-6 max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl border border-black/5 p-6">
+          <div className="bg-surface rounded-2xl border border-border-light p-6">
             <FontAwesomeIcon icon={faBook} className="w-8 h-8 text-purple-primary/60 mb-4" />
             <h3 className="font-ui text-lg font-semibold text-ink mb-2">Community Guidelines</h3>
             <p className="font-body text-sm text-muted mb-4">
@@ -214,7 +214,7 @@ export default function HelpCenterPage() {
             </Link>
           </div>
 
-          <div className="bg-white rounded-2xl border border-black/5 p-6">
+          <div className="bg-surface rounded-2xl border border-border-light p-6">
             <FontAwesomeIcon icon={faShield} className="w-8 h-8 text-purple-primary/60 mb-4" />
             <h3 className="font-ui text-lg font-semibold text-ink mb-2">Privacy Policy</h3>
             <p className="font-body text-sm text-muted mb-4">

@@ -56,7 +56,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2100] animate-fadeIn"
         onClick={() => !submitting && handleClose()}
       />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] z-[2101] overflow-hidden animate-scaleIn">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-surface rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] z-[2101] overflow-hidden animate-scaleIn">
         {submitted ? (
           /* Success State */
           <div className="p-10 text-center">
@@ -86,12 +86,12 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
                   <button
                     key={reason.value}
                     onClick={() => handleReasonSelect(reason.value)}
-                    className="w-full flex items-center justify-between px-5 py-4 rounded-xl text-left border border-black/[0.06] transition-all duration-200 hover:border-purple-primary/30 hover:bg-purple-primary/[0.03] group"
+                    className="w-full flex items-center justify-between px-5 py-4 rounded-xl text-left border border-border-light transition-all duration-200 hover:border-accent/30 hover:bg-accent/[0.03] group"
                   >
-                    <span className="font-ui text-[0.95rem] text-ink group-hover:text-purple-primary transition-colors">
+                    <span className="font-ui text-[0.95rem] text-ink group-hover:text-accent transition-colors">
                       {reason.label}
                     </span>
-                    <svg className="w-4 h-4 text-muted/40 group-hover:text-purple-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-muted/40 group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
@@ -117,7 +117,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
               <div className="flex items-center gap-3 mb-1">
                 <button
                   onClick={handleBack}
-                  className="w-8 h-8 -ml-1 rounded-full hover:bg-black/[0.04] flex items-center justify-center transition-colors"
+                  className="w-8 h-8 -ml-1 rounded-full hover:bg-skeleton/60 flex items-center justify-center transition-colors"
                 >
                   <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -139,7 +139,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
                   placeholder={placeholder}
                   maxLength={500}
                   rows={4}
-                  className="w-full px-4 py-4 rounded-xl border border-black/[0.08] bg-black/[0.015] font-body text-[0.95rem] text-ink placeholder:text-muted/40 placeholder:italic resize-none focus:outline-none focus:border-purple-primary/40 focus:bg-white transition-all"
+                  className="w-full px-4 py-4 rounded-xl border border-border-light bg-subtle/40 font-body text-[0.95rem] text-ink placeholder:text-muted/40 placeholder:italic resize-none focus:outline-none focus:border-purple-primary/40 focus:bg-surface transition-all"
                 />
                 <span className="absolute bottom-3 right-3 font-ui text-[0.7rem] text-muted/50">
                   {details.length}/500
@@ -152,7 +152,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
               <button
                 onClick={handleBack}
                 disabled={submitting}
-                className="flex-1 py-3.5 rounded-xl font-ui text-[0.9rem] text-muted border border-black/[0.08] hover:border-black/[0.15] hover:text-ink transition-all disabled:opacity-50"
+                className="flex-1 py-3.5 rounded-xl font-ui text-[0.9rem] text-muted border border-border-light hover:border-border-strong hover:text-ink transition-all disabled:opacity-50"
               >
                 Back
               </button>

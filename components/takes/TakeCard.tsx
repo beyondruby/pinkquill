@@ -238,7 +238,7 @@ function TakeCard({
               </div>
               <button
                 onClick={() => setShowContent(true)}
-                className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-white/20 hover:bg-white/30 transition-colors"
+                className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-surface/20 hover:bg-surface/30 transition-colors"
               >
                 Show Content
               </button>

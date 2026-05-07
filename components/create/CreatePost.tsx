@@ -1998,7 +1998,7 @@ export default function CreatePost() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-surface">
     <div className="max-w-4xl mx-auto px-6 py-12">
 
       {/* Header */}
@@ -2049,7 +2049,7 @@ export default function CreatePost() {
                 </button>
                 <button
                   onClick={handleDismissDraftRecovery}
-                  className="px-4 py-2 rounded-full border border-black/[0.08] bg-white font-ui text-[0.85rem] text-muted hover:border-purple-primary hover:text-purple-primary transition-all"
+                  className="px-4 py-2 rounded-full border border-border-light bg-surface font-ui text-[0.85rem] text-muted hover:border-accent hover:text-accent transition-all"
                 >
                   Start Fresh
                 </button>
@@ -2063,7 +2063,7 @@ export default function CreatePost() {
             </div>
             <button
               onClick={handleDismissDraftRecovery}
-              className="p-1.5 rounded-full hover:bg-black/5 text-muted transition-all flex-shrink-0"
+              className="p-1.5 rounded-full hover:bg-skeleton text-muted transition-all flex-shrink-0"
             >
               {icons.x}
             </button>
@@ -2132,7 +2132,7 @@ export default function CreatePost() {
                 className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all max-w-md mx-auto ${
                   takeDragActive
                     ? "border-[#8e44ad] bg-[#8e44ad]/5"
-                    : "border-black/[0.08] hover:border-[#8e44ad]/50 hover:bg-[#8e44ad]/[0.02]"
+                    : "border-border-light hover:border-[#8e44ad]/50 hover:bg-[#8e44ad]/[0.02]"
                 }`}
                 onDrop={handleTakeDrop}
                 onDragOver={handleTakeDragOver}
@@ -2178,7 +2178,7 @@ export default function CreatePost() {
                         className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
                         onClick={handleToggleTakePreview}
                       >
-                        <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center text-[#6b2d8b]">
+                        <div className="w-14 h-14 rounded-full bg-surface/90 flex items-center justify-center text-[#6b2d8b]">
                           {isTakePreviewPlaying ? icons.pause : icons.play}
                         </div>
                       </div>
@@ -2203,7 +2203,7 @@ export default function CreatePost() {
                         </div>
                       )}
                       {takeSelectedFilter !== "none" && (
-                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-purple-500/90 text-white font-ui text-[0.7rem]">
+                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-accent/100/90 text-white font-ui text-[0.7rem]">
                           {TAKE_FILTER_OPTIONS.find(f => f.name === takeSelectedFilter)?.label}
                         </div>
                       )}
@@ -2228,13 +2228,13 @@ export default function CreatePost() {
                       placeholder="Write a caption..."
                       maxLength={500}
                       rows={3}
-                      className="w-full p-3 rounded-xl border border-black/[0.08] bg-[#fafafa] font-body text-[0.9rem] text-ink resize-none outline-none focus:border-[#8e44ad] focus:bg-white transition-all placeholder:text-muted/50"
+                      className="w-full p-3 rounded-xl border border-border-light bg-[#fafafa] font-body text-[0.9rem] text-ink resize-none outline-none focus:border-[#8e44ad] focus:bg-surface transition-all placeholder:text-muted/50"
                     />
                     <div className="text-right font-ui text-[0.7rem] text-muted mt-1">{takeCaption.length}/500</div>
                   </div>
 
                   {/* Filters Section */}
-                  <div className="border-t border-black/[0.06] pt-5">
+                  <div className="border-t border-border-light pt-5">
                     <button
                       onClick={() => setTakeEditorTab(takeEditorTab === "effects" ? "details" : "effects")}
                       className="w-full flex items-center justify-between mb-3"
@@ -2286,7 +2286,7 @@ export default function CreatePost() {
                                 className={`flex-1 py-1.5 rounded-lg text-[0.75rem] font-medium transition-all ${
                                   takePlaybackSpeed === speed.value
                                     ? "bg-ink text-white"
-                                    : "bg-gray-100 text-muted hover:bg-gray-200"
+                                    : "bg-skeleton text-muted hover:bg-skeleton"
                                 }`}
                               >
                                 {speed.label}
@@ -2299,7 +2299,7 @@ export default function CreatePost() {
                   </div>
 
                   {/* Sound Section */}
-                  <div className="border-t border-black/[0.06] pt-5">
+                  <div className="border-t border-border-light pt-5">
                     <button
                       onClick={() => setTakeEditorTab(takeEditorTab === "sound" ? "details" : "sound")}
                       className="w-full flex items-center justify-between mb-3"
@@ -2332,7 +2332,7 @@ export default function CreatePost() {
                                   max={Math.max(0, takeSelectedSound.duration - 1)}
                                   value={Math.min(takeSoundStartTime, Math.max(0, takeSelectedSound.duration - 1))}
                                   onChange={(e) => setTakeSoundStartTime(Number(e.target.value))}
-                                  className="flex-1 h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-pink-500"
+                                  className="flex-1 h-1.5 bg-skeleton rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-pink-500"
                                 />
                                 <span className="text-xs text-muted w-8 text-right">{takeSoundStartTime}s</span>
                               </div>
@@ -2345,7 +2345,7 @@ export default function CreatePost() {
                               placeholder="Search sounds..."
                               value={takeSoundSearch}
                               onChange={(e) => setTakeSoundSearch(e.target.value)}
-                              className="w-full p-2.5 rounded-lg border border-black/[0.08] bg-[#fafafa] text-sm outline-none focus:border-[#8e44ad]"
+                              className="w-full p-2.5 rounded-lg border border-border-light bg-[#fafafa] text-sm outline-none focus:border-[#8e44ad]"
                             />
                             <div className="max-h-36 overflow-y-auto space-y-1">
                               {searchingSounds ? (
@@ -2357,7 +2357,7 @@ export default function CreatePost() {
                                   <button
                                     key={sound.id}
                                     onClick={() => { setTakeSelectedSound(sound); setTakeEditorTab("details"); }}
-                                    className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                    className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-skeleton transition-colors"
                                   >
                                     <div className="w-8 h-8 rounded bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white flex-shrink-0">
                                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
@@ -2375,13 +2375,13 @@ export default function CreatePost() {
                         <div className="space-y-2 pt-2">
                           <div className="flex items-center gap-3">
                             <span className="text-xs text-muted w-20">Original</span>
-                            <input type="range" min="0" max="100" value={takeOriginalVolume} onChange={(e) => setTakeOriginalVolume(Number(e.target.value))} className="flex-1 h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500" />
+                            <input type="range" min="0" max="100" value={takeOriginalVolume} onChange={(e) => setTakeOriginalVolume(Number(e.target.value))} className="flex-1 h-1.5 bg-skeleton rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent/100" />
                             <span className="text-xs text-muted w-8 text-right">{takeOriginalVolume}%</span>
                           </div>
                           {takeSelectedSound && (
                             <div className="flex items-center gap-3">
                               <span className="text-xs text-muted w-20">Added</span>
-                              <input type="range" min="0" max="100" value={takeAddedVolume} onChange={(e) => setTakeAddedVolume(Number(e.target.value))} className="flex-1 h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-pink-500" />
+                              <input type="range" min="0" max="100" value={takeAddedVolume} onChange={(e) => setTakeAddedVolume(Number(e.target.value))} className="flex-1 h-1.5 bg-skeleton rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-pink-500" />
                               <span className="text-xs text-muted w-8 text-right">{takeAddedVolume}%</span>
                             </div>
                           )}
@@ -2391,7 +2391,7 @@ export default function CreatePost() {
                   </div>
 
                   {/* Aspect Ratio Section */}
-                  <div className="border-t border-black/[0.06] pt-5">
+                  <div className="border-t border-border-light pt-5">
                     <button
                       onClick={() => setTakeEditorTab(takeEditorTab === "ratio" ? "details" : "ratio")}
                       className="w-full flex items-center justify-between mb-3"
@@ -2414,7 +2414,7 @@ export default function CreatePost() {
                               className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all ${
                                 takeAspectRatio === ar.value
                                   ? "bg-ink text-white"
-                                  : "bg-gray-50 text-muted hover:bg-gray-100"
+                                  : "bg-subtle text-muted hover:bg-skeleton"
                               }`}
                             >
                               <div
@@ -2430,7 +2430,7 @@ export default function CreatePost() {
                   </div>
 
                   {/* Cover Section */}
-                  <div className="border-t border-black/[0.06] pt-5">
+                  <div className="border-t border-border-light pt-5">
                     <button
                       onClick={() => setTakeEditorTab(takeEditorTab === "cover" ? "details" : "cover")}
                       className="w-full flex items-center justify-between mb-3"
@@ -2461,7 +2461,7 @@ export default function CreatePost() {
                               <span className="absolute bottom-1 left-1 right-1 text-[0.6rem] text-white text-center bg-black/50 rounded px-1 py-0.5">Custom</span>
                             </>
                           ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50">
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-subtle">
                               <svg className="w-5 h-5 text-gray-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                               <span className="text-[0.65rem] text-muted">Upload</span>
                             </div>
@@ -2485,7 +2485,7 @@ export default function CreatePost() {
             </label>
             <div className="relative">
               <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-                <div className="w-full h-full rounded-xl bg-white" />
+                <div className="w-full h-full rounded-xl bg-surface" />
               </div>
               <div className="relative flex items-center">
                 <div
@@ -2514,13 +2514,13 @@ export default function CreatePost() {
 
         {/* Formatting Toolbar - Hidden in Take mode */}
         {!isTakeMode && (
-        <div className="mb-4 px-4 py-2.5 rounded-xl bg-gray-50/80 border border-black/[0.04] flex items-center gap-1 flex-wrap">
+        <div className="mb-4 px-4 py-2.5 rounded-xl bg-subtle/80 border border-border-light flex items-center gap-1 flex-wrap">
           {/* Text Formatting */}
-          <div className="flex items-center gap-1 pr-3 border-r border-black/10">
+          <div className="flex items-center gap-1 pr-3 border-r border-border-light">
             <button
               onClick={handleBold}
               className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                isBold ? "bg-purple-primary text-white" : "hover:bg-black/5 text-muted"
+                isBold ? "bg-purple-primary text-white" : "hover:bg-skeleton text-muted"
               }`}
               title="Bold (Ctrl+B)"
             >
@@ -2529,7 +2529,7 @@ export default function CreatePost() {
             <button
               onClick={handleItalic}
               className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                isItalic ? "bg-purple-primary text-white" : "hover:bg-black/5 text-muted"
+                isItalic ? "bg-purple-primary text-white" : "hover:bg-skeleton text-muted"
               }`}
               title="Italic (Ctrl+I)"
             >
@@ -2538,7 +2538,7 @@ export default function CreatePost() {
             <button
               onClick={handleUnderline}
               className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                isUnderline ? "bg-purple-primary text-white" : "hover:bg-black/5 text-muted"
+                isUnderline ? "bg-purple-primary text-white" : "hover:bg-skeleton text-muted"
               }`}
               title="Underline (Ctrl+U)"
             >
@@ -2546,7 +2546,7 @@ export default function CreatePost() {
             </button>
             <button
               onClick={handleStrikethrough}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-black/5 text-muted transition-all"
+              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
               title="Strikethrough"
             >
               {icons.strikethrough}
@@ -2554,17 +2554,17 @@ export default function CreatePost() {
           </div>
 
           {/* Block Formatting */}
-          <div className="flex items-center gap-1 px-3 border-r border-black/10">
+          <div className="flex items-center gap-1 px-3 border-r border-border-light">
             <button
               onClick={handleHeading}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-black/5 text-muted transition-all"
+              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
               title="Heading"
             >
               {icons.heading}
             </button>
             <button
               onClick={handleBlockquote}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-black/5 text-muted transition-all"
+              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
               title="Quote"
             >
               {icons.quote2}
@@ -2572,24 +2572,24 @@ export default function CreatePost() {
           </div>
 
           {/* Lists */}
-          <div className="flex items-center gap-1 px-3 border-r border-black/10">
+          <div className="flex items-center gap-1 px-3 border-r border-border-light">
             <button
               onClick={handleBulletList}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-black/5 text-muted transition-all"
+              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
               title="Bullet List"
             >
               {icons.list}
             </button>
             <button
               onClick={handleOrderedList}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-black/5 text-muted transition-all"
+              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
               title="Numbered List"
             >
               {icons.orderedList}
             </button>
             <button
               onClick={handleDivider}
-              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-black/5 text-muted transition-all"
+              className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-skeleton text-muted transition-all"
               title="Horizontal Line"
             >
               {icons.divider}
@@ -2604,7 +2604,7 @@ export default function CreatePost() {
                 setShowTextColorMenu(false);
                 setShowHighlightMenu(false);
               }}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-black/5 text-muted transition-all font-ui text-[0.85rem]"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-skeleton text-muted transition-all font-ui text-[0.85rem]"
             >
               {icons.font}
               <span>Font</span>
@@ -2612,12 +2612,12 @@ export default function CreatePost() {
             </button>
 
             {showFontMenu && (
-              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-1 w-56 max-h-80 overflow-y-auto bg-white rounded-xl shadow-xl border border-black/[0.06] z-50">
+              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-1 w-56 max-h-80 overflow-y-auto bg-surface rounded-xl shadow-xl border border-border-light z-50">
                 {fontOptions.map((font) => (
                   <button
                     key={font.id}
                     onClick={() => handleFontChange(font.family)}
-                    className="w-full px-4 py-2.5 text-left transition-all hover:bg-black/[0.03] text-ink text-[0.9rem]"
+                    className="w-full px-4 py-2.5 text-left transition-all hover:bg-subtle text-ink text-[0.9rem]"
                     style={{ fontFamily: font.family }}
                   >
                     {font.label}
@@ -2635,7 +2635,7 @@ export default function CreatePost() {
                 setShowHighlightMenu(false);
                 setShowFontMenu(false);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-black/5 text-muted transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-skeleton text-muted transition-all"
               title="Text Color"
             >
               {icons.textColor}
@@ -2643,8 +2643,8 @@ export default function CreatePost() {
             </button>
 
             {showTextColorMenu && (
-              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-2 w-[220px] bg-white rounded-2xl shadow-2xl border border-black/[0.08] z-50 overflow-hidden">
-                <div className="px-3 py-2 bg-black/[0.02] border-b border-black/[0.06]">
+              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-2 w-[220px] bg-surface rounded-2xl shadow-2xl border border-border-light z-50 overflow-hidden">
+                <div className="px-3 py-2 bg-subtle border-b border-border-light">
                   <span className="font-ui text-xs font-medium text-muted uppercase tracking-wide">Text Color</span>
                 </div>
                 <div className="p-3 max-h-[400px] overflow-y-auto">
@@ -2656,7 +2656,7 @@ export default function CreatePost() {
                         <button
                           key={c.id}
                           onClick={() => handleTextColor(c.color)}
-                          className="w-10 h-10 rounded-xl border border-black/10 hover:border-purple-400 hover:shadow-lg transition-all"
+                          className="w-10 h-10 rounded-xl border border-border-light hover:border-purple-400 hover:shadow-lg transition-all"
                           style={{ backgroundColor: c.color }}
                           title={c.label}
                         />
@@ -2781,7 +2781,7 @@ export default function CreatePost() {
                 setShowTextColorMenu(false);
                 setShowFontMenu(false);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-black/5 text-muted transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-skeleton text-muted transition-all"
               title="Highlight"
             >
               {icons.highlight}
@@ -2789,8 +2789,8 @@ export default function CreatePost() {
             </button>
 
             {showHighlightMenu && (
-              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-2 w-[220px] bg-white rounded-2xl shadow-2xl border border-black/[0.08] z-50 overflow-hidden">
-                <div className="px-3 py-2 bg-black/[0.02] border-b border-black/[0.06]">
+              <div className="absolute top-full left-0 md:left-0 right-0 md:right-auto mt-2 w-[220px] bg-surface rounded-2xl shadow-2xl border border-border-light z-50 overflow-hidden">
+                <div className="px-3 py-2 bg-subtle border-b border-border-light">
                   <span className="font-ui text-xs font-medium text-muted uppercase tracking-wide">Highlight</span>
                 </div>
                 <div className="p-3">
@@ -2810,7 +2810,7 @@ export default function CreatePost() {
                         <button
                           key={c.id}
                           onClick={() => handleHighlight(c.color)}
-                          className="w-11 h-11 rounded-xl border border-black/10 hover:border-purple-400 hover:shadow-lg transition-all"
+                          className="w-11 h-11 rounded-xl border border-border-light hover:border-purple-400 hover:shadow-lg transition-all"
                           style={{ backgroundColor: c.color }}
                           title={c.label}
                         />
@@ -2868,7 +2868,7 @@ export default function CreatePost() {
           </div>
 
           {/* Text Alignment */}
-          <div className="flex items-center gap-0.5 pl-3 border-l border-black/10">
+          <div className="flex items-center gap-0.5 pl-3 border-l border-border-light">
             {(['left', 'center', 'right', 'justify'] as TextAlignment[]).map((align) => (
               <button
                 key={align}
@@ -2876,7 +2876,7 @@ export default function CreatePost() {
                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                   textAlignment === align
                     ? "bg-purple-primary text-white"
-                    : 'hover:bg-black/5 text-muted'
+                    : 'hover:bg-skeleton text-muted'
                 }`}
                 title={`Align ${align}`}
               >
@@ -2886,7 +2886,7 @@ export default function CreatePost() {
           </div>
 
           {/* Line Spacing */}
-          <div className="flex items-center gap-0.5 pl-3 border-l border-black/10">
+          <div className="flex items-center gap-0.5 pl-3 border-l border-border-light">
             {(['normal', 'relaxed', 'loose'] as LineSpacing[]).map((spacing) => (
               <button
                 key={spacing}
@@ -2894,7 +2894,7 @@ export default function CreatePost() {
                 className={`px-2 py-1 rounded-lg font-ui text-xs transition-all ${
                   lineSpacing === spacing
                     ? "bg-purple-primary text-white"
-                    : 'hover:bg-black/5 text-muted'
+                    : 'hover:bg-skeleton text-muted'
                 }`}
                 title={`Line spacing ${spacing}`}
               >
@@ -2909,7 +2909,7 @@ export default function CreatePost() {
             className={`w-8 h-8 rounded-lg flex items-center justify-center ml-2 transition-all ${
               dropCapEnabled
                 ? "bg-purple-primary text-white"
-                : 'hover:bg-black/5 text-muted'
+                : 'hover:bg-skeleton text-muted'
             }`}
             title="Drop Cap"
           >
@@ -2917,13 +2917,13 @@ export default function CreatePost() {
           </button>
 
           {/* Background */}
-          <div className="flex items-center gap-1 pl-3 border-l border-black/10 ml-2">
+          <div className="flex items-center gap-1 pl-3 border-l border-border-light ml-2">
             <button
               onClick={() => setShowBackgroundPicker(true)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
                 styling.background
                   ? "bg-purple-primary/10 text-purple-primary"
-                  : "hover:bg-purple-primary/10 text-muted hover:text-purple-primary"
+                  : "hover:bg-accent/10 text-muted hover:text-accent"
               }`}
               title="Background"
             >
@@ -2942,7 +2942,7 @@ export default function CreatePost() {
           </label>
           <div className="relative">
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-              <div className="w-full h-full rounded-xl bg-white" />
+              <div className="w-full h-full rounded-xl bg-surface" />
             </div>
             <div className="relative">
               <div
@@ -3001,12 +3001,12 @@ export default function CreatePost() {
                 </div>
               </button>
             ) : (
-              <div className="rounded-2xl border border-black/[0.06] bg-gradient-to-br from-white via-pink-50/20 to-purple-50/15 p-5">
+              <div className="rounded-2xl border border-border-light bg-gradient-to-br from-white via-pink-50/20 to-purple-50/15 p-5">
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {mediaItems.map((item, index) => (
                     <div
                       key={item.id}
-                      className="relative rounded-xl overflow-hidden bg-gray-100 group shadow-sm"
+                      className="relative rounded-xl overflow-hidden bg-skeleton group shadow-sm"
                     >
                       <div className="aspect-square">
                         <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-[0.65rem] font-bold flex items-center justify-center z-10 shadow-sm">
@@ -3024,7 +3024,7 @@ export default function CreatePost() {
                           <img src={item.preview} alt="" className="w-full h-full object-cover" />
                         )}
                       </div>
-                      <div className="px-2.5 py-2 bg-white">
+                      <div className="px-2.5 py-2 bg-surface">
                         <input
                           type="text"
                           value={item.caption}
@@ -3041,7 +3041,7 @@ export default function CreatePost() {
                       <div className="aspect-square">
                         <button
                           onClick={() => fileInputRef.current?.click()}
-                          className="w-full h-full rounded-xl border border-dashed border-pink-vivid/25 bg-white/60 flex flex-col items-center justify-center gap-2 text-muted hover:border-pink-vivid/50 hover:text-pink-vivid transition-all"
+                          className="w-full h-full rounded-xl border border-dashed border-pink-vivid/25 bg-surface/60 flex flex-col items-center justify-center gap-2 text-muted hover:border-pink-vivid/50 hover:text-pink-vivid transition-all"
                         >
                           {icons.plus}
                           <span className="text-xs font-ui font-medium">Add more</span>
@@ -3058,14 +3058,14 @@ export default function CreatePost() {
 
         {/* Extras */}
         {!isTakeMode && (
-        <div className="mb-8 border-t border-black/[0.06] pt-6">
+        <div className="mb-8 border-t border-border-light pt-6">
           <p className="text-sm font-ui text-muted uppercase tracking-wider mb-4">Extras</p>
 
           {/* Soundtrack */}
           <div className="mb-2">
             <button
               onClick={() => toggleSection('soundtrack')}
-              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-[#1DB954]">{icons.spotify}</span>
@@ -3127,7 +3127,7 @@ export default function CreatePost() {
                     }
                   }}
                   placeholder="Paste Spotify track URL..."
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-[#1DB954]/30 bg-white font-ui text-sm text-ink focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all placeholder:text-muted/50"
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-[#1DB954]/30 bg-surface font-ui text-sm text-ink focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all placeholder:text-muted/50"
                   autoFocus
                 />
                 <button
@@ -3150,7 +3150,7 @@ export default function CreatePost() {
                     setSpotifyUrl("");
                     setSpotifyError(null);
                   }}
-                  className="px-3 py-2.5 rounded-xl border border-black/10 font-ui text-sm text-muted hover:bg-black/[0.03] transition-colors"
+                  className="px-3 py-2.5 rounded-xl border border-border-light font-ui text-sm text-muted hover:bg-subtle transition-colors"
                 >
                   Cancel
                 </button>
@@ -3166,7 +3166,7 @@ export default function CreatePost() {
             // Show add button
             <button
               onClick={() => setShowSpotifyPicker(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#1DB954]/20 bg-white hover:border-[#1DB954]/50 hover:bg-[#1DB954]/5 transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#1DB954]/20 bg-surface hover:border-[#1DB954]/50 hover:bg-[#1DB954]/5 transition-all"
             >
               <span className="text-[#1DB954]">{icons.music}</span>
               <span className="font-ui text-sm text-ink">Add a song</span>
@@ -3181,7 +3181,7 @@ export default function CreatePost() {
           <div className="mb-2">
             <button
               onClick={() => toggleSection('journal')}
-              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-purple-primary">{icons.book}</span>
@@ -3207,7 +3207,7 @@ export default function CreatePost() {
           <div className="mb-2">
             <button
               onClick={() => toggleSection('location')}
-              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-pink-vivid">{icons.location}</span>
@@ -3223,7 +3223,7 @@ export default function CreatePost() {
                   value={postLocation}
                   onChange={(e) => setPostLocation(e.target.value)}
                   placeholder="Where are you writing from?"
-                  className="w-full px-4 py-2.5 rounded-xl border border-black/[0.08] bg-white font-ui text-sm text-ink focus:outline-none focus:border-pink-vivid transition-colors placeholder:text-muted/50"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-pink-vivid transition-colors placeholder:text-muted/50"
                 />
               </div>
             )}
@@ -3237,7 +3237,7 @@ export default function CreatePost() {
           </label>
           <div className="relative">
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
-              <div className="w-full h-full rounded-xl bg-white" />
+              <div className="w-full h-full rounded-xl bg-surface" />
             </div>
             <div className="relative flex flex-wrap gap-2 px-4 py-3 rounded-xl">
               {tags.map((tag) => (
@@ -3270,7 +3270,7 @@ export default function CreatePost() {
           <div className="mb-2">
             <button
               onClick={() => toggleSection('collaborators')}
-              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-purple-primary">{icons.collaborators}</span>
@@ -3289,7 +3289,7 @@ export default function CreatePost() {
               <div className="flex items-center justify-end mb-2">
                 <button
                   onClick={() => setShowCollaboratorPicker(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-primary text-white rounded-full font-ui text-[0.8rem] font-medium hover:bg-purple-primary/90 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-primary text-white rounded-full font-ui text-[0.8rem] font-medium hover:bg-accent/90 transition-all"
                 >
                   {icons.plus}
                   Add
@@ -3301,7 +3301,7 @@ export default function CreatePost() {
                   {collaborators.map((user) => (
                     <div
                       key={user.id}
-                      className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-full border border-black/[0.08] shadow-sm"
+                      className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-surface rounded-full border border-border-light shadow-sm"
                     >
                       {user.avatar_url ? (
                         <img src={user.avatar_url} alt={user.display_name || user.username} className="w-6 h-6 rounded-full object-cover" />
@@ -3314,7 +3314,7 @@ export default function CreatePost() {
                       {user.role && (
                         <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-orange-warm/10 to-pink-vivid/10 text-pink-vivid rounded-full font-ui font-medium">{user.role}</span>
                       )}
-                      <button onClick={() => setCollaborators(collaborators.filter((c) => c.id !== user.id))} className="w-4 h-4 rounded-full bg-gray-100 hover:bg-red-100 flex items-center justify-center transition-colors">{icons.x}</button>
+                      <button onClick={() => setCollaborators(collaborators.filter((c) => c.id !== user.id))} className="w-4 h-4 rounded-full bg-skeleton hover:bg-red-100 flex items-center justify-center transition-colors">{icons.x}</button>
                     </div>
                   ))}
                 </div>
@@ -3333,7 +3333,7 @@ export default function CreatePost() {
           <div className="mb-2">
             <button
               onClick={() => toggleSection('tagPeople')}
-              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-pink-vivid">{icons.userTag}</span>
@@ -3352,7 +3352,7 @@ export default function CreatePost() {
               <div className="flex items-center justify-end mb-2">
                 <button
                   onClick={() => setShowTagPeoplePicker(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-primary text-white rounded-full font-ui text-[0.8rem] font-medium hover:bg-purple-primary/90 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-primary text-white rounded-full font-ui text-[0.8rem] font-medium hover:bg-accent/90 transition-all"
                 >
                   {icons.plus}
                   Add
@@ -3362,7 +3362,7 @@ export default function CreatePost() {
               {taggedPeople.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {taggedPeople.map((user) => (
-                    <div key={user.id} className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-white rounded-full border border-black/[0.08] shadow-sm">
+                    <div key={user.id} className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-surface rounded-full border border-border-light shadow-sm">
                       {user.avatar_url ? (
                         <img src={user.avatar_url} alt={user.display_name || user.username} className="w-6 h-6 rounded-full object-cover" />
                       ) : (
@@ -3371,7 +3371,7 @@ export default function CreatePost() {
                         </div>
                       )}
                       <span className="text-sm font-medium text-ink font-ui">@{user.username}</span>
-                      <button onClick={() => setTaggedPeople(taggedPeople.filter((t) => t.id !== user.id))} className="w-4 h-4 rounded-full bg-gray-100 hover:bg-red-100 flex items-center justify-center transition-colors">{icons.x}</button>
+                      <button onClick={() => setTaggedPeople(taggedPeople.filter((t) => t.id !== user.id))} className="w-4 h-4 rounded-full bg-skeleton hover:bg-red-100 flex items-center justify-center transition-colors">{icons.x}</button>
                     </div>
                   ))}
                 </div>
@@ -3386,7 +3386,7 @@ export default function CreatePost() {
           <div className="mb-2">
             <button
               onClick={() => toggleSection('contentWarning')}
-              className="w-full flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-lg px-2 -mx-2 transition-colors"
+              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-red-500">{icons.warning}</span>
@@ -3406,7 +3406,7 @@ export default function CreatePost() {
                     hasContentWarning ? "bg-gradient-to-r from-pink-vivid to-purple-primary" : "bg-gray-300"
                   }`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${hasContentWarning ? "left-5" : "left-0.5"}`} />
+                  <div className={`absolute top-0.5 w-5 h-5 bg-surface rounded-full shadow transition-all ${hasContentWarning ? "left-5" : "left-0.5"}`} />
                 </button>
               </div>
 
@@ -3417,11 +3417,11 @@ export default function CreatePost() {
                     value={contentWarning}
                     onChange={(e) => setContentWarning(e.target.value)}
                     placeholder="Describe the sensitive content..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-red-200 bg-white font-body text-sm text-ink outline-none focus:border-red-400 transition-all placeholder:text-muted/50"
+                    className="w-full px-4 py-2.5 rounded-xl border border-red-200 bg-surface font-body text-sm text-ink outline-none focus:border-red-400 transition-all placeholder:text-muted/50"
                   />
                   <div className="flex flex-wrap gap-2">
                     {contentWarningPresets.map((preset) => (
-                      <button key={preset} onClick={() => setContentWarning(preset)} className="px-3 py-1.5 rounded-full border border-red-200 bg-white font-ui text-[0.75rem] text-red-500 hover:bg-red-50 transition-all">{preset}</button>
+                      <button key={preset} onClick={() => setContentWarning(preset)} className="px-3 py-1.5 rounded-full border border-red-200 bg-surface font-ui text-[0.75rem] text-red-500 hover:bg-red-50 transition-all">{preset}</button>
                     ))}
                   </div>
                 </div>
@@ -3447,7 +3447,7 @@ export default function CreatePost() {
               <span className="font-ui text-sm text-muted">Uploading your Take...</span>
               <span className="font-ui text-sm font-medium text-pink-vivid">{Math.round(takeProgress)}%</span>
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
                 style={{ width: `${takeProgress}%` }}
@@ -3459,7 +3459,7 @@ export default function CreatePost() {
       </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-8 border-t border-black/[0.06]">
+        <div className="flex items-center justify-between pt-8 border-t border-border-light">
           <div className="flex items-center gap-3">
             {/* Visibility Dropdown */}
             <div className="relative">
@@ -3469,10 +3469,10 @@ export default function CreatePost() {
                   setShowVisibilityMenu(!showVisibilityMenu);
                 }}
                 disabled={isCommunityPost}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full border bg-white font-ui text-[0.85rem] transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border bg-surface font-ui text-[0.85rem] transition-all ${
                   isCommunityPost
                     ? "border-[#8e44ad]/30 text-[#6b2d8b] cursor-not-allowed"
-                    : "border-black/[0.08] text-muted hover:border-[#8e44ad] hover:text-[#6b2d8b]"
+                    : "border-border-light text-muted hover:border-[#8e44ad] hover:text-[#6b2d8b]"
                 }`}
               >
                 {icons[currentVisibility?.icon || "globe"]}
@@ -3481,7 +3481,7 @@ export default function CreatePost() {
               </button>
 
               {showVisibilityMenu && !isCommunityPost && (
-                <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-black/[0.06] overflow-hidden z-10">
+                <div className="absolute bottom-full left-0 mb-2 w-48 bg-surface rounded-xl shadow-xl border border-border-light overflow-hidden z-10">
                   {visibilityOptions.map((option) => (
                     <button
                       key={option.id}
@@ -3492,7 +3492,7 @@ export default function CreatePost() {
                       className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                         visibility === option.id
                           ? "bg-[#f3e8f7] text-[#6b2d8b]"
-                          : "text-ink hover:bg-black/[0.03]"
+                          : "text-ink hover:bg-subtle"
                       }`}
                     >
                       {icons[option.icon]}
@@ -3544,7 +3544,7 @@ export default function CreatePost() {
                   <button
                     onClick={() => !authLoading && setShowCommunityMenu(!showCommunityMenu)}
                     disabled={authLoading}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white text-muted hover:border-[#8e44ad] hover:text-[#6b2d8b] font-ui text-[0.85rem] transition-all ${authLoading ? 'opacity-60 cursor-wait' : ''}`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border border-border-light bg-surface text-muted hover:border-[#8e44ad] hover:text-[#6b2d8b] font-ui text-[0.85rem] transition-all ${authLoading ? 'opacity-60 cursor-wait' : ''}`}
                   >
                     {(communitiesLoading || authLoading) ? (
                       <div className="w-4 h-4 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
@@ -3557,8 +3557,8 @@ export default function CreatePost() {
                 )}
 
                 {showCommunityMenu && (
-                  <div className="absolute bottom-full left-0 mb-2 w-56 max-h-64 overflow-y-auto bg-white rounded-xl shadow-xl border border-black/[0.06] overflow-hidden z-10">
-                    <div className="px-3 py-2 text-[0.75rem] font-ui text-muted uppercase tracking-wide border-b border-black/[0.06]">
+                  <div className="absolute bottom-full left-0 mb-2 w-56 max-h-64 overflow-y-auto bg-surface rounded-xl shadow-xl border border-border-light overflow-hidden z-10">
+                    <div className="px-3 py-2 text-[0.75rem] font-ui text-muted uppercase tracking-wide border-b border-border-light">
                       Post to community
                     </div>
                     <button
@@ -3569,7 +3569,7 @@ export default function CreatePost() {
                         className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                           !selectedCommunity
                             ? "bg-[#f3e8f7] text-[#6b2d8b]"
-                            : "text-ink hover:bg-black/[0.03]"
+                            : "text-ink hover:bg-subtle"
                         }`}
                     >
                       {icons.globe}
@@ -3601,7 +3601,7 @@ export default function CreatePost() {
                         className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                           selectedCommunity?.id === community.id
                             ? "bg-[#f3e8f7] text-[#6b2d8b]"
-                            : "text-ink hover:bg-black/[0.03]"
+                            : "text-ink hover:bg-subtle"
                         }`}
                       >
                         {community.avatar_url ? (
@@ -3643,7 +3643,7 @@ export default function CreatePost() {
                     ? "bg-green-500 text-white"
                   : draftSaveStatus === "saving"
                     ? "bg-purple-primary/70 text-white cursor-wait"
-                    : "bg-purple-primary text-white hover:bg-purple-primary/90"
+                    : "bg-purple-primary text-white hover:bg-accent/90"
                 }`}
               >
                 {draftSaveStatus === "saving" ? (

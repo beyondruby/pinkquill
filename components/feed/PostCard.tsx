@@ -921,7 +921,7 @@ function PostCardComponent({
               e.stopPropagation();
               setShowContent(true);
             }}
-            className="px-4 py-1.5 rounded-full font-ui text-xs font-medium text-ink/70 hover:text-ink bg-black/5 hover:bg-black/10 transition-colors"
+            className="px-4 py-1.5 rounded-full font-ui text-xs font-medium text-ink/70 hover:text-ink bg-skeleton hover:bg-black/10 transition-colors"
           >
             Show Content
           </button>
@@ -1265,7 +1265,7 @@ function PostCardComponent({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !blockLoading && setShowBlockConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] p-6">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-surface rounded-2xl shadow-2xl z-[1001] p-6">
             <h3 className="font-display text-xl text-ink mb-3">
               Block @{post.author.handle.replace('@', '')}?
             </h3>
@@ -1276,7 +1276,7 @@ function PostCardComponent({
               <button
                 onClick={() => setShowBlockConfirm(false)}
                 disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

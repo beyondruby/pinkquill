@@ -113,7 +113,7 @@ export default function InviteModal({
       />
 
       {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden animate-fadeIn">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-surface rounded-2xl shadow-2xl z-[1001] overflow-hidden animate-fadeIn">
         {/* Header */}
         <div className="relative h-20 bg-gradient-to-br from-purple-primary via-pink-vivid/80 to-orange-warm/60 flex items-center justify-center">
           <div className="absolute inset-0 opacity-20">
@@ -138,7 +138,7 @@ export default function InviteModal({
             </svg>
           </div>
           <div className="relative flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+            <div className="w-10 h-10 rounded-xl bg-surface/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
               <svg
                 className="w-5 h-5 text-white"
                 fill="none"
@@ -162,7 +162,7 @@ export default function InviteModal({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-surface/30 transition-colors"
           >
             <svg
               className="w-4 h-4"
@@ -189,7 +189,7 @@ export default function InviteModal({
               placeholder="Search by username or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-black/[0.02] border border-black/10 font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-subtle border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
               autoFocus
             />
             <svg
@@ -224,7 +224,7 @@ export default function InviteModal({
                 {searchResults.map((user) => (
                   <div
                     key={user.id}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-black/[0.02] transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-subtle transition-colors"
                   >
                     {/* Avatar */}
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid flex-shrink-0">
@@ -347,7 +347,7 @@ export default function InviteModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-black/5 bg-black/[0.01]">
+        <div className="px-5 py-4 border-t border-border-light bg-subtle/30">
           <p className="text-center font-ui text-xs text-muted">
             Users will receive an invitation notification
           </p>

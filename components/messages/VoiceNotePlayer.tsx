@@ -153,8 +153,8 @@ export default function VoiceNotePlayer({
       <button
         className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
           isOwn
-            ? 'bg-white/20 hover:bg-white/30 text-white'
-            : 'bg-purple-primary hover:bg-purple-primary/90 text-white'
+            ? 'bg-surface/20 hover:bg-surface/30 text-white'
+            : 'bg-purple-primary hover:bg-accent/90 text-white'
         }`}
         onClick={player.toggle}
         disabled={player.isLoading}
@@ -181,8 +181,8 @@ export default function VoiceNotePlayer({
           <button
             className={`font-ui text-[0.65rem] px-1.5 py-0.5 rounded transition-all ${
               isOwn
-                ? 'bg-white/15 hover:bg-white/25 text-white/80'
-                : 'bg-black/5 hover:bg-black/10 text-muted'
+                ? 'bg-surface/15 hover:bg-surface/25 text-white/80'
+                : 'bg-skeleton hover:bg-black/10 text-muted'
             }`}
             onClick={handlePlaybackSpeedChange}
             title="Change speed"

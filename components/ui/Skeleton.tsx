@@ -26,7 +26,7 @@ export function Skeleton({ className = "" }: SkeletonProps) {
  */
 export function PostCardSkeleton() {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden p-4 md:p-6">
+    <div className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden p-4 md:p-6">
       {/* Author header */}
       <div className="flex items-center gap-3 mb-4">
         <Skeleton className="w-10 h-10 md:w-12 md:h-12 rounded-full" />
@@ -44,7 +44,7 @@ export function PostCardSkeleton() {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-4 pt-4 border-t border-black/[0.04]">
+      <div className="flex items-center gap-4 pt-4 border-t border-border-light">
         <Skeleton className="h-8 w-16" />
         <Skeleton className="h-8 w-16" />
         <Skeleton className="h-8 w-16" />
@@ -73,7 +73,7 @@ export function FeedSkeleton({ count = 3 }: { count?: number }) {
  */
 export function ProfileHeaderSkeleton() {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden">
+    <div className="bg-surface rounded-2xl shadow-sm border border-border-light overflow-hidden">
       {/* Cover */}
       <Skeleton className="h-32 md:h-48 w-full rounded-none" />
 
@@ -90,7 +90,7 @@ export function ProfileHeaderSkeleton() {
         </div>
 
         {/* Stats */}
-        <div className="flex gap-6 mt-4 pt-4 border-t border-black/[0.04]">
+        <div className="flex gap-6 mt-4 pt-4 border-t border-border-light">
           <Skeleton className="h-4 w-20" />
           <Skeleton className="h-4 w-20" />
           <Skeleton className="h-4 w-20" />
@@ -105,7 +105,7 @@ export function ProfileHeaderSkeleton() {
  */
 export function ConversationSkeleton() {
   return (
-    <div className="flex items-center gap-3 p-4 border-b border-black/[0.04]">
+    <div className="flex items-center gap-3 p-4 border-b border-border-light">
       <Skeleton className="w-12 h-12 rounded-full" />
       <div className="flex-1">
         <Skeleton className="h-4 w-32 mb-2" />
@@ -143,7 +143,7 @@ export function MessageListSkeleton({ count = 5 }: { count?: number }) {
  */
 export function NotificationSkeleton() {
   return (
-    <div className="flex items-start gap-3 p-4 border-b border-black/[0.04]">
+    <div className="flex items-start gap-3 p-4 border-b border-border-light">
       <Skeleton className="w-10 h-10 rounded-full" />
       <div className="flex-1">
         <Skeleton className="h-4 w-full mb-2" />

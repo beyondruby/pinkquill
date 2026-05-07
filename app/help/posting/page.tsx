@@ -147,7 +147,7 @@ export default function PostingHelpPage() {
 
             <div className="space-y-3 my-6">
               {postTypes.map((type) => (
-                <div key={type.name} className="p-4 bg-white rounded-xl border border-black/5">
+                <div key={type.name} className="p-4 bg-surface rounded-xl border border-border-light">
                   <div className="flex items-baseline gap-2 mb-1">
                     <h4 className="font-ui font-semibold text-ink">{type.name}</h4>
                     <span className="text-xs text-muted italic">&quot;{type.label}&quot;</span>
