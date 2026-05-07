@@ -84,7 +84,7 @@ export default function ShippingTracker({ order }: { order: Order }) {
                 href={trackingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 rounded-lg text-xs font-ui font-semibold text-purple-primary border border-purple-primary/30 hover:bg-accent/10 transition-colors"
+                className="px-4 py-2 rounded-lg text-xs font-ui font-semibold text-purple-primary border border-purple-200 hover:bg-purple-50 transition-colors"
               >
                 Track <FontAwesomeIcon icon={faExternalLinkAlt} className="ml-1 text-[10px]" />
               </a>

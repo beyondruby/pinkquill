@@ -171,7 +171,7 @@ export default function MarketplaceHeader({
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder={catalogType === "service" ? "Search commissions..." : "Search products..."}
-                className="w-full h-10 pl-10 pr-4 bg-surface rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-border-light shadow-sm focus:border-pink-vivid/30 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 transition-all"
+                className="w-full h-10 pl-10 pr-4 bg-surface rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-border-light shadow-sm focus:border-pink-200 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 transition-all"
               />
               <svg
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
@@ -388,7 +388,7 @@ export default function MarketplaceHeader({
                         onClick={() => onDeliveryTypeChange(type.value)}
                         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.delivery_type === type.value
-                            ? "bg-accent/10 text-purple-primary"
+                            ? "bg-purple-50 text-purple-primary"
                             : "text-ink hover:bg-subtle"
                         }`}
                       >
@@ -414,7 +414,7 @@ export default function MarketplaceHeader({
                       onClick={() => onMaxDeliveryDaysChange(undefined)}
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         filters.max_delivery_days === undefined
-                          ? "bg-accent/10 text-purple-primary"
+                          ? "bg-purple-50 text-purple-primary"
                           : "text-ink hover:bg-subtle"
                       }`}
                     >
@@ -431,7 +431,7 @@ export default function MarketplaceHeader({
                         onClick={() => onMaxDeliveryDaysChange(option.value)}
                         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.max_delivery_days === option.value
-                            ? "bg-accent/10 text-purple-primary"
+                            ? "bg-purple-50 text-purple-primary"
                             : "text-ink hover:bg-subtle"
                         }`}
                       >

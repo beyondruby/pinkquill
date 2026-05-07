@@ -2203,7 +2203,7 @@ export default function CreatePost() {
                         </div>
                       )}
                       {takeSelectedFilter !== "none" && (
-                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-accent/100/90 text-white font-ui text-[0.7rem]">
+                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-purple-500/90 text-white font-ui text-[0.7rem]">
                           {TAKE_FILTER_OPTIONS.find(f => f.name === takeSelectedFilter)?.label}
                         </div>
                       )}
@@ -2375,7 +2375,7 @@ export default function CreatePost() {
                         <div className="space-y-2 pt-2">
                           <div className="flex items-center gap-3">
                             <span className="text-xs text-muted w-20">Original</span>
-                            <input type="range" min="0" max="100" value={takeOriginalVolume} onChange={(e) => setTakeOriginalVolume(Number(e.target.value))} className="flex-1 h-1.5 bg-skeleton rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent/100" />
+                            <input type="range" min="0" max="100" value={takeOriginalVolume} onChange={(e) => setTakeOriginalVolume(Number(e.target.value))} className="flex-1 h-1.5 bg-skeleton rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500" />
                             <span className="text-xs text-muted w-8 text-right">{takeOriginalVolume}%</span>
                           </div>
                           {takeSelectedSound && (
@@ -2923,7 +2923,7 @@ export default function CreatePost() {
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
                 styling.background
                   ? "bg-purple-primary/10 text-purple-primary"
-                  : "hover:bg-accent/10 text-muted hover:text-accent"
+                  : "hover:bg-purple-50 text-muted hover:text-accent"
               }`}
               title="Background"
             >
@@ -2988,7 +2988,7 @@ export default function CreatePost() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full rounded-2xl border border-dashed border-pink-vivid/25 bg-gradient-to-br from-pink-50/50 via-surface to-purple-50/30 p-10 flex flex-col items-center gap-4 hover:border-pink-vivid/40 hover:shadow-sm transition-all group"
+                className="w-full rounded-2xl border border-dashed border-pink-vivid/25 bg-gradient-to-br from-pink-50/50 via-surface to-purple-50/30 p-10 flex flex-col items-center gap-4 hover:border-pink-300 hover:shadow-sm transition-all group"
               >
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center group-hover:scale-105 transition-transform">
                   <svg className="w-7 h-7 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3471,7 +3471,7 @@ export default function CreatePost() {
                 disabled={isCommunityPost}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full border bg-surface font-ui text-[0.85rem] transition-all ${
                   isCommunityPost
-                    ? "border-purple-primary/30 text-accent cursor-not-allowed"
+                    ? "border-purple-200 text-accent cursor-not-allowed"
                     : "border-border-light text-muted hover:border-purple-primary hover:text-accent"
                 }`}
               >
@@ -3491,7 +3491,7 @@ export default function CreatePost() {
                       }}
                       className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                         visibility === option.id
-                          ? "bg-accent/15 text-accent"
+                          ? "bg-purple-100 text-accent"
                           : "text-ink hover:bg-subtle"
                       }`}
                     >
@@ -3510,7 +3510,7 @@ export default function CreatePost() {
             {!isEditing && (selectedCommunity || userCommunities.length > 0 || communitiesLoading || authLoading) && (
               <div className="relative">
                 {selectedCommunity ? (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-primary/30 bg-purple-primary/5 text-accent font-ui text-[0.85rem]">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-200 bg-purple-primary/5 text-accent font-ui text-[0.85rem]">
                     <span
                       onClick={() => setShowCommunityMenu(!showCommunityMenu)}
                       className="flex items-center gap-2 cursor-pointer"
@@ -3568,7 +3568,7 @@ export default function CreatePost() {
                       }}
                         className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                           !selectedCommunity
-                            ? "bg-accent/15 text-accent"
+                            ? "bg-purple-100 text-accent"
                             : "text-ink hover:bg-subtle"
                         }`}
                     >
@@ -3600,7 +3600,7 @@ export default function CreatePost() {
                         }}
                         className={`w-full flex items-center gap-3 px-4 py-3 font-ui text-[0.9rem] text-left transition-all ${
                           selectedCommunity?.id === community.id
-                            ? "bg-accent/15 text-accent"
+                            ? "bg-purple-100 text-accent"
                             : "text-ink hover:bg-subtle"
                         }`}
                       >

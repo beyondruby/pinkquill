@@ -67,7 +67,7 @@ const TIER_STYLES: Record<
   standard: {
     badge: "from-purple-primary to-pink-vivid",
     card: "from-purple-primary/10 via-surface to-pink-vivid/10",
-    chip: "bg-accent/15 text-purple-primary",
+    chip: "bg-purple-100 text-purple-primary",
   },
   premium: {
     badge: "from-orange-warm to-pink-vivid",
@@ -411,7 +411,7 @@ export default function CreateCommissionWizard({
 
   if (isEditMode && !initialProduct) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-surface to-accent-2/50 flex items-center justify-center px-6">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-surface to-pink-50/50 flex items-center justify-center px-6">
         <div className="w-10 h-10 rounded-full border-2 border-border-strong border-t-[var(--color-pink-vivid)] animate-spin" />
       </div>
     );
@@ -419,7 +419,7 @@ export default function CreateCommissionWizard({
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-surface to-accent-2/50 flex items-center justify-center px-6">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-surface to-pink-50/50 flex items-center justify-center px-6">
         <div className="max-w-lg text-center">
           <div className="w-24 h-24 mx-auto mb-6 rounded-[28px] bg-gradient-to-br from-purple-primary/20 to-pink-vivid/25 border border-white shadow-lg flex items-center justify-center">
             <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -488,7 +488,7 @@ export default function CreateCommissionWizard({
                               className={`group text-left rounded-2xl p-4 border transition-all duration-300 ${
                                 selected
                                   ? "border-transparent shadow-md shadow-pink-vivid/20"
-                                  : "border-border-light bg-surface hover:border-pink-vivid/40 hover:shadow-sm"
+                                  : "border-border-light bg-surface hover:border-pink-300 hover:shadow-sm"
                               }`}
                               style={{
                                 backgroundImage: selected
@@ -533,7 +533,7 @@ export default function CreateCommissionWizard({
                                 onClick={() => updateState({ subcategory: subcategory.value })}
                                 className={`text-left rounded-xl p-3.5 border transition-all ${
                                   selected
-                                    ? "border-purple-primary/40 bg-accent/10/70 shadow-sm"
+                                    ? "border-purple-300 bg-purple-50/70 shadow-sm"
                                     : "border-border-light bg-surface hover:border-accent/40"
                                 }`}
                               >
@@ -622,7 +622,7 @@ export default function CreateCommissionWizard({
                           <button
                             type="button"
                             onClick={addPackage}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui font-semibold text-purple-primary bg-accent/10 hover:bg-accent/15 transition-colors"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-ui font-semibold text-purple-primary bg-purple-50 hover:bg-purple-100 transition-colors"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

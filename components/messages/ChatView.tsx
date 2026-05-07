@@ -683,7 +683,7 @@ export default function ChatView({
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-accent/10 transition-all"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-purple-50 transition-all"
           >
             {icons.info}
           </button>
@@ -1049,7 +1049,7 @@ export default function ChatView({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={sendingMedia}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-accent/10 transition-all disabled:opacity-50"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-purple-50 transition-all disabled:opacity-50"
           >
             {icons.image}
           </button>

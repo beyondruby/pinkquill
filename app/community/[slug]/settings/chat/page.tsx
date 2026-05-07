@@ -158,7 +158,7 @@ export default function CommunityChatSettingsPage() {
             }
             className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
               allowModmail
-                ? "bg-accent/10 border-purple-200"
+                ? "bg-purple-50 border-purple-200"
                 : "bg-subtle border-border-light"
             } ${!canManageToggles ? "opacity-60 cursor-not-allowed" : ""}`}
           >
@@ -191,7 +191,7 @@ export default function CommunityChatSettingsPage() {
             onChange={(event) => setWelcomeMessageDraft(event.target.value)}
             rows={4}
             placeholder="This message is sent when a new member joins."
-            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
+            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-all resize-none"
             maxLength={1000}
           />
           <p className="mt-1 font-ui text-xs text-muted text-right">

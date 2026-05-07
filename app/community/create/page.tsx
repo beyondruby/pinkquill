@@ -374,7 +374,7 @@ export default function CreateCommunityPage() {
                     }
                   }}
                   placeholder="Add custom genre"
-                  className="flex-1 px-3.5 py-2 rounded-full bg-skeleton/60 border border-dashed border-border-light font-ui text-[0.8rem] text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-primary/40"
+                  className="flex-1 px-3.5 py-2 rounded-full bg-skeleton/60 border border-dashed border-border-light font-ui text-[0.8rem] text-ink placeholder:text-muted/40 focus:outline-none focus:border-purple-300"
                 />
               </div>
             </div>
@@ -436,7 +436,7 @@ export default function CreateCommunityPage() {
                     }
                   }}
                   placeholder="Add custom theme"
-                  className="flex-1 px-3.5 py-2 rounded-full bg-skeleton/60 border border-dashed border-border-light font-ui text-[0.8rem] text-ink placeholder:text-muted/40 focus:outline-none focus:border-pink-vivid/40"
+                  className="flex-1 px-3.5 py-2 rounded-full bg-skeleton/60 border border-dashed border-border-light font-ui text-[0.8rem] text-ink placeholder:text-muted/40 focus:outline-none focus:border-pink-300"
                 />
               </div>
             </div>

@@ -14,8 +14,8 @@ import type { SellerCustomer } from "@/lib/hooks/useSellerCustomers";
 const STATUS_CONFIG: Record<string, { bg: string; text: string }> = {
   pending_payment: { bg: "bg-yellow-50", text: "text-yellow-700" },
   pending_acceptance: { bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { bg: "bg-accent/10", text: "text-purple-700" },
-  in_progress: { bg: "bg-accent/10", text: "text-purple-700" },
+  paid: { bg: "bg-purple-50", text: "text-purple-700" },
+  in_progress: { bg: "bg-purple-50", text: "text-purple-700" },
   submitted: { bg: "bg-indigo-50", text: "text-indigo-700" },
   revision_requested: { bg: "bg-orange-50", text: "text-orange-700" },
   completed: { bg: "bg-emerald-50", text: "text-emerald-700" },
@@ -44,7 +44,7 @@ function MetricCard({
   return (
     <div className={`rounded-xl border p-4 sm:p-5 ${
       accent
-        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-accent-2/60"
+        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
         : "border-border-light bg-surface"
     }`}>
       <div className="flex items-start justify-between">
@@ -318,7 +318,7 @@ export default function CustomersCRM() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search customers..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-surface font-body text-sm text-ink placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-light bg-surface font-body text-sm text-ink placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-all"
         />
       </div>
 

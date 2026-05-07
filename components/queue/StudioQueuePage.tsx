@@ -143,7 +143,7 @@ function CartItemCard({
               value={serviceFields.brief}
               onChange={(e) => onUpdateField("brief", e.target.value)}
               placeholder="Describe your vision — goals, references, must-have deliverables..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 resize-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 resize-none"
             />
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -154,7 +154,7 @@ function CartItemCard({
                 min={1}
                 value={serviceFields.timelineDays}
                 onChange={(e) => onUpdateField("timelineDays", Math.max(1, Number(e.target.value || 1)))}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200"
               />
             </label>
             <label className="block">
@@ -163,7 +163,7 @@ function CartItemCard({
                 value={serviceFields.notes}
                 onChange={(e) => onUpdateField("notes", e.target.value)}
                 placeholder="Optional"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200"
               />
             </label>
           </div>

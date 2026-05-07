@@ -201,7 +201,7 @@ export default function CommunityGeneralSettingsPage() {
             type="text"
             value={formData.name}
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-all"
             maxLength={100}
           />
         </div>
@@ -215,7 +215,7 @@ export default function CommunityGeneralSettingsPage() {
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={4}
-            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
+            className="w-full px-4 py-3 rounded-xl bg-surface border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-all resize-none"
             maxLength={500}
           />
         </div>

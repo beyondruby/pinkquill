@@ -327,7 +327,7 @@ export default function JoinButton({ community, userId, onUpdate, size = 'md', c
                 placeholder="Tell the community why you'd like to join..."
                 rows={3}
                 maxLength={500}
-                className="w-full px-4 py-3 rounded-xl bg-subtle border border-border-light font-body text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all resize-none"
+                className="w-full px-4 py-3 rounded-xl bg-subtle border border-border-light font-body text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-all resize-none"
                 disabled={loading}
               />
               <p className="mt-2 font-ui text-xs text-muted text-right">

@@ -24,7 +24,7 @@ function statusColor(status: OrderStatus): string {
       return "bg-purple-primary/10 text-purple-primary";
     case "in_progress":
     case "submitted":
-      return "bg-accent/15 text-purple-700";
+      return "bg-purple-100 text-purple-700";
     case "revision_requested":
       return "bg-amber-100 text-amber-700";
     case "completed":
@@ -55,7 +55,7 @@ export default function BuyerOrdersList() {
           <h1 className="font-display text-3xl text-ink">Buyers Dashboard</h1>
           <Link
             href="/cart"
-            className="px-4 py-2 rounded-xl border border-purple-primary/30 bg-accent/10 text-sm font-ui font-semibold text-purple-primary hover:bg-accent/15"
+            className="px-4 py-2 rounded-xl border border-purple-200 bg-purple-50 text-sm font-ui font-semibold text-purple-primary hover:bg-purple-100"
           >
             Open Studio Cart
           </Link>
@@ -112,7 +112,7 @@ export default function BuyerOrdersList() {
           <div className="text-center mt-6">
             <button
               onClick={loadMore}
-              className="px-5 py-3 rounded-full text-sm font-ui font-semibold text-pink-vivid border border-pink-vivid/30 bg-pink-50 hover:bg-pink-100 transition-colors"
+              className="px-5 py-3 rounded-full text-sm font-ui font-semibold text-pink-vivid border border-pink-200 bg-pink-50 hover:bg-pink-100 transition-colors"
             >
               Load More
             </button>
@@ -135,7 +135,7 @@ function OrderCard({ order }: { order: Order }) {
   return (
     <Link
       href={`/orders/${order.id}`}
-      className="block rounded-2xl border border-border-light bg-surface p-4 hover:border-pink-vivid/30 transition-colors"
+      className="block rounded-2xl border border-border-light bg-surface p-4 hover:border-pink-200 transition-colors"
     >
       <div className="flex gap-4">
         {/* Thumbnail */}

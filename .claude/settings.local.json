@@ -91,7 +91,15 @@
       "Bash(sed -n '826,845p' /Users/hadi/projects/pinkquill/app/globals.css)",
       "Bash(sed -n '215,255p' /Users/hadi/projects/pinkquill/components/commissions/CommissionsTab.tsx)",
       "Bash(sed -n '2649,2685p' /Users/hadi/projects/pinkquill/components/studio/StudioProfile.tsx)",
-      "Bash(sed -n '1110,1115p' /Users/hadi/projects/pinkquill/components/studio/StudioProfile.tsx)"
+      "Bash(sed -n '1110,1115p' /Users/hadi/projects/pinkquill/components/studio/StudioProfile.tsx)",
+      "Bash(sed -n '2675,2695p' /tmp/test.css)",
+      "Bash(sed -n '18045,18055p' /tmp/test.css)",
+      "Bash(sed -n '13,18p' /Users/hadi/projects/pinkquill/app/globals.css)",
+      "Bash(/usr/bin/curl -sL --cookie \"pq_theme=noir\" -o /tmp/feed.html http://localhost:3000/)",
+      "Bash(sed -n '2440,2455p' /Users/hadi/projects/pinkquill/app/globals.css)",
+      "Bash(sed -n '2590,2605p' /Users/hadi/projects/pinkquill/app/globals.css)",
+      "Bash(sed -n '2645,2665p' /Users/hadi/projects/pinkquill/app/globals.css)",
+      "Bash(sed -n '2695,2710p' /Users/hadi/projects/pinkquill/app/globals.css)"
     ]
   }
 }

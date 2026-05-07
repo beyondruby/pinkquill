@@ -55,7 +55,7 @@ export default function OrderMessages({ orderId }: OrderMessagesProps) {
       >
         {loading && (
           <div className="flex justify-center py-6">
-            <div className="w-5 h-5 border-2 border-pink-vivid/30 border-t-pink-vivid rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-pink-200 border-t-pink-vivid rounded-full animate-spin" />
           </div>
         )}
 

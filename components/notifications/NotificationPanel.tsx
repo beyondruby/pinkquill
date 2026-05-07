@@ -1083,7 +1083,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
                 <button
                   onClick={handleMarkAllAsRead}
                   aria-label="Mark all notifications as read"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-accent font-ui text-[0.78rem] font-medium hover:bg-accent/10 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-accent font-ui text-[0.78rem] font-medium hover:bg-purple-50 transition-all"
                 >
                   {icons.checkAll}
                   <span>Mark all read</span>

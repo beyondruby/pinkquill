@@ -15,8 +15,8 @@ import type { Order } from "@/lib/types/store";
 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
   pending_acceptance: { label: "Pending", dot: "bg-amber-400", bg: "bg-amber-50", text: "text-amber-700" },
   pending_payment: { label: "Awaiting Payment", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
-  in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
+  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
+  in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
   submitted: { label: "Delivered", dot: "bg-indigo-400", bg: "bg-indigo-50", text: "text-indigo-700" },
   revision_requested: { label: "Revision", dot: "bg-orange-400", bg: "bg-orange-50", text: "text-orange-700" },
   completed: { label: "Completed", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
@@ -47,7 +47,7 @@ function MetricCard({
   return (
     <div className={`rounded-xl border p-4 sm:p-5 ${
       accent
-        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-accent-2/60"
+        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
         : "border-border-light bg-surface"
     }`}>
       <div className="flex items-start justify-between">
@@ -161,7 +161,7 @@ export default function SellerDashboard() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-purple-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
             </svg>

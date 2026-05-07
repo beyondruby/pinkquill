@@ -58,7 +58,7 @@ export default function ProductGallery({
       <div
         className={`aspect-square rounded-[28px] flex items-center justify-center border ${
           isService
-            ? "bg-gradient-to-br from-orange-50/70 to-accent-2/50 border-orange-100/70"
+            ? "bg-gradient-to-br from-orange-50/70 to-pink-50/50 border-orange-100/70"
             : "bg-gradient-to-br from-pink-50 to-orange-50 border-pink-100/50"
         }`}
       >

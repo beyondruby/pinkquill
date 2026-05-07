@@ -357,7 +357,7 @@ export default function TakeReactionPicker({
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
             currentReaction
               ? 'bg-pink-vivid/10 text-pink-vivid'
-              : 'bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent'
+              : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={handleMainClick}
           onKeyDown={handleMainButtonKeyDown}

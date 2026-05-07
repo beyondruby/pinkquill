@@ -220,7 +220,7 @@ export default function CommunitiesPage() {
             placeholder="Search communities..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-surface/90 backdrop-blur-sm border border-purple-primary/10 shadow-sm font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 focus:bg-surface transition-all placeholder:text-muted/60"
+            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-surface/90 backdrop-blur-sm border border-purple-primary/10 shadow-sm font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 focus:bg-surface transition-all placeholder:text-muted/60"
           />
           <div className="absolute left-4 top-1/2 -translate-y-1/2">
             <svg className="w-5 h-5 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">

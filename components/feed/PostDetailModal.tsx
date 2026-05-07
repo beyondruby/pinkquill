@@ -1081,7 +1081,7 @@ function PostDetailModalComponent({
               className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                 hasDarkBg
                   ? 'bg-surface/15 text-white/90 hover:bg-surface/25 hover:text-white'
-                  : 'bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent'
+                  : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
               }`}
             >
               {icons.comment}
@@ -1098,7 +1098,7 @@ function PostDetailModalComponent({
                     ? "bg-green-500/30 text-green-400"
                     : hasDarkBg
                       ? 'bg-surface/15 text-white/90 hover:bg-surface/25 hover:text-white'
-                      : 'bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent'
+                      : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
@@ -1112,7 +1112,7 @@ function PostDetailModalComponent({
               className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
                 hasDarkBg
                   ? 'bg-surface/15 text-white/90 hover:bg-surface/25 hover:text-white'
-                  : 'bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent'
+                  : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
               }`}
             >
               {icons.share}
@@ -1127,7 +1127,7 @@ function PostDetailModalComponent({
                   ? "bg-amber-500/30 text-amber-400"
                   : hasDarkBg
                     ? 'bg-surface/15 text-white/90 hover:bg-surface/25 hover:text-white'
-                    : 'bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent'
+                    : 'bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent'
               } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isSaved ? (

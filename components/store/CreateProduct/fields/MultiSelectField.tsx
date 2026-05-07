@@ -140,7 +140,7 @@ export default function MultiSelectField({ field, value, onChange }: MultiSelect
                     onChange={(e) => setCustomValue(e.target.value)}
                     placeholder="Custom"
                     className="flex-1 px-3 py-2 rounded-lg text-sm
-                      border border-pink-vivid/30 bg-surface
+                      border border-pink-200 bg-surface
                       focus:border-pink-vivid focus:outline-none
                       transition-all font-body"
                     autoFocus

@@ -112,7 +112,7 @@ export default function OrderTimeline({ order }: OrderTimelineProps) {
                 isCancelled
                   ? "border-red-200/60 bg-red-50/30 opacity-50"
                   : isActive
-                    ? "border-pink-vivid/40 bg-pink-50/50"
+                    ? "border-pink-300 bg-pink-50/50"
                     : "border-border-light"
               }`}
             >

@@ -99,7 +99,7 @@ export default function CommunityAboutPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {genreTags.map((tag) => (
-                      <span key={tag.id} className="px-3 py-1.5 rounded-full text-sm font-ui font-medium bg-accent/15 text-purple-700">
+                      <span key={tag.id} className="px-3 py-1.5 rounded-full text-sm font-ui font-medium bg-purple-100 text-purple-700">
                         {tag.tag}
                       </span>
                     ))}

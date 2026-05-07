@@ -35,7 +35,7 @@ export function ReactionButton({
         opacity-0 group-hover:opacity-100 focus:opacity-100
         ${isOwnMessage
           ? "text-white/50 hover:text-white hover:bg-surface/20"
-          : "text-muted/40 hover:text-accent hover:bg-accent/10"
+          : "text-muted/40 hover:text-accent hover:bg-purple-50"
         }
         ${disabled ? "cursor-not-allowed !opacity-20" : "hover:scale-110 active:scale-95"}
       `}

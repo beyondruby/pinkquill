@@ -11,10 +11,10 @@
    ============================================================================ */
 
 @theme {
-  /* === BRAND PALETTE (locked — never recolored by themes) === */
-  --color-purple-primary: var(--color-purple-primary);
-  --color-pink-vivid: var(--color-pink-vivid);
-  --color-orange-warm: var(--color-orange-warm);
+  /* === BRAND PALETTE — default values; overridden per non-default theme === */
+  --color-purple-primary: #8e44ad;
+  --color-pink-vivid: #ff007f;
+  --color-orange-warm: #ff9f43;
 
   /* === SURFACES === */
   --color-canvas: #fdfdfd;          /* page background */
@@ -2439,7 +2439,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     position: sticky !important;
     top: 0 !important;
     z-index: 30 !important;
-    background: white !important;
+    background: var(--color-surface) !important;
     margin: 0 !important;
     padding: 10px 12px !important;
     gap: 8px !important;
@@ -2591,7 +2591,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     margin: 0 !important;
     padding: 12px 16px !important;
     padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
-    background: white !important;
+    background: var(--color-surface) !important;
     border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
     z-index: 50 !important;
@@ -2648,7 +2648,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     right: 0 !important;
     bottom: 0 !important;
     z-index: 100 !important;
-    background: white !important;
+    background: var(--color-surface) !important;
     animation: mobileSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
     display: flex !important;
     flex-direction: column !important;
@@ -2659,7 +2659,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     position: sticky !important;
     top: 0 !important;
     z-index: 10 !important;
-    background: white !important;
+    background: var(--color-surface) !important;
     padding: 12px 16px !important;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
     flex-shrink: 0 !important;
@@ -2695,7 +2695,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
     right: 0 !important;
     padding: 12px 16px !important;
     padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
-    background: white !important;
+    background: var(--color-surface) !important;
     border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
     z-index: 70 !important;

@@ -1146,7 +1146,7 @@ export default function PostPage() {
               />
 
               <button
-                className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent transition-all"
+                className="flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
               >
                 {icons.comment}
                 {comments.length > 0 && <span className="text-xs md:text-sm font-medium">{comments.length}</span>}
@@ -1159,7 +1159,7 @@ export default function PostPage() {
                   className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                     isRelayed
                       ? "bg-green-500/10 text-green-600"
-                      : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
+                      : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
                   } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {icons.relay}
@@ -1171,7 +1171,7 @@ export default function PostPage() {
 
               <button
                 onClick={() => setShowShareModal(true)}
-                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-accent/10 hover:text-accent transition-all"
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-purple-50 hover:text-accent transition-all"
               >
                 {icons.share}
               </button>
@@ -1182,7 +1182,7 @@ export default function PostPage() {
                 className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${
                   isSaved
                     ? "bg-amber-500/10 text-amber-600"
-                    : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
+                    : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {isSaved ? icons.bookmarkFilled : icons.bookmark}

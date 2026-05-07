@@ -139,7 +139,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
                   placeholder={placeholder}
                   maxLength={500}
                   rows={4}
-                  className="w-full px-4 py-4 rounded-xl border border-border-light bg-subtle/40 font-body text-[0.95rem] text-ink placeholder:text-muted/40 placeholder:italic resize-none focus:outline-none focus:border-purple-primary/40 focus:bg-surface transition-all"
+                  className="w-full px-4 py-4 rounded-xl border border-border-light bg-subtle/40 font-body text-[0.95rem] text-ink placeholder:text-muted/40 placeholder:italic resize-none focus:outline-none focus:border-purple-300 focus:bg-surface transition-all"
                 />
                 <span className="absolute bottom-3 right-3 font-ui text-[0.7rem] text-muted/50">
                   {details.length}/500

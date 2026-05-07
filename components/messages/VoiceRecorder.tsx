@@ -237,7 +237,7 @@ export default function VoiceRecorder({
         {/* Cancel button */}
         <button
           onClick={handleCancel}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-accent/10 transition-all"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-purple-50 transition-all"
           title="Cancel"
         >
           {icons.close}

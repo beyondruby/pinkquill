@@ -514,7 +514,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
             {!videoPreview ? (
               <div
                 className={`aspect-[9/16] max-h-[70vh] rounded-2xl border-2 border-dashed transition-colors cursor-pointer flex flex-col items-center justify-center bg-gradient-to-b from-surface/5 to-transparent ${
-                  dragActive ? "border-purple-500 bg-accent/100/10" : "border-surface/20 hover:border-surface/40"
+                  dragActive ? "border-purple-500 bg-purple-500/10" : "border-surface/20 hover:border-surface/40"
                 }`}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
@@ -605,7 +605,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                       onClick={() => setActiveTab(tab)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-colors ${
                         activeTab === tab
-                          ? "bg-accent/100 text-white"
+                          ? "bg-purple-500 text-white"
                           : "bg-surface/10 text-white/70 hover:bg-surface/20"
                       }`}
                     >
@@ -682,7 +682,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                     <button
                       onClick={handleAddTag}
                       disabled={!tagInput.trim()}
-                      className="px-4 py-2 bg-accent/100 rounded-xl font-medium text-sm disabled:opacity-50"
+                      className="px-4 py-2 bg-purple-500 rounded-xl font-medium text-sm disabled:opacity-50"
                     >
                       Add
                     </button>
@@ -692,7 +692,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                       {tags.map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-accent/100/20 text-purple-300 rounded-full text-sm"
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm"
                         >
                           #{tag}
                           <button onClick={() => handleRemoveTag(tag)} className="hover:text-white">
@@ -758,7 +758,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                           <button
                             key={community.id}
                             className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface/10 transition-colors ${
-                              selectedCommunity === community.id ? "bg-accent/100/20" : ""
+                              selectedCommunity === community.id ? "bg-purple-500/20" : ""
                             }`}
                             onClick={() => {
                               setSelectedCommunity(community.id === selectedCommunity ? null : community.id);
@@ -864,7 +864,7 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
                           {filter.label}
                         </span>
                         {selectedFilter === filter.name && (
-                          <div className="absolute top-1 right-1 w-5 h-5 bg-accent/100 rounded-full flex items-center justify-center">
+                          <div className="absolute top-1 right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
                             <FontAwesomeIcon icon={faCheck} className="w-3 h-3 text-white" />
                           </div>
                         )}

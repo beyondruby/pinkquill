@@ -795,7 +795,7 @@ function StudioSubTabButton({
       onClick={onClick}
       className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
         active
-          ? "bg-accent-2/10 text-accent-2"
+          ? "bg-pink-50 text-accent-2"
           : "text-muted hover:text-ink hover:bg-subtle"
       }`}
     >
@@ -1303,7 +1303,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {/* Private Account Notice */}
         {isPrivateAccount && !isOwnProfile && !isFollowing && (
           <div className={`mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-2' : ''}`}>
-            <div className="relative rounded-3xl bg-gradient-to-br from-purple-50/90 via-surface to-accent-2/80 p-10 border border-purple-200/50 shadow-[0_8px_40px_-12px_rgba(142,68,173,0.15)] text-center">
+            <div className="relative rounded-3xl bg-gradient-to-br from-purple-50/90 via-surface to-pink-50/80 p-10 border border-purple-200/50 shadow-[0_8px_40px_-12px_rgba(142,68,173,0.15)] text-center">
               {/* Lock Icon */}
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center">
                 <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1379,7 +1379,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           <div className={`relative mb-8 md:mb-12 studio-section-animated ${pageLoaded ? 'loaded delay-3' : ''}`}>
 
             {/* The Box */}
-            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-accent-2/10 via-surface to-accent/5 p-5 md:p-8 lg:p-10 border border-accent-2/20 shadow-lg shadow-accent-2/10">
+            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-rose-50/90 via-surface to-pink-50/80 p-5 md:p-8 lg:p-10 border border-pink-200/50 shadow-[0_8px_40px_-12px_rgba(255,0,127,0.15)]">
 
               {/* Subtle top accent line */}
               <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-pink-vivid/30 to-transparent" />

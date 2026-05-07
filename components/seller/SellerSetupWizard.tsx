@@ -241,7 +241,7 @@ function ServicesSkillsStep({ state, setState }: { state: WizardState; setState:
               onClick={() => setState({ ...state, experienceLevel: level })}
               className={`px-4 py-2.5 rounded-lg border text-sm font-medium capitalize transition-colors ${
                 state.experienceLevel === level
-                  ? "border-[var(--color-purple-primary)] bg-accent/10 text-[var(--color-purple-primary)]"
+                  ? "border-[var(--color-purple-primary)] bg-purple-50 text-[var(--color-purple-primary)]"
                   : "border-border-light text-ink/60 hover:bg-subtle"
               }`}
             >

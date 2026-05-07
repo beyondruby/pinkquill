@@ -152,7 +152,7 @@ export default function SharedPostCard({
               </p>
             </div>
             {!hasMedia && (
-              <span className="px-2 py-0.5 rounded-full bg-accent/15 font-ui text-[10px] font-medium text-purple-700">
+              <span className="px-2 py-0.5 rounded-full bg-purple-100 font-ui text-[10px] font-medium text-purple-700">
                 {typeLabel}
               </span>
             )}

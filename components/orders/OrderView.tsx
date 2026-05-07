@@ -34,7 +34,7 @@ type OrderTab = "overview" | "activity" | "reviews";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgClass: string; textClass: string; icon: string }> = {
   pending_acceptance: { label: "Pending Approval", color: "#f59e0b", bgClass: "bg-amber-500/10", textClass: "text-amber-600", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-  pending_payment:    { label: "Awaiting Payment", color: "#8e44ad", bgClass: "bg-accent/100/10", textClass: "text-purple-600", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
+  pending_payment:    { label: "Awaiting Payment", color: "#8e44ad", bgClass: "bg-purple-500/10", textClass: "text-purple-600", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   paid:               { label: "Paid", color: "#8e44ad", bgClass: "bg-purple-primary/10", textClass: "text-purple-primary", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
   in_progress:        { label: "In Progress", color: "#8e44ad", bgClass: "bg-purple-primary/10", textClass: "text-purple-primary", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
   submitted:          { label: "Delivered", color: "#6366f1", bgClass: "bg-indigo-500/10", textClass: "text-indigo-600", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
@@ -664,7 +664,7 @@ function BannerSection({ order, isBuyer }: { order: Order; isBuyer: boolean }) {
 
   if (order.status === "pending_payment" && !isBuyer) {
     return (
-      <div className="rounded-2xl border border-purple-primary/15 bg-accent/10/30 p-5 text-center">
+      <div className="rounded-2xl border border-purple-primary/15 bg-purple-50/30 p-5 text-center">
         <p className="text-sm font-body text-muted">
           <span className="font-semibold text-ink">Awaiting payment</span> — the buyer hasn&apos;t completed checkout yet.
         </p>
@@ -714,7 +714,7 @@ function DraftEditor({
   draftValidationError: string | null; updateDraftError: string | null; draftNotice: string | null;
   updatingDraft: boolean; onSave: () => void;
 }) {
-  const inputClass = "w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-shadow";
+  const inputClass = "w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-shadow";
 
   return (
     <div className="space-y-4">
@@ -804,7 +804,7 @@ function OrderReviewSection({ order, userId }: { order: Order; userId?: string }
 
       {canLeaveReview && !hasReviewed && !showForm && (
         <button onClick={() => setShowForm(true)}
-          className="w-full py-3 rounded-xl border-2 border-dashed border-purple-primary/25 text-purple-primary font-ui font-semibold text-sm hover:bg-accent/10/40 hover:border-accent/40 transition-all">
+          className="w-full py-3 rounded-xl border-2 border-dashed border-purple-primary/25 text-purple-primary font-ui font-semibold text-sm hover:bg-purple-50/40 hover:border-accent/40 transition-all">
           Leave a Review
         </button>
       )}

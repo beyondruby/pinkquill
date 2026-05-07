@@ -156,7 +156,7 @@ export default function ReviewForm({ orderId, onSubmitted }: ReviewFormProps) {
                 onClick={() => toggleHighlight(option)}
                 className={`px-3 py-1.5 rounded-full text-xs font-ui border transition-colors ${
                   selected
-                    ? "bg-pink-vivid/10 border-pink-vivid/30 text-pink-vivid"
+                    ? "bg-pink-vivid/10 border-pink-200 text-pink-vivid"
                     : "bg-surface border-purple-primary/15 text-muted hover:text-ink"
                 }`}
               >

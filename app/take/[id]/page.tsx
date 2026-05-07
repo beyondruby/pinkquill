@@ -748,7 +748,7 @@ export default function SingleTakePage({ params }: PageProps) {
                 />
 
                 <button
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent transition-all"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
                 >
                   <CommentIcon className="shrink-0" />
                   {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
@@ -761,7 +761,7 @@ export default function SingleTakePage({ params }: PageProps) {
                     className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
                       isRelayed
                         ? "bg-green-500/10 text-green-600"
-                        : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
+                        : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
                     } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {icons.relay}
@@ -773,7 +773,7 @@ export default function SingleTakePage({ params }: PageProps) {
 
                 <button
                   onClick={() => setShowShareModal(true)}
-                  className="w-10 h-10 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-accent/10 hover:text-accent transition-all"
+                  className="w-10 h-10 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-purple-50 hover:text-accent transition-all"
                 >
                   {icons.share}
                 </button>
@@ -784,7 +784,7 @@ export default function SingleTakePage({ params }: PageProps) {
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                     isSaved
                       ? "bg-amber-500/10 text-amber-600"
-                      : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
+                      : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
                   } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {isSaved ? icons.bookmarkFilled : icons.bookmark}

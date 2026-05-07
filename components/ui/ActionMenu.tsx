@@ -38,7 +38,7 @@ const ITEM_STYLES: Record<NonNullable<ActionMenuItem["tone"]>, string> = {
   default: "text-ink hover:bg-skeleton/60",
   danger: "text-red-500 hover:bg-red-50",
   success: "text-emerald-600 hover:bg-emerald-50",
-  accent: "text-purple-primary hover:bg-accent/10/70",
+  accent: "text-purple-primary hover:bg-purple-50/70",
   warning: "text-orange-600 hover:bg-orange-50",
 };
 

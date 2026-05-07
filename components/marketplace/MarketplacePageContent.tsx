@@ -123,7 +123,7 @@ export default function MarketplacePageContent() {
             <p className="text-sm font-body text-muted mb-5 max-w-sm mx-auto">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-6 py-2.5 text-sm font-ui font-medium text-pink-vivid border border-pink-vivid/30 rounded-full hover:bg-pink-50 transition-colors"
+              className="px-6 py-2.5 text-sm font-ui font-medium text-pink-vivid border border-pink-200 rounded-full hover:bg-pink-50 transition-colors"
             >
               Try again
             </button>
@@ -163,7 +163,7 @@ export default function MarketplacePageContent() {
             <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-10">
               {loading && products.length > 0 && (
                 <div className="flex items-center gap-3 text-muted">
-                  <div className="w-5 h-5 border-2 border-pink-vivid/30 border-t-pink-vivid rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-pink-200 border-t-pink-vivid rounded-full animate-spin" />
                   <span className="text-sm font-body">
                     Loading more {isService ? "commissions" : "products"}...
                   </span>
@@ -222,7 +222,7 @@ function DiscoveryStrip({
 
 function Badge({ label, tone }: { label: string; tone: "purple" | "pink" | "neutral" }) {
   const toneClasses = {
-    purple: "bg-accent/15 text-purple-primary",
+    purple: "bg-purple-100 text-purple-primary",
     pink: "bg-pink-100 text-pink-vivid",
     neutral: "bg-skeleton text-gray-700",
   } as const;

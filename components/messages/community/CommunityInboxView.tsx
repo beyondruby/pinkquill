@@ -967,7 +967,7 @@ export default function CommunityInboxView() {
               <div className="relative" ref={headerMenuRef}>
                 <button
                   onClick={() => setShowHeaderMenu((prev) => !prev)}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-accent/10 transition-all"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-purple-50 transition-all"
                   aria-label="Chat options"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -1217,7 +1217,7 @@ export default function CommunityInboxView() {
                   {/* Pinned welcome at top of community thread */}
                   {isCommunityThreadSelected && welcomeMessage && (
                     <div className="flex justify-center mb-3">
-                      <div className="max-w-[80%] px-4 py-2.5 rounded-2xl bg-surface border-2 border-purple-primary/40">
+                      <div className="max-w-[80%] px-4 py-2.5 rounded-2xl bg-surface border-2 border-purple-300">
                         <p className="font-ui text-[10px] uppercase tracking-wider font-semibold text-purple-primary mb-1">
                           Welcome
                         </p>
@@ -1428,7 +1428,7 @@ export default function CommunityInboxView() {
                           className={`w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
                             sendAsAppeal
                               ? "bg-purple-primary text-white"
-                              : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
+                              : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
                           }`}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -188,7 +188,7 @@ export default function CollectionSelector({
           onClick={() => setIsExpanded(!isExpanded)}
           className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl border transition-all duration-200 ${
             hasSelection
-              ? "border-purple-primary/30 bg-purple-primary/[0.03]"
+              ? "border-purple-200 bg-purple-primary/[0.03]"
               : "border-border-light hover:border-accent/20 bg-surface"
           }`}
         >
@@ -286,7 +286,7 @@ export default function CollectionSelector({
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-purple-primary hover:bg-accent/5 transition-colors mb-2"
                   >
-                    <div className="w-10 h-10 rounded-xl border-2 border-dashed border-purple-primary/30 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl border-2 border-dashed border-purple-200 flex items-center justify-center">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>
@@ -401,7 +401,7 @@ export default function CollectionSelector({
                         }}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-pink-vivid hover:bg-pink-vivid/5 transition-colors mb-2"
                       >
-                        <div className="w-10 h-10 rounded-xl border-2 border-dashed border-pink-vivid/30 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl border-2 border-dashed border-pink-200 flex items-center justify-center">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                           </svg>

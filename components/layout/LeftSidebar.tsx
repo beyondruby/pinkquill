@@ -210,8 +210,8 @@ export default function LeftSidebar() {
                 isExpanded ? "px-4 gap-3.5" : "justify-center px-0"
               } ${
                 pathname === item.href
-                  ? "text-accent-2 bg-accent-2/10 font-medium"
-                  : "text-muted hover:text-accent hover:bg-accent/10"
+                  ? "text-accent-2 bg-pink-50 font-medium"
+                  : "text-muted hover:text-accent hover:bg-purple-50"
               }`}
               title={!isExpanded ? item.label : undefined}
             >
@@ -239,8 +239,8 @@ export default function LeftSidebar() {
                   isExpanded ? "px-4 gap-3.5 w-full" : "justify-center px-0"
                 } ${
                   showNotifications
-                    ? "text-accent-2 bg-accent-2/10 font-medium"
-                    : "text-muted hover:text-accent hover:bg-accent/10"
+                    ? "text-accent-2 bg-pink-50 font-medium"
+                    : "text-muted hover:text-accent hover:bg-purple-50"
                 }`}
                 aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
                 aria-expanded={showNotifications}
@@ -270,8 +270,8 @@ export default function LeftSidebar() {
                   isExpanded ? "px-4 gap-3.5" : "justify-center px-0"
                 } ${
                   pathname.startsWith("/messages")
-                    ? "text-accent-2 bg-accent-2/10 font-medium"
-                    : "text-muted hover:text-accent hover:bg-accent/10"
+                    ? "text-accent-2 bg-pink-50 font-medium"
+                    : "text-muted hover:text-accent hover:bg-purple-50"
                 }`}
                 aria-label={unreadMessagesCount > 0 ? `Messages, ${unreadMessagesCount} unread` : "Messages"}
                 title={!isExpanded ? "Messages" : undefined}
@@ -555,7 +555,7 @@ export default function LeftSidebar() {
               }`}
               title={!isExpanded ? "Sign In" : undefined}
             >
-              <div className={`rounded-full bg-accent/10 flex items-center justify-center text-accent flex-shrink-0 ${
+              <div className={`rounded-full bg-purple-50 flex items-center justify-center text-accent flex-shrink-0 ${
                 isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"
               }`}>
                 <svg className={`${isExpanded ? "w-5 h-5" : "w-4 h-4"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -569,7 +569,7 @@ export default function TakeDetailModal({
               {/* Comment Button */}
               <button
                 onClick={() => setShowComments(true)}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent transition-all"
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent transition-all"
               >
                 <CommentIcon className="shrink-0" />
                 {comments.length > 0 && <span className="text-sm font-medium">{comments.length}</span>}
@@ -582,7 +582,7 @@ export default function TakeDetailModal({
                 className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full transition-all ${
                   isRelayed
                     ? "bg-green-500/10 text-green-600"
-                    : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
+                    : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
                 } ${(!user || take.author_id === user?.id) ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
@@ -592,7 +592,7 @@ export default function TakeDetailModal({
               {/* Share Button */}
               <button
                 onClick={() => setShowShareModal(true)}
-                className="w-11 h-11 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-accent/10 hover:text-accent transition-all"
+                className="w-11 h-11 rounded-full bg-skeleton/70 flex items-center justify-center text-muted hover:bg-purple-50 hover:text-accent transition-all"
               >
                 {icons.share}
               </button>
@@ -604,7 +604,7 @@ export default function TakeDetailModal({
                 className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
                   isSaved
                     ? "bg-amber-500/10 text-amber-600"
-                    : "bg-skeleton/70 text-muted hover:bg-accent/10 hover:text-accent"
+                    : "bg-skeleton/70 text-muted hover:bg-purple-50 hover:text-accent"
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {isSaved ? (

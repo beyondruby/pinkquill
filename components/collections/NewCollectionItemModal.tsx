@@ -321,7 +321,7 @@ export default function NewCollectionItemModal({
                 <button
                   type="button"
                   onClick={() => setShowIconPicker(!showIconPicker)}
-                  className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border-2 border-dashed border-purple-primary/30 flex items-center justify-center hover:border-accent/50 transition-all group"
+                  className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border-2 border-dashed border-purple-200 flex items-center justify-center hover:border-accent/50 transition-all group"
                 >
                   {iconEmoji?.startsWith("url:") ? (
                     <img src={iconEmoji.replace("url:", "")} alt="" className="w-full h-full object-cover rounded-lg" />
@@ -358,7 +358,7 @@ export default function NewCollectionItemModal({
                                 setIconEmoji(icon.id);
                                 setShowIconPicker(false);
                               }}
-                              className={`w-7 h-7 rounded-lg flex items-center justify-center hover:bg-accent/10 transition-colors text-purple-primary ${
+                              className={`w-7 h-7 rounded-lg flex items-center justify-center hover:bg-purple-50 transition-colors text-purple-primary ${
                                 iconEmoji === icon.id ? "bg-purple-primary/20 ring-2 ring-purple-primary/30" : ""
                               }`}
                               title={icon.label}
@@ -384,7 +384,7 @@ export default function NewCollectionItemModal({
                                   setIconEmoji(option.emoji);
                                   setShowIconPicker(false);
                                 }}
-                                className={`w-7 h-7 rounded-lg flex items-center justify-center hover:bg-accent/10 transition-colors ${
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center hover:bg-purple-50 transition-colors ${
                                   iconEmoji === option.emoji ? "bg-purple-primary/20 ring-2 ring-purple-primary/30" : ""
                                 }`}
                                 title={option.label}

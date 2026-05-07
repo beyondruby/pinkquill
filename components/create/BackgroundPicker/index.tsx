@@ -426,7 +426,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
               {!imagePreview ? (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-purple-primary/30 rounded-2xl p-8 text-center cursor-pointer hover:border-accent/50 hover:bg-accent/[0.02] transition-all"
+                  className="border-2 border-dashed border-purple-200 rounded-2xl p-8 text-center cursor-pointer hover:border-accent/50 hover:bg-accent/[0.02] transition-all"
                 >
                   <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white shadow-lg shadow-purple-primary/30">
                     {icons.upload}
@@ -498,7 +498,7 @@ export default function BackgroundPicker({ value, onChange, onClose }: Backgroun
                   {/* Change Image Button */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full px-4 py-2.5 rounded-xl border border-purple-primary/30 text-purple-primary font-ui text-sm hover:bg-accent/5 transition-colors"
+                    className="w-full px-4 py-2.5 rounded-xl border border-purple-200 text-purple-primary font-ui text-sm hover:bg-accent/5 transition-colors"
                   >
                     Change Image
                   </button>

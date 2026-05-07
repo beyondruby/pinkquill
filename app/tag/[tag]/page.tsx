@@ -173,7 +173,7 @@ export default function TagPage() {
                 <Link
                   key={tag.name}
                   href={`/tag/${encodeURIComponent(tag.name)}`}
-                  className="px-3 py-1.5 rounded-full bg-skeleton/70 text-ink font-ui text-sm hover:bg-accent/10 hover:text-accent transition-all"
+                  className="px-3 py-1.5 rounded-full bg-skeleton/70 text-ink font-ui text-sm hover:bg-purple-50 hover:text-accent transition-all"
                 >
                   #{tag.name}
                 </Link>

@@ -363,7 +363,7 @@ export default function MediaUploadStep({
             key={`empty-${index}`}
             onClick={() => fileInputRef.current?.click()}
             className="aspect-square rounded-xl border-2 border-dashed border-gray-200
-              hover:border-pink-vivid/30 hover:bg-pink-vivid/5 transition-all
+              hover:border-pink-200 hover:bg-pink-vivid/5 transition-all
               flex flex-col items-center justify-center gap-1"
           >
             <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -386,7 +386,7 @@ export default function MediaUploadStep({
             onClick={() => digitalFileInputRef.current?.click()}
             className="flex items-center justify-center py-10 px-6 rounded-xl cursor-pointer
               border-2 border-dashed border-gray-200 bg-subtle/50
-              hover:border-pink-vivid/30 hover:bg-pink-vivid/5 transition-all"
+              hover:border-pink-200 hover:bg-pink-vivid/5 transition-all"
           >
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-pink-vivid/10 flex items-center justify-center">

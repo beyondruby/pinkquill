@@ -469,7 +469,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border-2 border-dashed border-purple-primary/30 flex items-center justify-center hover:border-accent/50 transition-all group"
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border-2 border-dashed border-purple-200 flex items-center justify-center hover:border-accent/50 transition-all group"
               >
                 {iconUrl ? (
                   <img src={iconUrl} alt="" className="w-full h-full object-cover rounded-xl" />
@@ -511,7 +511,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                               setIconUrl(null);
                               setShowEmojiPicker(false);
                             }}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-accent/10 transition-colors text-purple-primary ${
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-purple-50 transition-colors text-purple-primary ${
                               iconEmoji === icon.id ? "bg-purple-primary/20 ring-2 ring-purple-primary/30" : ""
                             }`}
                             title={icon.label}
@@ -541,7 +541,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
                                 setIconUrl(null);
                                 setShowEmojiPicker(false);
                               }}
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-accent/10 transition-colors ${
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-purple-50 transition-colors ${
                                 iconEmoji === option.emoji ? "bg-purple-primary/20 ring-2 ring-purple-primary/30" : ""
                               }`}
                               title={option.label}
@@ -597,7 +597,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               onClick={() => coverInputRef.current?.click()}
               className={`relative w-full h-32 rounded-xl border-2 border-dashed cursor-pointer overflow-hidden transition-all ${
                 coverUrl
-                  ? "border-purple-primary/30"
+                  ? "border-purple-200"
                   : "border-border-strong hover:border-accent/30"
               }`}
             >
@@ -627,7 +627,7 @@ export default function NewCollectionModal({ isOpen, onClose, onCreated }: NewCo
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted">
                   {uploadingCover ? (
-                    <div className="w-6 h-6 border-2 border-purple-primary/30 border-t-purple-primary rounded-full animate-spin" />
+                    <div className="w-6 h-6 border-2 border-purple-200 border-t-purple-primary rounded-full animate-spin" />
                   ) : (
                     <>
                       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">

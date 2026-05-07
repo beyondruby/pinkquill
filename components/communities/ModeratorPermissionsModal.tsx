@@ -106,7 +106,7 @@ const colorClasses: Record<string, { bg: string; border: string; text: string; r
   yellow: { bg: "bg-yellow-50", border: "border-yellow-200", text: "text-yellow-600", ring: "ring-yellow-400" },
   red: { bg: "bg-red-50", border: "border-red-200", text: "text-red-500", ring: "ring-red-400" },
   orange: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-500", ring: "ring-orange-400" },
-  purple: { bg: "bg-accent/10", border: "border-purple-200", text: "text-purple-600", ring: "ring-purple-400" },
+  purple: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-600", ring: "ring-purple-400" },
   blue: { bg: "bg-purple-primary/[0.04]", border: "border-purple-primary/15", text: "text-purple-primary", ring: "ring-purple-primary" },
 };
 
@@ -188,7 +188,7 @@ export default function ModeratorPermissionsModal({
           <div className="flex items-center gap-2">
             <button
               onClick={selectAll}
-              className="px-3 py-1.5 rounded-lg text-xs font-ui font-medium text-purple-primary hover:bg-accent/10 transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs font-ui font-medium text-purple-primary hover:bg-purple-50 transition-colors"
             >
               Select All
             </button>

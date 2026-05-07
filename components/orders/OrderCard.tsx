@@ -10,7 +10,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; d
   pending_payment: { label: "Awaiting Payment", bg: "bg-yellow-50", text: "text-yellow-700", dot: "bg-yellow-400" },
   paid: { label: "Paid", bg: "bg-purple-primary/[0.04]", text: "text-purple-primary", dot: "bg-purple-primary" },
   processing: { label: "Processing", bg: "bg-purple-primary/[0.04]", text: "text-purple-primary", dot: "bg-purple-primary" },
-  in_progress: { label: "In Progress", bg: "bg-accent/10", text: "text-purple-700", dot: "bg-purple-400" },
+  in_progress: { label: "In Progress", bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-400" },
   submitted: { label: "Delivered", bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-400" },
   revision_requested: { label: "Revision", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
   completed: { label: "Completed", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
@@ -163,7 +163,7 @@ export default function OrderCard({ order }: { order: Order }) {
             className={`shrink-0 px-4 py-1.5 rounded-lg text-xs font-ui font-semibold transition-all ${
               action.variant === "primary"
                 ? "bg-purple-primary text-white hover:bg-accent/90"
-                : "text-purple-primary border border-purple-primary/20 bg-accent/10 hover:bg-accent/15"
+                : "text-purple-primary border border-purple-primary/20 bg-purple-50 hover:bg-purple-100"
             }`}
           >
             {action.label}

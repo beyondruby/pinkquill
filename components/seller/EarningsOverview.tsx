@@ -69,7 +69,7 @@ function MetricCard({
   return (
     <div className={`rounded-xl border p-4 sm:p-5 ${
       accent
-        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-accent-2/60"
+        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
         : "border-border-light bg-surface"
     }`}>
       <div className="flex items-start justify-between">
@@ -209,7 +209,7 @@ export default function EarningsOverview() {
       </div>
 
       {/* Fee Info */}
-      <div className="flex items-start gap-3 rounded-lg bg-accent/10/60 border border-purple-100 p-4">
+      <div className="flex items-start gap-3 rounded-lg bg-purple-50/60 border border-purple-100 p-4">
         <svg className="w-4.5 h-4.5 text-purple-primary shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
@@ -247,7 +247,7 @@ export default function EarningsOverview() {
               <div className="p-4 text-center border-t border-border-light">
                 <button
                   onClick={loadMore}
-                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-accent/10 transition-colors"
+                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-purple-50 transition-colors"
                 >
                   Load More
                 </button>

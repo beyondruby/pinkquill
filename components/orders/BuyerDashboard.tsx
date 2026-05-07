@@ -84,7 +84,7 @@ function MetricCard({
     <div
       className={`relative rounded-xl border p-4 sm:p-5 overflow-hidden ${
         accent
-          ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-accent-2/60"
+          ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
           : "border-border-light bg-surface"
       }`}
     >
@@ -157,7 +157,7 @@ export default function BuyerDashboard() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-purple-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a4 4 0 0 0-8 0v2" />
             </svg>
@@ -318,7 +318,7 @@ export default function BuyerDashboard() {
           <div className="text-center mt-8">
             <button
               onClick={loadMore}
-              className="px-6 py-2.5 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-accent/10 transition-colors"
+              className="px-6 py-2.5 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-purple-50 transition-colors"
             >
               Load More Orders
             </button>

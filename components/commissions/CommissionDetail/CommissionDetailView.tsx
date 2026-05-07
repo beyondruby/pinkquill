@@ -503,7 +503,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                         image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
                       });
                     }}
-                    className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-pink-vivid/40 transition-colors"
+                    className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-pink-300 transition-colors"
                   >
                     {isQueued ? "In Cart" : "Add to Cart"}
                   </button>

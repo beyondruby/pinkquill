@@ -131,7 +131,7 @@ export default function HelpCenterPage() {
               placeholder="Search for help..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-surface border border-border-light shadow-sm font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
+              className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-surface border border-border-light shadow-sm font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-all"
             />
           </div>
         </div>

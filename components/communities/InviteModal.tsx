@@ -189,7 +189,7 @@ export default function InviteModal({
               placeholder="Search by username or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-subtle border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-primary/30 transition-all"
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-subtle border border-border-light font-ui text-sm focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 transition-all"
               autoFocus
             />
             <svg

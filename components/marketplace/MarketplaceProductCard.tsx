@@ -229,8 +229,8 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
               aria-pressed={isSavedForUi}
               className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm border transition-all ${
                 isSavedForUi
-                  ? "bg-surface text-pink-vivid border-pink-vivid/30 shadow-md"
-                  : "bg-surface/90 text-gray-500 border-border-light hover:text-pink-vivid hover:border-pink-vivid/30"
+                  ? "bg-surface text-pink-vivid border-pink-200 shadow-md"
+                  : "bg-surface/90 text-gray-500 border-border-light hover:text-pink-vivid hover:border-pink-200"
               }`}
               disabled={saving}
             >

@@ -262,7 +262,7 @@ export default function PeoplePickerModal({
                       {mode === "collaborators" && (
                         <button
                           onClick={() => setEditingRoleFor(editingRoleFor === user.id ? null : user.id)}
-                          className="w-6 h-6 rounded-full hover:bg-accent/10 flex items-center justify-center transition-colors"
+                          className="w-6 h-6 rounded-full hover:bg-purple-50 flex items-center justify-center transition-colors"
                           title="Edit role"
                         >
                           <FontAwesomeIcon
@@ -317,7 +317,7 @@ export default function PeoplePickerModal({
                         />
                         <button
                           onClick={() => setEditingRoleFor(null)}
-                          className="px-3 py-1.5 text-xs font-medium text-purple-primary hover:bg-accent/10 rounded-lg transition-colors"
+                          className="px-3 py-1.5 text-xs font-medium text-purple-primary hover:bg-purple-50 rounded-lg transition-colors"
                         >
                           Done
                         </button>

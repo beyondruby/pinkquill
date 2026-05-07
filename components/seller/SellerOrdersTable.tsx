@@ -47,9 +47,9 @@ const STATUS_TABS: { label: string; value: OrderStatus | "all"; icon: React.Reac
 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
   pending_acceptance: { label: "Pending", dot: "bg-amber-400", bg: "bg-amber-50", text: "text-amber-700" },
   pending_payment: { label: "Awaiting Payment", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
-  processing: { label: "Processing", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
-  in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
+  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
+  processing: { label: "Processing", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
+  in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
   submitted: { label: "Delivered", dot: "bg-indigo-400", bg: "bg-indigo-50", text: "text-indigo-700" },
   revision_requested: { label: "Revision", dot: "bg-orange-400", bg: "bg-orange-50", text: "text-orange-700" },
   completed: { label: "Completed", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
@@ -201,7 +201,7 @@ export default function SellerOrdersTable() {
               <div className="p-4 text-center border-t border-border-light">
                 <button
                   onClick={loadMore}
-                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-accent/10 transition-colors"
+                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-purple-50 transition-colors"
                 >
                   Load More
                 </button>

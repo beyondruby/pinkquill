@@ -20,7 +20,7 @@ const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; te
   active: { label: "Active", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
   paused: { label: "Paused", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
   draft: { label: "Draft", dot: "bg-muted/60", bg: "bg-subtle", text: "text-ink/60" },
-  sold: { label: "Sold", dot: "bg-purple-400", bg: "bg-accent/10", text: "text-purple-700" },
+  sold: { label: "Sold", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
   archived: { label: "Archived", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
 };
 
