@@ -40,6 +40,7 @@ interface Profile {
   website: string | null;
   is_verified: boolean;
   is_private: boolean;
+  theme_preference: string | null;
 }
 
 interface AuthContextType {

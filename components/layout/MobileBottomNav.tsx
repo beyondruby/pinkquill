@@ -66,7 +66,7 @@ export default function MobileBottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-black/[0.06] md:hidden safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-xl border-t border-border-light md:hidden safe-area-bottom">
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const href = item.icon === "profile" ? getProfileHref() : item.href;
@@ -80,12 +80,12 @@ export default function MobileBottomNav() {
               key={item.icon}
               href={href}
               aria-label={item.label}
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors focus-visible:outline-2 focus-visible:outline-purple-primary focus-visible:outline-offset-2 ${
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 ${
                 isCreate
                   ? ""
                   : isActive
-                  ? "text-pink-vivid"
-                  : "text-muted hover:text-purple-primary"
+                  ? "text-accent-2"
+                  : "text-muted hover:text-accent"
               }`}
             >
               {isCreate ? (
@@ -100,7 +100,7 @@ export default function MobileBottomNav() {
                         src={profile.avatar_url}
                         alt="Profile"
                         className={`w-6 h-6 rounded-full object-cover ${
-                          isActive ? "ring-2 ring-pink-vivid" : ""
+                          isActive ? "ring-2 ring-accent-2" : ""
                         }`}
                       />
                     ) : (

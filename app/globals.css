@@ -1,41 +1,130 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   THEME TOKEN LAYER
+   ----------------------------------------------------------------------------
+   Two layers:
+     1. BRAND tokens — locked across all themes (product identity).
+     2. SEMANTIC tokens — overridden by [data-theme="..."] in future phases.
+   Components consume semantic tokens (bg-surface, text-ink, bg-accent, …) so
+   theme switching is a CSS-variable swap with zero React rerenders.
+   ============================================================================ */
+
 @theme {
-  /* Colors */
+  /* === BRAND PALETTE (locked — never recolored by themes) === */
   --color-purple-primary: #8e44ad;
   --color-pink-vivid: #ff007f;
   --color-orange-warm: #ff9f43;
-  --color-ink: #1e1e1e;
-  --color-muted: #777777;
-  --color-paper: #ffffff;
-  --color-background: #fdfdfd;
-  --color-border-light: rgba(0, 0, 0, 0.06);
-  --color-glass-bg: rgba(255, 255, 255, 0.85);
 
-  /* Fonts - Poppins for headings, Open Sans for body */
+  /* === SURFACES === */
+  --color-canvas: #fdfdfd;          /* page background */
+  --color-surface: #ffffff;         /* cards, sidebars, panels */
+  --color-elevated: #ffffff;        /* modals, popovers */
+  --color-overlay: rgba(0, 0, 0, 0.4);
+  --color-glass: rgba(255, 255, 255, 0.85);
+  --color-subtle: #f9fafb;          /* subtle/hover background (≈ tailwind gray-50) */
+  --color-skeleton: #e5e7eb;        /* loading placeholder fill */
+
+  /* Toast — inverted (dark on light) by default to stay attention-grabbing.
+     Re-themed under [data-theme="noir"] to keep the inverted feel on dark. */
+  --color-toast-bg: #1e1e1e;
+  --color-toast-text: #ffffff;
+  --color-toast-border: rgba(255, 255, 255, 0.12);
+
+  /* === TEXT === */
+  --color-ink: #1e1e1e;             /* primary */
+  --color-subdued: #4a4a4a;         /* secondary */
+  --color-muted: #777777;           /* tertiary / hint */
+  --color-on-accent: #ffffff;       /* text on accent CTAs */
+
+  /* === BORDERS === */
+  --color-border-light: rgba(0, 0, 0, 0.06);
+  --color-border-strong: rgba(0, 0, 0, 0.12);
+
+  /* === ACCENT (themed; defaults to brand) === */
+  --color-accent: var(--color-purple-primary);
+  --color-accent-2: var(--color-pink-vivid);
+
+  /* === LEGACY ALIASES — kept while components migrate === */
+  --color-paper: var(--color-surface);
+  --color-background: var(--color-canvas);
+  --color-glass-bg: var(--color-glass);
+
+  /* === FONTS === */
   --font-display: var(--font-poppins), sans-serif;
   --font-body: var(--font-open-sans), sans-serif;
   --font-ui: var(--font-poppins), sans-serif;
 }
 
 :root {
-  --primary-purple: #8e44ad;
-  --vivid-pink: #ff007f;
-  --warm-orange: #ff9f43;
-  --paper: #ffffff;
-  --ink: #1e1e1e;
-  --muted-text: #777;
+  /* Lowercase aliases referenced by animations/effects further down this file. */
+  --primary-purple: var(--color-purple-primary);
+  --vivid-pink: var(--color-pink-vivid);
+  --warm-orange: var(--color-orange-warm);
+  --paper: var(--color-surface);
+  --ink: var(--color-ink);
+  --muted-text: var(--color-muted);
   --glass-border: rgba(255, 255, 255, 0.6);
-  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-bg: var(--color-glass);
+}
 
-  --font-display: var(--font-poppins), sans-serif;
-  --font-body: var(--font-open-sans), sans-serif;
-  --font-ui: var(--font-poppins), sans-serif;
+/* ============================================================================
+   THEME OVERRIDES
+   ----------------------------------------------------------------------------
+   Add a new theme by overriding the semantic tokens under [data-theme="<id>"]
+   and adding a registry entry in lib/theme/registry.ts. Brand colors
+   (--color-purple-primary, --color-pink-vivid, --color-orange-warm) are
+   intentionally never re-defined here — those are product identity and stay
+   constant across themes.
+   ============================================================================ */
+
+[data-theme="noir"] {
+  /* Surfaces */
+  --color-canvas: #0e0e12;
+  --color-surface: #17171c;
+  --color-elevated: #1f1f26;
+  --color-overlay: rgba(0, 0, 0, 0.7);
+  --color-glass: rgba(23, 23, 28, 0.85);
+  --color-subtle: #22222a;
+
+  /* Text */
+  --color-ink: #f1f1f4;
+  --color-subdued: #c4c4cc;
+  --color-muted: #8b8b95;
+  --color-on-accent: #0e0e12;
+
+  /* Borders — switch from black-on-light to white-on-dark */
+  --color-border-light: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.18);
+
+  /* Accent — distinct from brand: cyan + fuchsia for noir */
+  --color-accent: #22d3ee;
+  --color-accent-2: #e879f9;
+
+  /* Skeleton — visible against dark surfaces */
+  --color-skeleton: #2a2a34;
+
+  /* Toast — inverts to a light surface so notifications stay attention-grabbing
+     against the dark canvas, just like the dark toast pops on light mode. */
+  --color-toast-bg: #f1f1f4;
+  --color-toast-text: #0e0e12;
+  --color-toast-border: rgba(0, 0, 0, 0.12);
+}
+
+/* Lowercase legacy aliases used by animations/blobs in this file.
+   The decorative aura-blob backgrounds keep brand colors so identity reads
+   the same on every theme; only --paper / --ink / --glass-bg follow noir. */
+:root[data-theme="noir"] {
+  --paper: var(--color-surface);
+  --ink: var(--color-ink);
+  --muted-text: var(--color-muted);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-bg: var(--color-glass);
 }
 
 body {
   font-family: var(--font-open-sans), sans-serif;
-  background-color: #fdfdfd;
+  background-color: var(--color-canvas);
   color: var(--ink);
   font-size: 16px;
   line-height: 1.6;

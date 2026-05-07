@@ -238,6 +238,7 @@ export interface Profile {
   website: string | null;
   is_verified: boolean;
   is_private: boolean;
+  theme_preference: string | null;
   created_at: string;
   works_count: number;
   followers_count: number | null;

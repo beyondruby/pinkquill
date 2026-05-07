@@ -12,6 +12,7 @@ import SearchBar from "@/components/search/SearchBar";
 
 const NotificationPanel = dynamic(() => import("@/components/notifications/NotificationPanel"), { ssr: false });
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
+import { QuickThemeToggle } from "@/components/theme/QuickThemeToggle";
 
 const publicNavItems = [
   { icon: "home", label: "Home", href: "/" },
@@ -178,7 +179,7 @@ export default function LeftSidebar() {
         ref={sidebarRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`hidden md:flex fixed left-0 top-0 bottom-0 bg-white/95 backdrop-blur-xl border-r border-border-light flex-col p-4 z-[100] overflow-visible transition-all duration-300 ease-in-out ${
+        className={`hidden md:flex fixed left-0 top-0 bottom-0 bg-surface/95 backdrop-blur-xl border-r border-border-light flex-col p-4 z-[100] overflow-visible transition-all duration-300 ease-in-out ${
           isExpanded ? "w-[220px]" : "w-[72px]"
         }`}
         aria-label="Main navigation"
@@ -209,8 +210,8 @@ export default function LeftSidebar() {
                 isExpanded ? "px-4 gap-3.5" : "justify-center px-0"
               } ${
                 pathname === item.href
-                  ? "text-pink-vivid bg-pink-vivid/10 font-medium"
-                  : "text-muted hover:text-purple-primary hover:bg-purple-primary/10"
+                  ? "text-accent-2 bg-accent-2/10 font-medium"
+                  : "text-muted hover:text-accent hover:bg-accent/10"
               }`}
               title={!isExpanded ? item.label : undefined}
             >
@@ -238,8 +239,8 @@ export default function LeftSidebar() {
                   isExpanded ? "px-4 gap-3.5 w-full" : "justify-center px-0"
                 } ${
                   showNotifications
-                    ? "text-pink-vivid bg-pink-vivid/10 font-medium"
-                    : "text-muted hover:text-purple-primary hover:bg-purple-primary/10"
+                    ? "text-accent-2 bg-accent-2/10 font-medium"
+                    : "text-muted hover:text-accent hover:bg-accent/10"
                 }`}
                 aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
                 aria-expanded={showNotifications}
@@ -269,8 +270,8 @@ export default function LeftSidebar() {
                   isExpanded ? "px-4 gap-3.5" : "justify-center px-0"
                 } ${
                   pathname.startsWith("/messages")
-                    ? "text-pink-vivid bg-pink-vivid/10 font-medium"
-                    : "text-muted hover:text-purple-primary hover:bg-purple-primary/10"
+                    ? "text-accent-2 bg-accent-2/10 font-medium"
+                    : "text-muted hover:text-accent hover:bg-accent/10"
                 }`}
                 aria-label={unreadMessagesCount > 0 ? `Messages, ${unreadMessagesCount} unread` : "Messages"}
                 title={!isExpanded ? "Messages" : undefined}
@@ -323,7 +324,7 @@ export default function LeftSidebar() {
 
             {/* Create Menu Dropdown */}
             {showCreateMenu && (
-              <div className={`absolute p-1.5 rounded-2xl bg-white/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-black/[0.06] z-50 animate-fadeIn ${
+              <div className={`absolute p-1.5 rounded-2xl bg-surface/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-border-light z-50 animate-fadeIn ${
                 isExpanded
                   ? "bottom-full left-0 right-0 mb-2"
                   : "left-full bottom-0 ml-2 w-48"
@@ -333,7 +334,7 @@ export default function LeftSidebar() {
                     setShowCreateMenu(false);
                     router.push("/create");
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
                 >
                   <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
@@ -348,7 +349,7 @@ export default function LeftSidebar() {
                     setShowCreateMenu(false);
                     router.push("/sell");
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
                 >
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -361,7 +362,7 @@ export default function LeftSidebar() {
                     setShowCreateMenu(false);
                     router.push("/sell/service");
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
                 >
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
@@ -378,7 +379,7 @@ export default function LeftSidebar() {
           /* Loading placeholder while auth or profile is being loaded */
           <div className={`mt-3 ${isExpanded ? "" : "flex justify-center"}`}>
             <div className={`flex items-center ${isExpanded ? "gap-3 p-3" : "p-1"}`}>
-              <div className={`rounded-full bg-gray-200 animate-pulse flex-shrink-0 ${isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"}`} />
+              <div className={`rounded-full bg-skeleton animate-pulse flex-shrink-0 ${isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"}`} />
               <div className={`flex flex-col gap-1.5 transition-all duration-300 ${isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"}`}>
                 <div className="w-24 h-4 bg-gray-200 rounded animate-pulse" />
                 <div className="w-16 h-3 bg-gray-200 rounded animate-pulse" />
@@ -389,7 +390,7 @@ export default function LeftSidebar() {
           <div className={`mt-3 relative ${isExpanded ? "" : "flex flex-col items-center"}`} ref={menuRef}>
             <Link
               href={`/studio/${profile.username}`}
-              className={`flex items-center cursor-pointer rounded-xl hover:bg-purple-primary/5 transition-all duration-300 ${
+              className={`flex items-center cursor-pointer rounded-xl hover:bg-accent/5 transition-all duration-300 ${
                 isExpanded ? "gap-3 p-3" : "p-1 justify-center"
               }`}
               title={!isExpanded ? profile.display_name || profile.username : undefined}
@@ -416,7 +417,7 @@ export default function LeftSidebar() {
             {/* More Button */}
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className={`flex items-center rounded-xl text-muted hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200 ${
+              className={`flex items-center rounded-xl text-muted hover:text-accent hover:bg-accent/[0.06] transition-all duration-200 ${
                 isExpanded ? "w-full gap-3.5 px-4 py-3 mt-1" : "w-9 h-9 justify-center mt-2"
               }`}
               title={!isExpanded ? "More" : undefined}
@@ -433,7 +434,7 @@ export default function LeftSidebar() {
 
             {/* Dropdown Menu */}
             {showMenu && (
-              <div className={`absolute p-1.5 rounded-2xl bg-white/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-black/[0.06] z-50 animate-fadeIn ${
+              <div className={`absolute p-1.5 rounded-2xl bg-surface/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-border-light z-50 animate-fadeIn ${
                 isExpanded
                   ? "bottom-full left-0 right-0 mb-2"
                   : "left-full bottom-0 ml-2 w-48"
@@ -441,7 +442,7 @@ export default function LeftSidebar() {
                 <Link
                   href="/saved"
                   onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
                 >
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -452,7 +453,7 @@ export default function LeftSidebar() {
                 <Link
                   href="/cart"
                   onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
                 >
                   <div className="relative">
                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -470,7 +471,7 @@ export default function LeftSidebar() {
                 <Link
                   href="/orders"
                   onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
                 >
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -481,7 +482,7 @@ export default function LeftSidebar() {
                 <Link
                   href="/insights"
                   onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
                 >
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -492,7 +493,7 @@ export default function LeftSidebar() {
                 <Link
                   href="/seller/dashboard"
                   onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
                 >
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3h7v7H3V3zm11 0h7v4h-7V3zm0 7h7v11h-7V10zM3 13h7v8H3v-8z" />
@@ -503,7 +504,7 @@ export default function LeftSidebar() {
                 <Link
                   href="/settings"
                   onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
                 >
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -515,7 +516,7 @@ export default function LeftSidebar() {
                 <Link
                   href="/help"
                   onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-purple-primary hover:bg-purple-primary/[0.06] transition-all duration-200"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
                 >
                   <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -523,7 +524,11 @@ export default function LeftSidebar() {
                   <span className="font-ui text-[0.9rem]">Help</span>
                 </Link>
 
-                <div className="my-1.5 mx-2 h-px bg-black/[0.06]" />
+                <div className="my-1.5 mx-2 h-px bg-border-light" />
+
+                <QuickThemeToggle />
+
+                <div className="my-1.5 mx-2 h-px bg-border-light" />
 
                 <button
                   onClick={() => {
@@ -545,19 +550,19 @@ export default function LeftSidebar() {
           <div className={`mt-auto ${isExpanded ? "" : "flex justify-center"}`}>
             <Link
               href="/login"
-              className={`flex items-center cursor-pointer rounded-xl hover:bg-purple-primary/5 transition-all duration-300 ${
+              className={`flex items-center cursor-pointer rounded-xl hover:bg-accent/5 transition-all duration-300 ${
                 isExpanded ? "gap-3 p-3" : "p-1"
               }`}
               title={!isExpanded ? "Sign In" : undefined}
             >
-              <div className={`rounded-full bg-purple-primary/10 flex items-center justify-center text-purple-primary flex-shrink-0 ${
+              <div className={`rounded-full bg-accent/10 flex items-center justify-center text-accent flex-shrink-0 ${
                 isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"
               }`}>
                 <svg className={`${isExpanded ? "w-5 h-5" : "w-4 h-4"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
-              <span className={`font-ui text-[0.9rem] font-medium text-purple-primary whitespace-nowrap transition-all duration-300 ${
+              <span className={`font-ui text-[0.9rem] font-medium text-accent whitespace-nowrap transition-all duration-300 ${
                 isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
               }`}>
                 Sign In

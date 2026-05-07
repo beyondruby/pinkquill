@@ -23,8 +23,10 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 import { AuthModalProvider } from "@/components/providers/AuthModalProvider";
 import { BadgeCountProvider } from "@/components/providers/BadgeCountProvider";
 import { UserEventsProvider } from "@/components/providers/UserEventsProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LightboxProvider } from "@/components/ui/Lightbox";
 import AuthModal from "@/components/auth/AuthModal";
+import { getServerTheme, getInlineThemeResolveScript } from "@/lib/theme/server";
 
 function getSupabaseOrigin(): string | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -196,16 +198,34 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const supabaseOrigin = getSupabaseOrigin();
+  const { storedId, resolvedId, needsClientResolve } = await getServerTheme();
 
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      data-theme={resolvedId}
+      data-theme-mode={storedId === "system" ? "system" : "explicit"}
+      suppressHydrationWarning
+    >
       <head>
+        {/*
+          Inline theme-resolve script: when the user's stored preference is
+          'system', we stamp the light fallback in SSR and then re-stamp to
+          the OS-preferred variant here, synchronously, before paint. For
+          explicit themes the SSR data-theme is already correct and this
+          script is omitted entirely.
+        */}
+        {needsClientResolve ? (
+          <script
+            dangerouslySetInnerHTML={{ __html: getInlineThemeResolveScript() }}
+          />
+        ) : null}
         {/* Preconnect to critical origins for faster resource loading */}
         {supabaseOrigin ? (
           <>
@@ -223,24 +243,26 @@ export default function RootLayout({
         <div className="aura-blob blob-3" />
 
         <AuthProvider>
-          <UserEventsProvider>
-            <BadgeCountProvider>
-              <AuthModalProvider>
-                <LightboxProvider>
-                  <ModalProvider>{children}</ModalProvider>
-                </LightboxProvider>
-                <AuthModal />
-              </AuthModalProvider>
-            </BadgeCountProvider>
-          </UserEventsProvider>
+          <ThemeProvider initialThemeId={storedId}>
+            <UserEventsProvider>
+              <BadgeCountProvider>
+                <AuthModalProvider>
+                  <LightboxProvider>
+                    <ModalProvider>{children}</ModalProvider>
+                  </LightboxProvider>
+                  <AuthModal />
+                </AuthModalProvider>
+              </BadgeCountProvider>
+            </UserEventsProvider>
+          </ThemeProvider>
         </AuthProvider>
         <Toaster
           position="bottom-right"
           toastOptions={{
             style: {
-              background: '#1e1e1e',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'var(--color-toast-bg)',
+              color: 'var(--color-toast-text)',
+              border: '1px solid var(--color-toast-border)',
             },
             className: 'toast-notification',
           }}

@@ -723,12 +723,12 @@ function PostCardComponent({
                 alt={post.community!.name}
                 width={70}
                 height={70}
-                className="w-10 h-10 md:w-11 md:h-11 rounded-full object-cover border border-black/[0.06] hover:border-purple-primary/30 transition-colors"
+                className="w-10 h-10 md:w-11 md:h-11 rounded-full object-cover border border-border-light hover:border-accent/30 transition-colors"
                 sizes="44px"
                 quality={80}
               />
             ) : (
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center border border-black/[0.06]">
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center border border-border-light">
                 <span className="font-ui text-sm font-semibold text-white">
                   {post.community!.name.charAt(0).toUpperCase()}
                 </span>
@@ -742,7 +742,7 @@ function PostCardComponent({
               <Link
                 href={`/community/${post.community!.slug}`}
                 onClick={(e) => e.stopPropagation()}
-                className="author-name font-semibold hover:text-purple-primary transition-colors"
+                className="author-name font-semibold hover:text-accent transition-colors"
               >
                 {post.community!.name}
               </Link>
@@ -1188,7 +1188,7 @@ function PostCardComponent({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !moderatorDeleting && setShowModeratorDeleteConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-elevated rounded-2xl shadow-2xl z-[1001] overflow-hidden">
             <div className="px-6 py-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 border-b border-orange-200/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
@@ -1213,7 +1213,7 @@ function PostCardComponent({
                   onChange={(e) => setModeratorDeleteReason(e.target.value)}
                   placeholder="e.g., Violates community guidelines..."
                   rows={2}
-                  className="w-full px-4 py-3 rounded-xl border border-black/10 bg-white font-body text-sm placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-400 resize-none"
+                  className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface text-ink font-body text-sm placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-400 resize-none"
                 />
               </div>
               <div className="flex justify-end gap-3">
@@ -1223,7 +1223,7 @@ function PostCardComponent({
                     setModeratorDeleteReason("");
                   }}
                   disabled={moderatorDeleting}
-                  className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-black/[0.04] hover:bg-black/[0.08] transition-colors disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton hover:bg-skeleton/70 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>

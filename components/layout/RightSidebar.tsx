@@ -27,19 +27,19 @@ function SectionCard({
   showMoreLabel?: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-black/[0.06] shadow-sm overflow-hidden">
+    <div className="bg-surface rounded-2xl border border-border-light shadow-sm overflow-hidden">
       <div className="px-4 py-3">
         <h2 className="font-display text-base font-bold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
           {title}
         </h2>
       </div>
-      <div className="border-t border-black/[0.04]">
+      <div className="border-t border-border-light">
         {children}
       </div>
       {showMoreHref && (
         <Link
           href={showMoreHref}
-          className="block px-4 py-2.5 text-sm font-ui font-medium text-purple-primary hover:bg-purple-primary/5 transition-colors border-t border-black/[0.04]"
+          className="block px-4 py-2.5 text-sm font-ui font-medium text-purple-primary hover:bg-purple-primary/5 transition-colors border-t border-border-light"
         >
           {showMoreLabel}
         </Link>
@@ -54,11 +54,11 @@ function TrendingSection() {
   if (loading) {
     return (
       <SectionCard title="Trending">
-        <div className="divide-y divide-black/[0.04]">
+        <div className="divide-y divide-border-light">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="px-4 py-3 animate-pulse">
-              <div className="h-3 bg-gray-100 rounded w-20 mb-2" />
-              <div className="h-4 bg-gray-100 rounded w-28" />
+              <div className="h-3 bg-skeleton rounded w-20 mb-2" />
+              <div className="h-4 bg-skeleton rounded w-28" />
             </div>
           ))}
         </div>
@@ -70,7 +70,7 @@ function TrendingSection() {
 
   return (
     <SectionCard title="Trending" showMoreHref="/explore">
-      <div className="divide-y divide-black/[0.04]">
+      <div className="divide-y divide-border-light">
         {tags.map((tag, index) => (
           <Link
             key={tag.name}
@@ -208,15 +208,15 @@ function WhoToFollowSection() {
   if (loading) {
     return (
       <SectionCard title="Creators to follow">
-        <div className="divide-y divide-black/[0.04]">
+        <div className="divide-y divide-border-light">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="px-4 py-3 flex items-center gap-3 animate-pulse">
-              <div className="w-10 h-10 rounded-full bg-gray-100" />
+              <div className="w-10 h-10 rounded-full bg-skeleton" />
               <div className="flex-1">
-                <div className="h-4 bg-gray-100 rounded w-24 mb-1" />
-                <div className="h-3 bg-gray-100 rounded w-16" />
+                <div className="h-4 bg-skeleton rounded w-24 mb-1" />
+                <div className="h-3 bg-skeleton rounded w-16" />
               </div>
-              <div className="h-8 w-16 bg-gray-100 rounded-full" />
+              <div className="h-8 w-16 bg-skeleton rounded-full" />
             </div>
           ))}
         </div>
@@ -228,7 +228,7 @@ function WhoToFollowSection() {
 
   return (
     <SectionCard title="Creators to follow" showMoreHref="/explore" showMoreLabel="Discover more">
-      <div className="divide-y divide-black/[0.04]">
+      <div className="divide-y divide-border-light">
         {suggestedUsers.map((suggestedUser) => {
           const isFollowing = followingIds.has(suggestedUser.id);
           return (
@@ -282,13 +282,13 @@ function CommunitiesSection() {
   if (loading) {
     return (
       <SectionCard title="Communities">
-        <div className="divide-y divide-black/[0.04]">
+        <div className="divide-y divide-border-light">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="px-4 py-3 flex items-center gap-3 animate-pulse">
-              <div className="w-10 h-10 rounded-xl bg-gray-100" />
+              <div className="w-10 h-10 rounded-xl bg-skeleton" />
               <div className="flex-1">
-                <div className="h-4 bg-gray-100 rounded w-24 mb-1" />
-                <div className="h-3 bg-gray-100 rounded w-16" />
+                <div className="h-4 bg-skeleton rounded w-24 mb-1" />
+                <div className="h-3 bg-skeleton rounded w-16" />
               </div>
             </div>
           ))}
@@ -301,7 +301,7 @@ function CommunitiesSection() {
 
   return (
     <SectionCard title="Communities" showMoreHref="/community" showMoreLabel="Explore communities">
-      <div className="divide-y divide-black/[0.04]">
+      <div className="divide-y divide-border-light">
         {trending.map((community) => (
           <Link
             key={community.id}
@@ -338,7 +338,7 @@ function CommunitiesSection() {
 
 export default function RightSidebar() {
   return (
-    <aside className="hidden lg:block fixed right-0 top-0 bottom-0 w-[280px] border-l border-black/[0.04] overflow-y-auto bg-gray-50/50">
+    <aside className="hidden lg:block fixed right-0 top-0 bottom-0 w-[280px] border-l border-border-light overflow-y-auto bg-subtle/50">
       <div className="p-4 space-y-4">
         {/* Trending */}
         <TrendingSection />

@@ -82,7 +82,10 @@
       "Bash(git checkout:*)",
       "Bash(tee /tmp/tsc.log)",
       "Bash(git stash *)",
-      "Bash(sort -t '[' -k2 -n)"
+      "Bash(sort -t '[' -k2 -n)",
+      "Bash(open *)",
+      "Bash(npm run *)",
+      "Read(//tmp/**)"
     ]
   }
 }

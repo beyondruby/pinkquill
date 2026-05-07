@@ -15,6 +15,11 @@ const settingsItems = [
     description: "Email, password",
   },
   {
+    label: "Appearance",
+    href: "/settings/appearance",
+    description: "Theme, color palette",
+  },
+  {
     label: "Notifications",
     href: "/settings/notifications",
     description: "Push, email alerts",
@@ -30,9 +35,9 @@ export default function SettingsSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-[280px] border-r border-black/[0.04] min-h-full bg-white/50">
+    <aside className="w-[280px] border-r border-border-light min-h-full bg-surface/50">
       {/* Header */}
-      <div className="px-6 py-8 border-b border-black/[0.04]">
+      <div className="px-6 py-8 border-b border-border-light">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-muted hover:text-ink transition-colors mb-4"
@@ -55,17 +60,17 @@ export default function SettingsSidebar() {
               href={item.href}
               className={`block p-4 rounded-2xl mb-2 transition-all ${
                 isActive
-                  ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/20"
-                  : "hover:bg-black/[0.02]"
+                  ? "bg-gradient-to-r from-accent to-accent-2 text-on-accent shadow-lg shadow-accent/20"
+                  : "hover:bg-subtle"
               }`}
             >
               <span className={`font-ui text-[0.95rem] font-medium block ${
-                isActive ? "text-white" : "text-ink"
+                isActive ? "text-on-accent" : "text-ink"
               }`}>
                 {item.label}
               </span>
               <span className={`font-body text-[0.8rem] mt-0.5 block ${
-                isActive ? "text-white/70" : "text-muted"
+                isActive ? "text-on-accent/70" : "text-muted"
               }`}>
                 {item.description}
               </span>
@@ -75,7 +80,7 @@ export default function SettingsSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-black/[0.04]">
+      <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-border-light">
         <p className="font-body text-xs text-muted/60 text-center">
           PinkQuill v1.0
         </p>

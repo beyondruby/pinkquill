@@ -572,13 +572,13 @@ function CollectionCard({
                   </button>
 
                   {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-xl border border-black/[0.08] overflow-hidden z-20 animate-scaleIn origin-top-right">
+                    <div className="absolute right-0 top-full mt-2 w-44 bg-elevated rounded-xl shadow-xl border border-border-light overflow-hidden z-20 animate-scaleIn origin-top-right">
                       <button
                         onClick={() => {
                           setShowMenu(false);
                           router.push(`/studio/${username}/collections/${collection.slug}/edit`);
                         }}
-                        className="w-full px-4 py-2.5 text-left font-ui text-sm text-ink hover:bg-purple-primary/5 flex items-center gap-2 transition-colors"
+                        className="w-full px-4 py-2.5 text-left font-ui text-sm text-ink hover:bg-accent/5 flex items-center gap-2 transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -767,14 +767,14 @@ function StudioTabButton({
       aria-label={label}
       className={`flex-1 min-w-0 relative flex items-center justify-center gap-2 py-3 md:py-3 font-ui text-[13px] font-medium transition-colors duration-200 ${
         active
-          ? "text-pink-vivid"
+          ? "text-accent-2"
           : "text-muted hover:text-ink"
       }`}
     >
       <span className="shrink-0">{icon}</span>
       <span className="hidden md:inline truncate">{label}</span>
       <span className={`absolute bottom-0 inset-x-0 h-[2px] rounded-full transition-colors duration-200 ${
-        active ? "bg-pink-vivid" : "bg-transparent"
+        active ? "bg-accent-2" : "bg-transparent"
       }`} />
     </button>
   );
@@ -795,8 +795,8 @@ function StudioSubTabButton({
       onClick={onClick}
       className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
         active
-          ? "bg-pink-vivid/10 text-pink-vivid"
-          : "text-muted hover:text-ink hover:bg-black/[0.03]"
+          ? "bg-accent-2/10 text-accent-2"
+          : "text-muted hover:text-ink hover:bg-subtle"
       }`}
     >
       {label}
@@ -1160,9 +1160,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   disabled={followLoading}
                   className={`px-5 py-2 md:px-8 md:py-3 rounded-full font-ui text-[0.85rem] md:text-[0.95rem] font-medium transition-all ${
                     isFollowing
-                      ? "bg-white border-2 border-purple-primary text-purple-primary hover:bg-purple-primary/5"
+                      ? "bg-surface border-2 border-accent text-accent hover:bg-accent/5"
                       : isPendingRequest
-                        ? "bg-white border-2 border-muted text-muted hover:border-red-400 hover:text-red-400"
+                        ? "bg-surface border-2 border-muted text-muted hover:border-red-400 hover:text-red-400"
                         : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-lg shadow-purple-primary/30 hover:-translate-y-0.5 hover:shadow-xl"
                   }`}
                 >
@@ -1225,7 +1225,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     }
                   }}
                   disabled={messageLoading}
-                  className="px-4 py-2 md:px-6 md:py-3 rounded-full border-2 border-black/10 bg-white font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink flex items-center gap-2 hover:border-purple-primary hover:text-purple-primary transition-all disabled:opacity-50"
+                  className="px-4 py-2 md:px-6 md:py-3 rounded-full border-2 border-border-light bg-surface font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink flex items-center gap-2 hover:border-accent hover:text-accent transition-all disabled:opacity-50"
                 >
                   {icons.message}
                   <span className="hidden md:inline">{messageLoading ? "..." : "Message"}</span>
@@ -1234,7 +1234,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             )}
 
             {isOwnProfile && (
-              <Link href="/settings" className="px-5 py-2 md:px-8 md:py-3 rounded-full border-2 border-black/10 bg-white font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink hover:border-purple-primary hover:text-purple-primary transition-all">
+              <Link href="/settings" className="px-5 py-2 md:px-8 md:py-3 rounded-full border-2 border-border-light bg-surface font-ui text-[0.85rem] md:text-[0.95rem] font-medium text-ink hover:border-accent hover:text-accent transition-all">
                 Edit Profile
               </Link>
             )}
@@ -1243,13 +1243,13 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-black/10 bg-white flex items-center justify-center text-ink hover:border-purple-primary hover:text-purple-primary transition-all"
+                className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-border-light bg-surface flex items-center justify-center text-ink hover:border-accent hover:text-accent transition-all"
               >
                 {icons.ellipsis}
               </button>
 
               {showMenu && (
-                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-black/10 overflow-hidden z-50 animate-fadeIn">
+                <div className="absolute right-0 top-full mt-2 w-52 bg-elevated rounded-xl shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
                   <button
                     onClick={() => {
                       setShowMenu(false);
@@ -1532,7 +1532,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {/* Tabs */}
         <div className={`mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-4' : ''}`}>
           <div>
-            <div className="flex items-stretch overflow-x-auto scrollbar-hide border-b border-black/[0.06]">
+            <div className="flex items-stretch overflow-x-auto scrollbar-hide border-b border-border-light">
               <StudioTabButton
                 label="Posts"
                 icon={icons.feather}
@@ -1801,7 +1801,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           className={`group relative cursor-pointer ${revealedCards.has(work.id) ? 'animate-fadeIn' : 'opacity-0'}`}
                         >
                           {/* Glass card container */}
-                          <div className="relative h-full overflow-hidden rounded-2xl bg-white/80 backdrop-blur-xl shadow-sm hover:shadow-xl transition-all duration-300">
+                          <div className="relative h-full overflow-hidden rounded-2xl bg-elevated/80 backdrop-blur-xl shadow-sm hover:shadow-xl transition-all duration-300">
                             {/* Gradient overlay */}
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.02] via-transparent to-pink-vivid/[0.03] pointer-events-none" />
 
@@ -1909,7 +1909,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                         isPinned(work.id)
                                           ? 'bg-white/90 hover:bg-white text-purple-primary'
                                           : canPin
-                                            ? 'bg-purple-primary/20 hover:bg-purple-primary/80 hover:text-white text-purple-primary'
+                                            ? 'bg-accent/20 hover:bg-accent/80 hover:text-on-accent text-accent'
                                             : 'bg-black/10 text-muted cursor-not-allowed'
                                       }`}
                                       title={isPinned(work.id) ? 'Unpin post' : canPin ? 'Pin to profile' : 'Max 6 pinned posts'}
@@ -1985,7 +1985,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             {/* Content section */}
                             <div className="p-4">
                               {/* Title */}
-                              <h3 className="font-display text-base font-semibold text-ink mb-2 line-clamp-2 group-hover:text-purple-primary transition-colors">
+                              <h3 className="font-display text-base font-semibold text-ink mb-2 line-clamp-2 group-hover:text-accent transition-colors">
                                 {work.title || "Untitled"}
                               </h3>
 
@@ -2046,7 +2046,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <article
                           key={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
-                          className="group relative bg-white rounded-2xl border border-black/[0.06] hover:border-purple-primary/20 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
+                          className="group relative bg-surface rounded-2xl border border-border-light hover:border-accent/20 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
                         >
                           {/* Featured image */}
                           {hasMedia && (
@@ -2086,7 +2086,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             </div>
 
                             {/* Title */}
-                            <h2 className="font-display text-xl sm:text-2xl font-semibold text-ink mb-3 group-hover:text-purple-primary transition-colors line-clamp-2">
+                            <h2 className="font-display text-xl sm:text-2xl font-semibold text-ink mb-3 group-hover:text-accent transition-colors line-clamp-2">
                               {work.title || "Untitled"}
                             </h2>
 
@@ -2096,7 +2096,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             </p>
 
                             {/* Footer */}
-                            <div className="flex items-center justify-between pt-4 border-t border-black/[0.04]">
+                            <div className="flex items-center justify-between pt-4 border-t border-border-light">
                               <div className="flex items-center gap-4 text-sm text-muted">
                                 <span className="flex items-center gap-1.5">
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2109,7 +2109,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                                   {work.comments_count || 0}
                                 </span>
                               </div>
-                              <span className="text-purple-primary text-sm font-medium group-hover:underline">
+                              <span className="text-accent text-sm font-medium group-hover:underline">
                                 Read more →
                               </span>
                             </div>
@@ -2191,7 +2191,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <article
                           key={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
-                          className="group cursor-pointer py-12 first:pt-6 last:pb-6 px-4 rounded-2xl hover:bg-white/60 transition-colors"
+                          className="group cursor-pointer py-12 first:pt-6 last:pb-6 px-4 rounded-2xl hover:bg-subtle/60 transition-colors"
                         >
                           {idx > 0 && (
                             <div className="flex justify-center -mt-12 mb-12">
@@ -2200,7 +2200,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           )}
 
                           {work.title && (
-                            <h2 className="font-display text-2xl text-ink text-center mb-6 group-hover:text-purple-primary transition-colors">
+                            <h2 className="font-display text-2xl text-ink text-center mb-6 group-hover:text-accent transition-colors">
                               {work.title}
                             </h2>
                           )}
@@ -2210,7 +2210,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           </p>
 
                           {plainContent.length >= 240 && (
-                            <p className="text-center mt-5 font-ui text-xs tracking-wider uppercase text-purple-primary/80 group-hover:text-purple-primary transition-colors">
+                            <p className="text-center mt-5 font-ui text-xs tracking-wider uppercase text-purple-primary/80 group-hover:text-accent transition-colors">
                               Continue reading
                             </p>
                           )}
@@ -2319,7 +2319,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                         <article
                           key={work.id}
                           onClick={() => openPostModal(createPostForModal(work))}
-                          className="group relative bg-white rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 border border-black/[0.05]"
+                          className="group relative bg-surface rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 border border-border-light"
                         >
                           {/* Image */}
                           {hasMedia && (
@@ -2368,7 +2368,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             )}
 
                             {work.title && (
-                              <h4 className="font-display font-semibold text-ink text-[0.95rem] mb-1.5 line-clamp-2 group-hover:text-purple-primary transition-colors">
+                              <h4 className="font-display font-semibold text-ink text-[0.95rem] mb-1.5 line-clamp-2 group-hover:text-accent transition-colors">
                                 {work.title}
                               </h4>
                             )}
@@ -2378,7 +2378,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                             )}
 
                             {/* Footer */}
-                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/[0.04]">
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-light">
                               <span className="text-xs text-muted">{getTimeAgo(work.created_at)}</span>
                               <div className="flex items-center gap-3 text-muted">
                                 <span className="flex items-center gap-1 text-xs">
@@ -2750,7 +2750,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !blockLoading && setShowBlockConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-white rounded-2xl shadow-2xl z-[1001] p-6">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-elevated rounded-2xl shadow-2xl z-[1001] p-6">
             <h3 className="font-display text-xl text-ink mb-3">
               Block @{profile.username}?
             </h3>
@@ -2791,7 +2791,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => !reportLoading && setShowReportModal(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] bg-elevated rounded-2xl shadow-2xl z-[1001] overflow-hidden">
             {reportSuccess ? (
               <div className="p-8 text-center">
                 <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
@@ -2806,7 +2806,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               </div>
             ) : (
               <>
-                <div className="p-6 border-b border-black/[0.06]">
+                <div className="p-6 border-b border-border-light">
                   <h3 className="font-display text-xl text-ink">
                     Report @{profile.username}
                   </h3>
@@ -2836,8 +2836,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           onClick={() => setReportReason(reason)}
                           className={`px-3 py-1.5 rounded-full font-ui text-xs transition-all ${
                             reportReason === reason
-                              ? "bg-purple-primary text-white"
-                              : "bg-black/[0.04] text-muted hover:bg-black/[0.08]"
+                              ? "bg-accent text-on-accent"
+                              : "bg-skeleton/60 text-muted hover:bg-skeleton"
                           }`}
                         >
                           {reason}
@@ -2847,7 +2847,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   </div>
                 </div>
 
-                <div className="p-6 border-t border-black/[0.06] flex justify-end gap-3">
+                <div className="p-6 border-t border-border-light flex justify-end gap-3">
                   <button
                     onClick={() => {
                       setShowReportModal(false);
@@ -2886,9 +2886,9 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={() => setShowCommunitiesModal(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-[400px] max-h-[80vh] bg-white rounded-2xl shadow-2xl z-[1001] overflow-hidden">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-[400px] max-h-[80vh] bg-elevated rounded-2xl shadow-2xl z-[1001] overflow-hidden">
             {/* Header */}
-            <div className="p-5 border-b border-black/[0.06] flex items-center justify-between">
+            <div className="p-5 border-b border-border-light flex items-center justify-between">
               <h3 className="font-display text-lg text-ink">Communities</h3>
               <button
                 onClick={() => setShowCommunitiesModal(false)}
@@ -2907,7 +2907,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                   key={community.id}
                   href={`/community/${community.slug || community.id}`}
                   onClick={() => setShowCommunitiesModal(false)}
-                  className="flex items-center gap-3 p-4 hover:bg-black/[0.02] transition-colors border-b border-black/[0.04] last:border-b-0"
+                  className="flex items-center gap-3 p-4 hover:bg-black/[0.02] transition-colors border-b border-border-light last:border-b-0"
                 >
                   {/* Community Avatar */}
                   <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0">

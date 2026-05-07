@@ -646,7 +646,7 @@ function PostDetailModalComponent({
   const hasDarkBg = isDarkBackground(post.styling?.background);
   const textColorClass = hasDarkBg ? 'text-white' : 'text-ink';
   const mutedTextColorClass = hasDarkBg ? 'text-white/70' : 'text-muted';
-  const borderColorClass = hasDarkBg ? 'border-white/10' : 'border-black/[0.06]';
+  const borderColorClass = hasDarkBg ? 'border-white/10' : 'border-border-light';
 
   // Text styling
   const textAlignment = post.styling?.textAlignment || 'left';
@@ -735,7 +735,7 @@ function PostDetailModalComponent({
                     href={`/studio/${post.author.handle.replace('@', '')}`}
                     onClick={onClose}
                     className={`font-ui text-[0.95rem] md:text-[1.1rem] font-medium transition-colors truncate ${
-                      hasDarkBg ? 'text-white hover:text-white/80' : 'text-ink hover:text-purple-primary'
+                      hasDarkBg ? 'text-white hover:text-white/80' : 'text-ink hover:text-accent'
                     }`}
                   >
                     {post.author.name}
@@ -814,7 +814,7 @@ function PostDetailModalComponent({
 
                     {/* Separator dot */}
                     {post.post_location && (post.metadata?.weather || post.metadata?.temperature) && (
-                      <span className={`hidden sm:block w-1 h-1 rounded-full ${hasDarkBg ? 'bg-white/30' : 'bg-purple-primary/30'}`} />
+                      <span className={`hidden sm:block w-1 h-1 rounded-full ${hasDarkBg ? 'bg-white/30' : 'bg-accent/30'}`} />
                     )}
 
                     {/* Weather with temperature */}
@@ -837,7 +837,7 @@ function PostDetailModalComponent({
 
                     {/* Separator dot */}
                     {(post.metadata?.weather || post.metadata?.temperature) && post.metadata?.mood && (
-                      <span className={`hidden sm:block w-1 h-1 rounded-full ${hasDarkBg ? 'bg-white/30' : 'bg-purple-primary/30'}`} />
+                      <span className={`hidden sm:block w-1 h-1 rounded-full ${hasDarkBg ? 'bg-white/30' : 'bg-accent/30'}`} />
                     )}
 
                     {/* Mood with prefix */}
@@ -1081,7 +1081,7 @@ function PostDetailModalComponent({
               className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all ${
                 hasDarkBg
                   ? 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
-                  : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+                  : 'bg-black/[0.04] text-muted hover:bg-accent/10 hover:text-accent'
               }`}
             >
               {icons.comment}
@@ -1098,7 +1098,7 @@ function PostDetailModalComponent({
                     ? "bg-green-500/30 text-green-400"
                     : hasDarkBg
                       ? 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
-                      : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+                      : 'bg-black/[0.04] text-muted hover:bg-accent/10 hover:text-accent'
                 } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {icons.relay}
@@ -1112,7 +1112,7 @@ function PostDetailModalComponent({
               className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all ${
                 hasDarkBg
                   ? 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
-                  : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+                  : 'bg-black/[0.04] text-muted hover:bg-accent/10 hover:text-accent'
               }`}
             >
               {icons.share}
@@ -1127,7 +1127,7 @@ function PostDetailModalComponent({
                   ? "bg-amber-500/30 text-amber-400"
                   : hasDarkBg
                     ? 'bg-white/15 text-white/90 hover:bg-white/25 hover:text-white'
-                    : 'bg-black/[0.04] text-muted hover:bg-purple-primary/10 hover:text-purple-primary'
+                    : 'bg-black/[0.04] text-muted hover:bg-accent/10 hover:text-accent'
               } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isSaved ? (
@@ -1144,9 +1144,9 @@ function PostDetailModalComponent({
 
         {/* Comments Panel - Full screen on mobile */}
         {showComments && (
-          <div className="discussion-panel absolute md:relative inset-0 md:inset-auto w-full md:w-auto bg-white z-40">
+          <div className="discussion-panel absolute md:relative inset-0 md:inset-auto w-full md:w-auto bg-elevated z-40">
             {/* Comments Header */}
-            <div className="p-4 md:p-5 border-b border-black/[0.06] bg-white/60 flex justify-between items-center">
+            <div className="p-4 md:p-5 border-b border-border-light bg-elevated/60 flex justify-between items-center">
               <div className="flex items-center gap-3">
                 {/* Back button on mobile */}
                 <button
@@ -1163,7 +1163,7 @@ function PostDetailModalComponent({
               </div>
               <button
                 onClick={() => setShowComments(false)}
-                className="hidden md:flex w-9 h-9 rounded-full items-center justify-center text-muted hover:text-pink-vivid hover:rotate-90 transition-all"
+                className="hidden md:flex w-9 h-9 rounded-full items-center justify-center text-muted hover:text-accent-2 hover:rotate-90 transition-all"
               >
                 {icons.close}
               </button>
@@ -1200,7 +1200,7 @@ function PostDetailModalComponent({
 
             {/* Comment Input */}
             {user ? (
-              <div className="p-4 bg-white border-t border-black/[0.06] flex gap-2.5 items-center">
+              <div className="p-4 bg-elevated border-t border-border-light flex gap-2.5 items-center">
                 <Image
                   src={profile?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"}
                   alt="You"
@@ -1210,7 +1210,7 @@ function PostDetailModalComponent({
                   sizes="36px"
                   quality={80}
                 />
-                <div className="flex-1 flex items-center bg-[#f5f5f5] rounded-3xl px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-primary focus-within:shadow-lg transition-all">
+                <div className="flex-1 flex items-center bg-subtle rounded-3xl px-4 focus-within:bg-surface focus-within:ring-2 focus-within:ring-accent focus-within:shadow-lg transition-all">
                   <input
                     type="text"
                     value={commentText}
@@ -1230,7 +1230,7 @@ function PostDetailModalComponent({
                 </button>
               </div>
             ) : (
-              <div className="p-4 bg-white border-t border-black/[0.06] text-center">
+              <div className="p-4 bg-elevated border-t border-border-light text-center">
                 <p className="font-ui text-[0.9rem] text-muted">
                   <Link href="/login" className="text-purple-primary hover:underline">Sign in</Link> to comment
                 </p>
@@ -1274,7 +1274,7 @@ function PostDetailModalComponent({
     {/* Block Confirmation Modal */}
     {showBlockConfirm && (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-        <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
+        <div className="bg-elevated rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
           <h3 className="font-display text-lg font-semibold text-ink mb-2">
             Block @{post.author.handle}?
           </h3>
@@ -1284,7 +1284,7 @@ function PostDetailModalComponent({
           <div className="flex gap-3">
             <button
               onClick={() => setShowBlockConfirm(false)}
-              className="flex-1 py-2.5 rounded-full border border-black/10 font-ui text-sm font-medium text-ink hover:bg-black/[0.03] transition-colors"
+              className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-black/[0.03] transition-colors"
             >
               Cancel
             </button>

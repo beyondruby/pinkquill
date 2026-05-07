@@ -885,9 +885,9 @@ function NotificationItem({
         <img
           src={notification.actor?.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
           alt=""
-          className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-sm group-hover:ring-purple-primary/20 transition-all"
+          className="w-11 h-11 rounded-full object-cover ring-2 ring-border-light shadow-sm group-hover:ring-accent/20 transition-all"
         />
-        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center ring-2 ring-white">
+        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-surface shadow-md flex items-center justify-center ring-2 ring-border-light">
           {getNotificationIcon(notification.type)}
         </div>
       </div>
@@ -1061,9 +1061,9 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
       />
 
       {/* Panel - full width on mobile, fixed width on desktop */}
-      <div className="fixed top-0 left-0 md:left-[72px] bottom-0 w-full md:w-[400px] bg-white shadow-2xl z-[9999] animate-slideInLeft flex flex-col border-r border-purple-primary/[0.08]" aria-label="Notifications">
+      <div className="fixed top-0 left-0 md:left-[72px] bottom-0 w-full md:w-[400px] bg-elevated shadow-2xl z-[9999] animate-slideInLeft flex flex-col border-r border-border-light" aria-label="Notifications">
         {/* Header */}
-        <div className="relative px-6 py-5 border-b border-black/[0.04]">
+        <div className="relative px-6 py-5 border-b border-border-light">
           {/* Decorative gradient line */}
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm opacity-60" />
 
@@ -1083,7 +1083,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
                 <button
                   onClick={handleMarkAllAsRead}
                   aria-label="Mark all notifications as read"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-purple-primary font-ui text-[0.78rem] font-medium hover:bg-purple-primary/10 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-accent font-ui text-[0.78rem] font-medium hover:bg-accent/10 transition-all"
                 >
                   {icons.checkAll}
                   <span>Mark all read</span>
@@ -1091,7 +1091,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
               )}
               <button
                 onClick={onClose}
-                className="w-9 h-9 rounded-full bg-black/[0.03] flex items-center justify-center text-muted hover:text-ink hover:bg-black/[0.06] transition-all"
+                className="w-9 h-9 rounded-full bg-skeleton/60 flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
                 aria-label="Close notifications"
               >
                 {icons.close}
@@ -1114,8 +1114,8 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10 flex items-center justify-center">
                   {icons.bell}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-surface shadow-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
@@ -1192,7 +1192,7 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
 
         {/* Footer */}
         {hasContent && (
-          <div className="px-6 py-3 border-t border-black/[0.04] bg-gradient-to-r from-purple-primary/[0.02] to-pink-vivid/[0.02]">
+          <div className="px-6 py-3 border-t border-border-light bg-gradient-to-r from-purple-primary/[0.02] to-pink-vivid/[0.02]">
             <p className="font-ui text-[0.75rem] text-muted/60 text-center">
               Showing your recent activity
             </p>
