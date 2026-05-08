@@ -45,6 +45,30 @@ describe("sanitizeHtml", () => {
   it("should return empty string for empty input", () => {
     expect(sanitizeHtml("")).toBe("");
   });
+
+  it("should preserve safe authored text color and highlight styles", () => {
+    const input =
+      '<p><span style="color: rgb(220, 38, 38); background-color: #fef08a; border-radius: 2px; padding: 0px 2px;">Colored text</span></p>';
+    const result = sanitizeHtml(input);
+
+    expect(result).toContain("style=");
+    expect(result).toContain("color: rgb(220, 38, 38)");
+    expect(result).toContain("background-color: #fef08a");
+    expect(result).toContain("border-radius: 2px");
+    expect(result).toContain("padding: 0px 2px");
+  });
+
+  it("should remove unsafe and unrelated inline styles", () => {
+    const input =
+      '<span style="position: fixed; color: expression(alert(1)); background-image: url(javascript:alert(1)); background-color: #a5f3fc;">Safe highlight only</span>';
+    const result = sanitizeHtml(input);
+
+    expect(result).toContain("background-color: #a5f3fc");
+    expect(result).not.toContain("position");
+    expect(result).not.toContain("expression");
+    expect(result).not.toContain("background-image");
+    expect(result).not.toContain("javascript:");
+  });
 });
 
 describe("stripHtml", () => {

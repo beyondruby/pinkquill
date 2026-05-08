@@ -13,8 +13,90 @@ const DEFAULT_ALLOWED_TAGS = [
   "span", "div", "pre", "code"
 ];
 
-// Default allowed attributes
-const DEFAULT_ALLOWED_ATTRS = ["href", "target", "rel", "class"];
+// Default allowed attributes. `style` is filtered by the DOMPurify hook below
+// so authored post colors/highlights survive without opening arbitrary CSS.
+const DEFAULT_ALLOWED_ATTRS = ["href", "target", "rel", "class", "style"];
+
+const SAFE_STYLE_PROPERTIES = new Set([
+  "color",
+  "background-color",
+  "border-radius",
+  "padding",
+]);
+
+const SAFE_COLOR_VALUE =
+  /^(#[0-9a-f]{3,8}|rgba?\(\s*(\d{1,3}%?\s*,\s*){2}\d{1,3}%?(\s*,\s*(0|1|0?\.\d+|\d{1,3}%))?\s*\)|hsla?\(\s*\d{1,3}(deg)?\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%(\s*,\s*(0|1|0?\.\d+|\d{1,3}%))?\s*\)|transparent)$/i;
+const SAFE_LENGTH_VALUE = /^(\d+(\.\d+)?(px|rem|em|%)?|0)$/i;
+
+function isSafeStyleValue(property: string, value: string): boolean {
+  const normalizedValue = value.trim();
+  const lowerValue = normalizedValue.toLowerCase();
+
+  if (
+    !normalizedValue ||
+    lowerValue.includes("url(") ||
+    lowerValue.includes("expression(") ||
+    lowerValue.includes("javascript:") ||
+    lowerValue.includes("data:")
+  ) {
+    return false;
+  }
+
+  if (property === "color" || property === "background-color") {
+    return SAFE_COLOR_VALUE.test(normalizedValue);
+  }
+
+  if (property === "border-radius") {
+    return SAFE_LENGTH_VALUE.test(normalizedValue);
+  }
+
+  if (property === "padding") {
+    const parts = normalizedValue.split(/\s+/);
+    return parts.length >= 1 && parts.length <= 4 && parts.every((part) => SAFE_LENGTH_VALUE.test(part));
+  }
+
+  return false;
+}
+
+function sanitizeInlineStyle(style: string): string {
+  return style
+    .split(";")
+    .map((declaration) => declaration.trim())
+    .filter(Boolean)
+    .map((declaration) => {
+      const separatorIndex = declaration.indexOf(":");
+      if (separatorIndex === -1) return "";
+
+      const property = declaration.slice(0, separatorIndex).trim().toLowerCase();
+      const value = declaration.slice(separatorIndex + 1).trim();
+
+      if (!SAFE_STYLE_PROPERTIES.has(property) || !isSafeStyleValue(property, value)) {
+        return "";
+      }
+
+      return `${property}: ${value}`;
+    })
+    .filter(Boolean)
+    .join("; ");
+}
+
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  const element = node as Element;
+  if (
+    node.nodeType !== 1 ||
+    typeof element.hasAttribute !== "function" ||
+    !element.hasAttribute("style")
+  ) {
+    return;
+  }
+
+  const safeStyle = sanitizeInlineStyle(element.getAttribute("style") || "");
+  if (safeStyle) {
+    element.setAttribute("style", safeStyle);
+  } else {
+    element.removeAttribute("style");
+  }
+});
 
 // Strict config for displaying user content
 const STRICT_CONFIG: Config = {
@@ -35,7 +117,7 @@ const MINIMAL_CONFIG: Config = {
 // Link-safe config (allows links)
 const LINK_SAFE_CONFIG: Config = {
   ALLOWED_TAGS: [...DEFAULT_ALLOWED_TAGS],
-  ALLOWED_ATTR: ["href", "target", "rel", "class"],
+  ALLOWED_ATTR: ["href", "target", "rel", "class", "style"],
   ALLOW_DATA_ATTR: false,
   ADD_ATTR: ["target"],
 };
