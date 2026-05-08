@@ -47,7 +47,7 @@ export function ThemeCard(props: ThemeCardProps) {
         <div className="flex items-center justify-between gap-2 mb-1">
           <h3 className="font-ui text-base font-semibold text-ink">{label}</h3>
           {isActive ? (
-            <span className="font-ui text-[0.65rem] font-bold text-accent uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-purple-50">
+            <span className="font-ui text-[0.65rem] font-bold text-accent uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-accent/10">
               Active
             </span>
           ) : null}

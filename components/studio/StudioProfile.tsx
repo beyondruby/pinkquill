@@ -7,7 +7,6 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
 import { getTimeAgo } from "@/lib/utils/time";
 import { parseSocialLinks, getSocialUrl } from "@/lib/utils/social";
-import type { SocialLink } from "@/lib/utils/social";
 
 // Type for follows table real-time payload
 interface FollowRealtimePayload {
@@ -105,7 +104,7 @@ const socialIcons: Record<string, { icon: React.ReactNode; color: string }> = {
     ),
   },
   github: {
-    color: "#333",
+    color: "var(--color-ink)",
     icon: (
       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
@@ -129,7 +128,7 @@ const socialIcons: Record<string, { icon: React.ReactNode; color: string }> = {
     ),
   },
   tiktok: {
-    color: "#000",
+    color: "var(--color-ink)",
     icon: (
       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
@@ -137,7 +136,7 @@ const socialIcons: Record<string, { icon: React.ReactNode; color: string }> = {
     ),
   },
   threads: {
-    color: "#000",
+    color: "var(--color-ink)",
     icon: (
       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.96-.065-1.182.408-2.256 1.333-3.022.812-.672 1.927-1.073 3.222-1.158 1.009-.066 1.955.024 2.822.268l.028-.988c-.49-.065-1.003-.098-1.528-.098-1.918 0-3.61.463-4.763 1.306-1.362 1-2.09 2.48-2.001 4.065.09 1.593.894 2.984 2.265 3.918 1.187.81 2.699 1.16 4.247 1.063.91-.05 2.338-.34 3.364-1.677.704-.92 1.163-2.2 1.296-3.823a9.05 9.05 0 011.308.627c1.03.557 1.794 1.26 2.336 2.143 1.06 1.73 1.089 4.72-1.193 6.96-1.908 1.875-4.245 2.735-7.512 2.76zm1.828-11.883c-.86-.081-1.65-.026-2.37.16l-.082 2.896c.614.14 1.312.195 2.065.143 1.113-.077 1.75-.527 2.059-.982.35-.522.368-1.162-.036-1.733-.33-.466-.915-.41-1.636-.484z" />
@@ -185,7 +184,7 @@ const socialIcons: Record<string, { icon: React.ReactNode; color: string }> = {
     ),
   },
   medium: {
-    color: "#000",
+    color: "var(--color-ink)",
     icon: (
       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
         <path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z" />
@@ -217,7 +216,7 @@ const socialIcons: Record<string, { icon: React.ReactNode; color: string }> = {
     ),
   },
   website: {
-    color: "#8e44ad",
+    color: "var(--color-accent)",
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -768,7 +767,7 @@ function StudioTabButton({
       className={`flex-1 min-w-0 relative flex items-center justify-center gap-2 py-3 md:py-3 font-ui text-[13px] font-medium transition-colors duration-200 ${
         active
           ? "text-accent-2"
-          : "text-muted hover:text-ink"
+          : "text-subdued hover:text-ink"
       }`}
     >
       <span className="shrink-0">{icon}</span>
@@ -795,8 +794,8 @@ function StudioSubTabButton({
       onClick={onClick}
       className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
         active
-          ? "bg-pink-50 text-accent-2"
-          : "text-muted hover:text-ink hover:bg-subtle"
+          ? "bg-accent/15 text-accent"
+          : "text-subdued hover:text-ink hover:bg-subtle"
       }`}
     >
       {label}
@@ -1101,7 +1100,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           <img
             src={profile.cover_url}
             alt="Cover"
-            className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-multiply"
+            className="absolute inset-0 w-full h-full object-cover opacity-30"
           />
         )}
 
@@ -1145,7 +1144,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
             {/* Tagline */}
             {profile.tagline && (
-              <p className="font-body text-[0.9rem] md:text-[1.05rem] italic text-ink/40">
+              <p className="font-body text-[0.9rem] md:text-[1.05rem] italic text-muted">
                 {profile.tagline}
               </p>
             )}
@@ -1303,10 +1302,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         {/* Private Account Notice */}
         {isPrivateAccount && !isOwnProfile && !isFollowing && (
           <div className={`mb-8 studio-section-animated ${pageLoaded ? 'loaded delay-2' : ''}`}>
-            <div className="relative rounded-3xl bg-gradient-to-br from-purple-50/90 via-surface to-pink-50/80 p-10 border border-purple-200/50 shadow-[0_8px_40px_-12px_rgba(142,68,173,0.15)] text-center">
+            <div className="relative rounded-3xl bg-gradient-to-br from-surface via-surface to-accent/10 p-10 border border-accent/15 shadow-lg shadow-accent/10 text-center">
               {/* Lock Icon */}
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center">
-                <svg className="w-10 h-10 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-accent/10 to-accent-2/10 flex items-center justify-center">
+                <svg className="w-10 h-10 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
@@ -1379,10 +1378,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
           <div className={`relative mb-8 md:mb-12 studio-section-animated ${pageLoaded ? 'loaded delay-3' : ''}`}>
 
             {/* The Box */}
-            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-rose-50/90 via-surface to-pink-50/80 p-5 md:p-8 lg:p-10 border border-pink-200/50 shadow-[0_8px_40px_-12px_rgba(255,0,127,0.15)]">
+            <div className="relative rounded-2xl md:rounded-3xl bg-gradient-to-br from-surface via-surface to-accent/10 p-5 md:p-8 lg:p-10 border border-accent/15 shadow-lg shadow-accent/10">
 
               {/* Subtle top accent line */}
-              <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-pink-vivid/30 to-transparent" />
+              <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
 
               {/* Header */}
               <div className="mb-4 md:mb-8">
@@ -1401,46 +1400,46 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 {profile.role && (
                   <>
                     <div className="flex items-center gap-2 pr-5">
-                      <span className="text-pink-vivid/60">{icons.briefcase}</span>
+                      <span className="text-accent/70">{icons.briefcase}</span>
                       <span className="font-body">{profile.role}</span>
                     </div>
                     {(profile.location || profile.education || profile.languages) && (
-                      <span className="text-pink-vivid/20 pr-5">•</span>
+                      <span className="text-accent/25 pr-5">•</span>
                     )}
                   </>
                 )}
                 {profile.location && (
                   <>
                     <div className="flex items-center gap-2 pr-5">
-                      <span className="text-pink-vivid/60">{icons.location}</span>
+                      <span className="text-accent/70">{icons.location}</span>
                       <span className="font-body">{profile.location}</span>
                     </div>
                     {(profile.education || profile.languages) && (
-                      <span className="text-pink-vivid/20 pr-5">•</span>
+                      <span className="text-accent/25 pr-5">•</span>
                     )}
                   </>
                 )}
                 {profile.education && (
                   <>
                     <div className="flex items-center gap-2 pr-5">
-                      <span className="text-pink-vivid/60">{icons.education}</span>
+                      <span className="text-accent/70">{icons.education}</span>
                       <span className="font-body">{profile.education}</span>
                     </div>
                     {profile.languages && (
-                      <span className="text-pink-vivid/20 pr-5">•</span>
+                      <span className="text-accent/25 pr-5">•</span>
                     )}
                   </>
                 )}
                 {profile.languages && (
                   <div className="flex items-center gap-2">
-                    <span className="text-pink-vivid/60">{icons.languages}</span>
+                    <span className="text-accent/70">{icons.languages}</span>
                     <span className="font-body">{profile.languages}</span>
                   </div>
                 )}
               </div>
 
               {/* Footer */}
-              <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-pink-vivid/10">
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-accent/10">
                 {/* Social Links */}
                 {profile.website && parseSocialLinks(profile.website).length > 0 ? (
                   <div className="flex items-center gap-1">
@@ -1452,7 +1451,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                           href={getSocialUrl(link)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group flex items-center justify-center w-9 h-9 rounded-xl hover:bg-pink-vivid/10 transition-all duration-300"
+                          className="group flex items-center justify-center w-9 h-9 rounded-xl hover:bg-accent/10 transition-all duration-300"
                           title={link.url}
                         >
                           <span
@@ -1471,14 +1470,14 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 {userCommunities && userCommunities.length > 0 && (
                   <button
                     onClick={() => setShowCommunitiesModal(true)}
-                    className="group flex items-center gap-1 py-1.5 rounded-full hover:bg-pink-vivid/[0.04] transition-all duration-300 px-1"
+                    className="group flex items-center gap-1 py-1.5 rounded-full hover:bg-accent/[0.04] transition-all duration-300 px-1"
                   >
                     {/* Stacked Community Avatars */}
                     <div className="flex items-center">
                       {userCommunities.slice(0, userCommunities.length > 4 ? 3 : 4).map((community, index) => (
                         <div
                           key={community.id}
-                          className="relative w-7 h-7 rounded-full border-2 border-white overflow-hidden shadow-sm transition-all duration-300 group-hover:shadow-md"
+                          className="relative w-7 h-7 rounded-full border-2 border-surface overflow-hidden shadow-sm transition-all duration-300 group-hover:shadow-md"
                           style={{
                             marginLeft: index === 0 ? 0 : '-8px',
                             zIndex: 10 - index,
@@ -1491,8 +1490,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-purple-primary/40 to-pink-vivid/40 flex items-center justify-center">
-                              <span className="text-[9px] font-ui text-white font-semibold">
+                            <div className="w-full h-full bg-gradient-to-br from-accent/40 to-accent-2/40 flex items-center justify-center">
+                              <span className="text-[9px] font-ui text-on-accent font-semibold">
                                 {community.name?.charAt(0).toUpperCase()}
                               </span>
                             </div>
@@ -1503,10 +1502,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                       {/* +X more indicator */}
                       {userCommunities.length > 4 && (
                         <div
-                          className="relative w-7 h-7 rounded-full border-2 border-white overflow-hidden shadow-sm bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center transition-all duration-300 group-hover:shadow-md"
+                          className="relative w-7 h-7 rounded-full border-2 border-surface overflow-hidden shadow-sm bg-gradient-to-br from-accent to-accent-2 flex items-center justify-center transition-all duration-300 group-hover:shadow-md"
                           style={{ marginLeft: '-8px', zIndex: 6 }}
                         >
-                          <span className="text-[9px] font-ui text-white font-bold">
+                          <span className="text-[9px] font-ui text-on-accent font-bold">
                             +{userCommunities.length - 3}
                           </span>
                         </div>
@@ -1517,7 +1516,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
                 {/* Joined */}
                 <div className="flex items-center gap-2 text-ink/30">
-                  <span className="text-pink-vivid/40">{icons.calendar}</span>
+                  <span className="text-accent/50">{icons.calendar}</span>
                   <span className="font-ui text-xs tracking-wider uppercase">Joined {formatMonthYear(profile.created_at)}</span>
                 </div>
               </div>

@@ -4,14 +4,14 @@
    THEME TOKEN LAYER
    ----------------------------------------------------------------------------
    Two layers:
-     1. BRAND tokens — locked across all themes (product identity).
-     2. SEMANTIC tokens — overridden by [data-theme="..."] in future phases.
+     1. PALETTE tokens — default identity values, recolored per theme.
+     2. SEMANTIC tokens — overridden by [data-theme="..."].
    Components consume semantic tokens (bg-surface, text-ink, bg-accent, …) so
    theme switching is a CSS-variable swap with zero React rerenders.
    ============================================================================ */
 
 @theme {
-  /* === BRAND PALETTE — default values; overridden per non-default theme === */
+  /* === PALETTE — default values; overridden per non-default theme === */
   --color-purple-primary: #8e44ad;
   --color-pink-vivid: #ff007f;
   --color-orange-warm: #ff9f43;
@@ -64,18 +64,15 @@
   --paper: var(--color-surface);
   --ink: var(--color-ink);
   --muted-text: var(--color-muted);
-  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-border: var(--color-border-light);
   --glass-bg: var(--color-glass);
 }
 
 /* ============================================================================
    THEME OVERRIDES
    ----------------------------------------------------------------------------
-   Add a new theme by overriding the semantic tokens under [data-theme="<id>"]
-   and adding a registry entry in lib/theme/registry.ts. Brand colors
-   (--color-purple-primary, --color-pink-vivid, --color-orange-warm) are
-   intentionally never re-defined here — those are product identity and stay
-   constant across themes.
+   Add a new theme by overriding the palette and semantic tokens under
+   [data-theme="<id>"] and adding a registry entry in lib/theme/registry.ts.
    ============================================================================ */
 
 [data-theme="noir"] {
@@ -255,14 +252,12 @@
   --color-toast-border: rgba(0, 0, 0, 0.1);
 }
 
-/* Lowercase legacy aliases used by animations/blobs in this file.
-   The decorative aura-blob backgrounds keep brand colors so identity reads
-   the same on every theme; only --paper / --ink / --glass-bg follow noir. */
+/* Lowercase legacy aliases used by older animation/card CSS in this file. */
 :root[data-theme="noir"] {
   --paper: var(--color-surface);
   --ink: var(--color-ink);
   --muted-text: var(--color-muted);
-  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-border: var(--color-border-light);
   --glass-bg: var(--color-glass);
 }
 
@@ -5003,8 +4998,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 /* Type-specific styling for relay cards */
 .studio-relay-card[data-type="poem"] {
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 230, 235, 0.5) 0%, transparent 60%),
-    linear-gradient(135deg, #fffbfc 0%, #fef8fa 100%);
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--color-accent-2) 10%, transparent) 0%, transparent 60%),
+    linear-gradient(135deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-accent-2) 5%, var(--color-surface)) 100%);
 }
 
 .studio-relay-card[data-type="poem"] .studio-relay-preview {
@@ -5013,14 +5008,14 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .studio-relay-card[data-type="journal"] {
-  background: linear-gradient(135deg, #fffef8 0%, #fdf9f0 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-orange-warm) 6%, var(--color-surface)) 100%);
   border-color: color-mix(in srgb, var(--color-orange-warm) 12%, transparent);
 }
 
 .studio-relay-card[data-type="thought"] {
   background:
-    radial-gradient(ellipse at 30% 20%, rgba(232, 218, 245, 0.6) 0%, transparent 50%),
-    linear-gradient(135deg, #faf8ff 0%, #f5f0fa 100%);
+    radial-gradient(ellipse at 30% 20%, color-mix(in srgb, var(--color-accent) 9%, transparent) 0%, transparent 50%),
+    linear-gradient(135deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-accent) 5%, var(--color-surface)) 100%);
 }
 
 .studio-relay-card[data-type="visual"] {
@@ -5039,7 +5034,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 }
 
 .studio-relay-card[data-type="quote"] {
-  background: linear-gradient(135deg, #fffefb 0%, #fdf9f3 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-accent) 4%, var(--color-surface)) 100%);
 }
 
 .studio-relay-card[data-type="quote"] .studio-relay-preview {
@@ -5153,8 +5148,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   position: absolute;
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' result='noise'/%3E%3CfeDiffuseLighting in='noise' lighting-color='%23fff' surfaceScale='2'%3E%3CfeDistantLight azimuth='45' elevation='60'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
-  opacity: 0.02;
-  mix-blend-mode: multiply;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
   pointer-events: none;
 }
 
@@ -5311,13 +5306,13 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .studio-bio-card {
   position: relative;
-  background: linear-gradient(135deg, #ffffff 0%, #fdfafc 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-accent) 4%, var(--color-surface)) 100%);
   border-radius: 20px;
   padding: 2rem 2rem 2rem 2.5rem;
   border: 1px solid color-mix(in srgb, var(--color-purple-primary) 10%, transparent);
   box-shadow:
     0 4px 20px color-mix(in srgb, var(--color-purple-primary) 6%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    inset 0 1px 0 color-mix(in srgb, var(--color-ink) 8%, transparent);
   overflow: hidden;
 }
 
