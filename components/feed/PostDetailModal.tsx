@@ -24,8 +24,8 @@ import PostTags from "@/components/feed/PostTags";
 import FlairBadge from "@/components/communities/FlairBadge";
 import { createSafeHtml } from "@/lib/utils/sanitize";
 import { getTimeAgo } from "@/lib/utils/time";
-import { getBackgroundStyle, isDarkBackground, getLuminance, extractColorsFromGradient } from "@/lib/utils/background";
-import { PostStyling, JournalMetadata, PostBackground, TimeOfDay, WeatherType, MoodType, SpotifyTrack, CommunityFlair } from "@/lib/types";
+import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
+import { PostStyling, JournalMetadata, SpotifyTrack, CommunityFlair } from "@/lib/types";
 
 // Convert number to Roman numeral
 function toRomanNumeral(num: number): string {
@@ -270,17 +270,6 @@ function formatTime(dateString: string): string {
     minute: '2-digit',
     hour12: true
   });
-}
-
-// Format time of day label
-function formatTimeOfDay(timeOfDay?: string): string {
-  const labels: Record<string, string> = {
-    'morning': 'Morning',
-    'afternoon': 'Afternoon',
-    'evening': 'Evening',
-    'night': 'Night'
-  };
-  return timeOfDay ? labels[timeOfDay] || timeOfDay : '';
 }
 
 // Format mood label
@@ -901,7 +890,7 @@ function PostDetailModalComponent({
             <div className="flex-1 relative">
               {post.title && (
                 <h2
-                  className={`font-display text-[1.5rem] md:text-[2.2rem] font-semibold mb-4 md:mb-5 leading-[1.2] tracking-tight text-ink ${
+                  className={`font-display text-[1.5rem] md:text-[2.2rem] font-semibold mb-4 md:mb-5 leading-[1.2] tracking-tight ${textColorClass} ${
                     post.type === "poem" || textAlignment === 'center' ? "text-center" : alignmentClass
                   }`}
                 >
@@ -911,12 +900,12 @@ function PostDetailModalComponent({
 
               {post.type === "poem" ? (
                 <div
-                  className={`font-body text-[1.05rem] md:text-[1.3rem] leading-loose italic text-center py-4 md:py-8 post-content text-ink ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
+                  className={`font-body text-[1.05rem] md:text-[1.3rem] leading-loose italic text-center py-4 md:py-8 post-content ${textColorClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
                   dangerouslySetInnerHTML={createSafeHtml(post.content)}
                 />
               ) : (
                 <div
-                  className={`font-body text-[0.95rem] md:text-[1.1rem] post-content text-ink ${alignmentClass} ${lineSpacingClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
+                  className={`font-body text-[0.95rem] md:text-[1.1rem] post-content ${textColorClass} ${alignmentClass} ${lineSpacingClass} ${dropCapEnabled ? 'drop-cap-enabled' : ''}`}
                   dangerouslySetInnerHTML={createSafeHtml(post.content)}
                 />
               )}

@@ -3437,7 +3437,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .editor-content:empty::before {
   content: attr(data-placeholder);
-  color: var(--muted-text);
+  color: var(--editor-placeholder-color, var(--muted-text));
   opacity: 0.5;
   font-style: italic;
   pointer-events: none;

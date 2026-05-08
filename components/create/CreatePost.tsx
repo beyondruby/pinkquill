@@ -25,6 +25,7 @@ const JournalMetadataPanel = dynamic(() => import("@/components/create/JournalMe
 const CollectionSelector = dynamic(() => import("@/components/collections/CollectionSelector"), { ssr: false });
 import { useAddPostToCollectionItem } from "@/lib/hooks/useCollections";
 import type { Collection, CollectionItem } from "@/lib/types";
+import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
 import DOMPurify from "dompurify";
 
 interface PostTypeOption {
@@ -56,6 +57,27 @@ const contentWarningPresets = [
 ];
 
 const MAX_MEDIA_SIZE_BYTES = 50 * 1024 * 1024;
+
+function clearInlineStyles(root: ParentNode, properties: Array<"color" | "highlight">) {
+  const elements = Array.from(root.querySelectorAll<HTMLElement>("[style]"));
+
+  elements.forEach((element) => {
+    if (properties.includes("color")) {
+      element.style.color = "";
+    }
+
+    if (properties.includes("highlight")) {
+      element.style.background = "";
+      element.style.backgroundColor = "";
+      element.style.borderRadius = "";
+      element.style.padding = "";
+    }
+
+    if (!element.getAttribute("style")?.trim()) {
+      element.removeAttribute("style");
+    }
+  });
+}
 
 const fontOptions = [
   // Serif fonts - great for literary content
@@ -994,6 +1016,7 @@ export default function CreatePost() {
     }
 
     const selectedContent = range.extractContents();
+    clearInlineStyles(selectedContent, ["color"]);
     const span = document.createElement("span");
     span.style.color = color;
     span.appendChild(selectedContent);
@@ -1021,21 +1044,23 @@ export default function CreatePost() {
     }
 
     const selectedContent = range.extractContents();
-    const span = document.createElement("span");
+    clearInlineStyles(selectedContent, ["highlight"]);
+
     if (color === "transparent") {
-      span.style.backgroundColor = "";
+      range.insertNode(selectedContent);
     } else {
+      const span = document.createElement("span");
       span.style.backgroundColor = color;
       span.style.borderRadius = "2px";
       span.style.padding = "0 2px";
-    }
-    span.appendChild(selectedContent);
-    range.insertNode(span);
+      span.appendChild(selectedContent);
+      range.insertNode(span);
 
-    selection.removeAllRanges();
-    const newRange = document.createRange();
-    newRange.selectNodeContents(span);
-    selection.addRange(newRange);
+      selection.removeAllRanges();
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      selection.addRange(newRange);
+    }
 
     setShowHighlightMenu(false);
   };
@@ -1963,6 +1988,16 @@ export default function CreatePost() {
 
   const currentVisibility = visibilityOptions.find((v) => v.id === visibility);
   const flairCommunityId = selectedCommunity?.id || editingCommunityId;
+  const authoredBackground = styling.background;
+  const hasAuthoredBackground = Boolean(authoredBackground);
+  const authoredBackgroundIsDark = isDarkBackground(authoredBackground);
+  const authoredBackgroundStyle = authoredBackground
+    ? getBackgroundStyle(authoredBackground)
+    : undefined;
+  const authoredTextClass = authoredBackgroundIsDark ? "text-white" : "text-ink";
+  const authoredPlaceholderClass = authoredBackgroundIsDark
+    ? "empty:before:text-white/45"
+    : "empty:before:text-muted/40";
 
   if (!user) {
     return (
@@ -2944,7 +2979,30 @@ export default function CreatePost() {
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
               <div className="w-full h-full rounded-xl bg-surface" />
             </div>
-            <div className="relative">
+            <div className="relative rounded-xl overflow-hidden">
+              {hasAuthoredBackground && authoredBackground && (
+                <div
+                  className="absolute inset-[1px] rounded-[11px]"
+                  style={{
+                    ...authoredBackgroundStyle,
+                    opacity:
+                      authoredBackground.type === "image"
+                        ? (authoredBackground.opacity ?? 1)
+                        : 1,
+                    filter:
+                      authoredBackground.type === "image" && authoredBackground.blur
+                        ? `blur(${authoredBackground.blur}px)`
+                        : undefined,
+                    transform:
+                      authoredBackground.type === "image" && authoredBackground.blur
+                        ? "scale(1.03)"
+                        : undefined,
+                  }}
+                />
+              )}
+              {authoredBackground?.type === "image" && (
+                <div className="absolute inset-[1px] rounded-[11px] bg-black/30" />
+              )}
               <div
                 ref={editorRef}
                 contentEditable
@@ -2952,7 +3010,12 @@ export default function CreatePost() {
                 onKeyUp={updateFormattingState}
                 onMouseUp={updateFormattingState}
                 data-placeholder={currentType?.placeholder || "Let your thoughts flow freely..."}
-                className={`editor-content w-full min-h-[320px] px-5 py-4 rounded-xl font-body text-[1.05rem] text-ink bg-transparent outline-none ${
+                style={
+                  authoredBackgroundIsDark
+                    ? ({ "--editor-placeholder-color": "rgba(255, 255, 255, 0.75)" } as React.CSSProperties)
+                    : undefined
+                }
+                className={`editor-content relative z-10 w-full min-h-[320px] px-5 py-4 rounded-xl font-body text-[1.05rem] ${authoredTextClass} bg-transparent outline-none ${authoredPlaceholderClass} ${
                   textAlignment === 'left' ? 'text-left' :
                   textAlignment === 'center' ? 'text-center' :
                   textAlignment === 'right' ? 'text-right' :
