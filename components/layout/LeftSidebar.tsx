@@ -13,6 +13,7 @@ import SearchBar from "@/components/search/SearchBar";
 const NotificationPanel = dynamic(() => import("@/components/notifications/NotificationPanel"), { ssr: false });
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
 import { QuickThemeToggle } from "@/components/theme/QuickThemeToggle";
+import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 
 const publicNavItems = [
   { icon: "home", label: "Home", href: "/" },
@@ -111,8 +112,6 @@ export default function LeftSidebar() {
   const { unreadNotifications: unreadCount, unreadMessages: unreadMessagesCount, cartCount } = useBadgeCounts();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const createMenuRef = useRef<HTMLDivElement>(null);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const router = useRouter();
 
@@ -144,34 +143,75 @@ export default function LeftSidebar() {
     };
   }, []);
 
-  // Close menus when clicking outside — single listener for full lifecycle
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const clickedInsideSidebar = sidebarRef.current?.contains(event.target as Node);
-
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-        if (!clickedInsideSidebar) {
-          setIsExpanded(false);
-        }
-      }
-      if (createMenuRef.current && !createMenuRef.current.contains(event.target as Node)) {
-        setShowCreateMenu(false);
-        if (!clickedInsideSidebar) {
-          setIsExpanded(false);
-        }
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleOpenNotifications = () => {
     setShowNotifications(true);
   };
+
+  const createMenuItems: ActionMenuItem[] = [
+    {
+      label: "Create a Post",
+      description: "Poems, journals, artwork, and thoughts",
+      onSelect: () => router.push("/create"),
+      icon: icons.quill,
+    },
+    {
+      label: "Sell Product",
+      description: "List a digital or physical item",
+      onSelect: () => router.push("/sell"),
+      icon: icons.shop,
+    },
+    {
+      label: "Add Service",
+      description: "Open a commission listing",
+      onSelect: () => router.push("/sell/service"),
+      icon: (
+        <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
+        </svg>
+      ),
+    },
+  ];
+
+  const moreMenuItems: ActionMenuItem[] = [
+    { label: "Saved", description: "Your bookmarked work", href: "/saved", icon: icons.bookmark, sectionLabel: "Library" },
+    {
+      label: "Studio Cart",
+      description: "Marketplace checkout",
+      href: "/cart",
+      icon: icons.cart,
+      meta: cartCount > 0 ? (
+        <span className="min-w-[18px] h-[18px] rounded-full bg-pink-vivid px-1.5 text-[0.65rem] font-semibold text-white flex items-center justify-center">
+          {cartCount > 99 ? "99+" : cartCount}
+        </span>
+      ) : undefined,
+    },
+    { label: "Orders", description: "Purchases and deliveries", href: "/orders", icon: (
+      <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    ) },
+    { label: "Insights", description: "Creator analytics", href: "/insights", icon: (
+      <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ), sectionLabel: "Creator" },
+    { label: "Seller Dashboard", description: "Listings, customers, earnings", href: "/seller/dashboard", icon: (
+      <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3h7v7H3V3zm11 0h7v4h-7V3zm0 7h7v11h-7V10zM3 13h7v8H3v-8z" />
+      </svg>
+    ) },
+    { label: "Settings", description: "Account, privacy, appearance", href: "/settings", icon: (
+      <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ), sectionLabel: "Support" },
+    { label: "Help", description: "Guides and safety basics", href: "/help", icon: (
+      <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ) },
+  ];
 
   return (
     <>
@@ -298,79 +338,36 @@ export default function LeftSidebar() {
 
         {/* Create Button - Only for authenticated users */}
         {user && (
-          <div className={`relative mt-auto ${isExpanded ? "" : "flex justify-center"}`} ref={createMenuRef}>
-            <button
-              onClick={() => setShowCreateMenu(!showCreateMenu)}
-              className={`bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-on-accent shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300 ${
+          <div className={`relative mt-auto ${isExpanded ? "" : "flex justify-center"}`}>
+            <ActionMenu
+              items={createMenuItems}
+              label="Create"
+              description="Start something new on PinkQuill."
+              widthClassName="w-64"
+              onOpenChange={setShowCreateMenu}
+              buttonAriaLabel="Create menu"
+              buttonClassName={`bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-on-accent shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300 ${
                 isExpanded ? "w-full h-12 rounded-xl gap-2" : "w-10 h-10 rounded-full"
               }`}
-              title={!isExpanded ? "Create" : undefined}
-            >
-              <svg className={`flex-shrink-0 ${isExpanded ? "w-5 h-5" : "w-4 h-4"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              <span className={`font-ui text-[0.95rem] font-bold whitespace-nowrap transition-all duration-300 ${
-                isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
-              }`}>
-                Create
-              </span>
-              <svg className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${
-                isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
-              } ${showCreateMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {/* Create Menu Dropdown */}
-            {showCreateMenu && (
-              <div className={`absolute p-1.5 rounded-2xl bg-surface/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-border-light z-50 animate-fadeIn ${
-                isExpanded
-                  ? "bottom-full left-0 right-0 mb-2"
-                  : "left-full bottom-0 ml-2 w-48"
-              }`}>
-                <button
-                  onClick={() => {
-                    setShowCreateMenu(false);
-                    router.push("/create");
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
-                >
-                  <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
-                    <line x1="16" y1="8" x2="2" y2="22"/>
-                    <line x1="17.5" y1="15" x2="9" y2="15"/>
+              trigger={
+                <>
+                  <svg className={`flex-shrink-0 ${isExpanded ? "w-5 h-5" : "w-4 h-4"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  <span className="font-ui text-[0.9rem]">Create a Post</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowCreateMenu(false);
-                    router.push("/sell");
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  <span className={`font-ui text-[0.95rem] font-bold whitespace-nowrap transition-all duration-300 ${
+                    isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
+                  }`}>
+                    Create
+                  </span>
+                  <svg className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${
+                    isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
+                  } ${showCreateMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                   </svg>
-                  <span className="font-ui text-[0.9rem]">Sell Product</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowCreateMenu(false);
-                    router.push("/sell/service");
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
-                  </svg>
-                  <span className="font-ui text-[0.9rem]">Add Service</span>
-                </button>
-              </div>
-            )}
+                </>
+              }
+            />
           </div>
         )}
 
@@ -387,7 +384,7 @@ export default function LeftSidebar() {
             </div>
           </div>
         ) : user && profile ? (
-          <div className={`mt-3 relative ${isExpanded ? "" : "flex flex-col items-center"}`} ref={menuRef}>
+          <div className={`mt-3 relative ${isExpanded ? "" : "flex flex-col items-center"}`}>
             <Link
               href={`/studio/${profile.username}`}
               className={`flex items-center cursor-pointer rounded-xl hover:bg-accent/5 transition-all duration-300 ${
@@ -414,136 +411,47 @@ export default function LeftSidebar() {
               </div>
             </Link>
 
-            {/* More Button */}
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className={`flex items-center rounded-xl text-muted hover:text-accent hover:bg-accent/[0.06] transition-all duration-200 ${
+            <ActionMenu
+              items={moreMenuItems}
+              label="More"
+              description="Your library, tools, and account controls."
+              widthClassName="w-72"
+              onOpenChange={setShowMenu}
+              buttonAriaLabel="More menu"
+              buttonClassName={`flex items-center rounded-xl text-muted hover:text-accent hover:bg-accent/[0.06] transition-all duration-200 ${
                 isExpanded ? "w-full gap-3.5 px-4 py-3 mt-1" : "w-9 h-9 justify-center mt-2"
               }`}
-              title={!isExpanded ? "More" : undefined}
-            >
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              <span className={`font-ui text-[0.95rem] whitespace-nowrap transition-all duration-300 ${
-                isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
-              }`}>
-                More
-              </span>
-            </button>
-
-            {/* Dropdown Menu */}
-            {showMenu && (
-              <div className={`absolute p-1.5 rounded-2xl bg-surface/95 backdrop-blur-xl shadow-xl shadow-black/[0.08] border border-border-light z-50 animate-fadeIn ${
-                isExpanded
-                  ? "bottom-full left-0 right-0 mb-2"
-                  : "left-full bottom-0 ml-2 w-48"
-              }`}>
-                <Link
-                  href="/saved"
-                  onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              trigger={
+                <>
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
-                  <span className="font-ui text-[0.9rem]">Saved</span>
-                </Link>
-
-                <Link
-                  href="/cart"
-                  onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
-                >
-                  <div className="relative">
-                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    {cartCount > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] bg-pink-vivid text-white font-ui text-[0.5rem] font-semibold rounded-full flex items-center justify-center px-0.5">
-                        {cartCount > 99 ? "99+" : cartCount}
-                      </span>
-                    )}
-                  </div>
-                  <span className="font-ui text-[0.9rem]">Studio Cart</span>
-                </Link>
-
-                <Link
-                  href="/orders"
-                  onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                  </svg>
-                  <span className="font-ui text-[0.9rem]">Orders</span>
-                </Link>
-
-                <Link
-                  href="/insights"
-                  onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <span className="font-ui text-[0.9rem]">Insights</span>
-                </Link>
-
-                <Link
-                  href="/seller/dashboard"
-                  onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3h7v7H3V3zm11 0h7v4h-7V3zm0 7h7v11h-7V10zM3 13h7v8H3v-8z" />
-                  </svg>
-                  <span className="font-ui text-[0.9rem]">Seller Dashboard</span>
-                </Link>
-
-                <Link
-                  href="/settings"
-                  onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span className="font-ui text-[0.9rem]">Settings</span>
-                </Link>
-
-                <Link
-                  href="/help"
-                  onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-accent hover:bg-accent/[0.06] transition-all duration-200"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="font-ui text-[0.9rem]">Help</span>
-                </Link>
-
-                <div className="my-1.5 mx-2 h-px bg-border-light" />
-
-                <QuickThemeToggle />
-
-                <div className="my-1.5 mx-2 h-px bg-border-light" />
-
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    signOut();
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink/80 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
-                >
-                  <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span className="font-ui text-[0.9rem]">Log out</span>
-                </button>
-              </div>
-            )}
+                  <span className={`font-ui text-[0.95rem] whitespace-nowrap transition-all duration-300 ${
+                    isExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden absolute"
+                  }`}>
+                    More
+                  </span>
+                </>
+              }
+              footer={(close) => (
+                <>
+                  <QuickThemeToggle />
+                  <div className="h-px bg-border-light mx-2 my-1.5" />
+                  <button
+                    onClick={() => {
+                      close();
+                      signOut();
+                    }}
+                    className="w-full flex items-center gap-3 rounded-md px-2.5 py-2.5 text-left font-ui text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-red-50 text-red-500">
+                      {icons.logout}
+                    </span>
+                    <span className="font-medium">Log out</span>
+                  </button>
+                </>
+              )}
+            />
           </div>
         ) : (
           /* Sign In Button - Non-authenticated users */

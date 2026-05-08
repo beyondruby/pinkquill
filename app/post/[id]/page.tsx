@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -20,6 +20,7 @@ import PostTags from "@/components/feed/PostTags";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
+import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import type { PostBackground, PostStyling } from "@/lib/types";
 import { getTimeAgo, formatDate, formatTime } from "@/lib/utils/time";
 import FlairBadge from "@/components/communities/FlairBadge";
@@ -176,7 +177,6 @@ export default function PostPage() {
   const [isRelayed, setIsRelayed] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -186,7 +186,6 @@ export default function PostPage() {
   const [isBlocking, setIsBlocking] = useState(false);
   const [showContent, setShowContent] = useState(true);
 
-  const menuRef = useRef<HTMLDivElement>(null);
   const { blockUser } = useBlock();
 
   const { toggle: toggleSave } = useToggleSave();
@@ -576,23 +575,6 @@ export default function PostPage() {
     deleteComment(commentId);
   };
 
-  // Click outside to close menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenu]);
-
   const isOwner = user && post && user.id === post.author_id;
 
   const handleDelete = async () => {
@@ -674,6 +656,59 @@ export default function PostPage() {
   };
 
   const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${postId}` : `/post/${postId}`;
+  const postMenuItems: ActionMenuItem[] = [
+    {
+      label: "Share post",
+      description: "Open sharing options",
+      onSelect: () => setShowShareModal(true),
+      icon: icons.share,
+    },
+    {
+      label: "Copy post link",
+      description: "Copy a direct URL",
+      onSelect: () => navigator.clipboard.writeText(postUrl),
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+      ),
+    },
+    {
+      label: "Edit post",
+      description: "Update this work",
+      onSelect: handleEdit,
+      hidden: !isOwner,
+      sectionLabel: "Author",
+      icon: icons.edit,
+    },
+    {
+      label: "Delete post",
+      description: "Remove this post permanently",
+      onSelect: () => setShowDeleteConfirm(true),
+      hidden: !isOwner,
+      tone: "danger",
+      dividerBefore: true,
+      icon: icons.trash,
+    },
+    {
+      label: `Block @${post?.author.username || "user"}`,
+      description: "Stop seeing and receiving interactions",
+      onSelect: () => setShowBlockConfirm(true),
+      hidden: !user || !!isOwner,
+      sectionLabel: "Safety",
+      dividerBefore: true,
+      tone: "warning",
+      icon: icons.block,
+    },
+    {
+      label: "Report post",
+      description: "Send this post to moderation",
+      onSelect: () => setShowReportModal(true),
+      hidden: !user || !!isOwner,
+      tone: "danger",
+      icon: icons.flag,
+    },
+  ];
 
   // Loading state
   if (loading) {
@@ -814,76 +849,15 @@ export default function PostPage() {
               </div>
 
               {/* Post Options Menu */}
-              {isOwner ? (
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
-                  >
-                    {icons.moreHorizontal}
-                  </button>
-
-                  {/* Dropdown Menu */}
-                  {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-surface rounded-xl shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          handleEdit();
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-skeleton/60 transition-colors"
-                      >
-                        {icons.edit}
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowDeleteConfirm(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        {icons.trash}
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : user && (
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
-                  >
-                    {icons.moreHorizontal}
-                  </button>
-
-                  {/* Dropdown Menu */}
-                  {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-surface rounded-xl shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowBlockConfirm(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-ink hover:bg-skeleton/60 transition-colors"
-                      >
-                        {icons.block}
-                        Block
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowReportModal(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left font-ui text-[0.9rem] text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        {icons.flag}
-                        Report
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {(isOwner || user) && (
+                <ActionMenu
+                  label="Post actions"
+                  description={post?.title || "Share, manage, or report this post"}
+                  items={postMenuItems}
+                  buttonClassName="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton/60 transition-all"
+                  widthClassName="w-72"
+                  buttonAriaLabel="Post actions"
+                />
               )}
             </div>
 

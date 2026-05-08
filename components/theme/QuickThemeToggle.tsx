@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { THEMES, SYSTEM_LIGHT, SYSTEM_DARK } from "@/lib/theme/registry";
 
@@ -35,7 +36,7 @@ const segments: Array<{ id: Segment; label: string; icon: React.ReactElement }> 
   },
 ];
 
-// Categorical 3-segment switch (System / Light / Dark) for the profile dropdown.
+// Categorical quick switch (System / Light / Dark) for menus.
 // Light/Dark map to the system-fallback themes (SYSTEM_LIGHT, SYSTEM_DARK), not
 // to specific theme ids — so the toggle stays meaningful as the theme library
 // grows. Active segment is derived from THEMES[currentId].appearance, so a user
@@ -65,14 +66,14 @@ export function QuickThemeToggle() {
   };
 
   return (
-    <div className="px-1.5 py-1.5">
-      <p className="font-ui text-[0.7rem] font-semibold text-muted uppercase tracking-wider px-1.5 pb-1.5">
+    <div className="px-1 py-1.5">
+      <p className="font-ui text-[0.68rem] font-semibold text-muted uppercase tracking-wider px-1.5 pb-1.5">
         Appearance
       </p>
       <div
         role="radiogroup"
         aria-label="Color theme"
-        className="grid grid-cols-3 gap-1 p-1 bg-subtle rounded-xl"
+        className="grid grid-cols-3 gap-1 p-1 bg-subtle rounded-lg"
       >
         {segments.map((seg) => {
           const isActive = activeSegment === seg.id;
@@ -83,7 +84,7 @@ export function QuickThemeToggle() {
               role="radio"
               aria-checked={isActive}
               onClick={(e) => select(seg.id, e)}
-              className={`flex flex-col items-center gap-0.5 py-1.5 rounded-lg font-ui text-[0.7rem] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
+              className={`flex flex-col items-center gap-0.5 py-1.5 rounded-md font-ui text-[0.7rem] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
                 isActive
                   ? "bg-surface text-accent shadow-sm"
                   : "text-muted hover:text-ink"
@@ -95,6 +96,22 @@ export function QuickThemeToggle() {
           );
         })}
       </div>
+      <Link
+        href="/settings/appearance"
+        className="mt-1.5 flex items-center justify-between gap-2 rounded-md px-2.5 py-2 font-ui text-sm text-ink hover:bg-ink/[0.04] transition-colors"
+      >
+        <span className="flex items-center gap-2.5">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-50 text-purple-primary">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3l1.6 4.9L18.7 7l-3.5 3.8 1 5.1L12 13.3 7.8 15.9l1-5.1L5.3 7l5.1.9L12 3z" />
+            </svg>
+          </span>
+          <span className="font-medium">More themes</span>
+        </span>
+        <svg className="w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
     </div>
   );
 }

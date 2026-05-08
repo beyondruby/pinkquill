@@ -28,6 +28,7 @@ import TakePostCard from "@/components/takes/TakePostCard";
 import Loading from "@/components/ui/Loading";
 import StoreTab from "@/components/store/StoreTab";
 import CommissionsTab from "@/components/commissions/CommissionsTab";
+import ActionMenu from "@/components/ui/ActionMenu";
 import type { Collection, Post } from "@/lib/types";
 import { getInteractionCount } from "@/lib/types";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -407,25 +408,10 @@ function CollectionCard({
   onMoveUp,
   onMoveDown,
 }: CollectionCardProps) {
-  const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteItemTarget, setDeleteItemTarget] = useState<string | null>(null);
   const [collectionDeleting, setCollectionDeleting] = useState(false);
   const [itemDeleting, setItemDeleting] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showMenu]);
 
   // Render collection icon
   const renderIcon = () => {
@@ -558,48 +544,37 @@ function CollectionCard({
 
               {/* Owner menu */}
               {isOwnProfile && (
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="5" cy="12" r="2" />
-                      <circle cx="12" cy="12" r="2" />
-                      <circle cx="19" cy="12" r="2" />
-                    </svg>
-                  </button>
-
-                  {showMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-44 bg-elevated rounded-xl shadow-xl border border-border-light overflow-hidden z-20 animate-scaleIn origin-top-right">
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          router.push(`/studio/${username}/collections/${collection.slug}/edit`);
-                        }}
-                        className="w-full px-4 py-2.5 text-left font-ui text-sm text-ink hover:bg-accent/5 flex items-center gap-2 transition-colors"
-                      >
+                <ActionMenu
+                  label={collection.name}
+                  description="Collection actions"
+                  widthClassName="w-60"
+                  buttonClassName="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
+                  buttonIconClassName="w-5 h-5"
+                  items={[
+                    {
+                      label: "Edit collection",
+                      description: "Name, description, and cover",
+                      onSelect: () => router.push(`/studio/${username}/collections/${collection.slug}/edit`),
+                      icon: (
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        Edit Collection
-                      </button>
-                      <div className="h-px bg-skeleton" />
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowDeleteConfirm(true);
-                        }}
-                        className="w-full px-4 py-2.5 text-left font-ui text-sm text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors"
-                      >
+                      ),
+                    },
+                    {
+                      label: "Delete collection",
+                      description: "Remove this collection",
+                      onSelect: () => setShowDeleteConfirm(true),
+                      tone: "danger",
+                      dividerBefore: true,
+                      icon: (
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        Delete Collection
-                      </button>
-                    </div>
-                  )}
-                </div>
+                      ),
+                    },
+                  ]}
+                />
               )}
             </div>
           </div>
@@ -843,7 +818,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [followersModalTab, setFollowersModalTab] = useState<"followers" | "following">("followers");
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
@@ -852,7 +826,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
   const [collaboratedPosts, setCollaboratedPosts] = useState<Post[]>([]);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // Trigger page load animation
   useEffect(() => {
@@ -965,23 +938,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
     };
     loadCollaboratedPosts();
   }, [profile?.id]);
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenu]);
 
   const handleBlock = async () => {
     if (!user || !profile) return;
@@ -1238,64 +1194,75 @@ export default function StudioProfile({ username }: StudioProfileProps) {
               </Link>
             )}
 
-            {/* 3-dot Menu */}
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-border-light bg-surface flex items-center justify-center text-ink hover:border-accent hover:text-accent transition-all"
-              >
-                {icons.ellipsis}
-              </button>
-
-              {showMenu && (
-                <div className="absolute right-0 top-full mt-2 w-52 bg-elevated rounded-xl shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowShareModal(true);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-skeleton/60 transition-colors"
-                  >
-                    {icons.share}
-                    Share Profile
-                  </button>
-
-                  {!isOwnProfile && user && (
-                    <>
-                      <div className="h-px bg-skeleton mx-3" />
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          if (isBlocked) {
-                            handleBlock();
-                          } else {
-                            setShowBlockConfirm(true);
-                          }
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-skeleton/60 transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                        {isBlocked ? "Unblock" : "Block"} @{profile?.username}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowReportModal(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        Report @{profile?.username}
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+            <ActionMenu
+              label={profile.display_name || profile.username}
+              description="Profile actions"
+              widthClassName="w-72"
+              buttonAriaLabel="Profile actions"
+              buttonClassName="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-border-light bg-surface flex items-center justify-center text-ink hover:border-accent hover:text-accent transition-all"
+              items={[
+                {
+                  label: "Share profile",
+                  description: "Open sharing options",
+                  onSelect: () => setShowShareModal(true),
+                  icon: icons.share,
+                },
+                {
+                  label: "Copy profile link",
+                  description: "Save this profile URL",
+                  onSelect: () => navigator.clipboard.writeText(profileUrl),
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: "Appearance",
+                  description: "Themes and display preferences",
+                  href: "/settings/appearance",
+                  hidden: !isOwnProfile,
+                  sectionLabel: "Settings",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3l1.6 4.9L18.7 7l-3.5 3.8 1 5.1L12 13.3 7.8 15.9l1-5.1L5.3 7l5.1.9L12 3z" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: `${isBlocked ? "Unblock" : "Block"} @${profile.username}`,
+                  description: isBlocked ? "Allow this creator to interact again" : "Stop profile and message interactions",
+                  onSelect: () => {
+                    if (isBlocked) {
+                      handleBlock();
+                    } else {
+                      setShowBlockConfirm(true);
+                    }
+                  },
+                  hidden: isOwnProfile || !user,
+                  tone: "warning",
+                  dividerBefore: true,
+                  sectionLabel: "Safety",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: `Report @${profile.username}`,
+                  description: "Send this profile to moderation",
+                  onSelect: () => setShowReportModal(true),
+                  hidden: isOwnProfile || !user,
+                  tone: "danger",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  ),
+                },
+              ]}
+            />
           </div>
         </div>
 

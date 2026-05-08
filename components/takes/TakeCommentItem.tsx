@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import type { TakeComment } from "@/lib/hooks/useTakes";
 import { useBlock } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import ReportModal from "@/components/ui/ReportModal";
 import { icons } from "@/components/ui/Icons";
+import ActionMenu from "@/components/ui/ActionMenu";
 
 interface TakeCommentItemProps {
   comment: TakeComment;
@@ -82,7 +83,6 @@ export default function TakeCommentItem({
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
 
   // For flat threading: when replying to a reply, use the top-level parent ID
   const effectiveParentId = isReply ? (topLevelParentId || comment.id) : comment.id;
@@ -103,7 +103,6 @@ export default function TakeCommentItem({
   const [isBlocking, setIsBlocking] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const { blockUser } = useBlock();
 
   const isOwner = currentUserId === comment.user_id;
@@ -115,7 +114,6 @@ export default function TakeCommentItem({
     try {
       await blockUser(currentUserId, comment.user_id);
       setShowBlockConfirm(false);
-      setShowMenu(false);
       onBlock?.(comment.user_id);
     } catch (err) {
       console.error("Failed to block user:", err);
@@ -146,23 +144,6 @@ export default function TakeCommentItem({
       setIsReporting(false);
     }
   };
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenu]);
 
   const handleLike = () => {
     if (!currentUserId) return;
@@ -216,53 +197,53 @@ export default function TakeCommentItem({
 
               {/* 3-dot Menu */}
               {currentUserId && (
-                <div className="relative ml-auto" ref={menuRef}>
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-muted/50 hover:text-muted hover:bg-skeleton opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    {icons.moreHorizontal}
-                  </button>
-
-                  {showMenu && (
-                    <div className="absolute right-0 top-full mt-1 w-32 bg-surface rounded-lg shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
-                      {isOwner && onDelete ? (
-                        <button
-                          onClick={() => {
-                            setShowMenu(false);
-                            handleDelete();
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-red-500 hover:bg-red-50 transition-colors"
-                        >
-                          {icons.trash}
-                          Delete
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => {
-                              setShowMenu(false);
-                              setShowBlockConfirm(true);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-ink hover:bg-subtle transition-colors"
-                          >
-                            {icons.block}
-                            Block
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowMenu(false);
-                              setShowReportModal(true);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-red-500 hover:bg-red-50 transition-colors"
-                          >
-                            {icons.flag}
-                            Report
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                <div className="relative ml-auto">
+                  <ActionMenu
+                    label="Comment actions"
+                    description={`@${comment.author.username}`}
+                    widthClassName="w-64"
+                    buttonClassName="w-6 h-6 rounded-full flex items-center justify-center text-muted/50 hover:text-muted hover:bg-skeleton opacity-0 group-hover:opacity-100 transition-all"
+                    buttonIconClassName="w-4 h-4"
+                    items={[
+                      {
+                        label: "Copy comment link",
+                        description: "Copy a direct link",
+                        onSelect: () => navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?comment=${comment.id}`),
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        label: "Delete comment",
+                        description: "Remove your comment",
+                        onSelect: handleDelete,
+                        hidden: !isOwner || !onDelete,
+                        tone: "danger",
+                        dividerBefore: true,
+                        icon: icons.trash,
+                      },
+                      {
+                        label: `Block @${comment.author.username}`,
+                        description: "Stop profile and comment interactions",
+                        onSelect: () => setShowBlockConfirm(true),
+                        hidden: isOwner,
+                        tone: "warning",
+                        dividerBefore: true,
+                        sectionLabel: "Safety",
+                        icon: icons.block,
+                      },
+                      {
+                        label: "Report comment",
+                        description: "Send this comment to moderation",
+                        onSelect: () => setShowReportModal(true),
+                        hidden: isOwner,
+                        tone: "danger",
+                        icon: icons.flag,
+                      },
+                    ]}
+                  />
                 </div>
               )}
             </div>

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Community, CommunityTag } from "@/lib/hooks";
 import JoinButton from "./JoinButton";
 import ReportModal from "@/components/ui/ReportModal";
 import { supabase } from "@/lib/supabase";
+import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 
 interface CommunityHeaderProps {
   community: Community;
@@ -27,12 +28,10 @@ function formatCount(count: number): string {
 
 export default function CommunityHeader({ community, tags, userId, onUpdate }: CommunityHeaderProps) {
   const pathname = usePathname();
-  const [showMenu, setShowMenu] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const handleReportSubmit = async (reason: string, details?: string) => {
     if (!userId) return;
@@ -63,33 +62,72 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
     setReportSubmitted(false);
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenu]);
-
   const handleShare = async () => {
     await navigator.clipboard.writeText(window.location.href);
     setCopied(true);
-    setTimeout(() => {
-      setCopied(false);
-      setShowMenu(false);
-    }, 1500);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   const isAdmin = community.user_role === 'admin';
   const isMod = community.user_role === 'moderator';
+
+  const communityMenuItems: ActionMenuItem[] = [
+    {
+      label: copied ? "Link copied" : "Copy community link",
+      description: "Share this space with someone",
+      onSelect: handleShare,
+      tone: copied ? "success" : "default",
+      icon: copied ? (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ) : (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+          <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+          <path d="M16 6l-4-4-4 4" />
+          <path d="M12 2v13" />
+        </svg>
+      ),
+    },
+    {
+      label: "Invite people",
+      description: "Open the members area",
+      href: `/community/${community.slug}/members`,
+      hidden: !community.is_member,
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M18 9v3m0 0v3m0-3h3m-3 0h-3M7 7a4 4 0 108 0 4 4 0 00-8 0zM3 21a7 7 0 0114 0" />
+        </svg>
+      ),
+    },
+    {
+      label: "Community settings",
+      description: "Moderation, flairs, rules, and chat",
+      href: `/community/${community.slug}/settings`,
+      hidden: !(isAdmin || isMod),
+      sectionLabel: "Manage",
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+    },
+    {
+      label: "Report community",
+      description: "Tell moderators about a problem",
+      onSelect: () => setShowReportModal(true),
+      hidden: !userId || isAdmin,
+      tone: "danger",
+      dividerBefore: true,
+      sectionLabel: "Safety",
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+        </svg>
+      ),
+    },
+  ];
 
   // Determine active tab
   const basePath = `/community/${community.slug}`;
@@ -115,79 +153,15 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
         )}
 
         {/* Top right - Menu button */}
-        <div className="absolute top-6 right-6 z-20" ref={menuRef}>
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-sm hover:bg-surface/30 flex items-center justify-center text-white transition-all border border-surface/20"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="5" cy="12" r="2" />
-              <circle cx="12" cy="12" r="2" />
-              <circle cx="19" cy="12" r="2" />
-            </svg>
-          </button>
-
-          {showMenu && (
-            <div className="absolute right-0 top-full mt-2 bg-surface rounded-2xl shadow-2xl shadow-black/15 border border-ink/5 overflow-hidden z-50 animate-fadeIn">
-              {/* Horizontal menu items */}
-              <div className="flex items-center p-2 gap-1">
-                <button
-                  onClick={handleShare}
-                  className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-ink/5 hover:text-ink transition-all min-w-[72px]"
-                >
-                  {copied ? (
-                    <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
-                      <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
-                      <path d="M16 6l-4-4-4 4" />
-                      <path d="M12 2v13" />
-                    </svg>
-                  )}
-                  <span className="font-ui text-xs font-medium">{copied ? 'Copied!' : 'Share'}</span>
-                </button>
-
-                {/* Settings - for admins/mods only */}
-                {(isAdmin || isMod) && (
-                  <>
-                    <div className="w-px h-10 bg-ink/10" />
-                    <Link
-                      href={`/community/${community.slug}/settings`}
-                      onClick={() => setShowMenu(false)}
-                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-accent/5 hover:text-accent transition-all min-w-[72px]"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span className="font-ui text-xs font-medium">Settings</span>
-                    </Link>
-                  </>
-                )}
-
-                {/* Report - for logged in users who are not admin */}
-                {userId && !isAdmin && (
-                  <>
-                    <div className="w-px h-10 bg-ink/10" />
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        setShowReportModal(true);
-                      }}
-                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl text-ink/70 hover:bg-red-50 hover:text-red-500 transition-all min-w-[72px]"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                      </svg>
-                      <span className="font-ui text-xs font-medium">Report</span>
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
+        <div className="absolute top-6 right-6 z-20">
+          <ActionMenu
+            label={community.name}
+            description="Community actions"
+            items={communityMenuItems}
+            widthClassName="w-72"
+            buttonAriaLabel="Community actions"
+            buttonClassName="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-sm hover:bg-surface/30 flex items-center justify-center text-white transition-all border border-surface/20"
+          />
         </div>
 
         {/* Top left badges */}

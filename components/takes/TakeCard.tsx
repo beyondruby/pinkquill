@@ -8,6 +8,7 @@ import ReportModal from "@/components/ui/ReportModal";
 import ShareModal from "@/components/ui/ShareModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
+import ActionMenu from "@/components/ui/ActionMenu";
 import { Take, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
 import { useTrackTakeImpression, useTrackTakeView } from "@/lib/hooks/useTracking";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
@@ -78,7 +79,6 @@ function TakeCard({
   const [heartPosition, setHeartPosition] = useState({ x: 0, y: 0 });
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -109,7 +109,6 @@ function TakeCard({
     ? `${window.location.origin}/take/${take.id}`
     : `/take/${take.id}`;
 
-  const menuRef = useRef<HTMLDivElement>(null);
   const volumeRef = useRef<HTMLDivElement>(null);
 
   const handleDoubleTap = useCallback((e?: React.MouseEvent) => {
@@ -143,22 +142,19 @@ function TakeCard({
     return words.slice(0, 10).join(" ") + "...";
   };
 
-  // Click outside to close menu
+  // Click outside to close volume slider
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
       if (volumeRef.current && !volumeRef.current.contains(event.target as Node)) {
         setShowVolumeSlider(false);
       }
     };
 
-    if (showMenu || showVolumeSlider) {
+    if (showVolumeSlider) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [showMenu, showVolumeSlider]);
+  }, [showVolumeSlider]);
 
   const handleDelete = async () => {
     if (!onDelete) return;
@@ -295,69 +291,79 @@ function TakeCard({
           </div>
 
           {/* Right side - 3 dots menu (horizontal) */}
-          <div className="tiktok-top-menu" ref={menuRef}>
-            <button
-              className="tiktok-menu-btn"
-              onClick={() => setShowMenu(!showMenu)}
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="5" cy="12" r="2" />
-                <circle cx="12" cy="12" r="2" />
-                <circle cx="19" cy="12" r="2" />
-              </svg>
-            </button>
-
-            {showMenu && (
-              <div className="tiktok-menu-dropdown">
-                {isOwnTake ? (
-                  <button
-                    className="tiktok-menu-item delete"
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowDeleteConfirm(true);
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+          <div className="tiktok-top-menu">
+            <ActionMenu
+              label="Take actions"
+              description={take.caption || `@${take.author.username}`}
+              widthClassName="w-72"
+              buttonClassName="tiktok-menu-btn"
+              buttonAriaLabel="Take actions"
+              portal
+              items={[
+                {
+                  label: "Share take",
+                  description: "Open sharing options",
+                  onSelect: () => setShowShareModal(true),
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 6l-4-4-4 4" />
+                      <path strokeLinecap="round" strokeWidth={2} d="M12 2v13" />
                     </svg>
-                    Delete Take
-                  </button>
-                ) : (
-                  <>
-                    {onHide && (
-                      <button
-                        className="tiktok-menu-item"
-                        onClick={() => {
-                          setShowMenu(false);
-                          onHide();
-                        }}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 3l18 18" />
-                          <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" />
-                          <path d="M9.9 4.24A9.77 9.77 0 0 1 12 4c5 0 9 4 10 8-.36 1.42-1.16 2.8-2.3 4.01" />
-                          <path d="M6.1 6.1C4.09 7.46 2.63 9.52 2 12c1 4 5 8 10 8 1.43 0 2.79-.33 4-.92" />
-                        </svg>
-                        Not interested
-                      </button>
-                    )}
-                    <button
-                      className="tiktok-menu-item"
-                      onClick={() => {
-                        setShowMenu(false);
-                        setShowReportModal(true);
-                      }}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                        <line x1="4" y1="22" x2="4" y2="15" />
-                      </svg>
-                      Report
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+                  ),
+                },
+                {
+                  label: "Copy take link",
+                  description: "Copy a direct URL",
+                  onSelect: () => navigator.clipboard.writeText(takeUrl),
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: "Not interested",
+                  description: "See fewer takes like this",
+                  onSelect: () => onHide?.(),
+                  hidden: isOwnTake || !onHide,
+                  sectionLabel: "Personalize",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18M10.6 10.6A2 2 0 0013.4 13.4M9.9 4.24A9.77 9.77 0 0112 4c5 0 9 4 10 8-.36 1.42-1.16 2.8-2.3 4.01M6.1 6.1C4.09 7.46 2.63 9.52 2 12c1 4 5 8 10 8 1.43 0 2.79-.33 4-.92" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: "Delete take",
+                  description: "Remove this take permanently",
+                  onSelect: () => setShowDeleteConfirm(true),
+                  hidden: !isOwnTake,
+                  tone: "danger",
+                  dividerBefore: true,
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: "Report take",
+                  description: "Send this take to moderation",
+                  onSelect: () => setShowReportModal(true),
+                  hidden: isOwnTake,
+                  tone: "danger",
+                  dividerBefore: true,
+                  sectionLabel: "Safety",
+                  icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 22v-7" />
+                    </svg>
+                  ),
+                },
+              ]}
+            />
           </div>
         </div>
 

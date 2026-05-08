@@ -14,6 +14,7 @@ import Loading from "@/components/ui/Loading";
 import EmojiPicker from "@/components/ui/EmojiPicker";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { DEFAULT_AVATAR } from "@/lib/utils/image";
+import ActionMenu from "@/components/ui/ActionMenu";
 
 // Local type for chat participants (simplified from ConversationParticipant)
 interface Participant {
@@ -127,7 +128,6 @@ export default function ChatView({
   const [initialLoad, setInitialLoad] = useState(true);
   const [isBlockedByThem, setIsBlockedByThem] = useState(false);
   const [iBlockedThem, setIBlockedThem] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -145,7 +145,6 @@ export default function ChatView({
   const [mediaError, setMediaError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const reportTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mediaErrorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -202,23 +201,6 @@ export default function ChatView({
       if (initialLoad) setInitialLoad(false);
     }
   }, [messages]);
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenu]);
 
   // Handle block user
   const handleBlock = async () => {
@@ -680,59 +662,70 @@ export default function ChatView({
           </div>
         </Link>
 
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-purple-50 transition-all"
-          >
-            {icons.info}
-          </button>
-
-          {showMenu && (
-            <div className="absolute right-0 top-full mt-2 w-52 bg-surface rounded-xl shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn md:right-0 right-0">
-              <button
-                onClick={() => {
-                  setShowMenu(false);
+        <div className="relative">
+          <ActionMenu
+            label="Conversation"
+            description={participant ? `@${participant.username}` : "Chat actions"}
+            widthClassName="w-72"
+            buttonClassName="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-accent hover:bg-purple-50 transition-all"
+            buttonAriaLabel="Conversation actions"
+            trigger={icons.info}
+            items={[
+              {
+                label: "View profile",
+                description: "Open this creator's studio",
+                href: participant ? `/studio/${participant.username}` : undefined,
+                hidden: !participant,
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                ),
+              },
+              {
+                label: `${iBlockedThem ? "Unblock" : "Block"} @${participant?.username}`,
+                description: iBlockedThem ? "Allow messages again" : "Stop messages and interactions",
+                onSelect: () => {
                   if (iBlockedThem) {
                     handleBlock();
                   } else {
                     setShowBlockConfirm(true);
                   }
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-skeleton/60 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-                {iBlockedThem ? "Unblock" : "Block"} @{participant?.username}
-              </button>
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowReportModal(true);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-ink hover:bg-skeleton/60 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                Report @{participant?.username}
-              </button>
-              <div className="h-px bg-skeleton mx-3" />
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowDeleteConfirm(true);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Delete Conversation
-              </button>
-            </div>
-          )}
+                },
+                tone: "warning",
+                dividerBefore: true,
+                sectionLabel: "Safety",
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                ),
+              },
+              {
+                label: `Report @${participant?.username}`,
+                description: "Send this conversation to moderation",
+                onSelect: () => setShowReportModal(true),
+                tone: "danger",
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Delete conversation",
+                description: "Remove this thread from your inbox",
+                onSelect: () => setShowDeleteConfirm(true),
+                tone: "danger",
+                dividerBefore: true,
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                ),
+              },
+            ]}
+          />
         </div>
       </div>
 

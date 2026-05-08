@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { actionToast } from "@/lib/utils/toast";
+import ActionMenu from "@/components/ui/ActionMenu";
 
 interface CommentItemProps {
   comment: Comment;
@@ -119,14 +120,12 @@ function CommentItemComponent({
     }
     setShowReplyInput(!showReplyInput);
   };
-  const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const reportTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { blockUser } = useBlock();
 
@@ -146,7 +145,6 @@ function CommentItemComponent({
     try {
       await blockUser(currentUserId, comment.user_id);
       setShowBlockConfirm(false);
-      setShowMenu(false);
       onBlock?.(comment.user_id);
     } catch (err) {
       console.error("Failed to block user:", err);
@@ -177,23 +175,6 @@ function CommentItemComponent({
       setIsReporting(false);
     }
   };
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenu]);
 
   const handleLike = () => {
     if (!currentUserId) return;
@@ -300,79 +281,79 @@ function CommentItemComponent({
 
               {/* 3-dot Menu */}
               {currentUserId && (isOwner || !isOwner) && (
-                <div className="relative ml-auto" ref={menuRef}>
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-muted/50 hover:text-muted hover:bg-skeleton opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                    </svg>
-                  </button>
-
-                  {showMenu && (
-                    <div className="absolute right-0 top-full mt-1 w-36 bg-surface rounded-lg shadow-lg border border-border-light overflow-hidden z-50 animate-fadeIn">
-                      {/* Owner delete option */}
-                      {isOwner && onDelete && (
-                        <button
-                          onClick={() => {
-                            setShowMenu(false);
-                            handleDelete();
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-red-500 hover:bg-red-50 transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="relative ml-auto">
+                  <ActionMenu
+                    label="Comment actions"
+                    description={`@${comment.author.username}`}
+                    widthClassName="w-64"
+                    buttonClassName="w-6 h-6 rounded-full flex items-center justify-center text-muted/50 hover:text-muted hover:bg-skeleton opacity-0 group-hover:opacity-100 transition-all"
+                    buttonIconClassName="w-4 h-4"
+                    items={[
+                      {
+                        label: "Copy comment link",
+                        description: "Copy a direct link",
+                        onSelect: () => navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?comment=${comment.id}`),
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        label: "Delete comment",
+                        description: "Remove your comment",
+                        onSelect: handleDelete,
+                        hidden: !isOwner || !onDelete,
+                        tone: "danger",
+                        dividerBefore: true,
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                          Delete
-                        </button>
-                      )}
-                      {/* Moderator delete option (shown for all mods, including owner-mods) */}
-                      {canModerateDelete && onModeratorDelete && (
-                        <button
-                          onClick={() => {
-                            setShowMenu(false);
-                            setShowModDeleteModal(true);
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-orange-500 hover:bg-orange-50 transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        ),
+                      },
+                      {
+                        label: "Delete as mod",
+                        description: "Remove this with moderation tools",
+                        onSelect: () => setShowModDeleteModal(true),
+                        hidden: !canModerateDelete || !onModeratorDelete,
+                        tone: "warning",
+                        dividerBefore: true,
+                        sectionLabel: "Moderation",
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                          Delete (Mod)
-                        </button>
-                      )}
-                      {/* Block & Report - only for non-owners */}
-                      {!isOwner && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setShowMenu(false);
-                              setShowBlockConfirm(true);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-ink hover:bg-subtle transition-colors"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                            </svg>
-                            Block
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowMenu(false);
-                              setShowReportModal(true);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-left font-ui text-[0.8rem] text-red-500 hover:bg-red-50 transition-colors"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                            </svg>
-                            Report
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                        ),
+                      },
+                      {
+                        label: `Block @${comment.author.username}`,
+                        description: "Stop profile and comment interactions",
+                        onSelect: () => setShowBlockConfirm(true),
+                        hidden: isOwner,
+                        tone: "warning",
+                        dividerBefore: true,
+                        sectionLabel: "Safety",
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        label: "Report comment",
+                        description: "Send this comment to moderation",
+                        onSelect: () => setShowReportModal(true),
+                        hidden: isOwner,
+                        tone: "danger",
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                          </svg>
+                        ),
+                      },
+                    ]}
+                  />
                 </div>
               )}
             </div>

@@ -4,8 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   useMemo,
-  useRef,
-  useEffect,
   useCallback,
   useId,
   useState,
@@ -57,19 +55,6 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   const searchParams = useSearchParams();
   const tablistId = useId();
   const { profile: sellerProfile } = useSellerProfile(userId);
-  const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const filterMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showFilterMenu) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target as Node)) {
-        setShowFilterMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showFilterMenu]);
 
   const panel = parsePanelTab(searchParams.get("commissionsView"), isOwnProfile);
   const filter = parseStatusFilter(searchParams.get("commissionsFilter"));
@@ -331,45 +316,31 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
           </div>
 
           {panel === "services" && (
-            <div className="relative shrink-0 ml-auto" ref={filterMenuRef}>
-              <button
-                type="button"
-                onClick={() => setShowFilterMenu(!showFilterMenu)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-ui font-medium transition-all duration-200 ${
+            <div className="relative shrink-0 ml-auto">
+              <ActionMenu
+                label="Filter services"
+                description="Choose which commission listings to show."
+                widthClassName="w-60"
+                buttonAriaLabel="Filter services"
+                buttonClassName={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-ui font-medium transition-all duration-200 ${
                   filter !== "all"
                     ? "text-pink-vivid bg-pink-vivid/10"
                     : "text-muted hover:text-ink hover:bg-subtle"
                 }`}
-                title="Filter services"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeWidth={1.6} d="M2 4h12M4 8h8M6 12h4" />
-                </svg>
-                {filter !== "all" && <span className="capitalize">{filter}</span>}
-              </button>
-              {showFilterMenu && (
-                <div className="absolute right-0 top-full mt-1 w-40 rounded-xl bg-surface border border-border-light shadow-lg shadow-black/[0.06] z-20 py-1 animate-fadeIn">
-                  {([
-                    { value: "all" as StatusFilter, label: "All services" },
-                    { value: "active" as StatusFilter, label: "Active" },
-                    { value: "inactive" as StatusFilter, label: "Inactive" },
-                  ]).map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => {
-                        updateViewState({ filter: option.value });
-                        setShowFilterMenu(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm font-ui transition-colors ${
-                        filter === option.value ? "text-pink-vivid bg-pink-vivid/[0.06]" : "text-ink hover:bg-skeleton/60"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+                trigger={
+                  <>
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeWidth={1.6} d="M2 4h12M4 8h8M6 12h4" />
+                    </svg>
+                    {filter !== "all" && <span className="capitalize">{filter}</span>}
+                  </>
+                }
+                items={[
+                  { label: "All services", description: "Show every listing", onSelect: () => updateViewState({ filter: "all" }), tone: filter === "all" ? "accent" : "default" },
+                  { label: "Active", description: "Currently available", onSelect: () => updateViewState({ filter: "active" }), tone: filter === "active" ? "accent" : "default" },
+                  { label: "Inactive", description: "Paused or unavailable", onSelect: () => updateViewState({ filter: "inactive" }), tone: filter === "inactive" ? "accent" : "default" },
+                ]}
+              />
             </div>
           )}
         </div>

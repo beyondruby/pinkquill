@@ -30,7 +30,6 @@ import {
   TruncatedContent as TruncatedContentComponent,
   StyledTypeLabel as StyledTypeLabelComponent,
   BlockConfirmModal,
-  PostMenu as PostMenuComponent,
   type MentionInfo,
 } from "./PostCard/index";
 import {
@@ -592,12 +591,31 @@ function PostCardComponent({
   const hasCollaborators = acceptedCollaborators.length > 0;
   const hasCommunity = !!post.community;
   const postMenuItems = useMemo(() => {
-    const items: ActionMenuItem[] = [];
+    const items: ActionMenuItem[] = [
+      {
+        label: "Share post",
+        description: "Open sharing options",
+        onSelect: () => setShowShareModal(true),
+        icon: <ShareIcon aria-hidden="true" />,
+      },
+      {
+        label: "Copy post link",
+        description: "Copy a direct URL",
+        onSelect: () => navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`),
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+        ),
+      },
+    ];
 
     if (isPinned && onUnpin) {
       items.push({
         label: "Unpin",
+        description: "Remove from the top of the profile",
         onSelect: () => onUnpin(post.id),
+        sectionLabel: "Author",
         icon: (
           <svg
             className="w-4 h-4"
@@ -615,7 +633,9 @@ function PostCardComponent({
     } else if (!isPinned && onPin) {
       items.push({
         label: "Pin",
+        description: "Keep this post at the top",
         onSelect: () => onPin(post.id),
+        sectionLabel: "Author",
         icon: (
           <svg className="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
             <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z" />
@@ -627,13 +647,15 @@ function PostCardComponent({
 
     if (isOwner) {
       items.push({
-        label: "Edit",
+        label: "Edit post",
+        description: "Update this work",
         onSelect: handleEdit,
         icon: <EditIcon aria-hidden="true" />,
         dividerBefore: items.length > 0,
       });
       items.push({
-        label: "Delete",
+        label: "Delete post",
+        description: "Remove this post permanently",
         onSelect: () => setShowDeleteConfirm(true),
         icon: <TrashIcon aria-hidden="true" />,
         tone: "danger" as const,
@@ -641,6 +663,7 @@ function PostCardComponent({
       if (canModerateDelete && onModeratorDelete) {
         items.push({
           label: "Delete (Mod)",
+          description: "Remove this as a moderator",
           onSelect: () => setShowModeratorDeleteConfirm(true),
           icon: <TrashIcon aria-hidden="true" />,
           tone: "warning" as const,
@@ -654,14 +677,18 @@ function PostCardComponent({
 
     items.push({
       label: `Block @${post.author.handle.replace("@", "")}`,
+      description: "Stop seeing and receiving interactions",
       onSelect: () => setShowBlockConfirm(true),
       icon: <BlockIcon aria-hidden="true" />,
       dividerBefore: items.length > 0,
+      sectionLabel: "Safety",
+      tone: "warning" as const,
     });
 
     if (canModerateDelete && onModeratorDelete) {
       items.push({
         label: "Delete (Mod)",
+        description: "Remove this as a moderator",
         onSelect: () => setShowModeratorDeleteConfirm(true),
         icon: <TrashIcon aria-hidden="true" />,
         tone: "warning" as const,
@@ -670,7 +697,8 @@ function PostCardComponent({
     }
 
     items.push({
-      label: "Report",
+      label: "Report post",
+      description: "Send this post to moderation",
       onSelect: () => setShowReportModal(true),
       icon: <FlagIcon aria-hidden="true" />,
       tone: "danger" as const,
@@ -688,14 +716,17 @@ function PostCardComponent({
     onUnpin,
     post.author.handle,
     post.id,
+    setShowShareModal,
     user,
   ]);
 
   const postMenuElement = user ? (
     <ActionMenu
       items={postMenuItems}
+      label="Post actions"
+      description="Share, manage, or report this post."
       buttonClassName="post-menu-btn"
-      widthClassName={(onPin || onUnpin || (canModerateDelete && onModeratorDelete)) ? "w-44" : "w-36"}
+      widthClassName="w-72"
       buttonAriaLabel="Post options menu"
       portal
     />
