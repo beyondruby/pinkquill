@@ -3583,7 +3583,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   font-family: var(--font-display);
   font-size: 1.4rem;
   font-weight: 600;
-  color: var(--ink);
+  color: inherit;
   margin: 1.25rem 0 0.6rem;
   line-height: 1.3;
 }
@@ -3597,7 +3597,7 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   border-image: linear-gradient(180deg, var(--color-purple-primary) 0%, var(--color-pink-vivid) 100%) 1;
   border-radius: 0 10px 10px 0;
   font-style: italic;
-  color: var(--color-subdued);
+  color: inherit;
 }
 
 .post-content ul {
@@ -3676,7 +3676,8 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 
 .post-content s {
   text-decoration: line-through;
-  color: var(--muted-text);
+  color: inherit;
+  opacity: 0.75;
 }
 
 /* Truncated Content Styles */

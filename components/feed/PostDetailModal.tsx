@@ -631,11 +631,28 @@ function PostDetailModalComponent({
   if (!post) return null;
 
   // Determine styling properties
-  const hasBackground = post.styling?.background;
+  const hasBackground = Boolean(post.styling?.background);
   const hasDarkBg = isDarkBackground(post.styling?.background);
-  const textColorClass = hasDarkBg ? 'text-white' : 'text-ink';
-  const mutedTextColorClass = hasDarkBg ? 'text-white/70' : 'text-muted';
-  const borderColorClass = hasDarkBg ? 'border-surface/10' : 'border-border-light';
+  const textColorClass = hasBackground
+    ? hasDarkBg
+      ? 'text-white'
+      : 'text-[#1e1e1e]'
+    : 'text-ink';
+  const mutedTextColorClass = hasBackground
+    ? hasDarkBg
+      ? 'text-white/70'
+      : 'text-[#4a4a4a]'
+    : 'text-muted';
+  const subtleTextColorClass = hasBackground
+    ? hasDarkBg
+      ? 'text-white/50'
+      : 'text-[#6b6b6b]'
+    : 'text-muted';
+  const borderColorClass = hasBackground
+    ? hasDarkBg
+      ? 'border-white/15'
+      : 'border-black/10'
+    : 'border-border-light';
 
   // Text styling
   const textAlignment = post.styling?.textAlignment || 'left';
@@ -698,7 +715,11 @@ function PostDetailModalComponent({
               <button
                 onClick={onClose}
                 className={`md:hidden w-10 h-10 -ml-1 rounded-full flex items-center justify-center transition-all ${
-                  hasDarkBg ? 'text-white hover:bg-surface/10' : 'text-ink hover:bg-skeleton'
+                  hasBackground
+                    ? hasDarkBg
+                      ? 'text-white hover:bg-white/10'
+                      : 'text-[#1e1e1e] hover:bg-black/10'
+                    : 'text-ink hover:bg-skeleton'
                 }`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -724,7 +745,9 @@ function PostDetailModalComponent({
                     href={`/studio/${post.author.handle.replace('@', '')}`}
                     onClick={onClose}
                     className={`font-ui text-[0.95rem] md:text-[1.1rem] font-medium transition-colors truncate ${
-                      hasDarkBg ? 'text-white hover:text-white/80' : 'text-ink hover:text-accent'
+                      hasBackground
+                        ? `${textColorClass} hover:opacity-80`
+                        : 'text-ink hover:text-accent'
                     }`}
                   >
                     {post.author.name}
@@ -758,7 +781,11 @@ function PostDetailModalComponent({
                 <ActionMenu
                   items={postMenuItems}
                   buttonClassName={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    hasDarkBg ? "text-white/70 hover:text-white hover:bg-surface/10" : "text-muted hover:text-ink hover:bg-skeleton/60"
+                    hasBackground
+                      ? hasDarkBg
+                        ? "text-white/70 hover:text-white hover:bg-white/10"
+                        : "text-[#4a4a4a] hover:text-[#1e1e1e] hover:bg-black/10"
+                      : "text-muted hover:text-ink hover:bg-skeleton/60"
                   }`}
                   widthClassName="w-40"
                   buttonAriaLabel="Post options menu"
@@ -768,14 +795,18 @@ function PostDetailModalComponent({
 
             {/* Journal Header - Beautiful date, time, and metadata */}
             {post.type === "journal" && post.createdAt && (
-              <div className={`journal-header mb-8 ${hasDarkBg ? 'text-white' : ''}`}>
+              <div className={`journal-header mb-8 ${hasBackground ? textColorClass : hasDarkBg ? 'text-white' : ''}`}>
                 {/* Date with Time on same line */}
                 <div className="flex items-center gap-4 mb-4">
-                  <h2 className={`font-display text-3xl md:text-4xl font-normal tracking-tight ${hasDarkBg ? 'text-white' : 'text-purple-primary'}`}>
+                  <h2 className={`font-display text-3xl md:text-4xl font-normal tracking-tight ${hasBackground ? textColorClass : hasDarkBg ? 'text-white' : 'text-purple-primary'}`}>
                     {formatDate(post.createdAt)}
                   </h2>
                   <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui ${
-                    hasDarkBg
+                    hasBackground
+                      ? hasDarkBg
+                        ? 'bg-white/10 text-white'
+                        : 'bg-black/5 text-[#1e1e1e]'
+                      : hasDarkBg
                       ? 'bg-surface/10 text-white/70'
                       : 'bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary'
                   }`}>
@@ -789,11 +820,11 @@ function PostDetailModalComponent({
 
                 {/* Location, Weather, Mood - Same line with creative spacing */}
                 {(post.post_location || post.metadata?.weather || post.metadata?.temperature || post.metadata?.mood) && (
-                  <div className={`flex flex-wrap items-center gap-x-6 gap-y-3 mb-5 ${hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
+                  <div className={`flex flex-wrap items-center gap-x-6 gap-y-3 mb-5 ${hasBackground ? mutedTextColorClass : hasDarkBg ? 'text-white/80' : 'text-ink/70'}`}>
                     {/* Location */}
                     {post.post_location && (
                       <div className="flex items-center gap-2">
-                        <svg className={`w-4 h-4 ${hasDarkBg ? 'text-white/50' : 'text-purple-primary/70'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <svg className={`w-4 h-4 ${hasBackground ? subtleTextColorClass : hasDarkBg ? 'text-white/50' : 'text-purple-primary/70'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                         </svg>
@@ -803,13 +834,13 @@ function PostDetailModalComponent({
 
                     {/* Separator dot */}
                     {post.post_location && (post.metadata?.weather || post.metadata?.temperature) && (
-                      <span className={`hidden sm:block w-1 h-1 rounded-full ${hasDarkBg ? 'bg-surface/30' : 'bg-accent/30'}`} />
+                      <span className={`hidden sm:block w-1 h-1 rounded-full ${hasBackground ? hasDarkBg ? 'bg-white/30' : 'bg-black/25' : hasDarkBg ? 'bg-surface/30' : 'bg-accent/30'}`} />
                     )}
 
                     {/* Weather with temperature */}
                     {(post.metadata?.weather || post.metadata?.temperature) && (
                       <div className="flex items-center gap-2">
-                        <span className={`${hasDarkBg ? 'text-white/50' : 'text-purple-primary/70'}`}>
+                        <span className={`${hasBackground ? subtleTextColorClass : hasDarkBg ? 'text-white/50' : 'text-purple-primary/70'}`}>
                           {post.metadata?.weather ? weatherIcons[post.metadata.weather] : (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path d="M14 4a6 6 0 00-6 6c0 2.5 1.5 4.5 3.5 5.5L10 20h4l-1.5-4.5c2-1 3.5-3 3.5-5.5a6 6 0 00-2-4.5" />
@@ -826,17 +857,17 @@ function PostDetailModalComponent({
 
                     {/* Separator dot */}
                     {(post.metadata?.weather || post.metadata?.temperature) && post.metadata?.mood && (
-                      <span className={`hidden sm:block w-1 h-1 rounded-full ${hasDarkBg ? 'bg-surface/30' : 'bg-accent/30'}`} />
+                      <span className={`hidden sm:block w-1 h-1 rounded-full ${hasBackground ? hasDarkBg ? 'bg-white/30' : 'bg-black/25' : hasDarkBg ? 'bg-surface/30' : 'bg-accent/30'}`} />
                     )}
 
                     {/* Mood with prefix */}
                     {post.metadata?.mood && (
                       <div className="flex items-center gap-2">
-                        <span className={`${hasDarkBg ? 'text-white/50' : 'text-purple-primary/70'}`}>
+                        <span className={`${hasBackground ? subtleTextColorClass : hasDarkBg ? 'text-white/50' : 'text-purple-primary/70'}`}>
                           {moodIcons[post.metadata.mood] || moodIcons['reflective']}
                         </span>
                         <span className="font-ui text-sm">
-                          <span className={`${hasDarkBg ? 'text-white/40' : 'text-muted'}`}>Mood:</span>
+                          <span className={subtleTextColorClass}>Mood:</span>
                           {' '}
                           <span className="italic">{formatMood(post.metadata.mood)}</span>
                         </span>
@@ -846,7 +877,7 @@ function PostDetailModalComponent({
                 )}
 
                 {/* Elegant divider line */}
-                <div className={`h-px w-full ${hasDarkBg ? 'bg-gradient-to-r from-surface/20 via-surface/10 to-transparent' : 'bg-gradient-to-r from-purple-primary/30 via-pink-vivid/20 to-transparent'}`} />
+                <div className={`h-px w-full ${hasBackground ? hasDarkBg ? 'bg-gradient-to-r from-white/25 via-white/10 to-transparent' : 'bg-gradient-to-r from-black/20 via-black/10 to-transparent' : hasDarkBg ? 'bg-gradient-to-r from-surface/20 via-surface/10 to-transparent' : 'bg-gradient-to-r from-purple-primary/30 via-pink-vivid/20 to-transparent'}`} />
               </div>
             )}
 
@@ -972,7 +1003,7 @@ function PostDetailModalComponent({
 
                   {/* Caption - Roman numeral style like the reference */}
                   {media[currentMediaIndex]?.caption && (
-                    <p className={`text-center mt-4 font-body text-[0.95rem] italic tracking-wide ${hasDarkBg ? 'text-white/60' : 'text-ink/50'}`}>
+                    <p className={`text-center mt-4 font-body text-[0.95rem] italic tracking-wide ${hasBackground ? subtleTextColorClass : hasDarkBg ? 'text-white/60' : 'text-ink/50'}`}>
                       {toRomanNumeral(currentMediaIndex + 1)}. {media[currentMediaIndex].caption}
                     </p>
                   )}
@@ -1024,7 +1055,13 @@ function PostDetailModalComponent({
 
             {/* Content Warning Overlay */}
             {post.contentWarning && !showContent && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center backdrop-blur-2xl bg-surface/40 rounded-xl">
+              <div className={`absolute inset-0 z-10 flex flex-col items-center justify-center backdrop-blur-2xl rounded-xl ${
+                hasBackground
+                  ? hasDarkBg
+                    ? "bg-black/40"
+                    : "bg-white/60"
+                  : "bg-surface/40"
+              }`}>
                 <div className="relative text-center px-8 py-10">
                   <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-5">
                     <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1033,11 +1070,17 @@ function PostDetailModalComponent({
                     <span className="font-ui text-sm font-semibold text-amber-700">Content Warning</span>
                   </div>
 
-                  <p className="font-body text-base text-ink/80 mb-6 max-w-md mx-auto">{post.contentWarning}</p>
+                  <p className={`font-body text-base mb-6 max-w-md mx-auto ${textColorClass}`}>{post.contentWarning}</p>
 
                   <button
                     onClick={() => setShowContent(true)}
-                    className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-ink/80 hover:bg-ink transition-colors"
+                    className={`px-6 py-2.5 rounded-full font-ui text-sm font-medium transition-colors ${
+                      hasBackground
+                        ? hasDarkBg
+                          ? "text-[#1e1e1e] bg-white/90 hover:bg-white"
+                          : "text-white bg-[#1e1e1e]/85 hover:bg-[#1e1e1e]"
+                        : "text-white bg-ink/80 hover:bg-ink"
+                    }`}
                   >
                     Show Content
                   </button>

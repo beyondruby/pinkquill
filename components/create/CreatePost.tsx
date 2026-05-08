@@ -1994,9 +1994,15 @@ export default function CreatePost() {
   const authoredBackgroundStyle = authoredBackground
     ? getBackgroundStyle(authoredBackground)
     : undefined;
-  const authoredTextClass = authoredBackgroundIsDark ? "text-white" : "text-ink";
-  const authoredPlaceholderClass = authoredBackgroundIsDark
-    ? "empty:before:text-white/45"
+  const authoredTextClass = hasAuthoredBackground
+    ? authoredBackgroundIsDark
+      ? "text-white"
+      : "text-[#1e1e1e]"
+    : "text-ink";
+  const authoredPlaceholderClass = hasAuthoredBackground
+    ? authoredBackgroundIsDark
+      ? "empty:before:text-white/45"
+      : "empty:before:text-[#4a4a4a]/50"
     : "empty:before:text-muted/40";
 
   if (!user) {

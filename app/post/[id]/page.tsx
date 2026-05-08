@@ -721,9 +721,22 @@ export default function PostPage() {
   const hasFailedMediaNotice = Number.isFinite(failedMediaCount) && failedMediaCount > 0;
   const hasBackground = Boolean(post.styling?.background);
   const hasDarkBackground = isDarkBackground(post.styling?.background);
-  const titleColorClass = hasDarkBackground ? "text-white" : "text-ink";
-  const bodyColorClass = hasDarkBackground ? "text-white" : "text-ink";
-  const mutedColorClass = hasDarkBackground ? "text-white/70" : "text-muted";
+  const titleColorClass = hasBackground
+    ? hasDarkBackground
+      ? "text-white"
+      : "text-[#1e1e1e]"
+    : "text-ink";
+  const bodyColorClass = titleColorClass;
+  const mutedColorClass = hasBackground
+    ? hasDarkBackground
+      ? "text-white/70"
+      : "text-[#4a4a4a]"
+    : "text-muted";
+  const subtleColorClass = hasBackground
+    ? hasDarkBackground
+      ? "text-white/50"
+      : "text-[#6b6b6b]"
+    : "text-muted";
   const textAlignment = post.styling?.textAlignment || "left";
   const lineSpacing = post.styling?.lineSpacing || "normal";
   const dropCapEnabled = Boolean(post.styling?.dropCap);
@@ -910,10 +923,10 @@ export default function PostPage() {
                   <div className="journal-header mb-6">
                     {/* Date with Time on same line */}
                     <div className="flex items-center gap-4 mb-4">
-                      <h2 className={`font-display text-2xl md:text-3xl font-normal tracking-tight ${hasDarkBackground ? "text-white" : "text-purple-primary"}`}>
+                      <h2 className={`font-display text-2xl md:text-3xl font-normal tracking-tight ${hasBackground ? titleColorClass : hasDarkBackground ? "text-white" : "text-purple-primary"}`}>
                         {formatDate(post.created_at)}
                       </h2>
-                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui ${hasDarkBackground ? "bg-surface/20 text-white" : "bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary"}`}>
+                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-ui ${hasBackground ? hasDarkBackground ? "bg-white/10 text-white" : "bg-black/5 text-[#1e1e1e]" : hasDarkBackground ? "bg-surface/20 text-white" : "bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary"}`}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <circle cx="12" cy="12" r="10" />
                           <path d="M12 6v6l4 2" />
@@ -928,7 +941,7 @@ export default function PostPage() {
                         {/* Location */}
                         {post.post_location && (
                           <div className="flex items-center gap-2">
-                            <svg className={`w-4 h-4 ${hasDarkBackground ? "text-white/80" : "text-purple-primary/70"}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <svg className={`w-4 h-4 ${hasBackground ? subtleColorClass : hasDarkBackground ? "text-white/80" : "text-purple-primary/70"}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                             </svg>
@@ -938,13 +951,13 @@ export default function PostPage() {
 
                         {/* Separator dot */}
                         {post.post_location && (post.metadata?.weather || post.metadata?.temperature) && (
-                          <span className="hidden sm:block w-1 h-1 rounded-full bg-purple-primary/30" />
+                          <span className={`hidden sm:block w-1 h-1 rounded-full ${hasBackground ? hasDarkBackground ? "bg-white/30" : "bg-black/25" : "bg-purple-primary/30"}`} />
                         )}
 
                         {/* Weather with temperature */}
                         {(post.metadata?.weather || post.metadata?.temperature) && (
                           <div className="flex items-center gap-2">
-                            <span className="text-purple-primary/70">
+                            <span className={hasBackground ? subtleColorClass : "text-purple-primary/70"}>
                               {post.metadata?.weather ? weatherIcons[post.metadata.weather] : (
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                   <path d="M14 4a6 6 0 00-6 6c0 2.5 1.5 4.5 3.5 5.5L10 20h4l-1.5-4.5c2-1 3.5-3 3.5-5.5a6 6 0 00-2-4.5" />
@@ -961,13 +974,13 @@ export default function PostPage() {
 
                         {/* Separator dot */}
                         {(post.metadata?.weather || post.metadata?.temperature) && post.metadata?.mood && (
-                          <span className="hidden sm:block w-1 h-1 rounded-full bg-purple-primary/30" />
+                          <span className={`hidden sm:block w-1 h-1 rounded-full ${hasBackground ? hasDarkBackground ? "bg-white/30" : "bg-black/25" : "bg-purple-primary/30"}`} />
                         )}
 
                         {/* Mood with prefix */}
                         {post.metadata?.mood && (
                           <div className="flex items-center gap-2">
-                            <span className="text-purple-primary/70">
+                            <span className={hasBackground ? subtleColorClass : "text-purple-primary/70"}>
                               {moodIcons[post.metadata.mood] || moodIcons['reflective']}
                             </span>
                             <span className="font-ui text-sm">
@@ -981,7 +994,7 @@ export default function PostPage() {
                     )}
 
                     {/* Elegant divider line */}
-                    <div className="h-px w-full bg-gradient-to-r from-purple-primary/30 via-pink-vivid/20 to-transparent" />
+                    <div className={`h-px w-full ${hasBackground ? hasDarkBackground ? "bg-gradient-to-r from-white/25 via-white/10 to-transparent" : "bg-gradient-to-r from-black/20 via-black/10 to-transparent" : "bg-gradient-to-r from-purple-primary/30 via-pink-vivid/20 to-transparent"}`} />
                   </div>
                 )}
 
@@ -1102,7 +1115,7 @@ export default function PostPage() {
                 </div>
                 {/* Content Warning Overlay */}
                 {post.content_warning && !showContent && (
-                  <div className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-2xl ${hasDarkBackground ? "bg-black/40" : "bg-surface/40"} rounded-xl`}>
+                  <div className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-2xl ${hasBackground ? hasDarkBackground ? "bg-black/40" : "bg-white/60" : hasDarkBackground ? "bg-black/40" : "bg-surface/40"} rounded-xl`}>
                     <div className="relative text-center px-8 py-10">
                       <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-5">
                         <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1111,11 +1124,17 @@ export default function PostPage() {
                         <span className="font-ui text-sm font-semibold text-amber-700">Content Warning</span>
                       </div>
 
-                      <p className="font-body text-base text-ink/80 mb-6 max-w-md mx-auto">{post.content_warning}</p>
+                      <p className={`font-body text-base mb-6 max-w-md mx-auto ${bodyColorClass}`}>{post.content_warning}</p>
 
                       <button
                         onClick={() => setShowContent(true)}
-                        className="px-6 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-ink/80 hover:bg-ink transition-colors"
+                        className={`px-6 py-2.5 rounded-full font-ui text-sm font-medium transition-colors ${
+                          hasBackground
+                            ? hasDarkBackground
+                              ? "text-[#1e1e1e] bg-white/90 hover:bg-white"
+                              : "text-white bg-[#1e1e1e]/85 hover:bg-[#1e1e1e]"
+                            : "text-white bg-ink/80 hover:bg-ink"
+                        }`}
                       >
                         Show Content
                       </button>
