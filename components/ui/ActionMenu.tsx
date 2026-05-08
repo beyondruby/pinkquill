@@ -44,23 +44,16 @@ interface ActionMenuProps {
   portal?: boolean;
   portalOffset?: number;
   align?: "start" | "end";
+  placement?: "bottom" | "top" | "auto";
   onOpenChange?: (open: boolean) => void;
 }
 
 const ITEM_STYLES: Record<NonNullable<ActionMenuItem["tone"]>, string> = {
-  default: "text-ink hover:bg-ink/[0.04] focus-visible:bg-ink/[0.04]",
+  default: "text-ink hover:bg-skeleton/60 focus-visible:bg-skeleton/60",
   danger: "text-red-600 hover:bg-red-50 focus-visible:bg-red-50",
   success: "text-emerald-700 hover:bg-emerald-50 focus-visible:bg-emerald-50",
-  accent: "text-purple-primary hover:bg-purple-50/80 focus-visible:bg-purple-50/80",
+  accent: "text-purple-primary hover:bg-purple-50/70 focus-visible:bg-purple-50/70",
   warning: "text-orange-600 hover:bg-orange-50 focus-visible:bg-orange-50",
-};
-
-const ICON_STYLES: Record<NonNullable<ActionMenuItem["tone"]>, string> = {
-  default: "bg-skeleton/70 text-muted",
-  danger: "bg-red-50 text-red-500",
-  success: "bg-emerald-50 text-emerald-600",
-  accent: "bg-purple-50 text-purple-primary",
-  warning: "bg-orange-50 text-orange-600",
 };
 
 export default function ActionMenu({
@@ -78,10 +71,11 @@ export default function ActionMenu({
   portal = false,
   portalOffset = 8,
   align = "end",
+  placement = "auto",
   onOpenChange,
 }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -104,13 +98,27 @@ export default function ActionMenu({
 
     const rect = buttonRef.current.getBoundingClientRect();
     const viewportPadding = 12;
+    const menuWidth = menuRef.current?.offsetWidth || 288;
+    const menuHeight = menuRef.current?.offsetHeight || 320;
+    const roomBelow = window.innerHeight - rect.bottom - viewportPadding;
+    const roomAbove = rect.top - viewportPadding;
+    const shouldOpenTop =
+      placement === "top" ||
+      (placement === "auto" && roomBelow < menuHeight && roomAbove > roomBelow);
+    const desiredLeft = align === "end" ? rect.right - menuWidth : rect.left;
+    const left = Math.min(
+      Math.max(viewportPadding, desiredLeft),
+      Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding)
+    );
+    const top = shouldOpenTop
+      ? Math.max(viewportPadding, rect.top - menuHeight - portalOffset)
+      : Math.min(rect.bottom + portalOffset, window.innerHeight - viewportPadding - Math.min(menuHeight, window.innerHeight - viewportPadding * 2));
+
     setMenuPosition({
-      top: Math.min(rect.bottom + portalOffset, window.innerHeight - viewportPadding),
-      ...(align === "end"
-        ? { right: Math.max(viewportPadding, window.innerWidth - rect.right) }
-        : { left: Math.max(viewportPadding, rect.left) }),
+      top,
+      left,
     });
-  }, [align, portalOffset]);
+  }, [align, placement, portalOffset]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -145,12 +153,18 @@ export default function ActionMenu({
   useEffect(() => {
     if (!isOpen || !portal) return;
 
-    positionMenu();
+    let measureFrame: number | undefined;
+    const initialFrame = window.requestAnimationFrame(() => {
+      positionMenu();
+      measureFrame = window.requestAnimationFrame(positionMenu);
+    });
 
     const reposition = () => positionMenu();
     window.addEventListener("scroll", reposition, true);
     window.addEventListener("resize", reposition);
     return () => {
+      window.cancelAnimationFrame(initialFrame);
+      if (measureFrame !== undefined) window.cancelAnimationFrame(measureFrame);
       window.removeEventListener("scroll", reposition, true);
       window.removeEventListener("resize", reposition);
     };
@@ -165,9 +179,13 @@ export default function ActionMenu({
 
   if (visibleItems.length === 0) return null;
 
+  const localPlacementClass =
+    placement === "top"
+      ? "bottom-full mb-2"
+      : "top-full mt-2";
   const defaultMenuClassName = `${
-    portal ? "" : `absolute ${align === "end" ? "right-0" : "left-0"} top-full mt-2 `
-  }${widthClassName} max-w-[calc(100vw-1.5rem)] max-h-[min(72vh,34rem)] overflow-y-auto bg-surface/98 backdrop-blur-xl rounded-lg shadow-[0_18px_45px_rgba(30,30,30,0.14)] border border-border-light z-50 animate-scaleIn origin-top-right p-1.5`;
+    portal ? "" : `absolute ${align === "end" ? "right-0" : "left-0"} ${localPlacementClass} `
+  }${widthClassName} max-w-[calc(100vw-1.5rem)] max-h-[min(72vh,34rem)] overflow-y-auto bg-surface rounded-xl shadow-lg border border-border-light z-50 animate-fadeIn p-1`;
   const resolvedMenuClassName = menuClassName || defaultMenuClassName;
   const portalMenuStyle: CSSProperties | undefined =
     portal && menuPosition
@@ -175,7 +193,6 @@ export default function ActionMenu({
           position: "fixed",
           top: menuPosition.top,
           left: menuPosition.left,
-          right: menuPosition.right,
           zIndex: 9999,
         }
       : undefined;
@@ -228,24 +245,22 @@ export default function ActionMenu({
       onMouseDown={(event) => event.stopPropagation()}
     >
       {(label || description) && (
-        <div className="px-3 pt-2.5 pb-2">
+        <div className="px-3 pt-2.5 pb-2 border-b border-border-light/70">
           {label && <p className="font-display text-sm font-semibold text-ink leading-tight">{label}</p>}
           {description && <p className="mt-0.5 font-body text-xs text-muted leading-snug">{description}</p>}
         </div>
       )}
-
-      <div className="h-0.5 rounded-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm opacity-80 mb-1" />
 
       {visibleItems.map((item, index) => {
         const tone = item.tone || "default";
         const previousSectionLabel = visibleItems[index - 1]?.sectionLabel;
         const showSectionLabel = item.sectionLabel && item.sectionLabel !== previousSectionLabel;
 
-        const itemClassName = `w-full flex items-center gap-3 rounded-md px-2.5 py-2.5 text-left font-ui text-sm transition-colors outline-none disabled:opacity-45 disabled:cursor-not-allowed ${ITEM_STYLES[tone]}`;
+        const itemClassName = `w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left font-ui text-sm transition-colors outline-none disabled:opacity-45 disabled:cursor-not-allowed ${ITEM_STYLES[tone]}`;
         const content = (
           <>
             {item.icon ? (
-              <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 ${ICON_STYLES[tone]}`}>
+              <span className="flex items-center justify-center w-5 h-5 shrink-0 opacity-85">
                 {item.icon}
               </span>
             ) : null}
@@ -263,9 +278,9 @@ export default function ActionMenu({
 
         return (
           <div key={`${item.label}-${index}`}>
-            {item.dividerBefore && <div className="h-px bg-border-light mx-2 my-1.5" />}
+            {item.dividerBefore && <div className="h-px bg-border-light mx-2 my-1" />}
             {showSectionLabel && (
-              <p className="px-2.5 pb-1 pt-2 font-ui text-[0.68rem] font-semibold uppercase tracking-wider text-muted">
+              <p className="px-3 pb-1 pt-2 font-ui text-[0.68rem] font-semibold uppercase tracking-wider text-muted">
                 {item.sectionLabel}
               </p>
             )}

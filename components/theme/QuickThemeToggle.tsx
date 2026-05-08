@@ -98,10 +98,10 @@ export function QuickThemeToggle() {
       </div>
       <Link
         href="/settings/appearance"
-        className="mt-1.5 flex items-center justify-between gap-2 rounded-md px-2.5 py-2 font-ui text-sm text-ink hover:bg-ink/[0.04] transition-colors"
+        className="mt-1.5 flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 font-ui text-sm text-ink hover:bg-skeleton/60 transition-colors"
       >
         <span className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-50 text-purple-primary">
+          <span className="flex h-5 w-5 items-center justify-center text-purple-primary">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3l1.6 4.9L18.7 7l-3.5 3.8 1 5.1L12 13.3 7.8 15.9l1-5.1L5.3 7l5.1.9L12 3z" />
             </svg>

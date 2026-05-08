@@ -344,6 +344,9 @@ export default function LeftSidebar() {
               label="Create"
               description="Start something new on PinkQuill."
               widthClassName="w-64"
+              portal
+              align="start"
+              placement="auto"
               onOpenChange={setShowCreateMenu}
               buttonAriaLabel="Create menu"
               buttonClassName={`bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-on-accent shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300 ${
@@ -416,6 +419,9 @@ export default function LeftSidebar() {
               label="More"
               description="Your library, tools, and account controls."
               widthClassName="w-72"
+              portal
+              align="start"
+              placement="auto"
               onOpenChange={setShowMenu}
               buttonAriaLabel="More menu"
               buttonClassName={`flex items-center rounded-xl text-muted hover:text-accent hover:bg-accent/[0.06] transition-all duration-200 ${
@@ -442,9 +448,9 @@ export default function LeftSidebar() {
                       close();
                       signOut();
                     }}
-                    className="w-full flex items-center gap-3 rounded-md px-2.5 py-2.5 text-left font-ui text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left font-ui text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-red-50 text-red-500">
+                    <span className="flex h-5 w-5 items-center justify-center text-red-500">
                       {icons.logout}
                     </span>
                     <span className="font-medium">Log out</span>
