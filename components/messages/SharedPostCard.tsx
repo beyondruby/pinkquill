@@ -66,7 +66,7 @@ export default function SharedPostCard({
   // Loading skeleton
   if (loading) {
     return (
-      <div className="w-[240px] rounded-xl overflow-hidden bg-surface border border-gray-200">
+      <div className="w-[240px] rounded-xl overflow-hidden bg-surface border border-border-light">
         <div className="animate-pulse">
           <div className="h-[160px] bg-skeleton" />
           <div className="p-3">
@@ -85,14 +85,14 @@ export default function SharedPostCard({
   // Error state
   if (error || !post) {
     return (
-      <div className="w-[240px] rounded-xl overflow-hidden bg-surface border border-gray-200">
+      <div className="w-[240px] rounded-xl overflow-hidden bg-surface border border-border-light">
         <div className="p-6 text-center">
           <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-skeleton flex items-center justify-center">
-            <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-6 h-6 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
             </svg>
           </div>
-          <p className="font-ui text-sm text-gray-500">Post unavailable</p>
+          <p className="font-ui text-sm text-muted">Post unavailable</p>
         </div>
       </div>
     );
@@ -103,7 +103,7 @@ export default function SharedPostCard({
 
   return (
     <Link href={`/post/${post.id}`} className="block">
-      <div className="w-[240px] rounded-xl overflow-hidden bg-surface border border-gray-200 hover:border-gray-300 transition-colors active:scale-[0.98] transition-transform">
+      <div className="w-[240px] rounded-xl overflow-hidden bg-surface border border-border-light hover:border-border-strong transition-colors active:scale-[0.98] transition-transform">
         {/* Media preview */}
         {hasMedia ? (
           <div className="relative h-[160px] bg-skeleton">
@@ -128,15 +128,15 @@ export default function SharedPostCard({
           </div>
         ) : (
           /* No media - show styled content preview */
-          <div className="h-[120px] bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
-            <p className="font-body text-sm text-gray-600 text-center line-clamp-4 italic">
+          <div className="h-[120px] bg-subtle flex items-center justify-center p-4">
+            <p className="font-body text-sm text-muted text-center line-clamp-4 italic">
               &quot;{getExcerpt(post.content, 100)}&quot;
             </p>
           </div>
         )}
 
         {/* Footer */}
-        <div className="p-3 border-t border-gray-100">
+        <div className="p-3 border-t border-border-light">
           <div className="flex items-center gap-2">
             <img
               src={post.author.avatar_url || DEFAULT_AVATAR}
@@ -144,15 +144,15 @@ export default function SharedPostCard({
               className="w-6 h-6 rounded-full object-cover flex-shrink-0"
             />
             <div className="flex-1 min-w-0">
-              <p className="font-ui text-xs font-semibold text-gray-900 truncate">
+              <p className="font-ui text-xs font-semibold text-ink truncate">
                 {post.author.display_name || post.author.username}
               </p>
-              <p className="font-ui text-[10px] text-gray-500 truncate">
+              <p className="font-ui text-[10px] text-muted truncate">
                 @{post.author.username}
               </p>
             </div>
             {!hasMedia && (
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 font-ui text-[10px] font-medium text-purple-700">
+              <span className="px-2 py-0.5 rounded-full bg-accent/10 font-ui text-[10px] font-medium text-accent">
                 {typeLabel}
               </span>
             )}
@@ -160,7 +160,7 @@ export default function SharedPostCard({
 
           {/* Title if exists and has media */}
           {hasMedia && post.title && (
-            <p className="mt-2 font-ui text-xs text-gray-700 line-clamp-2">
+            <p className="mt-2 font-ui text-xs text-subdued line-clamp-2">
               {post.title}
             </p>
           )}

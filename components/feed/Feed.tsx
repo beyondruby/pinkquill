@@ -86,16 +86,21 @@ function FeedFrame({ children }: { children: ReactNode }) {
       <style jsx global>{`
         .home-feed-modern .post {
           border-radius: 22px;
-          border: 1px solid rgba(0, 0, 0, 0.06);
-          background: linear-gradient(180deg, #ffffff 0%, #ffffff 72%, #fdfbff 100%);
+          border: 1px solid var(--color-border-light);
+          background: linear-gradient(
+            180deg,
+            var(--color-surface) 0%,
+            var(--color-surface) 72%,
+            color-mix(in oklab, var(--color-surface) 94%, var(--color-accent) 6%) 100%
+          );
           box-shadow: 0 8px 22px rgba(15, 15, 15, 0.04);
           margin-bottom: 1.3rem;
           transition: box-shadow 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
         }
 
         .home-feed-modern .post:hover {
-          border-color: rgba(142, 68, 173, 0.16);
-          box-shadow: 0 16px 34px rgba(142, 68, 173, 0.12);
+          border-color: color-mix(in oklab, var(--color-accent) 24%, transparent);
+          box-shadow: 0 16px 34px color-mix(in oklab, var(--color-accent) 14%, transparent);
           transform: translateY(-1px);
         }
 
@@ -105,7 +110,7 @@ function FeedFrame({ children }: { children: ReactNode }) {
 
         .home-feed-modern .author-avatar {
           border-width: 1px;
-          border-color: rgba(0, 0, 0, 0.06);
+          border-color: var(--color-border-light);
           box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
         }
 
@@ -121,7 +126,7 @@ function FeedFrame({ children }: { children: ReactNode }) {
         .home-feed-modern .post-type-label,
         .home-feed-modern .posted-by-label,
         .home-feed-modern .posted-by-author {
-          color: rgba(30, 30, 30, 0.6);
+          color: var(--color-muted);
         }
 
         .home-feed-modern .unified-post-title {
@@ -141,7 +146,7 @@ function FeedFrame({ children }: { children: ReactNode }) {
         .home-feed-modern .actions {
           margin-top: 1.05rem;
           padding-top: 0.95rem;
-          border-top-color: rgba(0, 0, 0, 0.07);
+          border-top-color: var(--color-border-light);
         }
 
         .home-feed-modern .actions-left,
@@ -158,8 +163,8 @@ function FeedFrame({ children }: { children: ReactNode }) {
         }
 
         .home-feed-modern .action-btn:hover {
-          border-color: rgba(142, 68, 173, 0.18);
-          background: rgba(142, 68, 173, 0.08);
+          border-color: color-mix(in oklab, var(--color-accent) 22%, transparent);
+          background: color-mix(in oklab, var(--color-accent) 10%, transparent);
         }
 
         .home-feed-modern .action-count {
@@ -173,7 +178,7 @@ function FeedFrame({ children }: { children: ReactNode }) {
         }
 
         .home-feed-modern .post-menu-btn:hover {
-          border-color: rgba(0, 0, 0, 0.08);
+          border-color: var(--color-border-strong);
         }
 
         @media (max-width: 640px) {
@@ -359,7 +364,7 @@ export default function Feed() {
       {/* Loading more indicator */}
       {postsLoading && posts.length > 0 && (
         <div className="flex justify-center py-8">
-          <div className="w-8 h-8 border-3 border-gray-200 border-t-purple-primary rounded-full animate-spin" />
+          <div className="w-8 h-8 border-3 border-border-strong border-t-purple-primary rounded-full animate-spin" />
         </div>
       )}
 
