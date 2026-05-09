@@ -28,10 +28,10 @@ test.describe("Authentication", () => {
     await expect(page.getByText(/sign up|create account|register/i)).toBeVisible();
   });
 
-  test("should redirect unauthenticated users to login", async ({ page }) => {
+  test("should leave unauthenticated users on the public homepage", async ({ page }) => {
     await page.goto("/");
-    // Should redirect to login or show login prompt
-    await expect(page).toHaveURL(/login|signin/);
+    await expect(page).not.toHaveURL(/login|signin/);
+    await expect(page.locator("main")).toBeVisible();
   });
 });
 

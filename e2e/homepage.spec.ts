@@ -1,17 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Homepage / Feed", () => {
-  // These tests require authentication
-  // TODO: Set up authenticated test context
-
-  test("should show login when not authenticated", async ({ page }) => {
+  test("should allow guest browsing without redirecting to login", async ({ page }) => {
     await page.goto("/");
 
-    // Should redirect to login or show auth prompt
-    const isOnLogin = page.url().includes("login");
-    const hasAuthPrompt = await page.getByText(/sign in|log in/i).isVisible();
-
-    expect(isOnLogin || hasAuthPrompt).toBe(true);
+    await expect(page).not.toHaveURL(/\/login/);
+    await expect(page.locator("main")).toBeVisible();
   });
 });
 

@@ -1,25 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isProtectedPath } from "@/lib/auth/protected-paths";
 import { updateSession } from "@/lib/supabase/middleware";
-
-const PROTECTED_PREFIXES = [
-  "/create",
-  "/messages",
-  "/saved",
-  "/settings",
-  "/orders",
-  "/queue",
-  "/cart",
-  "/pending-collaborations",
-  "/seller",
-  "/insights",
-];
-
-function isProtectedPath(pathname: string): boolean {
-  if (pathname === "/") return true;
-  return PROTECTED_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
-}
 
 /**
  * Next.js 16 proxy (formerly `middleware.ts`).
@@ -32,6 +13,9 @@ function isProtectedPath(pathname: string): boolean {
  *   2. Gate protected paths: if the path is in PROTECTED_PREFIXES and the
  *      caller has no valid session after the refresh, redirect to /login
  *      preserving the original destination as ?redirect=.
+ *
+ * The homepage intentionally stays public so guests can browse the feed and
+ * only hit auth when they try to act.
  *
  * IMPORTANT: updateSession MUST run before any other logic that reads cookies
  * — its `getUser()` call refreshes the token AND writes new cookies onto the

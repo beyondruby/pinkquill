@@ -36,9 +36,10 @@ test.describe("Navigation - Public Pages", () => {
 });
 
 test.describe("Navigation - Protected Routes", () => {
-  test("should redirect to login when accessing feed without auth", async ({ page }) => {
+  test("should let guests browse the feed without auth", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveURL(/login/);
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator("main")).toBeVisible();
   });
 
   test("should redirect to login when accessing create page without auth", async ({ page }) => {
