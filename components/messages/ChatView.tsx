@@ -673,7 +673,6 @@ export default function ChatView({
             items={[
               {
                 label: "View profile",
-                description: "Open this creator's studio",
                 href: participant ? `/studio/${participant.username}` : undefined,
                 hidden: !participant,
                 icon: (
@@ -684,7 +683,6 @@ export default function ChatView({
               },
               {
                 label: `${iBlockedThem ? "Unblock" : "Block"} @${participant?.username}`,
-                description: iBlockedThem ? "Allow messages again" : "Stop messages and interactions",
                 onSelect: () => {
                   if (iBlockedThem) {
                     handleBlock();
@@ -703,7 +701,6 @@ export default function ChatView({
               },
               {
                 label: `Report @${participant?.username}`,
-                description: "Send this conversation to moderation",
                 onSelect: () => setShowReportModal(true),
                 tone: "danger",
                 icon: (
@@ -714,7 +711,6 @@ export default function ChatView({
               },
               {
                 label: "Delete conversation",
-                description: "Remove this thread from your inbox",
                 onSelect: () => setShowDeleteConfirm(true),
                 tone: "danger",
                 dividerBefore: true,

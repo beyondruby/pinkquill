@@ -8,6 +8,7 @@ import { Product, ProductStatus } from "@/lib/types/store";
 import { getCategoryConfig, CATEGORY_ICONS } from "@/lib/store/categories";
 import ActionMenu from "@/components/ui/ActionMenu";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import Loading from "@/components/ui/Loading";
 import { showToast } from "@/lib/utils/toast";
 
 interface StoreTabProps {
@@ -38,17 +39,7 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
         <div className="flex items-center justify-center py-16">
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative">
-              <div className="w-12 h-12 rounded-full border-2 border-pink-vivid/20 border-t-pink-vivid animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg className="w-5 h-5 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-sm text-muted font-body">Loading store...</p>
-          </div>
+          <Loading text="Opening the store" />
         </div>
       </div>
     );
@@ -74,72 +65,34 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
   if (products.length === 0) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-pink-50/80 via-surface to-orange-50/60 p-8 md:p-12 lg:p-16 border border-pink-100/50">
-          {/* Decorative background elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-warm/5 to-pink-vivid/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-vivid/5 to-orange-warm/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
-
-          <div className="relative text-center">
-            {/* Store icon */}
-            <div className="relative w-24 h-24 mx-auto mb-8">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-warm/10 to-pink-vivid/10 animate-pulse" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg className="w-12 h-12 text-pink-vivid/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-              </div>
-            </div>
-
-            <h3 className="font-display text-2xl md:text-3xl text-ink mb-4">
-              {isOwnProfile ? (
-                <>
-                  Open Your{" "}
-                  <span className="bg-gradient-to-r from-orange-warm to-pink-vivid bg-clip-text text-transparent">
-                    Creative Store
-                  </span>
-                </>
-              ) : (
-                "No Products Yet"
-              )}
-            </h3>
-
-            <p className="font-body text-muted text-base md:text-lg max-w-md mx-auto mb-8 leading-relaxed">
-              {isOwnProfile
-                ? "Transform your creativity into opportunity. Share your art, music, writings, and handcrafted treasures with the world."
-                : "This creator hasn't listed any products yet. Check back later to discover their unique creations!"}
-            </p>
-
-            {isOwnProfile && (
-              <Link
-                href="/sell"
-                className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-orange-warm to-pink-vivid
-                  text-white font-display font-medium text-lg rounded-2xl
-                  hover:shadow-xl hover:shadow-pink-vivid/25 hover:scale-[1.02]
-                  transition-all duration-300"
-              >
-                <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                List Your First Product
-              </Link>
-            )}
-
-            {/* Feature highlights for own profile */}
-            {isOwnProfile && (
-              <div className="mt-12 grid grid-cols-3 gap-4 max-w-lg mx-auto">
-                {[
-                  { icon: "🎨", label: "Art & Prints" },
-                  { icon: "📚", label: "Books & Zines" },
-                  { icon: "🎵", label: "Music & Audio" },
-                ].map((item, i) => (
-                  <div key={i} className="p-3 rounded-xl bg-surface/60 border border-pink-100/50">
-                    <span className="text-2xl mb-1 block">{item.icon}</span>
-                    <span className="text-xs text-muted font-ui">{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+        <div className="rounded-3xl border border-border-light bg-subtle/40 px-6 py-14 md:py-16 text-center">
+          <div className="w-12 h-12 mx-auto mb-5 rounded-full bg-surface border border-border-light flex items-center justify-center">
+            <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
           </div>
+
+          <h3 className="font-display text-xl md:text-2xl text-ink mb-2">
+            {isOwnProfile ? "Your shelf is still bare" : "Nothing on the shelf yet"}
+          </h3>
+
+          <p className="font-body text-muted text-[0.95rem] max-w-sm mx-auto mb-7 leading-relaxed">
+            {isOwnProfile
+              ? "Set out your first piece — a print, a zine, a download — and your store opens for visitors."
+              : "This creator hasn't listed anything yet. Slip back later to see what they put out."}
+          </p>
+
+          {isOwnProfile && (
+            <Link
+              href="/sell"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-semibold hover:shadow-lg hover:shadow-pink-vivid/25 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              List your first product
+            </Link>
+          )}
         </div>
       </div>
     );
@@ -187,13 +140,8 @@ export default function StoreTab({ userId, isOwnProfile, pageLoaded }: StoreTabP
 
       {/* Empty filtered state */}
       {filteredProducts.length === 0 && products.length > 0 && (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-subtle flex items-center justify-center">
-            <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-            </svg>
-          </div>
-          <p className="text-muted font-body">No {filter} products found</p>
+        <div className="rounded-2xl border border-border-light bg-subtle/40 py-12 text-center">
+          <p className="font-ui text-sm text-muted">Nothing in <span className="capitalize">{filter}</span> just yet.</p>
         </div>
       )}
     </div>
@@ -455,9 +403,9 @@ function ProductCard({
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteConfirm}
-        title="Delete Product?"
-        description="This action cannot be undone. This will permanently delete your product listing and remove its associated data. If the product has order history, it will be archived instead."
-        confirmText="Delete"
+        title="Take this listing off the shelf?"
+        description="This product will disappear from your store for good. If past orders are tied to it, we'll quietly archive it instead so the records hold."
+        confirmText="Erase it"
         isDanger
         loading={deleting}
       />

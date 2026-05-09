@@ -7,6 +7,7 @@ import LeftSidebar from "@/components/layout/LeftSidebar";
 import SettingsSidebar from "@/components/settings/SettingsSidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import { FullPageLoading } from "@/components/ui/Loading";
 
 export default function SettingsLayout({
   children,
@@ -23,12 +24,7 @@ export default function SettingsLayout({
   }, [user, loading, router]);
 
   if (loading) {
-    // Show minimal loading state - don't render sidebars to avoid hook cascades
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-canvas">
-        <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <FullPageLoading text="Opening Settings" />;
   }
 
   if (!user) {

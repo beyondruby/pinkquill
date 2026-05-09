@@ -5,6 +5,7 @@ import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { usePendingCollaborations } from "@/lib/hooks";
+import Loading from "@/components/ui/Loading";
 
 interface RawCollaborator {
   status?: string;
@@ -50,9 +51,8 @@ function PendingCollaborationsPageContent() {
 
   if (authLoading || loading) {
     return (
-      <div className="max-w-[720px] mx-auto py-10 px-6">
-        <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="font-body text-muted text-center italic">Loading pending collaborations...</p>
+      <div className="max-w-[720px] mx-auto py-10 px-6 flex justify-center">
+        <Loading text="Gathering invitations" />
       </div>
     );
   }
@@ -144,9 +144,8 @@ function PendingCollaborationsPageContent() {
 
 function PendingCollaborationsFallback() {
   return (
-    <div className="max-w-[720px] mx-auto py-10 px-6">
-      <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-      <p className="font-body text-muted text-center italic">Loading pending collaborations...</p>
+    <div className="max-w-[720px] mx-auto py-10 px-6 flex justify-center">
+      <Loading text="Gathering invitations" />
     </div>
   );
 }

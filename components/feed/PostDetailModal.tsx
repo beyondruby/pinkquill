@@ -1295,37 +1295,43 @@ function PostDetailModalComponent({
       isOpen={showDeleteConfirm}
       onClose={() => setShowDeleteConfirm(false)}
       onConfirm={handleDelete}
-      title="Delete Post?"
-      description="This action cannot be undone. This will permanently delete your post and remove all associated data including comments, admires, and saves."
-      confirmText="Delete"
+      title="Erase this from your studio?"
+      description="The post, its admires, and the conversation around it will fade for good. This page won't remember it."
+      confirmText="Erase it"
       isDanger
       loading={deleting}
     />
 
-    {/* Report Modal */}
     {/* Block Confirmation Modal */}
     {showBlockConfirm && (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] animate-fadeIn">
-        <div className="bg-elevated rounded-2xl p-6 max-w-sm w-full mx-4 animate-scaleIn">
-          <h3 className="font-display text-lg font-semibold text-ink mb-2">
-            Block @{post.author.handle}?
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] animate-fadeIn">
+        <div className="w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light p-7 animate-scaleIn">
+          <h3 className="font-display text-xl text-ink mb-3">
+            Close the door on @{post.author.handle}?
           </h3>
-          <p className="font-body text-sm text-muted mb-6">
-            They won&apos;t be able to see your posts, follow you, or message you. They won&apos;t be notified.
+          <p className="font-body text-[0.95rem] text-muted leading-relaxed mb-7">
+            Their posts vanish from your feed and yours from theirs. They won&apos;t be able to follow you, message you, or knock again — and we won&apos;t tell them.
           </p>
-          <div className="flex gap-3">
+          <div className="flex justify-end gap-2.5">
             <button
               onClick={() => setShowBlockConfirm(false)}
-              className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors"
+              className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all"
             >
               Cancel
             </button>
             <button
               onClick={handleBlock}
               disabled={isBlocking}
-              className="flex-1 py-2.5 rounded-full bg-red-500 text-white font-ui text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+              className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-all disabled:opacity-70 flex items-center gap-2 shadow-sm hover:shadow-md hover:shadow-red-500/20"
             >
-              {isBlocking ? "Blocking..." : "Block"}
+              {isBlocking ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Closing...
+                </>
+              ) : (
+                "Block"
+              )}
             </button>
           </div>
         </div>

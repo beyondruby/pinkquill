@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerEarnings, useTransactionHistory, useSellerOnboarding } from "@/lib/hooks/usePayments";
+import Loading from "@/components/ui/Loading";
 import type { Transaction } from "@/lib/types/store";
 
 // ---------------------------------------------------------------------------
@@ -228,8 +229,8 @@ export default function EarningsOverview() {
         </div>
 
         {txLoading ? (
-          <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-border-light border-t-purple-primary mx-auto" />
+          <div className="py-12 flex justify-center">
+            <Loading size="small" text="" />
           </div>
         ) : transactions.length === 0 ? (
           <div className="p-16 text-center">

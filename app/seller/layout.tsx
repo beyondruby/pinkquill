@@ -8,6 +8,7 @@ import LeftSidebar from "@/components/layout/LeftSidebar";
 import SellerSidebar from "@/components/seller/SellerSidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import { FullPageLoading } from "@/components/ui/Loading";
 
 export default function SellerLayout({
   children,
@@ -38,11 +39,7 @@ export default function SellerLayout({
   }, [loading, setupLoading, user, setupCompleted, isSetupPage, isOnboardingPage, router]);
 
   if (loading || setupLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-canvas">
-        <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <FullPageLoading text="Opening Seller Studio" />;
   }
 
   if (!user) return null;

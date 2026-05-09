@@ -9,6 +9,7 @@ import {
   faExternalLinkAlt,
   faExclamationTriangle,
 } from "@fortawesome/free-solid-svg-icons";
+import Loading from "@/components/ui/Loading";
 
 const PROVIDER_LABELS: Record<string, string> = {
   stripe: "Stripe",
@@ -33,7 +34,7 @@ export default function SellerOnboarding() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-2xl text-muted/60" />
+        <Loading size="small" text="" />
       </div>
     );
   }

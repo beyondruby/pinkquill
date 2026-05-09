@@ -21,6 +21,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ModalErrorFallback } from "@/components/ui/ErrorFallbacks";
 import { icons } from "@/components/ui/Icons";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
+import Loading from "@/components/ui/Loading";
 import type { PostBackground, PostStyling } from "@/lib/types";
 import { getTimeAgo, formatDate, formatTime } from "@/lib/utils/time";
 import FlairBadge from "@/components/communities/FlairBadge";
@@ -718,9 +719,8 @@ export default function PostPage() {
         <LeftSidebar />
         <main className="pt-14 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen bg-canvas">
           <div className="max-w-[680px] mx-auto py-12 px-4 md:px-6">
-            <div className="text-center py-20">
-              <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="font-body text-muted italic">Loading post...</p>
+            <div className="flex justify-center py-20">
+              <Loading text="Unfolding the page" />
             </div>
           </div>
         </main>
@@ -1232,8 +1232,8 @@ export default function PostPage() {
             {/* Comments List */}
             <div className="p-4 max-h-[calc(100vh-280px)] overflow-y-auto">
               {commentsLoading ? (
-                <div className="text-center py-8">
-                  <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                <div className="flex justify-center py-8">
+                  <Loading size="small" text="" />
                 </div>
               ) : comments.length === 0 ? (
                 <div className="text-center py-8">

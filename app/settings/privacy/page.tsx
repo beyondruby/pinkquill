@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useBlock } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
+import Loading from "@/components/ui/Loading";
 
 interface BlockedUser {
   id: string;
@@ -225,7 +226,7 @@ export default function PrivacySettingsPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
+            <Loading size="small" text="" />
           </div>
         ) : blockedUsers.length === 0 ? (
           <div className="bg-subtle rounded-2xl p-8 text-center">

@@ -961,7 +961,6 @@ export default function CommunityInboxView() {
                   items={[
                     {
                       label: "View community",
-                      description: "Open the public community page",
                       href: `/community/${communitySlug}`,
                       icon: (
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -970,8 +969,7 @@ export default function CommunityInboxView() {
                       ),
                     },
                     {
-                      label: "Chat settings",
-                      description: "Moderation and chat controls",
+                      label: "Settings",
                       href: `/community/${communitySlug}/settings`,
                       hidden: !(isStaff && isCommunityThreadSelected),
                       sectionLabel: "Manage",
@@ -983,8 +981,7 @@ export default function CommunityInboxView() {
                       ),
                     },
                     {
-                      label: "Leave community chat",
-                      description: "Stop receiving messages here",
+                      label: "Leave chat",
                       onSelect: () => setShowLeaveConfirm(true),
                       hidden: !showLeaveAction,
                       tone: "danger",

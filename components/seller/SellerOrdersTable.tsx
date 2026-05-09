@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerOrders } from "@/lib/hooks/useOrders";
+import Loading from "@/components/ui/Loading";
 import type { Order, OrderStatus } from "@/lib/types/store";
 
 // ---------------------------------------------------------------------------
@@ -174,8 +175,8 @@ export default function SellerOrdersTable() {
         </div>
 
         {loading ? (
-          <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-border-light border-t-purple-primary mx-auto" />
+          <div className="py-12 flex justify-center">
+            <Loading size="small" text="" />
           </div>
         ) : error ? (
           <div className="p-12 text-center">

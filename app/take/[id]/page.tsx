@@ -17,6 +17,7 @@ import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import LeftSidebar from "@/components/layout/LeftSidebar";
+import Loading from "@/components/ui/Loading";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { CommentIcon, icons } from "@/components/ui/Icons";
 
@@ -563,9 +564,8 @@ export default function SingleTakePage({ params }: PageProps) {
         <LeftSidebar />
         <main className="ml-[72px] min-h-screen bg-canvas">
           <div className="max-w-[680px] mx-auto py-12 px-6">
-            <div className="text-center py-20">
-              <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="font-body text-muted italic">Loading take...</p>
+            <div className="flex justify-center py-20">
+              <Loading text="Loading the take" />
             </div>
           </div>
         </main>
@@ -841,8 +841,8 @@ export default function SingleTakePage({ params }: PageProps) {
               {/* Comments List */}
               <div className="p-4 max-h-[calc(100vh-280px)] overflow-y-auto">
                 {commentsLoading ? (
-                  <div className="text-center py-8">
-                    <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                  <div className="flex justify-center py-8">
+                    <Loading size="small" text="" />
                   </div>
                 ) : comments.length === 0 ? (
                   <div className="text-center py-8">

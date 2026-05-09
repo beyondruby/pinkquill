@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunities, useDiscoverCommunities, useSuggestedCommunities } from "@/lib/hooks";
 import CommunityCard from "@/components/communities/CommunityCard";
+import Loading from "@/components/ui/Loading";
 
 type TabType = 'discover' | 'joined' | 'created';
 type SortType = 'trending' | 'newest' | 'members';
@@ -426,7 +427,7 @@ export default function CommunitiesPage() {
 
           {suggestedLoading ? (
             <div className="flex justify-center py-8">
-              <div className="w-8 h-8 rounded-full border-2 border-purple-primary border-t-transparent animate-spin" />
+              <Loading size="small" text="" />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

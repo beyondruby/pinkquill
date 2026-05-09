@@ -232,19 +232,32 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
               </div>
             </div>
 
-            {/* Stats row as subtle chips */}
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-surface/60 border border-border-light">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                {stats.active} active
-              </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-surface/60 border border-border-light">
-                {sellerStats?.completed_orders ?? 0} completed
-              </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-ui font-medium text-muted bg-surface/60 border border-border-light">
-                {formatResponseTime(responseTimeHours)} avg response
-              </span>
-            </div>
+            {/* Stats — three vital signs of the studio */}
+            <dl className="grid grid-cols-3 gap-px rounded-2xl bg-border-light/70 border border-border-light overflow-hidden">
+              <div className="bg-surface/70 px-4 py-3 text-left flex items-baseline justify-between sm:flex-col sm:items-start sm:justify-start sm:gap-1">
+                <dt className="font-ui text-[10px] uppercase tracking-[0.16em] text-muted">Open</dt>
+                <dd className="font-display text-lg sm:text-2xl font-semibold text-ink leading-none">
+                  {stats.active}
+                  <span className="ml-1 text-[10px] font-ui font-medium uppercase tracking-wider text-muted">live</span>
+                </dd>
+              </div>
+              <div className="bg-surface/70 px-4 py-3 text-left flex items-baseline justify-between sm:flex-col sm:items-start sm:justify-start sm:gap-1">
+                <dt className="font-ui text-[10px] uppercase tracking-[0.16em] text-muted">Delivered</dt>
+                <dd className="font-display text-lg sm:text-2xl font-semibold text-ink leading-none">
+                  {sellerStats?.completed_orders ?? 0}
+                  <span className="ml-1 text-[10px] font-ui font-medium uppercase tracking-wider text-muted">{(sellerStats?.completed_orders ?? 0) === 1 ? "client" : "clients"}</span>
+                </dd>
+              </div>
+              <div className="bg-surface/70 px-4 py-3 text-left flex items-baseline justify-between sm:flex-col sm:items-start sm:justify-start sm:gap-1">
+                <dt className="font-ui text-[10px] uppercase tracking-[0.16em] text-muted">Replies in</dt>
+                <dd className="font-display text-lg sm:text-2xl font-semibold text-ink leading-none">
+                  {formatResponseTime(responseTimeHours)}
+                  {responseTimeHours ? (
+                    <span className="ml-1 text-[10px] font-ui font-medium uppercase tracking-wider text-muted">avg</span>
+                  ) : null}
+                </dd>
+              </div>
+            </dl>
 
             {/* Skills & Services */}
             {((sellerProfile?.skills?.length ?? 0) > 0 || (sellerProfile?.services?.length ?? 0) > 0) && (
@@ -318,9 +331,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
           {panel === "services" && (
             <div className="relative shrink-0 ml-auto">
               <ActionMenu
-                label="Filter services"
-                description="Choose which commission listings to show."
-                widthClassName="w-60"
+                widthClassName="w-44"
                 buttonAriaLabel="Filter services"
                 buttonClassName={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-ui font-medium transition-all duration-200 ${
                   filter !== "all"
@@ -336,9 +347,9 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
                   </>
                 }
                 items={[
-                  { label: "All services", description: "Show every listing", onSelect: () => updateViewState({ filter: "all" }), tone: filter === "all" ? "accent" : "default" },
-                  { label: "Active", description: "Currently available", onSelect: () => updateViewState({ filter: "active" }), tone: filter === "active" ? "accent" : "default" },
-                  { label: "Inactive", description: "Paused or unavailable", onSelect: () => updateViewState({ filter: "inactive" }), tone: filter === "inactive" ? "accent" : "default" },
+                  { label: "All", onSelect: () => updateViewState({ filter: "all" }), tone: filter === "all" ? "accent" : "default" },
+                  { label: "Active", onSelect: () => updateViewState({ filter: "active" }), tone: filter === "active" ? "accent" : "default" },
+                  { label: "Inactive", onSelect: () => updateViewState({ filter: "inactive" }), tone: filter === "inactive" ? "accent" : "default" },
                 ]}
               />
             </div>
@@ -349,41 +360,39 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
       {panel === "services" && (
         <>
           {!hasServices && (
-            <div className="relative rounded-[32px] border border-pink-vivid/20 bg-gradient-to-br from-pink-50/90 via-surface to-violet-50/85 p-10 text-center overflow-hidden">
-              <div className="absolute -top-16 -left-14 w-40 h-40 rounded-full bg-purple-primary/12 blur-2xl" />
-              <div className="absolute -bottom-16 -right-14 w-44 h-44 rounded-full bg-pink-vivid/16 blur-2xl" />
-
-              <div className="relative">
-                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-purple-primary/20 to-pink-vivid/20 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
-                  </svg>
-                </div>
-
-                <h3 className="font-display text-2xl text-ink mb-3">
-                  {isOwnProfile ? "Launch your first commission" : "No commissions yet"}
-                </h3>
-                <p className="font-body text-muted max-w-md mx-auto">
-                  {isOwnProfile
-                    ? "Package your expertise into clear service tiers and turn your studio into a high-conversion storefront."
-                    : "This creator has not published commission services yet."}
-                </p>
-
-                {isOwnProfile && (
-                  <Link
-                    href="/sell/service"
-                    className="inline-flex mt-7 items-center gap-2 px-6 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid hover:shadow-lg hover:shadow-pink-vivid/20 transition-all"
-                  >
-                    Add Service
-                  </Link>
-                )}
+            <div className="rounded-3xl border border-border-light bg-subtle/40 px-6 py-14 md:py-16 text-center">
+              <div className="w-12 h-12 mx-auto mb-5 rounded-full bg-surface border border-border-light flex items-center justify-center">
+                <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
+                </svg>
               </div>
+
+              <h3 className="font-display text-xl md:text-2xl text-ink mb-2">
+                {isOwnProfile ? "No services posted yet" : "No services posted yet"}
+              </h3>
+              <p className="font-body text-muted text-[0.95rem] max-w-sm mx-auto mb-7 leading-relaxed">
+                {isOwnProfile
+                  ? "Shape your craft into a clear package — tiers, timelines, what's included — and clients will know exactly what they're hiring."
+                  : "This creator hasn't opened up commissions yet. Slip back later to see what they offer."}
+              </p>
+
+              {isOwnProfile && (
+                <Link
+                  href="/sell/service"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid hover:shadow-lg hover:shadow-pink-vivid/25 transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add a service
+                </Link>
+              )}
             </div>
           )}
 
           {hasServices && filtered.length === 0 && (
-            <div className="rounded-2xl border border-purple-primary/15 bg-surface p-8 text-center">
-              <p className="font-ui text-purple-primary">No services in this filter yet.</p>
+            <div className="rounded-2xl border border-border-light bg-subtle/40 py-12 text-center">
+              <p className="font-ui text-sm text-muted">Nothing in this filter just yet.</p>
             </div>
           )}
 
@@ -643,9 +652,9 @@ function CommissionCard({
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteConfirm}
-        title="Delete Commission?"
-        description="This action cannot be undone. This will permanently delete your commission listing and remove its associated data. If the service has order history, it will be archived instead."
-        confirmText="Delete"
+        title="Close this commission for good?"
+        description="The service will leave your studio and stop accepting new orders. If past clients are tied to it, we'll keep a quiet archive so their records hold."
+        confirmText="Erase it"
         isDanger
         loading={deleting}
       />

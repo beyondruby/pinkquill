@@ -593,14 +593,12 @@ function PostCardComponent({
   const postMenuItems = useMemo(() => {
     const items: ActionMenuItem[] = [
       {
-        label: "Share post",
-        description: "Open sharing options",
+        label: "Share",
         onSelect: () => setShowShareModal(true),
         icon: <ShareIcon aria-hidden="true" />,
       },
       {
-        label: "Copy post link",
-        description: "Copy a direct URL",
+        label: "Copy link",
         onSelect: () => navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`),
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -613,7 +611,6 @@ function PostCardComponent({
     if (isPinned && onUnpin) {
       items.push({
         label: "Unpin",
-        description: "Remove from the top of the profile",
         onSelect: () => onUnpin(post.id),
         sectionLabel: "Author",
         icon: (
@@ -633,7 +630,6 @@ function PostCardComponent({
     } else if (!isPinned && onPin) {
       items.push({
         label: "Pin",
-        description: "Keep this post at the top",
         onSelect: () => onPin(post.id),
         sectionLabel: "Author",
         icon: (
@@ -647,15 +643,13 @@ function PostCardComponent({
 
     if (isOwner) {
       items.push({
-        label: "Edit post",
-        description: "Update this work",
+        label: "Edit",
         onSelect: handleEdit,
         icon: <EditIcon aria-hidden="true" />,
         dividerBefore: items.length > 0,
       });
       items.push({
-        label: "Delete post",
-        description: "Remove this post permanently",
+        label: "Delete",
         onSelect: () => setShowDeleteConfirm(true),
         icon: <TrashIcon aria-hidden="true" />,
         tone: "danger" as const,
@@ -663,7 +657,6 @@ function PostCardComponent({
       if (canModerateDelete && onModeratorDelete) {
         items.push({
           label: "Delete (Mod)",
-          description: "Remove this as a moderator",
           onSelect: () => setShowModeratorDeleteConfirm(true),
           icon: <TrashIcon aria-hidden="true" />,
           tone: "warning" as const,
@@ -677,7 +670,6 @@ function PostCardComponent({
 
     items.push({
       label: `Block @${post.author.handle.replace("@", "")}`,
-      description: "Stop seeing and receiving interactions",
       onSelect: () => setShowBlockConfirm(true),
       icon: <BlockIcon aria-hidden="true" />,
       dividerBefore: items.length > 0,
@@ -688,7 +680,6 @@ function PostCardComponent({
     if (canModerateDelete && onModeratorDelete) {
       items.push({
         label: "Delete (Mod)",
-        description: "Remove this as a moderator",
         onSelect: () => setShowModeratorDeleteConfirm(true),
         icon: <TrashIcon aria-hidden="true" />,
         tone: "warning" as const,
@@ -697,8 +688,7 @@ function PostCardComponent({
     }
 
     items.push({
-      label: "Report post",
-      description: "Send this post to moderation",
+      label: "Report",
       onSelect: () => setShowReportModal(true),
       icon: <FlagIcon aria-hidden="true" />,
       tone: "danger" as const,
@@ -723,10 +713,8 @@ function PostCardComponent({
   const postMenuElement = user ? (
     <ActionMenu
       items={postMenuItems}
-      label="Post actions"
-      description="Share, manage, or report this post."
       buttonClassName="post-menu-btn"
-      widthClassName="w-72"
+      widthClassName="w-48"
       buttonAriaLabel="Post options menu"
       portal
     />
@@ -1190,9 +1178,9 @@ function PostCardComponent({
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
-        title="Delete Post?"
-        description="This action cannot be undone. This will permanently delete your post and remove all associated data including comments, admires, and saves."
-        confirmText="Delete"
+        title="Erase this from your studio?"
+        description="The post, its admires, and the conversation around it will fade for good. This page won't remember it."
+        confirmText="Erase it"
         isDanger
         loading={deleting}
       />
@@ -1201,60 +1189,58 @@ function PostCardComponent({
       {showModeratorDeleteConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] animate-fadeIn"
             onClick={() => !moderatorDeleting && setShowModeratorDeleteConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-elevated rounded-2xl shadow-2xl z-[1001] overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 border-b border-orange-200/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
-                  <TrashIcon className="w-5 h-5 text-orange-600" />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-[1001] overflow-hidden animate-scaleIn">
+            <div className="p-7">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-11 h-11 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                  <TrashIcon className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="font-display text-lg font-semibold text-ink">Delete Post (Moderator)</h3>
-                  <p className="font-ui text-xs text-muted">This action will be logged</p>
-                </div>
+                <h3 className="font-display text-xl text-ink leading-tight">Sweep this post out as moderator?</h3>
               </div>
-            </div>
-            <div className="p-6">
-              <p className="font-body text-sm text-muted mb-4">
-                You are about to delete this post as a community moderator. This action cannot be undone and will be recorded in the moderation log.
+
+              <p className="font-body text-[0.95rem] text-muted leading-relaxed mb-5 ml-[56px]">
+                The post will leave the community feed and your action will be written into the moderation log for the record.
               </p>
-              <div className="mb-4">
-                <label className="block font-ui text-sm font-medium text-ink mb-2">
-                  Reason for deletion <span className="text-muted font-normal">(optional)</span>
+
+              <div className="mb-5 ml-[56px]">
+                <label className="block font-ui text-xs uppercase tracking-wider font-medium text-muted mb-2">
+                  Reason <span className="text-muted/60 normal-case tracking-normal">(optional)</span>
                 </label>
                 <textarea
                   value={moderatorDeleteReason}
                   onChange={(e) => setModeratorDeleteReason(e.target.value)}
-                  placeholder="e.g., Violates community guidelines..."
+                  placeholder="A short note for the log…"
                   rows={2}
-                  className="w-full px-4 py-3 rounded-xl border border-border-light bg-surface text-ink font-body text-sm placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-400 resize-none"
+                  className="w-full px-4 py-3 rounded-2xl border border-border-light bg-subtle/40 text-ink font-body text-sm placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-400/60 resize-none"
                 />
               </div>
-              <div className="flex justify-end gap-3">
+
+              <div className="flex justify-end gap-2.5">
                 <button
                   onClick={() => {
                     setShowModeratorDeleteConfirm(false);
                     setModeratorDeleteReason("");
                   }}
                   disabled={moderatorDeleting}
-                  className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton hover:bg-skeleton/70 transition-colors disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleModeratorDelete}
                   disabled={moderatorDeleting}
-                  className="px-5 py-2.5 rounded-full font-ui text-sm text-white bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 transition-all disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 transition-all disabled:opacity-70 flex items-center gap-2 shadow-sm hover:shadow-md hover:shadow-orange-500/20"
                 >
                   {moderatorDeleting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Deleting...
+                      Sweeping...
                     </>
                   ) : (
-                    "Delete Post"
+                    "Sweep it"
                   )}
                 </button>
               </div>
@@ -1278,33 +1264,33 @@ function PostCardComponent({
       {showBlockConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] animate-fadeIn"
             onClick={() => !blockLoading && setShowBlockConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-surface rounded-2xl shadow-2xl z-[1001] p-6">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-[1001] p-7 animate-scaleIn">
             <h3 className="font-display text-xl text-ink mb-3">
-              Block @{post.author.handle.replace('@', '')}?
+              Close the door on @{post.author.handle.replace('@', '')}?
             </h3>
-            <p className="font-body text-sm text-muted mb-6">
-              You won&apos;t see their posts anymore. They won&apos;t be able to see your posts, follow you, or message you.
+            <p className="font-body text-[0.95rem] text-muted mb-7 leading-relaxed">
+              Their posts vanish from your feed and yours from theirs. They won&apos;t be able to follow you, message you, or knock again.
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-2.5">
               <button
                 onClick={() => setShowBlockConfirm(false)}
                 disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleBlockUser}
                 disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-all disabled:opacity-70 flex items-center gap-2 shadow-sm hover:shadow-md hover:shadow-red-500/20"
               >
                 {blockLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Blocking...
+                    Closing...
                   </>
                 ) : (
                   "Block"

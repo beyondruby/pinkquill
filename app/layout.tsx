@@ -258,13 +258,24 @@ export default async function RootLayout({
         </AuthProvider>
         <Toaster
           position="bottom-right"
+          offset={20}
+          gap={10}
+          duration={3500}
+          visibleToasts={4}
+          className="pinkquill-toaster"
           toastOptions={{
-            style: {
-              background: 'var(--color-toast-bg)',
-              color: 'var(--color-toast-text)',
-              border: '1px solid var(--color-toast-border)',
+            unstyled: true,
+            classNames: {
+              toast: 'pinkquill-toast',
+              title: 'pinkquill-toast__title',
+              description: 'pinkquill-toast__description',
+              icon: 'pinkquill-toast__icon',
+              success: 'pinkquill-toast--success',
+              error: 'pinkquill-toast--error',
+              info: 'pinkquill-toast--info',
+              warning: 'pinkquill-toast--warning',
+              loading: 'pinkquill-toast--loading',
             },
-            className: 'toast-notification',
           }}
         />
       </body>

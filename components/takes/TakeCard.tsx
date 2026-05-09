@@ -301,8 +301,7 @@ function TakeCard({
               portal
               items={[
                 {
-                  label: "Share take",
-                  description: "Open sharing options",
+                  label: "Share",
                   onSelect: () => setShowShareModal(true),
                   icon: (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,8 +312,7 @@ function TakeCard({
                   ),
                 },
                 {
-                  label: "Copy take link",
-                  description: "Copy a direct URL",
+                  label: "Copy link",
                   onSelect: () => navigator.clipboard.writeText(takeUrl),
                   icon: (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,7 +322,6 @@ function TakeCard({
                 },
                 {
                   label: "Not interested",
-                  description: "See fewer takes like this",
                   onSelect: () => onHide?.(),
                   hidden: isOwnTake || !onHide,
                   sectionLabel: "Personalize",
@@ -335,8 +332,7 @@ function TakeCard({
                   ),
                 },
                 {
-                  label: "Delete take",
-                  description: "Remove this take permanently",
+                  label: "Delete",
                   onSelect: () => setShowDeleteConfirm(true),
                   hidden: !isOwnTake,
                   tone: "danger",
@@ -348,8 +344,7 @@ function TakeCard({
                   ),
                 },
                 {
-                  label: "Report take",
-                  description: "Send this take to moderation",
+                  label: "Report",
                   onSelect: () => setShowReportModal(true),
                   hidden: isOwnTake,
                   tone: "danger",

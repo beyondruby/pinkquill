@@ -6,6 +6,7 @@ import { useFollowList, FollowUser } from "@/lib/hooks";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
+import Loading from "@/components/ui/Loading";
 
 interface FollowersModalProps {
   isOpen: boolean;
@@ -159,7 +160,7 @@ export default function FollowersModal({
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
+              <Loading size="small" text="" />
             </div>
           ) : displayUsers.length === 0 ? (
             <div className="text-center py-12 px-6">

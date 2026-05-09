@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useOrderStats, useSellerOrders, usePendingAcceptanceOrders, useAcceptOrder, useDeclineOrder } from "@/lib/hooks/useOrders";
 import { useSellerEarnings, useSellerOnboarding } from "@/lib/hooks/usePayments";
 import PendingOrderCard from "./PendingOrderCard";
+import Loading from "@/components/ui/Loading";
 import type { Order } from "@/lib/types/store";
 
 // ---------------------------------------------------------------------------
@@ -315,8 +316,8 @@ export default function SellerDashboard() {
         </div>
 
         {ordersLoading ? (
-          <div className="p-10 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-border-light border-t-purple-primary mx-auto" />
+          <div className="py-10 flex justify-center">
+            <Loading size="small" text="" />
           </div>
         ) : ordersError ? (
           <div className="p-10 text-center">

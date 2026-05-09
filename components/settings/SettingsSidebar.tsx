@@ -4,31 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const settingsItems = [
-  {
-    label: "Edit Profile",
-    href: "/settings/profile",
-    description: "Photo, name, bio",
-  },
-  {
-    label: "Account",
-    href: "/settings/account",
-    description: "Email, password",
-  },
-  {
-    label: "Appearance",
-    href: "/settings/appearance",
-    description: "Theme, color palette",
-  },
-  {
-    label: "Notifications",
-    href: "/settings/notifications",
-    description: "Push, email alerts",
-  },
-  {
-    label: "Privacy",
-    href: "/settings/privacy",
-    description: "Visibility, blocking",
-  },
+  { label: "Edit Profile", href: "/settings/profile" },
+  { label: "Account", href: "/settings/account" },
+  { label: "Appearance", href: "/settings/appearance" },
+  { label: "Notifications", href: "/settings/notifications" },
+  { label: "Privacy", href: "/settings/privacy" },
 ];
 
 export default function SettingsSidebar() {
@@ -58,7 +38,7 @@ export default function SettingsSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`block p-4 rounded-2xl mb-2 transition-all ${
+              className={`block px-4 py-3 rounded-2xl mb-1 transition-all ${
                 isActive
                   ? "bg-gradient-to-r from-accent to-accent-2 text-on-accent shadow-lg shadow-accent/20"
                   : "hover:bg-subtle"
@@ -68,11 +48,6 @@ export default function SettingsSidebar() {
                 isActive ? "text-on-accent" : "text-ink"
               }`}>
                 {item.label}
-              </span>
-              <span className={`font-body text-[0.8rem] mt-0.5 block ${
-                isActive ? "text-on-accent/70" : "text-muted"
-              }`}>
-                {item.description}
               </span>
             </Link>
           );

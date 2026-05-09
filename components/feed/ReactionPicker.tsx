@@ -399,10 +399,16 @@ export default function ReactionPicker({
             transform: 'translate(-50%, -100%)',
           }}
         >
-          <span className="block px-2.5 py-1.5 bg-ink text-white text-[0.7rem] font-ui font-medium rounded-lg whitespace-nowrap shadow-lg animate-fadeIn">
+          <span
+            className="block px-2.5 py-1.5 text-[0.7rem] font-ui font-medium rounded-lg whitespace-nowrap shadow-lg animate-fadeIn"
+            style={{ background: 'var(--color-toast-bg)', color: 'var(--color-toast-text)' }}
+          >
             {currentReaction ? getReactionLabel(currentReaction) : 'React'}
           </span>
-          <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-ink rotate-45" />
+          <span
+            className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 rotate-45"
+            style={{ background: 'var(--color-toast-bg)' }}
+          />
         </div>,
         document.body
       )}
@@ -522,10 +528,16 @@ export default function ReactionPicker({
             transform: 'translate(-50%, -100%)',
           }}
         >
-          <span className="block px-2 py-1 bg-ink text-white text-[0.65rem] font-ui font-medium rounded-md whitespace-nowrap shadow-lg animate-fadeIn">
+          <span
+            className="block px-2 py-1 text-[0.65rem] font-ui font-medium rounded-md whitespace-nowrap shadow-lg animate-fadeIn"
+            style={{ background: 'var(--color-toast-bg)', color: 'var(--color-toast-text)' }}
+          >
             {getReactionLabel(hoveredReaction)}
           </span>
-          <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-ink rotate-45" />
+          <span
+            className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 rotate-45"
+            style={{ background: 'var(--color-toast-bg)' }}
+          />
         </div>,
         document.body
       )}

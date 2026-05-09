@@ -14,6 +14,7 @@ import {
   COMMISSION_CATEGORIES,
   getAllCommissionCategories,
 } from "@/lib/commissions/categories";
+import Loading from "@/components/ui/Loading";
 
 const MAX_MEDIA = 10;
 const ACCEPTED_MEDIA_TYPES = [
@@ -412,7 +413,7 @@ export default function CreateCommissionWizard({
   if (isEditMode && !initialProduct) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50/60 via-surface to-pink-50/50 flex items-center justify-center px-6">
-        <div className="w-10 h-10 rounded-full border-2 border-border-strong border-t-[var(--color-pink-vivid)] animate-spin" />
+        <Loading text="Pulling up your commission" />
       </div>
     );
   }

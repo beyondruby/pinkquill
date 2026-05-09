@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
+import Loading from "@/components/ui/Loading";
 
 interface User {
   id: string;
@@ -304,7 +305,7 @@ export default function NewMessageModal({
         >
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
+              <Loading size="small" text="" />
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-8">

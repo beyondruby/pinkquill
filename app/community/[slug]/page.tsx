@@ -10,6 +10,7 @@ import { useTrackCommunityView } from "@/lib/hooks/useTracking";
 import PostCard from "@/components/feed/PostCard";
 
 import TimeRangeDropdown from "@/components/communities/TimeRangeDropdown";
+import Loading from "@/components/ui/Loading";
 import type { TopTimeRange } from "@/lib/types";
 
 type SortOption = 'newest' | 'hot' | 'top';
@@ -335,12 +336,8 @@ export default function CommunityFeedPage() {
 
         {/* Posts */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="relative">
-              <div className="w-12 h-12 rounded-full border-4 border-purple-primary/20 border-t-purple-primary animate-spin" />
-              <div className="absolute inset-0 w-12 h-12 rounded-full border-4 border-transparent border-r-pink-vivid/40 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
-            </div>
-            <p className="font-ui text-sm text-muted">Loading posts...</p>
+          <div className="flex justify-center py-16">
+            <Loading text="Gathering posts" />
           </div>
         ) : posts.length > 0 ? (
           <div className="space-y-5">

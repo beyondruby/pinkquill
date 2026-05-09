@@ -545,15 +545,12 @@ function CollectionCard({
               {/* Owner menu */}
               {isOwnProfile && (
                 <ActionMenu
-                  label={collection.name}
-                  description="Collection actions"
-                  widthClassName="w-60"
+                  widthClassName="w-44"
                   buttonClassName="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
                   buttonIconClassName="w-5 h-5"
                   items={[
                     {
-                      label: "Edit collection",
-                      description: "Name, description, and cover",
+                      label: "Edit",
                       onSelect: () => router.push(`/studio/${username}/collections/${collection.slug}/edit`),
                       icon: (
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -562,8 +559,7 @@ function CollectionCard({
                       ),
                     },
                     {
-                      label: "Delete collection",
-                      description: "Remove this collection",
+                      label: "Delete",
                       onSelect: () => setShowDeleteConfirm(true),
                       tone: "danger",
                       dividerBefore: true,
@@ -689,9 +685,9 @@ function CollectionCard({
           setCollectionDeleting(false);
           setShowDeleteConfirm(false);
         }}
-        title="Delete Collection?"
-        description="This action cannot be undone. This will permanently delete this collection and all its items."
-        confirmText="Delete"
+        title="Pull this collection from your studio?"
+        description="The collection and every piece inside it will leave your shelves for good. No way to set it back up."
+        confirmText="Erase it"
         isDanger
         loading={collectionDeleting}
       />
@@ -1195,21 +1191,18 @@ export default function StudioProfile({ username }: StudioProfileProps) {
             )}
 
             <ActionMenu
-              label={profile.display_name || profile.username}
-              description="Profile actions"
-              widthClassName="w-72"
+              widthClassName="w-52"
               buttonAriaLabel="Profile actions"
+              portal
               buttonClassName="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-border-light bg-surface flex items-center justify-center text-ink hover:border-accent hover:text-accent transition-all"
               items={[
                 {
-                  label: "Share profile",
-                  description: "Open sharing options",
+                  label: "Share",
                   onSelect: () => setShowShareModal(true),
                   icon: icons.share,
                 },
                 {
-                  label: "Copy profile link",
-                  description: "Save this profile URL",
+                  label: "Copy link",
                   onSelect: () => navigator.clipboard.writeText(profileUrl),
                   icon: (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1219,7 +1212,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 },
                 {
                   label: "Appearance",
-                  description: "Themes and display preferences",
                   href: "/settings/appearance",
                   hidden: !isOwnProfile,
                   sectionLabel: "Settings",
@@ -1231,7 +1223,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 },
                 {
                   label: `${isBlocked ? "Unblock" : "Block"} @${profile.username}`,
-                  description: isBlocked ? "Allow this creator to interact again" : "Stop profile and message interactions",
                   onSelect: () => {
                     if (isBlocked) {
                       handleBlock();
@@ -1251,7 +1242,6 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 },
                 {
                   label: `Report @${profile.username}`,
-                  description: "Send this profile to moderation",
                   onSelect: () => setShowReportModal(true),
                   hidden: isOwnProfile || !user,
                   tone: "danger",
@@ -2713,33 +2703,33 @@ export default function StudioProfile({ username }: StudioProfileProps) {
       {showBlockConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] animate-fadeIn"
             onClick={() => !blockLoading && setShowBlockConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] bg-elevated rounded-2xl shadow-2xl z-[1001] p-6">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-[1001] p-7 animate-scaleIn">
             <h3 className="font-display text-xl text-ink mb-3">
-              Block @{profile.username}?
+              Close the door on @{profile.username}?
             </h3>
-            <p className="font-body text-sm text-muted mb-6">
-              They won&apos;t be able to see your posts, follow you, or message you. They won&apos;t be notified that you blocked them.
+            <p className="font-body text-[0.95rem] text-muted leading-relaxed mb-7">
+              Their posts vanish from your feed and yours from theirs. They won&apos;t be able to follow you, message you, or knock again — and we won&apos;t tell them.
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-2.5">
               <button
                 onClick={() => setShowBlockConfirm(false)}
                 disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleBlock}
                 disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-all disabled:opacity-70 flex items-center gap-2 shadow-sm hover:shadow-md hover:shadow-red-500/20"
               >
                 {blockLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Blocking...
+                    Closing...
                   </>
                 ) : (
                   "Block"

@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useProduct } from "@/lib/hooks/useProducts";
 import CreateProductWizard from "@/components/store/CreateProduct/CreateProductWizard";
 import CreateCommissionWizard from "@/components/commissions/CreateCommission/CreateCommissionWizard";
+import Loading from "@/components/ui/Loading";
 
 interface EditListingPageProps {
   listingId: string;
@@ -27,7 +28,7 @@ export default function EditListingPage({ listingId }: EditListingPageProps) {
   if (authLoading || listingLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-border-strong border-t-[var(--color-pink-vivid)] animate-spin" />
+        <Loading text="Opening your listing" />
       </div>
     );
   }

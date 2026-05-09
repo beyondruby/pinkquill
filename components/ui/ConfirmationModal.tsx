@@ -14,11 +14,6 @@ interface ConfirmationModalProps {
   loading?: boolean;
 }
 
-/**
- * Reusable confirmation modal matching Quill's branding.
- * Uses purple-primary/pink-vivid gradient for primary actions,
- * solid red for danger actions.
- */
 export default function ConfirmationModal({
   isOpen,
   onClose,
@@ -61,74 +56,42 @@ export default function ConfirmationModal({
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2100] animate-fadeIn"
         onClick={loading ? undefined : onClose}
         aria-hidden="true"
       />
-      {/* Modal */}
       <div
         ref={modalRef}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw] bg-surface rounded-2xl shadow-2xl z-[2101] overflow-hidden animate-scaleIn"
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-[2101] overflow-hidden animate-scaleIn"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirmation-modal-title"
         aria-describedby="confirmation-modal-description"
         tabIndex={-1}
       >
-        {/* Header accent bar */}
-        <div
-          className={`h-1 w-full ${
-            isDanger
-              ? "bg-gradient-to-r from-red-500 to-pink-vivid"
-              : "bg-gradient-to-r from-purple-primary to-pink-vivid"
-          }`}
-        />
-
-        <div className="p-6">
-          {/* Icon + Title */}
+        <div className="p-7">
           <div className="flex items-center gap-3 mb-3">
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${
                 isDanger
-                  ? "bg-red-50"
-                  : "bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10"
+                  ? "bg-red-50 text-red-500"
+                  : "bg-purple-50 text-purple-primary"
               }`}
             >
               {isDanger ? (
-                <svg
-                  className="w-5 h-5 text-red-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                 </svg>
               ) : (
-                <svg
-                  className="w-5 h-5 text-purple-primary"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
                 </svg>
               )}
             </div>
             <h3
               id="confirmation-modal-title"
-              className="font-display text-lg font-semibold text-ink"
+              className="font-display text-xl text-ink leading-tight"
             >
               {title}
             </h3>
@@ -136,17 +99,16 @@ export default function ConfirmationModal({
 
           <p
             id="confirmation-modal-description"
-            className="font-body text-sm text-muted leading-relaxed mb-6 ml-[52px]"
+            className="font-body text-[0.95rem] text-muted leading-relaxed mb-7 ml-[56px]"
           >
             {description}
           </p>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-2.5">
             <button
               onClick={onClose}
               disabled={loading}
-              className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-muted hover:text-ink border border-border-light hover:border-border-strong bg-surface hover:bg-subtle transition-all disabled:opacity-50"
+              className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all disabled:opacity-50"
             >
               {cancelText}
             </button>
@@ -177,7 +139,7 @@ export default function ConfirmationModal({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  {isDanger ? "Deleting..." : "Processing..."}
+                  {isDanger ? "Erasing..." : "Working..."}
                 </>
               ) : (
                 confirmText

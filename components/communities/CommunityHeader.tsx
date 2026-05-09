@@ -73,8 +73,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
 
   const communityMenuItems: ActionMenuItem[] = [
     {
-      label: copied ? "Link copied" : "Copy community link",
-      description: "Share this space with someone",
+      label: copied ? "Link copied" : "Copy link",
       onSelect: handleShare,
       tone: copied ? "success" : "default",
       icon: copied ? (
@@ -91,7 +90,6 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
     },
     {
       label: "Invite people",
-      description: "Open the members area",
       href: `/community/${community.slug}/members`,
       hidden: !community.is_member,
       icon: (
@@ -101,8 +99,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
       ),
     },
     {
-      label: "Community settings",
-      description: "Moderation, flairs, rules, and chat",
+      label: "Settings",
       href: `/community/${community.slug}/settings`,
       hidden: !(isAdmin || isMod),
       sectionLabel: "Manage",
@@ -114,8 +111,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
       ),
     },
     {
-      label: "Report community",
-      description: "Tell moderators about a problem",
+      label: "Report",
       onSelect: () => setShowReportModal(true),
       hidden: !userId || isAdmin,
       tone: "danger",
@@ -155,11 +151,10 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
         {/* Top right - Menu button */}
         <div className="absolute top-6 right-6 z-20">
           <ActionMenu
-            label={community.name}
-            description="Community actions"
             items={communityMenuItems}
-            widthClassName="w-72"
+            widthClassName="w-52"
             buttonAriaLabel="Community actions"
+            portal
             buttonClassName="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-sm hover:bg-surface/30 flex items-center justify-center text-white transition-all border border-surface/20"
           />
         </div>

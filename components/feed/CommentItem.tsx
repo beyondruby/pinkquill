@@ -291,7 +291,6 @@ function CommentItemComponent({
                     items={[
                       {
                         label: "Copy comment link",
-                        description: "Copy a direct link",
                         onSelect: () => navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?comment=${comment.id}`),
                         icon: (
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,7 +300,6 @@ function CommentItemComponent({
                       },
                       {
                         label: "Delete comment",
-                        description: "Remove your comment",
                         onSelect: handleDelete,
                         hidden: !isOwner || !onDelete,
                         tone: "danger",
@@ -314,7 +312,6 @@ function CommentItemComponent({
                       },
                       {
                         label: "Delete as mod",
-                        description: "Remove this with moderation tools",
                         onSelect: () => setShowModDeleteModal(true),
                         hidden: !canModerateDelete || !onModeratorDelete,
                         tone: "warning",
@@ -328,7 +325,6 @@ function CommentItemComponent({
                       },
                       {
                         label: `Block @${comment.author.username}`,
-                        description: "Stop profile and comment interactions",
                         onSelect: () => setShowBlockConfirm(true),
                         hidden: isOwner,
                         tone: "warning",
@@ -342,7 +338,6 @@ function CommentItemComponent({
                       },
                       {
                         label: "Report comment",
-                        description: "Send this comment to moderation",
                         onSelect: () => setShowReportModal(true),
                         hidden: isOwner,
                         tone: "danger",

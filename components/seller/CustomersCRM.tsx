@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerCustomers } from "@/lib/hooks/useSellerCustomers";
+import Loading from "@/components/ui/Loading";
 import type { SellerCustomer } from "@/lib/hooks/useSellerCustomers";
 
 // ---------------------------------------------------------------------------
@@ -336,8 +337,8 @@ export default function CustomersCRM() {
         </div>
 
         {loading ? (
-          <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-border-light border-t-purple-primary mx-auto" />
+          <div className="py-12 flex justify-center">
+            <Loading size="small" text="" />
           </div>
         ) : error ? (
           <div className="p-12 text-center">
