@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
-import { useToggleAdmire, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, createNotification, useBlock, ReactionType, ReactionCounts } from "@/lib/hooks";
+import { useToggleAdmire, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, createNotification, useBlock, removeSelfAsCollaborator, ReactionType, ReactionCounts } from "@/lib/hooks";
 import { usePostViewTracker, useTrackPostImpression } from "@/lib/hooks/useTracking";
 
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
@@ -22,7 +22,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 import { supabase } from "@/lib/supabase";
 import { PostType } from "@/lib/types";
 import { deleteOwnPost } from "@/lib/posts-client";
-import { actionToast } from "@/lib/utils/toast";
+import { actionToast, showToast } from "@/lib/utils/toast";
 import {
   MentionsDisplay,
   HashtagsDisplay,
@@ -174,10 +174,19 @@ function PostCardComponent({
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
+  const [showRemoveCollabConfirm, setShowRemoveCollabConfirm] = useState(false);
+  const [removingCollab, setRemovingCollab] = useState(false);
 
   const { blockUser } = useBlock();
   const reportTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isOwner = user && user.id === post.authorId;
+  const isAcceptedCollaborator = useMemo(() => {
+    if (!user || !post.collaborators?.length) return false;
+    if (user.id === post.authorId) return false;
+    return post.collaborators.some(
+      (c) => c.user?.id === user.id && c.status === "accepted"
+    );
+  }, [user, post.collaborators, post.authorId]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -527,6 +536,26 @@ function PostCardComponent({
     setBlockLoading(false);
   }, [user, blockUser, post.authorId, post.author.handle, post.id, onPostDeleted]);
 
+  const handleRemoveSelfAsCollaborator = useCallback(async () => {
+    if (!user || !isAcceptedCollaborator) return;
+
+    setRemovingCollab(true);
+    const result = await removeSelfAsCollaborator(post.id, user.id, post.authorId);
+    if (result.success) {
+      setShowRemoveCollabConfirm(false);
+      showToast.success(
+        "Removed from collaboration",
+        "This post no longer appears on your profile."
+      );
+    } else {
+      showToast.error(
+        "Couldn't remove you from this post",
+        "Please try again."
+      );
+    }
+    setRemovingCollab(false);
+  }, [user, isAcceptedCollaborator, post.id, post.authorId]);
+
   // Mentions and hashtags from post data (passed to extracted components)
 
   // Actions component reused across post types (now includes mentions and hashtags display)
@@ -668,6 +697,29 @@ function PostCardComponent({
 
     if (!user) return items;
 
+    if (isAcceptedCollaborator) {
+      items.push({
+        label: "Remove me from this collab",
+        description: "This post will no longer appear on your profile",
+        onSelect: () => setShowRemoveCollabConfirm(true),
+        sectionLabel: "Collaboration",
+        dividerBefore: items.length > 0,
+        tone: "warning" as const,
+        icon: (
+          <svg
+            className="w-4 h-4"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14 8a4 4 0 11-8 0 4 4 0 018 0zM2 20v-1a5 5 0 015-5h2a5 5 0 015 5v1M16 11h6" />
+          </svg>
+        ),
+      });
+    }
+
     items.push({
       label: `Block @${post.author.handle.replace("@", "")}`,
       onSelect: () => setShowBlockConfirm(true),
@@ -700,6 +752,7 @@ function PostCardComponent({
     canModerateDelete,
     handleEdit,
     isOwner,
+    isAcceptedCollaborator,
     isPinned,
     onModeratorDelete,
     onPin,
@@ -1299,6 +1352,20 @@ function PostCardComponent({
             </div>
           </div>
         </>
+      )}
+
+      {showRemoveCollabConfirm && (
+        <ConfirmationModal
+          isOpen={showRemoveCollabConfirm}
+          onClose={() => !removingCollab && setShowRemoveCollabConfirm(false)}
+          onConfirm={handleRemoveSelfAsCollaborator}
+          title="Remove yourself from this collab?"
+          description={`This post will no longer appear on your profile, and @${post.author.handle.replace('@', '')} will be notified. The post itself will stay published.`}
+          confirmText="Remove me"
+          cancelText="Cancel"
+          isDanger
+          loading={removingCollab}
+        />
       )}
     </>
   );

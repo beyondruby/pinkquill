@@ -320,6 +320,7 @@ export type NotificationType =
   | "collaboration_invite"
   | "collaboration_accepted"
   | "collaboration_declined"
+  | "collaboration_removed"
   | "mention"
   | "order_pending_acceptance"
   | "order_accepted"

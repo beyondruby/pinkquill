@@ -291,7 +291,10 @@ export {
   useMentions,
   useMentionedPosts,
   fetchCollaboratedPosts,
+  removeSelfAsCollaborator,
+  COLLAB_SELF_REMOVED_EVENT,
 } from "./hooks.legacy";
+export type { CollabSelfRemovedDetail } from "./hooks.legacy";
 
 // User search
 export { useUserSearch, saveCollaboratorsAndMentions } from "./hooks.legacy";

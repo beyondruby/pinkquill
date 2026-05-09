@@ -413,6 +413,21 @@ const icons = {
       <path d="M16.5 14.5l3 3M19.5 14.5l-3 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
+  collaborationRemoved: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="collabRemoveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#777777" />
+          <stop offset="100%" stopColor="#c0392b" />
+        </linearGradient>
+      </defs>
+      <circle cx="9" cy="7" r="3" fill="url(#collabRemoveGrad)" opacity="0.6" />
+      <circle cx="15" cy="7" r="3" fill="url(#collabRemoveGrad)" opacity="0.35" />
+      <path d="M5.5 21v-1a4 4 0 0 1 4-4h5a4 4 0 0 1 4 4v1" stroke="url(#collabRemoveGrad)" strokeWidth="2" strokeLinecap="round" opacity="0.55" />
+      <circle cx="18" cy="16" r="4" fill="url(#collabRemoveGrad)" />
+      <path d="M15.5 16h5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  ),
   mention: (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
       <defs>
@@ -651,6 +666,8 @@ function getNotificationIcon(type: string) {
       return icons.collaborationAccepted;
     case 'collaboration_declined':
       return icons.collaborationDeclined;
+    case 'collaboration_removed':
+      return icons.collaborationRemoved;
     case 'mention':
       return icons.mention;
     case 'order_pending_acceptance':
@@ -740,6 +757,8 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
       return { actor: actorName, action: `accepted your collaboration invite` };
     case 'collaboration_declined':
       return { actor: actorName, action: `declined your collaboration invite` };
+    case 'collaboration_removed':
+      return { actor: actorName, action: `removed themselves from your ${postType}` };
     case 'mention':
       return { actor: actorName, action: `mentioned you in their ${postType}` };
     case 'order_pending_acceptance':
@@ -836,6 +855,7 @@ function NotificationItem({
     if (notification.type === 'collaboration_invite' ||
         notification.type === 'collaboration_accepted' ||
         notification.type === 'collaboration_declined' ||
+        notification.type === 'collaboration_removed' ||
         notification.type === 'mention') {
       if (notification.post_id) {
         return `/post/${notification.post_id}`;

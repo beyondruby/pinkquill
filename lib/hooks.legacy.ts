@@ -2690,6 +2690,61 @@ export async function saveCollaboratorsAndMentions(
 }
 
 // ============================================
+// HELPER: Self-removal from a collaboration
+// ============================================
+
+// Browser event broadcast after a successful self-removal so any open profile
+// view can drop the post from its collaborated-posts list without a full refetch.
+export const COLLAB_SELF_REMOVED_EVENT = 'pinkquill:collab-self-removed';
+
+export interface CollabSelfRemovedDetail {
+  postId: string;
+  userId: string;
+}
+
+export async function removeSelfAsCollaborator(
+  postId: string,
+  userId: string,
+  authorId: string
+): Promise<{ success: true } | { success: false; error: unknown }> {
+  if (!postId || !userId) {
+    return { success: false, error: new Error('Missing postId or userId') };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('post_collaborators')
+      .delete()
+      .eq('post_id', postId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    if (authorId && authorId !== userId) {
+      try {
+        await createNotification(authorId, userId, 'collaboration_removed', postId);
+      } catch (notifyErr) {
+        // Notification is best-effort; the removal itself succeeded.
+        console.warn('[removeSelfAsCollaborator] Failed to notify author:', notifyErr);
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent<CollabSelfRemovedDetail>(COLLAB_SELF_REMOVED_EVENT, {
+          detail: { postId, userId },
+        })
+      );
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('[removeSelfAsCollaborator] Error:', err);
+    return { success: false, error: err };
+  }
+}
+
+// ============================================
 // HELPER: Fetch posts with collaborators for profile
 // ============================================
 

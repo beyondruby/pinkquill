@@ -8,7 +8,8 @@ import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
-import { useComments, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, ReactionType } from "@/lib/hooks";
+import { useComments, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, useBlock, createNotification, removeSelfAsCollaborator, ReactionType } from "@/lib/hooks";
+import { showToast } from "@/lib/utils/toast";
 import type { PostUpdate } from "@/components/providers/ModalProvider";
 import CommentItem from "@/components/feed/CommentItem";
 import ReactionPicker from "@/components/feed/ReactionPicker";
@@ -332,6 +333,8 @@ function PostDetailModalComponent({
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
+  const [showRemoveCollabConfirm, setShowRemoveCollabConfirm] = useState(false);
+  const [removingCollab, setRemovingCollab] = useState(false);
   const [showContent, setShowContent] = useState(true);
 
   const { blockUser } = useBlock();
@@ -348,6 +351,18 @@ function PostDetailModalComponent({
   const hasMedia = post?.media && post.media.length > 0;
   const postUrl = typeof window !== 'undefined' && post ? `${window.location.origin}/post/${post.id}` : '';
   const isOwner = user && post?.authorId && user.id === post.authorId;
+  const isAcceptedCollaborator = !!(
+    user &&
+    post?.collaborators?.some(
+      (c) =>
+        c.user?.id === user.id &&
+        // Modal `CollaboratorUser` doesn't have `status`, but the data flowing in
+        // via `fetchCollaboratedPosts` does — only "accepted" collaborators end up
+        // on a user's profile, so absence of `status` is treated as accepted too.
+        ((c as { status?: string }).status === undefined || (c as { status?: string }).status === "accepted")
+    ) &&
+    post?.authorId !== user.id
+  );
 
   // Sync state when post changes
   useEffect(() => {
@@ -442,6 +457,27 @@ function PostDetailModalComponent({
     }
   }, [user, post?.authorId, blockUser, onClose]);
 
+  const handleRemoveSelfAsCollaborator = useCallback(async () => {
+    if (!user || !post?.id || !post?.authorId || !isAcceptedCollaborator) return;
+
+    setRemovingCollab(true);
+    const result = await removeSelfAsCollaborator(post.id, user.id, post.authorId);
+    if (result.success) {
+      setShowRemoveCollabConfirm(false);
+      showToast.success(
+        "Removed from collaboration",
+        "This post no longer appears on your profile."
+      );
+      onClose();
+    } else {
+      showToast.error(
+        "Couldn't remove you from this post",
+        "Please try again."
+      );
+    }
+    setRemovingCollab(false);
+  }, [user, post?.id, post?.authorId, isAcceptedCollaborator, onClose]);
+
   const postMenuItems: ActionMenuItem[] = isOwner
     ? [
         {
@@ -458,10 +494,33 @@ function PostDetailModalComponent({
       ]
     : user
       ? [
+          ...(isAcceptedCollaborator
+            ? [
+                {
+                  label: "Remove me from this collab",
+                  description: "This post will no longer appear on your profile",
+                  onSelect: () => setShowRemoveCollabConfirm(true),
+                  icon: (
+                    <svg
+                      className="w-4 h-4"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 8a4 4 0 11-8 0 4 4 0 018 0zM2 20v-1a5 5 0 015-5h2a5 5 0 015 5v1M16 11h6" />
+                    </svg>
+                  ),
+                  tone: "warning" as const,
+                },
+              ]
+            : []),
           {
             label: "Block",
             onSelect: () => setShowBlockConfirm(true),
             icon: icons.block,
+            dividerBefore: isAcceptedCollaborator,
           },
           {
             label: "Report",
@@ -1301,6 +1360,21 @@ function PostDetailModalComponent({
       isDanger
       loading={deleting}
     />
+
+    {/* Remove-self-from-collaboration Confirmation */}
+    {post && (
+      <ConfirmationModal
+        isOpen={showRemoveCollabConfirm}
+        onClose={() => !removingCollab && setShowRemoveCollabConfirm(false)}
+        onConfirm={handleRemoveSelfAsCollaborator}
+        title="Remove yourself from this collab?"
+        description={`This post will no longer appear on your profile, and @${post.author.handle.replace('@', '')} will be notified. The post itself will stay published.`}
+        confirmText="Remove me"
+        cancelText="Cancel"
+        isDanger
+        loading={removingCollab}
+      />
+    )}
 
     {/* Block Confirmation Modal */}
     {showBlockConfirm && (

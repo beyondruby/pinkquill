@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { useProfile, useFollow, useRelays, useBlock, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, usePinnedPosts, useReorderCollections } from "@/lib/hooks";
+import { useProfile, useFollow, useRelays, useBlock, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, usePinnedPosts, useReorderCollections, COLLAB_SELF_REMOVED_EVENT, type CollabSelfRemovedDetail } from "@/lib/hooks";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
 import { getTimeAgo } from "@/lib/utils/time";
@@ -935,6 +935,20 @@ export default function StudioProfile({ username }: StudioProfileProps) {
     loadCollaboratedPosts();
   }, [profile?.id]);
 
+  // Drop a post from the collaborated-posts grid as soon as the profile owner
+  // removes themselves from it. The PostCard / PostDetailModal dispatches a
+  // browser CustomEvent on success.
+  useEffect(() => {
+    if (!profile?.id) return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<CollabSelfRemovedDetail>).detail;
+      if (!detail || detail.userId !== profile.id) return;
+      setCollaboratedPosts((prev) => prev.filter((p) => p.id !== detail.postId));
+    };
+    window.addEventListener(COLLAB_SELF_REMOVED_EVENT, handler);
+    return () => window.removeEventListener(COLLAB_SELF_REMOVED_EVENT, handler);
+  }, [profile?.id]);
+
   const handleBlock = async () => {
     if (!user || !profile) return;
 
@@ -1715,6 +1729,10 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     avatar_url: work.community.avatar_url,
                   } : undefined,
                   flair: work.flair || undefined,
+                  // Pass through collaborators so the post detail modal can offer
+                  // the "Remove me from this collab" action when the viewer is
+                  // an accepted collaborator.
+                  collaborators: work.collaborators,
                 };
               };
 
