@@ -699,8 +699,7 @@ function PostCardComponent({
 
     if (isAcceptedCollaborator) {
       items.push({
-        label: "Remove me from this collab",
-        description: "This post will no longer appear on your profile",
+        label: "Remove me as collaborator",
         onSelect: () => setShowRemoveCollabConfirm(true),
         sectionLabel: "Collaboration",
         dividerBefore: items.length > 0,

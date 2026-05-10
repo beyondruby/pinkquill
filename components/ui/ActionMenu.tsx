@@ -244,13 +244,6 @@ export default function ActionMenu({
       onClick={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
     >
-      {(label || description) && (
-        <div className="px-3 pt-2.5 pb-2 border-b border-border-light/70">
-          {label && <p className="font-display text-sm font-semibold text-ink leading-tight">{label}</p>}
-          {description && <p className="mt-0.5 font-body text-xs text-muted leading-snug">{description}</p>}
-        </div>
-      )}
-
       {visibleItems.map((item, index) => {
         const tone = item.tone || "default";
         const previousSectionLabel = visibleItems[index - 1]?.sectionLabel;

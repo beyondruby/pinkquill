@@ -497,8 +497,7 @@ function PostDetailModalComponent({
           ...(isAcceptedCollaborator
             ? [
                 {
-                  label: "Remove me from this collab",
-                  description: "This post will no longer appear on your profile",
+                  label: "Remove me as collaborator",
                   onSelect: () => setShowRemoveCollabConfirm(true),
                   icon: (
                     <svg

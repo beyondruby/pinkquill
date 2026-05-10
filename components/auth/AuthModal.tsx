@@ -151,22 +151,26 @@ export default function AuthModal() {
                     <label htmlFor="auth-modal-username" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Username</label>
                     <input
                       id="auth-modal-username"
+                      name="username"
                       type="text"
+                      autoComplete="username"
                       value={username}
                       onChange={(e) => actions.setUsername(e.target.value)}
-                      placeholder="@poet"
+                      placeholder="Username"
                       required={!isLogin}
                       className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                     />
                   </div>
                   <div>
-                    <label htmlFor="auth-modal-display-name" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Display Name</label>
+                    <label htmlFor="auth-modal-display-name" className="text-[0.6rem] uppercase tracking-wider font-bold text-muted ml-1">Full Name</label>
                     <input
                       id="auth-modal-display-name"
+                      name="name"
                       type="text"
+                      autoComplete="name"
                       value={displayName}
                       onChange={(e) => actions.setDisplayName(e.target.value)}
-                      placeholder="Jane Doe"
+                      placeholder="Full Name"
                       required={!isLogin}
                       className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                     />
@@ -180,10 +184,13 @@ export default function AuthModal() {
                 </label>
                 <input
                   id="auth-modal-identifier"
+                  name={isLogin ? "identifier" : "email"}
                   type={isLogin ? "text" : "email"}
+                  autoComplete={isLogin ? "username" : "email"}
+                  inputMode={isLogin ? undefined : "email"}
                   value={emailOrUsername}
                   onChange={(e) => actions.setEmailOrUsername(e.target.value)}
-                  placeholder={isLogin ? "Email or username" : "your@email.com"}
+                  placeholder={isLogin ? "Email or Username" : "Email"}
                   required
                   className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                 />
@@ -194,10 +201,12 @@ export default function AuthModal() {
                 <div className="relative">
                   <input
                     id="auth-modal-password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete={isLogin ? "current-password" : "new-password"}
                     value={password}
                     onChange={(e) => actions.setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Password"
                     required
                     minLength={isLogin ? undefined : PASSWORD_MIN_LENGTH}
                     className="w-full px-3 py-2.5 pr-10 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
@@ -205,6 +214,8 @@ export default function AuthModal() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted/40 hover:text-accent transition-colors"
                   >
                     <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-4 h-4" />
@@ -242,6 +253,20 @@ export default function AuthModal() {
                   </>
                 )}
               </button>
+
+              {!isLogin && (
+                <p className="font-body text-xs text-muted text-center leading-relaxed px-2">
+                  By creating an account, you agree to our{" "}
+                  <Link href="/terms" className="font-medium text-ink hover:text-accent underline underline-offset-2 transition-colors">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" className="font-medium text-ink hover:text-accent underline underline-offset-2 transition-colors">
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
+              )}
 
               <div className="text-center pt-2">
                 <p className="font-ui text-sm text-muted">

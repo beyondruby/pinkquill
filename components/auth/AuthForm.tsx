@@ -138,22 +138,26 @@ export default function AuthForm() {
                         <label htmlFor="auth-form-username" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Username</label>
                         <input
                           id="auth-form-username"
+                          name="username"
                           type="text"
+                          autoComplete="username"
                           value={username}
                           onChange={(e) => actions.setUsername(e.target.value)}
-                          placeholder="@yourname"
+                          placeholder="Username"
                           required={!isLogin}
                           className="w-full px-4 py-3 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label htmlFor="auth-form-display-name" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Display Name</label>
+                        <label htmlFor="auth-form-display-name" className="text-[0.65rem] uppercase tracking-wider font-bold text-muted ml-1">Full Name</label>
                         <input
                           id="auth-form-display-name"
+                          name="name"
                           type="text"
+                          autoComplete="name"
                           value={displayName}
                           onChange={(e) => actions.setDisplayName(e.target.value)}
-                          placeholder="Jane Doe"
+                          placeholder="Full Name"
                           required={!isLogin}
                           className="w-full px-4 py-3 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                         />
@@ -167,10 +171,13 @@ export default function AuthForm() {
                     </label>
                     <input
                       id="auth-form-identifier"
+                      name={isLogin ? "identifier" : "email"}
                       type={isLogin ? "text" : "email"}
+                      autoComplete={isLogin ? "username" : "email"}
+                      inputMode={isLogin ? undefined : "email"}
                       value={emailOrUsername}
                       onChange={(e) => actions.setEmailOrUsername(e.target.value)}
-                      placeholder={isLogin ? "Email or username" : "Email"}
+                      placeholder={isLogin ? "Email or Username" : "Email"}
                       required
                       className="w-full px-4 py-3 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                     />
@@ -181,10 +188,12 @@ export default function AuthForm() {
                     <div className="relative">
                       <input
                         id="auth-form-password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
+                        autoComplete={isLogin ? "current-password" : "new-password"}
                         value={password}
                         onChange={(e) => actions.setPassword(e.target.value)}
-                        placeholder="••••••••"
+                        placeholder="Password"
                         required
                         minLength={isLogin ? undefined : PASSWORD_MIN_LENGTH}
                         className="w-full px-4 py-3 pr-11 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
@@ -192,6 +201,8 @@ export default function AuthForm() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-pressed={showPassword}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted/40 hover:text-accent transition-colors p-1"
                       >
                         <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} className="w-4 h-4" />
@@ -241,6 +252,20 @@ export default function AuthForm() {
                       </>
                     )}
                   </button>
+
+                  {!isLogin && (
+                    <p className="font-body text-xs text-muted text-center leading-relaxed px-2">
+                      By creating an account, you agree to our{" "}
+                      <Link href="/terms" className="font-medium text-ink hover:text-accent underline underline-offset-2 transition-colors">
+                        Terms of Service
+                      </Link>{" "}
+                      and{" "}
+                      <Link href="/privacy" className="font-medium text-ink hover:text-accent underline underline-offset-2 transition-colors">
+                        Privacy Policy
+                      </Link>
+                      .
+                    </p>
+                  )}
                 </form>
 
                 <div className="mt-8 pt-6 border-t border-gray-100 text-center">
@@ -294,6 +319,8 @@ export default function AuthForm() {
                       ref={(el) => { otpInputRefs.current[index] = el; }}
                       type="text"
                       inputMode="numeric"
+                      autoComplete={index === 0 ? "one-time-code" : "off"}
+                      aria-label={`Digit ${index + 1} of verification code`}
                       maxLength={1}
                       value={digit}
                       onChange={(e) => actions.handleOtpChange(index, e.target.value, otpInputRefs)}
@@ -383,10 +410,13 @@ export default function AuthForm() {
                     </label>
                     <input
                       id="auth-form-forgot-email"
+                      name="email"
                       type="email"
+                      autoComplete="email"
+                      inputMode="email"
                       value={emailOrUsername}
                       onChange={(e) => actions.setEmailOrUsername(e.target.value)}
-                      placeholder="your@email.com"
+                      placeholder="Email"
                       required
                       className="w-full px-4 py-3 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all duration-300"
                     />
