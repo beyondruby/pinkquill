@@ -957,6 +957,7 @@ export function useProfileInsights(
     setError(null);
 
     try {
+      const exclusiveEndDate = getExclusiveEndDate(endDate);
       // Fetch profile views
       const [profileViewsResult, followerHistoryResult, followerCountResult] =
         await Promise.all([
@@ -992,8 +993,19 @@ export function useProfileInsights(
       const takeIds = (takesResult.data || []).map((t) => t.id);
 
       // Fetch content metrics
-      const [postViewsResult, takeViewsResult, admireResult, commentResult] =
-        await Promise.all([
+      const [
+        postViewsResult,
+        takeViewsResult,
+        postImpressionsResult,
+        takeImpressionsResult,
+        postReactionsResult,
+        admireResult,
+        commentResult,
+        saveResult,
+        takeReactionsResult,
+        takeCommentsResult,
+        takeSavesResult,
+      ] = await Promise.all([
           postIds.length > 0
             ? supabase
                 .from("post_views")
@@ -1012,15 +1024,75 @@ export function useProfileInsights(
             : { data: [] },
           postIds.length > 0
             ? supabase
+                .from("post_impressions")
+                .select("id", { count: "exact", head: true })
+                .in("post_id", postIds)
+                .gte("created_at", startDate)
+                .lt("created_at", exclusiveEndDate)
+            : { count: 0 },
+          takeIds.length > 0
+            ? supabase
+                .from("take_impressions")
+                .select("id", { count: "exact", head: true })
+                .in("take_id", takeIds)
+                .gte("created_at", startDate)
+                .lt("created_at", exclusiveEndDate)
+            : { count: 0 },
+          postIds.length > 0
+            ? supabase
+                .from("reactions")
+                .select("id", { count: "exact", head: true })
+                .in("post_id", postIds)
+                .gte("created_at", startDate)
+                .lt("created_at", exclusiveEndDate)
+            : { count: 0 },
+          postIds.length > 0
+            ? supabase
                 .from("admires")
                 .select("id", { count: "exact", head: true })
                 .in("post_id", postIds)
+                .gte("created_at", startDate)
+                .lt("created_at", exclusiveEndDate)
             : { count: 0 },
           postIds.length > 0
             ? supabase
                 .from("comments")
                 .select("id", { count: "exact", head: true })
                 .in("post_id", postIds)
+                .gte("created_at", startDate)
+                .lt("created_at", exclusiveEndDate)
+            : { count: 0 },
+          postIds.length > 0
+            ? supabase
+                .from("saves")
+                .select("id", { count: "exact", head: true })
+                .in("post_id", postIds)
+                .gte("created_at", startDate)
+                .lt("created_at", exclusiveEndDate)
+            : { count: 0 },
+          takeIds.length > 0
+            ? supabase
+                .from("take_reactions")
+                .select("id", { count: "exact", head: true })
+                .in("take_id", takeIds)
+                .gte("created_at", startDate)
+                .lt("created_at", exclusiveEndDate)
+            : { count: 0 },
+          takeIds.length > 0
+            ? supabase
+                .from("take_comments")
+                .select("id", { count: "exact", head: true })
+                .in("take_id", takeIds)
+                .gte("created_at", startDate)
+                .lt("created_at", exclusiveEndDate)
+            : { count: 0 },
+          takeIds.length > 0
+            ? supabase
+                .from("take_saves")
+                .select("id", { count: "exact", head: true })
+                .in("take_id", takeIds)
+                .gte("created_at", startDate)
+                .lt("created_at", exclusiveEndDate)
             : { count: 0 },
         ]);
 
@@ -1084,10 +1156,13 @@ export function useProfileInsights(
         profileViews: profileViews.length,
         uniqueViewers: uniqueProfileViewers.size,
         contentReach: uniqueContentViewers.size,
-        contentImpressions: postViews.length + takeViews.length,
-        totalReactions: admireResult.count || 0,
-        totalComments: commentResult.count || 0,
-        totalSaves: 0,
+        contentImpressions: (postImpressionsResult.count || 0) + (takeImpressionsResult.count || 0),
+        totalReactions:
+          (postReactionsResult.count || 0) +
+          (admireResult.count || 0) +
+          (takeReactionsResult.count || 0),
+        totalComments: (commentResult.count || 0) + (takeCommentsResult.count || 0),
+        totalSaves: (saveResult.count || 0) + (takeSavesResult.count || 0),
         followerGrowth,
         topContent,
         viewsByDay,
@@ -1166,15 +1241,30 @@ export function useCommunityInsights(
         return;
       }
 
-      // Verify admin/mod access
-      const { data: membership } = await supabase
-        .from("community_members")
-        .select("role")
-        .eq("community_id", communityId)
-        .eq("user_id", user.id)
-        .single();
+      // Verify creator/admin/mod access. Creator ownership is the source of
+      // truth when the creator's community_members row is missing or hidden.
+      const [membershipResult, communityResult] = await Promise.all([
+        supabase
+          .from("community_members")
+          .select("role, status")
+          .eq("community_id", communityId)
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("communities")
+          .select("created_by")
+          .eq("id", communityId)
+          .maybeSingle(),
+      ]);
 
-      if (!membership || !["admin", "moderator"].includes(membership.role)) {
+      const membership = membershipResult.data;
+      const community = communityResult.data;
+      const isOwner = community?.created_by === user.id;
+      const isStaff =
+        membership?.status === "active" &&
+        ["admin", "moderator"].includes(membership.role || "");
+
+      if (!isOwner && !isStaff) {
         setError("Access denied");
         setLoading(false);
         return;
@@ -1190,7 +1280,7 @@ export function useCommunityInsights(
       ] = await Promise.all([
         supabase
           .from("community_views")
-          .select("viewer_id, session_id, view_date")
+          .select("viewer_id, session_id, view_date, is_member")
           .eq("community_id", communityId)
           .gte("view_date", startDate)
           .lte("view_date", endDate),
@@ -1208,13 +1298,13 @@ export function useCommunityInsights(
           .eq("status", "active"),
         supabase
           .from("posts")
-          .select("id", { count: "exact", head: true })
+          .select("id, author_id")
           .eq("community_id", communityId)
           .gte("created_at", startDate)
           .lt("created_at", exclusiveEndDate),
         supabase
           .from("takes")
-          .select("id", { count: "exact", head: true })
+          .select("id, author_id")
           .eq("community_id", communityId)
           .gte("created_at", startDate)
           .lt("created_at", exclusiveEndDate),
@@ -1222,6 +1312,12 @@ export function useCommunityInsights(
 
       const views = viewsResult.data || [];
       const memberHistory = memberHistoryResult.data || [];
+      const posts = postsResult.data || [];
+      const takes = takesResult.data || [];
+      const postIds = posts.map((post) => post.id);
+      const takeIds = takes.map((take) => take.id);
+      const postAuthorById = new Map(posts.map((post) => [post.id, post.author_id]));
+      const takeAuthorById = new Map(takes.map((take) => [take.id, take.author_id]));
 
       // Unique visitors
       const uniqueVisitors = new Set(
@@ -1263,15 +1359,154 @@ export function useCommunityInsights(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
       );
 
+      const [
+        postReactionsResult,
+        admiresResult,
+        commentsResult,
+        relaysResult,
+        savesResult,
+        takeReactionsResult,
+        takeCommentsResult,
+        takeRelaysResult,
+        takeSavesResult,
+      ] = await Promise.all([
+        postIds.length > 0
+          ? supabase.from("reactions").select("post_id").in("post_id", postIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase.from("admires").select("post_id").in("post_id", postIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase.from("comments").select("post_id").in("post_id", postIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase.from("relays").select("post_id").in("post_id", postIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase.from("saves").select("post_id").in("post_id", postIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        takeIds.length > 0
+          ? supabase.from("take_reactions").select("take_id").in("take_id", takeIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        takeIds.length > 0
+          ? supabase.from("take_comments").select("take_id").in("take_id", takeIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        takeIds.length > 0
+          ? supabase.from("take_relays").select("take_id").in("take_id", takeIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        takeIds.length > 0
+          ? supabase.from("take_saves").select("take_id").in("take_id", takeIds).gte("created_at", startDate).lt("created_at", exclusiveEndDate)
+          : { data: [] },
+      ]);
+
+      const totalEngagement =
+        (postReactionsResult.data?.length || 0) +
+        (admiresResult.data?.length || 0) +
+        (commentsResult.data?.length || 0) +
+        (relaysResult.data?.length || 0) +
+        (savesResult.data?.length || 0) +
+        (takeReactionsResult.data?.length || 0) +
+        (takeCommentsResult.data?.length || 0) +
+        (takeRelaysResult.data?.length || 0) +
+        (takeSavesResult.data?.length || 0);
+
+      const contributorMap = new Map<string, ContributorData>();
+      const ensureContributor = (userId: string | null | undefined) => {
+        if (!userId) return null;
+        const existing = contributorMap.get(userId);
+        if (existing) return existing;
+        const contributor: ContributorData = {
+          userId,
+          username: "",
+          displayName: "",
+          postsCount: 0,
+          takesCount: 0,
+          reactionsReceived: 0,
+          commentsReceived: 0,
+        };
+        contributorMap.set(userId, contributor);
+        return contributor;
+      };
+
+      posts.forEach((post) => {
+        const contributor = ensureContributor(post.author_id);
+        if (contributor) contributor.postsCount += 1;
+      });
+      takes.forEach((take) => {
+        const contributor = ensureContributor(take.author_id);
+        if (contributor) contributor.takesCount += 1;
+      });
+
+      const addPostReaction = (postId: string | null | undefined) => {
+        const contributor = ensureContributor(postId ? postAuthorById.get(postId) : undefined);
+        if (contributor) contributor.reactionsReceived += 1;
+      };
+      const addPostComment = (postId: string | null | undefined) => {
+        const contributor = ensureContributor(postId ? postAuthorById.get(postId) : undefined);
+        if (contributor) contributor.commentsReceived += 1;
+      };
+      const addTakeReaction = (takeId: string | null | undefined) => {
+        const contributor = ensureContributor(takeId ? takeAuthorById.get(takeId) : undefined);
+        if (contributor) contributor.reactionsReceived += 1;
+      };
+      const addTakeComment = (takeId: string | null | undefined) => {
+        const contributor = ensureContributor(takeId ? takeAuthorById.get(takeId) : undefined);
+        if (contributor) contributor.commentsReceived += 1;
+      };
+
+      (postReactionsResult.data || []).forEach((row: { post_id: string }) => addPostReaction(row.post_id));
+      (admiresResult.data || []).forEach((row: { post_id: string }) => addPostReaction(row.post_id));
+      (commentsResult.data || []).forEach((row: { post_id: string }) => addPostComment(row.post_id));
+      (takeReactionsResult.data || []).forEach((row: { take_id: string }) => addTakeReaction(row.take_id));
+      (takeCommentsResult.data || []).forEach((row: { take_id: string }) => addTakeComment(row.take_id));
+
+      const authorIds = Array.from(contributorMap.keys());
+      const profilesResult = authorIds.length > 0
+        ? await supabase
+            .from("profiles")
+            .select("id, username, display_name, avatar_url")
+            .in("id", authorIds)
+        : { data: [] };
+
+      const profileById = new Map(
+        (profilesResult.data || []).map((profile) => [profile.id, profile])
+      );
+
+      const topContributors = Array.from(contributorMap.values())
+        .map((contributor) => {
+          const profile = profileById.get(contributor.userId);
+          return {
+            ...contributor,
+            username: profile?.username || "",
+            displayName: profile?.display_name || profile?.username || "Unknown creator",
+            avatarUrl: profile?.avatar_url || undefined,
+          };
+        })
+        .sort((a, b) => {
+          const contentDelta = b.postsCount + b.takesCount - (a.postsCount + a.takesCount);
+          if (contentDelta !== 0) return contentDelta;
+          const reactionDelta = b.reactionsReceived - a.reactionsReceived;
+          if (reactionDelta !== 0) return reactionDelta;
+          return b.commentsReceived - a.commentsReceived;
+        })
+        .slice(0, 10);
+
       setInsights({
         communityId,
         pageViews: views.length,
         uniqueVisitors: uniqueVisitors.size,
         memberGrowth,
-        postsCreated: postsResult.count || 0,
-        takesCreated: takesResult.count || 0,
-        totalEngagement: 0,
-        topContributors: [],
+        postsCreated: posts.length,
+        takesCreated: takes.length,
+        totalEngagement,
+        memberVisitorMix: {
+          members: views.filter((view) => view.is_member).length,
+          nonMembers: views.filter((view) => !view.is_member).length,
+          memberPercentage: views.length > 0
+            ? Math.round((views.filter((view) => view.is_member).length / views.length) * 1000) / 10
+            : 0,
+        },
+        topContributors,
         viewsByDay,
       });
     } catch (err) {

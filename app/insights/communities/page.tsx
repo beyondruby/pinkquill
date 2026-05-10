@@ -21,6 +21,29 @@ interface Community {
   member_count: number;
 }
 
+interface ManagedCommunityRow {
+  community: Community | Community[] | null;
+}
+
+function normalizeCommunityRelation(
+  community: Community | Community[] | null | undefined
+): Community | null {
+  if (!community) return null;
+  const normalized = Array.isArray(community) ? community[0] ?? null : community;
+  return normalized ? { ...normalized, member_count: normalized.member_count || 0 } : null;
+}
+
+function mergeCommunities(...lists: Community[][]): Community[] {
+  const byId = new Map<string, Community>();
+
+  lists.flat().forEach((community) => {
+    if (!community?.id) return;
+    byId.set(community.id, community);
+  });
+
+  return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function formatNumber(num: number): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
@@ -224,40 +247,65 @@ export default function InsightsCommunitiesPage() {
   const [customRange, setCustomRange] = useState<DateRange | undefined>();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchManagedCommunities() {
-      if (!user) return;
+      if (!user?.id) {
+        setCommunities([]);
+        setLoading(false);
+        return;
+      }
 
+      setLoading(true);
+      setLoadError(null);
       try {
-        const { data, error } = await supabase
-          .from("community_members")
-          .select(`
-            community:communities (
-              id,
-              name,
-              slug,
-              avatar_url,
-              member_count
-            )
-          `)
-          .eq("user_id", user.id)
-          .in("role", ["admin", "moderator"]);
+        const [membershipResult, ownedResult] = await Promise.all([
+          supabase
+            .from("community_members")
+            .select(`
+              community:communities!community_members_community_id_fkey (
+                id,
+                name,
+                slug,
+                avatar_url
+              )
+            `)
+            .eq("user_id", user.id)
+            .eq("status", "active")
+            .in("role", ["admin", "moderator"]),
+          supabase
+            .from("communities")
+            .select("id, name, slug, avatar_url")
+            .eq("created_by", user.id),
+        ]);
 
-        if (error) throw error;
+        if (membershipResult.error && ownedResult.error) {
+          throw membershipResult.error;
+        }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const communityList = (data as any[])
-          ?.map((item) => {
-            // Supabase may return array or single object depending on relationship
-            const c = Array.isArray(item.community) ? item.community[0] : item.community;
-            return c as Community | null;
-          })
-          .filter(Boolean) as Community[];
+        if (membershipResult.error) {
+          console.warn("Unable to load managed community memberships:", membershipResult.error.message);
+        }
 
-        setCommunities(communityList || []);
+        if (ownedResult.error) {
+          console.warn("Unable to load owned communities:", ownedResult.error.message);
+        }
+
+        const memberCommunities = ((membershipResult.data || []) as ManagedCommunityRow[])
+          .map((item) => normalizeCommunityRelation(item.community))
+          .filter((community): community is Community => Boolean(community));
+
+        const ownedCommunities = ((ownedResult.data || []) as Community[]).map((community) => ({
+          ...community,
+          member_count: community.member_count || 0,
+        }));
+
+        setCommunities(mergeCommunities(memberCommunities, ownedCommunities));
       } catch (err) {
         console.error("Error fetching communities:", err);
+        setLoadError("We could not load your managed communities. Please try again shortly.");
+        setCommunities([]);
       } finally {
         setLoading(false);
       }
@@ -295,8 +343,11 @@ export default function InsightsCommunitiesPage() {
           </div>
         </div>
         <EmptyState
-          title="No Communities to Manage"
-          description="You don't manage any communities yet. Community insights are available for admins and moderators."
+          title={loadError ? "Unable to Load Communities" : "No Managed Communities Found"}
+          description={
+            loadError ||
+            "Community insights appear for communities you created, administer, or moderate."
+          }
           action={{ label: "Explore Communities", href: "/explore" }}
         />
       </div>

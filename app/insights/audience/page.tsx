@@ -93,7 +93,7 @@ export default function InsightsAudiencePage() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
         <MetricCard
           label="Total Followers"
           value={insights.followerGrowth.currentCount}
@@ -124,12 +124,32 @@ export default function InsightsAudiencePage() {
           }
         />
         <MetricCard
+          label="Unique Visitors"
+          value={insights.uniqueViewers}
+          description="Profile viewers"
+          icon={
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          }
+        />
+        <MetricCard
           label="Content Reach"
           value={insights.contentReach}
           description="Unique accounts reached"
           icon={
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            </svg>
+          }
+        />
+        <MetricCard
+          label="Content Actions"
+          value={insights.totalReactions + insights.totalComments + insights.totalSaves}
+          description={`${formatNumber(insights.totalReactions)} reactions, ${formatNumber(insights.totalComments)} comments, ${formatNumber(insights.totalSaves)} saves`}
+          icon={
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21H8.5A2.5 2.5 0 016 18.5v-7A2.5 2.5 0 018.5 9H10l1.382-3.447A2 2 0 0113.238 4h.104A1.658 1.658 0 0115 5.658V8a2 2 0 01-1 1.732V10z" />
             </svg>
           }
         />

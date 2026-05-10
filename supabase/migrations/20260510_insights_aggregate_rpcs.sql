@@ -128,6 +128,260 @@ CREATE INDEX IF NOT EXISTS idx_profile_views_profile_date_source
 CREATE INDEX IF NOT EXISTS idx_community_views_community_date_member
   ON community_views(community_id, view_date, is_member);
 
+-- Creator ownership is authoritative. Backfill missing owner membership rows so
+-- community management, moderation, and insights stay in sync after restores or
+-- older community creation flows that missed the trigger.
+INSERT INTO community_members (community_id, user_id, role, status)
+SELECT c.id, c.created_by, 'admin', 'active'
+FROM communities c
+WHERE c.created_by IS NOT NULL
+ON CONFLICT (community_id, user_id) DO UPDATE
+SET role = 'admin',
+    status = 'active'
+WHERE community_members.role <> 'admin'
+   OR community_members.status <> 'active';
+
+CREATE OR REPLACE FUNCTION is_community_manager(
+  p_community_id UUID,
+  p_user_id UUID DEFAULT auth.uid()
+)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT p_user_id IS NOT NULL AND (
+    EXISTS (
+      SELECT 1
+      FROM communities c
+      WHERE c.id = p_community_id
+        AND c.created_by = p_user_id
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM community_members cm
+      WHERE cm.community_id = p_community_id
+        AND cm.user_id = p_user_id
+        AND cm.status = 'active'
+        AND cm.role IN ('admin', 'moderator')
+    )
+  );
+$$;
+
+ALTER TABLE post_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE post_impressions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE take_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE take_impressions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profile_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE community_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE follower_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE community_member_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Creators can view their communities" ON communities;
+CREATE POLICY "Creators can view their communities" ON communities
+  FOR SELECT USING (created_by = auth.uid());
+
+DROP POLICY IF EXISTS "Users can view own community membership" ON community_members;
+CREATE POLICY "Users can view own community membership" ON community_members
+  FOR SELECT USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Anyone can record post views" ON post_views;
+CREATE POLICY "Anyone can record post views" ON post_views
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can record post impressions" ON post_impressions;
+CREATE POLICY "Anyone can record post impressions" ON post_impressions
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can record take views" ON take_views;
+CREATE POLICY "Anyone can record take views" ON take_views
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can record take impressions" ON take_impressions;
+CREATE POLICY "Anyone can record take impressions" ON take_impressions
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can record profile views" ON profile_views;
+CREATE POLICY "Anyone can record profile views" ON profile_views
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can record community views" ON community_views;
+CREATE POLICY "Anyone can record community views" ON community_views
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Authors can read their post views" ON post_views;
+CREATE POLICY "Authors can read their post views" ON post_views
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1
+      FROM posts p
+      WHERE p.id = post_views.post_id
+        AND p.author_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "Authors can read their post impressions" ON post_impressions;
+CREATE POLICY "Authors can read their post impressions" ON post_impressions
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1
+      FROM posts p
+      WHERE p.id = post_impressions.post_id
+        AND p.author_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "Authors can read their take views" ON take_views;
+CREATE POLICY "Authors can read their take views" ON take_views
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1
+      FROM takes t
+      WHERE t.id = take_views.take_id
+        AND t.author_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "Authors can read their take impressions" ON take_impressions;
+CREATE POLICY "Authors can read their take impressions" ON take_impressions
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1
+      FROM takes t
+      WHERE t.id = take_impressions.take_id
+        AND t.author_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can read their own profile views" ON profile_views;
+CREATE POLICY "Users can read their own profile views" ON profile_views
+  FOR SELECT USING (profile_id = auth.uid());
+
+DROP POLICY IF EXISTS "Community admins can read community views" ON community_views;
+DROP POLICY IF EXISTS "Community managers can read community views" ON community_views;
+CREATE POLICY "Community managers can read community views" ON community_views
+  FOR SELECT USING (is_community_manager(community_id, auth.uid()));
+
+DROP POLICY IF EXISTS "Users can read their follower history" ON follower_history;
+CREATE POLICY "Users can read their follower history" ON follower_history
+  FOR SELECT USING (profile_id = auth.uid());
+
+DROP POLICY IF EXISTS "Community managers can read member history" ON community_member_history;
+CREATE POLICY "Community managers can read member history" ON community_member_history
+  FOR SELECT USING (is_community_manager(community_id, auth.uid()));
+
+DROP POLICY IF EXISTS "Viewers can update their own post views" ON post_views;
+CREATE POLICY "Viewers can update their own post views" ON post_views
+  FOR UPDATE USING (
+    (viewer_id = auth.uid() AND auth.uid() IS NOT NULL)
+    OR (viewer_id IS NULL AND session_id IS NOT NULL)
+  )
+  WITH CHECK (
+    (viewer_id = auth.uid() AND auth.uid() IS NOT NULL)
+    OR (viewer_id IS NULL AND session_id IS NOT NULL)
+  );
+
+DROP POLICY IF EXISTS "Viewers can update their own take views" ON take_views;
+CREATE POLICY "Viewers can update their own take views" ON take_views
+  FOR UPDATE USING (
+    (viewer_id = auth.uid() AND auth.uid() IS NOT NULL)
+    OR (viewer_id IS NULL AND session_id IS NOT NULL)
+  )
+  WITH CHECK (
+    (viewer_id = auth.uid() AND auth.uid() IS NOT NULL)
+    OR (viewer_id IS NULL AND session_id IS NOT NULL)
+  );
+
+CREATE OR REPLACE FUNCTION log_follower_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_profile_id UUID;
+  v_follower_count INTEGER;
+BEGIN
+  v_profile_id := COALESCE(NEW.following_id, OLD.following_id);
+
+  SELECT COUNT(*) INTO v_follower_count
+  FROM follows
+  WHERE following_id = v_profile_id;
+
+  INSERT INTO follower_history (profile_id, date, follower_count, gained, lost, net_change)
+  VALUES (
+    v_profile_id,
+    CURRENT_DATE,
+    v_follower_count,
+    CASE WHEN TG_OP = 'INSERT' THEN 1 ELSE 0 END,
+    CASE WHEN TG_OP = 'DELETE' THEN 1 ELSE 0 END,
+    CASE WHEN TG_OP = 'INSERT' THEN 1 ELSE -1 END
+  )
+  ON CONFLICT (profile_id, date) DO UPDATE
+  SET follower_count = EXCLUDED.follower_count,
+      gained = follower_history.gained + EXCLUDED.gained,
+      lost = follower_history.lost + EXCLUDED.lost,
+      net_change = follower_history.net_change + EXCLUDED.net_change;
+
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_follow_change ON follows;
+CREATE TRIGGER on_follow_change
+  AFTER INSERT OR DELETE ON follows
+  FOR EACH ROW
+  EXECUTE FUNCTION log_follower_change();
+
+CREATE OR REPLACE FUNCTION log_community_member_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_community_id UUID;
+  v_member_count INTEGER;
+  v_joined INTEGER := 0;
+  v_left INTEGER := 0;
+BEGIN
+  v_community_id := COALESCE(NEW.community_id, OLD.community_id);
+
+  IF TG_OP = 'INSERT' AND NEW.status = 'active' THEN
+    v_joined := 1;
+  ELSIF TG_OP = 'DELETE' AND OLD.status = 'active' THEN
+    v_left := 1;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF COALESCE(OLD.status, '') <> 'active' AND NEW.status = 'active' THEN
+      v_joined := 1;
+    ELSIF OLD.status = 'active' AND COALESCE(NEW.status, '') <> 'active' THEN
+      v_left := 1;
+    END IF;
+  END IF;
+
+  SELECT COUNT(*) INTO v_member_count
+  FROM community_members
+  WHERE community_id = v_community_id
+    AND status = 'active';
+
+  INSERT INTO community_member_history (community_id, date, member_count, joined, "left")
+  VALUES (v_community_id, CURRENT_DATE, v_member_count, v_joined, v_left)
+  ON CONFLICT (community_id, date) DO UPDATE
+  SET member_count = EXCLUDED.member_count,
+      joined = community_member_history.joined + EXCLUDED.joined,
+      "left" = community_member_history."left" + EXCLUDED."left";
+
+  RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_community_member_change ON community_members;
+CREATE TRIGGER on_community_member_change
+  AFTER INSERT OR DELETE OR UPDATE OF status ON community_members
+  FOR EACH ROW
+  EXECUTE FUNCTION log_community_member_change();
+
 CREATE OR REPLACE FUNCTION get_creator_insights_summary(
   p_profile_id UUID,
   p_start_date DATE,
@@ -630,14 +884,7 @@ DECLARE
   v_member_mix JSONB := '{}'::jsonb;
   v_top_contributors JSONB := '[]'::jsonb;
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM community_members cm
-    WHERE cm.community_id = p_community_id
-      AND cm.user_id = auth.uid()
-      AND cm.status = 'active'
-      AND cm.role IN ('admin', 'moderator')
-  ) THEN
+  IF NOT is_community_manager(p_community_id, auth.uid()) THEN
     RAISE EXCEPTION 'Access denied';
   END IF;
 
@@ -852,5 +1099,6 @@ BEGIN
 END;
 $$;
 
+GRANT EXECUTE ON FUNCTION is_community_manager(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_creator_insights_summary(UUID, DATE, DATE, DATE, DATE) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_community_insights_summary(UUID, DATE, DATE) TO authenticated;
