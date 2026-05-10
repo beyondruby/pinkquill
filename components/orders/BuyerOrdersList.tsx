@@ -57,7 +57,7 @@ export default function BuyerOrdersList() {
             href="/cart"
             className="px-4 py-2 rounded-xl border border-purple-200 bg-purple-50 text-sm font-ui font-semibold text-purple-primary hover:bg-purple-100"
           >
-            Open Studio Cart
+            Open Bag
           </Link>
         </div>
 

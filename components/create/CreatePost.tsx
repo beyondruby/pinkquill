@@ -2040,7 +2040,7 @@ export default function CreatePost() {
 
   return (
     <div className="min-h-screen bg-surface">
-    <div className="max-w-4xl mx-auto px-6 py-12">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
 
       {/* Header */}
       <h1 className="text-center text-3xl md:text-4xl font-display font-bold text-ink mb-10">
@@ -3528,8 +3528,8 @@ export default function CreatePost() {
       </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-8 border-t border-border-light">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 sm:pt-8 border-t border-border-light">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {/* Visibility Dropdown */}
             <div className="relative">
               <button
@@ -3702,12 +3702,12 @@ export default function CreatePost() {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
             {!isTakeMode && (
               <button
                 onClick={handleSaveDraft}
                 disabled={draftSaveStatus === "saving"}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full font-ui font-semibold transition-all ${
+                className={`flex items-center justify-center gap-2 flex-1 sm:flex-initial px-5 sm:px-6 py-3 rounded-full font-ui text-sm sm:text-base font-semibold transition-all ${
                   draftSaveStatus === "saved"
                     ? "bg-green-500 text-white"
                   : draftSaveStatus === "saving"
@@ -3738,7 +3738,7 @@ export default function CreatePost() {
             <button
               onClick={handlePublish}
               disabled={loading || takeUploading || (isTakeMode && !takeVideoFile)}
-              className="flex items-center gap-2 px-10 py-3 rounded-full border-2 border-transparent font-ui font-semibold text-orange-warm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-6 sm:px-10 py-3 rounded-full border-2 border-transparent font-ui text-sm sm:text-base font-semibold text-orange-warm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: "linear-gradient(white, white) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box",
               }}

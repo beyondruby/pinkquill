@@ -90,7 +90,7 @@ const icons: Record<string, React.ReactElement> = {
   ),
   cart: (
     <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
     </svg>
   ),
   logout: (
@@ -172,7 +172,7 @@ export default function LeftSidebar() {
   const moreMenuItems: ActionMenuItem[] = [
     { label: "Saved", href: "/saved", icon: icons.bookmark, sectionLabel: "Library" },
     {
-      label: "Studio Cart",
+      label: "Bag",
       href: "/cart",
       icon: icons.cart,
       meta: cartCount > 0 ? (
@@ -341,7 +341,7 @@ export default function LeftSidebar() {
               widthClassName="w-56"
               portal
               align="start"
-              placement="auto"
+              placement="top"
               onOpenChange={setShowCreateMenu}
               buttonAriaLabel="Create menu"
               buttonClassName={`bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-on-accent shadow-lg shadow-pink-vivid/30 hover:scale-[1.02] hover:shadow-xl hover:shadow-pink-vivid/40 transition-all duration-300 ${

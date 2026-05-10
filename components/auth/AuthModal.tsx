@@ -99,42 +99,61 @@ export default function AuthModal() {
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-skeleton flex items-center justify-center text-muted hover:text-ink hover:bg-black/10 transition-all z-10"
+          aria-label="Close"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-skeleton/80 flex items-center justify-center text-muted hover:text-ink hover:bg-black/10 transition-all z-20"
         >
           <FontAwesomeIcon icon={faXmark} className="w-4 h-4" />
         </button>
 
-        {/* Decorative gradient */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-purple-primary/10 via-pink-vivid/10 to-orange-warm/10 pointer-events-none" />
+        {/* Decorative artwork (signed-out hero) */}
+        <div className="absolute inset-x-0 top-0 h-44 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/15 via-pink-vivid/15 to-orange-warm/20" />
+          <div
+            className="absolute inset-0 opacity-[0.5] mix-blend-overlay"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+            }}
+          />
+          <div className="absolute -top-10 -left-8 w-40 h-40 rounded-full bg-gradient-to-br from-pink-vivid/30 to-transparent blur-2xl" />
+          <div className="absolute -top-6 right-[-30px] w-44 h-44 rounded-full bg-gradient-to-tl from-orange-warm/25 to-transparent blur-2xl" />
+          <span className="absolute top-6 right-12 font-display italic text-2xl text-purple-primary/40 select-none">"</span>
+          <span className="absolute top-16 left-10 font-display italic text-xl text-pink-vivid/40 select-none">~</span>
+          <span className="absolute top-24 right-24 font-display italic text-lg text-orange-warm/40 select-none">*</span>
+        </div>
 
-        <div className="relative p-8 pt-6">
+        <div className="relative p-8 pt-7">
           {/* Header */}
-          <div className="text-center mb-6">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm flex items-center justify-center shadow-lg shadow-purple-primary/20">
-              <FontAwesomeIcon icon={faFeatherPointed} className="w-6 h-6 text-white" />
+          <div className="text-center mb-6 relative">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-primary via-pink-vivid to-orange-warm flex items-center justify-center shadow-xl shadow-purple-primary/30 ring-4 ring-surface/80 -rotate-3">
+              <FontAwesomeIcon icon={faFeatherPointed} className="w-7 h-7 text-white rotate-3" />
             </div>
 
             {step === "credentials" ? (
               <>
-                <h2 className="font-display text-2xl text-ink mb-2">
-                  {isLogin ? "Welcome Back" : "Create Your Space"}
+                <h2 className="font-display text-[1.7rem] leading-tight text-ink mb-2 tracking-tight">
+                  {isLogin ? (
+                    <>Hey, you&apos;re <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm">back</span>.</>
+                  ) : (
+                    <>Pull up a <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm">chair</span>.</>
+                  )}
                 </h2>
-                <p className="font-body text-sm text-muted leading-relaxed max-w-xs mx-auto">
+                <p className="font-body text-[0.95rem] text-muted leading-relaxed max-w-xs mx-auto">
                   {isLogin
-                    ? "Sign in to like, comment, and share your creative voice."
-                    : "Join our community of poets, writers, and dreamers."
+                    ? "Your studio is right where you left it — signed-out, but waiting."
+                    : "Make a home for your words, your art, your loud and quiet things."
                   }
                 </p>
               </>
             ) : (
               <>
-                <h2 className="font-display text-2xl text-ink mb-2">
-                  Check Your Inbox
+                <h2 className="font-display text-[1.7rem] leading-tight text-ink mb-2 tracking-tight">
+                  Check your <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm">mail</span>.
                 </h2>
                 <p className="font-body text-sm text-muted">
-                  Enter the 6-digit code sent to
+                  We slipped a six-digit code under the door for
                 </p>
-                <p className="font-ui text-sm font-medium text-ink mt-1 flex items-center justify-center gap-2">
+                <p className="font-ui text-sm font-medium text-ink mt-1.5 flex items-center justify-center gap-2">
                   <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4 text-purple-primary" />
                   {pendingEmail}
                 </p>
@@ -270,13 +289,13 @@ export default function AuthModal() {
 
               <div className="text-center pt-2">
                 <p className="font-ui text-sm text-muted">
-                  {isLogin ? "New here?" : "Already a member?"}
+                  {isLogin ? "First time here?" : "Already in the club?"}
                   <button
                     type="button"
                     onClick={actions.toggleMode}
                     className="ml-1.5 font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-primary to-pink-vivid hover:opacity-80 transition-opacity"
                   >
-                    {isLogin ? "Create account" : "Sign in"}
+                    {isLogin ? "Make a space" : "Sign in"}
                   </button>
                 </p>
               </div>
@@ -287,7 +306,7 @@ export default function AuthModal() {
                   onClick={handleClose}
                   className="font-ui text-xs text-muted/60 hover:text-accent transition-colors"
                 >
-                  Go to full login page
+                  Open the full login page →
                 </Link>
               </div>
             </form>

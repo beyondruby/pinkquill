@@ -226,7 +226,7 @@ export default function MarketplaceHeader({
             <Link
               href="/cart"
               className="relative flex items-center justify-center w-10 h-10 rounded-full bg-surface border border-border-light text-muted hover:text-accent hover:bg-accent/[0.04] transition-all"
-              title="Studio Cart"
+              title="Bag"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />

@@ -505,13 +505,13 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                     }}
                     className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-pink-300 transition-colors"
                   >
-                    {isQueued ? "In Cart" : "Add to Cart"}
+                    {isQueued ? "In Bag" : "Add to Bag"}
                   </button>
                   <button
                     onClick={() => router.push("/cart")}
                     className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-accent/40 transition-colors"
                   >
-                    Open Cart
+                    Open Bag
                   </button>
                 </div>
 

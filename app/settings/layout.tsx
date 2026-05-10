@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import LeftSidebar from "@/components/layout/LeftSidebar";
-import SettingsSidebar from "@/components/settings/SettingsSidebar";
+import SettingsSidebar, { SettingsMobileTabs } from "@/components/settings/SettingsSidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { FullPageLoading } from "@/components/ui/Loading";
@@ -39,6 +39,7 @@ export default function SettingsLayout({
         <div className="relative hidden md:block">
           <SettingsSidebar />
         </div>
+        <SettingsMobileTabs />
         <main className="flex-1 bg-canvas p-4 md:p-10 overflow-y-auto">
           <div className="max-w-3xl">
             {children}

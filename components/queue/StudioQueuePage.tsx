@@ -38,7 +38,7 @@ function EmptyCart() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
         </svg>
       </div>
-      <h2 className="font-display text-xl text-ink mb-1">Your cart is empty</h2>
+      <h2 className="font-display text-xl text-ink mb-1">Your bag is empty</h2>
       <p className="text-sm font-body text-muted max-w-xs mb-6">
         Browse products and commissions to add items here.
       </p>
@@ -346,7 +346,7 @@ export default function StudioCartPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-2xl sm:text-3xl text-ink">Cart</h1>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink">Bag</h1>
             {hasItems && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-ui font-semibold bg-skeleton text-ink/60">
                 {items.length}
