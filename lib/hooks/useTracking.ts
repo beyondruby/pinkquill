@@ -32,6 +32,13 @@ interface PostImpressionInsertRow {
   source: string;
 }
 
+interface TakeImpressionInsertRow {
+  take_id: string;
+  viewer_id: string | null;
+  session_id: string | null;
+  source: string;
+}
+
 const POST_IMPRESSION_BATCH_WINDOW_MS = 750;
 const POST_IMPRESSION_BATCH_SIZE = 30;
 const POST_IMPRESSION_RETRY_DELAY_MS = 2500;
@@ -40,6 +47,15 @@ let queuedPostImpressions: PostImpressionInsertRow[] = [];
 let postImpressionFlushTimer: number | null = null;
 let postImpressionFlushInFlight: Promise<void> | null = null;
 let postImpressionFlushListenersBound = false;
+
+const TAKE_IMPRESSION_BATCH_WINDOW_MS = 750;
+const TAKE_IMPRESSION_BATCH_SIZE = 30;
+const TAKE_IMPRESSION_RETRY_DELAY_MS = 2500;
+
+let queuedTakeImpressions: TakeImpressionInsertRow[] = [];
+let takeImpressionFlushTimer: number | null = null;
+let takeImpressionFlushInFlight: Promise<void> | null = null;
+let takeImpressionFlushListenersBound = false;
 
 function getCachedBoolean(
   cache: Map<string, BooleanCacheEntry>,
@@ -141,6 +157,75 @@ function ensurePostImpressionFlushListeners() {
 
   const flush = () => {
     void flushPostImpressions();
+  };
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      flush();
+    }
+  });
+  window.addEventListener("pagehide", flush);
+}
+
+function scheduleTakeImpressionFlush(delayMs: number = TAKE_IMPRESSION_BATCH_WINDOW_MS) {
+  if (typeof window === "undefined") {
+    void flushTakeImpressions();
+    return;
+  }
+
+  if (takeImpressionFlushTimer !== null) return;
+  takeImpressionFlushTimer = window.setTimeout(() => {
+    takeImpressionFlushTimer = null;
+    void flushTakeImpressions();
+  }, delayMs);
+}
+
+async function flushTakeImpressions() {
+  if (takeImpressionFlushInFlight) return;
+  if (queuedTakeImpressions.length === 0) return;
+
+  const batch = queuedTakeImpressions.splice(0, TAKE_IMPRESSION_BATCH_SIZE);
+
+  takeImpressionFlushInFlight = (async () => {
+    const { error } = await supabase.from("take_impressions").insert(batch);
+
+    if (error) {
+      queuedTakeImpressions = batch.concat(queuedTakeImpressions);
+      console.warn("[tracking] take impression batch insert failed:", error.message);
+      scheduleTakeImpressionFlush(TAKE_IMPRESSION_RETRY_DELAY_MS);
+    }
+  })();
+
+  try {
+    await takeImpressionFlushInFlight;
+  } finally {
+    takeImpressionFlushInFlight = null;
+  }
+
+  if (queuedTakeImpressions.length > 0) {
+    if (queuedTakeImpressions.length >= TAKE_IMPRESSION_BATCH_SIZE) {
+      void flushTakeImpressions();
+      return;
+    }
+    scheduleTakeImpressionFlush();
+  }
+}
+
+function enqueueTakeImpression(row: TakeImpressionInsertRow) {
+  queuedTakeImpressions.push(row);
+  if (queuedTakeImpressions.length >= TAKE_IMPRESSION_BATCH_SIZE) {
+    void flushTakeImpressions();
+    return;
+  }
+  scheduleTakeImpressionFlush();
+}
+
+function ensureTakeImpressionFlushListeners() {
+  if (takeImpressionFlushListenersBound || typeof window === "undefined") return;
+  takeImpressionFlushListenersBound = true;
+
+  const flush = () => {
+    void flushTakeImpressions();
   };
 
   document.addEventListener("visibilitychange", () => {
@@ -452,23 +537,19 @@ export function useTrackTakeImpression(
     if (!enabled || !takeId || tracked.current) return;
     tracked.current = true;
 
-    const recordImpression = async () => {
+    const queueImpression = () => {
       const sessionId = getSessionId();
-
-      const { error } = await supabase.from("take_impressions").insert({
+      enqueueTakeImpression({
         take_id: takeId,
         viewer_id: user?.id || null,
         session_id: user?.id ? null : sessionId,
         source,
       });
-
-      if (error) {
-        console.warn("[tracking] take impression insert failed:", error.message);
-      }
     };
 
+    ensureTakeImpressionFlushListeners();
     const cancelIdle = runWhenIdle(() => {
-      void recordImpression();
+      queueImpression();
     });
 
     return () => {

@@ -95,6 +95,13 @@ export interface InsightsSummary {
   totalImpressions: number;
   totalReach: number;
   engagementRate: number;
+  totalEngagement: number;
+  engagementBreakdown: {
+    reactions: number;
+    comments: number;
+    relays: number;
+    saves: number;
+  };
   followerGrowth: FollowerGrowthData;
   topContent: TopContentItem[];
   viewsByDay: DailyStats[];
@@ -132,6 +139,21 @@ export function useInsightsDashboard(
     setError(null);
 
     try {
+      const exclusiveEndDate = getExclusiveEndDate(endDate);
+      const rpcInsights = await getCreatorInsightsSummaryFromRpc(
+        user.id,
+        startDate,
+        endDate,
+        prevStartDate,
+        prevEndDate
+      );
+
+      if (rpcInsights) {
+        setInsights(rpcInsights);
+        setLoading(false);
+        return;
+      }
+
       // Get user's posts and takes IDs
       const [postsResult, takesResult] = await Promise.all([
         supabase.from("posts").select("id").eq("author_id", user.id),
@@ -147,6 +169,13 @@ export function useInsightsDashboard(
           totalImpressions: 0,
           totalReach: 0,
           engagementRate: 0,
+          totalEngagement: 0,
+          engagementBreakdown: {
+            reactions: 0,
+            comments: 0,
+            relays: 0,
+            saves: 0,
+          },
           followerGrowth: {
             currentCount: 0,
             netChange: 0,
@@ -191,7 +220,7 @@ export function useInsightsDashboard(
               .select("id", { count: "exact", head: true })
               .in("post_id", postIds)
               .gte("created_at", startDate)
-              .lte("created_at", endDate)
+              .lt("created_at", exclusiveEndDate)
           : { count: 0 },
         takeIds.length > 0
           ? supabase
@@ -207,7 +236,7 @@ export function useInsightsDashboard(
               .select("id", { count: "exact", head: true })
               .in("take_id", takeIds)
               .gte("created_at", startDate)
-              .lte("created_at", endDate)
+              .lt("created_at", exclusiveEndDate)
           : { count: 0 },
         supabase
           .from("follower_history")
@@ -255,26 +284,107 @@ export function useInsightsDashboard(
       ]);
       const totalReach = uniqueViewers.size;
 
-      // Get engagement data
-      const [admireResult, commentResult, relayResult] = await Promise.all([
-        supabase
-          .from("admires")
-          .select("id", { count: "exact", head: true })
-          .in("post_id", postIds),
-        supabase
-          .from("comments")
-          .select("id", { count: "exact", head: true })
-          .in("post_id", postIds),
-        supabase
-          .from("relays")
-          .select("id", { count: "exact", head: true })
-          .in("post_id", postIds),
+      // Get engagement data. The aggregate RPC above is the preferred path; this
+      // fallback still includes posts, takes, reactions, saves, comments, and relays.
+      const [
+        postReactionResult,
+        admireResult,
+        commentResult,
+        relayResult,
+        saveResult,
+        takeReactionResult,
+        takeCommentResult,
+        takeRelayResult,
+        takeSaveResult,
+      ] = await Promise.all([
+        postIds.length > 0
+          ? supabase
+              .from("reactions")
+              .select("id", { count: "exact", head: true })
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { count: 0 },
+        postIds.length > 0
+          ? supabase
+              .from("admires")
+              .select("id", { count: "exact", head: true })
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { count: 0 },
+        postIds.length > 0
+          ? supabase
+              .from("comments")
+              .select("id", { count: "exact", head: true })
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { count: 0 },
+        postIds.length > 0
+          ? supabase
+              .from("relays")
+              .select("id", { count: "exact", head: true })
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { count: 0 },
+        postIds.length > 0
+          ? supabase
+              .from("saves")
+              .select("id", { count: "exact", head: true })
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { count: 0 },
+        takeIds.length > 0
+          ? supabase
+              .from("take_reactions")
+              .select("id", { count: "exact", head: true })
+              .in("take_id", takeIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { count: 0 },
+        takeIds.length > 0
+          ? supabase
+              .from("take_comments")
+              .select("id", { count: "exact", head: true })
+              .in("take_id", takeIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { count: 0 },
+        takeIds.length > 0
+          ? supabase
+              .from("take_relays")
+              .select("id", { count: "exact", head: true })
+              .in("take_id", takeIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { count: 0 },
+        takeIds.length > 0
+          ? supabase
+              .from("take_saves")
+              .select("id", { count: "exact", head: true })
+              .in("take_id", takeIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { count: 0 },
       ]);
 
+      const engagementBreakdown = {
+        reactions:
+          (postReactionResult.count || 0) +
+          (admireResult.count || 0) +
+          (takeReactionResult.count || 0),
+        comments: (commentResult.count || 0) + (takeCommentResult.count || 0),
+        relays: (relayResult.count || 0) + (takeRelayResult.count || 0),
+        saves: (saveResult.count || 0) + (takeSaveResult.count || 0),
+      };
       const totalEngagement =
-        (admireResult.count || 0) +
-        (commentResult.count || 0) +
-        (relayResult.count || 0);
+        engagementBreakdown.reactions +
+        engagementBreakdown.comments +
+        engagementBreakdown.relays +
+        engagementBreakdown.saves;
       const engagementRate =
         totalReach > 0 ? (totalEngagement / totalReach) * 100 : 0;
 
@@ -341,6 +451,8 @@ export function useInsightsDashboard(
         totalImpressions,
         totalReach,
         engagementRate,
+        totalEngagement,
+        engagementBreakdown,
         followerGrowth,
         topContent,
         viewsByDay,
@@ -423,6 +535,7 @@ export function usePostInsights(
     setError(null);
 
     try {
+      const exclusiveEndDate = getExclusiveEndDate(endDate);
       // Verify ownership and get post details
       const { data: postData } = await supabase
         .from("posts")
@@ -459,20 +572,31 @@ export function usePostInsights(
             .select("id", { count: "exact", head: true })
             .eq("post_id", postId)
             .gte("created_at", startDate)
-            .lte("created_at", endDate),
-          supabase.from("reactions").select("reaction_type").eq("post_id", postId),
+            .lt("created_at", exclusiveEndDate),
+          supabase
+            .from("reactions")
+            .select("reaction_type")
+            .eq("post_id", postId)
+            .gte("created_at", startDate)
+            .lt("created_at", exclusiveEndDate),
           supabase
             .from("comments")
             .select("id", { count: "exact", head: true })
-            .eq("post_id", postId),
+            .eq("post_id", postId)
+            .gte("created_at", startDate)
+            .lt("created_at", exclusiveEndDate),
           supabase
             .from("relays")
             .select("id", { count: "exact", head: true })
-            .eq("post_id", postId),
+            .eq("post_id", postId)
+            .gte("created_at", startDate)
+            .lt("created_at", exclusiveEndDate),
           supabase
             .from("saves")
             .select("id", { count: "exact", head: true })
-            .eq("post_id", postId),
+            .eq("post_id", postId)
+            .gte("created_at", startDate)
+            .lt("created_at", exclusiveEndDate),
         ]);
 
       const views = viewsResult.data || [];
@@ -617,6 +741,7 @@ export function useTakeInsights(
     setError(null);
 
     try {
+      const exclusiveEndDate = getExclusiveEndDate(endDate);
       // Verify ownership and get take details
       const { data: takeData } = await supabase
         .from("takes")
@@ -652,23 +777,31 @@ export function useTakeInsights(
             .select("id", { count: "exact", head: true })
             .eq("take_id", takeId)
             .gte("created_at", startDate)
-            .lte("created_at", endDate),
+            .lt("created_at", exclusiveEndDate),
           supabase
             .from("take_reactions")
             .select("reaction_type")
-            .eq("take_id", takeId),
+            .eq("take_id", takeId)
+            .gte("created_at", startDate)
+            .lt("created_at", exclusiveEndDate),
           supabase
             .from("take_comments")
             .select("id", { count: "exact", head: true })
-            .eq("take_id", takeId),
+            .eq("take_id", takeId)
+            .gte("created_at", startDate)
+            .lt("created_at", exclusiveEndDate),
           supabase
             .from("take_relays")
             .select("id", { count: "exact", head: true })
-            .eq("take_id", takeId),
+            .eq("take_id", takeId)
+            .gte("created_at", startDate)
+            .lt("created_at", exclusiveEndDate),
           supabase
             .from("take_saves")
             .select("id", { count: "exact", head: true })
-            .eq("take_id", takeId),
+            .eq("take_id", takeId)
+            .gte("created_at", startDate)
+            .lt("created_at", exclusiveEndDate),
         ]);
 
       const views = viewsResult.data || [];
@@ -989,6 +1122,11 @@ export interface CommunityInsights {
   postsCreated: number;
   takesCreated: number;
   totalEngagement: number;
+  memberVisitorMix?: {
+    members: number;
+    nonMembers: number;
+    memberPercentage: number;
+  };
   topContributors: ContributorData[];
   viewsByDay: DailyStats[];
 }
@@ -1015,6 +1153,19 @@ export function useCommunityInsights(
     setError(null);
 
     try {
+      const exclusiveEndDate = getExclusiveEndDate(endDate);
+      const rpcInsights = await getCommunityInsightsSummaryFromRpc(
+        communityId,
+        startDate,
+        endDate
+      );
+
+      if (rpcInsights) {
+        setInsights(rpcInsights);
+        setLoading(false);
+        return;
+      }
+
       // Verify admin/mod access
       const { data: membership } = await supabase
         .from("community_members")
@@ -1060,13 +1211,13 @@ export function useCommunityInsights(
           .select("id", { count: "exact", head: true })
           .eq("community_id", communityId)
           .gte("created_at", startDate)
-          .lte("created_at", endDate),
+          .lt("created_at", exclusiveEndDate),
         supabase
           .from("takes")
           .select("id", { count: "exact", head: true })
           .eq("community_id", communityId)
           .gte("created_at", startDate)
-          .lte("created_at", endDate),
+          .lt("created_at", exclusiveEndDate),
       ]);
 
       const views = viewsResult.data || [];
@@ -1181,6 +1332,7 @@ export function useContentInsights(
     setError(null);
 
     try {
+      const exclusiveEndDate = getExclusiveEndDate(endDate);
       // Get user's posts and takes with media
       const [postsResult, takesResult] = await Promise.all([
         supabase
@@ -1201,32 +1353,127 @@ export function useContentInsights(
       const postIds = posts.map((p) => p.id);
       const takeIds = takes.map((t) => t.id);
 
-      // Fetch views and engagement for all content
-      const [postViewsResult, takeViewsResult, admiresResult, commentsResult] =
-        await Promise.all([
-          postIds.length > 0
-            ? supabase
-                .from("post_views")
-                .select("post_id")
-                .in("post_id", postIds)
-                .gte("view_date", startDate)
-                .lte("view_date", endDate)
-            : { data: [] },
-          takeIds.length > 0
-            ? supabase
-                .from("take_views")
-                .select("take_id")
-                .in("take_id", takeIds)
-                .gte("view_date", startDate)
-                .lte("view_date", endDate)
-            : { data: [] },
-          postIds.length > 0
-            ? supabase.from("admires").select("post_id").in("post_id", postIds)
-            : { data: [] },
-          postIds.length > 0
-            ? supabase.from("comments").select("post_id").in("post_id", postIds)
-            : { data: [] },
-        ]);
+      // Fetch views, impressions, and all engagement types for all content.
+      const [
+        postViewsResult,
+        takeViewsResult,
+        postImpressionsResult,
+        takeImpressionsResult,
+        postReactionsResult,
+        admiresResult,
+        commentsResult,
+        relaysResult,
+        savesResult,
+        takeReactionsResult,
+        takeCommentsResult,
+        takeRelaysResult,
+        takeSavesResult,
+      ] = await Promise.all([
+        postIds.length > 0
+          ? supabase
+              .from("post_views")
+              .select("post_id")
+              .in("post_id", postIds)
+              .gte("view_date", startDate)
+              .lte("view_date", endDate)
+          : { data: [] },
+        takeIds.length > 0
+          ? supabase
+              .from("take_views")
+              .select("take_id")
+              .in("take_id", takeIds)
+              .gte("view_date", startDate)
+              .lte("view_date", endDate)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase
+              .from("post_impressions")
+              .select("post_id")
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        takeIds.length > 0
+          ? supabase
+              .from("take_impressions")
+              .select("take_id")
+              .in("take_id", takeIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase
+              .from("reactions")
+              .select("post_id")
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase
+              .from("admires")
+              .select("post_id")
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase
+              .from("comments")
+              .select("post_id")
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase
+              .from("relays")
+              .select("post_id")
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase
+              .from("saves")
+              .select("post_id")
+              .in("post_id", postIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        takeIds.length > 0
+          ? supabase
+              .from("take_reactions")
+              .select("take_id")
+              .in("take_id", takeIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        takeIds.length > 0
+          ? supabase
+              .from("take_comments")
+              .select("take_id")
+              .in("take_id", takeIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        takeIds.length > 0
+          ? supabase
+              .from("take_relays")
+              .select("take_id")
+              .in("take_id", takeIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+        takeIds.length > 0
+          ? supabase
+              .from("take_saves")
+              .select("take_id")
+              .in("take_id", takeIds)
+              .gte("created_at", startDate)
+              .lt("created_at", exclusiveEndDate)
+          : { data: [] },
+      ]);
 
       // Count views per content
       const postViewCounts = new Map<string, number>();
@@ -1239,6 +1486,21 @@ export function useContentInsights(
         takeViewCounts.set(v.take_id, (takeViewCounts.get(v.take_id) || 0) + 1);
       });
 
+      const postImpressionCounts = new Map<string, number>();
+      (postImpressionsResult.data || []).forEach((v) => {
+        postImpressionCounts.set(v.post_id, (postImpressionCounts.get(v.post_id) || 0) + 1);
+      });
+
+      const takeImpressionCounts = new Map<string, number>();
+      (takeImpressionsResult.data || []).forEach((v) => {
+        takeImpressionCounts.set(v.take_id, (takeImpressionCounts.get(v.take_id) || 0) + 1);
+      });
+
+      const postReactionCounts = new Map<string, number>();
+      (postReactionsResult.data || []).forEach((r: { post_id: string }) => {
+        postReactionCounts.set(r.post_id, (postReactionCounts.get(r.post_id) || 0) + 1);
+      });
+
       const admireCounts = new Map<string, number>();
       (admiresResult.data || []).forEach((a: { post_id: string }) => {
         admireCounts.set(a.post_id, (admireCounts.get(a.post_id) || 0) + 1);
@@ -1249,6 +1511,36 @@ export function useContentInsights(
         commentCounts.set(c.post_id, (commentCounts.get(c.post_id) || 0) + 1);
       });
 
+      const relayCounts = new Map<string, number>();
+      (relaysResult.data || []).forEach((r: { post_id: string }) => {
+        relayCounts.set(r.post_id, (relayCounts.get(r.post_id) || 0) + 1);
+      });
+
+      const saveCounts = new Map<string, number>();
+      (savesResult.data || []).forEach((s: { post_id: string }) => {
+        saveCounts.set(s.post_id, (saveCounts.get(s.post_id) || 0) + 1);
+      });
+
+      const takeReactionCounts = new Map<string, number>();
+      (takeReactionsResult.data || []).forEach((r: { take_id: string }) => {
+        takeReactionCounts.set(r.take_id, (takeReactionCounts.get(r.take_id) || 0) + 1);
+      });
+
+      const takeCommentCounts = new Map<string, number>();
+      (takeCommentsResult.data || []).forEach((c: { take_id: string }) => {
+        takeCommentCounts.set(c.take_id, (takeCommentCounts.get(c.take_id) || 0) + 1);
+      });
+
+      const takeRelayCounts = new Map<string, number>();
+      (takeRelaysResult.data || []).forEach((r: { take_id: string }) => {
+        takeRelayCounts.set(r.take_id, (takeRelayCounts.get(r.take_id) || 0) + 1);
+      });
+
+      const takeSaveCounts = new Map<string, number>();
+      (takeSavesResult.data || []).forEach((s: { take_id: string }) => {
+        takeSaveCounts.set(s.take_id, (takeSaveCounts.get(s.take_id) || 0) + 1);
+      });
+
       // Build content list
       type PostData = { id: string; title: string | null; type: string; created_at: string; media?: { media_type: string; media_url: string; position?: number }[] };
       type MediaItem = { media_type: string; media_url: string; position?: number };
@@ -1257,8 +1549,14 @@ export function useContentInsights(
           // Get first image from media array
           const media = p.media || [];
           const firstImage = media
-            .filter((m: MediaItem) => m.media_type === "image")
-            .sort((a: MediaItem, b: MediaItem) => (a.position || 0) - (b.position || 0))[0];
+              .filter((m: MediaItem) => m.media_type === "image")
+              .sort((a: MediaItem, b: MediaItem) => (a.position || 0) - (b.position || 0))[0];
+          const views = postViewCounts.get(p.id) || 0;
+          const reactions = (postReactionCounts.get(p.id) || 0) + (admireCounts.get(p.id) || 0);
+          const comments = commentCounts.get(p.id) || 0;
+          const relays = relayCounts.get(p.id) || 0;
+          const saves = saveCounts.get(p.id) || 0;
+          const engagement = reactions + comments + relays + saves;
           return {
             id: p.id,
             type: "post" as const,
@@ -1266,29 +1564,37 @@ export function useContentInsights(
             postType: p.type,
             thumbnail: firstImage?.media_url,
             createdAt: p.created_at,
-            views: postViewCounts.get(p.id) || 0,
-            impressions: 0,
-            reactions: admireCounts.get(p.id) || 0,
-            comments: commentCounts.get(p.id) || 0,
-            relays: 0,
-            saves: 0,
-            engagementRate: 0,
+            views,
+            impressions: postImpressionCounts.get(p.id) || 0,
+            reactions,
+            comments,
+            relays,
+            saves,
+            engagementRate: views > 0 ? (engagement / views) * 100 : 0,
           };
         }),
-        ...takes.map((t: { id: string; caption: string | null; thumbnail_url: string | null; created_at: string }) => ({
-          id: t.id,
-          type: "take" as const,
-          title: t.caption ?? undefined,
-          thumbnail: t.thumbnail_url ?? undefined,
-          createdAt: t.created_at,
-          views: takeViewCounts.get(t.id) || 0,
-          impressions: 0,
-          reactions: 0,
-          comments: 0,
-          relays: 0,
-          saves: 0,
-          engagementRate: 0,
-        })),
+        ...takes.map((t: { id: string; caption: string | null; thumbnail_url: string | null; created_at: string }) => {
+          const views = takeViewCounts.get(t.id) || 0;
+          const reactions = takeReactionCounts.get(t.id) || 0;
+          const comments = takeCommentCounts.get(t.id) || 0;
+          const relays = takeRelayCounts.get(t.id) || 0;
+          const saves = takeSaveCounts.get(t.id) || 0;
+          const engagement = reactions + comments + relays + saves;
+          return {
+            id: t.id,
+            type: "take" as const,
+            title: t.caption ?? undefined,
+            thumbnail: t.thumbnail_url ?? undefined,
+            createdAt: t.created_at,
+            views,
+            impressions: takeImpressionCounts.get(t.id) || 0,
+            reactions,
+            comments,
+            relays,
+            saves,
+            engagementRate: views > 0 ? (engagement / views) * 100 : 0,
+          };
+        }),
       ];
 
       // Sort by views descending
@@ -1315,6 +1621,211 @@ export function useContentInsights(
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+type CreatorInsightsRpcPayload = Omit<InsightsSummary, "topContent" | "viewsByDay" | "trafficSources"> & {
+  topContent?: TopContentItem[];
+  viewsByDay?: DailyStats[];
+  trafficSources?: TrafficSource[];
+};
+
+type CommunityInsightsRpcPayload = CommunityInsights;
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeFollowerGrowth(value: unknown): FollowerGrowthData {
+  const growth = isObject(value) ? value : {};
+  const history = Array.isArray(growth.history)
+    ? growth.history.filter(isObject).map((entry) => ({
+        date: String(entry.date || ""),
+        count: toNumber(entry.count),
+        netChange: toNumber(entry.netChange),
+      }))
+    : [];
+
+  return {
+    currentCount: toNumber(growth.currentCount),
+    netChange: toNumber(growth.netChange),
+    gained: toNumber(growth.gained),
+    lost: toNumber(growth.lost),
+    percentageChange: toNumber(growth.percentageChange),
+    history,
+  };
+}
+
+function normalizeMemberGrowth(value: unknown): MemberGrowthData {
+  const growth = isObject(value) ? value : {};
+  const history = Array.isArray(growth.history)
+    ? growth.history.filter(isObject).map((entry) => ({
+        date: String(entry.date || ""),
+        count: toNumber(entry.count),
+        netChange: toNumber(entry.netChange),
+      }))
+    : [];
+
+  return {
+    currentCount: toNumber(growth.currentCount),
+    netChange: toNumber(growth.netChange),
+    joined: toNumber(growth.joined),
+    left: toNumber(growth.left),
+    percentageChange: toNumber(growth.percentageChange),
+    history,
+  };
+}
+
+function normalizeCreatorInsightsPayload(payload: unknown): InsightsSummary | null {
+  if (!isObject(payload)) return null;
+
+  const engagementBreakdown = isObject(payload.engagementBreakdown)
+    ? payload.engagementBreakdown
+    : {};
+  const previousPeriod = isObject(payload.previousPeriod) ? payload.previousPeriod : {};
+  const contentCount = isObject(payload.contentCount) ? payload.contentCount : {};
+
+  return {
+    totalViews: toNumber(payload.totalViews),
+    totalImpressions: toNumber(payload.totalImpressions),
+    totalReach: toNumber(payload.totalReach),
+    engagementRate: toNumber(payload.engagementRate),
+    totalEngagement: toNumber(payload.totalEngagement),
+    engagementBreakdown: {
+      reactions: toNumber(engagementBreakdown.reactions),
+      comments: toNumber(engagementBreakdown.comments),
+      relays: toNumber(engagementBreakdown.relays),
+      saves: toNumber(engagementBreakdown.saves),
+    },
+    followerGrowth: normalizeFollowerGrowth(payload.followerGrowth),
+    topContent: Array.isArray(payload.topContent)
+      ? payload.topContent.filter(isObject).map((item) => ({
+          id: String(item.id || ""),
+          type: item.type === "take" ? "take" : "post",
+          title: typeof item.title === "string" ? item.title : undefined,
+          thumbnail: typeof item.thumbnail === "string" ? item.thumbnail : undefined,
+          postType: typeof item.postType === "string" ? item.postType : undefined,
+          views: toNumber(item.views),
+          engagement: toNumber(item.engagement),
+          engagementRate: toNumber(item.engagementRate),
+          createdAt: String(item.createdAt || ""),
+        }))
+      : [],
+    viewsByDay: Array.isArray(payload.viewsByDay)
+      ? payload.viewsByDay.filter(isObject).map((item) => ({
+          date: String(item.date || ""),
+          views: toNumber(item.views),
+          impressions: toNumber(item.impressions),
+          reactions: toNumber(item.reactions),
+          comments: toNumber(item.comments),
+        }))
+      : [],
+    trafficSources: Array.isArray(payload.trafficSources)
+      ? payload.trafficSources.filter(isObject).map((item) => ({
+          source: String(item.source || "direct"),
+          count: toNumber(item.count),
+          percentage: toNumber(item.percentage),
+        }))
+      : [],
+    previousPeriod: {
+      views: toNumber(previousPeriod.views),
+      impressions: toNumber(previousPeriod.impressions),
+      reach: toNumber(previousPeriod.reach),
+    },
+    contentCount: {
+      posts: toNumber(contentCount.posts),
+      takes: toNumber(contentCount.takes),
+      total: toNumber(contentCount.total),
+    },
+  };
+}
+
+function normalizeCommunityInsightsPayload(payload: unknown): CommunityInsights | null {
+  if (!isObject(payload)) return null;
+  const memberVisitorMix = isObject(payload.memberVisitorMix)
+    ? {
+        members: toNumber(payload.memberVisitorMix.members),
+        nonMembers: toNumber(payload.memberVisitorMix.nonMembers),
+        memberPercentage: toNumber(payload.memberVisitorMix.memberPercentage),
+      }
+    : undefined;
+
+  return {
+    communityId: String(payload.communityId || ""),
+    pageViews: toNumber(payload.pageViews),
+    uniqueVisitors: toNumber(payload.uniqueVisitors),
+    memberGrowth: normalizeMemberGrowth(payload.memberGrowth),
+    postsCreated: toNumber(payload.postsCreated),
+    takesCreated: toNumber(payload.takesCreated),
+    totalEngagement: toNumber(payload.totalEngagement),
+    memberVisitorMix,
+    topContributors: Array.isArray(payload.topContributors)
+      ? payload.topContributors.filter(isObject).map((item) => ({
+          userId: String(item.userId || ""),
+          username: String(item.username || ""),
+          displayName: typeof item.displayName === "string" ? item.displayName : undefined,
+          avatarUrl: typeof item.avatarUrl === "string" ? item.avatarUrl : undefined,
+          postsCount: toNumber(item.postsCount),
+          takesCount: toNumber(item.takesCount),
+          reactionsReceived: toNumber(item.reactionsReceived),
+          commentsReceived: toNumber(item.commentsReceived),
+        }))
+      : [],
+    viewsByDay: Array.isArray(payload.viewsByDay)
+      ? payload.viewsByDay.filter(isObject).map((item) => ({
+          date: String(item.date || ""),
+          views: toNumber(item.views),
+          impressions: toNumber(item.impressions),
+          reactions: toNumber(item.reactions),
+          comments: toNumber(item.comments),
+        }))
+      : [],
+  };
+}
+
+async function getCreatorInsightsSummaryFromRpc(
+  profileId: string,
+  startDate: string,
+  endDate: string,
+  prevStartDate: string,
+  prevEndDate: string
+): Promise<InsightsSummary | null> {
+  const { data, error } = await supabase.rpc("get_creator_insights_summary", {
+    p_profile_id: profileId,
+    p_start_date: startDate,
+    p_end_date: endDate,
+    p_prev_start_date: prevStartDate,
+    p_prev_end_date: prevEndDate,
+  });
+
+  if (error) {
+    console.warn("[insights] creator aggregate RPC unavailable:", error.message);
+    return null;
+  }
+
+  return normalizeCreatorInsightsPayload(data as CreatorInsightsRpcPayload);
+}
+
+async function getCommunityInsightsSummaryFromRpc(
+  communityId: string,
+  startDate: string,
+  endDate: string
+): Promise<CommunityInsights | null> {
+  const { data, error } = await supabase.rpc("get_community_insights_summary", {
+    p_community_id: communityId,
+    p_start_date: startDate,
+    p_end_date: endDate,
+  });
+
+  if (error) {
+    console.warn("[insights] community aggregate RPC unavailable:", error.message);
+    return null;
+  }
+
+  return normalizeCommunityInsightsPayload(data as CommunityInsightsRpcPayload);
+}
 
 function getDateRanges(timeRange: TimeRange, customRange?: DateRange) {
   const now = new Date();
@@ -1410,6 +1921,12 @@ function getDateRanges(timeRange: TimeRange, customRange?: DateRange) {
   }
 
   return { startDate, endDate, prevStartDate, prevEndDate };
+}
+
+function getExclusiveEndDate(dateStr: string): string {
+  const date = new Date(`${dateStr}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString();
 }
 
 async function getTopContent(

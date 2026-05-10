@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunityInsights, TimeRange, DateRange, CommunityInsights } from "@/lib/hooks/useInsights";
+import { useCommunityInsights, TimeRange, DateRange } from "@/lib/hooks/useInsights";
 import dynamic from "next/dynamic";
 import DateRangePicker from "@/components/insights/DateRangePicker";
-import MetricCard from "@/components/insights/cards/MetricCard";
 import LoadingSkeleton from "@/components/insights/shared/LoadingSkeleton";
 
 const GrowthChart = dynamic(() => import("@/components/insights/charts/GrowthChart"), { ssr: false });
@@ -63,9 +63,12 @@ function CommunityInsightsCard({
         <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 rounded-xl bg-purple-primary/5 flex items-center justify-center">
             {community.avatar_url ? (
-              <img
+              <Image
                 src={community.avatar_url}
                 alt={community.name}
+                width={48}
+                height={48}
+                sizes="48px"
                 className="w-12 h-12 rounded-xl object-cover"
               />
             ) : (
@@ -89,9 +92,12 @@ function CommunityInsightsCard({
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <div className="w-12 h-12 rounded-xl bg-purple-primary/5 flex items-center justify-center overflow-hidden">
             {community.avatar_url ? (
-              <img
+              <Image
                 src={community.avatar_url}
                 alt={community.name}
+                width={48}
+                height={48}
+                sizes="48px"
                 className="w-12 h-12 object-cover"
               />
             ) : (
@@ -115,7 +121,7 @@ function CommunityInsightsCard({
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
         <div className="text-center p-3 bg-subtle rounded-xl">
           <p className="font-ui text-xl text-ink">{formatNumber(insights.pageViews)}</p>
           <p className="font-body text-xs text-muted">Page Views</p>
@@ -127,6 +133,14 @@ function CommunityInsightsCard({
         <div className="text-center p-3 bg-subtle rounded-xl">
           <p className="font-ui text-xl text-ink">{formatNumber(insights.postsCreated)}</p>
           <p className="font-body text-xs text-muted">Posts Created</p>
+        </div>
+        <div className="text-center p-3 bg-subtle rounded-xl">
+          <p className="font-ui text-xl text-ink">{formatNumber(insights.takesCreated)}</p>
+          <p className="font-body text-xs text-muted">Takes Created</p>
+        </div>
+        <div className="text-center p-3 bg-subtle rounded-xl">
+          <p className="font-ui text-xl text-ink">{formatNumber(insights.totalEngagement)}</p>
+          <p className="font-body text-xs text-muted">Interactions</p>
         </div>
         <div className="text-center p-3 bg-subtle rounded-xl">
           <p className={`font-ui text-xl ${
@@ -151,6 +165,19 @@ function CommunityInsightsCard({
         type="members"
       />
 
+      {insights.memberVisitorMix && insights.pageViews > 0 && (
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-xl bg-subtle p-3">
+            <p className="font-body text-xs text-muted">Member visits</p>
+            <p className="font-ui text-lg text-ink">{formatNumber(insights.memberVisitorMix.members)}</p>
+          </div>
+          <div className="rounded-xl bg-subtle p-3">
+            <p className="font-body text-xs text-muted">Discovery visits</p>
+            <p className="font-ui text-lg text-ink">{formatNumber(insights.memberVisitorMix.nonMembers)}</p>
+          </div>
+        </div>
+      )}
+
       {/* Top Contributors */}
       {insights.topContributors.length > 0 && (
         <div className="mt-6 pt-6 border-t border-border-light">
@@ -161,9 +188,12 @@ function CommunityInsightsCard({
                 <span className="font-ui text-sm text-muted w-6">{index + 1}.</span>
                 <div className="w-8 h-8 rounded-full bg-purple-primary/10 flex items-center justify-center overflow-hidden">
                   {contributor.avatarUrl ? (
-                    <img
+                    <Image
                       src={contributor.avatarUrl}
-                      alt={contributor.displayName}
+                      alt={contributor.displayName || contributor.username}
+                      width={32}
+                      height={32}
+                      sizes="32px"
                       className="w-8 h-8 object-cover"
                     />
                   ) : (

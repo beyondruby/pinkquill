@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useContentInsights, TimeRange, DateRange } from "@/lib/hooks/useInsights";
 import DateRangePicker from "@/components/insights/DateRangePicker";
@@ -60,7 +61,7 @@ const postTypeIcons: Record<string, React.ReactNode> = {
   ),
 };
 
-type SortField = "views" | "engagement" | "date";
+type SortField = "views" | "impressions" | "engagement" | "date";
 type SortOrder = "asc" | "desc";
 type ContentFilter = "all" | "posts" | "takes";
 
@@ -98,6 +99,8 @@ export default function InsightsContentPage() {
       let comparison = 0;
       if (sortField === "views") {
         comparison = a.views - b.views;
+      } else if (sortField === "impressions") {
+        comparison = a.impressions - b.impressions;
       } else if (sortField === "engagement") {
         comparison = a.engagementRate - b.engagementRate;
       } else if (sortField === "date") {
@@ -221,6 +224,16 @@ export default function InsightsContentPage() {
               Views {sortField === "views" && (sortOrder === "desc" ? "↓" : "↑")}
             </button>
             <button
+              onClick={() => handleSort("impressions")}
+              className={`px-3 py-1.5 font-ui text-xs border-l border-border-light transition-colors ${
+                sortField === "impressions"
+                  ? "bg-purple-primary/10 text-purple-primary"
+                  : "text-muted hover:text-ink"
+              }`}
+            >
+              Impressions {sortField === "impressions" && (sortOrder === "desc" ? "↓" : "↑")}
+            </button>
+            <button
               onClick={() => handleSort("engagement")}
               className={`px-3 py-1.5 font-ui text-xs border-l border-border-light transition-colors ${
                 sortField === "engagement"
@@ -257,10 +270,12 @@ export default function InsightsContentPage() {
               <div className="relative w-16 h-16 rounded-lg bg-purple-primary/5 flex-shrink-0 overflow-hidden">
                 {item.thumbnail ? (
                   <>
-                    <img
+                    <Image
                       src={item.thumbnail}
                       alt={item.title || "Content thumbnail"}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="64px"
+                      className="object-cover"
                     />
                     {/* Video play indicator overlay */}
                     {item.type === "take" && (
@@ -326,13 +341,17 @@ export default function InsightsContentPage() {
                   <p className="font-ui text-base sm:text-lg font-medium text-ink">{formatNumber(item.views)}</p>
                   <p className="font-body text-[10px] sm:text-xs text-muted">views</p>
                 </div>
-                <div className="hidden sm:block text-center min-w-[60px]">
-                  <p className="font-ui text-lg font-medium text-ink">{formatNumber(item.reactions)}</p>
-                  <p className="font-body text-xs text-muted">reactions</p>
+                <div className="hidden md:block text-center min-w-[72px]">
+                  <p className="font-ui text-lg font-medium text-ink">{formatNumber(item.impressions)}</p>
+                  <p className="font-body text-xs text-muted">shown</p>
                 </div>
                 <div className="hidden sm:block text-center min-w-[60px]">
-                  <p className="font-ui text-lg font-medium text-ink">{formatNumber(item.comments)}</p>
-                  <p className="font-body text-xs text-muted">comments</p>
+                  <p className="font-ui text-lg font-medium text-ink">{item.engagementRate.toFixed(1)}%</p>
+                  <p className="font-body text-xs text-muted">engaged</p>
+                </div>
+                <div className="hidden sm:block text-center min-w-[60px]">
+                  <p className="font-ui text-lg font-medium text-ink">{formatNumber(item.reactions + item.comments + item.relays + item.saves)}</p>
+                  <p className="font-body text-xs text-muted">actions</p>
                 </div>
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-subtle flex items-center justify-center flex-shrink-0">
                   <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
