@@ -80,10 +80,10 @@ export default function InsightsAudiencePage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-display text-3xl text-ink">Audience Insights</h1>
-          <p className="font-body text-muted mt-1">Understand your followers and reach</p>
+          <h1 className="font-display text-2xl sm:text-3xl text-ink">Audience Insights</h1>
+          <p className="font-body text-sm sm:text-base text-muted mt-1">Understand your followers and reach</p>
         </div>
         <DateRangePicker
           value={timeRange}
@@ -93,7 +93,7 @@ export default function InsightsAudiencePage() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <MetricCard
           label="Total Followers"
           value={insights.followerGrowth.currentCount}
@@ -146,7 +146,7 @@ export default function InsightsAudiencePage() {
       </div>
 
       {/* Growth Details */}
-      <div className="grid grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Gained vs Lost */}
         <div className="bg-surface rounded-2xl p-6 border border-border-light">
           <h3 className="font-ui text-sm font-medium text-ink mb-4">Follower Changes</h3>

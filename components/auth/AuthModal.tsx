@@ -20,7 +20,8 @@ import {
 
 export default function AuthModal() {
   const { isOpen, closeModal } = useAuthModal();
-  const { state, actions } = useAuthFlow();
+  // Modal opens for guests who clicked an interaction — default to signup, not login.
+  const { state, actions } = useAuthFlow({ initialIsLogin: false });
   const {
     isLogin, step, emailOrUsername, password, username, displayName,
     otpCode, pendingEmail, resendCooldown, loading, error, message,
@@ -94,7 +95,7 @@ export default function AuthModal() {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-surface/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-primary/10 border border-surface/50 overflow-hidden animate-scaleIn">
+      <div className="relative w-full max-w-md bg-surface rounded-3xl shadow-2xl shadow-purple-primary/20 overflow-hidden animate-scaleIn">
 
         {/* Close button */}
         <button
@@ -105,21 +106,11 @@ export default function AuthModal() {
           <FontAwesomeIcon icon={faXmark} className="w-4 h-4" />
         </button>
 
-        {/* Decorative artwork (signed-out hero) */}
-        <div className="absolute inset-x-0 top-0 h-44 pointer-events-none overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/15 via-pink-vivid/15 to-orange-warm/20" />
-          <div
-            className="absolute inset-0 opacity-[0.5] mix-blend-overlay"
-            style={{
-              backgroundImage:
-                "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-            }}
-          />
-          <div className="absolute -top-10 -left-8 w-40 h-40 rounded-full bg-gradient-to-br from-pink-vivid/30 to-transparent blur-2xl" />
-          <div className="absolute -top-6 right-[-30px] w-44 h-44 rounded-full bg-gradient-to-tl from-orange-warm/25 to-transparent blur-2xl" />
-          <span className="absolute top-6 right-12 font-display italic text-2xl text-purple-primary/40 select-none">"</span>
-          <span className="absolute top-16 left-10 font-display italic text-xl text-pink-vivid/40 select-none">~</span>
-          <span className="absolute top-24 right-24 font-display italic text-lg text-orange-warm/40 select-none">*</span>
+        {/* Decorative aurora (guest conversion hero) */}
+        <div className="absolute inset-x-0 top-0 h-52 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_20%_0%,rgba(255,0,127,0.28),transparent_55%),radial-gradient(120%_80%_at_80%_0%,rgba(142,68,173,0.28),transparent_55%),radial-gradient(120%_120%_at_50%_100%,rgba(255,159,67,0.22),transparent_60%)]" />
+          <div className="absolute -top-16 -left-10 w-48 h-48 rounded-full bg-pink-vivid/25 blur-3xl" />
+          <div className="absolute -top-10 -right-12 w-52 h-52 rounded-full bg-purple-primary/25 blur-3xl" />
         </div>
 
         <div className="relative p-8 pt-7">
@@ -133,15 +124,15 @@ export default function AuthModal() {
               <>
                 <h2 className="font-display text-[1.7rem] leading-tight text-ink mb-2 tracking-tight">
                   {isLogin ? (
-                    <>Hey, you&apos;re <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm">back</span>.</>
+                    <>Pick up where you <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm">left off</span>.</>
                   ) : (
-                    <>Pull up a <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm">chair</span>.</>
+                    <>Join the <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm">conversation</span>.</>
                   )}
                 </h2>
                 <p className="font-body text-[0.95rem] text-muted leading-relaxed max-w-xs mx-auto">
                   {isLogin
-                    ? "Your studio is right where you left it — signed-out, but waiting."
-                    : "Make a home for your words, your art, your loud and quiet things."
+                    ? "Sign in to keep reading, reacting, and following the people you love."
+                    : "Free to join. React, comment, follow creators, and start your own studio in seconds."
                   }
                 </p>
               </>
@@ -177,7 +168,7 @@ export default function AuthModal() {
                       onChange={(e) => actions.setUsername(e.target.value)}
                       placeholder="Username"
                       required={!isLogin}
-                      className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
+                      className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-border-light font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                     />
                   </div>
                   <div>
@@ -191,7 +182,7 @@ export default function AuthModal() {
                       onChange={(e) => actions.setDisplayName(e.target.value)}
                       placeholder="Full Name"
                       required={!isLogin}
-                      className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
+                      className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-border-light font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                     />
                   </div>
                 </div>
@@ -211,7 +202,7 @@ export default function AuthModal() {
                   onChange={(e) => actions.setEmailOrUsername(e.target.value)}
                   placeholder={isLogin ? "Email or Username" : "Email"}
                   required
-                  className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
+                  className="w-full px-3 py-2.5 rounded-xl bg-subtle/50 border border-border-light font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                 />
               </div>
 
@@ -228,7 +219,7 @@ export default function AuthModal() {
                     placeholder="Password"
                     required
                     minLength={isLogin ? undefined : PASSWORD_MIN_LENGTH}
-                    className="w-full px-3 py-2.5 pr-10 rounded-xl bg-subtle/50 border border-gray-200 font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
+                    className="w-full px-3 py-2.5 pr-10 rounded-xl bg-subtle/50 border border-border-light font-ui text-sm text-ink placeholder-muted/40 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/5 transition-all"
                   />
                   <button
                     type="button"
@@ -336,7 +327,7 @@ export default function AuthModal() {
                     onKeyDown={(e) => actions.handleOtpKeyDown(index, e, otpInputRefs)}
                     onPaste={index === 0 ? (ev) => actions.handleOtpPaste(ev, otpInputRefs) : undefined}
                     disabled={loading}
-                    className="w-11 h-13 text-center text-xl font-bold text-ink rounded-xl bg-subtle/50 border-2 border-gray-200 outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/10 transition-all disabled:opacity-50"
+                    className="w-11 h-13 text-center text-xl font-bold text-ink rounded-xl bg-subtle/50 border-2 border-border-light outline-none focus:border-purple-primary focus:bg-surface focus:ring-4 focus:ring-purple-primary/10 transition-all disabled:opacity-50"
                   />
                 ))}
               </div>

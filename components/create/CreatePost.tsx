@@ -2126,10 +2126,11 @@ export default function CreatePost() {
                   : "shadow-md hover:shadow-lg hover:-translate-y-0.5 text-muted"
               }`}
               style={{
-                border: selectedType === type.id ? "2px solid transparent" : "1px solid rgba(0,0,0,0.05)",
+                border: selectedType === type.id ? "2px solid transparent" : "1px solid var(--color-border-light, rgba(0,0,0,0.05))",
                 backgroundImage: selectedType === type.id
-                  ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+                  ? "linear-gradient(var(--color-surface), var(--color-surface)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
                   : undefined,
+                backgroundColor: selectedType === type.id ? undefined : "var(--color-surface)",
                 backgroundOrigin: "border-box",
                 backgroundClip: selectedType === type.id ? "padding-box, border-box" : undefined,
               }}
@@ -3057,7 +3058,7 @@ export default function CreatePost() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full rounded-2xl border border-dashed border-pink-vivid/25 bg-gradient-to-br from-pink-50/50 via-surface to-purple-50/30 p-10 flex flex-col items-center gap-4 hover:border-pink-300 hover:shadow-sm transition-all group"
+                className="w-full rounded-2xl border border-dashed border-pink-vivid/25 bg-gradient-to-br from-pink-vivid/5 via-surface to-purple-primary/5 p-10 flex flex-col items-center gap-4 hover:border-pink-vivid/50 hover:shadow-sm transition-all group"
               >
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 flex items-center justify-center group-hover:scale-105 transition-transform">
                   <svg className="w-7 h-7 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3070,7 +3071,7 @@ export default function CreatePost() {
                 </div>
               </button>
             ) : (
-              <div className="rounded-2xl border border-border-light bg-gradient-to-br from-surface via-pink-50/20 to-purple-50/15 p-5">
+              <div className="rounded-2xl border border-border-light bg-gradient-to-br from-surface via-pink-vivid/[0.04] to-purple-primary/[0.04] p-5">
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {mediaItems.map((item, index) => (
                     <div

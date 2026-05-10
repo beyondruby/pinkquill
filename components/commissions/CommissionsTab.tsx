@@ -208,22 +208,22 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
         <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-pink-vivid/[0.06] blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-purple-primary/[0.05] blur-3xl pointer-events-none" />
 
-        <div className="relative p-6 sm:p-8">
+        <div className="relative p-5 sm:p-8">
           <div className="flex flex-col gap-5">
             {/* Header row */}
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-3 sm:gap-4">
               <div className="min-w-0">
                 <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-pink-vivid/70">Commissions</p>
                 {sellerProfile?.store_tagline ? (
-                  <h2 className="font-display text-xl text-ink mt-1.5 leading-snug">{sellerProfile.store_tagline}</h2>
+                  <h2 className="font-display text-lg sm:text-xl text-ink mt-1.5 leading-snug truncate">{sellerProfile.store_tagline}</h2>
                 ) : (
-                  <h2 className="font-display text-xl text-ink mt-1.5 leading-snug">Open for work</h2>
+                  <h2 className="font-display text-lg sm:text-xl text-ink mt-1.5 leading-snug">Open for work</h2>
                 )}
               </div>
               {/* Quill rating badge */}
-              <div className="flex items-center gap-2 shrink-0 px-3 py-2 rounded-xl bg-surface/70 backdrop-blur-sm border border-border-light">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <QuillIcon className="h-5 w-5" gradient={Boolean(sellerStats?.total_reviews)} />
-                <span className="font-display text-lg font-semibold text-ink leading-none">
+                <span className="font-display text-base sm:text-lg font-semibold text-ink leading-none">
                   {sellerStats?.total_reviews ? sellerStats.avg_quill_score.toFixed(1) : "--"}
                 </span>
                 <span className="text-muted text-[11px] font-body leading-none">
@@ -232,28 +232,28 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
               </div>
             </div>
 
-            {/* Stats — three vital signs of the studio */}
-            <dl className="grid grid-cols-3 gap-px rounded-2xl bg-border-light/70 border border-border-light overflow-hidden">
-              <div className="bg-surface/70 px-4 py-3 text-left flex items-baseline justify-between sm:flex-col sm:items-start sm:justify-start sm:gap-1">
-                <dt className="font-ui text-[10px] uppercase tracking-[0.16em] text-muted">Open</dt>
-                <dd className="font-display text-lg sm:text-2xl font-semibold text-ink leading-none">
+            {/* Stats — three vital signs of the studio (no box, just hairlines) */}
+            <dl className="grid grid-cols-3 divide-x divide-border-light/70">
+              <div className="pr-3 sm:pr-4 first:pl-0 flex flex-col gap-0.5 sm:gap-1">
+                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Open</dt>
+                <dd className="font-display text-xl sm:text-2xl font-semibold text-ink leading-none">
                   {stats.active}
-                  <span className="ml-1 text-[10px] font-ui font-medium uppercase tracking-wider text-muted">live</span>
+                  <span className="ml-1 text-[9px] sm:text-[10px] font-ui font-medium uppercase tracking-wider text-muted">live</span>
                 </dd>
               </div>
-              <div className="bg-surface/70 px-4 py-3 text-left flex items-baseline justify-between sm:flex-col sm:items-start sm:justify-start sm:gap-1">
-                <dt className="font-ui text-[10px] uppercase tracking-[0.16em] text-muted">Delivered</dt>
-                <dd className="font-display text-lg sm:text-2xl font-semibold text-ink leading-none">
+              <div className="px-3 sm:px-4 flex flex-col gap-0.5 sm:gap-1">
+                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Delivered</dt>
+                <dd className="font-display text-xl sm:text-2xl font-semibold text-ink leading-none">
                   {sellerStats?.completed_orders ?? 0}
-                  <span className="ml-1 text-[10px] font-ui font-medium uppercase tracking-wider text-muted">{(sellerStats?.completed_orders ?? 0) === 1 ? "client" : "clients"}</span>
+                  <span className="ml-1 text-[9px] sm:text-[10px] font-ui font-medium uppercase tracking-wider text-muted">{(sellerStats?.completed_orders ?? 0) === 1 ? "client" : "clients"}</span>
                 </dd>
               </div>
-              <div className="bg-surface/70 px-4 py-3 text-left flex items-baseline justify-between sm:flex-col sm:items-start sm:justify-start sm:gap-1">
-                <dt className="font-ui text-[10px] uppercase tracking-[0.16em] text-muted">Replies in</dt>
-                <dd className="font-display text-lg sm:text-2xl font-semibold text-ink leading-none">
+              <div className="pl-3 sm:pl-4 flex flex-col gap-0.5 sm:gap-1">
+                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Replies in</dt>
+                <dd className="font-display text-xl sm:text-2xl font-semibold text-ink leading-none">
                   {formatResponseTime(responseTimeHours)}
                   {responseTimeHours ? (
-                    <span className="ml-1 text-[10px] font-ui font-medium uppercase tracking-wider text-muted">avg</span>
+                    <span className="ml-1 text-[9px] sm:text-[10px] font-ui font-medium uppercase tracking-wider text-muted">avg</span>
                   ) : null}
                 </dd>
               </div>

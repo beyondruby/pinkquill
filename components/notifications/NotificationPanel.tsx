@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useNotifications, useMarkAsRead, useCollaborationInvites, useFollowRequests, Notification } from "@/lib/hooks";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { NotificationSkeleton } from "@/components/ui/Skeleton";
-import { supabase } from "@/lib/supabase";
 import { setRequestMetricsScope } from "@/lib/utils/requestMetrics";
 import CollaborationInviteCard from "./CollaborationInviteCard";
 import FollowRequestCard from "./FollowRequestCard";
@@ -1044,30 +1043,13 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
-  const handleMarkAllAsRead = async () => {
-    if (user) {
-      await markAllAsRead(user.id);
-    }
-  };
-
+  // Auto-clear the unread badge as soon as the panel opens — the user has now
+  // seen the list, so we mark every regular notification as read. Invites and
+  // follow requests are also cleared so the badge drops to zero.
   useEffect(() => {
     if (!user?.id) return;
-
-    const markHiddenNotificationsAsRead = async () => {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("user_id", user.id)
-        .eq("read", false)
-        .in("type", ["follow_request", "collaboration_invite"]);
-
-      if (error) {
-        console.warn("[NotificationPanel] Failed to clear hidden invite/request notifications:", error.message);
-      }
-    };
-
-    void markHiddenNotificationsAsRead();
-  }, [user?.id]);
+    void markAllAsRead(user.id);
+  }, [user?.id, markAllAsRead]);
 
   const unreadCount = regularUnreadCount + invites.length + followRequests.length;
   const hasContent = regularNotifications.length > 0 || invites.length > 0 || followRequests.length > 0;
@@ -1098,25 +1080,13 @@ function NotificationPanelContent({ onClose }: { onClose: () => void }) {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {regularUnreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  aria-label="Mark all notifications as read"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-accent font-ui text-[0.78rem] font-medium hover:bg-purple-50 transition-all"
-                >
-                  {icons.checkAll}
-                  <span>Mark all read</span>
-                </button>
-              )}
-              <button
-                onClick={onClose}
-                className="w-9 h-9 rounded-full bg-skeleton/60 flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
-                aria-label="Close notifications"
-              >
-                {icons.close}
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="w-9 h-9 rounded-full bg-skeleton/60 flex items-center justify-center text-muted hover:text-ink hover:bg-skeleton transition-all"
+              aria-label="Close notifications"
+            >
+              {icons.close}
+            </button>
           </div>
         </div>
 

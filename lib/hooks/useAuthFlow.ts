@@ -81,9 +81,9 @@ export interface AuthFlowActions {
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useAuthFlow() {
+export function useAuthFlow(options?: { initialIsLogin?: boolean }) {
   // ---- state ----
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(options?.initialIsLogin ?? true);
   const [step, setStep] = useState<AuthStep>("credentials");
 
   const [emailOrUsername, setEmailOrUsername] = useState("");

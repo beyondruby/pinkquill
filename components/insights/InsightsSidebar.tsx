@@ -106,3 +106,39 @@ export default function InsightsSidebar() {
     </aside>
   );
 }
+
+// Mobile-only horizontal tabs for switching insights sub-pages on small screens.
+// Renders nothing on md+ (the full InsightsSidebar takes over).
+export function InsightsMobileTabs() {
+  const pathname = usePathname();
+
+  return (
+    <div className="md:hidden border-b border-border-light bg-surface/80 backdrop-blur-sm sticky top-14 z-30">
+      <div className="px-4 pt-4 pb-3">
+        <h1 className="font-display text-2xl text-ink">Insights</h1>
+      </div>
+      <nav className="overflow-x-auto scrollbar-hide -mx-px">
+        <div className="flex gap-2 px-4 pb-3 min-w-max">
+          {insightsItems.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/insights" && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex-shrink-0 px-4 py-2 rounded-full font-ui text-sm font-medium whitespace-nowrap transition-all ${
+                  isActive
+                    ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md shadow-purple-primary/20"
+                    : "bg-subtle/60 text-muted hover:text-ink"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
+  );
+}

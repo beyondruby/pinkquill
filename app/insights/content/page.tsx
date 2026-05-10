@@ -159,10 +159,10 @@ export default function InsightsContentPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-display text-3xl text-ink">Content Insights</h1>
-          <p className="font-body text-muted mt-1">Performance of your posts and takes</p>
+          <h1 className="font-display text-2xl sm:text-3xl text-ink">Content Insights</h1>
+          <p className="font-body text-sm sm:text-base text-muted mt-1">Performance of your posts and takes</p>
         </div>
         <DateRangePicker
           value={timeRange}
@@ -172,8 +172,8 @@ export default function InsightsContentPage() {
       </div>
 
       {/* Filters & Sort */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
           <button
             onClick={() => setFilter("all")}
             className={`px-4 py-2 rounded-full font-ui text-sm transition-colors ${
@@ -321,20 +321,20 @@ export default function InsightsContentPage() {
               </div>
 
               {/* Stats */}
-              <div className="flex items-center gap-6 flex-shrink-0">
-                <div className="text-center min-w-[60px]">
-                  <p className="font-ui text-lg font-medium text-ink">{formatNumber(item.views)}</p>
-                  <p className="font-body text-xs text-muted">views</p>
+              <div className="flex items-center gap-3 sm:gap-6 flex-shrink-0">
+                <div className="text-center min-w-[44px] sm:min-w-[60px]">
+                  <p className="font-ui text-base sm:text-lg font-medium text-ink">{formatNumber(item.views)}</p>
+                  <p className="font-body text-[10px] sm:text-xs text-muted">views</p>
                 </div>
-                <div className="text-center min-w-[60px]">
+                <div className="hidden sm:block text-center min-w-[60px]">
                   <p className="font-ui text-lg font-medium text-ink">{formatNumber(item.reactions)}</p>
                   <p className="font-body text-xs text-muted">reactions</p>
                 </div>
-                <div className="text-center min-w-[60px]">
+                <div className="hidden sm:block text-center min-w-[60px]">
                   <p className="font-ui text-lg font-medium text-ink">{formatNumber(item.comments)}</p>
                   <p className="font-body text-xs text-muted">comments</p>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-subtle flex items-center justify-center flex-shrink-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-subtle flex items-center justify-center flex-shrink-0">
                   <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>

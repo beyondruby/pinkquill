@@ -84,9 +84,9 @@ function CommunityInsightsCard({
   }
 
   return (
-    <div className="bg-surface rounded-2xl p-6 border border-border-light">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+    <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <div className="w-12 h-12 rounded-xl bg-purple-primary/5 flex items-center justify-center overflow-hidden">
             {community.avatar_url ? (
               <img
@@ -100,8 +100,8 @@ function CommunityInsightsCard({
               </svg>
             )}
           </div>
-          <div>
-            <h3 className="font-ui text-lg text-ink">{community.name}</h3>
+          <div className="min-w-0">
+            <h3 className="font-ui text-base sm:text-lg text-ink truncate">{community.name}</h3>
             <p className="font-body text-sm text-muted">
               {formatNumber(insights.memberGrowth.currentCount)} members
             </p>
@@ -109,13 +109,13 @@ function CommunityInsightsCard({
         </div>
         <Link
           href={`/community/${community.slug}`}
-          className="font-ui text-sm text-purple-primary hover:underline"
+          className="flex-shrink-0 font-ui text-xs sm:text-sm text-purple-primary hover:underline whitespace-nowrap"
         >
-          View Community
+          View
         </Link>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <div className="text-center p-3 bg-subtle rounded-xl">
           <p className="font-ui text-xl text-ink">{formatNumber(insights.pageViews)}</p>
           <p className="font-body text-xs text-muted">Page Views</p>
@@ -276,9 +276,9 @@ export default function InsightsCommunitiesPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-display text-3xl text-ink">Community Insights</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-ink">Community Insights</h1>
           <p className="font-body text-muted mt-1">
             Analytics for {communities.length} {communities.length === 1 ? "community" : "communities"} you manage
           </p>

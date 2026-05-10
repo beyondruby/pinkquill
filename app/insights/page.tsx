@@ -124,10 +124,10 @@ export default function InsightsOverviewPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-display text-3xl text-ink">Insights Overview</h1>
-          <p className="font-body text-muted mt-1">Track your performance and growth</p>
+          <h1 className="font-display text-2xl sm:text-3xl text-ink">Insights Overview</h1>
+          <p className="font-body text-sm sm:text-base text-muted mt-1">Track your performance and growth</p>
         </div>
         <DateRangePicker
           value={timeRange}
@@ -160,7 +160,7 @@ export default function InsightsOverviewPage() {
       )}
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <MetricCard
           label="Total Views"
           value={insights.totalViews}
@@ -212,7 +212,7 @@ export default function InsightsOverviewPage() {
       </div>
 
       {/* Two Column Layout */}
-      <div className="grid grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Traffic Sources */}
         <TrafficSourcesChart data={insights.trafficSources} title="Traffic Sources" height={250} />
 

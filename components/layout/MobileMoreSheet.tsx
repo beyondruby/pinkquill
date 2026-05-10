@@ -22,7 +22,7 @@ interface MoreItem {
 const baseIconClass = "w-5 h-5 flex-shrink-0";
 
 export default function MobileMoreSheet({ isOpen, onClose }: MobileMoreSheetProps) {
-  const { user, profile, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { cartCount } = useBadgeCounts();
 
   useEffect(() => {
@@ -175,32 +175,6 @@ export default function MobileMoreSheet({ isOpen, onClose }: MobileMoreSheetProp
             </svg>
           </button>
         </div>
-
-        {/* Profile chip */}
-        {user && profile && (
-          <Link
-            href={`/studio/${profile.username}`}
-            onClick={onClose}
-            className="flex items-center gap-3 px-5 py-4 border-b border-border-light hover:bg-subtle/40 transition-colors"
-          >
-            <img
-              src={profile.avatar_url || "/default-avatar.png"}
-              alt=""
-              className="w-11 h-11 rounded-full object-cover border-2 border-pink-vivid"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="font-ui text-[0.95rem] font-medium text-ink truncate">
-                {profile.display_name || profile.username}
-              </p>
-              <p className="font-body text-xs text-muted truncate">
-                @{profile.username}
-              </p>
-            </div>
-            <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        )}
 
         {/* Items */}
         <nav className="flex-1 overflow-y-auto py-2">

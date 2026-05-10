@@ -140,7 +140,7 @@ export default function MarketplaceHeader({
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Main Bar */}
         <div className="flex items-center justify-between gap-3 h-16 sm:h-[72px]">
-          <div className="hidden sm:flex items-center p-1.5 bg-gradient-to-r from-orange-50 via-pink-50 to-purple-50 rounded-full border border-border-light shadow-sm">
+          <div className="hidden sm:flex items-center p-1.5 bg-gradient-to-r from-orange-warm/[0.08] via-pink-vivid/[0.08] to-purple-primary/[0.08] rounded-full border border-border-light shadow-sm">
             <button
               onClick={() => onListingTypeChange("product")}
               className={`px-3 py-1.5 rounded-full text-xs font-ui font-semibold transition-all ${
@@ -171,7 +171,7 @@ export default function MarketplaceHeader({
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder={catalogType === "service" ? "Search commissions..." : "Search products..."}
-                className="w-full h-10 pl-10 pr-4 bg-surface rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-border-light shadow-sm focus:border-pink-200 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 transition-all"
+                className="w-full h-10 pl-10 pr-4 bg-surface rounded-full text-sm font-body text-ink placeholder:text-muted/60 border border-border-light shadow-sm focus:border-pink-vivid/40 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-pink-vivid/10 transition-all"
               />
               <svg
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
@@ -196,7 +196,7 @@ export default function MarketplaceHeader({
                     ? "bg-gradient-to-r from-pink-vivid to-orange-warm text-white"
                     : "bg-gradient-to-r from-purple-primary to-pink-vivid text-white"
                   : hasActiveFilters
-                  ? "bg-pink-50 text-pink-vivid border border-pink-vivid/20"
+                  ? "bg-pink-vivid/10 text-pink-vivid border border-pink-vivid/20"
                   : "bg-surface text-ink border border-border-light hover:bg-subtle"
               }`}
             >
@@ -324,7 +324,7 @@ export default function MarketplaceHeader({
                         }}
                         className={`w-full px-4 py-2.5 text-left text-sm font-body transition-colors ${
                           filters.subcategory === sub.value
-                            ? "bg-pink-50 text-pink-vivid"
+                            ? "bg-pink-vivid/10 text-pink-vivid"
                             : "text-ink hover:bg-subtle"
                         }`}
                       >
@@ -343,7 +343,7 @@ export default function MarketplaceHeader({
       {showFilters && (
         <div
           id="marketplace-filters-panel"
-          className="border-t border-border-light bg-gradient-to-b from-orange-50/40 via-surface to-surface animate-fadeIn"
+          className="border-t border-border-light bg-gradient-to-b from-orange-warm/[0.04] via-surface to-surface animate-fadeIn"
         >
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 bg-surface/90 border border-border-light rounded-2xl p-5 shadow-sm">
@@ -359,7 +359,7 @@ export default function MarketplaceHeader({
                       onClick={() => onListingTypeChange(option.value)}
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         catalogType === option.value
-                          ? "bg-pink-50 text-pink-vivid"
+                          ? "bg-pink-vivid/10 text-pink-vivid"
                           : "text-ink hover:bg-subtle"
                       }`}
                     >
@@ -388,7 +388,7 @@ export default function MarketplaceHeader({
                         onClick={() => onDeliveryTypeChange(type.value)}
                         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.delivery_type === type.value
-                            ? "bg-purple-50 text-purple-primary"
+                            ? "bg-purple-primary/10 text-purple-primary"
                             : "text-ink hover:bg-subtle"
                         }`}
                       >
@@ -414,7 +414,7 @@ export default function MarketplaceHeader({
                       onClick={() => onMaxDeliveryDaysChange(undefined)}
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         filters.max_delivery_days === undefined
-                          ? "bg-purple-50 text-purple-primary"
+                          ? "bg-purple-primary/10 text-purple-primary"
                           : "text-ink hover:bg-subtle"
                       }`}
                     >
@@ -431,7 +431,7 @@ export default function MarketplaceHeader({
                         onClick={() => onMaxDeliveryDaysChange(option.value)}
                         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.max_delivery_days === option.value
-                            ? "bg-purple-50 text-purple-primary"
+                            ? "bg-purple-primary/10 text-purple-primary"
                             : "text-ink hover:bg-subtle"
                         }`}
                       >
@@ -455,7 +455,7 @@ export default function MarketplaceHeader({
                     onClick={() => onPriceRangeChange(undefined, undefined)}
                     className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                       filters.min_price === undefined && filters.max_price === undefined
-                        ? "bg-orange-50 text-orange-warm"
+                        ? "bg-orange-warm/10 text-orange-warm"
                         : "text-ink hover:bg-subtle"
                     }`}
                   >
@@ -476,7 +476,7 @@ export default function MarketplaceHeader({
                       onClick={() => onPriceRangeChange(range.min, range.max)}
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         filters.min_price === range.min && filters.max_price === range.max
-                          ? "bg-orange-50 text-orange-warm"
+                          ? "bg-orange-warm/10 text-orange-warm"
                           : "text-ink hover:bg-subtle"
                       }`}
                     >
@@ -503,7 +503,7 @@ export default function MarketplaceHeader({
                       onClick={() => onMinRevisionsChange(undefined)}
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         filters.min_revisions === undefined
-                          ? "bg-orange-50 text-orange-warm"
+                          ? "bg-orange-warm/10 text-orange-warm"
                           : "text-ink hover:bg-subtle"
                       }`}
                     >
@@ -520,7 +520,7 @@ export default function MarketplaceHeader({
                         onClick={() => onMinRevisionsChange(option.value)}
                         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.min_revisions === option.value
-                            ? "bg-orange-50 text-orange-warm"
+                            ? "bg-orange-warm/10 text-orange-warm"
                             : "text-ink hover:bg-subtle"
                         }`}
                       >
@@ -547,7 +547,7 @@ export default function MarketplaceHeader({
                       onClick={() => onSubcategoryChange(undefined)}
                       className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                         !filters.subcategory
-                          ? "bg-pink-50 text-pink-vivid"
+                          ? "bg-pink-vivid/10 text-pink-vivid"
                           : "text-ink hover:bg-subtle"
                       }`}
                     >
@@ -566,7 +566,7 @@ export default function MarketplaceHeader({
                         onClick={() => onSubcategoryChange(sub.value)}
                         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-body transition-all ${
                           filters.subcategory === sub.value
-                            ? "bg-pink-50 text-pink-vivid"
+                            ? "bg-pink-vivid/10 text-pink-vivid"
                             : "text-ink hover:bg-subtle"
                         }`}
                       >
@@ -589,7 +589,7 @@ export default function MarketplaceHeader({
                 {hasActiveFilters && (
                   <button
                     onClick={onClearFilters}
-                    className="px-4 py-2.5 text-sm font-ui font-medium text-pink-vivid hover:bg-pink-50 rounded-lg transition-colors"
+                    className="px-4 py-2.5 text-sm font-ui font-medium text-pink-vivid hover:bg-pink-vivid/10 rounded-lg transition-colors"
                   >
                     Clear all filters
                   </button>

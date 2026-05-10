@@ -92,21 +92,35 @@ export default function MobileBottomNav() {
                 <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-on-accent shadow-lg shadow-pink-vivid/30">
                   {icons[item.icon]}
                 </div>
+              ) : item.icon === "profile" && user ? (
+                <div className="relative">
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt="Profile"
+                      className={`w-9 h-9 rounded-full object-cover ${
+                        isActive
+                          ? "ring-2 ring-accent-2 ring-offset-2 ring-offset-surface"
+                          : "ring-1 ring-border-light"
+                      }`}
+                    />
+                  ) : (
+                    <div
+                      className={`w-9 h-9 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white text-sm font-semibold ${
+                        isActive
+                          ? "ring-2 ring-accent-2 ring-offset-2 ring-offset-surface"
+                          : ""
+                      }`}
+                    >
+                      {(profile?.display_name || profile?.username || "U")
+                        .charAt(0)
+                        .toUpperCase()}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <>
-                  <div className="relative">
-                    {item.icon === "profile" && user && profile?.avatar_url ? (
-                      <img
-                        src={profile.avatar_url}
-                        alt="Profile"
-                        className={`w-6 h-6 rounded-full object-cover ${
-                          isActive ? "ring-2 ring-accent-2" : ""
-                        }`}
-                      />
-                    ) : (
-                      icons[item.icon]
-                    )}
-                  </div>
+                  <div className="relative">{icons[item.icon]}</div>
                   <span className="text-[10px] font-ui mt-1">{item.label}</span>
                 </>
               )}

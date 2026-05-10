@@ -79,7 +79,7 @@ export default function MarketplacePageContent() {
   }, [handleObserver]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface via-surface to-orange-50/30">
+    <div className="min-h-screen bg-gradient-to-b from-surface via-surface to-orange-warm/[0.04]">
       <MarketplaceHero listingType={filters.listing_type || "product"} />
 
       <MarketplaceHeader
@@ -114,7 +114,7 @@ export default function MarketplacePageContent() {
           </div>
         ) : error ? (
           <div className="text-center py-20">
-            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-pink-vivid/10 to-purple-primary/10 flex items-center justify-center">
               <svg className="w-8 h-8 text-pink-vivid/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
@@ -123,14 +123,14 @@ export default function MarketplacePageContent() {
             <p className="text-sm font-body text-muted mb-5 max-w-sm mx-auto">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-6 py-2.5 text-sm font-ui font-medium text-pink-vivid border border-pink-200 rounded-full hover:bg-pink-50 transition-colors"
+              className="px-6 py-2.5 text-sm font-ui font-medium text-pink-vivid border border-pink-vivid/30 rounded-full hover:bg-pink-vivid/10 transition-colors"
             >
               Try again
             </button>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-orange-warm/10 via-pink-vivid/10 to-purple-primary/10 flex items-center justify-center">
               <svg className="w-8 h-8 text-purple-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -163,7 +163,7 @@ export default function MarketplacePageContent() {
             <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-10">
               {loading && products.length > 0 && (
                 <div className="flex items-center gap-3 text-muted">
-                  <div className="w-5 h-5 border-2 border-pink-200 border-t-pink-vivid rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-pink-vivid/30 border-t-pink-vivid rounded-full animate-spin" />
                   <span className="text-sm font-body">
                     Loading more {isService ? "commissions" : "products"}...
                   </span>
@@ -222,9 +222,9 @@ function DiscoveryStrip({
 
 function Badge({ label, tone }: { label: string; tone: "purple" | "pink" | "neutral" }) {
   const toneClasses = {
-    purple: "bg-purple-100 text-purple-primary",
-    pink: "bg-pink-100 text-pink-vivid",
-    neutral: "bg-skeleton text-gray-700",
+    purple: "bg-purple-primary/10 text-purple-primary",
+    pink: "bg-pink-vivid/10 text-pink-vivid",
+    neutral: "bg-subtle text-muted",
   } as const;
 
   return (
@@ -237,7 +237,7 @@ function Badge({ label, tone }: { label: string; tone: "purple" | "pink" | "neut
 function ProductSkeleton() {
   return (
     <div className="bg-surface rounded-2xl overflow-hidden border border-border-light shadow-sm">
-      <div className="aspect-[4/3] bg-gradient-to-br from-orange-50 to-pink-50 animate-pulse" />
+      <div className="aspect-[4/3] bg-skeleton animate-pulse" />
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 bg-skeleton rounded-full animate-pulse" />
@@ -245,7 +245,7 @@ function ProductSkeleton() {
         </div>
         <div className="h-4 w-3/4 bg-skeleton rounded animate-pulse" />
         <div className="h-4 w-1/2 bg-skeleton rounded animate-pulse" />
-        <div className="h-6 w-16 bg-gradient-to-r from-purple-50 to-pink-50 rounded animate-pulse" />
+        <div className="h-6 w-16 bg-skeleton rounded animate-pulse" />
       </div>
     </div>
   );
