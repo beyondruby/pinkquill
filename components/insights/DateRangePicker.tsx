@@ -95,7 +95,7 @@ export default function DateRangePicker({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-surface rounded-2xl shadow-xl border border-border-light overflow-hidden z-50 animate-fadeIn">
+        <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2 w-64 bg-surface rounded-2xl shadow-xl border border-border-light overflow-hidden z-50 animate-fadeIn">
           {!showCustom ? (
             <div className="py-2">
               {(Object.keys(timeRangeLabels) as TimeRange[]).map((range) => (

@@ -30,10 +30,10 @@ export default function InsightsAudiencePage() {
   if (loading) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl text-ink">Audience Insights</h1>
-            <p className="font-body text-muted mt-1">Understand your followers and reach</p>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink">Audience Insights</h1>
+            <p className="font-body text-sm sm:text-base text-muted mt-1">Understand your followers and reach</p>
           </div>
         </div>
         <LoadingSkeleton />
@@ -44,7 +44,7 @@ export default function InsightsAudiencePage() {
   if (error) {
     return (
       <div>
-        <h1 className="font-display text-3xl text-ink mb-8">Audience Insights</h1>
+        <h1 className="font-display text-2xl sm:text-3xl text-ink mb-8">Audience Insights</h1>
         <EmptyState
           title="Error Loading Audience Data"
           description={error}
@@ -57,10 +57,10 @@ export default function InsightsAudiencePage() {
   if (!insights) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl text-ink">Audience Insights</h1>
-            <p className="font-body text-muted mt-1">Understand your followers and reach</p>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink">Audience Insights</h1>
+            <p className="font-body text-sm sm:text-base text-muted mt-1">Understand your followers and reach</p>
           </div>
           <DateRangePicker
             value={timeRange}
@@ -148,7 +148,7 @@ export default function InsightsAudiencePage() {
       {/* Growth Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Gained vs Lost */}
-        <div className="bg-surface rounded-2xl p-6 border border-border-light">
+        <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
           <h3 className="font-ui text-sm font-medium text-ink mb-4">Follower Changes</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -198,7 +198,7 @@ export default function InsightsAudiencePage() {
         </div>
 
         {/* Profile Engagement */}
-        <div className="bg-surface rounded-2xl p-6 border border-border-light">
+        <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
           <h3 className="font-ui text-sm font-medium text-ink mb-4">Profile Engagement</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -249,7 +249,7 @@ export default function InsightsAudiencePage() {
 
       {/* Best Posting Times Placeholder */}
       {insights.bestPostingTimes && insights.bestPostingTimes.length > 0 && (
-        <div className="bg-surface rounded-2xl p-6 border border-border-light">
+        <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
           <h3 className="font-ui text-sm font-medium text-ink mb-4">Best Times to Post</h3>
           <p className="font-body text-sm text-muted">
             Based on when your audience is most active and engaged with your content.

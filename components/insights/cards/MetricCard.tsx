@@ -42,13 +42,13 @@ export default function MetricCard({
   const numericValue = typeof value === "number" ? value : 0;
 
   return (
-    <div className="bg-surface rounded-2xl p-5 border border-border-light hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
-        <span className="font-ui text-sm text-muted">{label}</span>
-        {icon && <span className="text-purple-primary/60">{icon}</span>}
+    <div className="bg-surface rounded-2xl p-3.5 sm:p-5 border border-border-light hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
+        <span className="font-ui text-[0.78rem] sm:text-sm text-muted leading-tight">{label}</span>
+        {icon && <span className="text-purple-primary/60 flex-shrink-0">{icon}</span>}
       </div>
-      <div className="flex items-end gap-2">
-        <span className="font-display text-3xl text-ink">
+      <div className="flex items-end gap-2 flex-wrap">
+        <span className="font-display text-xl sm:text-3xl text-ink leading-none">
           {formatValue(value, format)}
         </span>
         {previousValue !== undefined && (
@@ -56,7 +56,7 @@ export default function MetricCard({
         )}
       </div>
       {description && (
-        <p className="font-body text-xs text-muted mt-2">{description}</p>
+        <p className="font-body text-[0.7rem] sm:text-xs text-muted mt-1.5 sm:mt-2 leading-tight">{description}</p>
       )}
     </div>
   );

@@ -109,25 +109,28 @@ export default function InsightsSidebar() {
 
 // Mobile-only horizontal tabs for switching insights sub-pages on small screens.
 // Renders nothing on md+ (the full InsightsSidebar takes over).
+// Stays inside content sub-pages too (e.g., /insights/content/post/[id]) so
+// users always have a way back to the top-level insights tabs without hunting.
 export function InsightsMobileTabs() {
   const pathname = usePathname();
+  const onContentDetail =
+    pathname.startsWith("/insights/content/post/") ||
+    pathname.startsWith("/insights/content/take/");
 
   return (
-    <div className="md:hidden border-b border-border-light bg-surface/80 backdrop-blur-sm sticky top-14 z-30">
-      <div className="px-4 pt-4 pb-3">
-        <h1 className="font-display text-2xl text-ink">Insights</h1>
-      </div>
+    <div className="md:hidden border-b border-border-light bg-surface/95 backdrop-blur-sm sticky top-14 z-30">
       <nav className="overflow-x-auto scrollbar-hide -mx-px">
-        <div className="flex gap-2 px-4 pb-3 min-w-max">
+        <div className="flex gap-2 px-4 py-2.5 min-w-max">
           {insightsItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/insights" && pathname.startsWith(item.href));
+            const isActive = onContentDetail
+              ? item.href === "/insights/content"
+              : pathname === item.href ||
+                (item.href !== "/insights" && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex-shrink-0 px-4 py-2 rounded-full font-ui text-sm font-medium whitespace-nowrap transition-all ${
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full font-ui text-sm font-medium whitespace-nowrap transition-all ${
                   isActive
                     ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-md shadow-purple-primary/20"
                     : "bg-subtle/60 text-muted hover:text-ink"

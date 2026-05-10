@@ -54,10 +54,10 @@ export default function InsightsOverviewPage() {
   if (authLoading || !user) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl text-ink">Insights Overview</h1>
-            <p className="font-body text-muted mt-1">Track your performance and growth</p>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink">Insights Overview</h1>
+            <p className="font-body text-sm sm:text-base text-muted mt-1">Track your performance and growth</p>
           </div>
         </div>
         <LoadingSkeleton />
@@ -73,10 +73,10 @@ export default function InsightsOverviewPage() {
   if (loading) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl text-ink">Insights Overview</h1>
-            <p className="font-body text-muted mt-1">Track your performance and growth</p>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink">Insights Overview</h1>
+            <p className="font-body text-sm sm:text-base text-muted mt-1">Track your performance and growth</p>
           </div>
         </div>
         <LoadingSkeleton />
@@ -87,7 +87,7 @@ export default function InsightsOverviewPage() {
   if (error) {
     return (
       <div>
-        <h1 className="font-display text-3xl text-ink mb-8">Insights Overview</h1>
+        <h1 className="font-display text-2xl sm:text-3xl text-ink mb-8">Insights Overview</h1>
         <EmptyState
           title="Error Loading Insights"
           description={error}
@@ -101,10 +101,10 @@ export default function InsightsOverviewPage() {
   if (!insights || insights.contentCount.total === 0) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl text-ink">Insights Overview</h1>
-            <p className="font-body text-muted mt-1">Track your performance and growth</p>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink">Insights Overview</h1>
+            <p className="font-body text-sm sm:text-base text-muted mt-1">Track your performance and growth</p>
           </div>
           <DateRangePicker
             value={timeRange}

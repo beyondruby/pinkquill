@@ -75,7 +75,7 @@ export default function ViewsChart({
   }
 
   return (
-    <div className="bg-surface rounded-2xl p-6 border border-border-light">
+    <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
       <h3 className="font-ui text-sm font-medium text-ink mb-4">{title}</h3>
       <ResponsiveContainer width="100%" height={height}>
         {showArea ? (

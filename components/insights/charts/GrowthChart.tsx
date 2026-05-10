@@ -82,7 +82,7 @@ export default function GrowthChart({
 
   if (data.history.length === 0) {
     return (
-      <div className="bg-surface rounded-2xl p-6 border border-border-light">
+      <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
         <h3 className="font-ui text-sm font-medium text-ink mb-4">{title}</h3>
         <div
           className="flex items-center justify-center text-muted font-body text-sm"
@@ -95,10 +95,10 @@ export default function GrowthChart({
   }
 
   return (
-    <div className="bg-surface rounded-2xl p-6 border border-border-light">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
         <h3 className="font-ui text-sm font-medium text-ink">{title}</h3>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="font-body text-xs text-muted">
               {type === "followers" ? "Gained" : "Joined"}
@@ -113,7 +113,7 @@ export default function GrowthChart({
               -{"lost" in data ? data.lost : data.left}
             </span>
           </div>
-          <div className="flex items-center gap-2 pl-2 border-l border-border-light">
+          <div className="flex items-center gap-2 sm:pl-2 sm:border-l border-border-light">
             <span className="font-body text-xs text-muted">Net</span>
             <span
               className={`font-ui text-sm font-medium ${

@@ -89,16 +89,16 @@ export default function TakeInsightsPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
-        <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-xl bg-purple-primary/5 flex items-center justify-center flex-shrink-0">
-            <svg className="w-7 h-7 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
+        <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-purple-primary/5 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 sm:w-7 sm:h-7 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
           </div>
-          <div>
-            <h1 className="font-display text-2xl text-ink">{take.title || "Untitled Take"}</h1>
-            <p className="font-body text-muted mt-1">
+          <div className="min-w-0">
+            <h1 className="font-display text-xl sm:text-2xl text-ink leading-tight break-words">{take.title || "Untitled Take"}</h1>
+            <p className="font-body text-sm sm:text-base text-muted mt-1">
               Published {new Date(take.createdAt).toLocaleDateString("en-US", {
                 month: "long",
                 day: "numeric",
@@ -113,15 +113,17 @@ export default function TakeInsightsPage() {
             </Link>
           </div>
         </div>
-        <DateRangePicker
-          value={timeRange}
-          customRange={customRange}
-          onChange={handleTimeRangeChange}
-        />
+        <div className="flex-shrink-0">
+          <DateRangePicker
+            value={timeRange}
+            customRange={customRange}
+            onChange={handleTimeRangeChange}
+          />
+        </div>
       </div>
 
       {/* Key Metrics - Row 1 */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4">
         <MetricCard
           label="Views"
           value={insights.views}
@@ -166,7 +168,7 @@ export default function TakeInsightsPage() {
       </div>
 
       {/* Key Metrics - Row 2 (Video-specific) */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
         <MetricCard
           label="Avg. Watch Time"
           value={formatDuration(insights.avgWatchTime)}
@@ -215,12 +217,12 @@ export default function TakeInsightsPage() {
       </div>
 
       {/* Two Column Layout */}
-      <div className="grid grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-8">
         {/* Traffic Sources */}
         <TrafficSourcesChart data={insights.trafficSources} title="Traffic Sources" height={250} />
 
         {/* Audience Breakdown */}
-        <div className="bg-surface rounded-2xl p-6 border border-border-light">
+        <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
           <h3 className="font-ui text-sm font-medium text-ink mb-4">Audience Breakdown</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -266,41 +268,41 @@ export default function TakeInsightsPage() {
       </div>
 
       {/* Engagement Breakdown */}
-      <div className="bg-surface rounded-2xl p-6 border border-border-light">
+      <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
         <h3 className="font-ui text-sm font-medium text-ink mb-4">Engagement Breakdown</h3>
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto rounded-xl bg-red-50 flex items-center justify-center mb-2">
-              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto rounded-xl bg-red-50 flex items-center justify-center mb-2">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
             </div>
-            <p className="font-ui text-2xl text-ink">{formatNumber(insights.reactions.total)}</p>
+            <p className="font-ui text-xl sm:text-2xl text-ink">{formatNumber(insights.reactions.total)}</p>
             <p className="font-body text-xs text-muted">Admires</p>
           </div>
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto rounded-xl bg-blue-50 flex items-center justify-center mb-2">
-              <CommentIcon size="lg" className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto rounded-xl bg-blue-50 flex items-center justify-center mb-2">
+              <CommentIcon size="lg" className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <p className="font-ui text-2xl text-ink">{formatNumber(insights.comments)}</p>
+            <p className="font-ui text-xl sm:text-2xl text-ink">{formatNumber(insights.comments)}</p>
             <p className="font-body text-xs text-muted">Comments</p>
           </div>
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto rounded-xl bg-green-50 flex items-center justify-center mb-2">
-              <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto rounded-xl bg-green-50 flex items-center justify-center mb-2">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </div>
-            <p className="font-ui text-2xl text-ink">{formatNumber(insights.relays)}</p>
+            <p className="font-ui text-xl sm:text-2xl text-ink">{formatNumber(insights.relays)}</p>
             <p className="font-body text-xs text-muted">Relays</p>
           </div>
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto rounded-xl bg-yellow-50 flex items-center justify-center mb-2">
-              <svg className="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto rounded-xl bg-yellow-50 flex items-center justify-center mb-2">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
               </svg>
             </div>
-            <p className="font-ui text-2xl text-ink">{formatNumber(insights.saves)}</p>
+            <p className="font-ui text-xl sm:text-2xl text-ink">{formatNumber(insights.saves)}</p>
             <p className="font-body text-xs text-muted">Saves</p>
           </div>
         </div>

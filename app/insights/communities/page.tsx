@@ -244,10 +244,10 @@ export default function InsightsCommunitiesPage() {
   if (loading) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl text-ink">Community Insights</h1>
-            <p className="font-body text-muted mt-1">Analytics for communities you manage</p>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink">Community Insights</h1>
+            <p className="font-body text-sm sm:text-base text-muted mt-1">Analytics for communities you manage</p>
           </div>
         </div>
         <LoadingSkeleton />
@@ -258,10 +258,10 @@ export default function InsightsCommunitiesPage() {
   if (communities.length === 0) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl text-ink">Community Insights</h1>
-            <p className="font-body text-muted mt-1">Analytics for communities you manage</p>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink">Community Insights</h1>
+            <p className="font-body text-sm sm:text-base text-muted mt-1">Analytics for communities you manage</p>
           </div>
         </div>
         <EmptyState
@@ -279,7 +279,7 @@ export default function InsightsCommunitiesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl text-ink">Community Insights</h1>
-          <p className="font-body text-muted mt-1">
+          <p className="font-body text-sm sm:text-base text-muted mt-1">
             Analytics for {communities.length} {communities.length === 1 ? "community" : "communities"} you manage
           </p>
         </div>

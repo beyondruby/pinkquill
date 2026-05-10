@@ -109,10 +109,10 @@ export default function InsightsContentPage() {
   if (loading) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl text-ink">Content Insights</h1>
-            <p className="font-body text-muted mt-1">Performance of your posts and takes</p>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink">Content Insights</h1>
+            <p className="font-body text-sm sm:text-base text-muted mt-1">Performance of your posts and takes</p>
           </div>
         </div>
         <LoadingSkeleton type="table" />
@@ -123,7 +123,7 @@ export default function InsightsContentPage() {
   if (error) {
     return (
       <div>
-        <h1 className="font-display text-3xl text-ink mb-8">Content Insights</h1>
+        <h1 className="font-display text-2xl sm:text-3xl text-ink mb-8">Content Insights</h1>
         <EmptyState
           title="Error Loading Content"
           description={error}
@@ -136,10 +136,10 @@ export default function InsightsContentPage() {
   if (!filteredContent || filteredContent.length === 0) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl text-ink">Content Insights</h1>
-            <p className="font-body text-muted mt-1">Performance of your posts and takes</p>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink">Content Insights</h1>
+            <p className="font-body text-sm sm:text-base text-muted mt-1">Performance of your posts and takes</p>
           </div>
           <DateRangePicker
             value={timeRange}

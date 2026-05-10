@@ -16,7 +16,7 @@ export default function LoadingSkeleton({ type = "full" }: LoadingSkeletonProps)
 
   if (type === "chart") {
     return (
-      <div className="bg-surface rounded-2xl p-6 border border-border-light animate-pulse">
+      <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light animate-pulse">
         <div className="h-4 w-32 bg-skeleton rounded mb-4" />
         <div className="h-64 bg-skeleton rounded" />
       </div>
@@ -53,9 +53,9 @@ export default function LoadingSkeleton({ type = "full" }: LoadingSkeletonProps)
       </div>
 
       {/* Metric cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-surface rounded-2xl p-5 border border-border-light">
+          <div key={i} className="bg-surface rounded-2xl p-3.5 sm:p-5 border border-border-light">
             <div className="h-4 w-24 bg-skeleton rounded mb-3" />
             <div className="h-8 w-20 bg-skeleton rounded" />
           </div>
@@ -63,18 +63,18 @@ export default function LoadingSkeleton({ type = "full" }: LoadingSkeletonProps)
       </div>
 
       {/* Chart */}
-      <div className="bg-surface rounded-2xl p-6 border border-border-light">
+      <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
         <div className="h-4 w-32 bg-skeleton rounded mb-4" />
         <div className="h-64 bg-skeleton rounded" />
       </div>
 
       {/* Two-column layout */}
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-surface rounded-2xl p-6 border border-border-light">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
           <div className="h-4 w-32 bg-skeleton rounded mb-4" />
           <div className="h-48 bg-skeleton rounded" />
         </div>
-        <div className="bg-surface rounded-2xl p-6 border border-border-light">
+        <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
           <div className="h-4 w-32 bg-skeleton rounded mb-4" />
           <div className="h-48 bg-skeleton rounded" />
         </div>
