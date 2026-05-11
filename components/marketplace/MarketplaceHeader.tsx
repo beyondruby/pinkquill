@@ -37,6 +37,7 @@ const sortOptions: { value: MarketplaceSortOption; label: string }[] = [
 ];
 
 const priceRanges = [
+  { label: "Free", min: 0, max: 0 },
   { label: "Under $25", min: 0, max: 25 },
   { label: "$25 - $50", min: 25, max: 50 },
   { label: "$50 - $100", min: 50, max: 100 },

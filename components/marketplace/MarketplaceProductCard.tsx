@@ -271,10 +271,19 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
           <div className="flex items-center justify-between">
             {price !== undefined ? (
               <div className="flex items-baseline gap-1">
-                {hasMultiplePrices && <span className="text-xs font-body text-muted">From</span>}
-                <span className="text-lg font-display font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
-                  ${price.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                </span>
+                {price === 0 ? (
+                  <span className="text-lg font-display font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+                    {(product.max_price ?? 0) > 0 ? "Free+" : "Free"}
+                  </span>
+                ) : (
+                  <>
+                    {hasMultiplePrices && <span className="text-xs font-body text-muted">From</span>}
+                    <span className="text-lg font-display font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
+                      ${price.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      {hasMultiplePrices && "+"}
+                    </span>
+                  </>
+                )}
               </div>
             ) : (
               <span className="text-sm font-body text-muted">Price on request</span>

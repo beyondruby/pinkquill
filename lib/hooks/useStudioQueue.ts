@@ -12,6 +12,8 @@ export interface StudioQueueItem {
   title: string;
   seller_name: string;
   price: number;
+  min_price?: number;
+  chosen_amount?: number | null;
   currency: string;
   image_url: string | null;
   added_at: string;

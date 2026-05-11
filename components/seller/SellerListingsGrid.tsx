@@ -105,9 +105,13 @@ function ListingCard({
         <div className="flex items-center justify-between mt-1.5">
           <span className="font-display text-sm font-bold text-purple-primary">
             {product.min_price != null
-              ? product.min_price === product.max_price
-                ? `$${product.min_price.toFixed(2)}`
-                : `$${product.min_price.toFixed(2)} – $${product.max_price?.toFixed(2)}`
+              ? product.min_price === 0
+                ? (product.max_price ?? 0) > 0
+                  ? "Free+"
+                  : "Free"
+                : product.min_price === product.max_price
+                  ? `$${product.min_price.toFixed(2)}`
+                  : `$${product.min_price.toFixed(2)} – $${product.max_price?.toFixed(2)}`
               : "No price"}
           </span>
           {product.category && (

@@ -343,24 +343,31 @@ export function useCreateProduct(): UseCreateProductReturn {
       // Create pricing options
       const pricingInserts: CreatePricingData[] = [];
 
+      const clampMin = (min: number | null, price: number): number => {
+        if (min === null || !Number.isFinite(min)) return price;
+        if (min < 0) return 0;
+        if (min > price) return price;
+        return min;
+      };
+
       if (wizardState.sellOriginal && wizardState.originalPrice !== null) {
         pricingInserts.push({
           pricing_type: "original",
           variant_name: "Original",
           price: wizardState.originalPrice,
+          min_price: clampMin(wizardState.originalMin, wizardState.originalPrice),
           stock: 1,
         });
       }
 
       if (wizardState.hasReproductions) {
         wizardState.reproductions.forEach((rep) => {
-          if (rep.price > 0) {
-            pricingInserts.push({
-              pricing_type: "reproduction",
-              variant_name: rep.type,
-              price: rep.price,
-            });
-          }
+          pricingInserts.push({
+            pricing_type: "reproduction",
+            variant_name: rep.type,
+            price: rep.price,
+            min_price: clampMin(rep.min, rep.price),
+          });
         });
       }
 
@@ -369,6 +376,7 @@ export function useCreateProduct(): UseCreateProductReturn {
           pricing_type: "digital_download",
           variant_name: wizardState.digitalFormat || "Digital Download",
           price: wizardState.digitalPrice,
+          min_price: clampMin(wizardState.digitalMin, wizardState.digitalPrice),
         });
       }
 
@@ -504,6 +512,7 @@ type DesiredPricingRow = {
   pricing_type: "original" | "reproduction" | "digital_download";
   variant_name: string | null;
   price: number;
+  min_price: number;
   currency: string;
   stock: number | null;
 };
@@ -534,11 +543,20 @@ export function useUpdateProductListing(): UseUpdateProductListingReturn {
       }
 
       const desiredPricing: DesiredPricingRow[] = [];
+      const clampMin = (min: number | null, price: number): number => {
+        if (min === null || !Number.isFinite(min)) return price;
+        if (min < 0) return 0;
+        if (min > price) return price;
+        return min;
+      };
+
       if (wizardState.sellOriginal && wizardState.originalPrice !== null) {
+        const price = Math.max(0, Number(wizardState.originalPrice));
         desiredPricing.push({
           pricing_type: "original",
           variant_name: "Original",
-          price: Math.max(0, Number(wizardState.originalPrice)),
+          price,
+          min_price: clampMin(wizardState.originalMin, price),
           currency: "USD",
           stock: 1,
         });
@@ -546,23 +564,25 @@ export function useUpdateProductListing(): UseUpdateProductListingReturn {
 
       if (wizardState.hasReproductions) {
         wizardState.reproductions.forEach((rep) => {
-          if (rep.price > 0) {
-            desiredPricing.push({
-              pricing_type: "reproduction",
-              variant_name: rep.type || "Reproduction",
-              price: Number(rep.price),
-              currency: "USD",
-              stock: null,
-            });
-          }
+          const price = Math.max(0, Number(rep.price));
+          desiredPricing.push({
+            pricing_type: "reproduction",
+            variant_name: rep.type || "Reproduction",
+            price,
+            min_price: clampMin(rep.min, price),
+            currency: "USD",
+            stock: null,
+          });
         });
       }
 
       if (wizardState.hasDigitalDownload && wizardState.digitalPrice !== null) {
+        const price = Math.max(0, Number(wizardState.digitalPrice));
         desiredPricing.push({
           pricing_type: "digital_download",
           variant_name: wizardState.digitalFormat || "Digital Download",
-          price: Math.max(0, Number(wizardState.digitalPrice)),
+          price,
+          min_price: clampMin(wizardState.digitalMin, price),
           currency: "USD",
           stock: null,
         });
@@ -748,6 +768,7 @@ export function useUpdateProductListing(): UseUpdateProductListingReturn {
               pricing_type: desired.pricing_type,
               variant_name: desired.variant_name,
               price: desired.price,
+              min_price: desired.min_price,
               currency: desired.currency,
               stock: desired.stock,
               is_available: true,
@@ -764,6 +785,7 @@ export function useUpdateProductListing(): UseUpdateProductListingReturn {
             pricing_type: desired.pricing_type,
             variant_name: desired.variant_name,
             price: desired.price,
+            min_price: desired.min_price,
             currency: desired.currency,
             stock: desired.stock,
             is_available: true,

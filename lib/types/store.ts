@@ -93,6 +93,7 @@ export interface ProductPricing {
   pricing_type: PricingType;
   variant_name: string | null;
   price: number;
+  min_price: number;
   currency: string;
   stock: number | null;
   is_available: boolean;
@@ -458,6 +459,7 @@ export interface CreateOrderData {
   max_revisions?: number;
   quantity?: number;
   shipping_address?: ShippingAddress;
+  chosen_amount?: number | null;
 }
 
 export interface OrderFilters {
@@ -670,6 +672,7 @@ export interface CreatePricingData {
   pricing_type: PricingType;
   variant_name?: string;
   price: number;
+  min_price?: number;
   currency?: string;
   stock?: number;
   reproduction_options?: ReproductionOptions;
@@ -764,16 +767,20 @@ export interface ProductWizardState {
   yearCreated: number | null;
   attributes: ProductAttributes;
 
-  // Pricing
+  // Pricing — for PWYW rows, `*Min` is the floor and `*Price` is the suggested
+  // price. When `*Min === null` (or equal to price), the row is fixed-price.
   sellOriginal: boolean;
   originalPrice: number | null;
+  originalMin: number | null;
   hasReproductions: boolean;
   reproductions: {
     type: string;
     price: number;
+    min: number | null;
   }[];
   hasDigitalDownload: boolean;
   digitalPrice: number | null;
+  digitalMin: number | null;
   digitalFormat: string | null;
 
   // Shipping (physical)
@@ -827,10 +834,12 @@ export const initialWizardState: ProductWizardState = {
   attributes: {},
   sellOriginal: false,
   originalPrice: null,
+  originalMin: null,
   hasReproductions: false,
   reproductions: [],
   hasDigitalDownload: false,
   digitalPrice: null,
+  digitalMin: null,
   digitalFormat: null,
   shipping: {
     dimensions_unit: 'cm',

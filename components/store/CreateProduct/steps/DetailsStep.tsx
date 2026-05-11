@@ -35,6 +35,84 @@ const YEAR_OPTIONS = Array.from(
   (_, i) => new Date().getFullYear() - i
 );
 
+function PwywControls({
+  min,
+  price,
+  onChange,
+}: {
+  min: number | null;
+  price: number | null;
+  onChange: (next: number | null) => void;
+}) {
+  const enabled = min !== null;
+  const priceValue = price ?? 0;
+  return (
+    <div className="mt-3 space-y-2">
+      <label className="inline-flex items-center gap-2 cursor-pointer group">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => onChange(e.target.checked ? 0 : null)}
+          className="sr-only"
+        />
+        <div
+          className={`w-4 h-4 rounded flex items-center justify-center transition-all border-2 ${
+            enabled
+              ? "bg-gradient-to-r from-orange-warm to-pink-vivid border-transparent"
+              : "border-gray-300 group-hover:border-pink-vivid/50"
+          }`}
+        >
+          {enabled && (
+            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
+        <span className="text-xs font-ui text-muted">Let buyers name their own price</span>
+      </label>
+
+      {enabled && (
+        <div className="pl-6 space-y-1">
+          <label className="block text-xs font-ui text-muted">Minimum they must pay</label>
+          <div className="relative w-40">
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-orange-warm/40 to-pink-vivid/40 p-[1px]">
+              <div className="w-full h-full rounded-lg bg-surface" />
+            </div>
+            <div className="relative flex items-center">
+              <span className="absolute left-3 text-pink-vivid font-medium text-sm">$</span>
+              <input
+                type="number"
+                min="0"
+                max={priceValue}
+                step="0.01"
+                value={min ?? 0}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    onChange(0);
+                    return;
+                  }
+                  const parsed = parseFloat(raw);
+                  if (!Number.isFinite(parsed)) return;
+                  onChange(Math.max(0, parsed));
+                }}
+                className="w-full pl-8 pr-3 py-2 rounded-lg text-sm bg-transparent outline-none font-body
+                  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+            </div>
+          </div>
+          {min === 0 && (
+            <p className="text-[11px] font-body text-green-700">Buyers can take this for free.</p>
+          )}
+          {min !== null && min > priceValue && priceValue > 0 && (
+            <p className="text-[11px] font-body text-red-600">Minimum cannot exceed the suggested price.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Section header component
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -467,6 +545,9 @@ function PricingSection({
 
           {wizardState.sellOriginal && (
             <div className="pl-8">
+              <label className="block text-sm font-ui text-muted mb-2">
+                {wizardState.originalMin !== null ? "Suggested price" : "Price"}
+              </label>
               <div className="relative w-48">
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
                   <div className="w-full h-full rounded-xl bg-surface" />
@@ -487,6 +568,11 @@ function PricingSection({
                   />
                 </div>
               </div>
+              <PwywControls
+                min={wizardState.originalMin}
+                price={wizardState.originalPrice}
+                onChange={(next) => updateState({ originalMin: next })}
+              />
             </div>
           )}
         </div>
@@ -532,7 +618,7 @@ function PricingSection({
                 onChange={(types) => {
                   const newReproductions = (types as string[]).map((type) => {
                     const existing = wizardState.reproductions.find((r) => r.type === type);
-                    return existing || { type, price: 0 };
+                    return existing || { type, price: 0, min: null };
                   });
                   updateState({ reproductions: newReproductions });
                 }}
@@ -541,7 +627,8 @@ function PricingSection({
               {wizardState.reproductions.map((reproduction, index) => (
                 <div key={reproduction.type}>
                   <label className="block text-sm font-ui text-muted mb-2">
-                    {pricingOptions.reproduction!.types.find((t) => t.value === reproduction.type)?.label} price
+                    {pricingOptions.reproduction!.types.find((t) => t.value === reproduction.type)?.label}{" "}
+                    {reproduction.min !== null ? "suggested price" : "price"}
                   </label>
                   <div className="relative w-48">
                     <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
@@ -567,6 +654,15 @@ function PricingSection({
                       />
                     </div>
                   </div>
+                  <PwywControls
+                    min={reproduction.min}
+                    price={reproduction.price}
+                    onChange={(next) => {
+                      const newReproductions = [...wizardState.reproductions];
+                      newReproductions[index] = { ...reproduction, min: next };
+                      updateState({ reproductions: newReproductions });
+                    }}
+                  />
                 </div>
               ))}
             </div>
@@ -615,7 +711,9 @@ function PricingSection({
               />
 
               <div>
-                <label className="block text-sm font-ui text-muted mb-2">Price</label>
+                <label className="block text-sm font-ui text-muted mb-2">
+                  {wizardState.digitalMin !== null ? "Suggested price" : "Price"}
+                </label>
                 <div className="relative w-48">
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-warm to-pink-vivid p-[2px]">
                     <div className="w-full h-full rounded-xl bg-surface" />
@@ -636,6 +734,11 @@ function PricingSection({
                     />
                   </div>
                 </div>
+                <PwywControls
+                  min={wizardState.digitalMin}
+                  price={wizardState.digitalPrice}
+                  onChange={(next) => updateState({ digitalMin: next })}
+                />
               </div>
             </div>
           )}

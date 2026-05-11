@@ -46,10 +46,22 @@ function mapProductToWizardState(product: Product): ProductWizardState {
   const digitalPricing = pricingRows.find((row) => row.pricing_type === "digital_download");
   const reproductions = pricingRows
     .filter((row) => row.pricing_type === "reproduction")
-    .map((row: ProductPricing, index) => ({
-      type: row.variant_name || `reproduction-${index + 1}`,
-      price: Number(row.price || 0),
-    }));
+    .map((row: ProductPricing, index) => {
+      const price = Number(row.price || 0);
+      const min = Number(row.min_price ?? row.price ?? 0);
+      return {
+        type: row.variant_name || `reproduction-${index + 1}`,
+        price,
+        min: min < price ? min : null,
+      };
+    });
+
+  const pwywFloor = (row: ProductPricing | undefined): number | null => {
+    if (!row) return null;
+    const price = Number(row.price || 0);
+    const min = Number(row.min_price ?? row.price ?? 0);
+    return min < price ? min : null;
+  };
 
   return {
     deliveryType: product.delivery_type,
@@ -71,10 +83,12 @@ function mapProductToWizardState(product: Product): ProductWizardState {
     attributes: product.attributes || {},
     sellOriginal: !!originalPricing,
     originalPrice: originalPricing ? Number(originalPricing.price || 0) : null,
+    originalMin: pwywFloor(originalPricing),
     hasReproductions: reproductions.length > 0,
     reproductions,
     hasDigitalDownload: !!digitalPricing,
     digitalPrice: digitalPricing ? Number(digitalPricing.price || 0) : null,
+    digitalMin: pwywFloor(digitalPricing),
     digitalFormat: digitalPricing?.variant_name || null,
     shipping: {
       dimensions_unit: product.shipping?.dimensions_unit || "cm",
@@ -223,11 +237,32 @@ export default function CreateProductWizard({
         }
         const hasPricing =
           (wizardState.sellOriginal && wizardState.originalPrice !== null) ||
-          (wizardState.hasReproductions && wizardState.reproductions.some((item) => item.price > 0)) ||
+          (wizardState.hasReproductions && wizardState.reproductions.length > 0) ||
           (wizardState.hasDigitalDownload && wizardState.digitalPrice !== null);
         if (!hasPricing) {
           setError("Please set a price");
           return false;
+        }
+
+        if (wizardState.sellOriginal && wizardState.originalMin !== null && wizardState.originalPrice !== null) {
+          if (wizardState.originalMin < 0 || wizardState.originalMin > wizardState.originalPrice) {
+            setError("Minimum price for the original must be between 0 and the suggested price");
+            return false;
+          }
+        }
+        if (wizardState.hasDigitalDownload && wizardState.digitalMin !== null && wizardState.digitalPrice !== null) {
+          if (wizardState.digitalMin < 0 || wizardState.digitalMin > wizardState.digitalPrice) {
+            setError("Minimum price for the digital download must be between 0 and the suggested price");
+            return false;
+          }
+        }
+        if (wizardState.hasReproductions) {
+          for (const rep of wizardState.reproductions) {
+            if (rep.min !== null && (rep.min < 0 || rep.min > rep.price)) {
+              setError(`Minimum price for ${rep.type} must be between 0 and the suggested price`);
+              return false;
+            }
+          }
         }
         return true;
       }

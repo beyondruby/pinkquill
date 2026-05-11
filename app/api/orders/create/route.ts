@@ -13,6 +13,7 @@ interface CreateOrderPayload {
   requirements?: Record<string, unknown>;
   due_date?: string;
   shipping_address?: Record<string, unknown>;
+  chosen_amount?: number | string | null;
 }
 
 interface ProductOrderSnapshot {
@@ -29,7 +30,9 @@ function mapCreateOrderError(message: string): number {
     normalized.includes("insufficient stock") ||
     normalized.includes("unavailable") ||
     normalized.includes("cannot purchase your own") ||
-    normalized.includes("not available")
+    normalized.includes("not available") ||
+    normalized.includes("below the minimum") ||
+    normalized.includes("exceeds the maximum")
   ) {
     return 400;
   }
@@ -104,6 +107,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid due_date format" }, { status: 400 });
     }
 
+    let chosenAmount: number | null = null;
+    if (body.chosen_amount !== undefined && body.chosen_amount !== null && body.chosen_amount !== "") {
+      const candidate = Number(body.chosen_amount);
+      if (!Number.isFinite(candidate) || candidate < 0) {
+        return NextResponse.json({ error: "Invalid chosen_amount" }, { status: 400 });
+      }
+      chosenAmount = Math.round(candidate * 100) / 100;
+    }
+
     const { data, error } = await supabaseAdmin.rpc("create_marketplace_order", {
       p_buyer_id: user.id,
       p_product_id: productId,
@@ -113,6 +125,7 @@ export async function POST(request: Request) {
       p_requirements: body.requirements ?? {},
       p_due_date: parsedDueDate ? parsedDueDate.toISOString() : null,
       p_shipping_address: body.shipping_address ?? null,
+      p_chosen_amount: chosenAmount,
     });
 
     if (error || !data) {

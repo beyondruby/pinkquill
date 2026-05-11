@@ -123,8 +123,14 @@ function CartItemCard({
             </div>
             <div className="text-right shrink-0">
               <p className="font-ui font-semibold text-ink text-sm sm:text-base">
-                {formatPrice(item.price, item.currency)}
+                {formatPrice(
+                  typeof item.chosen_amount === "number" ? item.chosen_amount : item.price,
+                  item.currency
+                )}
               </p>
+              {typeof item.chosen_amount === "number" && item.chosen_amount !== item.price && (
+                <p className="text-[10px] font-body text-muted mt-0.5">Pay what you want</p>
+              )}
             </div>
           </div>
         </div>
@@ -194,7 +200,9 @@ function CartItemCard({
 /*  Order Summary Sidebar                                              */
 /* ------------------------------------------------------------------ */
 function OrderSummary({ items }: { items: StudioQueueItem[] }) {
-  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+  const effectivePrice = (item: StudioQueueItem) =>
+    typeof item.chosen_amount === "number" ? item.chosen_amount : item.price;
+  const subtotal = items.reduce((sum, item) => sum + effectivePrice(item), 0);
   const currency = items[0]?.currency || "usd";
   const serviceCount = items.filter((i) => i.listing_type === "service").length;
   const productCount = items.length - serviceCount;
@@ -207,7 +215,7 @@ function OrderSummary({ items }: { items: StudioQueueItem[] }) {
         {items.map((item) => (
           <div key={item.id} className="flex justify-between items-start gap-3 text-sm">
             <span className="font-body text-ink/80 truncate">{item.title}</span>
-            <span className="font-ui font-medium text-ink shrink-0">{formatPrice(item.price, item.currency)}</span>
+            <span className="font-ui font-medium text-ink shrink-0">{formatPrice(effectivePrice(item), item.currency)}</span>
           </div>
         ))}
       </div>
@@ -307,10 +315,11 @@ export default function StudioCartPage() {
         product_id: item.product_id,
         pricing_id: item.pricing_id,
         listing_type: "product",
-        amount: item.price,
+        amount: typeof item.chosen_amount === "number" ? item.chosen_amount : item.price,
         platform_fee: 0,
         seller_amount: 0,
         currency: item.currency,
+        chosen_amount: typeof item.chosen_amount === "number" ? item.chosen_amount : null,
       });
 
       if (order) {

@@ -40,6 +40,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [chosenAmountInput, setChosenAmountInput] = useState("");
 
   useEffect(() => {
     if (user && productId) {
@@ -119,6 +120,13 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
   const categoryConfig = getCategoryConfig(product.category);
   const isOwner = !!user && user.id === product.seller_id;
   const activePricing = selectedPricing || product.pricing?.[0];
+  const isPwyw = !!activePricing && Number(activePricing.min_price) < Number(activePricing.price);
+  const pwywFloor = activePricing ? Number(activePricing.min_price) : 0;
+  const parsedChosenAmount = chosenAmountInput === "" ? null : Number(chosenAmountInput);
+  const pwywInvalid =
+    isPwyw &&
+    chosenAmountInput !== "" &&
+    (!Number.isFinite(parsedChosenAmount as number) || (parsedChosenAmount as number) < pwywFloor);
   const isQueued = activePricing ? hasItem(product.id, activePricing.id) : false;
   const shippingCost = product.delivery_type !== "digital"
     ? Number(product.shipping?.shipping_cost || 0)
@@ -357,12 +365,21 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
             {activePricing ? (
               <div className="space-y-5">
                 <div>
-                  <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Price</p>
+                  <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
+                    {isPwyw ? (pwywFloor === 0 ? "Pay what you want" : "Suggested price") : "Price"}
+                  </p>
                   <p className="mt-1 text-4xl font-display text-ink">
-                    {formatPrice(activePricing.price, activePricing.currency)}
+                    {isPwyw && pwywFloor === 0
+                      ? `${formatPrice(activePricing.price, activePricing.currency)}+`
+                      : isPwyw
+                        ? `${formatPrice(pwywFloor, activePricing.currency)}+`
+                        : formatPrice(activePricing.price, activePricing.currency)}
                   </p>
                   {activePricing.pricing_type === "original" && (
                     <p className="text-xs font-ui text-orange-warm mt-1">Original piece</p>
+                  )}
+                  {isPwyw && pwywFloor === 0 && (
+                    <p className="text-xs font-ui text-green-700 mt-1">Buyers can take this for free.</p>
                   )}
                 </div>
 
@@ -376,7 +393,11 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                         return (
                           <button
                             key={pricing.id}
-                            onClick={() => setSelectedPricing(pricing)}
+                            onClick={() => {
+                              setSelectedPricing(pricing);
+                              setChosenAmountInput("");
+                              setCheckoutError(null);
+                            }}
                             className="w-full py-2.5 text-left"
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -400,6 +421,41 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   </div>
                 )}
 
+                {isPwyw && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
+                      Name a fair price
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-vivid font-medium">$</span>
+                      <input
+                        type="number"
+                        min={pwywFloor}
+                        step="0.01"
+                        value={chosenAmountInput}
+                        onChange={(e) => {
+                          setChosenAmountInput(e.target.value);
+                          setCheckoutError(null);
+                        }}
+                        placeholder={formatPrice(activePricing.price, activePricing.currency).replace(/[^0-9.]/g, "")}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-border-strong bg-surface outline-none font-body
+                          focus:border-pink-vivid transition-colors
+                          [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                    <p className="text-[11px] font-body text-muted">
+                      {pwywFloor === 0
+                        ? "Enter $0 or any amount you'd like to pay."
+                        : `Minimum ${formatPrice(pwywFloor, activePricing.currency)}.`}
+                    </p>
+                    {pwywInvalid && (
+                      <p className="text-[11px] font-body text-red-600">
+                        Please enter at least {formatPrice(pwywFloor, activePricing.currency)}.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <button
                   onClick={async () => {
                     if (!activePricing) return;
@@ -408,6 +464,21 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                       return;
                     }
                     setCheckoutError(null);
+
+                    let chosenAmount: number | null = null;
+                    if (isPwyw) {
+                      if (chosenAmountInput === "") {
+                        setCheckoutError("Enter an amount to continue.");
+                        return;
+                      }
+                      const amount = Number(chosenAmountInput);
+                      if (!Number.isFinite(amount) || amount < pwywFloor) {
+                        setCheckoutError(`Amount must be at least ${formatPrice(pwywFloor, activePricing.currency)}.`);
+                        return;
+                      }
+                      chosenAmount = Math.round(amount * 100) / 100;
+                    }
+
                     // Address collection lives on the checkout page so we
                     // don't duplicate that flow here. Both digital and
                     // physical orders are created the same way.
@@ -415,12 +486,13 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                       product_id: product.id,
                       pricing_id: activePricing.id,
                       listing_type: "product",
+                      chosen_amount: chosenAmount,
                     });
                     if (order) {
                       router.push(`/checkout/${order.id}`);
                     }
                   }}
-                  disabled={!activePricing || activePricing.stock === 0 || buying}
+                  disabled={!activePricing || activePricing.stock === 0 || buying || pwywInvalid}
                   className="w-full py-3.5 rounded-full text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {buying ? "Starting Checkout..." : "Start Checkout"}
@@ -429,6 +501,19 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <button
                     onClick={() => {
+                      let chosenAmount: number | null = null;
+                      if (isPwyw) {
+                        if (chosenAmountInput === "") {
+                          setCheckoutError("Enter an amount to add to your bag.");
+                          return;
+                        }
+                        const amount = Number(chosenAmountInput);
+                        if (!Number.isFinite(amount) || amount < pwywFloor) {
+                          setCheckoutError(`Amount must be at least ${formatPrice(pwywFloor, activePricing.currency)}.`);
+                          return;
+                        }
+                        chosenAmount = Math.round(amount * 100) / 100;
+                      }
                       addItem({
                         product_id: product.id,
                         pricing_id: activePricing.id,
@@ -437,11 +522,14 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                         title: product.title,
                         seller_name: product.seller?.display_name || product.seller?.username || "Creator",
                         price: activePricing.price,
+                        min_price: Number(activePricing.min_price ?? activePricing.price),
+                        chosen_amount: chosenAmount,
                         currency: activePricing.currency,
                         image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
                       });
                     }}
-                    className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-pink-300 transition-colors"
+                    disabled={pwywInvalid}
+                    className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-pink-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isQueued ? "In Bag" : "Add to Bag"}
                   </button>

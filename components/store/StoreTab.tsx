@@ -181,9 +181,13 @@ function ProductCard({
 
   const priceDisplay =
     product.min_price !== undefined
-      ? product.min_price === product.max_price
-        ? formatPrice(product.min_price)
-        : `From ${formatPrice(product.min_price)}`
+      ? product.min_price === 0
+        ? (product.max_price ?? 0) > 0
+          ? "Free+"
+          : "Free"
+        : product.min_price === product.max_price
+          ? formatPrice(product.min_price)
+          : `From ${formatPrice(product.min_price)}`
       : null;
 
   const handleEdit = () => {
