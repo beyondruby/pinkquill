@@ -183,7 +183,7 @@ function ProductCard({
     product.min_price !== undefined
       ? product.min_price === 0
         ? (product.max_price ?? 0) > 0
-          ? "Free+"
+          ? "$0+"
           : "Free"
         : product.min_price === product.max_price
           ? formatPrice(product.min_price)

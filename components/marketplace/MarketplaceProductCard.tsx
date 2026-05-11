@@ -273,7 +273,7 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
               <div className="flex items-baseline gap-1">
                 {price === 0 ? (
                   <span className="text-lg font-display font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
-                    {(product.max_price ?? 0) > 0 ? "Free+" : "Free"}
+                    {(product.max_price ?? 0) > 0 ? "$0+" : "Free"}
                   </span>
                 ) : (
                   <>

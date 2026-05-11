@@ -107,7 +107,7 @@ function ListingCard({
             {product.min_price != null
               ? product.min_price === 0
                 ? (product.max_price ?? 0) > 0
-                  ? "Free+"
+                  ? "$0+"
                   : "Free"
                 : product.min_price === product.max_price
                   ? `$${product.min_price.toFixed(2)}`

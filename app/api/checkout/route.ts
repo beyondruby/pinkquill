@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       .select(`
         id, order_number, buyer_id, seller_id, amount, currency,
         listing_type, status, payment_status, checkout_session_id,
-        quantity, pricing_id,
+        quantity, pricing_id, shipping_cost, discount_amount,
         product:products (id, title, listing_type)
       `)
       .eq("id", parsed.data.order_id)
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
 
         const { data: pricing, error: pricingError } = await supabaseAdmin
           .from("product_pricing")
-          .select("id, product_id, price, is_available")
+          .select("id, product_id, price, min_price, is_available")
           .eq("id", order.pricing_id)
           .eq("product_id", productRecord.id)
           .single();
@@ -104,9 +104,25 @@ export async function POST(request: Request) {
           );
         }
 
+        // Validate the captured order amount against the current pricing row.
+        // PWYW rows (min_price < price) allow any unit amount >= min_price;
+        // fixed rows must match the exact price. Shipping and applied promo
+        // discounts contribute to order.amount and must be subtracted first.
         const qty = order.quantity ?? 1;
-        if (Math.abs(Number(order.amount) - Number(pricing.price) * qty) > 0.01) {
-          // Price changed since order was created
+        const shippingCost = Number(order.shipping_cost ?? 0);
+        const discountAmount = Number(order.discount_amount ?? 0);
+        const itemAmount = Number(order.amount) + discountAmount - shippingCost;
+        const unitAmount = itemAmount / Math.max(qty, 1);
+        const isPwyw = Number(pricing.min_price) < Number(pricing.price);
+
+        if (isPwyw) {
+          if (unitAmount + 0.01 < Number(pricing.min_price)) {
+            return NextResponse.json(
+              { error: "Order amount is below the seller's minimum. Please recreate your order." },
+              { status: 409 }
+            );
+          }
+        } else if (Math.abs(itemAmount - Number(pricing.price) * qty) > 0.01) {
           return NextResponse.json(
             { error: "Product price has changed. Please recreate your order." },
             { status: 409 }

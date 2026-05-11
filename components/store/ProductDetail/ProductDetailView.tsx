@@ -366,7 +366,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
               <div className="space-y-5">
                 <div>
                   <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
-                    {isPwyw ? (pwywFloor === 0 ? "Pay what you want" : "Suggested price") : "Price"}
+                    {isPwyw ? "Name your price" : "Price"}
                   </p>
                   <p className="mt-1 text-4xl font-display text-ink">
                     {isPwyw && pwywFloor === 0
@@ -377,9 +377,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                   </p>
                   {activePricing.pricing_type === "original" && (
                     <p className="text-xs font-ui text-orange-warm mt-1">Original piece</p>
-                  )}
-                  {isPwyw && pwywFloor === 0 && (
-                    <p className="text-xs font-ui text-green-700 mt-1">Buyers can take this for free.</p>
                   )}
                 </div>
 
@@ -424,7 +421,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                 {isPwyw && (
                   <div className="space-y-1.5">
                     <label className="text-xs font-ui uppercase tracking-[0.14em] text-muted">
-                      Name a fair price
+                      Your price
                     </label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-vivid font-medium">$</span>
@@ -445,12 +442,12 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                     </div>
                     <p className="text-[11px] font-body text-muted">
                       {pwywFloor === 0
-                        ? "Enter $0 or any amount you'd like to pay."
-                        : `Minimum ${formatPrice(pwywFloor, activePricing.currency)}.`}
+                        ? `Any amount works. The artist suggests ${formatPrice(activePricing.price, activePricing.currency)}.`
+                        : `Minimum ${formatPrice(pwywFloor, activePricing.currency)}. Suggested ${formatPrice(activePricing.price, activePricing.currency)}.`}
                     </p>
                     {pwywInvalid && (
                       <p className="text-[11px] font-body text-red-600">
-                        Please enter at least {formatPrice(pwywFloor, activePricing.currency)}.
+                        At least {formatPrice(pwywFloor, activePricing.currency)} please.
                       </p>
                     )}
                   </div>
