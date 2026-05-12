@@ -88,16 +88,24 @@ function transformPostForCard(post: Post) {
 // views use Tailwind utility containers and let their own card components
 // own all visual treatment.
 const VIEW_CONTAINER_CLASS: Record<FeedViewId, string> = {
-  classic: "home-feed-modern w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6",
-  compact: "w-full max-w-[680px] mx-auto py-6 px-4 md:py-10 md:px-6 flex flex-col gap-2",
-  grid: "w-full max-w-[1280px] mx-auto py-6 px-4 md:py-10 md:px-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4",
-  magazine: "w-full max-w-[1100px] mx-auto py-6 px-4 md:py-10 md:px-6 columns-1 sm:columns-2 lg:columns-3 gap-4 [column-fill:_balance]",
+  classic: "home-feed-modern w-full max-w-[580px] mx-auto pb-6 px-4 md:pb-12 md:px-6",
+  compact: "w-full max-w-[680px] mx-auto pb-6 px-4 md:pb-10 md:px-6 flex flex-col gap-2",
+  grid: "w-full max-w-[1280px] mx-auto pb-6 px-4 md:pb-10 md:px-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4",
+  magazine: "w-full max-w-[1100px] mx-auto pb-6 px-4 md:pb-10 md:px-6 columns-1 sm:columns-2 lg:columns-3 gap-4 [column-fill:_balance]",
 };
 
-// Header bar shown above the feed grid for switching views.
-function FeedViewBar() {
+// Outer width of the toggle bar matches each view's container so the switcher
+// sits cleanly above the feed in all layouts.
+const VIEW_BAR_WRAP_CLASS: Record<FeedViewId, string> = {
+  classic: "w-full max-w-[580px] mx-auto",
+  compact: "w-full max-w-[680px] mx-auto",
+  grid: "w-full max-w-[1280px] mx-auto",
+  magazine: "w-full max-w-[1100px] mx-auto",
+};
+
+function FeedViewBar({ viewId }: { viewId: FeedViewId }) {
   return (
-    <div className="w-full max-w-[1280px] mx-auto px-4 md:px-6 pt-4 md:pt-8 flex items-center justify-end">
+    <div className={`${VIEW_BAR_WRAP_CLASS[viewId]} px-4 md:px-6 pt-4 md:pt-8 pb-3 flex items-center justify-end`}>
       <FeedViewSwitcher />
     </div>
   );
@@ -331,7 +339,7 @@ export default function Feed() {
   if (authLoading || (postsLoading && posts.length === 0)) {
     return (
       <>
-        <FeedViewBar />
+        <FeedViewBar viewId={viewId} />
         <FeedFrame viewId={viewId}>
           {viewId === "classic"
             ? [...Array(3)].map((_, i) => <PostSkeleton key={i} />)
@@ -355,7 +363,7 @@ export default function Feed() {
   if (error) {
     return (
       <>
-        <FeedViewBar />
+        <FeedViewBar viewId={viewId} />
         <FeedFrame viewId={viewId}>
           <div className="text-center col-span-full [column-span:all]">
             <p className="font-body text-red-500 mb-4">{error}</p>
@@ -374,7 +382,7 @@ export default function Feed() {
   if (posts.length === 0) {
     return (
       <>
-        <FeedViewBar />
+        <FeedViewBar viewId={viewId} />
         <FeedFrame viewId={viewId}>
           <div className="text-center col-span-full [column-span:all]">
             <h2 className="font-display text-2xl text-ink mb-4">
@@ -397,7 +405,7 @@ export default function Feed() {
 
   return (
     <>
-      <FeedViewBar />
+      <FeedViewBar viewId={viewId} />
       <FeedFrame viewId={viewId}>
         {/* PERFORMANCE: Using memoized transformed posts */}
         {transformedPosts.map(({ original, transformed }) => (

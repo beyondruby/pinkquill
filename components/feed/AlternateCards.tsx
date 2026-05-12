@@ -15,14 +15,15 @@ import {
   PlayIcon,
 } from "@/components/ui/Icons";
 import { actionToast } from "@/lib/utils/toast";
+import { stripHtml, getExcerpt } from "@/lib/utils/sanitize";
+import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
 import type { PostProps } from "./PostCard/types";
 
 // =============================================================================
-// Shared hook — alternate cards are presentational; heavy interactions
-// (reactions, comments, share, full content) happen in the post modal that
-// opens on card activation. Local state stays in sync with modal updates so
-// admire/save reflect correctly when the user reacts inside the modal then
-// returns to the feed.
+// Shared interaction hook — keeps alternate cards lean. Heavy interactions
+// (reactions, comments, share, full content) open the post modal on activate.
+// Local state stays in sync with modal updates so a like-in-modal flows back
+// to the card's heart icon.
 // =============================================================================
 
 function useCardActions(post: PostProps) {
@@ -164,127 +165,205 @@ function useCardActions(post: PostProps) {
 }
 
 // =============================================================================
-// Helpers
+// Content helpers — strip the rich-text HTML that posts store so previews
+// don't leak raw <p class="..."> markup. Falls back to a regex strip if the
+// sanitize module's DOMPurify is unavailable (e.g. older test envs).
 // =============================================================================
+
+function safeStripHtml(content: string): string {
+  if (!content) return "";
+  try {
+    return stripHtml(content);
+  } catch {
+    return content
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+}
+
+function preview(content: string, max: number): string {
+  if (!content) return "";
+  try {
+    return getExcerpt(content, max);
+  } catch {
+    const text = safeStripHtml(content);
+    return text.length <= max ? text : text.slice(0, max).trimEnd() + "…";
+  }
+}
 
 function firstMedia(post: PostProps) {
   if (!post.media || post.media.length === 0) return null;
   return [...post.media].sort((a, b) => a.position - b.position)[0];
 }
 
-function hasContentWarning(post: PostProps) {
-  return Boolean(post.contentWarning);
+// =============================================================================
+// Small primitives shared across views
+// =============================================================================
+
+function TypeBadge({ type, className = "" }: { type: PostProps["type"]; className?: string }) {
+  const theme = getPostTypeTheme(type);
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border backdrop-blur-sm bg-surface/80 ${theme.tintBorder} ${theme.tintText} font-ui text-[0.65rem] uppercase tracking-wider ${className}`}
+    >
+      <span className="text-[0.8em] leading-none" aria-hidden="true">{theme.glyph}</span>
+      {theme.label}
+    </span>
+  );
 }
 
-function plainPreview(content: string, max: number): string {
-  if (!content) return "";
-  const stripped = content
-    .replace(/[*_~`>#]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (stripped.length <= max) return stripped;
-  return stripped.slice(0, max).trimEnd() + "…";
+function StatsRow({
+  isAdmired,
+  admireCount,
+  commentCount,
+  isSaved,
+  onAdmire,
+  onSave,
+  align = "between",
+  size = "sm",
+}: {
+  isAdmired: boolean;
+  admireCount: number;
+  commentCount: number;
+  isSaved: boolean;
+  onAdmire: (e: React.MouseEvent) => void;
+  onSave: (e: React.MouseEvent) => void;
+  align?: "between" | "start";
+  size?: "sm" | "xs";
+}) {
+  const textSize = size === "xs" ? "text-[0.7rem]" : "text-xs";
+  return (
+    <div
+      className={`flex items-center gap-3 ${textSize} text-muted ${align === "between" ? "" : ""}`}
+    >
+      <button
+        type="button"
+        onClick={onAdmire}
+        aria-label={isAdmired ? "Remove admire" : "Admire post"}
+        aria-pressed={isAdmired}
+        className={`inline-flex items-center gap-1 transition-colors ${isAdmired ? "text-pink-vivid" : "hover:text-pink-vivid"}`}
+      >
+        <HeartIcon size="sm" filled={isAdmired} />
+        <span className="tabular-nums">{admireCount}</span>
+      </button>
+      <span className="inline-flex items-center gap-1">
+        <CommentIcon size="sm" />
+        <span className="tabular-nums">{commentCount}</span>
+      </span>
+      <button
+        type="button"
+        onClick={onSave}
+        aria-label={isSaved ? "Remove save" : "Save post"}
+        aria-pressed={isSaved}
+        className={`inline-flex items-center gap-1 transition-colors ml-auto ${isSaved ? "text-accent" : "hover:text-accent"}`}
+      >
+        <BookmarkIcon size="sm" filled={isSaved} />
+      </button>
+    </div>
+  );
 }
 
 // =============================================================================
-// CompactPostCard — dense single-column row
+// CompactPostCard — dense single-column row. Type-colored glyph on left,
+// title + 2-line preview, small thumbnail on right.
 // =============================================================================
 
 export function CompactPostCard({ post }: { post: PostProps }) {
   const actions = useCardActions(post);
+  const theme = getPostTypeTheme(post.type);
   const media = firstMedia(post);
-  const cw = hasContentWarning(post);
-  const isAudio = post.type === "audio";
-  const isVideo = post.type === "video";
+  const cw = Boolean(post.contentWarning);
 
   return (
     <article
       role="button"
       tabIndex={0}
-      aria-label={post.title || `Post by ${post.author.name}`}
+      aria-label={post.title || `${theme.label} by ${post.author.name}`}
       onClick={actions.onCardActivate}
       onKeyDown={actions.onKeyDown}
-      className="group w-full flex gap-3 p-3 rounded-xl border border-border-light bg-surface hover:border-accent/30 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/40"
+      className="group w-full flex items-stretch gap-3 p-3 rounded-2xl border border-border-light bg-surface hover:border-accent/40 hover:shadow-[0_8px_24px_rgba(15,15,15,0.06)] transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
     >
-      <Link
-        href={`/studio/${post.author.handle.replace("@", "")}`}
-        onClick={(e) => e.stopPropagation()}
-        className="flex-shrink-0 self-start"
-        aria-label={`View ${post.author.name}'s studio`}
+      {/* Type rail */}
+      <div
+        className={`flex-shrink-0 w-9 self-stretch rounded-xl border ${theme.tintBorder} ${theme.tintBg} flex items-center justify-center`}
+        aria-hidden="true"
       >
-        <div className="relative w-9 h-9 rounded-full overflow-hidden border border-border-light">
-          <Image
-            src={post.author.avatar}
-            alt={post.author.name}
-            fill
-            className="object-cover"
-            sizes="36px"
-            quality={80}
-          />
-        </div>
-      </Link>
+        <span className={`text-base ${theme.tintText} font-display leading-none`}>
+          {theme.glyph}
+        </span>
+      </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-1.5 mb-0.5 text-xs">
+      {/* Author + body */}
+      <div className="flex-1 min-w-0 flex flex-col gap-1">
+        <div className="flex items-center gap-1.5 text-xs min-w-0">
+          <Link
+            href={`/studio/${post.author.handle.replace("@", "")}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-shrink-0"
+          >
+            <div className="relative w-5 h-5 rounded-full overflow-hidden border border-border-light">
+              <Image
+                src={post.author.avatar}
+                alt={post.author.name}
+                fill
+                className="object-cover"
+                sizes="20px"
+                quality={80}
+              />
+            </div>
+          </Link>
           <span className="font-ui font-semibold text-ink truncate">
             {post.author.name}
           </span>
-          <span className="text-muted truncate">{post.typeLabel}</span>
+          <span className={`uppercase tracking-wider font-ui text-[0.65rem] ${theme.tintText}`}>
+            · {theme.label}
+          </span>
           <span className="text-muted">·</span>
           <span className="text-muted whitespace-nowrap">{post.timeAgo}</span>
         </div>
 
         {post.title && (
-          <h3 className="font-display text-[0.95rem] font-semibold text-ink leading-snug mb-0.5 line-clamp-1">
+          <h3 className={`text-[0.98rem] font-semibold text-ink leading-snug line-clamp-1 ${theme.titleClass}`}>
             {post.title}
           </h3>
         )}
-        <p className="font-body text-sm text-subdued line-clamp-2 leading-snug">
+        <p className={`text-sm text-subdued leading-snug line-clamp-2 ${theme.bodyClass}`}>
           {cw ? (
             <span className="italic text-muted">
-              Content warning: {post.contentWarning}
+              Content warning · {post.contentWarning}
             </span>
           ) : (
-            plainPreview(post.content, 180)
+            preview(post.content, 200)
           )}
         </p>
 
-        <div className="flex items-center gap-3 mt-1.5 text-xs text-muted">
-          <button
-            type="button"
-            onClick={actions.onAdmire}
-            aria-label={actions.isAdmired ? "Remove admire" : "Admire post"}
-            aria-pressed={actions.isAdmired}
-            className="inline-flex items-center gap-1 hover:text-accent transition-colors"
-          >
-            <HeartIcon size="sm" filled={actions.isAdmired} />
-            <span className="tabular-nums">{actions.admireCount}</span>
-          </button>
-          <span className="inline-flex items-center gap-1">
-            <CommentIcon size="sm" />
-            <span className="tabular-nums">{actions.commentCount}</span>
-          </span>
-          <button
-            type="button"
-            onClick={actions.onSave}
-            aria-label={actions.isSaved ? "Remove save" : "Save post"}
-            aria-pressed={actions.isSaved}
-            className="inline-flex items-center gap-1 hover:text-accent transition-colors ml-auto"
-          >
-            <BookmarkIcon size="sm" filled={actions.isSaved} />
-          </button>
-        </div>
+        <StatsRow
+          isAdmired={actions.isAdmired}
+          admireCount={actions.admireCount}
+          commentCount={actions.commentCount}
+          isSaved={actions.isSaved}
+          onAdmire={actions.onAdmire}
+          onSave={actions.onSave}
+        />
       </div>
 
-      {media && !cw && (
-        <div className="flex-shrink-0 relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-skeleton">
+      {/* Thumbnail */}
+      {media && !cw ? (
+        <div className="flex-shrink-0 relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-skeleton">
           {media.media_type === "image" ? (
             <Image
               src={media.media_url}
               alt={media.caption || ""}
               fill
               className="object-cover"
-              sizes="(max-width: 640px) 64px, 80px"
+              sizes="(max-width: 640px) 80px, 96px"
               quality={75}
             />
           ) : (
@@ -296,114 +375,125 @@ export function CompactPostCard({ post }: { post: PostProps }) {
                 preload="metadata"
                 className="absolute inset-0 w-full h-full object-cover"
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/25">
                 <PlayIcon size="sm" className="text-white drop-shadow" />
               </div>
             </>
           )}
         </div>
-      )}
-      {!media && (isAudio || isVideo) && (
-        <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-skeleton flex items-center justify-center">
-          <span className="text-muted text-xs uppercase tracking-wide">
-            {isAudio ? "Audio" : "Video"}
-          </span>
-        </div>
-      )}
+      ) : null}
     </article>
   );
 }
 
 // =============================================================================
-// GridPostCard — square media-first tile
+// GridPostCard — square media-first tile. Each post type gets a different
+// typography tile when there's no media (or when there's a content warning).
 // =============================================================================
 
 export function GridPostCard({ post }: { post: PostProps }) {
   const actions = useCardActions(post);
+  const theme = getPostTypeTheme(post.type);
   const media = firstMedia(post);
-  const cw = hasContentWarning(post);
-  const extraMediaCount =
-    post.media && post.media.length > 1 ? post.media.length - 1 : 0;
-  const showsMediaTile = Boolean(media) && !cw;
+  const cw = Boolean(post.contentWarning);
+  const extraMediaCount = post.media && post.media.length > 1 ? post.media.length - 1 : 0;
+  const showsMedia = Boolean(media) && !cw;
 
   return (
     <article
       role="button"
       tabIndex={0}
-      aria-label={post.title || `Post by ${post.author.name}`}
+      aria-label={post.title || `${theme.label} by ${post.author.name}`}
       onClick={actions.onCardActivate}
       onKeyDown={actions.onKeyDown}
-      className="group relative rounded-2xl overflow-hidden border border-border-light bg-surface hover:border-accent/30 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/40"
+      className="group relative rounded-2xl overflow-hidden border border-border-light bg-surface hover:shadow-[0_18px_40px_rgba(15,15,15,0.12)] hover:border-accent/40 hover:-translate-y-0.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
     >
       <div className="relative aspect-square w-full overflow-hidden">
-        {showsMediaTile ? (
-          media!.media_type === "image" ? (
-            <Image
-              src={media!.media_url}
-              alt={media!.caption || ""}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              quality={80}
-            />
-          ) : (
-            <>
-              <video
+        {showsMedia ? (
+          <>
+            {media!.media_type === "image" ? (
+              <Image
                 src={media!.media_url}
-                muted
-                playsInline
-                preload="metadata"
-                className="absolute inset-0 w-full h-full object-cover"
+                alt={media!.caption || ""}
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                quality={80}
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                <PlayIcon size="lg" className="text-white drop-shadow-lg" />
-              </div>
-            </>
-          )
-        ) : (
-          <div
-            className={`absolute inset-0 flex flex-col justify-between p-4 ${
-              cw ? "bg-amber-500/5" : "bg-gradient-to-br from-surface to-skeleton"
-            }`}
-          >
-            <span className="font-ui text-[0.7rem] uppercase tracking-widest text-muted">
-              {post.typeLabel}
-            </span>
-            <div>
-              {post.title && (
-                <h3 className="font-display text-base font-semibold text-ink line-clamp-3 leading-snug mb-1">
+            ) : (
+              <>
+                <video
+                  src={media!.media_url}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                  <div className="w-12 h-12 rounded-full bg-white/95 flex items-center justify-center shadow-lg">
+                    <PlayIcon size="md" className="text-ink translate-x-[1px]" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Bottom gradient overlay for legibility */}
+            <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none" />
+
+            {/* Title over image */}
+            {post.title && (
+              <div className="absolute inset-x-0 bottom-0 p-3">
+                <h3 className={`text-white text-base font-semibold leading-snug line-clamp-2 drop-shadow ${theme.titleClass}`}>
                   {post.title}
                 </h3>
+              </div>
+            )}
+
+            <TypeBadge type={post.type} className="absolute top-2 left-2" />
+            <div className="absolute top-2 right-2 flex items-center gap-1.5">
+              {extraMediaCount > 0 && (
+                <div className="px-2 py-0.5 rounded-full bg-black/55 text-white text-[0.65rem] font-ui font-medium backdrop-blur-sm">
+                  +{extraMediaCount}
+                </div>
               )}
-              <p className="font-body text-xs text-subdued line-clamp-4 leading-snug">
-                {cw
-                  ? `Content warning: ${post.contentWarning}`
-                  : plainPreview(post.content, 200)}
-              </p>
+              <button
+                type="button"
+                onClick={actions.onSave}
+                aria-label={actions.isSaved ? "Remove save" : "Save post"}
+                aria-pressed={actions.isSaved}
+                className={`w-8 h-8 rounded-full flex items-center justify-center bg-black/55 text-white backdrop-blur-sm transition-opacity ${
+                  actions.isSaved
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100 focus:opacity-100"
+                }`}
+              >
+                <BookmarkIcon size="sm" filled={actions.isSaved} />
+              </button>
             </div>
-          </div>
-        )}
-
-        {extraMediaCount > 0 && showsMediaTile && (
-          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/55 text-white text-[0.65rem] font-ui font-medium">
-            +{extraMediaCount}
-          </div>
-        )}
-
-        {showsMediaTile && (
-          <button
-            type="button"
-            onClick={actions.onSave}
-            aria-label={actions.isSaved ? "Remove save" : "Save post"}
-            aria-pressed={actions.isSaved}
-            className="absolute top-2 left-2 w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-          >
-            <BookmarkIcon size="sm" filled={actions.isSaved} />
-          </button>
+          </>
+        ) : (
+          // Typography tile — per-type personality
+          <>
+            <TypeArtTile post={post} />
+            <button
+              type="button"
+              onClick={actions.onSave}
+              aria-label={actions.isSaved ? "Remove save" : "Save post"}
+              aria-pressed={actions.isSaved}
+              className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center bg-surface/90 border border-border-light text-ink transition-opacity ${
+                actions.isSaved
+                  ? "opacity-100"
+                  : "opacity-0 group-hover:opacity-100 focus:opacity-100"
+              }`}
+            >
+              <BookmarkIcon size="sm" filled={actions.isSaved} />
+            </button>
+          </>
         )}
       </div>
 
-      <div className="px-3 pt-2 pb-3 flex items-center gap-2">
+      {/* Footer */}
+      <div className="px-3 py-2.5 flex items-center gap-2 border-t border-border-light/60">
         <Link
           href={`/studio/${post.author.handle.replace("@", "")}`}
           onClick={(e) => e.stopPropagation()}
@@ -432,11 +522,15 @@ export function GridPostCard({ post }: { post: PostProps }) {
             onClick={actions.onAdmire}
             aria-label={actions.isAdmired ? "Remove admire" : "Admire post"}
             aria-pressed={actions.isAdmired}
-            className="inline-flex items-center gap-0.5 hover:text-accent transition-colors"
+            className={`inline-flex items-center gap-0.5 transition-colors ${actions.isAdmired ? "text-pink-vivid" : "hover:text-pink-vivid"}`}
           >
             <HeartIcon size="sm" filled={actions.isAdmired} />
             <span className="tabular-nums">{actions.admireCount}</span>
           </button>
+          <span className="inline-flex items-center gap-0.5">
+            <CommentIcon size="sm" />
+            <span className="tabular-nums">{actions.commentCount}</span>
+          </span>
         </div>
       </div>
     </article>
@@ -444,25 +538,161 @@ export function GridPostCard({ post }: { post: PostProps }) {
 }
 
 // =============================================================================
-// MagazinePostCard — variable-height card for masonry layout
+// TypeArtTile — per-post-type typography treatment for text-only / cw posts
+// =============================================================================
+
+function TypeArtTile({ post }: { post: PostProps }) {
+  const theme = getPostTypeTheme(post.type);
+  const cw = Boolean(post.contentWarning);
+  const text = cw
+    ? `Content warning · ${post.contentWarning}`
+    : preview(post.content, 180);
+
+  // Specialised treatments
+  if (post.type === "quote") {
+    return (
+      <div className={`absolute inset-0 ${theme.tintBg} border ${theme.tintBorder} p-5 flex flex-col justify-center`}>
+        <span
+          className={`absolute top-1 left-3 text-[7rem] leading-none ${theme.tintText} font-display select-none opacity-60`}
+          aria-hidden="true"
+        >
+          “
+        </span>
+        <p className={`relative text-ink text-base leading-snug line-clamp-6 ${theme.bodyClass} text-center`}>
+          {text}
+        </p>
+      </div>
+    );
+  }
+
+  if (post.type === "poem") {
+    return (
+      <div className={`absolute inset-0 ${theme.tintBg} border ${theme.tintBorder} p-5 flex flex-col items-center justify-center text-center`}>
+        <span className={`block mb-2 text-xl ${theme.tintText}`} aria-hidden="true">{theme.glyph}</span>
+        {post.title && (
+          <h3 className={`text-base text-ink font-semibold leading-snug line-clamp-1 mb-1 ${theme.titleClass}`}>
+            {post.title}
+          </h3>
+        )}
+        <p className={`text-[0.85rem] text-subdued leading-relaxed line-clamp-5 ${theme.bodyClass}`}>
+          {text}
+        </p>
+      </div>
+    );
+  }
+
+  if (post.type === "audio") {
+    return (
+      <div className={`absolute inset-0 ${theme.tintBg} border ${theme.tintBorder} p-4 flex flex-col items-center justify-center`}>
+        <div className="flex items-end gap-1 h-10 mb-3" aria-hidden="true">
+          {[6, 14, 22, 16, 28, 18, 24, 10, 18, 14].map((h, i) => (
+            <span
+              key={i}
+              className="w-1 rounded-full bg-pink-vivid/70"
+              style={{ height: `${h}px` }}
+            />
+          ))}
+        </div>
+        {post.title && (
+          <h3 className={`text-base text-ink font-semibold leading-snug line-clamp-2 text-center mb-1 ${theme.titleClass}`}>
+            {post.title}
+          </h3>
+        )}
+        <span className={`font-ui text-[0.7rem] uppercase tracking-wider ${theme.tintText}`}>
+          Voice note
+        </span>
+      </div>
+    );
+  }
+
+  if (post.type === "letter") {
+    return (
+      <div className={`absolute inset-0 ${theme.tintBg} border ${theme.tintBorder} p-5 flex flex-col`}>
+        <span className={`font-ui text-[0.7rem] uppercase tracking-widest mb-2 ${theme.tintText}`}>
+          {theme.glyph} A letter
+        </span>
+        {post.title && (
+          <h3 className={`text-ink text-base font-semibold leading-snug line-clamp-1 mb-1 ${theme.titleClass}`}>
+            {post.title}
+          </h3>
+        )}
+        <p className={`text-[0.85rem] text-subdued leading-relaxed line-clamp-6 ${theme.bodyClass}`}>
+          {text}
+        </p>
+      </div>
+    );
+  }
+
+  // Default typography tile (essay, blog, story, thought, journal, visual w/o media)
+  return (
+    <div className={`absolute inset-0 ${theme.tintBg} border ${theme.tintBorder} p-4 flex flex-col justify-between`}>
+      <div className="flex items-center justify-between">
+        <span className={`font-ui text-[0.7rem] uppercase tracking-widest ${theme.tintText}`}>
+          {theme.glyph} {theme.label}
+        </span>
+      </div>
+      <div>
+        {post.title && (
+          <h3 className={`text-ink text-[1.05rem] font-semibold leading-snug line-clamp-3 mb-1.5 ${theme.titleClass}`}>
+            {post.title}
+          </h3>
+        )}
+        <p className={`text-xs text-subdued leading-relaxed line-clamp-4 ${theme.bodyClass}`}>
+          {text}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// MagazinePostCard — variable-height masonry card. Media at top (natural
+// aspect), body with type chip + title + serif preview, footer with stats.
 // =============================================================================
 
 export function MagazinePostCard({ post }: { post: PostProps }) {
   const actions = useCardActions(post);
+  const theme = getPostTypeTheme(post.type);
   const media = firstMedia(post);
-  const cw = hasContentWarning(post);
-  const extraMediaCount =
-    post.media && post.media.length > 1 ? post.media.length - 1 : 0;
+  const cw = Boolean(post.contentWarning);
+  const extraMediaCount = post.media && post.media.length > 1 ? post.media.length - 1 : 0;
   const showsMedia = Boolean(media) && !cw;
+
+  // Quote-special: oversized quote glyph as backdrop, no media even if present.
+  if (post.type === "quote" && !showsMedia) {
+    return (
+      <article
+        role="button"
+        tabIndex={0}
+        aria-label={post.title || `Quote by ${post.author.name}`}
+        onClick={actions.onCardActivate}
+        onKeyDown={actions.onKeyDown}
+        className={`group break-inside-avoid mb-4 rounded-2xl overflow-hidden border ${theme.tintBorder} ${theme.tintBg} hover:shadow-[0_14px_36px_rgba(15,15,15,0.1)] hover:-translate-y-0.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 relative`}
+      >
+        <span
+          className={`absolute -top-6 left-2 text-[8rem] leading-none ${theme.tintText} font-display select-none opacity-50`}
+          aria-hidden="true"
+        >
+          “
+        </span>
+        <div className="relative p-5 pt-12">
+          <p className={`text-ink text-lg leading-snug ${theme.bodyClass} line-clamp-6 mb-4`}>
+            {cw ? `Content warning · ${post.contentWarning}` : preview(post.content, 300)}
+          </p>
+          <MagazineFooter post={post} actions={actions} />
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article
       role="button"
       tabIndex={0}
-      aria-label={post.title || `Post by ${post.author.name}`}
+      aria-label={post.title || `${theme.label} by ${post.author.name}`}
       onClick={actions.onCardActivate}
       onKeyDown={actions.onKeyDown}
-      className="group break-inside-avoid mb-4 rounded-2xl overflow-hidden border border-border-light bg-surface hover:border-accent/30 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/40"
+      className="group break-inside-avoid mb-4 rounded-2xl overflow-hidden border border-border-light bg-surface hover:shadow-[0_14px_36px_rgba(15,15,15,0.1)] hover:border-accent/40 hover:-translate-y-0.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
     >
       {showsMedia && (
         <div className="relative w-full overflow-hidden bg-skeleton">
@@ -472,7 +702,7 @@ export function MagazinePostCard({ post }: { post: PostProps }) {
               alt={media!.caption || ""}
               width={800}
               height={600}
-              className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               quality={80}
             />
@@ -486,84 +716,88 @@ export function MagazinePostCard({ post }: { post: PostProps }) {
                 className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                <PlayIcon size="lg" className="text-white drop-shadow-lg" />
+                <div className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center shadow-lg">
+                  <PlayIcon size="md" className="text-ink translate-x-[1px]" />
+                </div>
               </div>
             </div>
           )}
+          <TypeBadge type={post.type} className="absolute top-2 left-2" />
           {extraMediaCount > 0 && (
-            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/55 text-white text-[0.65rem] font-ui font-medium">
+            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/55 text-white text-[0.65rem] font-ui font-medium backdrop-blur-sm">
               +{extraMediaCount}
             </div>
           )}
         </div>
       )}
 
-      <div className="p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Link
-            href={`/studio/${post.author.handle.replace("@", "")}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex-shrink-0"
-            aria-label={`View ${post.author.name}'s studio`}
-          >
-            <div className="relative w-7 h-7 rounded-full overflow-hidden border border-border-light">
-              <Image
-                src={post.author.avatar}
-                alt={post.author.name}
-                fill
-                className="object-cover"
-                sizes="28px"
-                quality={80}
-              />
-            </div>
-          </Link>
-          <div className="flex-1 min-w-0 text-xs">
-            <div className="font-ui font-medium text-ink truncate">
-              {post.author.name}
-            </div>
-            <div className="text-muted truncate">
-              {post.typeLabel} · {post.timeAgo}
-            </div>
+      <div className="p-5">
+        {!showsMedia && (
+          <div className="mb-3">
+            <TypeBadge type={post.type} />
           </div>
-        </div>
+        )}
 
         {post.title && (
-          <h3 className="font-display text-lg font-semibold text-ink leading-snug mb-1.5 line-clamp-2">
+          <h3 className={`text-lg font-semibold text-ink leading-snug mb-2 line-clamp-2 ${theme.titleClass}`}>
             {post.title}
           </h3>
         )}
-        <p className="font-body text-sm text-subdued leading-relaxed line-clamp-5">
+        <p className={`text-sm text-subdued leading-relaxed line-clamp-5 ${theme.bodyClass}`}>
           {cw
-            ? `Content warning: ${post.contentWarning}`
-            : plainPreview(post.content, 300)}
+            ? `Content warning · ${post.contentWarning}`
+            : preview(post.content, 300)}
         </p>
 
-        <div className="flex items-center gap-3 mt-3 text-xs text-muted">
-          <button
-            type="button"
-            onClick={actions.onAdmire}
-            aria-label={actions.isAdmired ? "Remove admire" : "Admire post"}
-            aria-pressed={actions.isAdmired}
-            className="inline-flex items-center gap-1 hover:text-accent transition-colors"
-          >
-            <HeartIcon size="sm" filled={actions.isAdmired} />
-            <span className="tabular-nums">{actions.admireCount}</span>
-          </button>
-          <span className="inline-flex items-center gap-1">
-            <CommentIcon size="sm" />
-            <span className="tabular-nums">{actions.commentCount}</span>
-          </span>
-          <button
-            type="button"
-            onClick={actions.onSave}
-            aria-label={actions.isSaved ? "Remove save" : "Save post"}
-            aria-pressed={actions.isSaved}
-            className="inline-flex items-center gap-1 hover:text-accent transition-colors ml-auto"
-          >
-            <BookmarkIcon size="sm" filled={actions.isSaved} />
-          </button>
+        <div className="mt-4 pt-4 border-t border-border-light/70">
+          <MagazineFooter post={post} actions={actions} />
         </div>
       </div>
     </article>
+  );
+}
+
+function MagazineFooter({
+  post,
+  actions,
+}: {
+  post: PostProps;
+  actions: ReturnType<typeof useCardActions>;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <Link
+        href={`/studio/${post.author.handle.replace("@", "")}`}
+        onClick={(e) => e.stopPropagation()}
+        className="flex-shrink-0"
+        aria-label={`View ${post.author.name}'s studio`}
+      >
+        <div className="relative w-8 h-8 rounded-full overflow-hidden border border-border-light">
+          <Image
+            src={post.author.avatar}
+            alt={post.author.name}
+            fill
+            className="object-cover"
+            sizes="32px"
+            quality={80}
+          />
+        </div>
+      </Link>
+      <div className="flex-1 min-w-0 text-xs">
+        <div className="font-ui font-semibold text-ink truncate">
+          {post.author.name}
+        </div>
+        <div className="text-muted truncate">{post.timeAgo}</div>
+      </div>
+      <StatsRow
+        isAdmired={actions.isAdmired}
+        admireCount={actions.admireCount}
+        commentCount={actions.commentCount}
+        isSaved={actions.isSaved}
+        onAdmire={actions.onAdmire}
+        onSave={actions.onSave}
+        size="xs"
+      />
+    </div>
   );
 }

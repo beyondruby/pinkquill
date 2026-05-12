@@ -7,14 +7,14 @@ interface IconProps {
   className?: string;
 }
 
-function ClassicIcon({ className = "w-4 h-4" }: IconProps) {
+function ClassicIcon({ className = "w-[18px] h-[18px]" }: IconProps) {
   return (
     <svg
       className={className}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -25,14 +25,14 @@ function ClassicIcon({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-function CompactIcon({ className = "w-4 h-4" }: IconProps) {
+function CompactIcon({ className = "w-[18px] h-[18px]" }: IconProps) {
   return (
     <svg
       className={className}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -44,42 +44,42 @@ function CompactIcon({ className = "w-4 h-4" }: IconProps) {
   );
 }
 
-function GridIcon({ className = "w-4 h-4" }: IconProps) {
+function GridIcon({ className = "w-[18px] h-[18px]" }: IconProps) {
   return (
     <svg
       className={className}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <rect x="4" y="4" width="7" height="7" rx="1" />
-      <rect x="13" y="4" width="7" height="7" rx="1" />
-      <rect x="4" y="13" width="7" height="7" rx="1" />
-      <rect x="13" y="13" width="7" height="7" rx="1" />
+      <rect x="4" y="4" width="7" height="7" rx="1.25" />
+      <rect x="13" y="4" width="7" height="7" rx="1.25" />
+      <rect x="4" y="13" width="7" height="7" rx="1.25" />
+      <rect x="13" y="13" width="7" height="7" rx="1.25" />
     </svg>
   );
 }
 
-function MagazineIcon({ className = "w-4 h-4" }: IconProps) {
+function MagazineIcon({ className = "w-[18px] h-[18px]" }: IconProps) {
   return (
     <svg
       className={className}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <rect x="4" y="4" width="7" height="9" rx="1" />
-      <rect x="13" y="4" width="7" height="5" rx="1" />
-      <rect x="4" y="15" width="7" height="5" rx="1" />
-      <rect x="13" y="11" width="7" height="9" rx="1" />
+      <rect x="4" y="4" width="7" height="9" rx="1.25" />
+      <rect x="13" y="4" width="7" height="5" rx="1.25" />
+      <rect x="4" y="15" width="7" height="5" rx="1.25" />
+      <rect x="13" y="11" width="7" height="9" rx="1.25" />
     </svg>
   );
 }
@@ -97,7 +97,7 @@ export function FeedViewSwitcher({ className = "" }: { className?: string }) {
 
   return (
     <div
-      className={`inline-flex items-center gap-0.5 p-0.5 rounded-full border border-border-light bg-surface ${className}`}
+      className={`inline-flex items-center gap-1 p-1 rounded-full border border-border-light bg-surface/80 backdrop-blur shadow-[0_4px_14px_rgba(15,15,15,0.04)] ${className}`}
       role="radiogroup"
       aria-label="Feed layout"
     >
@@ -113,13 +113,14 @@ export function FeedViewSwitcher({ className = "" }: { className?: string }) {
             aria-label={`${v.label} view`}
             title={v.label}
             onClick={() => setView(v.id as FeedViewId)}
-            className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
+            className={`relative inline-flex items-center gap-1.5 h-8 px-3 rounded-full font-ui text-xs font-medium transition-all ${
               isActive
-                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent"
-                : "text-muted hover:text-ink hover:bg-skeleton"
+                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-on-accent shadow-[0_6px_16px_rgba(168,85,247,0.35)]"
+                : "text-muted hover:text-ink hover:bg-skeleton/60"
             }`}
           >
-            <Icon className="w-4 h-4" />
+            <Icon />
+            <span className="hidden sm:inline">{v.label}</span>
           </button>
         );
       })}
