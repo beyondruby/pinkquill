@@ -289,6 +289,40 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
   display: none;
 }
 
+/* Alternate feed view materials. These stay tied to semantic theme tokens so
+   compact/grid/magazine never introduce unrelated one-off palette colors. */
+.pq-type-wash-primary {
+  background:
+    radial-gradient(circle at 18% 18%, color-mix(in oklab, var(--color-accent) 18%, transparent), transparent 38%),
+    linear-gradient(135deg, color-mix(in oklab, var(--color-surface) 92%, var(--color-accent) 8%), var(--color-surface));
+}
+.pq-type-wash-secondary {
+  background:
+    radial-gradient(circle at 80% 16%, color-mix(in oklab, var(--color-accent-2) 18%, transparent), transparent 38%),
+    linear-gradient(135deg, color-mix(in oklab, var(--color-surface) 92%, var(--color-accent-2) 8%), var(--color-surface));
+}
+.pq-type-wash-warm {
+  background:
+    radial-gradient(circle at 24% 78%, color-mix(in oklab, var(--color-orange-warm) 16%, transparent), transparent 40%),
+    linear-gradient(135deg, color-mix(in oklab, var(--color-surface) 91%, var(--color-orange-warm) 9%), var(--color-surface));
+}
+.pq-type-wash-soft {
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--color-subtle) 82%, var(--color-accent) 10%), var(--color-surface));
+}
+.pq-type-border-primary { border-color: color-mix(in oklab, var(--color-accent) 26%, transparent); }
+.pq-type-border-secondary { border-color: color-mix(in oklab, var(--color-accent-2) 26%, transparent); }
+.pq-type-border-warm { border-color: color-mix(in oklab, var(--color-orange-warm) 28%, transparent); }
+.pq-type-border-soft { border-color: var(--color-border-light); }
+.pq-type-text-primary { color: color-mix(in oklab, var(--color-accent) 72%, var(--color-ink) 28%); }
+.pq-type-text-secondary { color: color-mix(in oklab, var(--color-accent-2) 74%, var(--color-ink) 26%); }
+.pq-type-text-warm { color: color-mix(in oklab, var(--color-orange-warm) 72%, var(--color-ink) 28%); }
+.pq-type-text-soft { color: var(--color-subdued); }
+.pq-type-fill-primary { background: var(--color-accent); }
+.pq-type-fill-secondary { background: var(--color-accent-2); }
+.pq-type-fill-warm { background: var(--color-orange-warm); }
+.pq-type-fill-soft { background: var(--color-subdued); }
+
 /* ============================================================================
    QUILL LOADING ANIMATION (Site-wide)
    ============================================================================ */

@@ -89,24 +89,26 @@ function transformPostForCard(post: Post) {
 // own all visual treatment.
 const VIEW_CONTAINER_CLASS: Record<FeedViewId, string> = {
   classic: "home-feed-modern w-full max-w-[580px] mx-auto pb-6 px-4 md:pb-12 md:px-6",
-  compact: "w-full max-w-[680px] mx-auto pb-6 px-4 md:pb-10 md:px-6 flex flex-col gap-2",
-  grid: "w-full max-w-[1280px] mx-auto pb-6 px-4 md:pb-10 md:px-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4",
-  magazine: "w-full max-w-[1100px] mx-auto pb-6 px-4 md:pb-10 md:px-6 columns-1 sm:columns-2 lg:columns-3 gap-4 [column-fill:_balance]",
+  compact: "w-full max-w-[760px] mx-auto pb-6 px-4 md:pb-10 md:px-6 flex flex-col gap-3",
+  grid: "w-full max-w-[1240px] mx-auto pb-6 px-4 md:pb-10 md:px-6 grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-12 auto-rows-[136px] sm:auto-rows-[150px] gap-2.5 sm:gap-3 grid-flow-dense",
+  magazine: "w-full max-w-[1120px] mx-auto pb-6 px-4 md:pb-10 md:px-6 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 items-start",
 };
 
 // Outer width of the toggle bar matches each view's container so the switcher
 // sits cleanly above the feed in all layouts.
 const VIEW_BAR_WRAP_CLASS: Record<FeedViewId, string> = {
   classic: "w-full max-w-[580px] mx-auto",
-  compact: "w-full max-w-[680px] mx-auto",
-  grid: "w-full max-w-[1280px] mx-auto",
-  magazine: "w-full max-w-[1100px] mx-auto",
+  compact: "w-full max-w-[760px] mx-auto",
+  grid: "w-full max-w-[1240px] mx-auto",
+  magazine: "w-full max-w-[1120px] mx-auto",
 };
 
 function FeedViewBar({ viewId }: { viewId: FeedViewId }) {
   return (
-    <div className={`${VIEW_BAR_WRAP_CLASS[viewId]} px-4 md:px-6 pt-4 md:pt-8 pb-3 flex items-center justify-end`}>
-      <FeedViewSwitcher />
+    <div className={`${VIEW_BAR_WRAP_CLASS[viewId]} px-4 md:px-6 pt-4 md:pt-7 pb-5`}>
+      <div className="flex items-center justify-center sm:justify-start">
+        <FeedViewSwitcher />
+      </div>
     </div>
   );
 }
@@ -348,10 +350,10 @@ export default function Feed() {
                   key={i}
                   className={
                     viewId === "compact"
-                      ? "h-24 rounded-xl bg-skeleton animate-pulse"
+                      ? "h-32 rounded-lg bg-skeleton animate-pulse"
                       : viewId === "grid"
-                      ? "aspect-square rounded-2xl bg-skeleton animate-pulse"
-                      : "h-64 rounded-2xl bg-skeleton animate-pulse mb-4 break-inside-avoid"
+                      ? "col-span-2 row-span-2 sm:col-span-3 lg:col-span-3 rounded-lg bg-skeleton animate-pulse"
+                      : "md:col-span-6 h-80 rounded-lg bg-skeleton animate-pulse"
                   }
                 />
               ))}
@@ -408,7 +410,7 @@ export default function Feed() {
       <FeedViewBar viewId={viewId} />
       <FeedFrame viewId={viewId}>
         {/* PERFORMANCE: Using memoized transformed posts */}
-        {transformedPosts.map(({ original, transformed }) => (
+        {transformedPosts.map(({ original, transformed }, index) => (
           <ErrorBoundary
             key={original.id}
             section={`PostCard:${original.id}`}
@@ -423,9 +425,9 @@ export default function Feed() {
             ) : viewId === "compact" ? (
               <CompactPostCard post={transformed} />
             ) : viewId === "grid" ? (
-              <GridPostCard post={transformed} />
+              <GridPostCard post={transformed} index={index} />
             ) : (
-              <MagazinePostCard post={transformed} />
+              <MagazinePostCard post={transformed} index={index} />
             )}
           </ErrorBoundary>
         ))}
