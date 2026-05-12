@@ -5,12 +5,16 @@ import Link from "next/link";
 import { useInView } from "react-intersection-observer";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
+import { useFeedView } from "@/components/providers/FeedViewProvider";
 import { useFeed } from "@/lib/hooks/useFeed";
 import PostCard from "./PostCard";
 import PostSkeleton from "./PostSkeleton";
+import { CompactPostCard, GridPostCard, MagazinePostCard } from "./AlternateCards";
+import { FeedViewSwitcher } from "./FeedViewSwitcher";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
 import type { Post } from "@/lib/types";
+import type { FeedViewId } from "@/lib/feed-view/registry";
 import { getTimeAgo } from "@/lib/utils/time";
 
 // PERFORMANCE: Moved outside component to prevent recreation on every render
@@ -79,9 +83,36 @@ function transformPostForCard(post: Post) {
   };
 }
 
-function FeedFrame({ children }: { children: ReactNode }) {
+// Per-view container styling. The Classic view keeps the original modern
+// post styling via the `home-feed-modern` class + injected <style jsx>. Other
+// views use Tailwind utility containers and let their own card components
+// own all visual treatment.
+const VIEW_CONTAINER_CLASS: Record<FeedViewId, string> = {
+  classic: "home-feed-modern w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6",
+  compact: "w-full max-w-[680px] mx-auto py-6 px-4 md:py-10 md:px-6 flex flex-col gap-2",
+  grid: "w-full max-w-[1280px] mx-auto py-6 px-4 md:py-10 md:px-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4",
+  magazine: "w-full max-w-[1100px] mx-auto py-6 px-4 md:py-10 md:px-6 columns-1 sm:columns-2 lg:columns-3 gap-4 [column-fill:_balance]",
+};
+
+// Header bar shown above the feed grid for switching views.
+function FeedViewBar() {
   return (
-    <div className="home-feed-modern w-full max-w-[580px] mx-auto py-6 px-4 md:py-12 md:px-6">
+    <div className="w-full max-w-[1280px] mx-auto px-4 md:px-6 pt-4 md:pt-8 flex items-center justify-end">
+      <FeedViewSwitcher />
+    </div>
+  );
+}
+
+function FeedFrame({
+  viewId,
+  children,
+}: {
+  viewId: FeedViewId;
+  children: ReactNode;
+}) {
+  const containerClass = VIEW_CONTAINER_CLASS[viewId];
+  return (
+    <div className={containerClass}>
       {children}
       <style jsx global>{`
         .home-feed-modern .post {
@@ -211,6 +242,7 @@ function FeedFrame({ children }: { children: ReactNode }) {
 export default function Feed() {
   const { user, loading: authLoading } = useAuth();
   const { subscribeToDeletes } = useModal();
+  const { viewId } = useFeedView();
 
   // Use the optimized useFeed hook with AbortController and stable channels
   const {
@@ -293,89 +325,120 @@ export default function Feed() {
     setDeletedIds(prev => new Set(prev).add(postId));
   }, []);
 
-  // Show skeletons while loading (only on initial load)
+  // Show skeletons while loading (only on initial load). Classic view uses
+  // the rich PostSkeleton; other views show simple placeholder boxes sized
+  // to their layout, since their cards are smaller.
   if (authLoading || (postsLoading && posts.length === 0)) {
     return (
-      <FeedFrame>
-        {[...Array(3)].map((_, i) => (
-          <PostSkeleton key={i} />
-        ))}
-      </FeedFrame>
+      <>
+        <FeedViewBar />
+        <FeedFrame viewId={viewId}>
+          {viewId === "classic"
+            ? [...Array(3)].map((_, i) => <PostSkeleton key={i} />)
+            : [...Array(viewId === "compact" ? 6 : 8)].map((_, i) => (
+                <div
+                  key={i}
+                  className={
+                    viewId === "compact"
+                      ? "h-24 rounded-xl bg-skeleton animate-pulse"
+                      : viewId === "grid"
+                      ? "aspect-square rounded-2xl bg-skeleton animate-pulse"
+                      : "h-64 rounded-2xl bg-skeleton animate-pulse mb-4 break-inside-avoid"
+                  }
+                />
+              ))}
+        </FeedFrame>
+      </>
     );
   }
 
   if (error) {
     return (
-      <FeedFrame>
-        <div className="text-center">
-          <p className="font-body text-red-500 mb-4">{error}</p>
-          <button
-            onClick={() => handleRefresh()}
-            className="px-6 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-sm font-medium text-on-accent hover:opacity-90 transition-opacity"
-          >
-            Try Again
-          </button>
-        </div>
-      </FeedFrame>
+      <>
+        <FeedViewBar />
+        <FeedFrame viewId={viewId}>
+          <div className="text-center col-span-full [column-span:all]">
+            <p className="font-body text-red-500 mb-4">{error}</p>
+            <button
+              onClick={() => handleRefresh()}
+              className="px-6 py-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-sm font-medium text-on-accent hover:opacity-90 transition-opacity"
+            >
+              Try Again
+            </button>
+          </div>
+        </FeedFrame>
+      </>
     );
   }
 
   if (posts.length === 0) {
     return (
-      <FeedFrame>
-        <div className="text-center">
-          <h2 className="font-display text-2xl text-ink mb-4">
-            The canvas awaits
-          </h2>
-          <p className="font-body text-muted italic mb-6">
-            No posts yet. Be the first to share your creative voice.
-          </p>
-          <Link
-            href="/create"
-            className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-on-accent"
-          >
-            Create Something
-          </Link>
-        </div>
-      </FeedFrame>
+      <>
+        <FeedViewBar />
+        <FeedFrame viewId={viewId}>
+          <div className="text-center col-span-full [column-span:all]">
+            <h2 className="font-display text-2xl text-ink mb-4">
+              The canvas awaits
+            </h2>
+            <p className="font-body text-muted italic mb-6">
+              No posts yet. Be the first to share your creative voice.
+            </p>
+            <Link
+              href="/create"
+              className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-on-accent"
+            >
+              Create Something
+            </Link>
+          </div>
+        </FeedFrame>
+      </>
     );
   }
 
   return (
-    <FeedFrame>
-      {/* PERFORMANCE: Using memoized transformed posts */}
-      {transformedPosts.map(({ original, transformed }) => (
-        <ErrorBoundary
-          key={original.id}
-          section={`PostCard:${original.id}`}
-          fallback={({ reset }) => <PostCardErrorFallback onRetry={reset} />}
-        >
-          <PostCard
-            post={transformed}
-            onPostDeleted={handlePostDeleted}
-            disableRealtimeSubscriptions={true} // PERFORMANCE: Disable per-card subscriptions in feed
-          />
-        </ErrorBoundary>
-      ))}
+    <>
+      <FeedViewBar />
+      <FeedFrame viewId={viewId}>
+        {/* PERFORMANCE: Using memoized transformed posts */}
+        {transformedPosts.map(({ original, transformed }) => (
+          <ErrorBoundary
+            key={original.id}
+            section={`PostCard:${original.id}`}
+            fallback={({ reset }) => <PostCardErrorFallback onRetry={reset} />}
+          >
+            {viewId === "classic" ? (
+              <PostCard
+                post={transformed}
+                onPostDeleted={handlePostDeleted}
+                disableRealtimeSubscriptions={true}
+              />
+            ) : viewId === "compact" ? (
+              <CompactPostCard post={transformed} />
+            ) : viewId === "grid" ? (
+              <GridPostCard post={transformed} />
+            ) : (
+              <MagazinePostCard post={transformed} />
+            )}
+          </ErrorBoundary>
+        ))}
 
-      {/* Infinite scroll trigger */}
-      <div ref={bottomRef} className="h-4" />
+        {/* Infinite scroll trigger — full-width row in grid/magazine layouts */}
+        <div ref={bottomRef} className="h-4 col-span-full [column-span:all]" />
 
-      {/* Loading more indicator */}
-      {postsLoading && posts.length > 0 && (
-        <div className="flex justify-center py-8">
-          <div className="w-8 h-8 border-3 border-border-strong border-t-purple-primary rounded-full animate-spin" />
-        </div>
-      )}
+        {postsLoading && posts.length > 0 && (
+          <div className="flex justify-center py-8 col-span-full [column-span:all]">
+            <div className="w-8 h-8 border-3 border-border-strong border-t-purple-primary rounded-full animate-spin" />
+          </div>
+        )}
 
-      {/* End of feed */}
-      {!pagination.hasMore && posts.length > 0 && (
-        <div className="text-center py-8">
-          <p className="font-body text-muted text-sm italic">
-            You&apos;ve reached the end of the feed
-          </p>
-        </div>
-      )}
-    </FeedFrame>
+        {!pagination.hasMore && posts.length > 0 && (
+          <div className="text-center py-8 col-span-full [column-span:all]">
+            <p className="font-body text-muted text-sm italic">
+              You&apos;ve reached the end of the feed
+            </p>
+          </div>
+        )}
+      </FeedFrame>
+    </>
   );
 }

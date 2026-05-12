@@ -24,9 +24,11 @@ import { AuthModalProvider } from "@/components/providers/AuthModalProvider";
 import { BadgeCountProvider } from "@/components/providers/BadgeCountProvider";
 import { UserEventsProvider } from "@/components/providers/UserEventsProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { FeedViewProvider } from "@/components/providers/FeedViewProvider";
 import { LightboxProvider } from "@/components/ui/Lightbox";
 import AuthModal from "@/components/auth/AuthModal";
 import { getServerTheme, getInlineThemeResolveScript } from "@/lib/theme/server";
+import { getServerFeedView } from "@/lib/feed-view/server";
 
 function getSupabaseOrigin(): string | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -205,6 +207,7 @@ export default async function RootLayout({
 }>) {
   const supabaseOrigin = getSupabaseOrigin();
   const { storedId, resolvedId, needsClientResolve } = await getServerTheme();
+  const initialFeedViewId = await getServerFeedView();
 
   return (
     <html
@@ -244,16 +247,18 @@ export default async function RootLayout({
 
         <AuthProvider>
           <ThemeProvider initialThemeId={storedId}>
-            <UserEventsProvider>
-              <BadgeCountProvider>
-                <AuthModalProvider>
-                  <LightboxProvider>
-                    <ModalProvider>{children}</ModalProvider>
-                  </LightboxProvider>
-                  <AuthModal />
-                </AuthModalProvider>
-              </BadgeCountProvider>
-            </UserEventsProvider>
+            <FeedViewProvider initialViewId={initialFeedViewId}>
+              <UserEventsProvider>
+                <BadgeCountProvider>
+                  <AuthModalProvider>
+                    <LightboxProvider>
+                      <ModalProvider>{children}</ModalProvider>
+                    </LightboxProvider>
+                    <AuthModal />
+                  </AuthModalProvider>
+                </BadgeCountProvider>
+              </UserEventsProvider>
+            </FeedViewProvider>
           </ThemeProvider>
         </AuthProvider>
         <Toaster
