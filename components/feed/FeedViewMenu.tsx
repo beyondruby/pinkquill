@@ -73,16 +73,16 @@ const VIEW_ICONS: Record<FeedViewId, ReactElement> = {
   ),
 };
 
-// Icon-only feed layout switcher. Renders as a fixed vertical rail outside
-// the main feed column, sitting just left of the right sidebar on desktop
-// and on the right edge of the viewport on tablet. Hidden on mobile.
+// Icon-only feed layout switcher. Renders as a fixed horizontal rail outside
+// the main feed column, anchored to the right edge of the main area (just
+// left of the right sidebar on desktop). Hidden on mobile.
 export function FeedViewMenu() {
   const { viewId, setView } = useFeedView();
   const views = Object.values(FEED_VIEWS);
 
   return (
     <div
-      className="fixed top-24 right-4 lg:right-[296px] z-20 hidden md:flex flex-col gap-1 p-1.5 rounded-full bg-surface/80 border border-border-light backdrop-blur-md shadow-sm"
+      className="fixed top-6 md:top-8 right-4 lg:right-[296px] z-20 hidden md:flex flex-row gap-1 p-1.5 rounded-full bg-surface/80 border border-border-light backdrop-blur-md shadow-sm"
       role="radiogroup"
       aria-label="Feed layout"
     >
