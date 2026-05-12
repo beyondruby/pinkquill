@@ -10,7 +10,7 @@ import { useFeed } from "@/lib/hooks/useFeed";
 import PostCard from "./PostCard";
 import PostSkeleton from "./PostSkeleton";
 import { CompactPostCard, GridPostCard, MagazinePostCard } from "./AlternateCards";
-import { FeedViewSwitcher } from "./FeedViewSwitcher";
+import { FeedMasthead } from "./FeedMasthead";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
 import type { Post } from "@/lib/types";
@@ -94,24 +94,15 @@ const VIEW_CONTAINER_CLASS: Record<FeedViewId, string> = {
   magazine: "w-full max-w-[1120px] mx-auto pb-6 px-4 md:pb-10 md:px-6 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 items-start",
 };
 
-// Outer width of the toggle bar matches each view's container so the switcher
-// sits cleanly above the feed in all layouts.
-const VIEW_BAR_WRAP_CLASS: Record<FeedViewId, string> = {
+// The editorial masthead lives above the feed and houses the view switcher,
+// so the switcher's "location" is the masthead's bottom rule rather than a
+// stand-alone toggle bar. Width matches the active view container.
+const MASTHEAD_WRAP_CLASS: Record<FeedViewId, string> = {
   classic: "w-full max-w-[580px] mx-auto",
   compact: "w-full max-w-[760px] mx-auto",
   grid: "w-full max-w-[1240px] mx-auto",
   magazine: "w-full max-w-[1120px] mx-auto",
 };
-
-function FeedViewBar({ viewId }: { viewId: FeedViewId }) {
-  return (
-    <div className={`${VIEW_BAR_WRAP_CLASS[viewId]} px-4 md:px-6 pt-4 md:pt-7 pb-5`}>
-      <div className="flex items-center justify-center sm:justify-start">
-        <FeedViewSwitcher />
-      </div>
-    </div>
-  );
-}
 
 function FeedFrame({
   viewId,
@@ -341,22 +332,27 @@ export default function Feed() {
   if (authLoading || (postsLoading && posts.length === 0)) {
     return (
       <>
-        <FeedViewBar viewId={viewId} />
+        <FeedMasthead wrapperClass={MASTHEAD_WRAP_CLASS[viewId]} />
         <FeedFrame viewId={viewId}>
           {viewId === "classic"
             ? [...Array(3)].map((_, i) => <PostSkeleton key={i} />)
-            : [...Array(viewId === "compact" ? 6 : 8)].map((_, i) => (
-                <div
-                  key={i}
-                  className={
-                    viewId === "compact"
-                      ? "h-32 rounded-lg bg-skeleton animate-pulse"
-                      : viewId === "grid"
-                      ? "col-span-2 row-span-2 sm:col-span-3 lg:col-span-3 rounded-lg bg-skeleton animate-pulse"
-                      : "md:col-span-6 h-80 rounded-lg bg-skeleton animate-pulse"
-                  }
-                />
-              ))}
+            : [...Array(viewId === "compact" ? 6 : 8)].map((_, i) => {
+                const skClass =
+                  viewId === "compact"
+                    ? "h-32 rounded-2xl bg-skeleton animate-pulse"
+                    : viewId === "grid"
+                      ? // Varying spans approximate the bento mosaic
+                        [
+                          "col-span-2 row-span-2 sm:col-span-3 lg:col-span-4 lg:row-span-2",
+                          "col-span-2 row-span-2 sm:col-span-3 lg:col-span-3 lg:row-span-3",
+                          "col-span-2 row-span-1 sm:col-span-2 lg:col-span-3 lg:row-span-1",
+                          "col-span-2 row-span-2 sm:col-span-4 lg:col-span-5 lg:row-span-2",
+                        ][i % 4] + " rounded-2xl bg-skeleton animate-pulse"
+                      : ["md:col-span-7", "md:col-span-5", "md:col-span-6", "md:col-span-6"][
+                          i % 4
+                        ] + " h-72 rounded-2xl bg-skeleton animate-pulse";
+                return <div key={i} className={skClass} />;
+              })}
         </FeedFrame>
       </>
     );
@@ -365,9 +361,9 @@ export default function Feed() {
   if (error) {
     return (
       <>
-        <FeedViewBar viewId={viewId} />
+        <FeedMasthead wrapperClass={MASTHEAD_WRAP_CLASS[viewId]} />
         <FeedFrame viewId={viewId}>
-          <div className="text-center col-span-full [column-span:all]">
+          <div className="text-center col-span-full md:col-span-12">
             <p className="font-body text-red-500 mb-4">{error}</p>
             <button
               onClick={() => handleRefresh()}
@@ -384,9 +380,9 @@ export default function Feed() {
   if (posts.length === 0) {
     return (
       <>
-        <FeedViewBar viewId={viewId} />
+        <FeedMasthead wrapperClass={MASTHEAD_WRAP_CLASS[viewId]} />
         <FeedFrame viewId={viewId}>
-          <div className="text-center col-span-full [column-span:all]">
+          <div className="text-center col-span-full md:col-span-12">
             <h2 className="font-display text-2xl text-ink mb-4">
               The canvas awaits
             </h2>
@@ -407,10 +403,10 @@ export default function Feed() {
 
   return (
     <>
-      <FeedViewBar viewId={viewId} />
+      <FeedMasthead wrapperClass={MASTHEAD_WRAP_CLASS[viewId]} />
       <FeedFrame viewId={viewId}>
         {/* PERFORMANCE: Using memoized transformed posts */}
-        {transformedPosts.map(({ original, transformed }, index) => (
+        {transformedPosts.map(({ original, transformed }) => (
           <ErrorBoundary
             key={original.id}
             section={`PostCard:${original.id}`}
@@ -425,24 +421,24 @@ export default function Feed() {
             ) : viewId === "compact" ? (
               <CompactPostCard post={transformed} />
             ) : viewId === "grid" ? (
-              <GridPostCard post={transformed} index={index} />
+              <GridPostCard post={transformed} />
             ) : (
-              <MagazinePostCard post={transformed} index={index} />
+              <MagazinePostCard post={transformed} />
             )}
           </ErrorBoundary>
         ))}
 
         {/* Infinite scroll trigger — full-width row in grid/magazine layouts */}
-        <div ref={bottomRef} className="h-4 col-span-full [column-span:all]" />
+        <div ref={bottomRef} className="h-4 col-span-full md:col-span-12" />
 
         {postsLoading && posts.length > 0 && (
-          <div className="flex justify-center py-8 col-span-full [column-span:all]">
+          <div className="flex justify-center py-8 col-span-full md:col-span-12">
             <div className="w-8 h-8 border-3 border-border-strong border-t-purple-primary rounded-full animate-spin" />
           </div>
         )}
 
         {!pagination.hasMore && posts.length > 0 && (
-          <div className="text-center py-8 col-span-full [column-span:all]">
+          <div className="text-center py-8 col-span-full md:col-span-12">
             <p className="font-body text-muted text-sm italic">
               You&apos;ve reached the end of the feed
             </p>
