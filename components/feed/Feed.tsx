@@ -88,28 +88,11 @@ function transformPostForCard(post: Post) {
 // views use Tailwind utility containers and let their own card components
 // own all visual treatment.
 const VIEW_CONTAINER_CLASS: Record<FeedViewId, string> = {
-  classic: "home-feed-modern w-full max-w-[580px] mx-auto pb-6 px-4 md:pb-12 md:px-6",
-  compact: "w-full max-w-[760px] mx-auto pb-6 px-4 md:pb-10 md:px-6 flex flex-col gap-3",
-  grid: "w-full max-w-[1240px] mx-auto pb-6 px-4 md:pb-10 md:px-6 grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-12 auto-rows-[136px] sm:auto-rows-[150px] gap-2.5 sm:gap-3 grid-flow-dense",
-  magazine: "w-full max-w-[1120px] mx-auto pb-6 px-4 md:pb-10 md:px-6 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 items-start",
+  classic: "home-feed-modern w-full max-w-[580px] mx-auto pt-6 pb-6 px-4 md:pt-8 md:pb-12 md:px-6",
+  compact: "w-full max-w-[760px] mx-auto pt-6 pb-6 px-4 md:pt-8 md:pb-10 md:px-6 flex flex-col gap-3",
+  grid: "w-full max-w-[1240px] mx-auto pt-6 pb-6 px-4 md:pt-8 md:pb-10 md:px-6 grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-12 auto-rows-[136px] sm:auto-rows-[150px] gap-2.5 sm:gap-3 grid-flow-dense",
+  magazine: "w-full max-w-[1120px] mx-auto pt-6 pb-6 px-4 md:pt-8 md:pb-10 md:px-6 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 items-start",
 };
-
-// Width of the bar that holds the right-aligned view menu. Matches the active
-// view's container so the menu sits flush with the feed's right edge.
-const MENU_WRAP_CLASS: Record<FeedViewId, string> = {
-  classic: "w-full max-w-[580px] mx-auto",
-  compact: "w-full max-w-[760px] mx-auto",
-  grid: "w-full max-w-[1240px] mx-auto",
-  magazine: "w-full max-w-[1120px] mx-auto",
-};
-
-function FeedViewMenuBar({ viewId }: { viewId: FeedViewId }) {
-  return (
-    <div className={`${MENU_WRAP_CLASS[viewId]} px-4 md:px-6 pt-6 md:pt-8 pb-4 flex items-center justify-end`}>
-      <FeedViewMenu />
-    </div>
-  );
-}
 
 function FeedFrame({
   viewId,
@@ -339,7 +322,7 @@ export default function Feed() {
   if (authLoading || (postsLoading && posts.length === 0)) {
     return (
       <>
-        <FeedViewMenuBar viewId={viewId} />
+        <FeedViewMenu />
         <FeedFrame viewId={viewId}>
           {viewId === "classic"
             ? [...Array(3)].map((_, i) => <PostSkeleton key={i} />)
@@ -368,7 +351,7 @@ export default function Feed() {
   if (error) {
     return (
       <>
-        <FeedViewMenuBar viewId={viewId} />
+        <FeedViewMenu />
         <FeedFrame viewId={viewId}>
           <div className="text-center col-span-full md:col-span-12">
             <p className="font-body text-red-500 mb-4">{error}</p>
@@ -387,7 +370,7 @@ export default function Feed() {
   if (posts.length === 0) {
     return (
       <>
-        <FeedViewMenuBar viewId={viewId} />
+        <FeedViewMenu />
         <FeedFrame viewId={viewId}>
           <div className="text-center col-span-full md:col-span-12">
             <h2 className="font-display text-2xl text-ink mb-4">
@@ -410,7 +393,7 @@ export default function Feed() {
 
   return (
     <>
-      <FeedViewMenuBar viewId={viewId} />
+      <FeedViewMenu />
       <FeedFrame viewId={viewId}>
         {/* PERFORMANCE: Using memoized transformed posts */}
         {transformedPosts.map(({ original, transformed }) => (
