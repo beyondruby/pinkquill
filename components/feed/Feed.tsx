@@ -10,7 +10,7 @@ import { useFeed } from "@/lib/hooks/useFeed";
 import PostCard from "./PostCard";
 import PostSkeleton from "./PostSkeleton";
 import { CompactPostCard, GridPostCard, MagazinePostCard } from "./AlternateCards";
-import { FeedMasthead } from "./FeedMasthead";
+import { FeedViewMenu } from "./FeedViewMenu";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
 import type { Post } from "@/lib/types";
@@ -94,15 +94,22 @@ const VIEW_CONTAINER_CLASS: Record<FeedViewId, string> = {
   magazine: "w-full max-w-[1120px] mx-auto pb-6 px-4 md:pb-10 md:px-6 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 items-start",
 };
 
-// The editorial masthead lives above the feed and houses the view switcher,
-// so the switcher's "location" is the masthead's bottom rule rather than a
-// stand-alone toggle bar. Width matches the active view container.
-const MASTHEAD_WRAP_CLASS: Record<FeedViewId, string> = {
+// Width of the bar that holds the right-aligned view menu. Matches the active
+// view's container so the menu sits flush with the feed's right edge.
+const MENU_WRAP_CLASS: Record<FeedViewId, string> = {
   classic: "w-full max-w-[580px] mx-auto",
   compact: "w-full max-w-[760px] mx-auto",
   grid: "w-full max-w-[1240px] mx-auto",
   magazine: "w-full max-w-[1120px] mx-auto",
 };
+
+function FeedViewMenuBar({ viewId }: { viewId: FeedViewId }) {
+  return (
+    <div className={`${MENU_WRAP_CLASS[viewId]} px-4 md:px-6 pt-6 md:pt-8 pb-4 flex items-center justify-end`}>
+      <FeedViewMenu />
+    </div>
+  );
+}
 
 function FeedFrame({
   viewId,
@@ -332,7 +339,7 @@ export default function Feed() {
   if (authLoading || (postsLoading && posts.length === 0)) {
     return (
       <>
-        <FeedMasthead wrapperClass={MASTHEAD_WRAP_CLASS[viewId]} />
+        <FeedViewMenuBar viewId={viewId} />
         <FeedFrame viewId={viewId}>
           {viewId === "classic"
             ? [...Array(3)].map((_, i) => <PostSkeleton key={i} />)
@@ -361,7 +368,7 @@ export default function Feed() {
   if (error) {
     return (
       <>
-        <FeedMasthead wrapperClass={MASTHEAD_WRAP_CLASS[viewId]} />
+        <FeedViewMenuBar viewId={viewId} />
         <FeedFrame viewId={viewId}>
           <div className="text-center col-span-full md:col-span-12">
             <p className="font-body text-red-500 mb-4">{error}</p>
@@ -380,7 +387,7 @@ export default function Feed() {
   if (posts.length === 0) {
     return (
       <>
-        <FeedMasthead wrapperClass={MASTHEAD_WRAP_CLASS[viewId]} />
+        <FeedViewMenuBar viewId={viewId} />
         <FeedFrame viewId={viewId}>
           <div className="text-center col-span-full md:col-span-12">
             <h2 className="font-display text-2xl text-ink mb-4">
@@ -403,7 +410,7 @@ export default function Feed() {
 
   return (
     <>
-      <FeedMasthead wrapperClass={MASTHEAD_WRAP_CLASS[viewId]} />
+      <FeedViewMenuBar viewId={viewId} />
       <FeedFrame viewId={viewId}>
         {/* PERFORMANCE: Using memoized transformed posts */}
         {transformedPosts.map(({ original, transformed }) => (
