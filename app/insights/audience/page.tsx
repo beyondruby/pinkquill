@@ -350,7 +350,7 @@ export default function InsightsAudiencePage() {
           );
           return (
             <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
-              <div className="flex items-start justify-between gap-3 mb-1">
+              <div className="flex items-start justify-between gap-3 mb-4">
                 <h3 className="font-ui text-sm font-medium text-ink">Top Follower Locations</h3>
                 <div className="flex rounded-lg bg-border-light/50 p-0.5 text-xs">
                   {(["country", "city"] as const).map((m) => (
@@ -368,9 +368,6 @@ export default function InsightsAudiencePage() {
                   ))}
                 </div>
               </div>
-              <p className="font-body text-xs text-muted mb-4">
-                Inferred from your followers&apos; last known location
-              </p>
               {followerItems.length === 0 ? (
                 <p className="font-body text-sm text-muted">
                   {insights.audience.totalFollowers === 0
@@ -407,7 +404,7 @@ export default function InsightsAudiencePage() {
           );
           return (
             <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
-              <div className="flex items-start justify-between gap-3 mb-1">
+              <div className="flex items-start justify-between gap-3 mb-4">
                 <h3 className="font-ui text-sm font-medium text-ink">Top Visitor Locations</h3>
                 <div className="flex rounded-lg bg-border-light/50 p-0.5 text-xs">
                   {(["country", "city"] as const).map((m) => (
@@ -425,9 +422,6 @@ export default function InsightsAudiencePage() {
                   ))}
                 </div>
               </div>
-              <p className="font-body text-xs text-muted mb-4">
-                Derived from visitor IP at the time of view
-              </p>
               {viewerItems.length === 0 ? (
                 <p className="font-body text-sm text-muted">
                   {insights.audience.totalViewers === 0
@@ -457,10 +451,7 @@ export default function InsightsAudiencePage() {
       {/* Viewer mix */}
       {(insights.audience.viewerMix.followers > 0 || insights.audience.viewerMix.nonFollowers > 0) && (
         <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light mb-8">
-          <h3 className="font-ui text-sm font-medium text-ink mb-1">Viewer Mix</h3>
-          <p className="font-body text-xs text-muted mb-4">
-            Share of profile views from followers vs non-followers
-          </p>
+          <h3 className="font-ui text-sm font-medium text-ink mb-4">Viewer Mix</h3>
           <div className="h-3 rounded-full bg-border-light overflow-hidden flex">
             <div
               className="h-full bg-purple-primary"
