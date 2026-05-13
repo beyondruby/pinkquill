@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useProfileInsights, TimeRange, DateRange } from "@/lib/hooks/useInsights";
+import { useProfileInsights, TimeRange, DateRange, AudienceLocationItem } from "@/lib/hooks/useInsights";
 import dynamic from "next/dynamic";
 import DateRangePicker from "@/components/insights/DateRangePicker";
 import MetricCard from "@/components/insights/cards/MetricCard";
@@ -16,9 +16,75 @@ function formatNumber(num: number): string {
   return num.toLocaleString();
 }
 
+const COUNTRY_NAMES: Record<string, string> = {
+  US: "United States", GB: "United Kingdom", CA: "Canada", AU: "Australia",
+  DE: "Germany", FR: "France", IT: "Italy", ES: "Spain", NL: "Netherlands",
+  SE: "Sweden", NO: "Norway", DK: "Denmark", FI: "Finland", PL: "Poland",
+  BR: "Brazil", MX: "Mexico", AR: "Argentina", CL: "Chile", CO: "Colombia",
+  IN: "India", JP: "Japan", KR: "South Korea", CN: "China", SG: "Singapore",
+  PH: "Philippines", ID: "Indonesia", TH: "Thailand", VN: "Vietnam",
+  MY: "Malaysia", PK: "Pakistan", BD: "Bangladesh", AE: "UAE", SA: "Saudi Arabia",
+  EG: "Egypt", ZA: "South Africa", NG: "Nigeria", KE: "Kenya", MA: "Morocco",
+  TR: "Turkey", IR: "Iran", IL: "Israel", LB: "Lebanon", JO: "Jordan",
+  RU: "Russia", UA: "Ukraine", CZ: "Czechia", AT: "Austria", BE: "Belgium",
+  CH: "Switzerland", IE: "Ireland", PT: "Portugal", GR: "Greece", RO: "Romania",
+  NZ: "New Zealand",
+};
+
+function countryFlag(code: string): string {
+  if (!/^[A-Z]{2}$/.test(code)) return "";
+  return String.fromCodePoint(
+    ...code.split("").map((c) => 0x1f1e6 - 65 + c.charCodeAt(0))
+  );
+}
+
+function formatLocation(raw: string, mode: "country" | "city"): string {
+  if (mode === "country" && /^[A-Z]{2}$/.test(raw)) {
+    const name = COUNTRY_NAMES[raw] ?? raw;
+    const flag = countryFlag(raw);
+    return flag ? `${flag} ${name}` : name;
+  }
+  return raw;
+}
+
+function LocationList({
+  items,
+  mode,
+  barColor,
+}: {
+  items: AudienceLocationItem[];
+  mode: "country" | "city";
+  barColor: string;
+}) {
+  return (
+    <div className="space-y-3">
+      {items.map((loc) => (
+        <div key={loc.location}>
+          <div className="flex items-center justify-between mb-1">
+            <p className="font-ui text-sm text-ink truncate" title={loc.location}>
+              {formatLocation(loc.location, mode)}
+            </p>
+            <p className="font-ui text-sm text-muted shrink-0 ml-2">
+              {formatNumber(loc.count)} · {loc.percentage}%
+            </p>
+          </div>
+          <div className="h-2 rounded-full bg-border-light overflow-hidden">
+            <div
+              className={`h-full ${barColor} rounded-full`}
+              style={{ width: `${Math.max(loc.percentage, 2)}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function InsightsAudiencePage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [customRange, setCustomRange] = useState<DateRange | undefined>();
+  const [followerLocMode, setFollowerLocMode] = useState<"country" | "city">("country");
+  const [viewerLocMode, setViewerLocMode] = useState<"country" | "city">("country");
 
   const { insights, loading, error } = useProfileInsights(timeRange, customRange);
 
@@ -114,6 +180,20 @@ export default function InsightsAudiencePage() {
           }
         />
         <MetricCard
+          label="Verified Followers"
+          value={insights.audience.verifiedFollowers}
+          description={
+            insights.audience.totalFollowers > 0
+              ? `${((insights.audience.verifiedFollowers / insights.audience.totalFollowers) * 100).toFixed(1)}% of followers`
+              : "No followers yet"
+          }
+          icon={
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+        <MetricCard
           label="Profile Views"
           value={insights.profileViews}
           icon={
@@ -140,16 +220,6 @@ export default function InsightsAudiencePage() {
           icon={
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Content Actions"
-          value={insights.totalReactions + insights.totalComments + insights.totalSaves}
-          description={`${formatNumber(insights.totalReactions)} reactions, ${formatNumber(insights.totalComments)} comments, ${formatNumber(insights.totalSaves)} saves`}
-          icon={
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21H8.5A2.5 2.5 0 016 18.5v-7A2.5 2.5 0 018.5 9H10l1.382-3.447A2 2 0 0113.238 4h.104A1.658 1.658 0 0115 5.658V8a2 2 0 01-1 1.732V10z" />
             </svg>
           }
         />
@@ -266,6 +336,163 @@ export default function InsightsAudiencePage() {
           </div>
         </div>
       </div>
+
+      {/* Audience composition */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {(() => {
+          const followerItems =
+            followerLocMode === "country"
+              ? insights.audience.followerCountries
+              : insights.audience.followerCities;
+          const unlocated = Math.max(
+            0,
+            insights.audience.totalFollowers - insights.audience.locatedFollowers
+          );
+          return (
+            <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
+              <div className="flex items-start justify-between gap-3 mb-1">
+                <h3 className="font-ui text-sm font-medium text-ink">Top Follower Locations</h3>
+                <div className="flex rounded-lg bg-border-light/50 p-0.5 text-xs">
+                  {(["country", "city"] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setFollowerLocMode(m)}
+                      className={`px-2.5 py-1 rounded-md font-ui capitalize transition-colors ${
+                        followerLocMode === m
+                          ? "bg-surface text-ink shadow-sm"
+                          : "text-muted hover:text-ink"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="font-body text-xs text-muted mb-4">
+                Inferred from your followers&apos; last known location
+              </p>
+              {followerItems.length === 0 ? (
+                <p className="font-body text-sm text-muted">
+                  {insights.audience.totalFollowers === 0
+                    ? "No followers yet."
+                    : "Not enough location data for your followers yet."}
+                </p>
+              ) : (
+                <>
+                  <LocationList
+                    items={followerItems}
+                    mode={followerLocMode}
+                    barColor="bg-purple-primary"
+                  />
+                  {unlocated > 0 && (
+                    <p className="font-body text-xs text-muted pt-3 mt-3 border-t border-border-light">
+                      {formatNumber(unlocated)} follower{unlocated === 1 ? "" : "s"} without
+                      location data
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
+
+        {(() => {
+          const viewerItems =
+            viewerLocMode === "country"
+              ? insights.audience.viewerCountries
+              : insights.audience.viewerCities;
+          const unlocated = Math.max(
+            0,
+            insights.audience.totalViewers - insights.audience.locatedViewers
+          );
+          return (
+            <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light">
+              <div className="flex items-start justify-between gap-3 mb-1">
+                <h3 className="font-ui text-sm font-medium text-ink">Top Visitor Locations</h3>
+                <div className="flex rounded-lg bg-border-light/50 p-0.5 text-xs">
+                  {(["country", "city"] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setViewerLocMode(m)}
+                      className={`px-2.5 py-1 rounded-md font-ui capitalize transition-colors ${
+                        viewerLocMode === m
+                          ? "bg-surface text-ink shadow-sm"
+                          : "text-muted hover:text-ink"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="font-body text-xs text-muted mb-4">
+                Derived from visitor IP at the time of view
+              </p>
+              {viewerItems.length === 0 ? (
+                <p className="font-body text-sm text-muted">
+                  {insights.audience.totalViewers === 0
+                    ? "No visitors yet."
+                    : "Location data isn't available for this period yet."}
+                </p>
+              ) : (
+                <>
+                  <LocationList
+                    items={viewerItems}
+                    mode={viewerLocMode}
+                    barColor="bg-blue-500"
+                  />
+                  {unlocated > 0 && (
+                    <p className="font-body text-xs text-muted pt-3 mt-3 border-t border-border-light">
+                      {formatNumber(unlocated)} visitor{unlocated === 1 ? "" : "s"} without
+                      location data
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Viewer mix */}
+      {(insights.audience.viewerMix.followers > 0 || insights.audience.viewerMix.nonFollowers > 0) && (
+        <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-border-light mb-8">
+          <h3 className="font-ui text-sm font-medium text-ink mb-1">Viewer Mix</h3>
+          <p className="font-body text-xs text-muted mb-4">
+            Share of profile views from followers vs non-followers
+          </p>
+          <div className="h-3 rounded-full bg-border-light overflow-hidden flex">
+            <div
+              className="h-full bg-purple-primary"
+              style={{ width: `${insights.audience.viewerMix.followerPercentage}%` }}
+            />
+            <div
+              className="h-full bg-blue-500"
+              style={{ width: `${100 - insights.audience.viewerMix.followerPercentage}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-purple-primary" />
+              <span className="font-ui text-sm text-ink">
+                Followers · {formatNumber(insights.audience.viewerMix.followers)}
+              </span>
+              <span className="font-body text-xs text-muted">
+                ({insights.audience.viewerMix.followerPercentage}%)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-blue-500" />
+              <span className="font-ui text-sm text-ink">
+                Non-followers · {formatNumber(insights.audience.viewerMix.nonFollowers)}
+              </span>
+              <span className="font-body text-xs text-muted">
+                ({(100 - insights.audience.viewerMix.followerPercentage).toFixed(1)}%)
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Best Posting Times Placeholder */}
       {insights.bestPostingTimes && insights.bestPostingTimes.length > 0 && (

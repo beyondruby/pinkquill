@@ -749,19 +749,22 @@ export function useTrackProfileView(
         ? await checkIsFollowing(user.id, profileId)
         : false;
 
-      await supabase.from("profile_views").upsert(
-        {
-          profile_id: profileId,
-          viewer_id: user?.id || null,
-          session_id: user?.id ? null : sessionId,
-          source,
-          is_follower: isFollower,
-        },
-        {
-          onConflict: user?.id ? "profile_id,viewer_id,view_date" : "profile_id,session_id,view_date",
-          ignoreDuplicates: true,
-        }
-      );
+      try {
+        await fetch("/api/track/profile-view", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          keepalive: true,
+          body: JSON.stringify({
+            profile_id: profileId,
+            session_id: user?.id ? null : sessionId,
+            source,
+            is_follower: isFollower,
+          }),
+        });
+      } catch (err) {
+        console.warn("[track/profile-view] request failed", err);
+      }
     }, 2000);
 
     return () => clearTimeout(timer);

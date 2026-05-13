@@ -248,7 +248,8 @@ export function useInsightsDashboard(
         supabase
           .from("follows")
           .select("id", { count: "exact", head: true })
-          .eq("following_id", user.id),
+          .eq("following_id", user.id)
+          .eq("status", "accepted"),
         // Previous period for comparison
         postIds.length > 0
           ? supabase
@@ -922,6 +923,29 @@ export function useTakeInsights(
 // PROFILE INSIGHTS
 // ============================================================================
 
+export interface AudienceLocationItem {
+  location: string;
+  count: number;
+  percentage: number;
+}
+
+export interface AudienceBreakdown {
+  totalFollowers: number;
+  verifiedFollowers: number;
+  followerCountries: AudienceLocationItem[];
+  followerCities: AudienceLocationItem[];
+  viewerCountries: AudienceLocationItem[];
+  viewerCities: AudienceLocationItem[];
+  locatedFollowers: number;
+  locatedViewers: number;
+  totalViewers: number;
+  viewerMix: {
+    followers: number;
+    nonFollowers: number;
+    followerPercentage: number;
+  };
+}
+
 export interface ProfileInsights {
   profileViews: number;
   uniqueViewers: number;
@@ -931,6 +955,7 @@ export interface ProfileInsights {
   totalComments: number;
   totalSaves: number;
   followerGrowth: FollowerGrowthData;
+  audience: AudienceBreakdown;
   topContent: TopContentItem[];
   viewsByDay: DailyStats[];
   bestPostingTimes: number[][];
@@ -959,8 +984,12 @@ export function useProfileInsights(
     try {
       const exclusiveEndDate = getExclusiveEndDate(endDate);
       // Fetch profile views
-      const [profileViewsResult, followerHistoryResult, followerCountResult] =
-        await Promise.all([
+      const [
+        profileViewsResult,
+        followerHistoryResult,
+        followerCountResult,
+        audienceBreakdownResult,
+      ] = await Promise.all([
           supabase
             .from("profile_views")
             .select("viewer_id, session_id, view_date")
@@ -977,7 +1006,14 @@ export function useProfileInsights(
           supabase
             .from("follows")
             .select("id", { count: "exact", head: true })
-            .eq("following_id", user.id),
+            .eq("following_id", user.id)
+            .eq("status", "accepted"),
+          supabase.rpc("get_audience_breakdown", {
+            p_profile_id: user.id,
+            p_start_date: startDate,
+            p_end_date: endDate,
+            p_limit: 5,
+          }),
         ]);
 
       const profileViews = profileViewsResult.data || [];
@@ -1152,6 +1188,39 @@ export function useProfileInsights(
         endDate
       );
 
+      const audienceRaw = (audienceBreakdownResult.data ?? {}) as Partial<{
+        totalFollowers: number;
+        verifiedFollowers: number;
+        followerCountries: AudienceLocationItem[];
+        followerCities: AudienceLocationItem[];
+        viewerCountries: AudienceLocationItem[];
+        viewerCities: AudienceLocationItem[];
+        locatedFollowers: number;
+        locatedViewers: number;
+        totalViewers: number;
+        viewerMix: {
+          followers: number;
+          nonFollowers: number;
+          followerPercentage: number;
+        };
+      }>;
+      const audience: AudienceBreakdown = {
+        totalFollowers: audienceRaw.totalFollowers ?? followerGrowth.currentCount,
+        verifiedFollowers: audienceRaw.verifiedFollowers ?? 0,
+        followerCountries: audienceRaw.followerCountries ?? [],
+        followerCities: audienceRaw.followerCities ?? [],
+        viewerCountries: audienceRaw.viewerCountries ?? [],
+        viewerCities: audienceRaw.viewerCities ?? [],
+        locatedFollowers: audienceRaw.locatedFollowers ?? 0,
+        locatedViewers: audienceRaw.locatedViewers ?? 0,
+        totalViewers: audienceRaw.totalViewers ?? 0,
+        viewerMix: audienceRaw.viewerMix ?? {
+          followers: 0,
+          nonFollowers: 0,
+          followerPercentage: 0,
+        },
+      };
+
       setInsights({
         profileViews: profileViews.length,
         uniqueViewers: uniqueProfileViewers.size,
@@ -1164,6 +1233,7 @@ export function useProfileInsights(
         totalComments: (commentResult.count || 0) + (takeCommentsResult.count || 0),
         totalSaves: (saveResult.count || 0) + (takeSavesResult.count || 0),
         followerGrowth,
+        audience,
         topContent,
         viewsByDay,
         bestPostingTimes: [], // TODO: Calculate from engagement data
