@@ -99,7 +99,17 @@
       "Bash(sed -n '2440,2455p' /Users/hadi/projects/pinkquill/app/globals.css)",
       "Bash(sed -n '2590,2605p' /Users/hadi/projects/pinkquill/app/globals.css)",
       "Bash(sed -n '2645,2665p' /Users/hadi/projects/pinkquill/app/globals.css)",
-      "Bash(sed -n '2695,2710p' /Users/hadi/projects/pinkquill/app/globals.css)"
+      "Bash(sed -n '2695,2710p' /Users/hadi/projects/pinkquill/app/globals.css)",
+      "Bash(chmod +x /tmp/check_orphans.sh)",
+      "Bash(bash /tmp/check_orphans.sh)",
+      "Bash(chmod +x /tmp/check_orphans_grep.sh)",
+      "Bash(bash /tmp/check_orphans_grep.sh)",
+      "Bash(rg \"defaultprofile\\\\.png\" --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=coverage --exclude-dir=playwright-report --type-list)",
+      "Bash(tee /tmp/orphans_output.txt)",
+      "Bash(rg \"from ['\\\\\"]@/lib/hooks['\\\\\"]$|from ['\\\\\"]\\\\.\\\\./lib/hooks['\\\\\"]$\" /Users/hadi/projects/pinkquill --type ts --type js)",
+      "Bash([ -f \"components/$dir/index.ts\" ])",
+      "Bash([ -f \"components/$dir/index.tsx\" ])",
+      "Bash(git rm *)"
     ]
   }
 }
