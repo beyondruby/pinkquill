@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useFeedView } from "@/components/providers/FeedViewProvider";
 import { FEED_VIEWS, type FeedViewId } from "@/lib/feed-view/registry";
 
@@ -73,40 +73,103 @@ const VIEW_ICONS: Record<FeedViewId, ReactElement> = {
   ),
 };
 
-// Icon-only feed layout switcher. Renders as a fixed horizontal rail outside
-// the main feed column, anchored to the right edge of the main area (just
-// left of the right sidebar on desktop). Hidden on mobile.
+// Icon-only feed layout switcher. On desktop it renders as a fixed horizontal
+// rail just left of the right sidebar. On mobile we collapse it into a single
+// pill button that expands to the four options on tap — keeps the top-right
+// of the feed visually clean while still being one tap away.
 export function FeedViewMenu() {
   const { viewId, setView } = useFeedView();
   const views = Object.values(FEED_VIEWS);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (!wrapperRef.current) return;
+      if (!wrapperRef.current.contains(e.target as Node)) {
+        setMobileOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [mobileOpen]);
 
   return (
-    <div
-      className="fixed top-6 md:top-8 right-4 lg:right-[296px] z-20 hidden md:flex flex-row gap-1 p-1.5 rounded-full bg-surface/80 border border-border-light backdrop-blur-md shadow-sm"
-      role="radiogroup"
-      aria-label="Feed layout"
-    >
-      {views.map((v) => {
-        const isActive = v.id === viewId;
-        return (
+    <>
+      {/* Desktop: always-expanded rail */}
+      <div
+        className="fixed top-6 md:top-8 right-4 lg:right-[296px] z-20 hidden md:flex flex-row gap-1 p-1.5 rounded-full bg-surface/80 border border-border-light backdrop-blur-md shadow-sm"
+        role="radiogroup"
+        aria-label="Feed layout"
+      >
+        {views.map((v) => {
+          const isActive = v.id === viewId;
+          return (
+            <button
+              key={v.id}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              aria-label={`${v.label} view`}
+              title={v.label}
+              onClick={() => setView(v.id as FeedViewId)}
+              className={`w-9 h-9 inline-flex items-center justify-center rounded-full transition-colors ${
+                isActive
+                  ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-on-accent"
+                  : "text-muted hover:text-ink hover:bg-accent/10"
+              }`}
+            >
+              {VIEW_ICONS[v.id as FeedViewId]}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Mobile: collapsed pill that expands on tap */}
+      <div
+        ref={wrapperRef}
+        className="fixed top-[60px] right-2 z-20 md:hidden flex flex-row items-center gap-0.5 p-1 rounded-full bg-surface/80 border border-border-light backdrop-blur-md shadow-sm"
+      >
+        {mobileOpen ? (
+          <div role="radiogroup" aria-label="Feed layout" className="flex flex-row gap-0.5">
+            {views.map((v) => {
+              const isActive = v.id === viewId;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={isActive}
+                  aria-label={`${v.label} view`}
+                  title={v.label}
+                  onClick={() => {
+                    setView(v.id as FeedViewId);
+                    setMobileOpen(false);
+                  }}
+                  className={`w-7 h-7 inline-flex items-center justify-center rounded-full transition-colors ${
+                    isActive
+                      ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-on-accent"
+                      : "text-muted hover:text-ink hover:bg-accent/10"
+                  }`}
+                >
+                  {VIEW_ICONS[v.id as FeedViewId]}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
           <button
-            key={v.id}
             type="button"
-            role="radio"
-            aria-checked={isActive}
-            aria-label={`${v.label} view`}
-            title={v.label}
-            onClick={() => setView(v.id as FeedViewId)}
-            className={`w-9 h-9 inline-flex items-center justify-center rounded-full transition-colors ${
-              isActive
-                ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-on-accent"
-                : "text-muted hover:text-ink hover:bg-accent/10"
-            }`}
+            aria-label="Change feed layout"
+            aria-expanded={false}
+            onClick={() => setMobileOpen(true)}
+            className="w-7 h-7 inline-flex items-center justify-center rounded-full text-muted hover:text-ink hover:bg-accent/10"
           >
-            {VIEW_ICONS[v.id as FeedViewId]}
+            {VIEW_ICONS[viewId]}
           </button>
-        );
-      })}
-    </div>
+        )}
+      </div>
+    </>
   );
 }

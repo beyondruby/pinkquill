@@ -235,21 +235,19 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
             {/* Stats — three vital signs of the studio (no box, just hairlines) */}
             <dl className="grid grid-cols-3 divide-x divide-border-light/70">
               <div className="pr-3 sm:pr-4 first:pl-0 flex flex-col gap-0.5 sm:gap-1">
-                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Open</dt>
+                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Taking orders</dt>
                 <dd className="font-display text-xl sm:text-2xl font-semibold text-ink leading-none">
                   {stats.active}
-                  <span className="ml-1 text-[9px] sm:text-[10px] font-ui font-medium uppercase tracking-wider text-muted">live</span>
                 </dd>
               </div>
               <div className="px-3 sm:px-4 flex flex-col gap-0.5 sm:gap-1">
-                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Delivered</dt>
+                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Delivered projects</dt>
                 <dd className="font-display text-xl sm:text-2xl font-semibold text-ink leading-none">
                   {sellerStats?.completed_orders ?? 0}
-                  <span className="ml-1 text-[9px] sm:text-[10px] font-ui font-medium uppercase tracking-wider text-muted">{(sellerStats?.completed_orders ?? 0) === 1 ? "client" : "clients"}</span>
                 </dd>
               </div>
               <div className="pl-3 sm:pl-4 flex flex-col gap-0.5 sm:gap-1">
-                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Replies in</dt>
+                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Reply time</dt>
                 <dd className="font-display text-xl sm:text-2xl font-semibold text-ink leading-none">
                   {formatResponseTime(responseTimeHours)}
                   {responseTimeHours ? (

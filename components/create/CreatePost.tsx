@@ -79,6 +79,103 @@ function clearInlineStyles(root: ParentNode, properties: Array<"color" | "highli
   });
 }
 
+function isHighlightSpan(node: Node | null): boolean {
+  if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
+  const el = node as HTMLElement;
+  if (el.tagName !== "SPAN") return false;
+  return Boolean(el.style.backgroundColor || el.style.background);
+}
+
+// Unwrap any highlight spans inside `root`: strip the highlight inline styles,
+// and if that leaves the span with no attributes, replace it with its children
+// so we don't accumulate empty wrappers each time the user toggles colors.
+function unwrapHighlightSpansInTree(root: ParentNode) {
+  const spans = Array.from(root.querySelectorAll<HTMLElement>("span"));
+  spans.forEach((el) => {
+    if (!isHighlightSpan(el)) return;
+    el.style.backgroundColor = "";
+    el.style.background = "";
+    el.style.borderRadius = "";
+    el.style.padding = "";
+    if (!el.getAttribute("style")?.trim()) {
+      el.removeAttribute("style");
+    }
+    if (!el.hasAttributes()) {
+      const parent = el.parentNode;
+      if (!parent) return;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+    }
+  });
+}
+
+// Walk up from `marker` to (and including) `topAncestor`, splitting each
+// element on the path so that `marker` ends up as a sibling of `topAncestor`
+// at its parent level. Empty halves are pruned. This lets us "exit" out of
+// any highlight wrappers around a selection without losing surrounding text.
+function splitAroundMarker(topAncestor: HTMLElement, marker: Node) {
+  let current: Node = marker;
+  const stopAt = topAncestor.parentNode;
+  while (current.parentNode && current.parentNode !== stopAt) {
+    const parentEl = current.parentNode as HTMLElement;
+    const grandparent = parentEl.parentNode;
+    if (!grandparent) break;
+
+    const rightClone = parentEl.cloneNode(false) as HTMLElement;
+    let sibling = current.nextSibling;
+    while (sibling) {
+      const next = sibling.nextSibling;
+      rightClone.appendChild(sibling);
+      sibling = next;
+    }
+
+    grandparent.insertBefore(current, parentEl.nextSibling);
+    grandparent.insertBefore(rightClone, current.nextSibling);
+
+    if (!parentEl.firstChild) parentEl.remove();
+    if (!rightClone.firstChild) rightClone.remove();
+  }
+}
+
+// For each range boundary, walk up to find the outermost highlight ancestor
+// (within the editor) and split it so the boundary lands outside any
+// highlight wrapper. After this, extractContents + insertNode operates on a
+// flat region and no orphan ancestor span can leak the previous highlight
+// back over the new content.
+function splitHighlightAncestorsAtRange(range: Range, editor: Element): void {
+  const startMarker = document.createComment("hl-start");
+  const endMarker = document.createComment("hl-end");
+
+  const endTemp = range.cloneRange();
+  endTemp.collapse(false);
+  endTemp.insertNode(endMarker);
+
+  const startTemp = range.cloneRange();
+  startTemp.collapse(true);
+  startTemp.insertNode(startMarker);
+
+  function findOutermostHighlightAncestor(node: Node): HTMLElement | null {
+    let outermost: HTMLElement | null = null;
+    let n: Node | null = node.parentNode;
+    while (n && n !== editor) {
+      if (isHighlightSpan(n)) outermost = n as HTMLElement;
+      n = n.parentNode;
+    }
+    return outermost;
+  }
+
+  const startAncestor = findOutermostHighlightAncestor(startMarker);
+  if (startAncestor) splitAroundMarker(startAncestor, startMarker);
+
+  const endAncestor = findOutermostHighlightAncestor(endMarker);
+  if (endAncestor) splitAroundMarker(endAncestor, endMarker);
+
+  range.setStartAfter(startMarker);
+  range.setEndBefore(endMarker);
+  startMarker.remove();
+  endMarker.remove();
+}
+
 const fontOptions = [
   // Serif fonts - great for literary content
   { id: "default", label: "Crimson Pro", family: "'Crimson Pro', serif" },
@@ -1043,8 +1140,19 @@ export default function CreatePost() {
       return;
     }
 
+    const editor = editorRef.current;
+    if (!editor) {
+      setShowHighlightMenu(false);
+      return;
+    }
+
+    // Split any highlight wrappers around the selection so the previous
+    // color can never leak back over the new content (and so "Remove
+    // highlight" works even when the selection sits inside a highlight span).
+    splitHighlightAncestorsAtRange(range, editor);
+
     const selectedContent = range.extractContents();
-    clearInlineStyles(selectedContent, ["highlight"]);
+    unwrapHighlightSpansInTree(selectedContent);
 
     if (color === "transparent") {
       range.insertNode(selectedContent);

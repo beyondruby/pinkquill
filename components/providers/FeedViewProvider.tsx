@@ -29,15 +29,6 @@ interface FeedViewContextValue {
 
 const FeedViewContext = createContext<FeedViewContextValue | null>(null);
 
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const escaped = name.replace(/[.$?*|{}()[\]\\\/+^]/g, "\\$&");
-  const match = document.cookie.match(
-    new RegExp("(?:^|; )" + escaped + "=([^;]*)")
-  );
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
 function writeCookie(name: string, value: string, maxAgeSeconds: number) {
   if (typeof document === "undefined") return;
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
@@ -59,9 +50,10 @@ export function FeedViewProvider({
   // if the first write fails.
   const seededUserIdRef = useRef<string | null>(null);
 
-  // Sync from authoritative profile preference once the user is loaded.
-  // feed_view_preference == NULL means "never chosen" → seed from cookie (or
-  // current state) so the next login on any device reads the right thing.
+  // Every fresh login (and signup) resets the feed layout to Classic. The
+  // user can switch during the session, but the next time they log in they
+  // start from Classic again. `seededUserIdRef` makes this fire once per
+  // provider lifetime per user (page load), not on every profile update.
   useEffect(() => {
     if (authLoading) return;
     if (!user || !profile) {
@@ -69,39 +61,33 @@ export function FeedViewProvider({
       return;
     }
 
-    const stored = (profile as { feed_view_preference?: string | null })
-      .feed_view_preference;
-
-    if (stored && isFeedViewId(stored)) {
-      if (stored !== viewId) {
-        setViewIdState(stored);
-        writeCookie(FEED_VIEW_COOKIE, stored, FEED_VIEW_COOKIE_MAX_AGE);
-      }
-      return;
-    }
-
     if (seededUserIdRef.current === user.id) return;
     seededUserIdRef.current = user.id;
 
-    const cookieRaw = readCookie(FEED_VIEW_COOKIE);
-    const seedId: FeedViewId =
-      cookieRaw && isFeedViewId(cookieRaw) ? cookieRaw : viewId;
+    if (viewId !== DEFAULT_FEED_VIEW) {
+      setViewIdState(DEFAULT_FEED_VIEW);
+    }
+    writeCookie(FEED_VIEW_COOKIE, DEFAULT_FEED_VIEW, FEED_VIEW_COOKIE_MAX_AGE);
 
-    void supabase
-      .from("profiles")
-      .update({ feed_view_preference: seedId })
-      .eq("id", user.id)
-      .then(({ error }) => {
-        if (error) {
-          console.warn(
-            "[FeedViewProvider] could not seed feed_view_preference:",
-            error
-          );
-          seededUserIdRef.current = null;
-        }
-      });
-    // viewId intentionally excluded — seed from the value at first-login
-    // moment, not every local toggle (those are handled in setView).
+    const stored = (profile as { feed_view_preference?: string | null })
+      .feed_view_preference;
+    if (stored !== DEFAULT_FEED_VIEW) {
+      void supabase
+        .from("profiles")
+        .update({ feed_view_preference: DEFAULT_FEED_VIEW })
+        .eq("id", user.id)
+        .then(({ error }) => {
+          if (error) {
+            console.warn(
+              "[FeedViewProvider] could not reset feed_view_preference:",
+              error
+            );
+            seededUserIdRef.current = null;
+          }
+        });
+    }
+    // viewId intentionally excluded — reset fires once per (user, page-load),
+    // not on every local toggle (those are handled in setView).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, profile, authLoading]);
 
