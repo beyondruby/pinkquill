@@ -7,7 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useDeleteProduct, useProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
-import { getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
+import { COMMISSION_CATEGORIES, getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
 import { PLATFORM_FEES } from "@/lib/types/store";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
 import SellerRating from "@/components/reviews/SellerRating";
@@ -107,13 +107,21 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
   const categoryLabel = useMemo(() => {
     if (!product) return "";
-    if (!product.subcategory) return product.category;
-    return `${product.category} · ${getCommissionSubcategoryLabel(product.category, product.subcategory)}`;
+    const categoryName = COMMISSION_CATEGORIES[product.category]?.name || product.category;
+    if (!product.subcategory) return categoryName;
+    return `${categoryName} · ${getCommissionSubcategoryLabel(product.category, product.subcategory)}`;
   }, [product]);
 
   const openHireModal = () => {
     if (!user) {
       router.push("/login");
+      return;
+    }
+
+    if (isOwner) {
+      // The RPC also rejects this, but blocking client-side avoids a
+      // confusing red error toast for sellers viewing their own listing.
+      setLocalError("You can't hire yourself for your own commission.");
       return;
     }
 
@@ -479,44 +487,61 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                   </div>
                 )}
 
-                <button
-                  onClick={openHireModal}
-                  disabled={!selectedPackage}
-                  className="mt-6 w-full py-3.5 rounded-full text-white font-display font-semibold text-lg bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60"
-                >
-                  Hire Creator
-                </button>
+                {isOwner ? (
+                  <>
+                    <button
+                      onClick={() => router.push(`/sell/edit/${product.id}`)}
+                      className="mt-6 w-full py-3.5 rounded-full text-white font-display font-semibold text-lg bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm"
+                    >
+                      Edit Commission
+                    </button>
+                    <p className="mt-3 text-xs font-body text-muted text-center">
+                      This is how your commission looks to potential clients.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={openHireModal}
+                      disabled={!selectedPackage}
+                      className="mt-6 w-full py-3.5 rounded-full text-white font-display font-semibold text-lg bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60"
+                    >
+                      Hire Creator
+                    </button>
 
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <button
-                    onClick={() => {
-                      if (!selectedPackage || !product) return;
-                      addItem({
-                        product_id: product.id,
-                        pricing_id: selectedPackage.id,
-                        listing_type: "service",
-                        delivery_type: product.delivery_type,
-                        title: product.title,
-                        seller_name: product.seller?.display_name || product.seller?.username || "Creator",
-                        price: selectedPackage.price,
-                        currency: selectedPackage.currency,
-                        image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
-                      });
-                    }}
-                    className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-pink-300 transition-colors"
-                  >
-                    {isQueued ? "In Bag" : "Add to Bag"}
-                  </button>
-                  <button
-                    onClick={() => router.push("/cart")}
-                    className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-accent/40 transition-colors"
-                  >
-                    Open Bag
-                  </button>
-                </div>
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <button
+                        onClick={() => {
+                          if (!selectedPackage || !product) return;
+                          addItem({
+                            product_id: product.id,
+                            pricing_id: selectedPackage.id,
+                            listing_type: "service",
+                            delivery_type: product.delivery_type,
+                            title: product.title,
+                            seller_name: product.seller?.display_name || product.seller?.username || "Creator",
+                            price: selectedPackage.price,
+                            currency: selectedPackage.currency,
+                            image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
+                          });
+                        }}
+                        disabled={!selectedPackage || isQueued}
+                        className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-pink-300 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {isQueued ? "In Bag" : "Add to Bag"}
+                      </button>
+                      <button
+                        onClick={() => router.push("/cart")}
+                        className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-accent/40 transition-colors"
+                      >
+                        Open Bag
+                      </button>
+                    </div>
 
-                {(localError || hireError) && (
-                  <p className="mt-3 text-sm font-body text-red-500">{localError || hireError}</p>
+                    {(localError || hireError) && (
+                      <p className="mt-3 text-sm font-body text-red-500">{localError || hireError}</p>
+                    )}
+                  </>
                 )}
               </div>
             </aside>

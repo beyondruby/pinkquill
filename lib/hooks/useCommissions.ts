@@ -142,6 +142,10 @@ export function useCreateCommission(): UseCreateCommissionReturn {
             pricing_type: "service_package",
             variant_name: pkg.name,
             price: pkg.price,
+            // Commission packages are fixed-price. min_price == price keeps
+            // the row out of PWYW mode in create_marketplace_order and
+            // satisfies the >= 5 floor enforced for service_package rows.
+            min_price: pkg.price,
             currency: "USD",
             stock: null,
             is_available: true,
@@ -155,11 +159,18 @@ export function useCreateCommission(): UseCreateCommissionReturn {
 
       if (pricingError) throw pricingError;
 
-      if (state.keywords.length > 0) {
+      const normalizedKeywords = Array.from(
+        new Set(
+          state.keywords
+            .map((keyword) => keyword.trim().toLowerCase())
+            .filter((keyword) => keyword.length > 0)
+        )
+      );
+      if (normalizedKeywords.length > 0) {
         const { error: keywordsError } = await supabase
           .from("product_keywords")
           .insert(
-            state.keywords.map((keyword) => ({ product_id: product.id, keyword }))
+            normalizedKeywords.map((keyword) => ({ product_id: product.id, keyword }))
           );
 
         if (keywordsError) throw keywordsError;
@@ -443,6 +454,7 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
               pricing_type: "service_package",
               variant_name: pkg.name,
               price: pkg.price,
+              min_price: pkg.price,
               currency: "USD",
               stock: null,
               is_available: true,
@@ -464,6 +476,7 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
             pricing_type: "service_package",
             variant_name: pkg.name,
             price: pkg.price,
+            min_price: pkg.price,
             currency: "USD",
             stock: null,
             is_available: true,

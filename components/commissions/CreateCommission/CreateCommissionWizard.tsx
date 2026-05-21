@@ -226,7 +226,12 @@ export default function CreateCommissionWizard({
   const addPackage = useCallback(() => {
     if (state.packages.length >= 3) return;
 
-    const nextPreset = PACKAGE_PRESETS[state.packages.length];
+    const usedTiers = new Set(state.packages.map((pkg) => pkg.tier));
+    const nextPreset =
+      PACKAGE_PRESETS.find((preset) => !usedTiers.has(preset.tier))
+      ?? PACKAGE_PRESETS[state.packages.length]
+      ?? PACKAGE_PRESETS[0];
+
     const nextPackage: CommissionPackageFormState = {
       // Unique id so React keys don't collide if two packages happen to
       // share a tier (e.g., custom tiers added in the future).
@@ -330,25 +335,41 @@ export default function CreateCommissionWizard({
     }
 
     if (targetStep === 2) {
-      const hasUnderpriced = state.packages.some(
-        (pkg) => pkg.price !== null && pkg.price > 0 && pkg.price < 5
-      );
-      if (hasUnderpriced) {
-        setError("Each package must be priced at $5 or more.");
+      if (state.packages.length === 0) {
+        setError("Add at least one package.");
         return false;
       }
 
-      const hasValidPackage = state.packages.some(
-        (pkg) =>
-          pkg.name.trim().length > 0 &&
-          pkg.price !== null &&
-          pkg.price >= 5 &&
-          pkg.description.trim().length > 0
-      );
-
-      if (!hasValidPackage) {
-        setError("Add at least one package with description and price.");
-        return false;
+      // Every listed package must be fully filled out. Silently dropping
+      // incomplete rows on publish surprised users and produced listings
+      // missing a tier they thought they had configured.
+      for (let i = 0; i < state.packages.length; i += 1) {
+        const pkg = state.packages[i];
+        const label = pkg.name.trim() || `Package ${i + 1}`;
+        if (!pkg.name.trim()) {
+          setError(`Give package ${i + 1} a name, or remove it.`);
+          return false;
+        }
+        if (pkg.price === null || !Number.isFinite(pkg.price)) {
+          setError(`Set a price for "${label}", or remove it.`);
+          return false;
+        }
+        if (pkg.price < 5) {
+          setError(`"${label}" must be priced at $5 or more.`);
+          return false;
+        }
+        if (!pkg.description.trim()) {
+          setError(`Describe what "${label}" includes, or remove it.`);
+          return false;
+        }
+        if (!Number.isFinite(pkg.deliveryDays) || pkg.deliveryDays < 1) {
+          setError(`Set a delivery time of at least 1 day for "${label}".`);
+          return false;
+        }
+        if (!Number.isFinite(pkg.revisions) || pkg.revisions < 0) {
+          setError(`Set a revision count of 0 or more for "${label}".`);
+          return false;
+        }
       }
     }
 
@@ -362,24 +383,36 @@ export default function CreateCommissionWizard({
     return true;
   }, [state]);
 
+  const scrollToTop = useCallback(() => {
+    if (typeof window === "undefined") return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   const goNext = () => {
-    if (!validateStep(step)) return;
+    if (!validateStep(step)) {
+      scrollToTop();
+      return;
+    }
     setStep((prev) => Math.min(4, prev + 1));
+    scrollToTop();
   };
 
   const goBack = () => {
     setStep((prev) => Math.max(1, prev - 1));
+    scrollToTop();
   };
 
   const publishService = useCallback(async () => {
     if (!user || !profile) {
       setError(`Please sign in to ${isEditMode ? "edit" : "publish"} your service.`);
+      scrollToTop();
       return;
     }
 
     for (let idx = 1; idx <= 3; idx += 1) {
       if (!validateStep(idx)) {
         setStep(idx);
+        scrollToTop();
         return;
       }
     }
@@ -388,11 +421,14 @@ export default function CreateCommissionWizard({
       const targetProductId = productId || initialProduct?.id;
       if (!targetProductId) {
         setError("Missing commission id for edit.");
+        scrollToTop();
         return;
       }
       const success = await updateCommission(targetProductId, state);
       if (success) {
         router.push(`/studio/${profile.username}?tab=commissions`);
+      } else {
+        scrollToTop();
       }
       return;
     }
@@ -400,8 +436,10 @@ export default function CreateCommissionWizard({
     const created = await createCommission(state);
     if (created) {
       router.push(`/studio/${profile.username}?tab=commissions`);
+    } else {
+      scrollToTop();
     }
-  }, [createCommission, initialProduct?.id, isEditMode, productId, profile, router, state, updateCommission, user, validateStep]);
+  }, [createCommission, initialProduct?.id, isEditMode, productId, profile, router, scrollToTop, state, updateCommission, user, validateStep]);
 
   const priceFrom = useMemo(() => {
     const values = state.packages
