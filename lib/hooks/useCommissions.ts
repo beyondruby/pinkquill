@@ -19,6 +19,18 @@ function generateSlug(title: string): string {
     .substring(0, 50);
 }
 
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    const obj = err as Record<string, unknown>;
+    const parts = [obj.message, obj.details, obj.hint]
+      .filter((value): value is string => typeof value === "string" && value.length > 0);
+    if (parts.length > 0) return parts.join(" — ");
+  }
+  return "Unknown error";
+}
+
 interface UseCreateCommissionReturn {
   createCommission: (state: CommissionWizardState) => Promise<Product | null>;
   creating: boolean;
@@ -155,8 +167,8 @@ export function useCreateCommission(): UseCreateCommissionReturn {
 
       return product as Product;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useCreateCommission] Error:", message);
+      const message = extractErrorMessage(err);
+      console.error("[useCreateCommission] Error:", message, err);
       setError(message || "Failed to create commission");
       return null;
     } finally {
@@ -485,8 +497,8 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
 
       return true;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useUpdateCommission] Error:", message);
+      const message = extractErrorMessage(err);
+      console.error("[useUpdateCommission] Error:", message, err);
       setError(message || "Failed to update commission");
       return false;
     } finally {
