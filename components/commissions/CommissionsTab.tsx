@@ -237,7 +237,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
               <div className="pr-3 sm:pr-4 first:pl-0 flex flex-col gap-0.5 sm:gap-1">
                 <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Taking orders</dt>
                 <dd className="font-display text-xl sm:text-2xl font-semibold text-ink leading-none">
-                  {stats.active}
+                  {sellerProfile?.is_accepting_commissions ? "Yes" : "No"}
                 </dd>
               </div>
               <div className="px-3 sm:px-4 flex flex-col gap-0.5 sm:gap-1">
