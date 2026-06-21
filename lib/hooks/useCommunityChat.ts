@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { usePollOnFocus } from "./usePollOnFocus";
 import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 import type {
   CommunityChatMembership,
@@ -174,7 +175,6 @@ export function useCommunityChatOverview(userId?: string): UseCommunityChatOverv
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchOverview = useCallback(async () => {
     if (!userId) {
@@ -228,72 +228,10 @@ export function useCommunityChatOverview(userId?: string): UseCommunityChatOverv
     };
   }, [fetchOverview]);
 
-  useEffect(() => {
-    if (!userId) {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-      return;
-    }
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    const debouncedRefetch = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        if (mountedRef.current) {
-          fetchOverview();
-        }
-      }, 1000);
-    };
-
-    const channel = supabase
-      .channel(`community-chat-overview-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "community_chat_messages",
-        },
-        debouncedRefetch
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "community_chat_thread_reads",
-          filter: `user_id=eq.${userId}`,
-        },
-        debouncedRefetch
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "community_members",
-          filter: `user_id=eq.${userId}`,
-        },
-        debouncedRefetch
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [userId, fetchOverview]);
+  // Refresh on focus instead of a realtime subscription. The previous channel
+  // subscribed to community_chat_messages INSERT *unfiltered*, waking every
+  // connected user on every community message sent anywhere on the platform.
+  usePollOnFocus(fetchOverview);
 
   const totalUnreadCount = useMemo(() => {
     let total = 0;
@@ -317,7 +255,6 @@ export function useCommunityChatUnreadCount(userId?: string): UseCommunityChatUn
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchUnreadCount = useCallback(async () => {
     if (!userId) {
@@ -358,72 +295,8 @@ export function useCommunityChatUnreadCount(userId?: string): UseCommunityChatUn
     };
   }, [fetchUnreadCount]);
 
-  useEffect(() => {
-    if (!userId) {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-      return;
-    }
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    const debouncedRefetch = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        if (mountedRef.current) {
-          fetchUnreadCount();
-        }
-      }, 1000);
-    };
-
-    const channel = supabase
-      .channel(`community-chat-unread-count-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "community_chat_messages",
-        },
-        debouncedRefetch
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "community_chat_thread_reads",
-          filter: `user_id=eq.${userId}`,
-        },
-        debouncedRefetch
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "community_members",
-          filter: `user_id=eq.${userId}`,
-        },
-        debouncedRefetch
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [userId, fetchUnreadCount]);
+  // Refresh on focus instead of a realtime subscription (see useCommunityChatOverview).
+  usePollOnFocus(fetchUnreadCount);
 
   return {
     count,

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useOrderMessages, useSendOrderMessage } from "@/lib/hooks/useOrders";
+import { useOrderFileUrls } from "@/lib/hooks/useOrderFiles";
 import type { OrderMessage } from "@/lib/types/store";
 
 interface OrderMessagesProps {
@@ -16,6 +17,14 @@ export default function OrderMessages({ orderId }: OrderMessagesProps) {
   const { sendMessage, sending } = useSendOrderMessage();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Attachments are stored as private order-files storage paths; resolve them to
+  // short-lived signed URLs (legacy public-URL rows resolve too).
+  const attachmentRefs = useMemo(
+    () => messages.flatMap((m) => (m.attachments || []).map((a) => a.url)),
+    [messages]
+  );
+  const fileUrls = useOrderFileUrls(orderId, attachmentRefs);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -66,7 +75,7 @@ export default function OrderMessages({ orderId }: OrderMessagesProps) {
         )}
 
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} isOwn={msg.sender_id === user?.id} />
+          <MessageBubble key={msg.id} message={msg} isOwn={msg.sender_id === user?.id} fileUrls={fileUrls} />
         ))}
       </div>
 
@@ -92,7 +101,7 @@ export default function OrderMessages({ orderId }: OrderMessagesProps) {
   );
 }
 
-function MessageBubble({ message, isOwn }: { message: OrderMessage; isOwn: boolean }) {
+function MessageBubble({ message, isOwn, fileUrls }: { message: OrderMessage; isOwn: boolean; fileUrls: Record<string, string> }) {
   const isSystem = message.message_type === "system" || message.message_type === "status_update";
 
   if (isSystem) {
@@ -147,17 +156,21 @@ function MessageBubble({ message, isOwn }: { message: OrderMessage; isOwn: boole
           {/* Attachments */}
           {message.attachments && message.attachments.length > 0 && (
             <div className="mt-2 space-y-1">
-              {message.attachments.map((att, i) => (
+              {message.attachments.map((att, i) => {
+                const href = fileUrls[att.url];
+                return (
                 <a
                   key={i}
-                  href={att.url}
+                  href={href || undefined}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`block text-xs underline ${isOwn ? "text-white/80" : "text-pink-vivid"}`}
+                  aria-disabled={!href}
+                  className={`block text-xs underline ${!href ? "opacity-50 pointer-events-none" : ""} ${isOwn ? "text-white/80" : "text-pink-vivid"}`}
                 >
                   {att.name}
                 </a>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

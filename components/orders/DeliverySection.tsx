@@ -7,6 +7,7 @@ import { faUpload, faPaperPlane, faFileAlt, faImage, faVideo, faMusic, faCheck, 
 import type { Order } from "@/lib/types/store";
 import { useUpdateOrderStatus } from "@/lib/hooks/useOrders";
 import { useSendOrderMessage } from "@/lib/hooks/useOrders";
+import { useOrderFileUrls } from "@/lib/hooks/useOrderFiles";
 import { supabase } from "@/lib/supabase";
 
 function fileTypeIcon(url: string) {
@@ -35,6 +36,8 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
+  const deliveryAssetUrls = useOrderFileUrls(order.id, order.delivery_assets ?? []);
+
   const isDelivered = ["submitted", "completed", "delivered"].includes(order.status);
   const canDeliver = isSeller && ["paid", "in_progress", "revision_requested"].includes(order.status);
   const canAcceptOrRevise = !isSeller && order.status === "submitted";
@@ -50,8 +53,10 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
     setUploading(true);
 
     try {
-      // Upload files to storage
-      const uploadedUrls: string[] = [];
+      // Upload files to the (private) order-files bucket. We persist the bare
+      // storage PATH — never a public URL — and resolve short-lived signed URLs
+      // on read via /api/orders/files so deliverables aren't world-readable.
+      const uploaded: { path: string; name: string; type: string; size: number }[] = [];
       for (const file of files) {
         const ext = file.name.split(".").pop() || "bin";
         const path = `orders/${order.id}/delivery/${crypto.randomUUID()}.${ext}`;
@@ -64,24 +69,20 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
           continue;
         }
 
-        const { data: urlData } = supabase.storage
-          .from("order-files")
-          .getPublicUrl(path);
-
-        uploadedUrls.push(urlData.publicUrl);
+        uploaded.push({ path, name: file.name, type: file.type, size: file.size });
       }
 
-      // Send delivery message with attachments
-      if (deliveryNote.trim() || uploadedUrls.length > 0) {
+      // Send delivery message with attachments (url holds the storage path).
+      if (deliveryNote.trim() || uploaded.length > 0) {
         await sendMessage(
           order.id,
           deliveryNote.trim() || "Delivery files attached",
-          uploadedUrls.length > 0
-            ? uploadedUrls.map((url) => ({
-                url,
-                name: url.split("/").pop() || "file",
-                type: "",
-                size: 0,
+          uploaded.length > 0
+            ? uploaded.map((f) => ({
+                url: f.path,
+                name: f.name,
+                type: f.type,
+                size: f.size,
               }))
             : undefined
         );
@@ -131,15 +132,19 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
             Delivered Files
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {order.delivery_assets.map((url, i) => (
+            {order.delivery_assets.map((ref, i) => {
+              const url = deliveryAssetUrls[ref];
+              return (
               <a
                 key={i}
-                href={url}
+                href={url || undefined}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-border-light overflow-hidden hover:border-accent/30 transition-colors group"
+                aria-disabled={!url}
+                className={`rounded-xl border border-border-light overflow-hidden transition-colors group ${url ? "hover:border-accent/30" : "opacity-50 pointer-events-none"}`}
               >
-                {isImageUrl(url) ? (
+                {isImageUrl(ref) ? (
+                  url ? (
                   <Image
                     src={url}
                     alt=""
@@ -147,19 +152,23 @@ export default function DeliverySection({ order, isSeller, onUpdate }: DeliveryS
                     height={150}
                     className="w-full h-28 object-cover"
                   />
+                  ) : (
+                  <div className="w-full h-28 bg-subtle animate-pulse" />
+                  )
                 ) : (
                   <div className="w-full h-28 bg-subtle flex flex-col items-center justify-center gap-2">
                     <FontAwesomeIcon
-                      icon={fileTypeIcon(url)}
+                      icon={fileTypeIcon(ref)}
                       className="text-2xl text-muted group-hover:text-accent transition-colors"
                     />
                     <span className="text-[10px] font-ui text-muted truncate max-w-[90%] px-2">
-                      {url.split("/").pop()}
+                      {ref.split("/").pop()}
                     </span>
                   </div>
                 )}
               </a>
-            ))}
+              );
+            })}
           </div>
           {order.delivery_note && (
             <div className="mt-3 p-3 rounded-lg bg-subtle">

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import { usePollOnFocus } from "./usePollOnFocus";
 import type {
   Dispute,
   DisputeReason,
@@ -87,30 +88,9 @@ export function useOrderDispute(orderId: string | undefined) {
   }, [fetch]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Real-time updates on disputes
-  useEffect(() => {
-    if (!orderId) return;
-
-    const channel = supabase
-      .channel(`dispute-${orderId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "disputes",
-          filter: `order_id=eq.${orderId}`,
-        },
-        () => {
-          fetch();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [orderId, fetch]);
+  // Dispute changes are low-frequency; refresh on focus instead of holding a
+  // postgres_changes subscription open per order view.
+  usePollOnFocus(fetch);
 
   return { dispute, loading, refetch: fetch };
 }

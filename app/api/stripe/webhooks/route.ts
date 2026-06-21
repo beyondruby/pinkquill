@@ -86,16 +86,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  // Idempotency check
-  const { data: existingEvent } = await supabaseAdmin
-    .from("order_events")
-    .select("id")
-    .or(`metadata->>stripe_event_id.eq.${event.id},metadata->>source.like.%${event.id}%`)
-    .limit(1)
-    .maybeSingle();
+  // Durable idempotency: claim this event id first. A unique-violation means a
+  // prior delivery already processed it, so skip. If processing later throws we
+  // roll this marker back (below) so Stripe's retry can reprocess.
+  const { error: claimError } = await supabaseAdmin
+    .from("processed_stripe_events")
+    .insert({ event_id: event.id });
 
-  if (existingEvent) {
-    return NextResponse.json({ received: true, already_processed: true });
+  if (claimError) {
+    if (claimError.code === "23505") {
+      return NextResponse.json({ received: true, already_processed: true });
+    }
+    // Couldn't record the marker for another reason — proceed rather than drop a
+    // legitimate event (Stripe will retry on failure anyway).
+    console.error("[Stripe Webhook] idempotency claim failed:", claimError);
   }
 
   try {
@@ -244,9 +248,11 @@ export async function POST(request: Request) {
         // If transfer was already sent, reverse it
         if (order.transfer_id) {
           try {
-            await stripe.transfers.createReversal(order.transfer_id, {
-              metadata: { order_id: order.id, reason: "refund", stripe_event_id: event.id },
-            });
+            await stripe.transfers.createReversal(
+              order.transfer_id,
+              { metadata: { order_id: order.id, reason: "refund", stripe_event_id: event.id } },
+              { idempotencyKey: `reversal_${order.id}` }
+            );
 
             await supabaseAdmin
               .from("orders")
@@ -428,6 +434,11 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error("[Stripe Webhook] processing error", error);
+    // Roll back the idempotency marker so Stripe's retry can reprocess this event.
+    await supabaseAdmin
+      .from("processed_stripe_events")
+      .delete()
+      .eq("event_id", event.id);
     const message = error instanceof Error ? error.message : "Webhook processing failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }

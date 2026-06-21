@@ -59,13 +59,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Order is not awaiting payment" }, { status: 400 });
     }
 
-    // Only allow confirmation for placeholder/free orders
-    const isPlaceholder = order.payment_provider === "placeholder";
+    // SECURITY: the order's `payment_provider` column is mutable and defaults to
+    // 'placeholder' at creation (it only becomes 'stripe' once /api/checkout runs).
+    // Trusting it here let a buyer confirm a *paid* order for free by POSTing to this
+    // route before ever opening Stripe. Authorize free confirmation off the SERVER's
+    // active provider instead, never the order column.
+    let activeProviderName: string;
+    try {
+      activeProviderName = getActiveProvider().name;
+    } catch {
+      // getActiveProvider throws when placeholder is configured in production; in
+      // that misconfigured state, fail safe by treating the environment as real-pay.
+      activeProviderName = "stripe";
+    }
+    const isPlaceholderMode = activeProviderName === "placeholder";
     const isFreeOrder = Number(order.amount) <= 0;
 
-    if (!isPlaceholder && !isFreeOrder) {
+    // In a real-payment environment only genuinely free ($0) orders may be finalized
+    // here; any order with a positive total MUST be captured via the Stripe webhook.
+    if (!isPlaceholderMode && !isFreeOrder) {
       return NextResponse.json(
-        { error: "Stripe orders are confirmed via webhooks" },
+        { error: "This order must be completed through checkout." },
         { status: 400 }
       );
     }

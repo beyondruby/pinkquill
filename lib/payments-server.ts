@@ -71,54 +71,18 @@ export async function markOrderExpired({
   paymentReference,
   source,
 }: Omit<PaymentMutationOptions, "actorId">): Promise<PaymentMutationResult> {
-  const now = new Date().toISOString();
-
-  const { data: order, error: fetchError } = await supabaseAdmin
-    .from("orders")
-    .select("id, status, payment_status")
-    .eq("id", orderId)
-    .single();
-
-  if (fetchError || !order) {
-    throw new Error(fetchError?.message || "Order not found");
-  }
-
-  // Only expire orders that are still pending payment
-  if (order.status !== "pending_payment") {
-    return {
-      already_processed: true,
-      order_id: order.id,
-      status: order.status,
-      payment_status: order.payment_status,
-    };
-  }
-
-  const { error: updateError } = await supabaseAdmin
-    .from("orders")
-    .update({
-      status: "expired",
-      payment_status: "expired",
-      updated_at: now,
-    })
-    .eq("id", orderId);
-
-  if (updateError) throw new Error(updateError.message);
-
-  await supabaseAdmin.from("order_events").insert({
-    order_id: orderId,
-    event_type: "payment",
-    metadata: {
-      action: "checkout_expired",
-      provider,
-      payment_reference: paymentReference,
-      source,
-    },
+  // Single SECURITY DEFINER RPC with FOR UPDATE + status recheck so a
+  // checkout.session.expired can't race a just-completed payment.
+  const { data, error } = await supabaseAdmin.rpc("mark_order_expired", {
+    p_order_id: orderId,
+    p_provider: provider,
+    p_payment_reference: paymentReference,
+    p_source: source,
   });
 
-  return {
-    already_processed: false,
-    order_id: orderId,
-    status: "expired",
-    payment_status: "expired",
-  };
+  if (error || !data) {
+    throw new Error(error?.message || "Failed to mark order expired");
+  }
+
+  return data as PaymentMutationResult;
 }

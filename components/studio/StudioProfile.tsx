@@ -9,15 +9,10 @@ import { getTimeAgo } from "@/lib/utils/time";
 import { parseSocialLinks, getSocialUrl } from "@/lib/utils/social";
 
 // Type for follows table real-time payload
-interface FollowRealtimePayload {
-  follower_id: string;
-  following_id: string;
-  status?: FollowStatus;
-  created_at?: string;
-}
 import { useUserTakes, useRelayedTakes } from "@/lib/hooks/useTakes";
 import { useTrackProfileView } from "@/lib/hooks/useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -858,56 +853,24 @@ export default function StudioProfile({ username }: StudioProfileProps) {
     checkFollow();
   }, [user, profile, isOwnProfile]);
 
-  // Real-time subscription for follow status changes (e.g., when request is accepted)
-  useEffect(() => {
+  // Follow-status changes (e.g. a request being accepted/rejected) arrive on the
+  // per-user broadcast channel instead of a dedicated postgres_changes subscription.
+  useUserEvent("follow_change", (payload) => {
     if (!user || !profile || isOwnProfile) return;
+    if (payload.follower_id !== user.id || payload.following_id !== profile.id) return;
 
-    const channel = supabase
-      .channel(`follow-status-${user.id}-${profile.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'follows',
-          filter: `follower_id=eq.${user.id}`,
-        },
-        (payload) => {
-          // Check if this update is for the profile we're viewing
-          const newData = payload.new as FollowRealtimePayload | null;
-          if (newData && newData.following_id === profile.id) {
-            const newStatus = newData.status ?? null;
-            setFollowStatus(newStatus);
+    if (payload.op === "DELETE") {
+      setFollowStatus(null);
+      return;
+    }
 
-            // If follow was just accepted, refetch the full profile to get all the data
-            if (newStatus === 'accepted') {
-              refetchProfile();
-            }
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'follows',
-          filter: `follower_id=eq.${user.id}`,
-        },
-        (payload) => {
-          // Check if the deleted follow was for this profile
-          const oldData = payload.old as FollowRealtimePayload | null;
-          if (oldData && oldData.following_id === profile.id) {
-            setFollowStatus(null);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, profile, isOwnProfile, refetchProfile]);
+    const newStatus = payload.status ?? null;
+    setFollowStatus(newStatus);
+    // If the follow was just accepted, refetch the full profile to load gated data.
+    if (newStatus === "accepted") {
+      refetchProfile();
+    }
+  });
 
   // Check if blocked
   useEffect(() => {

@@ -440,24 +440,34 @@ export class StripeProvider implements PaymentProviderInterface {
       throw new Error("No payment found for this order");
     }
 
-    // If transfer was already sent to seller, reverse it first
+    // If transfer was already sent to seller, reverse it first. If the reversal
+    // fails (e.g. seller already spent the balance), do NOT proceed to refund the
+    // buyer — otherwise the platform refunds the buyer while the seller keeps the
+    // payout, eating the loss. Halt for manual review instead.
     if (order.transfer_id) {
       try {
-        await stripe.transfers.createReversal(order.transfer_id, {
-          metadata: { order_id: orderId, reason: "refund" },
-        });
+        await stripe.transfers.createReversal(
+          order.transfer_id,
+          { metadata: { order_id: orderId, reason: "refund" } },
+          { idempotencyKey: `reversal_${orderId}` }
+        );
       } catch (err) {
-        // Transfer reversal might fail if seller has insufficient balance
         console.error("[StripeProvider] Transfer reversal failed:", err);
+        throw new Error(
+          "Refund halted: the seller payout could not be reclaimed. This order needs manual review before a refund can be issued."
+        );
       }
     }
 
-    // Refund the buyer
-    await stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      reason: "requested_by_customer",
-      metadata: { order_id: orderId },
-    });
+    // Refund the buyer (idempotent so webhook/double-submit retries can't double-refund)
+    await stripe.refunds.create(
+      {
+        payment_intent: paymentIntentId,
+        reason: "requested_by_customer",
+        metadata: { order_id: orderId },
+      },
+      { idempotencyKey: `refund_${orderId}` }
+    );
 
     // Update order status
     await supabaseAdmin
