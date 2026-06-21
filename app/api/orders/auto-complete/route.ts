@@ -37,6 +37,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Reveal blind-window reviews whose deadline has passed (counterpart never reviewed).
+    const { error: revealError } = await supabaseAdmin.rpc("reveal_due_reviews");
+    if (revealError) {
+      console.error("[Auto-Complete] reveal_due_reviews error:", revealError);
+    }
+
     // Transfer funds to sellers for completed orders that haven't been transferred yet
     const { data: pendingTransfers, error: transferQueryError } = await supabaseAdmin
       .from("orders")

@@ -4,6 +4,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import type { Review, ReviewRole, SellerStats } from "../types/store";
 
+// Blind-reveal: a review is visible only once revealed — either the counterpart
+// also reviewed (mutual reveal) or the blind-reveal deadline has passed.
+// PostgREST OR-filter used on public read queries.
+const revealedOrFilter = () =>
+  `revealed_at.not.is.null,reveal_deadline.lte.${new Date().toISOString()}`;
+
+function isReviewVisible(r: { revealed_at: string | null; reveal_deadline: string | null }): boolean {
+  if (r.revealed_at) return true;
+  if (r.reveal_deadline && new Date(r.reveal_deadline).getTime() <= Date.now()) return true;
+  return false;
+}
+
 // ============================================================================
 // useSubmitReview — Submit a quill review for a completed order
 // ============================================================================
@@ -102,13 +114,17 @@ export function useOrderReviews(orderId?: string, userId?: string): UseOrderRevi
       if (error) throw error;
       if (!mountedRef.current) return;
 
-      setReviews((data || []) as Review[]);
+      // Blind-reveal: each participant always sees their OWN review, but the
+      // counterpart's only once it has been revealed.
+      const all = (data || []) as Review[];
+      const visible = all.filter((r) => r.reviewer_id === userId || isReviewVisible(r));
+      setReviews(visible);
     } catch (err) {
       console.error("[useOrderReviews] Error:", err);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, userId]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -173,6 +189,7 @@ export function useProductReviews(productId?: string, pageSize = 8): UseProductR
         .eq("listing_type", "product")
         .eq("reviewee_role", "seller")
         .eq("is_public", true)
+        .or(revealedOrFilter())
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -259,6 +276,7 @@ export function useCommissionReviews(
         .eq("listing_type", "service")
         .eq("reviewee_role", role)
         .eq("is_public", true)
+        .or(revealedOrFilter())
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -340,6 +358,7 @@ export function useSellerReviews(sellerId?: string, pageSize = 10): UseSellerRev
         .eq("reviewee_id", sellerId)
         .eq("reviewee_role", "seller")
         .eq("is_public", true)
+        .or(revealedOrFilter())
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -420,6 +439,7 @@ export function useSellerStats(sellerId?: string): UseSellerStatsReturn {
             .select("quill_score")
             .eq("reviewee_id", sellerId)
             .eq("reviewee_role", "seller")
+            .or(revealedOrFilter())
             .returns<SellerReviewRow[]>(),
         ]);
 

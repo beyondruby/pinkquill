@@ -552,6 +552,10 @@ export interface Review {
   content: string;
   highlights: string[];
   is_public: boolean;
+  /** Set once the review is revealed (mutual review submitted, or deadline passed). */
+  revealed_at: string | null;
+  /** Blind-window deadline for a first, still-unmatched service review. */
+  reveal_deadline: string | null;
   created_at: string;
   updated_at: string;
 
