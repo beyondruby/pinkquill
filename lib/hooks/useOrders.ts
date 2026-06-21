@@ -960,34 +960,10 @@ export function useOrderStats(userId?: string): UseOrderStatsReturn {
       setLoading(true);
       setError(null);
 
-      const { data, error: queryError } = await supabase
-        .from("orders")
-        .select("status, amount, seller_amount")
-        .eq("seller_id", userId);
-
+      // Server-side aggregate (single round-trip) instead of fetching every order.
+      const { data, error: queryError } = await supabase.rpc("get_seller_order_stats");
       if (queryError) throw queryError;
-
-      const orders = data || [];
-      const active = ["paid", "in_progress", "submitted", "revision_requested", "processing", "shipped"];
-      const completed = ["completed", "delivered"];
-      const cancelled = ["cancelled", "refunded"];
-
-      const totalRevenue = orders
-        .filter((o) => completed.includes(o.status))
-        .reduce((sum, o) => sum + (o.seller_amount || 0), 0);
-
-      const pendingRevenue = orders
-        .filter((o) => active.includes(o.status))
-        .reduce((sum, o) => sum + (o.seller_amount || 0), 0);
-
-      setStats({
-        total_orders: orders.length,
-        active_orders: orders.filter((o) => active.includes(o.status)).length,
-        completed_orders: orders.filter((o) => completed.includes(o.status)).length,
-        cancelled_orders: orders.filter((o) => cancelled.includes(o.status)).length,
-        total_revenue: Math.round(totalRevenue * 100) / 100,
-        pending_revenue: Math.round(pendingRevenue * 100) / 100,
-      });
+      setStats((data as OrderStats) ?? null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("[useOrderStats] Error:", message);
@@ -1028,31 +1004,10 @@ export function useBuyerOrderStats(userId?: string): UseBuyerOrderStatsReturn {
     try {
       setLoading(true);
 
-      const { data, error: queryError } = await supabase
-        .from("orders")
-        .select("status, amount")
-        .eq("buyer_id", userId);
-
+      // Server-side aggregate (single round-trip) instead of fetching every order.
+      const { data, error: queryError } = await supabase.rpc("get_buyer_order_stats");
       if (queryError) throw queryError;
-
-      const orders = data || [];
-      const active = ["paid", "in_progress", "submitted", "revision_requested", "processing", "shipped"];
-      const pending = ["pending_payment", "pending_acceptance"];
-      const completed = ["completed", "delivered"];
-      const cancelled = ["cancelled", "refunded", "declined"];
-
-      const totalSpent = orders
-        .filter((o) => [...completed, ...active].includes(o.status))
-        .reduce((sum, o) => sum + (o.amount || 0), 0);
-
-      setStats({
-        total_orders: orders.length,
-        active_orders: orders.filter((o) => active.includes(o.status)).length,
-        pending_orders: orders.filter((o) => pending.includes(o.status)).length,
-        completed_orders: orders.filter((o) => completed.includes(o.status)).length,
-        cancelled_orders: orders.filter((o) => cancelled.includes(o.status)).length,
-        total_spent: Math.round(totalSpent * 100) / 100,
-      });
+      setStats((data as BuyerOrderStats) ?? null);
     } catch (err: unknown) {
       console.error("[useBuyerOrderStats] Error:", err);
       setStats(null);

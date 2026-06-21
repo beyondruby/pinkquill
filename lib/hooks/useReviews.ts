@@ -400,17 +400,6 @@ interface UseSellerStatsReturn {
   loading: boolean;
 }
 
-type SellerOrderRow = {
-  status: string;
-  buyer_id: string;
-  created_at: string;
-  started_at: string | null;
-};
-
-type SellerReviewRow = {
-  quill_score: number;
-};
-
 export function useSellerStats(sellerId?: string): UseSellerStatsReturn {
   const [stats, setStats] = useState<SellerStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -428,82 +417,14 @@ export function useSellerStats(sellerId?: string): UseSellerStatsReturn {
 
     (async () => {
       try {
-        const [ordersResult, reviewsResult] = await Promise.all([
-          supabase
-            .from("orders")
-            .select("status, buyer_id, created_at, started_at")
-            .eq("seller_id", sellerId)
-            .returns<SellerOrderRow[]>(),
-          supabase
-            .from("order_reviews")
-            .select("quill_score")
-            .eq("reviewee_id", sellerId)
-            .eq("reviewee_role", "seller")
-            .or(revealedOrFilter())
-            .returns<SellerReviewRow[]>(),
-        ]);
-
-        if (ordersResult.error) throw ordersResult.error;
-        if (reviewsResult.error) throw reviewsResult.error;
-
-        const orders = ordersResult.data || [];
-        const reviews = reviewsResult.data || [];
-
-        const totalOrders = orders.length;
-        const completedOrders = orders.filter((order) => order.status === "completed").length;
-        const completionRate = totalOrders > 0
-          ? Math.round((completedOrders / totalOrders) * 100)
-          : 0;
-
-        const quillScores = reviews
-          .map((review) => Number(review.quill_score || 0))
-          .filter((value) => value >= 1 && value <= 5);
-        const avgQuillScore = quillScores.length > 0
-          ? Math.round((quillScores.reduce((sum, score) => sum + score, 0) / quillScores.length) * 10) / 10
-          : 0;
-
-        const responseHours = orders
-          .filter((order) => order.started_at)
-          .map((order) => {
-            const startedAt = new Date(order.started_at as string).getTime();
-            const createdAt = new Date(order.created_at).getTime();
-            const diff = (startedAt - createdAt) / (1000 * 60 * 60);
-            return Number.isFinite(diff) && diff >= 0 ? diff : null;
-          })
-          .filter((value): value is number => value !== null);
-
-        const avgResponseTimeHours = responseHours.length > 0
-          ? Math.round((responseHours.reduce((sum, hours) => sum + hours, 0) / responseHours.length) * 10) / 10
-          : 0;
-
-        const completedOrdersByBuyer = new Map<string, number>();
-        orders
-          .filter((order) => order.status === "completed")
-          .forEach((order) => {
-            completedOrdersByBuyer.set(order.buyer_id, (completedOrdersByBuyer.get(order.buyer_id) || 0) + 1);
-          });
-
-        let repeatOrderCount = 0;
-        completedOrdersByBuyer.forEach((count) => {
-          if (count > 1) repeatOrderCount += count;
+        // Server-side aggregate (single round-trip; correct for any viewer since
+        // the SECURITY DEFINER RPC isn't limited by the caller's order RLS).
+        const { data, error } = await supabase.rpc("get_seller_stats", {
+          p_seller_id: sellerId,
         });
-
-        const repeatBuyerRate = completedOrders > 0
-          ? Math.round((repeatOrderCount / completedOrders) * 100)
-          : 0;
-
+        if (error) throw error;
         if (mountedRef.current) {
-          setStats({
-            user_id: sellerId,
-            avg_quill_score: avgQuillScore,
-            total_reviews: reviews.length,
-            total_orders: totalOrders,
-            completed_orders: completedOrders,
-            completion_rate: completionRate,
-            avg_response_time_hours: avgResponseTimeHours,
-            repeat_buyer_rate: repeatBuyerRate,
-            updated_at: new Date().toISOString(),
-          });
+          setStats((data as SellerStats) ?? null);
         }
       } catch (err) {
         console.error("[useSellerStats] Error:", err);
