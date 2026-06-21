@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useProfile } from "@/lib/hooks";
@@ -176,19 +177,6 @@ export default function CollectionItemPage() {
 }
 
 // Helper function for time ago
-function getTimeAgo(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return "just now";
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d`;
-  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)}w`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
 // Helper function for type labels
 function getTypeLabel(type: string): string {
   const labels: Record<string, string> = {

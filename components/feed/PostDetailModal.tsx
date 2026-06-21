@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, memo } from "react";
+import { formatDate, formatTime } from "@/lib/utils/time";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -254,25 +255,6 @@ interface Post {
 }
 
 // Format date as "January 2, 2026"
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  });
-}
-
-// Format time as "10:42 PM"
-function formatTime(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
-}
-
 // Format mood label
 function formatMood(mood?: string): string {
   if (!mood) return '';

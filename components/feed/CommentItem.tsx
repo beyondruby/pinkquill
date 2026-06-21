@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, memo } from "react";
+import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import Image from "next/image";
 import type { Comment } from "@/lib/hooks";
@@ -67,18 +68,6 @@ function renderContentWithMentions(content: string, commentId?: string): React.R
   }
 
   return parts.length > 0 ? parts : <span dangerouslySetInnerHTML={{ __html: sanitized }} />;
-}
-
-function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-  return date.toLocaleDateString();
 }
 
 function CommentItemComponent({

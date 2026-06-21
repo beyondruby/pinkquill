@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
+import { formatDate } from "@/lib/utils/time";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -55,15 +56,6 @@ const TruncatedContent = TruncatedContentComponent;
 import type { PostProps } from "./PostCard/types";
 
 // Format date as "January 2, 2026"
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  });
-}
-
 // Weather icons (simplified inline)
 const weatherIconsSmall: Record<string, string> = {
   'sunny': '☀️',
