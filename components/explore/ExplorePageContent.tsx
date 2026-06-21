@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useCallback, useState } from "react";
+import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useExplore, useTrendingTags } from "@/lib/hooks";
 import type { ExploreTab } from "@/lib/hooks";
@@ -283,18 +284,6 @@ function transformPostForCard(post: {
     story: "shared a story",
     letter: "wrote a letter",
     quote: "shared a quote",
-  };
-
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (seconds < 60) return "just now";
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   return {

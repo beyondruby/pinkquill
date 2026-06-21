@@ -36,7 +36,7 @@ interface UseFeedReturn {
  * Optimized feed hook that fetches posts with server-side filtering
  *
  * Key improvements:
- * 1. Uses posts_with_stats view for pre-computed counts
+ * 1. Aggregate counts fetched inline with the posts query
  * 2. All blocking/visibility logic handled by RLS (no client-side filtering)
  * 3. Proper pagination with .range()
  * 4. Single query for posts + counts (no N+1)
