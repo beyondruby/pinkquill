@@ -162,7 +162,7 @@ export const postTypeStyles: Record<string, PostTypeStyle> = {
       </svg>
     ),
     gradient: "from-pink-400 via-rose-500 to-red-500",
-    label: "Visual Story",
+    label: "Visual",
     prefix: "shared a",
   },
   audio: {
@@ -177,7 +177,7 @@ export const postTypeStyles: Record<string, PostTypeStyle> = {
       </svg>
     ),
     gradient: "from-green-400 via-emerald-500 to-teal-500",
-    label: "Voice Note",
+    label: "Voice",
     prefix: "recorded a",
   },
   video: {

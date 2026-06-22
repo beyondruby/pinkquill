@@ -20,9 +20,25 @@ import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
 import type { PostProps, PostType } from "./PostCard/types";
 
 // =============================================================================
-// Shared interaction hook — keeps alternate cards lean. Heavy interactions
-// (reactions, comments, share, full content) open the post modal on activate.
+// UNIFIED ALTERNATE FEED LAYOUTS — compact, grid, magazine.
+//
+// Strategy (one system, not 11 bespoke per-type treatments):
+//  • Every card is a NEUTRAL canvas (surface + full subtle border). No per-type
+//    background washes — keeps the feed calm and unmistakably on-brand.
+//  • A post's TYPE is signalled by ONE consistent accent: a small glyph+label
+//    chip whose glyph carries the type's colour. Identity without clutter.
+//  • Card SIZE is driven by CONTENT (has media / short vs long), never by an
+//    arbitrary per-type span map.
+//  • Terminology comes from the single source of truth (post-type-theme.ts) so
+//    "Poem" is "Poem" everywhere — never "Verse"/"Reel".
+//
+// The three layouts differ only in DENSITY & SCALE (scan row → gallery tile →
+// editorial card), each matched to a distinct user intent.
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+// Shared interaction hook — heavy interactions open the post modal on activate.
+// -----------------------------------------------------------------------------
 
 function useCardActions(post: PostProps) {
   const { user } = useAuth();
@@ -152,9 +168,9 @@ function useCardActions(post: PostProps) {
   };
 }
 
-// =============================================================================
+// -----------------------------------------------------------------------------
 // Content helpers
-// =============================================================================
+// -----------------------------------------------------------------------------
 
 function safeStripHtml(content: string): string {
   if (!content) return "";
@@ -189,117 +205,37 @@ function firstMedia(post: PostProps) {
   return [...post.media].sort((a, b) => a.position - b.position)[0];
 }
 
-// Type-specific editorial section label. Pure typography, no glyphs.
-function getTypeMark(type: PostType): string {
-  switch (type) {
-    case "poem": return "Verse";
-    case "quote": return "Quotation";
-    case "journal": return "Journal entry";
-    case "thought": return "A thought";
-    case "essay": return "Essay";
-    case "blog": return "Blog post";
-    case "story": return "Short story";
-    case "letter": return "A letter";
-    case "audio": return "Voice note";
-    case "video": return "Reel";
-    case "visual": return "Visual";
-  }
+/** Canonical display name — single source of truth. */
+function typeLabel(type: PostType): string {
+  return getPostTypeTheme(type).label;
 }
 
-// Per-type bento spans for the 12-column grid view. Visual/video posts go
-// wide when they have media; quote/poem prefer tall narrow columns; thought
-// stays petite; long-form sits comfortable.
-function getGridSpan(post: PostProps): string {
-  const hasMedia =
-    post.media && post.media.length > 0 && !post.contentWarning;
-  switch (post.type) {
-    case "visual":
-    case "video":
-      return hasMedia
-        ? "col-span-2 row-span-2 sm:col-span-4 sm:row-span-2 lg:col-span-6 lg:row-span-3"
-        : "col-span-2 row-span-2 sm:col-span-3 lg:col-span-4 lg:row-span-2";
-    case "audio":
-      return "col-span-2 row-span-1 sm:col-span-3 lg:col-span-4 lg:row-span-1";
-    case "thought":
-      return "col-span-2 row-span-1 sm:col-span-2 lg:col-span-3 lg:row-span-1";
-    case "poem":
-      return "col-span-2 row-span-2 sm:col-span-2 lg:col-span-3 lg:row-span-3";
-    case "quote":
-      return "col-span-2 row-span-2 sm:col-span-3 lg:col-span-3 lg:row-span-2";
-    case "letter":
-      return "col-span-2 row-span-2 sm:col-span-3 lg:col-span-4 lg:row-span-2";
-    case "journal":
-      return "col-span-2 row-span-2 sm:col-span-3 lg:col-span-4 lg:row-span-2";
-    case "essay":
-      return "col-span-2 row-span-2 sm:col-span-4 lg:col-span-5 lg:row-span-2";
-    case "blog":
-      return "col-span-2 row-span-2 sm:col-span-3 lg:col-span-4 lg:row-span-2";
-    case "story":
-      return "col-span-2 row-span-2 sm:col-span-3 lg:col-span-4 lg:row-span-2";
-  }
+/** A post reads as "compact" (small tile / no stats row) when it's a short,
+ * title-less micro-post. Content-driven, not a per-type special case. */
+function isMicroPost(post: PostProps, body: string): boolean {
+  return !post.title && body.length > 0 && body.length < 140;
 }
 
-// Per-type magazine col-spans.
-function getMagazineSpan(post: PostProps): string {
-  const hasMedia =
-    post.media && post.media.length > 0 && !post.contentWarning;
-  switch (post.type) {
-    case "visual":
-    case "video":
-      return hasMedia ? "md:col-span-8" : "md:col-span-6";
-    case "audio":
-      return "md:col-span-8";
-    case "thought":
-      return "md:col-span-4";
-    case "poem":
-      return "md:col-span-4";
-    case "quote":
-      return "md:col-span-5";
-    case "letter":
-      return "md:col-span-5";
-    case "journal":
-      return "md:col-span-6";
-    case "essay":
-      return "md:col-span-7";
-    case "blog":
-      return "md:col-span-6";
-    case "story":
-      return "md:col-span-6";
-  }
-}
-
-// =============================================================================
+// -----------------------------------------------------------------------------
 // Shared primitives
-// =============================================================================
+// -----------------------------------------------------------------------------
 
-function TypeMark({ type, dark = false }: { type: PostType; dark?: boolean }) {
+/** The ONE accent: glyph (type colour) + canonical label. Calm by design. */
+function TypeChip({ type, dark = false }: { type: PostType; dark?: boolean }) {
   const theme = getPostTypeTheme(type);
   return (
-    <span
-      className={`font-ui text-[0.62rem] font-semibold uppercase tracking-[0.22em] ${
-        dark ? "text-white/85" : theme.tintText
-      }`}
-    >
-      {getTypeMark(type)}
+    <span className="inline-flex items-center gap-1.5 font-ui text-[0.66rem] font-semibold uppercase tracking-[0.18em]">
+      <span aria-hidden="true" className={`text-[0.8rem] leading-none ${dark ? "text-white/90" : theme.tintText}`}>
+        {theme.glyph}
+      </span>
+      <span className={dark ? "text-white/85" : "text-subdued"}>{theme.label}</span>
     </span>
   );
 }
 
-function AuthorLine({
-  post,
-  dark = false,
-  showType = false,
-}: {
-  post: PostProps;
-  dark?: boolean;
-  showType?: boolean;
-}) {
+function AuthorLine({ post, dark = false }: { post: PostProps; dark?: boolean }) {
   return (
-    <div
-      className={`flex items-center gap-2 text-xs min-w-0 ${
-        dark ? "text-white/82" : "text-muted"
-      }`}
-    >
+    <div className={`flex items-center gap-2 text-xs min-w-0 ${dark ? "text-white/82" : "text-muted"}`}>
       <Link
         href={`/studio/${post.author.handle.replace("@", "")}`}
         onClick={(e) => e.stopPropagation()}
@@ -326,12 +262,6 @@ function AuthorLine({
       </Link>
       <span className={dark ? "text-white/60" : "text-muted"}>·</span>
       <span className="truncate">{post.timeAgo}</span>
-      {showType && (
-        <>
-          <span className={dark ? "text-white/60" : "text-muted"}>·</span>
-          <TypeMark type={post.type} dark={dark} />
-        </>
-      )}
     </div>
   );
 }
@@ -386,78 +316,87 @@ function StatsRow({
   );
 }
 
+/** Media thumbnail with a consistent "Watch" affordance for video. */
+function MediaThumb({
+  media,
+  className,
+  rounded = "rounded-xl",
+}: {
+  media: NonNullable<ReturnType<typeof firstMedia>>;
+  className: string;
+  rounded?: string;
+}) {
+  return (
+    <div className={`relative shrink-0 overflow-hidden ${rounded} bg-skeleton ${className}`}>
+      {media.media_type === "image" ? (
+        <Image
+          src={media.media_url}
+          alt={media.caption || ""}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          sizes="160px"
+          quality={80}
+        />
+      ) : (
+        <>
+          <video
+            src={media.media_url}
+            muted
+            playsInline
+            preload="metadata"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-surface/95 text-ink shadow">
+              <PlayIcon size="sm" className="translate-x-[1px]" />
+            </span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Shared card shell — neutral canvas, consistent hover, focus ring, a11y.
+const CARD_BASE =
+  "group relative overflow-hidden rounded-2xl border border-border-light bg-surface cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_18px_40px_color-mix(in_oklab,var(--color-ink)_9%,transparent)]";
+
 // =============================================================================
-// COMPACT VIEW — per-type editorial row, no decorative glyphs.
+// COMPACT — "catch up fast". Uniform scan rows; identical structure per type.
 // =============================================================================
 
 export function CompactPostCard({ post }: { post: PostProps }) {
   const actions = useCardActions(post);
-  const theme = getPostTypeTheme(post.type);
   const media = firstMedia(post);
   const cw = Boolean(post.contentWarning);
-
-  // Per-type body treatment
-  const isCentered = post.type === "poem" || post.type === "quote";
-  const titleSpec = post.type === "poem" || post.type === "story" || post.type === "letter" || post.type === "quote";
-
-  const bodyMax = post.type === "thought" || post.type === "quote" ? 240 : 200;
-  const bodyText = cw
+  const showThumb = Boolean(media) && !cw;
+  const body = cw
     ? `Content warning: ${post.contentWarning}`
-    : preview(post.content, bodyMax);
+    : preview(post.content, 180);
 
   return (
     <article
       role="button"
       tabIndex={0}
-      aria-label={post.title || `${getTypeMark(post.type)} by ${post.author.name}`}
+      aria-label={post.title || `${typeLabel(post.type)} by ${post.author.name}`}
       onClick={actions.onCardActivate}
       onKeyDown={actions.onKeyDown}
-      className={`group relative w-full overflow-hidden rounded-2xl border ${theme.tintBorder} ${theme.tintBg} cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 hover:-translate-y-px hover:shadow-[0_18px_38px_color-mix(in_oklab,var(--color-ink)_8%,transparent)]`}
+      className={`${CARD_BASE} w-full`}
     >
-      <div className="grid grid-cols-[1fr_auto] gap-5 p-4 sm:p-5">
-        <div className="min-w-0 flex flex-col gap-2.5">
-          <div className="flex items-center gap-3 min-w-0">
-            <TypeMark type={post.type} />
-            <span className="h-px flex-1 max-w-16 bg-current opacity-20" aria-hidden="true" />
-          </div>
-
-          <div className={`min-w-0 ${isCentered ? "text-center mx-auto max-w-prose" : ""}`}>
-            {post.title && (
-              <h3
-                className={`text-ink leading-snug line-clamp-2 ${
-                  titleSpec
-                    ? "font-display italic text-[1.1rem]"
-                    : "font-display font-semibold text-[1.05rem]"
-                }`}
-              >
-                {post.title}
-              </h3>
-            )}
-            <p
-              className={`mt-1 text-subdued leading-relaxed line-clamp-2 ${
-                post.type === "essay" || post.type === "blog"
-                  ? "font-body text-[0.92rem]"
-                  : post.type === "poem" || post.type === "quote" || post.type === "letter" || post.type === "story"
-                    ? "font-display italic text-[0.92rem]"
-                    : "font-body text-[0.9rem]"
-              }`}
-            >
-              {post.type === "essay" && !cw && bodyText.length > 0 ? (
-                <>
-                  <span className={`float-left mr-2 mt-1 font-display text-[2.2rem] leading-[0.8] ${theme.tintText}`}>
-                    {bodyText.charAt(0)}
-                  </span>
-                  {bodyText.slice(1)}
-                </>
-              ) : post.type === "quote" && !cw ? (
-                <>“{bodyText}”</>
-              ) : (
-                bodyText
-              )}
+      <div className="flex gap-4 p-4 sm:p-[18px]">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <TypeChip type={post.type} />
+          {post.title && (
+            <h3 className="font-display text-[1.05rem] font-semibold leading-snug text-ink line-clamp-1">
+              {post.title}
+            </h3>
+          )}
+          {body && (
+            <p className="font-body text-[0.9rem] leading-relaxed text-subdued line-clamp-2">
+              {body}
             </p>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 pt-1">
+          )}
+          <div className="mt-auto flex items-center justify-between gap-3 pt-1.5">
             <AuthorLine post={post} />
             <StatsRow
               isAdmired={actions.isAdmired}
@@ -470,74 +409,57 @@ export function CompactPostCard({ post }: { post: PostProps }) {
           </div>
         </div>
 
-        {media && !cw ? (
-          <div className="relative w-24 h-24 sm:w-32 sm:h-32 shrink-0 overflow-hidden rounded-xl bg-skeleton">
-            {media.media_type === "image" ? (
-              <Image
-                src={media.media_url}
-                alt={media.caption || ""}
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                sizes="(max-width: 640px) 96px, 128px"
-                quality={80}
-              />
-            ) : (
-              <>
-                <video
-                  src={media.media_url}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/28">
-                  <span className="rounded-full bg-surface/90 px-2.5 py-0.5 font-ui text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-ink">
-                    Watch
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        ) : null}
+        {showThumb && (
+          <MediaThumb
+            media={media!}
+            className="h-[88px] w-[88px] self-center sm:h-[104px] sm:w-[104px]"
+          />
+        )}
       </div>
     </article>
   );
 }
 
 // =============================================================================
-// GRID VIEW — bento mosaic. Per-type spans, per-type editorial treatments.
+// GRID — "browse by vibe". Gallery mosaic; media leads, text posts are tidy
+// typographic tiles. ONE structure for media, ONE for text. Content-driven size.
 // =============================================================================
+
+function getGridSpan(hasMedia: boolean, micro: boolean): string {
+  if (hasMedia) {
+    return "col-span-2 row-span-2 sm:col-span-3 sm:row-span-2 lg:col-span-4 lg:row-span-2";
+  }
+  if (micro) {
+    return "col-span-2 row-span-1 sm:col-span-3 sm:row-span-1 lg:col-span-4 lg:row-span-1";
+  }
+  return "col-span-2 row-span-2 sm:col-span-3 sm:row-span-2 lg:col-span-4 lg:row-span-2";
+}
 
 export function GridPostCard({ post }: { post: PostProps }) {
   const actions = useCardActions(post);
-  const theme = getPostTypeTheme(post.type);
   const media = firstMedia(post);
   const cw = Boolean(post.contentWarning);
-  const extraMediaCount = post.media && post.media.length > 1 ? post.media.length - 1 : 0;
   const showsMedia = Boolean(media) && !cw;
-  const span = getGridSpan(post);
+  const extraMediaCount = post.media && post.media.length > 1 ? post.media.length - 1 : 0;
+  const body = cw
+    ? `Content warning: ${post.contentWarning}`
+    : preview(post.content, 200);
+  const micro = !showsMedia && isMicroPost(post, body);
+  const span = getGridSpan(showsMedia, micro);
 
   return (
     <article
       role="button"
       tabIndex={0}
-      aria-label={post.title || `${getTypeMark(post.type)} by ${post.author.name}`}
+      aria-label={post.title || `${typeLabel(post.type)} by ${post.author.name}`}
       onClick={actions.onCardActivate}
       onKeyDown={actions.onKeyDown}
-      className={`group relative ${span} overflow-hidden rounded-2xl border ${
-        showsMedia ? "border-border-light bg-surface" : `${theme.tintBorder}`
-      } cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_color-mix(in_oklab,var(--color-ink)_12%,transparent)]`}
+      className={`${CARD_BASE} ${span}`}
     >
       {showsMedia ? (
-        <GridMediaTile
-          post={post}
-          theme={theme}
-          media={media!}
-          extraMediaCount={extraMediaCount}
-          actions={actions}
-        />
+        <GridMediaTile post={post} media={media!} extraMediaCount={extraMediaCount} actions={actions} />
       ) : (
-        <GridTextTile post={post} actions={actions} />
+        <GridTextTile post={post} body={body} micro={micro} actions={actions} />
       )}
     </article>
   );
@@ -550,7 +472,6 @@ function GridMediaTile({
   actions,
 }: {
   post: PostProps;
-  theme: ReturnType<typeof getPostTypeTheme>;
   media: NonNullable<ReturnType<typeof firstMedia>>;
   extraMediaCount: number;
   actions: ReturnType<typeof useCardActions>;
@@ -574,7 +495,7 @@ function GridMediaTile({
               muted
               playsInline
               preload="metadata"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover"
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/28">
               <div className="grid h-12 w-12 place-items-center rounded-full bg-surface/95 text-ink shadow-lg">
@@ -583,13 +504,13 @@ function GridMediaTile({
             </div>
           </>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/25 to-transparent" />
       </div>
 
       <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
-        <div className="rounded-md bg-black/45 px-2 py-1 backdrop-blur-md">
-          <TypeMark type={post.type} dark />
-        </div>
+        <span className="rounded-md bg-black/45 px-2 py-1 backdrop-blur-md">
+          <TypeChip type={post.type} dark />
+        </span>
         <div className="flex items-center gap-1.5">
           {extraMediaCount > 0 && (
             <span className="rounded-md border border-white/25 bg-black/45 px-2 py-1 font-ui text-[0.62rem] font-semibold text-white backdrop-blur-md">
@@ -612,7 +533,7 @@ function GridMediaTile({
 
       <div className="absolute inset-x-0 bottom-0 p-4 text-white">
         {post.title && (
-          <h3 className="font-display text-base sm:text-lg font-semibold leading-tight line-clamp-2 drop-shadow-sm mb-2">
+          <h3 className="mb-2 font-display text-base font-semibold leading-tight line-clamp-2 drop-shadow-sm sm:text-lg">
             {post.title}
           </h3>
         )}
@@ -633,217 +554,38 @@ function GridMediaTile({
   );
 }
 
-// Per-type editorial typography for text-only grid tiles.
 function GridTextTile({
   post,
+  body,
+  micro,
   actions,
 }: {
   post: PostProps;
+  body: string;
+  micro: boolean;
   actions: ReturnType<typeof useCardActions>;
 }) {
-  const theme = getPostTypeTheme(post.type);
-  const cw = Boolean(post.contentWarning);
-  const body = cw
-    ? `Content warning: ${post.contentWarning}`
-    : preview(post.content, post.type === "thought" ? 220 : 260);
-
-  // QUOTE — oversized opening quote watermark, italic centered body, attribution
-  if (post.type === "quote") {
+  // Micro post (short, title-less): chip + statement + author. Compact, calm.
+  if (micro) {
     return (
-      <div className={`absolute inset-0 ${theme.tintBg} p-5 flex flex-col`}>
-        <span
-          className={`pointer-events-none absolute -top-3 left-3 font-display select-none ${theme.tintText} opacity-30`}
-          style={{ fontSize: "9rem", lineHeight: 1 }}
-          aria-hidden="true"
-        >
-          “
-        </span>
-        <div className="relative flex-1 flex items-center justify-center text-center">
-          <p className="font-display italic text-ink text-[1.05rem] leading-snug line-clamp-6 px-3">
-            {body}
-          </p>
-        </div>
-        <div className="relative flex items-center justify-between gap-3 pt-3 border-t border-current/10">
-          <AuthorLine post={post} />
-          <StatsRow {...actions} onAdmire={actions.onAdmire} onSave={actions.onSave} />
-        </div>
-      </div>
-    );
-  }
-
-  // POEM — centered italic verse, type mark at top, hairline divider
-  if (post.type === "poem") {
-    return (
-      <div className={`absolute inset-0 ${theme.tintBg} p-5 flex flex-col items-center text-center`}>
-        <div className="flex flex-col items-center gap-2 mb-3">
-          <TypeMark type="poem" />
-          <span className={`h-px w-8 bg-current opacity-30 ${theme.tintText}`} aria-hidden="true" />
-        </div>
-        {post.title && (
-          <h3 className="font-display italic text-ink text-lg font-semibold leading-snug line-clamp-2 mb-2">
-            {post.title}
-          </h3>
-        )}
-        <p className="font-display italic text-subdued text-sm leading-relaxed line-clamp-5 flex-1">
-          {body}
-        </p>
-        <div className="mt-3 w-full">
-          <AuthorLine post={post} />
-        </div>
-      </div>
-    );
-  }
-
-  // THOUGHT — tiny but expressive, no title needed, body as a single
-  // typographic statement
-  if (post.type === "thought") {
-    return (
-      <div className={`absolute inset-0 ${theme.tintBg} p-4 flex flex-col justify-between`}>
-        <TypeMark type="thought" />
-        <p className="font-display text-ink text-[1.05rem] leading-snug line-clamp-3">
-          {body}
-        </p>
+      <div className="absolute inset-0 flex flex-col justify-between bg-surface p-4">
+        <TypeChip type={post.type} />
+        <p className="font-display text-[1.02rem] leading-snug text-ink line-clamp-3">{body}</p>
         <AuthorLine post={post} />
       </div>
     );
   }
 
-  // AUDIO — voice-note card with a thin gradient bar (no waveform icons)
-  if (post.type === "audio") {
-    return (
-      <div className={`absolute inset-0 ${theme.tintBg} p-4 flex flex-col gap-3`}>
-        <div className="flex items-center justify-between gap-2">
-          <TypeMark type="audio" />
-          <span className={`rounded-full border ${theme.tintBorder} px-2 py-0.5 font-ui text-[0.6rem] uppercase tracking-[0.2em] ${theme.tintText}`}>
-            Listen
-          </span>
-        </div>
-        <div className="flex-1 flex flex-col justify-center">
-          {post.title && (
-            <h3 className="font-display text-ink text-base font-semibold leading-snug line-clamp-2 mb-2">
-              {post.title}
-            </h3>
-          )}
-          <span
-            className={`block h-1 w-full rounded-full ${theme.dotBg} opacity-40`}
-            aria-hidden="true"
-          />
-        </div>
-        <AuthorLine post={post} />
-      </div>
-    );
-  }
-
-  // LETTER — "Dear …" stationery vibe
-  if (post.type === "letter") {
-    return (
-      <div className={`absolute inset-0 ${theme.tintBg} p-5 flex flex-col`}>
-        <div className="flex items-center gap-3 mb-3">
-          <TypeMark type="letter" />
-          <span className={`h-px flex-1 bg-current opacity-25 ${theme.tintText}`} aria-hidden="true" />
-        </div>
-        {post.title && (
-          <h3 className="font-display italic text-ink text-lg font-semibold leading-snug line-clamp-2 mb-2">
-            {post.title}
-          </h3>
-        )}
-        <p className="font-display italic text-subdued text-sm leading-relaxed line-clamp-5 flex-1">
-          {body}
-        </p>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <AuthorLine post={post} />
-          <span className={`font-display italic text-xs ${theme.tintText}`}>— Yours</span>
-        </div>
-      </div>
-    );
-  }
-
-  // ESSAY — drop-cap opener, body type, lots of space
-  if (post.type === "essay") {
-    const opener = body.charAt(0);
-    const rest = body.slice(1);
-    return (
-      <div className={`absolute inset-0 ${theme.tintBg} p-5 flex flex-col`}>
-        <div className="flex items-center gap-3 mb-3">
-          <TypeMark type="essay" />
-          <span className={`h-px flex-1 bg-current opacity-25 ${theme.tintText}`} aria-hidden="true" />
-        </div>
-        {post.title && (
-          <h3 className="font-display text-ink text-lg font-semibold leading-snug line-clamp-2 mb-2">
-            {post.title}
-          </h3>
-        )}
-        <p className="font-body text-subdued text-sm leading-relaxed line-clamp-5 flex-1">
-          <span className={`float-left mr-2 mt-1 font-display text-[2.6rem] leading-[0.78] ${theme.tintText}`}>
-            {opener}
-          </span>
-          {rest}
-        </p>
-        <div className="mt-3">
-          <AuthorLine post={post} />
-        </div>
-      </div>
-    );
-  }
-
-  // STORY — italic display title, body, narrative feel
-  if (post.type === "story") {
-    return (
-      <div className={`absolute inset-0 ${theme.tintBg} p-5 flex flex-col`}>
-        <TypeMark type="story" />
-        {post.title && (
-          <h3 className="mt-3 font-display italic text-ink text-lg font-semibold leading-snug line-clamp-2 mb-2">
-            {post.title}
-          </h3>
-        )}
-        <p className="font-display text-subdued text-sm leading-relaxed line-clamp-5 flex-1">
-          {body}
-        </p>
-        <div className="mt-3">
-          <AuthorLine post={post} />
-        </div>
-      </div>
-    );
-  }
-
-  // JOURNAL — dated entry feel
-  if (post.type === "journal") {
-    return (
-      <div className={`absolute inset-0 ${theme.tintBg} p-5 flex flex-col`}>
-        <div className="flex items-center gap-3 mb-3">
-          <TypeMark type="journal" />
-          <span className={`text-[0.62rem] font-ui uppercase tracking-[0.22em] ${theme.tintText}`}>
-            · {post.timeAgo}
-          </span>
-        </div>
-        {post.title && (
-          <h3 className="font-display text-ink text-base font-semibold leading-snug line-clamp-2 mb-2">
-            {post.title}
-          </h3>
-        )}
-        <p className="font-body italic text-subdued text-sm leading-relaxed line-clamp-5 flex-1">
-          {body}
-        </p>
-        <div className="mt-3">
-          <AuthorLine post={post} />
-        </div>
-      </div>
-    );
-  }
-
-  // BLOG, VISUAL (no media), VIDEO (no thumbnail) — generic editorial tile
+  // Standard text tile: one structure for every long-form / titled type.
   return (
-    <div className={`absolute inset-0 ${theme.tintBg} p-5 flex flex-col`}>
-      <div className="flex items-center gap-3 mb-3">
-        <TypeMark type={post.type} />
-        <span className={`h-px flex-1 bg-current opacity-25 ${theme.tintText}`} aria-hidden="true" />
-      </div>
+    <div className="absolute inset-0 flex flex-col bg-surface p-4 sm:p-5">
+      <TypeChip type={post.type} />
       {post.title && (
-        <h3 className="font-display text-ink text-lg font-semibold leading-snug line-clamp-2 mb-2">
+        <h3 className="mt-2.5 font-display text-[1.05rem] font-semibold leading-snug text-ink line-clamp-2">
           {post.title}
         </h3>
       )}
-      <p className="font-body text-subdued text-sm leading-relaxed line-clamp-5 flex-1">
+      <p className="mt-1.5 flex-1 font-body text-[0.88rem] leading-relaxed text-subdued line-clamp-4">
         {body}
       </p>
       <div className="mt-3 flex items-center justify-between gap-3">
@@ -862,152 +604,39 @@ function GridTextTile({
 }
 
 // =============================================================================
-// MAGAZINE VIEW — long-form editorial cards in a 12-col grid, per-type span,
-// per-type treatment.
+// MAGAZINE — "lean-back editorial browse". Larger curated cards; ONE media
+// structure, ONE text structure; generous, consistent chrome.
 // =============================================================================
+
+function getMagazineSpan(hasMedia: boolean, micro: boolean): string {
+  if (hasMedia) return "md:col-span-8";
+  if (micro) return "md:col-span-4";
+  return "md:col-span-6";
+}
 
 export function MagazinePostCard({ post }: { post: PostProps }) {
   const actions = useCardActions(post);
-  const theme = getPostTypeTheme(post.type);
   const media = firstMedia(post);
   const cw = Boolean(post.contentWarning);
-  const extraMediaCount = post.media && post.media.length > 1 ? post.media.length - 1 : 0;
   const showsMedia = Boolean(media) && !cw;
-  const span = getMagazineSpan(post);
+  const extraMediaCount = post.media && post.media.length > 1 ? post.media.length - 1 : 0;
   const body = cw
     ? `Content warning: ${post.contentWarning}`
     : preview(post.content, 320);
+  const micro = !showsMedia && isMicroPost(post, body);
+  const span = getMagazineSpan(showsMedia, micro);
 
-  // QUOTE — pull-quote treatment with oversized opening mark
-  if (post.type === "quote" && !showsMedia) {
-    return (
-      <article
-        role="button"
-        tabIndex={0}
-        aria-label={post.title || `Quotation by ${post.author.name}`}
-        onClick={actions.onCardActivate}
-        onKeyDown={actions.onKeyDown}
-        className={`group ${span} relative overflow-hidden rounded-2xl border ${theme.tintBorder} ${theme.tintBg} cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_color-mix(in_oklab,var(--color-ink)_10%,transparent)]`}
-      >
-        <span
-          className={`pointer-events-none absolute -top-4 left-4 font-display select-none ${theme.tintText} opacity-25`}
-          style={{ fontSize: "11rem", lineHeight: 1 }}
-          aria-hidden="true"
-        >
-          “
-        </span>
-        <div className="relative p-6 sm:p-8">
-          <TypeMark type="quote" />
-          <p className="mt-4 font-display italic text-ink text-xl sm:text-2xl leading-snug line-clamp-6">
-            {body}
-          </p>
-          <div className="mt-6 pt-4 border-t border-current/10">
-            <MagazineFooter post={post} actions={actions} />
-          </div>
-        </div>
-      </article>
-    );
-  }
-
-  // POEM — centered verse spread
-  if (post.type === "poem" && !showsMedia) {
-    return (
-      <article
-        role="button"
-        tabIndex={0}
-        aria-label={post.title || `Verse by ${post.author.name}`}
-        onClick={actions.onCardActivate}
-        onKeyDown={actions.onKeyDown}
-        className={`group ${span} relative overflow-hidden rounded-2xl border ${theme.tintBorder} ${theme.tintBg} cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_color-mix(in_oklab,var(--color-ink)_10%,transparent)]`}
-      >
-        <div className="p-6 sm:p-8 flex flex-col items-center text-center">
-          <div className="flex flex-col items-center gap-2 mb-4">
-            <TypeMark type="poem" />
-            <span className={`h-px w-10 bg-current opacity-30 ${theme.tintText}`} aria-hidden="true" />
-          </div>
-          {post.title && (
-            <h3 className="font-display italic text-ink text-xl sm:text-2xl font-semibold leading-snug line-clamp-2 mb-3">
-              {post.title}
-            </h3>
-          )}
-          <p className="font-display italic text-subdued text-base leading-loose line-clamp-6 mb-6">
-            {body}
-          </p>
-          <div className="w-full pt-4 border-t border-current/10">
-            <MagazineFooter post={post} actions={actions} />
-          </div>
-        </div>
-      </article>
-    );
-  }
-
-  // THOUGHT — small statement card
-  if (post.type === "thought" && !showsMedia) {
-    return (
-      <article
-        role="button"
-        tabIndex={0}
-        aria-label={`A thought by ${post.author.name}`}
-        onClick={actions.onCardActivate}
-        onKeyDown={actions.onKeyDown}
-        className={`group ${span} relative overflow-hidden rounded-2xl border ${theme.tintBorder} ${theme.tintBg} cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_color-mix(in_oklab,var(--color-ink)_10%,transparent)]`}
-      >
-        <div className="p-6">
-          <TypeMark type="thought" />
-          <p className="mt-3 font-display text-ink text-lg leading-snug line-clamp-4">
-            {body}
-          </p>
-          <div className="mt-5 pt-4 border-t border-current/10">
-            <MagazineFooter post={post} actions={actions} />
-          </div>
-        </div>
-      </article>
-    );
-  }
-
-  // AUDIO — voice-note feature with no waveform glyphs
-  if (post.type === "audio" && !showsMedia) {
-    return (
-      <article
-        role="button"
-        tabIndex={0}
-        aria-label={`Voice note by ${post.author.name}`}
-        onClick={actions.onCardActivate}
-        onKeyDown={actions.onKeyDown}
-        className={`group ${span} relative overflow-hidden rounded-2xl border ${theme.tintBorder} ${theme.tintBg} cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_color-mix(in_oklab,var(--color-ink)_10%,transparent)]`}
-      >
-        <div className="p-6 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <TypeMark type="audio" />
-            <span className={`rounded-full border ${theme.tintBorder} px-3 py-1 font-ui text-[0.62rem] uppercase tracking-[0.22em] ${theme.tintText}`}>
-              Press to listen
-            </span>
-          </div>
-          {post.title && (
-            <h3 className="font-display text-ink text-xl font-semibold leading-snug line-clamp-2">
-              {post.title}
-            </h3>
-          )}
-          <span className={`block h-1 w-full rounded-full ${theme.dotBg} opacity-40`} aria-hidden="true" />
-          <MagazineFooter post={post} actions={actions} />
-        </div>
-      </article>
-    );
-  }
-
-  // Default — long-form editorial card (essay, blog, story, letter, journal,
-  // visual/video without media)
   return (
     <article
       role="button"
       tabIndex={0}
-      aria-label={post.title || `${getTypeMark(post.type)} by ${post.author.name}`}
+      aria-label={post.title || `${typeLabel(post.type)} by ${post.author.name}`}
       onClick={actions.onCardActivate}
       onKeyDown={actions.onKeyDown}
-      className={`group ${span} relative overflow-hidden rounded-2xl border border-border-light bg-surface cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_color-mix(in_oklab,var(--color-ink)_10%,transparent)]`}
+      className={`${CARD_BASE} ${span}`}
     >
       {showsMedia && (
-        <div className="relative w-full overflow-hidden bg-skeleton aspect-[16/10]">
+        <div className="relative aspect-[16/10] w-full overflow-hidden bg-skeleton">
           {media!.media_type === "image" ? (
             <Image
               src={media!.media_url}
@@ -1024,7 +653,7 @@ export function MagazinePostCard({ post }: { post: PostProps }) {
                 muted
                 playsInline
                 preload="metadata"
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/24">
                 <div className="grid h-14 w-14 place-items-center rounded-full bg-surface/95 text-ink shadow-lg">
@@ -1033,9 +662,9 @@ export function MagazinePostCard({ post }: { post: PostProps }) {
               </div>
             </>
           )}
-          <div className="absolute left-3 top-3 rounded-md bg-black/45 px-2 py-1 backdrop-blur-md">
-            <TypeMark type={post.type} dark />
-          </div>
+          <span className="absolute left-3 top-3 rounded-md bg-black/45 px-2 py-1 backdrop-blur-md">
+            <TypeChip type={post.type} dark />
+          </span>
           {extraMediaCount > 0 && (
             <span className="absolute right-3 top-3 rounded-md border border-white/25 bg-black/45 px-2 py-1 font-ui text-[0.62rem] font-semibold text-white backdrop-blur-md">
               +{extraMediaCount}
@@ -1044,69 +673,35 @@ export function MagazinePostCard({ post }: { post: PostProps }) {
         </div>
       )}
 
-      <div className="p-5 sm:p-6">
-        {!showsMedia && (
-          <div className="mb-3 flex items-center gap-3">
-            <TypeMark type={post.type} />
-            <span className={`h-px flex-1 max-w-12 bg-current opacity-25 ${theme.tintText}`} aria-hidden="true" />
-          </div>
-        )}
+      <div className={micro ? "p-6" : "p-5 sm:p-6"}>
+        {!showsMedia && <TypeChip type={post.type} />}
         {post.title && (
-          <h3
-            className={`text-ink leading-tight mb-2 line-clamp-2 ${
-              post.type === "story" || post.type === "letter"
-                ? "font-display italic text-xl sm:text-2xl font-semibold"
-                : "font-display text-xl sm:text-2xl font-semibold"
-            }`}
-          >
+          <h3 className="mt-3 mb-2 font-display text-xl font-semibold leading-tight text-ink line-clamp-2 sm:text-2xl">
             {post.title}
           </h3>
         )}
         <p
-          className={`text-subdued leading-relaxed line-clamp-5 ${
-            post.type === "letter" || post.type === "story" || post.type === "journal"
-              ? "font-display italic text-[0.95rem]"
-              : "font-body text-[0.95rem]"
-          }`}
+          className={`leading-relaxed text-subdued ${
+            micro
+              ? "mt-3 font-display text-lg leading-snug text-ink line-clamp-4"
+              : "font-body text-[0.95rem] line-clamp-5"
+          } ${post.title || showsMedia ? "" : "mt-3"}`}
         >
-          {post.type === "essay" && body.length > 1 ? (
-            <>
-              <span className={`float-left mr-2 mt-1 font-display text-[3rem] leading-[0.78] ${theme.tintText}`}>
-                {body.charAt(0)}
-              </span>
-              {body.slice(1)}
-            </>
-          ) : (
-            body
-          )}
+          {body}
         </p>
 
-        <div className="mt-5 pt-4 border-t border-border-light/70">
-          <MagazineFooter post={post} actions={actions} />
+        <div className="mt-5 flex items-center justify-between gap-3 border-t border-border-light/70 pt-4">
+          <AuthorLine post={post} />
+          <StatsRow
+            isAdmired={actions.isAdmired}
+            admireCount={actions.admireCount}
+            commentCount={actions.commentCount}
+            isSaved={actions.isSaved}
+            onAdmire={actions.onAdmire}
+            onSave={actions.onSave}
+          />
         </div>
       </div>
     </article>
-  );
-}
-
-function MagazineFooter({
-  post,
-  actions,
-}: {
-  post: PostProps;
-  actions: ReturnType<typeof useCardActions>;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <AuthorLine post={post} />
-      <StatsRow
-        isAdmired={actions.isAdmired}
-        admireCount={actions.admireCount}
-        commentCount={actions.commentCount}
-        isSaved={actions.isSaved}
-        onAdmire={actions.onAdmire}
-        onSave={actions.onSave}
-      />
-    </div>
   );
 }
