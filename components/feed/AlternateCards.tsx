@@ -17,7 +17,8 @@ import {
 import { actionToast } from "@/lib/utils/toast";
 import { stripHtml, getExcerpt } from "@/lib/utils/sanitize";
 import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
-import type { PostProps, PostType } from "./PostCard/types";
+import { AudioPlayer } from "@/components/feed/AudioPlayer";
+import type { PostProps, PostType, MediaItem } from "./PostCard/types";
 
 // =============================================================================
 // UNIFIED ALTERNATE FEED LAYOUTS — compact, grid, magazine.
@@ -205,6 +206,62 @@ function firstMedia(post: PostProps) {
   return [...post.media].sort((a, b) => a.position - b.position)[0];
 }
 
+// -----------------------------------------------------------------------------
+// Sound / Voice showcase helpers (Heard category)
+// -----------------------------------------------------------------------------
+
+// post.type is typed as the existing PostType union, but the DB/registry also
+// emits the new "sound"/"voice" formats — compare via string to stay aligned
+// with the format registry without widening the shared PostType.
+const AUDIO_FORMATS = new Set(["sound", "voice", "audio"]);
+
+function isAudioFormat(type: PostType): boolean {
+  return AUDIO_FORMATS.has(type as string);
+}
+
+function firstMediaOfType(post: PostProps, kind: MediaItem["media_type"]) {
+  if (!post.media || post.media.length === 0) return null;
+  return (
+    [...post.media]
+      .sort((a, b) => a.position - b.position)
+      .find((m) => m.media_type === kind) ?? null
+  );
+}
+
+/** The audio showcase body for a sound/voice post, or null to fall back to
+ * normal text/card rendering (no audio attached, or not an audio format). */
+function AudioShowcase({ post }: { post: PostProps }): React.JSX.Element | null {
+  if (!isAudioFormat(post.type)) return null;
+  const audio = firstMediaOfType(post, "audio");
+  if (!audio) return null;
+
+  // "voice" → compact; "sound"/"audio" → album-art card with cover.
+  if ((post.type as string) === "voice") {
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <AudioPlayer src={audio.media_url} title={post.title} variant="voice" />
+      </div>
+    );
+  }
+
+  const cover = firstMediaOfType(post, "image");
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <AudioPlayer
+        src={audio.media_url}
+        title={post.title}
+        cover={cover?.media_url ?? null}
+        variant="card"
+      />
+    </div>
+  );
+}
+
+/** Whether this post should render the audio showcase as its body. */
+function hasAudioShowcase(post: PostProps): boolean {
+  return isAudioFormat(post.type) && firstMediaOfType(post, "audio") !== null;
+}
+
 /** Canonical display name — single source of truth. */
 function typeLabel(type: PostType): string {
   return getPostTypeTheme(type).label;
@@ -369,7 +426,8 @@ export function CompactPostCard({ post }: { post: PostProps }) {
   const actions = useCardActions(post);
   const media = firstMedia(post);
   const cw = Boolean(post.contentWarning);
-  const showThumb = Boolean(media) && !cw;
+  const audioShowcase = !cw && hasAudioShowcase(post);
+  const showThumb = Boolean(media) && !cw && !audioShowcase;
   const body = cw
     ? `Content warning: ${post.contentWarning}`
     : preview(post.content, 180);
@@ -386,15 +444,19 @@ export function CompactPostCard({ post }: { post: PostProps }) {
       <div className="flex gap-4 p-4 sm:p-[18px]">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <TypeChip type={post.type} />
-          {post.title && (
+          {post.title && !audioShowcase && (
             <h3 className="font-display text-[1.05rem] font-semibold leading-snug text-ink line-clamp-1">
               {post.title}
             </h3>
           )}
-          {body && (
-            <p className="font-body text-[0.9rem] leading-relaxed text-subdued line-clamp-2">
-              {body}
-            </p>
+          {audioShowcase ? (
+            <AudioShowcase post={post} />
+          ) : (
+            body && (
+              <p className="font-body text-[0.9rem] leading-relaxed text-subdued line-clamp-2">
+                {body}
+              </p>
+            )
           )}
           <div className="mt-auto flex items-center justify-between gap-3 pt-1.5">
             <AuthorLine post={post} />
@@ -439,12 +501,14 @@ export function GridPostCard({ post }: { post: PostProps }) {
   const actions = useCardActions(post);
   const media = firstMedia(post);
   const cw = Boolean(post.contentWarning);
-  const showsMedia = Boolean(media) && !cw;
+  const audioShowcase = !cw && hasAudioShowcase(post);
+  const showsMedia = Boolean(media) && !cw && !audioShowcase;
   const extraMediaCount = post.media && post.media.length > 1 ? post.media.length - 1 : 0;
   const body = cw
     ? `Content warning: ${post.contentWarning}`
     : preview(post.content, 200);
-  const micro = !showsMedia && isMicroPost(post, body);
+  const micro = !showsMedia && !audioShowcase && isMicroPost(post, body);
+  // Audio showcases use the same comfortable footprint as a standard text tile.
   const span = getGridSpan(showsMedia, micro);
 
   return (
@@ -456,12 +520,42 @@ export function GridPostCard({ post }: { post: PostProps }) {
       onKeyDown={actions.onKeyDown}
       className={`${CARD_BASE} ${span}`}
     >
-      {showsMedia ? (
+      {audioShowcase ? (
+        <GridAudioTile post={post} actions={actions} />
+      ) : showsMedia ? (
         <GridMediaTile post={post} media={media!} extraMediaCount={extraMediaCount} actions={actions} />
       ) : (
         <GridTextTile post={post} body={body} micro={micro} actions={actions} />
       )}
     </article>
+  );
+}
+
+function GridAudioTile({
+  post,
+  actions,
+}: {
+  post: PostProps;
+  actions: ReturnType<typeof useCardActions>;
+}) {
+  return (
+    <div className="absolute inset-0 flex flex-col bg-surface p-4 sm:p-5">
+      <TypeChip type={post.type} />
+      <div className="mt-3 flex-1">
+        <AudioShowcase post={post} />
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <AuthorLine post={post} />
+        <StatsRow
+          isAdmired={actions.isAdmired}
+          admireCount={actions.admireCount}
+          commentCount={actions.commentCount}
+          isSaved={actions.isSaved}
+          onAdmire={actions.onAdmire}
+          onSave={actions.onSave}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -618,12 +712,13 @@ export function MagazinePostCard({ post }: { post: PostProps }) {
   const actions = useCardActions(post);
   const media = firstMedia(post);
   const cw = Boolean(post.contentWarning);
-  const showsMedia = Boolean(media) && !cw;
+  const audioShowcase = !cw && hasAudioShowcase(post);
+  const showsMedia = Boolean(media) && !cw && !audioShowcase;
   const extraMediaCount = post.media && post.media.length > 1 ? post.media.length - 1 : 0;
   const body = cw
     ? `Content warning: ${post.contentWarning}`
     : preview(post.content, 320);
-  const micro = !showsMedia && isMicroPost(post, body);
+  const micro = !showsMedia && !audioShowcase && isMicroPost(post, body);
   const span = getMagazineSpan(showsMedia, micro);
 
   return (
@@ -675,20 +770,26 @@ export function MagazinePostCard({ post }: { post: PostProps }) {
 
       <div className={micro ? "p-6" : "p-5 sm:p-6"}>
         {!showsMedia && <TypeChip type={post.type} />}
-        {post.title && (
+        {post.title && !audioShowcase && (
           <h3 className="mt-3 mb-2 font-display text-xl font-semibold leading-tight text-ink line-clamp-2 sm:text-2xl">
             {post.title}
           </h3>
         )}
-        <p
-          className={`leading-relaxed text-subdued ${
-            micro
-              ? "mt-3 font-display text-lg leading-snug text-ink line-clamp-4"
-              : "font-body text-[0.95rem] line-clamp-5"
-          } ${post.title || showsMedia ? "" : "mt-3"}`}
-        >
-          {body}
-        </p>
+        {audioShowcase ? (
+          <div className="mt-3">
+            <AudioShowcase post={post} />
+          </div>
+        ) : (
+          <p
+            className={`leading-relaxed text-subdued ${
+              micro
+                ? "mt-3 font-display text-lg leading-snug text-ink line-clamp-4"
+                : "font-body text-[0.95rem] line-clamp-5"
+            } ${post.title || showsMedia ? "" : "mt-3"}`}
+          >
+            {body}
+          </p>
+        )}
 
         <div className="mt-5 flex items-center justify-between gap-3 border-t border-border-light/70 pt-4">
           <AuthorLine post={post} />

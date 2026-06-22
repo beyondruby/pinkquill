@@ -20,6 +20,7 @@ import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import FlairBadge from "@/components/communities/FlairBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
+import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { supabase } from "@/lib/supabase";
 import { PostType } from "@/lib/types";
 import { deleteOwnPost } from "@/lib/posts-client";
@@ -193,7 +194,12 @@ function PostCardComponent({
   const viewTrackerRef = usePostViewTracker(post.id, post.authorId, "feed");
   useTrackPostImpression(post.id, "feed");
 
-  const hasMedia = post.media && post.media.length > 0;
+  // Audio (Sound/Voice formats) renders as a player; visual media keeps the grid.
+  const audioMedia = post.media?.find((m) => m.media_type === "audio") || null;
+  const visualMedia = (post.media || []).filter((m) => m.media_type !== "audio");
+  const hasMedia = visualMedia.length > 0;
+  const isVoicePost = (post.type as string) === "voice";
+  const audioCover = visualMedia.find((m) => m.media_type === "image")?.media_url || null;
   const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${post.id}` : `/post/${post.id}`;
 
   // Subscribe to updates from modal (reactions are handled by real-time hooks)
@@ -1089,13 +1095,25 @@ function PostCardComponent({
               </div>
             )}
 
+            {/* Audio (Sound / Voice formats) — inline player */}
+            {audioMedia && showContent && (
+              <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                <AudioPlayer
+                  src={audioMedia.media_url}
+                  title={post.title || undefined}
+                  cover={isVoicePost ? null : audioCover}
+                  variant={isVoicePost ? "voice" : "card"}
+                />
+              </div>
+            )}
+
             {/* 3. Images as squares - hidden entirely when content warning is active */}
             {hasMedia && showContent && (
               <div className="unified-media-grid" onClick={(e) => e.stopPropagation()}>
-                {post.media!.slice(0, 4).map((item, idx) => (
+                {visualMedia.slice(0, 4).map((item, idx) => (
                   <div
                     key={item.id || idx}
-                    className={`unified-media-item ${post.media!.length === 1 ? 'single' : ''} ${post.media!.length === 2 ? 'double' : ''} ${post.media!.length === 3 && idx === 0 ? 'featured' : ''}`}
+                    className={`unified-media-item ${visualMedia.length === 1 ? 'single' : ''} ${visualMedia.length === 2 ? 'double' : ''} ${visualMedia.length === 3 && idx === 0 ? 'featured' : ''}`}
                   >
                     {item.media_type === "video" ? (
                       <div className="unified-video-thumb">
@@ -1122,9 +1140,9 @@ function PostCardComponent({
                       />
                     )}
                     {/* Show +N overlay on the last visible image if more than 4 */}
-                    {idx === 3 && post.media!.length > 4 && (
+                    {idx === 3 && visualMedia.length > 4 && (
                       <div className="unified-media-more">
-                        +{post.media!.length - 4}
+                        +{visualMedia.length - 4}
                       </div>
                     )}
                   </div>

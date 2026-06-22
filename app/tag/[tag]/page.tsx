@@ -39,7 +39,7 @@ function transformPostForCard(post: {
   content: string | null;
   content_warning: string | null;
   created_at: string;
-  media: { id: string; media_url: string; media_type: "image" | "video"; caption: string | null; position: number }[];
+  media: { id: string; media_url: string; media_type: "image" | "video" | "audio"; caption: string | null; position: number }[];
   admires_count: number;
   reactions_count?: number;
   comments_count: number;

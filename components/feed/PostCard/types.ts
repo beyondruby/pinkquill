@@ -9,7 +9,7 @@ export interface Author {
 export interface MediaItem {
   id: string;
   media_url: string;
-  media_type: "image" | "video";
+  media_type: "image" | "video" | "audio";
   caption: string | null;
   position: number;
 }

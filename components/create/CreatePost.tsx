@@ -26,6 +26,17 @@ const CollectionSelector = dynamic(() => import("@/components/collections/Collec
 import { useAddPostToCollectionItem } from "@/lib/hooks/useCollections";
 import type { Collection, CollectionItem } from "@/lib/types";
 import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
+import { useAudioUpload, type AudioKind } from "@/lib/hooks/useAudioUpload";
+import {
+  POST_CATEGORIES,
+  CATEGORY_ORDER,
+  DEFAULT_FORMAT,
+  getFormatsByCategory,
+  getFormatSpec,
+  getCategoryOf,
+  type PostCategory,
+  type FormatSpec,
+} from "@/lib/feed-view/formats";
 import DOMPurify from "dompurify";
 
 interface PostTypeOption {
@@ -469,6 +480,51 @@ const icons: Record<string, React.ReactElement> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
     </svg>
   ),
+  mic: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 3a3 3 0 00-3 3v5a3 3 0 006 0V6a3 3 0 00-3-3z" />
+    </svg>
+  ),
+  waveform: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10v4M9 6v12M12 3v18M15 6v12M19 10v4" />
+    </svg>
+  ),
+  arrowLeft: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    </svg>
+  ),
+  arrowRight: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+    </svg>
+  ),
+};
+
+// Category tab icons for the Page-2 format picker.
+const categoryIcons: Record<PostCategory, React.ReactElement> = {
+  read: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+    </svg>
+  ),
+  seen: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  ),
+  watched: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    </svg>
+  ),
+  heard: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+    </svg>
+  ),
 };
 
 // Color palette for text color and highlighting
@@ -543,9 +599,11 @@ interface MediaItem {
   file?: File;
   preview: string;
   caption: string;
-  type: "image" | "video";
+  type: "image" | "video" | "audio";
   isExisting?: boolean;
   media_url?: string;
+  /** For audio items: duration in seconds (from useAudioUpload). */
+  durationSec?: number;
 }
 
 const visibilityOptions = [
@@ -644,6 +702,19 @@ export default function CreatePost() {
   // Media
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [deletedMediaIds, setDeletedMediaIds] = useState<string[]>([]);
+
+  // Audio upload (NEW — uploaded Sound / Voice). Audio files live as audio-typed
+  // MediaItems alongside images/videos so they persist as post_media rows.
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const { uploadAudio, uploading: audioUploading, error: audioUploadError } = useAudioUpload();
+
+  // Wizard step: 1 = Create (content), 2 = Format (optional). Takes keep their
+  // own dedicated single-page flow and ignore the wizard steps.
+  const [step, setStep] = useState<1 | 2>(1);
+
+  // Page-2 format picker: which category tab is open. Starts unselected (no
+  // pre-selection per the blueprint); selecting a format sets selectedType.
+  const [activeCategory, setActiveCategory] = useState<PostCategory | null>(null);
 
   // Content Warning
   const [hasContentWarning, setHasContentWarning] = useState(false);
@@ -763,12 +834,15 @@ export default function CreatePost() {
       communityName: selectedCommunity?.name,
       flair: selectedFlair,
       tags,
-      mediaMetadata: mediaItems.map(m => ({
-        id: m.id,
-        preview: m.preview,
-        type: m.type,
-        caption: m.caption
-      })),
+      // Audio media isn't part of the draft snapshot shape; only image/video.
+      mediaMetadata: mediaItems
+        .filter((m): m is MediaItem & { type: "image" | "video" } => m.type !== "audio")
+        .map(m => ({
+          id: m.id,
+          preview: m.preview,
+          type: m.type,
+          caption: m.caption
+        })),
       styling: styling as PostDraft["styling"],
       textAlignment,
       lineSpacing,
@@ -884,7 +958,7 @@ export default function CreatePost() {
               preview: m.media_url,
               media_url: m.media_url,
               caption: m.caption || "",
-              type: m.media_type as "image" | "video",
+              type: m.media_type as "image" | "video" | "audio",
               isExisting: true,
             }));
           setMediaItems(existingMedia);
@@ -1320,6 +1394,62 @@ export default function CreatePost() {
     );
   };
 
+  // Audio upload: uploads the file via useAudioUpload (returns a public URL +
+  // duration), then stores it as an audio-typed MediaItem. Only one uploaded
+  // audio track is kept at a time (replacing any prior one).
+  const handleAudioSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (audioInputRef.current) audioInputRef.current.value = "";
+      if (!file) return;
+
+      // Voice format → "voice" kind (tighter limits); everything else → "sound".
+      const kind: AudioKind = selectedType === "voice" ? "voice" : "sound";
+      const result = await uploadAudio(file, kind);
+      if (!result) return; // hook surfaces the error via audioUploadError
+
+      const newItem: MediaItem = {
+        id: crypto.randomUUID(),
+        preview: result.url,
+        media_url: result.url,
+        caption: file.name.replace(/\.[^.]+$/, ""),
+        type: "audio",
+        durationSec: result.durationSec,
+      };
+      // Replace any existing (non-persisted) audio item; keep image/video items.
+      setMediaItems((prev) => {
+        const removed = prev.find((m) => m.type === "audio" && m.isExisting);
+        if (removed) setDeletedMediaIds((ids) => [...ids, removed.id]);
+        return [...prev.filter((m) => m.type !== "audio"), newItem];
+      });
+    },
+    [selectedType, uploadAudio]
+  );
+
+  const audioItem = mediaItems.find((m) => m.type === "audio") || null;
+
+  // Page-2 format selection. Picking the same format again clears it back to the
+  // default (Thought). Picking a Heard format opens the audio/spotify control.
+  const handleSelectFormat = useCallback(
+    (formatId: string) => {
+      setSelectedType((prev) => (prev === formatId ? DEFAULT_FORMAT : formatId));
+    },
+    []
+  );
+
+  // Advance from Step 1 (Create) to Step 2 (Format). Validates the same content
+  // requirement as publishing so the user isn't surprised at the end.
+  const handleGoToFormatStep = useCallback(() => {
+    const plainText = editorRef.current?.innerText || "";
+    if (!plainText.trim()) {
+      setError("Please write something before continuing.");
+      return;
+    }
+    setError(null);
+    setStep(2);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   // Take-specific handlers
   const handleTakeVideoSelect = useCallback((file: File) => {
     setTakeValidationError(null);
@@ -1607,12 +1737,15 @@ export default function CreatePost() {
       communityName: selectedCommunity?.name,
       flair: selectedFlair,
       tags,
-      mediaMetadata: mediaItems.map(m => ({
-        id: m.id,
-        preview: m.preview,
-        type: m.type,
-        caption: m.caption,
-      })),
+      // Audio media isn't part of the draft snapshot shape; only image/video.
+      mediaMetadata: mediaItems
+        .filter((m): m is MediaItem & { type: "image" | "video" } => m.type !== "audio")
+        .map(m => ({
+          id: m.id,
+          preview: m.preview,
+          type: m.type,
+          caption: m.caption,
+        })),
       styling: styling,
       textAlignment,
       lineSpacing,
@@ -1853,16 +1986,38 @@ export default function CreatePost() {
         postId = rpcResult.post_id;
       }
 
-      // Upload new media files
-      const newMediaItems = mediaItems.filter((m) => !m.isExisting && m.file);
+      // Persist new media. Image/video items still carry a File to upload to the
+      // post-media bucket; audio items are already uploaded (via useAudioUpload to
+      // the post-audio bucket) and only need a post_media row with their URL.
+      const newMediaItems = mediaItems.filter(
+        (m) => !m.isExisting && (m.file || (m.type === "audio" && m.media_url))
+      );
       if (newMediaItems.length > 0) {
-        const startPosition = mediaItems.filter((m) => m.isExisting).length;
-        for (let i = 0; i < newMediaItems.length; i++) {
-          const item = newMediaItems[i];
+        let position = mediaItems.filter((m) => m.isExisting).length;
+        for (const item of newMediaItems) {
+          if (item.type === "audio" && item.media_url && !item.file) {
+            // Already-uploaded audio — insert the row directly.
+            const { error: audioInsertError } = await supabase.from("post_media").insert({
+              post_id: postId,
+              media_url: item.media_url,
+              media_type: "audio",
+              caption: item.caption.trim() || null,
+              position,
+            });
+
+            if (audioInsertError) {
+              console.error("Audio media insert error:", audioInsertError);
+              failedMediaUploads += 1;
+              continue;
+            }
+            position += 1;
+            continue;
+          }
+
           if (!item.file) continue;
 
           const fileExt = item.file.name.split(".").pop();
-          const fileName = `${user.id}/${postId}/${startPosition + i}-${Date.now()}.${fileExt}`;
+          const fileName = `${user.id}/${postId}/${position}-${Date.now()}.${fileExt}`;
 
           const { error: uploadError } = await supabase.storage
             .from("post-media")
@@ -1883,7 +2038,7 @@ export default function CreatePost() {
             media_url: urlData.publicUrl,
             media_type: item.type,
             caption: item.caption.trim() || null,
-            position: startPosition + i,
+            position,
           });
 
           if (mediaInsertError) {
@@ -1891,6 +2046,7 @@ export default function CreatePost() {
             failedMediaUploads += 1;
             continue;
           }
+          position += 1;
         }
       }
 
@@ -2166,8 +2322,8 @@ export default function CreatePost() {
         )}
       </h1>
 
-      {/* Draft Recovery Banner */}
-      {showDraftRecovery && recoveredDraft && (
+      {/* Draft Recovery Banner (Step 1 / Create) */}
+      {step === 1 && showDraftRecovery && recoveredDraft && (
         <div className="mb-6 rounded-2xl border border-purple-primary/15 bg-gradient-to-r from-purple-primary/[0.04] via-surface to-pink-vivid/[0.04] p-5 animate-fadeIn">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
@@ -2220,40 +2376,80 @@ export default function CreatePost() {
         </div>
       )}
 
-      {/* Post Type Selector */}
-      <div className="mb-10">
-        <p className="text-center text-sm font-ui text-muted uppercase tracking-wider mb-5">Choose a format</p>
-        <div className="flex flex-wrap justify-center gap-3">
-          {postTypes.map((type) => (
+      {/* Post vs Take mode toggle. Takes keep their dedicated single-page
+          creator; normal posts use the 2-step wizard below. Hidden when
+          editing (you can't switch an existing post's medium). */}
+      {!isEditing && (
+        <div className="mb-8 flex justify-center">
+          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-subtle border border-border-light">
             <button
-              key={type.id}
-              onClick={() => setSelectedType(type.id)}
-              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-ui text-sm font-medium transition-all duration-300 ${
-                selectedType === type.id
-                  ? "shadow-xl shadow-pink-vivid/20 text-ink"
-                  : "shadow-md hover:shadow-lg hover:-translate-y-0.5 text-muted"
-              }`}
-              style={{
-                border: selectedType === type.id ? "2px solid transparent" : "1px solid var(--color-border-light, rgba(0,0,0,0.05))",
-                backgroundImage: selectedType === type.id
-                  ? "linear-gradient(var(--color-surface), var(--color-surface)), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
-                  : undefined,
-                backgroundColor: selectedType === type.id ? undefined : "var(--color-surface)",
-                backgroundOrigin: "border-box",
-                backgroundClip: selectedType === type.id ? "padding-box, border-box" : undefined,
+              onClick={() => {
+                if (isTakeMode) {
+                  setSelectedType(DEFAULT_FORMAT);
+                  setStep(1);
+                }
               }}
+              className={`flex items-center gap-2 px-5 py-2 rounded-full font-ui text-sm font-medium transition-all ${
+                !isTakeMode ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
+              }`}
             >
-              <span className={selectedType === type.id ? "text-pink-vivid" : "text-muted"}>
-                {icons[type.icon]}
-              </span>
-              {type.label}
+              {icons.feather}
+              Post
             </button>
+            <button
+              onClick={() => setSelectedType("take")}
+              className={`flex items-center gap-2 px-5 py-2 rounded-full font-ui text-sm font-medium transition-all ${
+                isTakeMode ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
+              }`}
+            >
+              {icons.video}
+              Take
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Wizard step indicator (normal posts only) */}
+      {!isTakeMode && (
+        <div className="mb-8 flex items-center justify-center gap-3">
+          {([
+            { n: 1 as const, label: "Create" },
+            { n: 2 as const, label: "Format" },
+          ]).map((s, i) => (
+            <div key={s.n} className="flex items-center gap-3">
+              <button
+                onClick={() => setStep(s.n)}
+                className="flex items-center gap-2.5"
+              >
+                <span
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-ui text-sm font-semibold transition-colors ${
+                    step === s.n
+                      ? "bg-purple-primary text-white"
+                      : step > s.n
+                        ? "bg-emerald-500 text-white"
+                        : "bg-skeleton text-muted"
+                  }`}
+                >
+                  {step > s.n ? icons.check : s.n}
+                </span>
+                <span
+                  className={`font-ui text-sm font-medium hidden sm:inline ${
+                    step === s.n ? "text-purple-primary" : "text-muted"
+                  }`}
+                >
+                  {s.label}
+                </span>
+              </button>
+              {i === 0 && (
+                <div className={`w-10 sm:w-16 h-0.5 rounded-full ${step > 1 ? "bg-emerald-500" : "bg-skeleton"}`} />
+              )}
+            </div>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* Collection Selector */}
-      {!isEditing && !isTakeMode && (
+      {/* Collection Selector (Step 1) */}
+      {!isEditing && !isTakeMode && step === 1 && (
         <div className="mb-8">
           <label className="block text-sm font-ui font-semibold text-ink mb-3">
             Collection <span className="text-muted font-normal">(optional)</span>
@@ -2627,11 +2823,13 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Regular Post Mode - Title Input */}
+        {/* Regular Post Mode - Title Input (Step 1).
+            Kept MOUNTED across steps (hidden on Step 2) because the title lives
+            in this uncontrolled contentEditable div — unmounting would drop it. */}
         {!isTakeMode && (
-          <div className="mb-6">
+          <div className={`mb-6 ${step === 1 ? "" : "hidden"}`}>
             <label className="block text-sm font-ui font-semibold text-ink mb-3">
-              Title <span className="text-pink-vivid">*</span>
+              Title <span className="text-muted font-normal">(optional)</span>
             </label>
             <div className="relative">
               <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
@@ -2662,8 +2860,8 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Formatting Toolbar - Hidden in Take mode */}
-        {!isTakeMode && (
+        {/* Formatting Toolbar - Hidden in Take mode (Step 1) */}
+        {!isTakeMode && step === 1 && (
         <div className="mb-4 px-4 py-2.5 rounded-xl bg-subtle/80 border border-border-light flex items-center gap-1 flex-wrap">
           {/* Text Formatting */}
           <div className="flex items-center gap-1 pr-3 border-r border-border-light">
@@ -3084,9 +3282,11 @@ export default function CreatePost() {
         </div>
         )}
 
-        {/* Content Editor - Hidden in Take mode */}
+        {/* Content Editor - Hidden in Take mode (Step 1).
+            Kept MOUNTED across steps (hidden on Step 2) — its rich text lives in
+            this uncontrolled contentEditable div; unmounting would drop it. */}
         {!isTakeMode && (
-        <div className="mb-6">
+        <div className={`mb-6 ${step === 1 ? "" : "hidden"}`}>
           <label className="block text-sm font-ui font-semibold text-ink mb-3">
             Content <span className="text-pink-vivid">*</span>
           </label>
@@ -3146,8 +3346,8 @@ export default function CreatePost() {
         </div>
         )}
 
-        {/* Media Section */}
-        {!isTakeMode && (
+        {/* Media Section (Step 1) */}
+        {!isTakeMode && step === 1 && (
           <div className="mb-8">
             <input
               ref={fileInputRef}
@@ -3157,12 +3357,19 @@ export default function CreatePost() {
               onChange={handleFileSelect}
               className="hidden"
             />
+            <input
+              ref={audioInputRef}
+              type="file"
+              accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg"
+              onChange={handleAudioSelect}
+              className="hidden"
+            />
 
             <label className="block text-sm font-ui font-semibold text-ink mb-3">
-              Media {mediaItems.length > 0 && <span className="text-muted font-normal">({mediaItems.length}/20)</span>}
+              Media {mediaItems.filter((m) => m.type !== "audio").length > 0 && <span className="text-muted font-normal">({mediaItems.filter((m) => m.type !== "audio").length}/20)</span>}
             </label>
 
-            {mediaItems.length === 0 ? (
+            {mediaItems.filter((m) => m.type !== "audio").length === 0 ? (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -3181,7 +3388,7 @@ export default function CreatePost() {
             ) : (
               <div className="rounded-2xl border border-border-light bg-gradient-to-br from-surface via-pink-vivid/[0.04] to-purple-primary/[0.04] p-5">
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {mediaItems.map((item, index) => (
+                  {mediaItems.filter((m) => m.type !== "audio").map((item, index) => (
                     <div
                       key={item.id}
                       className="relative rounded-xl overflow-hidden bg-skeleton group shadow-sm"
@@ -3214,7 +3421,7 @@ export default function CreatePost() {
                       </div>
                     </div>
                   ))}
-                  {mediaItems.length < 20 && (
+                  {mediaItems.filter((m) => m.type !== "audio").length < 20 && (
                     <div className="relative rounded-xl overflow-hidden">
                       <div className="aspect-square">
                         <button
@@ -3230,12 +3437,201 @@ export default function CreatePost() {
                 </div>
               </div>
             )}
+
+            {/* Audio upload (NEW) — uploaded Sound / Voice track. Stored as an
+                audio-typed media item; the Heard format (Sound/Voice/Music) is
+                chosen on Step 2. */}
+            <div className="mt-4">
+              {audioItem ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 border border-purple-primary/15">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
+                    {icons.waveform}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <input
+                      type="text"
+                      value={audioItem.caption}
+                      onChange={(e) => handleCaptionChange(audioItem.id, e.target.value)}
+                      placeholder="Track title..."
+                      className="w-full font-ui text-sm font-medium text-ink bg-transparent outline-none placeholder:text-muted/50"
+                    />
+                    <p className="font-ui text-[0.75rem] text-muted">
+                      Audio
+                      {typeof audioItem.durationSec === "number"
+                        ? ` · ${Math.floor(audioItem.durationSec / 60)}:${String(audioItem.durationSec % 60).padStart(2, "0")}`
+                        : ""}
+                    </p>
+                  </div>
+                  <audio src={audioItem.preview} controls className="hidden sm:block max-w-[180px] h-9" />
+                  <button
+                    onClick={() => handleRemoveMedia(audioItem.id)}
+                    className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors flex-shrink-0"
+                  >
+                    {icons.x}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => audioInputRef.current?.click()}
+                  disabled={audioUploading}
+                  className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-purple-primary/20 bg-surface hover:border-purple-primary/50 hover:bg-purple-primary/5 transition-all disabled:opacity-60 disabled:cursor-wait"
+                >
+                  {audioUploading ? (
+                    <svg className="w-5 h-5 animate-spin text-purple-primary" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <span className="text-purple-primary">{icons.mic}</span>
+                  )}
+                  <span className="font-ui text-sm text-ink">
+                    {audioUploading ? "Uploading audio..." : "Add audio (sound or voice)"}
+                  </span>
+                </button>
+              )}
+              {audioUploadError && (
+                <p className="mt-2 font-ui text-sm text-red-500">{audioUploadError}</p>
+              )}
+            </div>
           </div>
         )}
 
 
-        {/* Extras */}
-        {!isTakeMode && (
+        {/* ============================ STEP 2: FORMAT ============================ */}
+
+        {/* Format picker (Step 2) — four categories, NO pre-selection. Skipping
+            leaves the post a Thought (DEFAULT_FORMAT). Picking a format sets
+            selectedType and reveals that format's options below. */}
+        {!isTakeMode && step === 2 && (
+          <div className="mb-8">
+            <div className="text-center mb-6">
+              <h2 className="font-display text-xl font-bold text-ink">Pick a format</h2>
+              <p className="font-ui text-sm text-muted mt-1">
+                Optional — skip to post this as a {getFormatSpec(DEFAULT_FORMAT).label.toLowerCase()}.
+              </p>
+            </div>
+
+            {/* Category tabs */}
+            <div className="flex flex-wrap justify-center gap-2 mb-5">
+              {CATEGORY_ORDER.map((cat) => {
+                const meta = POST_CATEGORIES[cat];
+                // A tab is "active" if the user opened it OR the current format
+                // belongs to it (so the chosen format's category stays lit).
+                const isActive =
+                  activeCategory === cat ||
+                  (activeCategory === null && selectedType !== DEFAULT_FORMAT && getCategoryOf(selectedType) === cat);
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory((prev) => (prev === cat ? null : cat))}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-ui text-sm font-medium transition-all ${
+                      isActive
+                        ? "bg-purple-primary/10 text-purple-primary border border-purple-primary/30"
+                        : "bg-surface text-muted border border-border-light hover:border-purple-primary/30 hover:text-ink"
+                    }`}
+                  >
+                    <span className={isActive ? "text-purple-primary" : "text-muted"}>
+                      {categoryIcons[cat]}
+                    </span>
+                    {meta.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Formats for the open category (or the chosen format's category) */}
+            {(() => {
+              const shownCategory: PostCategory | null =
+                activeCategory ??
+                (selectedType !== DEFAULT_FORMAT ? getCategoryOf(selectedType) : null);
+              if (!shownCategory) {
+                return (
+                  <p className="text-center font-ui text-sm text-muted">
+                    Choose a category above to see its formats.
+                  </p>
+                );
+              }
+              const formats: FormatSpec[] = getFormatsByCategory(shownCategory);
+              return (
+                <div className="flex flex-wrap justify-center gap-2.5">
+                  {formats.map((fmt) => {
+                    const chosen = selectedType === fmt.id;
+                    return (
+                      <button
+                        key={fmt.id}
+                        onClick={() => handleSelectFormat(fmt.id)}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-ui text-sm font-medium transition-all ${
+                          chosen
+                            ? "bg-gradient-to-r from-purple-primary/15 to-pink-vivid/15 text-purple-primary border border-purple-primary/40 shadow-sm"
+                            : "bg-surface text-muted border border-border-light hover:border-purple-primary/30 hover:text-ink"
+                        }`}
+                      >
+                        {fmt.label}
+                        {fmt.isNew && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-pink-vivid/10 text-pink-vivid text-[0.6rem] font-semibold uppercase tracking-wide">
+                            New
+                          </span>
+                        )}
+                        {chosen && <span className="text-purple-primary">{icons.check}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {/* Heard formats that upload audio — surface the upload here too. */}
+            {(selectedType === "sound" || selectedType === "voice") && (
+              <div className="mt-5 max-w-md mx-auto">
+                {audioItem ? (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 border border-purple-primary/15">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
+                      {icons.waveform}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-ui text-sm font-medium text-ink truncate">{audioItem.caption || "Audio track"}</p>
+                      <p className="font-ui text-[0.75rem] text-muted">
+                        {selectedType === "voice" ? "Voice note" : "Sound"}
+                        {typeof audioItem.durationSec === "number"
+                          ? ` · ${Math.floor(audioItem.durationSec / 60)}:${String(audioItem.durationSec % 60).padStart(2, "0")}`
+                          : ""}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveMedia(audioItem.id)}
+                      className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors flex-shrink-0"
+                    >
+                      {icons.x}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => audioInputRef.current?.click()}
+                    disabled={audioUploading}
+                    className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-purple-primary/25 bg-surface hover:border-purple-primary/50 hover:bg-purple-primary/5 transition-all disabled:opacity-60 disabled:cursor-wait"
+                  >
+                    <span className="text-purple-primary">{icons.mic}</span>
+                    <span className="font-ui text-sm text-ink">
+                      {audioUploading
+                        ? "Uploading..."
+                        : selectedType === "voice"
+                          ? "Upload a voice note"
+                          : "Upload a sound file"}
+                    </span>
+                  </button>
+                )}
+                {audioUploadError && (
+                  <p className="mt-2 font-ui text-sm text-red-500 text-center">{audioUploadError}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Extras (Step 2) — format-specific + shared fields */}
+        {!isTakeMode && step === 2 && (
         <div className="mb-8 border-t border-border-light pt-6">
           <p className="text-sm font-ui text-muted uppercase tracking-wider mb-4">Extras</p>
 
@@ -3638,7 +4034,8 @@ export default function CreatePost() {
 
         {/* Footer Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 sm:pt-8 border-t border-border-light">
-          <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Audience / community / flair — shown on Step 2 (or in Take mode) */}
+          <div className={`flex items-center gap-2.5 flex-wrap ${isTakeMode || step === 2 ? "" : "sm:opacity-0 sm:pointer-events-none hidden sm:flex"}`}>
             {/* Visibility Dropdown */}
             <div className="relative">
               <button
@@ -3812,6 +4209,18 @@ export default function CreatePost() {
           </div>
 
           <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+            {/* Back (Step 2, normal posts) */}
+            {!isTakeMode && step === 2 && (
+              <button
+                onClick={() => setStep(1)}
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-full border border-border-light bg-surface font-ui text-sm sm:text-base font-medium text-muted hover:border-purple-primary hover:text-accent transition-all"
+              >
+                {icons.arrowLeft}
+                Back
+              </button>
+            )}
+
+            {/* Save Draft (normal posts, both steps) */}
             {!isTakeMode && (
               <button
                 onClick={handleSaveDraft}
@@ -3844,26 +4253,44 @@ export default function CreatePost() {
                 )}
               </button>
             )}
-            <button
-              onClick={handlePublish}
-              disabled={loading || takeUploading || (isTakeMode && !takeVideoFile)}
-              className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-6 sm:px-10 py-3 rounded-full border-2 border-transparent font-ui text-sm sm:text-base font-semibold text-orange-warm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                background: "linear-gradient(white, white) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box",
-              }}
-            >
-              {isTakeMode
-                ? takeUploading
-                  ? `Uploading... ${Math.round(takeProgress)}%`
-                  : "Post Take"
-                : loading
-                ? isEditing
-                  ? "Updating..."
-                  : "Publishing..."
-                : isEditing
-                ? "Update"
-                : "Publish"}
-            </button>
+
+            {/* Next (Step 1, normal posts) */}
+            {!isTakeMode && step === 1 && (
+              <button
+                onClick={handleGoToFormatStep}
+                className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-6 sm:px-10 py-3 rounded-full border-2 border-transparent font-ui text-sm sm:text-base font-semibold text-orange-warm hover:opacity-90 transition-opacity"
+                style={{
+                  background: "linear-gradient(white, white) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box",
+                }}
+              >
+                Next
+                {icons.arrowRight}
+              </button>
+            )}
+
+            {/* Publish (Step 2, normal posts) / Post Take (Take mode) */}
+            {(isTakeMode || step === 2) && (
+              <button
+                onClick={handlePublish}
+                disabled={loading || takeUploading || (isTakeMode && !takeVideoFile)}
+                className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-6 sm:px-10 py-3 rounded-full border-2 border-transparent font-ui text-sm sm:text-base font-semibold text-orange-warm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: "linear-gradient(white, white) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box",
+                }}
+              >
+                {isTakeMode
+                  ? takeUploading
+                    ? `Uploading... ${Math.round(takeProgress)}%`
+                    : "Post Take"
+                  : loading
+                  ? isEditing
+                    ? "Updating..."
+                    : "Publishing..."
+                  : isEditing
+                  ? "Update"
+                  : "Publish"}
+              </button>
+            )}
           </div>
         </div>
 

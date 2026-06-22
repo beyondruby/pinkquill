@@ -9,7 +9,7 @@ import { PostStyling, JournalMetadata, CommunityFlair } from "@/lib/types";
 interface MediaItem {
   id: string;
   media_url: string;
-  media_type: "image" | "video";
+  media_type: "image" | "video" | "audio";
   caption: string | null;
   position: number;
 }
