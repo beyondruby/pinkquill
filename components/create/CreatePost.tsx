@@ -22,6 +22,7 @@ const PeoplePickerModal = dynamic(() => import("@/components/ui/PeoplePickerModa
 const FlairPicker = dynamic(() => import("@/components/communities/FlairPicker"), { ssr: false });
 const BackgroundPicker = dynamic(() => import("@/components/create/BackgroundPicker"), { ssr: false });
 const JournalMetadataPanel = dynamic(() => import("@/components/create/JournalMetadata"), { ssr: false });
+const ComposerPreview = dynamic(() => import("@/components/create/ComposerPreview"), { ssr: false });
 const CollectionSelector = dynamic(() => import("@/components/collections/CollectionSelector"), { ssr: false });
 import { useAddPostToCollectionItem } from "@/lib/hooks/useCollections";
 import type { Collection, CollectionItem } from "@/lib/types";
@@ -32,7 +33,6 @@ import {
   CATEGORY_ORDER,
   DEFAULT_FORMAT,
   getFormatsByCategory,
-  getFormatSpec,
   getCategoryOf,
   type PostCategory,
   type FormatSpec,
@@ -125,7 +125,7 @@ function unwrapHighlightSpansInTree(root: ParentNode) {
 // at its parent level. Empty halves are pruned. This lets us "exit" out of
 // any highlight wrappers around a selection without losing surrounding text.
 function splitAroundMarker(topAncestor: HTMLElement, marker: Node) {
-  let current: Node = marker;
+  const current: Node = marker;
   const stopAt = topAncestor.parentNode;
   while (current.parentNode && current.parentNode !== stopAt) {
     const parentEl = current.parentNode as HTMLElement;
@@ -490,6 +490,12 @@ const icons: Record<string, React.ReactElement> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10v4M9 6v12M12 3v18M15 6v12M19 10v4" />
     </svg>
   ),
+  // Soundwave/music-note hybrid for the "Add sound" affordance (Page 1).
+  soundWave: (
+    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M4 12v0M7 9v6M10 6v12M13 8.5v7M16 5v14M19 9v6M22 12v0" />
+    </svg>
+  ),
   arrowLeft: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -615,7 +621,7 @@ const visibilityOptions = [
 export default function CreatePost() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
@@ -736,6 +742,17 @@ export default function CreatePost() {
   // Journal Metadata
   const [journalMetadata, setJournalMetadata] = useState<JournalMetadata>({});
   const [postLocation, setPostLocation] = useState("");
+
+  // Per-format optional metadata (stored in the post's `metadata` jsonb alongside
+  // journal metadata — no new DB columns). Each is revealed only for its format.
+  const [attribution, setAttribution] = useState(""); // Quote — who said it
+  const [subtitle, setSubtitle] = useState(""); // Essay / Blog — subtitle
+  const [artist, setArtist] = useState(""); // Sound / Voice — artist / credit
+
+  // Live snapshot of the contentEditable title/body for the Page-2 preview
+  // (the editors are uncontrolled; we capture their text when entering Step 2).
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [previewExcerpt, setPreviewExcerpt] = useState("");
 
   // Spotify Track
   const [spotifyTrack, setSpotifyTrack] = useState<SpotifyTrack | null>(null);
@@ -938,7 +955,11 @@ export default function CreatePost() {
         setTags([]);
         setSpotifyTrack(post.spotify_track || null);
         setPostLocation(post.post_location || "");
-        setJournalMetadata(post.metadata || {});
+        const loadedMetadata = (post.metadata || {}) as Record<string, unknown>;
+        setJournalMetadata(loadedMetadata as JournalMetadata);
+        setAttribution(typeof loadedMetadata.attribution === "string" ? loadedMetadata.attribution : "");
+        setSubtitle(typeof loadedMetadata.subtitle === "string" ? loadedMetadata.subtitle : "");
+        setArtist(typeof loadedMetadata.artist === "string" ? loadedMetadata.artist : "");
 
         const loadedStyling = (post.styling || {}) as PostStyling;
         setStyling(loadedStyling);
@@ -1446,6 +1467,9 @@ export default function CreatePost() {
       return;
     }
     setError(null);
+    // Snapshot the uncontrolled title/body text for the Step-2 live preview.
+    setPreviewTitle(titleRef.current?.innerText?.trim() || "");
+    setPreviewExcerpt((editorRef.current?.innerText || "").trim());
     setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -1898,10 +1922,23 @@ export default function CreatePost() {
         ? postStyling
         : null;
 
-      const postMetadata =
-        selectedType === "journal" && Object.keys(journalMetadata).length > 0
-          ? journalMetadata
-          : null;
+      // Merge journal metadata + per-format optional fields into one jsonb blob.
+      // Each field is only included for the format that owns it, so switching
+      // formats doesn't leave stale values behind.
+      const mergedMetadata: Record<string, unknown> = {};
+      if (selectedType === "journal") {
+        Object.assign(mergedMetadata, journalMetadata);
+      }
+      if (selectedType === "quote" && attribution.trim()) {
+        mergedMetadata.attribution = attribution.trim();
+      }
+      if ((selectedType === "essay" || selectedType === "blog") && subtitle.trim()) {
+        mergedMetadata.subtitle = subtitle.trim();
+      }
+      if ((selectedType === "sound" || selectedType === "voice") && artist.trim()) {
+        mergedMetadata.artist = artist.trim();
+      }
+      const postMetadata = Object.keys(mergedMetadata).length > 0 ? mergedMetadata : null;
 
       if (isEditing && editPostId) {
         // Update existing post
@@ -3475,19 +3512,26 @@ export default function CreatePost() {
                   type="button"
                   onClick={() => audioInputRef.current?.click()}
                   disabled={audioUploading}
-                  className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-purple-primary/20 bg-surface hover:border-purple-primary/50 hover:bg-purple-primary/5 transition-all disabled:opacity-60 disabled:cursor-wait"
+                  className="group w-full flex items-center gap-4 rounded-2xl border border-dashed border-purple-primary/25 bg-gradient-to-br from-purple-primary/[0.06] via-surface to-pink-vivid/[0.04] px-5 py-4 hover:border-purple-primary/50 hover:shadow-sm transition-all disabled:opacity-60 disabled:cursor-wait text-left"
                 >
-                  {audioUploading ? (
-                    <svg className="w-5 h-5 animate-spin text-purple-primary" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  ) : (
-                    <span className="text-purple-primary">{icons.mic}</span>
-                  )}
-                  <span className="font-ui text-sm text-ink">
-                    {audioUploading ? "Uploading audio..." : "Add audio (sound or voice)"}
-                  </span>
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-primary/15 to-pink-vivid/15 flex items-center justify-center text-purple-primary flex-shrink-0 group-hover:scale-105 transition-transform">
+                    {audioUploading ? (
+                      <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    ) : (
+                      icons.soundWave
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-ui text-sm font-medium text-ink/80 group-hover:text-ink transition-colors">
+                      {audioUploading ? "Uploading sound..." : "Add sound"}
+                    </p>
+                    <p className="font-ui text-xs text-muted mt-0.5">
+                      Music or a voice note — mp3, m4a, wav
+                    </p>
+                  </div>
                 </button>
               )}
               {audioUploadError && (
@@ -3508,125 +3552,236 @@ export default function CreatePost() {
             <div className="text-center mb-6">
               <h2 className="font-display text-xl font-bold text-ink">Pick a format</h2>
               <p className="font-ui text-sm text-muted mt-1">
-                Optional — skip to post this as a {getFormatSpec(DEFAULT_FORMAT).label.toLowerCase()}.
+                Shape how your post is experienced.
               </p>
             </div>
 
-            {/* Category tabs */}
-            <div className="flex flex-wrap justify-center gap-2 mb-5">
-              {CATEGORY_ORDER.map((cat) => {
-                const meta = POST_CATEGORIES[cat];
-                // A tab is "active" if the user opened it OR the current format
-                // belongs to it (so the chosen format's category stays lit).
-                const isActive =
-                  activeCategory === cat ||
-                  (activeCategory === null && selectedType !== DEFAULT_FORMAT && getCategoryOf(selectedType) === cat);
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory((prev) => (prev === cat ? null : cat))}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-ui text-sm font-medium transition-all ${
-                      isActive
-                        ? "bg-purple-primary/10 text-purple-primary border border-purple-primary/30"
-                        : "bg-surface text-muted border border-border-light hover:border-purple-primary/30 hover:text-ink"
-                    }`}
-                  >
-                    <span className={isActive ? "text-purple-primary" : "text-muted"}>
-                      {categoryIcons[cat]}
-                    </span>
-                    {meta.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Formats for the open category (or the chosen format's category) */}
-            {(() => {
-              const shownCategory: PostCategory | null =
-                activeCategory ??
-                (selectedType !== DEFAULT_FORMAT ? getCategoryOf(selectedType) : null);
-              if (!shownCategory) {
-                return (
-                  <p className="text-center font-ui text-sm text-muted">
-                    Choose a category above to see its formats.
-                  </p>
-                );
-              }
-              const formats: FormatSpec[] = getFormatsByCategory(shownCategory);
-              return (
-                <div className="flex flex-wrap justify-center gap-2.5">
-                  {formats.map((fmt) => {
-                    const chosen = selectedType === fmt.id;
+            {/* Side-by-side on desktop: picker on the left, live preview on the
+                right. Stacks on mobile (preview first so it's visible). */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(280px,360px)] gap-6 lg:gap-8 items-start">
+              {/* ---- Picker column ---- */}
+              <div className="order-2 lg:order-1">
+                {/* Category segment cards — one accent for the active state. */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
+                  {CATEGORY_ORDER.map((cat) => {
+                    const meta = POST_CATEGORIES[cat];
+                    const isActive =
+                      activeCategory === cat ||
+                      (activeCategory === null && selectedType !== DEFAULT_FORMAT && getCategoryOf(selectedType) === cat);
                     return (
                       <button
-                        key={fmt.id}
-                        onClick={() => handleSelectFormat(fmt.id)}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-ui text-sm font-medium transition-all ${
-                          chosen
-                            ? "bg-gradient-to-r from-purple-primary/15 to-pink-vivid/15 text-purple-primary border border-purple-primary/40 shadow-sm"
-                            : "bg-surface text-muted border border-border-light hover:border-purple-primary/30 hover:text-ink"
+                        key={cat}
+                        type="button"
+                        onClick={() => setActiveCategory((prev) => (prev === cat ? null : cat))}
+                        className={`group flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-2xl transition-all ${
+                          isActive
+                            ? "bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border border-purple-primary/40 shadow-sm"
+                            : "bg-surface border border-border-light hover:border-purple-primary/30"
                         }`}
                       >
-                        {fmt.label}
-                        {fmt.isNew && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-pink-vivid/10 text-pink-vivid text-[0.6rem] font-semibold uppercase tracking-wide">
-                            New
-                          </span>
-                        )}
-                        {chosen && <span className="text-purple-primary">{icons.check}</span>}
+                        <span
+                          className={`flex items-center justify-center w-10 h-10 rounded-xl transition-colors ${
+                            isActive
+                              ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white"
+                              : "bg-subtle text-muted group-hover:text-ink"
+                          }`}
+                        >
+                          {categoryIcons[cat]}
+                        </span>
+                        <span
+                          className={`font-ui text-sm font-medium ${
+                            isActive ? "text-purple-primary" : "text-muted group-hover:text-ink"
+                          }`}
+                        >
+                          {meta.label}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
-              );
-            })()}
 
-            {/* Heard formats that upload audio — surface the upload here too. */}
-            {(selectedType === "sound" || selectedType === "voice") && (
-              <div className="mt-5 max-w-md mx-auto">
-                {audioItem ? (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 border border-purple-primary/15">
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
-                      {icons.waveform}
+                {/* Formats for the open category, as refined pills. */}
+                {(() => {
+                  const shownCategory: PostCategory | null =
+                    activeCategory ??
+                    (selectedType !== DEFAULT_FORMAT ? getCategoryOf(selectedType) : null);
+                  if (!shownCategory) {
+                    return (
+                      <div className="rounded-2xl border border-dashed border-border-light bg-subtle/40 px-5 py-6 text-center">
+                        <p className="font-ui text-sm text-muted">
+                          Choose a category above to reveal its formats.
+                        </p>
+                      </div>
+                    );
+                  }
+                  const formats: FormatSpec[] = getFormatsByCategory(shownCategory);
+                  return (
+                    <div className="flex flex-wrap gap-2.5">
+                      {formats.map((fmt) => {
+                        const chosen = selectedType === fmt.id;
+                        return (
+                          <button
+                            key={fmt.id}
+                            type="button"
+                            onClick={() => handleSelectFormat(fmt.id)}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-ui text-sm font-medium transition-all ${
+                              chosen
+                                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-sm"
+                                : "bg-surface text-muted border border-border-light hover:border-purple-primary/30 hover:text-ink"
+                            }`}
+                          >
+                            {fmt.label}
+                            {fmt.isNew && (
+                              <span
+                                className={`px-1.5 py-0.5 rounded-full text-[0.6rem] font-semibold uppercase tracking-wide ${
+                                  chosen ? "bg-white/25 text-white" : "bg-pink-vivid/10 text-pink-vivid"
+                                }`}
+                              >
+                                New
+                              </span>
+                            )}
+                            {chosen && <span>{icons.check}</span>}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-ui text-sm font-medium text-ink truncate">{audioItem.caption || "Audio track"}</p>
-                      <p className="font-ui text-[0.75rem] text-muted">
-                        {selectedType === "voice" ? "Voice note" : "Sound"}
-                        {typeof audioItem.durationSec === "number"
-                          ? ` · ${Math.floor(audioItem.durationSec / 60)}:${String(audioItem.durationSec % 60).padStart(2, "0")}`
-                          : ""}
-                      </p>
+                  );
+                })()}
+
+                {/* Per-format options — revealed only when the owning format is
+                    selected. Each is a single, minimal input. */}
+
+                {/* Heard formats (Sound / Voice) — upload control. */}
+                {(selectedType === "sound" || selectedType === "voice") && (
+                  <div className="mt-5">
+                    {audioItem ? (
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 border border-purple-primary/15">
+                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
+                          {icons.waveform}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-ui text-sm font-medium text-ink truncate">{audioItem.caption || "Audio track"}</p>
+                          <p className="font-ui text-[0.75rem] text-muted">
+                            {selectedType === "voice" ? "Voice note" : "Sound"}
+                            {typeof audioItem.durationSec === "number"
+                              ? ` · ${Math.floor(audioItem.durationSec / 60)}:${String(audioItem.durationSec % 60).padStart(2, "0")}`
+                              : ""}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMedia(audioItem.id)}
+                          className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors flex-shrink-0"
+                        >
+                          {icons.x}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => audioInputRef.current?.click()}
+                        disabled={audioUploading}
+                        className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-purple-primary/25 bg-surface hover:border-purple-primary/50 hover:bg-purple-primary/5 transition-all disabled:opacity-60 disabled:cursor-wait"
+                      >
+                        <span className="text-purple-primary">{icons.soundWave}</span>
+                        <span className="font-ui text-sm text-ink">
+                          {audioUploading
+                            ? "Uploading..."
+                            : selectedType === "voice"
+                              ? "Upload a voice note"
+                              : "Upload a sound file"}
+                        </span>
+                      </button>
+                    )}
+                    {audioUploadError && (
+                      <p className="mt-2 font-ui text-sm text-red-500 text-center">{audioUploadError}</p>
+                    )}
+
+                    {/* Artist / credit (Sound & Voice) */}
+                    <div className="mt-3">
+                      <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                        Artist / credit <span className="font-normal text-muted/60">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={artist}
+                        onChange={(e) => setArtist(e.target.value)}
+                        placeholder={selectedType === "voice" ? "Who's speaking?" : "Who made this?"}
+                        className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+                      />
                     </div>
-                    <button
-                      onClick={() => handleRemoveMedia(audioItem.id)}
-                      className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors flex-shrink-0"
-                    >
-                      {icons.x}
-                    </button>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => audioInputRef.current?.click()}
-                    disabled={audioUploading}
-                    className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-purple-primary/25 bg-surface hover:border-purple-primary/50 hover:bg-purple-primary/5 transition-all disabled:opacity-60 disabled:cursor-wait"
-                  >
-                    <span className="text-purple-primary">{icons.mic}</span>
-                    <span className="font-ui text-sm text-ink">
-                      {audioUploading
-                        ? "Uploading..."
-                        : selectedType === "voice"
-                          ? "Upload a voice note"
-                          : "Upload a sound file"}
-                    </span>
-                  </button>
                 )}
-                {audioUploadError && (
-                  <p className="mt-2 font-ui text-sm text-red-500 text-center">{audioUploadError}</p>
+
+                {/* Quote → attribution (who said it) */}
+                {selectedType === "quote" && (
+                  <div className="mt-5">
+                    <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                      Attribution <span className="font-normal text-muted/60">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={attribution}
+                      onChange={(e) => setAttribution(e.target.value)}
+                      placeholder="Who said it?"
+                      className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+                    />
+                  </div>
+                )}
+
+                {/* Essay & Blog → subtitle */}
+                {(selectedType === "essay" || selectedType === "blog") && (
+                  <div className="mt-5">
+                    <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                      Subtitle <span className="font-normal text-muted/60">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={subtitle}
+                      onChange={(e) => setSubtitle(e.target.value)}
+                      placeholder="A short subtitle or deck"
+                      className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+                    />
+                  </div>
                 )}
               </div>
-            )}
+
+              {/* ---- Live preview column ---- */}
+              <div className="order-1 lg:order-2 lg:sticky lg:top-6">
+                <p className="font-ui text-xs font-medium text-muted uppercase tracking-wider mb-2.5 text-center lg:text-left">
+                  Preview
+                </p>
+                <ComposerPreview
+                  authorName={profile?.display_name || profile?.username || "You"}
+                  authorUsername={profile?.username}
+                  authorAvatar={profile?.avatar_url}
+                  title={previewTitle}
+                  excerpt={previewExcerpt}
+                  formatId={selectedType}
+                  styling={styling}
+                  textAlignment={textAlignment}
+                  media={mediaItems.map((m) => ({
+                    id: m.id,
+                    preview: m.preview,
+                    type: m.type,
+                    caption: m.caption,
+                    durationSec: m.durationSec,
+                  }))}
+                  attribution={attribution}
+                  subtitle={subtitle}
+                  artist={artist}
+                  spotify={
+                    spotifyTrack
+                      ? {
+                          name: spotifyTrack.name,
+                          artist: spotifyTrack.artist,
+                          albumArt: spotifyTrack.albumArt,
+                        }
+                      : null
+                  }
+                />
+              </div>
+            </div>
           </div>
         )}
 

@@ -34,8 +34,9 @@ export type ComposerModule =
   | "audioUpload" // NEW — uploaded music/sound file
   | "voiceUpload" // NEW — uploaded voice note
   | "poemForm" // optional: free verse / haiku / sonnet (later)
-  | "subtitle" // optional essay/blog subtitle (later)
-  | "attribution" // optional quote source (later)
+  | "subtitle" // optional essay/blog subtitle
+  | "attribution" // optional quote source
+  | "artist" // optional artist / credit for uploaded Sound / Voice
   | "mediaGallery" // image gallery / album
   | "videoPoster"; // video thumbnail / poster
 
@@ -102,8 +103,8 @@ export const FORMAT_SPECS: Record<PostFormatId, FormatSpec> = {
 
   // 🎧 Heard — sound
   audio: { id: "audio", label: "Music", category: "heard", leadMedium: "audio", options: ["spotify"], showcase: "spotify" },
-  sound: { id: "sound", label: "Sound", category: "heard", leadMedium: "audio", options: ["audioUpload"], showcase: "audioPlayer", isNew: true },
-  voice: { id: "voice", label: "Voice", category: "heard", leadMedium: "audio", options: ["voiceUpload"], showcase: "voice", isNew: true },
+  sound: { id: "sound", label: "Sound", category: "heard", leadMedium: "audio", options: ["audioUpload", "artist"], showcase: "audioPlayer", isNew: true },
+  voice: { id: "voice", label: "Voice", category: "heard", leadMedium: "audio", options: ["voiceUpload", "artist"], showcase: "voice", isNew: true },
 };
 
 export const DEFAULT_FORMAT: PostFormatId = "thought";
