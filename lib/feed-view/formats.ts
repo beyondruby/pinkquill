@@ -10,10 +10,6 @@
 //
 // The composer renders a format's `options`; the feed renders its `showcase`.
 // Adding a future format = adding one entry here — nothing else is rewired.
-//
-// This module is intentionally PostType-agnostic (its own PostFormatId superset)
-// so it can introduce the new Sound/Voice formats without destabilising the
-// existing PostType union and its exhaustive consumers.
 // =============================================================================
 
 import type { PostType } from "@/components/feed/PostCard/types";
@@ -22,8 +18,8 @@ import { getPostTypeTheme } from "./post-type-theme";
 // The four human-facing categories — "how is this experienced?"
 export type PostCategory = "read" | "seen" | "watched" | "heard";
 
-// All formats: every existing PostType + the new Sound/Voice (uploaded audio).
-export type PostFormatId = PostType | "sound" | "voice";
+// All formats map 1:1 onto the existing PostType union.
+export type PostFormatId = PostType;
 
 export type PostMedium = "text" | "image" | "video" | "audio";
 
@@ -31,12 +27,9 @@ export type PostMedium = "text" | "image" | "video" | "audio";
 export type ComposerModule =
   | "journalMeta" // mood · weather · entry date (existing JournalMetadata)
   | "spotify" // Spotify link (existing spotify_track)
-  | "audioUpload" // NEW — uploaded music/sound file
-  | "voiceUpload" // NEW — uploaded voice note
   | "poemForm" // optional: free verse / haiku / sonnet (later)
   | "subtitle" // optional essay/blog subtitle
   | "attribution" // optional quote source
-  | "artist" // optional artist / credit for uploaded Sound / Voice
   | "mediaGallery" // image gallery / album
   | "videoPoster"; // video thumbnail / poster
 
@@ -60,10 +53,10 @@ export interface CategoryMeta {
 }
 
 export const POST_CATEGORIES: Record<PostCategory, CategoryMeta> = {
-  read: { id: "read", label: "Read", medium: "text" },
-  seen: { id: "seen", label: "Seen", medium: "image" },
-  watched: { id: "watched", label: "Watched", medium: "video" },
-  heard: { id: "heard", label: "Heard", medium: "audio" },
+  read: { id: "read", label: "Ink", medium: "text" },
+  seen: { id: "seen", label: "Lens", medium: "image" },
+  watched: { id: "watched", label: "Motion", medium: "video" },
+  heard: { id: "heard", label: "Sound", medium: "audio" },
 };
 
 export const CATEGORY_ORDER: PostCategory[] = ["read", "seen", "watched", "heard"];
@@ -75,8 +68,6 @@ export interface FormatSpec {
   leadMedium: PostMedium;
   options: ComposerModule[];
   showcase: ShowcaseId;
-  /** True for formats introduced by this revamp (Sound/Voice). */
-  isNew?: boolean;
 }
 
 // Canonical label for existing PostTypes comes from post-type-theme (the single
@@ -101,10 +92,8 @@ export const FORMAT_SPECS: Record<PostFormatId, FormatSpec> = {
   // ▶ Watched — video
   video: { id: "video", label: themed("video"), category: "watched", leadMedium: "video", options: ["videoPoster"], showcase: "video" },
 
-  // 🎧 Heard — sound
+  // 🎧 Sound — audio (Spotify-based Music)
   audio: { id: "audio", label: "Music", category: "heard", leadMedium: "audio", options: ["spotify"], showcase: "spotify" },
-  sound: { id: "sound", label: "Sound", category: "heard", leadMedium: "audio", options: ["audioUpload", "artist"], showcase: "audioPlayer", isNew: true },
-  voice: { id: "voice", label: "Voice", category: "heard", leadMedium: "audio", options: ["voiceUpload", "artist"], showcase: "voice", isNew: true },
 };
 
 export const DEFAULT_FORMAT: PostFormatId = "thought";

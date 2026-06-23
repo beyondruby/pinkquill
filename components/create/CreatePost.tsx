@@ -22,12 +22,10 @@ const PeoplePickerModal = dynamic(() => import("@/components/ui/PeoplePickerModa
 const FlairPicker = dynamic(() => import("@/components/communities/FlairPicker"), { ssr: false });
 const BackgroundPicker = dynamic(() => import("@/components/create/BackgroundPicker"), { ssr: false });
 const JournalMetadataPanel = dynamic(() => import("@/components/create/JournalMetadata"), { ssr: false });
-const ComposerPreview = dynamic(() => import("@/components/create/ComposerPreview"), { ssr: false });
 const CollectionSelector = dynamic(() => import("@/components/collections/CollectionSelector"), { ssr: false });
 import { useAddPostToCollectionItem } from "@/lib/hooks/useCollections";
 import type { Collection, CollectionItem } from "@/lib/types";
 import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
-import { useAudioUpload, type AudioKind } from "@/lib/hooks/useAudioUpload";
 import {
   POST_CATEGORIES,
   CATEGORY_ORDER,
@@ -621,7 +619,7 @@ const visibilityOptions = [
 export default function CreatePost() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
@@ -709,11 +707,6 @@ export default function CreatePost() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [deletedMediaIds, setDeletedMediaIds] = useState<string[]>([]);
 
-  // Audio upload (NEW — uploaded Sound / Voice). Audio files live as audio-typed
-  // MediaItems alongside images/videos so they persist as post_media rows.
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const { uploadAudio, uploading: audioUploading, error: audioUploadError } = useAudioUpload();
-
   // Wizard step: 1 = Create (content), 2 = Format (optional). Takes keep their
   // own dedicated single-page flow and ignore the wizard steps.
   const [step, setStep] = useState<1 | 2>(1);
@@ -747,12 +740,6 @@ export default function CreatePost() {
   // journal metadata — no new DB columns). Each is revealed only for its format.
   const [attribution, setAttribution] = useState(""); // Quote — who said it
   const [subtitle, setSubtitle] = useState(""); // Essay / Blog — subtitle
-  const [artist, setArtist] = useState(""); // Sound / Voice — artist / credit
-
-  // Live snapshot of the contentEditable title/body for the Page-2 preview
-  // (the editors are uncontrolled; we capture their text when entering Step 2).
-  const [previewTitle, setPreviewTitle] = useState("");
-  const [previewExcerpt, setPreviewExcerpt] = useState("");
 
   // Spotify Track
   const [spotifyTrack, setSpotifyTrack] = useState<SpotifyTrack | null>(null);
@@ -959,7 +946,6 @@ export default function CreatePost() {
         setJournalMetadata(loadedMetadata as JournalMetadata);
         setAttribution(typeof loadedMetadata.attribution === "string" ? loadedMetadata.attribution : "");
         setSubtitle(typeof loadedMetadata.subtitle === "string" ? loadedMetadata.subtitle : "");
-        setArtist(typeof loadedMetadata.artist === "string" ? loadedMetadata.artist : "");
 
         const loadedStyling = (post.styling || {}) as PostStyling;
         setStyling(loadedStyling);
@@ -1415,42 +1401,9 @@ export default function CreatePost() {
     );
   };
 
-  // Audio upload: uploads the file via useAudioUpload (returns a public URL +
-  // duration), then stores it as an audio-typed MediaItem. Only one uploaded
-  // audio track is kept at a time (replacing any prior one).
-  const handleAudioSelect = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (audioInputRef.current) audioInputRef.current.value = "";
-      if (!file) return;
-
-      // Voice format → "voice" kind (tighter limits); everything else → "sound".
-      const kind: AudioKind = selectedType === "voice" ? "voice" : "sound";
-      const result = await uploadAudio(file, kind);
-      if (!result) return; // hook surfaces the error via audioUploadError
-
-      const newItem: MediaItem = {
-        id: crypto.randomUUID(),
-        preview: result.url,
-        media_url: result.url,
-        caption: file.name.replace(/\.[^.]+$/, ""),
-        type: "audio",
-        durationSec: result.durationSec,
-      };
-      // Replace any existing (non-persisted) audio item; keep image/video items.
-      setMediaItems((prev) => {
-        const removed = prev.find((m) => m.type === "audio" && m.isExisting);
-        if (removed) setDeletedMediaIds((ids) => [...ids, removed.id]);
-        return [...prev.filter((m) => m.type !== "audio"), newItem];
-      });
-    },
-    [selectedType, uploadAudio]
-  );
-
-  const audioItem = mediaItems.find((m) => m.type === "audio") || null;
-
   // Page-2 format selection. Picking the same format again clears it back to the
-  // default (Thought). Picking a Heard format opens the audio/spotify control.
+  // default (Thought). Picking the Sound category's Music format reveals the
+  // Spotify track control.
   const handleSelectFormat = useCallback(
     (formatId: string) => {
       setSelectedType((prev) => (prev === formatId ? DEFAULT_FORMAT : formatId));
@@ -1467,9 +1420,6 @@ export default function CreatePost() {
       return;
     }
     setError(null);
-    // Snapshot the uncontrolled title/body text for the Step-2 live preview.
-    setPreviewTitle(titleRef.current?.innerText?.trim() || "");
-    setPreviewExcerpt((editorRef.current?.innerText || "").trim());
     setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -1934,9 +1884,6 @@ export default function CreatePost() {
       }
       if ((selectedType === "essay" || selectedType === "blog") && subtitle.trim()) {
         mergedMetadata.subtitle = subtitle.trim();
-      }
-      if ((selectedType === "sound" || selectedType === "voice") && artist.trim()) {
-        mergedMetadata.artist = artist.trim();
       }
       const postMetadata = Object.keys(mergedMetadata).length > 0 ? mergedMetadata : null;
 
@@ -2860,14 +2807,33 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Regular Post Mode - Title Input (Step 1).
-            Kept MOUNTED across steps (hidden on Step 2) because the title lives
-            in this uncontrolled contentEditable div — unmounting would drop it. */}
+        {/* Step-2 canvas intro — frames the editable content that follows as one
+            living draft (the same title/body/media editors stay mounted from
+            Step 1, fully editable). */}
+        {!isTakeMode && step === 2 && (
+          <div className="mb-5">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary font-ui text-[0.7rem] font-semibold uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid" />
+              Your draft
+            </span>
+            <h2 className="mt-3 font-display text-2xl font-bold text-ink">Refine &amp; shape it</h2>
+            <p className="font-ui text-sm text-muted mt-1">
+              Edit your words right here, then choose how the world experiences them.
+            </p>
+          </div>
+        )}
+
+        {/* Regular Post Mode - Title Input.
+            Kept MOUNTED across both steps because the title lives in this
+            uncontrolled contentEditable div — unmounting would drop it. Fully
+            editable on Step 2 too, so the draft reads as one continuous canvas. */}
         {!isTakeMode && (
-          <div className={`mb-6 ${step === 1 ? "" : "hidden"}`}>
-            <label className="block text-sm font-ui font-semibold text-ink mb-3">
-              Title <span className="text-muted font-normal">(optional)</span>
-            </label>
+          <div className="mb-6">
+            {step === 1 && (
+              <label className="block text-sm font-ui font-semibold text-ink mb-3">
+                Title <span className="text-muted font-normal">(optional)</span>
+              </label>
+            )}
             <div className="relative">
               <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
                 <div className="w-full h-full rounded-xl bg-surface" />
@@ -3319,14 +3285,17 @@ export default function CreatePost() {
         </div>
         )}
 
-        {/* Content Editor - Hidden in Take mode (Step 1).
-            Kept MOUNTED across steps (hidden on Step 2) — its rich text lives in
-            this uncontrolled contentEditable div; unmounting would drop it. */}
+        {/* Content Editor - Hidden in Take mode.
+            Kept MOUNTED across both steps — its rich text lives in this
+            uncontrolled contentEditable div; unmounting would drop it. Fully
+            editable on Step 2 as part of the continuous draft canvas. */}
         {!isTakeMode && (
-        <div className={`mb-6 ${step === 1 ? "" : "hidden"}`}>
-          <label className="block text-sm font-ui font-semibold text-ink mb-3">
-            Content <span className="text-pink-vivid">*</span>
-          </label>
+        <div className="mb-6">
+          {step === 1 && (
+            <label className="block text-sm font-ui font-semibold text-ink mb-3">
+              Content <span className="text-pink-vivid">*</span>
+            </label>
+          )}
           <div className="relative">
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
               <div className="w-full h-full rounded-xl bg-surface" />
@@ -3383,8 +3352,9 @@ export default function CreatePost() {
         </div>
         )}
 
-        {/* Media Section (Step 1) */}
-        {!isTakeMode && step === 1 && (
+        {/* Media Section — visible & editable across both steps so the draft
+            canvas stays continuous (gallery edits persist between steps). */}
+        {!isTakeMode && (
           <div className="mb-8">
             <input
               ref={fileInputRef}
@@ -3392,13 +3362,6 @@ export default function CreatePost() {
               multiple
               accept="image/*,video/*"
               onChange={handleFileSelect}
-              className="hidden"
-            />
-            <input
-              ref={audioInputRef}
-              type="file"
-              accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg"
-              onChange={handleAudioSelect}
               className="hidden"
             />
 
@@ -3474,70 +3437,6 @@ export default function CreatePost() {
                 </div>
               </div>
             )}
-
-            {/* Audio upload (NEW) — uploaded Sound / Voice track. Stored as an
-                audio-typed media item; the Heard format (Sound/Voice/Music) is
-                chosen on Step 2. */}
-            <div className="mt-4">
-              {audioItem ? (
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 border border-purple-primary/15">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
-                    {icons.waveform}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <input
-                      type="text"
-                      value={audioItem.caption}
-                      onChange={(e) => handleCaptionChange(audioItem.id, e.target.value)}
-                      placeholder="Track title..."
-                      className="w-full font-ui text-sm font-medium text-ink bg-transparent outline-none placeholder:text-muted/50"
-                    />
-                    <p className="font-ui text-[0.75rem] text-muted">
-                      Audio
-                      {typeof audioItem.durationSec === "number"
-                        ? ` · ${Math.floor(audioItem.durationSec / 60)}:${String(audioItem.durationSec % 60).padStart(2, "0")}`
-                        : ""}
-                    </p>
-                  </div>
-                  <audio src={audioItem.preview} controls className="hidden sm:block max-w-[180px] h-9" />
-                  <button
-                    onClick={() => handleRemoveMedia(audioItem.id)}
-                    className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors flex-shrink-0"
-                  >
-                    {icons.x}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => audioInputRef.current?.click()}
-                  disabled={audioUploading}
-                  className="group w-full flex items-center gap-4 rounded-2xl border border-dashed border-purple-primary/25 bg-gradient-to-br from-purple-primary/[0.06] via-surface to-pink-vivid/[0.04] px-5 py-4 hover:border-purple-primary/50 hover:shadow-sm transition-all disabled:opacity-60 disabled:cursor-wait text-left"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-primary/15 to-pink-vivid/15 flex items-center justify-center text-purple-primary flex-shrink-0 group-hover:scale-105 transition-transform">
-                    {audioUploading ? (
-                      <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                    ) : (
-                      icons.soundWave
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-ui text-sm font-medium text-ink/80 group-hover:text-ink transition-colors">
-                      {audioUploading ? "Uploading sound..." : "Add sound"}
-                    </p>
-                    <p className="font-ui text-xs text-muted mt-0.5">
-                      Music or a voice note — mp3, m4a, wav
-                    </p>
-                  </div>
-                </button>
-              )}
-              {audioUploadError && (
-                <p className="mt-2 font-ui text-sm text-red-500">{audioUploadError}</p>
-              )}
-            </div>
           </div>
         )}
 
@@ -3546,242 +3445,230 @@ export default function CreatePost() {
 
         {/* Format picker (Step 2) — four categories, NO pre-selection. Skipping
             leaves the post a Thought (DEFAULT_FORMAT). Picking a format sets
-            selectedType and reveals that format's options below. */}
+            selectedType and reveals that format's options below. Sits directly
+            beneath the editable draft canvas, reading as one continuous flow. */}
         {!isTakeMode && step === 2 && (
-          <div className="mb-8">
-            <div className="text-center mb-6">
-              <h2 className="font-display text-xl font-bold text-ink">Pick a format</h2>
+          <div className="mb-8 rounded-3xl border border-border-light bg-gradient-to-br from-surface via-surface to-purple-primary/[0.03] p-5 sm:p-7">
+            <div className="mb-6">
+              <h3 className="font-display text-lg font-bold text-ink">How should it be experienced?</h3>
               <p className="font-ui text-sm text-muted mt-1">
-                Shape how your post is experienced.
+                Pick a format to shape your post. Skip it and it stays a Thought.
               </p>
             </div>
 
-            {/* Side-by-side on desktop: picker on the left, live preview on the
-                right. Stacks on mobile (preview first so it's visible). */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(280px,360px)] gap-6 lg:gap-8 items-start">
-              {/* ---- Picker column ---- */}
-              <div className="order-2 lg:order-1">
-                {/* Category segment cards — one accent for the active state. */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
-                  {CATEGORY_ORDER.map((cat) => {
-                    const meta = POST_CATEGORIES[cat];
-                    const isActive =
-                      activeCategory === cat ||
-                      (activeCategory === null && selectedType !== DEFAULT_FORMAT && getCategoryOf(selectedType) === cat);
+            {/* Category segment cards — elegant, one accent for the active state. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
+              {CATEGORY_ORDER.map((cat) => {
+                const meta = POST_CATEGORIES[cat];
+                const isActive =
+                  activeCategory === cat ||
+                  (activeCategory === null && selectedType !== DEFAULT_FORMAT && getCategoryOf(selectedType) === cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveCategory((prev) => (prev === cat ? null : cat))}
+                    className={`group flex flex-col items-center justify-center gap-2.5 px-3 py-5 rounded-2xl transition-all ${
+                      isActive
+                        ? "bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border border-purple-primary/40 shadow-sm"
+                        : "bg-surface border border-border-light hover:border-purple-primary/30"
+                    }`}
+                  >
+                    <span
+                      className={`flex items-center justify-center w-11 h-11 rounded-2xl transition-colors ${
+                        isActive
+                          ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white shadow-sm"
+                          : "bg-subtle text-muted group-hover:text-ink"
+                      }`}
+                    >
+                      {categoryIcons[cat]}
+                    </span>
+                    <span
+                      className={`font-ui text-sm font-semibold tracking-wide ${
+                        isActive ? "text-purple-primary" : "text-muted group-hover:text-ink"
+                      }`}
+                    >
+                      {meta.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Formats for the open category, as refined pills. */}
+            {(() => {
+              const shownCategory: PostCategory | null =
+                activeCategory ??
+                (selectedType !== DEFAULT_FORMAT ? getCategoryOf(selectedType) : null);
+              if (!shownCategory) {
+                return (
+                  <div className="rounded-2xl border border-dashed border-border-light bg-subtle/40 px-5 py-6 text-center">
+                    <p className="font-ui text-sm text-muted">
+                      Choose a category above to reveal its formats.
+                    </p>
+                  </div>
+                );
+              }
+              const formats: FormatSpec[] = getFormatsByCategory(shownCategory);
+              return (
+                <div className="flex flex-wrap gap-2.5">
+                  {formats.map((fmt) => {
+                    const chosen = selectedType === fmt.id;
                     return (
                       <button
-                        key={cat}
+                        key={fmt.id}
                         type="button"
-                        onClick={() => setActiveCategory((prev) => (prev === cat ? null : cat))}
-                        className={`group flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-2xl transition-all ${
-                          isActive
-                            ? "bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border border-purple-primary/40 shadow-sm"
-                            : "bg-surface border border-border-light hover:border-purple-primary/30"
+                        onClick={() => handleSelectFormat(fmt.id)}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-ui text-sm font-medium transition-all ${
+                          chosen
+                            ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-sm"
+                            : "bg-surface text-muted border border-border-light hover:border-purple-primary/30 hover:text-ink"
                         }`}
                       >
-                        <span
-                          className={`flex items-center justify-center w-10 h-10 rounded-xl transition-colors ${
-                            isActive
-                              ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white"
-                              : "bg-subtle text-muted group-hover:text-ink"
-                          }`}
-                        >
-                          {categoryIcons[cat]}
-                        </span>
-                        <span
-                          className={`font-ui text-sm font-medium ${
-                            isActive ? "text-purple-primary" : "text-muted group-hover:text-ink"
-                          }`}
-                        >
-                          {meta.label}
-                        </span>
+                        {fmt.label}
+                        {chosen && <span>{icons.check}</span>}
                       </button>
                     );
                   })}
                 </div>
+              );
+            })()}
 
-                {/* Formats for the open category, as refined pills. */}
-                {(() => {
-                  const shownCategory: PostCategory | null =
-                    activeCategory ??
-                    (selectedType !== DEFAULT_FORMAT ? getCategoryOf(selectedType) : null);
-                  if (!shownCategory) {
-                    return (
-                      <div className="rounded-2xl border border-dashed border-border-light bg-subtle/40 px-5 py-6 text-center">
-                        <p className="font-ui text-sm text-muted">
-                          Choose a category above to reveal its formats.
-                        </p>
-                      </div>
-                    );
-                  }
-                  const formats: FormatSpec[] = getFormatsByCategory(shownCategory);
-                  return (
-                    <div className="flex flex-wrap gap-2.5">
-                      {formats.map((fmt) => {
-                        const chosen = selectedType === fmt.id;
-                        return (
-                          <button
-                            key={fmt.id}
-                            type="button"
-                            onClick={() => handleSelectFormat(fmt.id)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-ui text-sm font-medium transition-all ${
-                              chosen
-                                ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-sm"
-                                : "bg-surface text-muted border border-border-light hover:border-purple-primary/30 hover:text-ink"
-                            }`}
-                          >
-                            {fmt.label}
-                            {fmt.isNew && (
-                              <span
-                                className={`px-1.5 py-0.5 rounded-full text-[0.6rem] font-semibold uppercase tracking-wide ${
-                                  chosen ? "bg-white/25 text-white" : "bg-pink-vivid/10 text-pink-vivid"
-                                }`}
-                              >
-                                New
-                              </span>
-                            )}
-                            {chosen && <span>{icons.check}</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+            {/* Per-format options — revealed only when the owning format is
+                selected. Each is a single, minimal input. */}
 
-                {/* Per-format options — revealed only when the owning format is
-                    selected. Each is a single, minimal input. */}
+            {/* Music (Sound category) — Spotify-based. Paste a track link to
+                attach it; renders a live Spotify embed player + album card. */}
+            {selectedType === "audio" && (
+              <div className="mt-6 rounded-2xl border border-[#1DB954]/20 bg-[#1DB954]/[0.04] p-4 sm:p-5">
+                <div className="flex items-center gap-2.5 mb-3.5">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#1DB954] text-white">
+                    {icons.spotify}
+                  </span>
+                  <div>
+                    <p className="font-ui text-sm font-semibold text-ink">Attach a track</p>
+                    <p className="font-ui text-[0.75rem] text-muted">Paste a Spotify track link to set the soundtrack.</p>
+                  </div>
+                </div>
 
-                {/* Heard formats (Sound / Voice) — upload control. */}
-                {(selectedType === "sound" || selectedType === "voice") && (
-                  <div className="mt-5">
-                    {audioItem ? (
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-purple-primary/5 to-pink-vivid/5 border border-purple-primary/15">
-                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center text-white flex-shrink-0">
-                          {icons.waveform}
+                {spotifyTrack ? (
+                  <div className="space-y-3.5">
+                    {/* Album-art + title + artist card with remove */}
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border-light">
+                      {spotifyTrack.albumArt ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={spotifyTrack.albumArt}
+                          alt={spotifyTrack.album || spotifyTrack.name}
+                          className="w-14 h-14 rounded-lg object-cover shadow-sm flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-lg bg-[#1DB954]/10 flex items-center justify-center text-[#1DB954] flex-shrink-0">
+                          {icons.music}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-ui text-sm font-medium text-ink truncate">{audioItem.caption || "Audio track"}</p>
-                          <p className="font-ui text-[0.75rem] text-muted">
-                            {selectedType === "voice" ? "Voice note" : "Sound"}
-                            {typeof audioItem.durationSec === "number"
-                              ? ` · ${Math.floor(audioItem.durationSec / 60)}:${String(audioItem.durationSec % 60).padStart(2, "0")}`
-                              : ""}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveMedia(audioItem.id)}
-                          className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors flex-shrink-0"
-                        >
-                          {icons.x}
-                        </button>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-ui text-sm font-semibold text-ink truncate">{spotifyTrack.name}</p>
+                        <p className="font-ui text-[0.8rem] text-muted truncate">{spotifyTrack.artist}</p>
                       </div>
-                    ) : (
                       <button
                         type="button"
-                        onClick={() => audioInputRef.current?.click()}
-                        disabled={audioUploading}
-                        className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-purple-primary/25 bg-surface hover:border-purple-primary/50 hover:bg-purple-primary/5 transition-all disabled:opacity-60 disabled:cursor-wait"
+                        onClick={() => setSpotifyTrack(null)}
+                        className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors flex-shrink-0"
+                        aria-label="Remove track"
                       >
-                        <span className="text-purple-primary">{icons.soundWave}</span>
-                        <span className="font-ui text-sm text-ink">
-                          {audioUploading
-                            ? "Uploading..."
-                            : selectedType === "voice"
-                              ? "Upload a voice note"
-                              : "Upload a sound file"}
-                        </span>
+                        {icons.x}
                       </button>
-                    )}
-                    {audioUploadError && (
-                      <p className="mt-2 font-ui text-sm text-red-500 text-center">{audioUploadError}</p>
-                    )}
+                    </div>
 
-                    {/* Artist / credit (Sound & Voice) */}
-                    <div className="mt-3">
-                      <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                        Artist / credit <span className="font-normal text-muted/60">(optional)</span>
-                      </label>
+                    {/* Real Spotify embed player */}
+                    <iframe
+                      title="Spotify player"
+                      src={`https://open.spotify.com/embed/track/${spotifyTrack.id}?utm_source=generator`}
+                      width="100%"
+                      height="152"
+                      style={{ border: 0, borderRadius: 12 }}
+                      loading="lazy"
+                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="text"
-                        value={artist}
-                        onChange={(e) => setArtist(e.target.value)}
-                        placeholder={selectedType === "voice" ? "Who's speaking?" : "Who made this?"}
-                        className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+                        value={spotifyUrl}
+                        onChange={(e) => setSpotifyUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && spotifyUrl.trim()) {
+                            e.preventDefault();
+                            fetchSpotifyTrack(spotifyUrl.trim());
+                          }
+                        }}
+                        placeholder="https://open.spotify.com/track/..."
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-[#1DB954]/30 bg-surface font-ui text-sm text-ink focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all placeholder:text-muted/50"
                       />
+                      <button
+                        type="button"
+                        onClick={() => spotifyUrl.trim() && fetchSpotifyTrack(spotifyUrl.trim())}
+                        disabled={loadingSpotify || !spotifyUrl.trim()}
+                        className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#1DB954] font-ui text-sm font-semibold text-white hover:bg-[#1ed760] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {loadingSpotify ? (
+                          <>
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Fetching...
+                          </>
+                        ) : (
+                          "Attach"
+                        )}
+                      </button>
                     </div>
-                  </div>
-                )}
-
-                {/* Quote → attribution (who said it) */}
-                {selectedType === "quote" && (
-                  <div className="mt-5">
-                    <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                      Attribution <span className="font-normal text-muted/60">(optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={attribution}
-                      onChange={(e) => setAttribution(e.target.value)}
-                      placeholder="Who said it?"
-                      className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
-                    />
-                  </div>
-                )}
-
-                {/* Essay & Blog → subtitle */}
-                {(selectedType === "essay" || selectedType === "blog") && (
-                  <div className="mt-5">
-                    <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                      Subtitle <span className="font-normal text-muted/60">(optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={subtitle}
-                      onChange={(e) => setSubtitle(e.target.value)}
-                      placeholder="A short subtitle or deck"
-                      className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
-                    />
+                    {spotifyError && (
+                      <p className="font-ui text-sm text-red-500">{spotifyError}</p>
+                    )}
+                    <p className="font-ui text-[0.75rem] text-muted/70">
+                      Tip: in Spotify, hit Share → Copy Song Link.
+                    </p>
                   </div>
                 )}
               </div>
+            )}
 
-              {/* ---- Live preview column ---- */}
-              <div className="order-1 lg:order-2 lg:sticky lg:top-6">
-                <p className="font-ui text-xs font-medium text-muted uppercase tracking-wider mb-2.5 text-center lg:text-left">
-                  Preview
-                </p>
-                <ComposerPreview
-                  authorName={profile?.display_name || profile?.username || "You"}
-                  authorUsername={profile?.username}
-                  authorAvatar={profile?.avatar_url}
-                  title={previewTitle}
-                  excerpt={previewExcerpt}
-                  formatId={selectedType}
-                  styling={styling}
-                  textAlignment={textAlignment}
-                  media={mediaItems.map((m) => ({
-                    id: m.id,
-                    preview: m.preview,
-                    type: m.type,
-                    caption: m.caption,
-                    durationSec: m.durationSec,
-                  }))}
-                  attribution={attribution}
-                  subtitle={subtitle}
-                  artist={artist}
-                  spotify={
-                    spotifyTrack
-                      ? {
-                          name: spotifyTrack.name,
-                          artist: spotifyTrack.artist,
-                          albumArt: spotifyTrack.albumArt,
-                        }
-                      : null
-                  }
+            {/* Quote → attribution (who said it) */}
+            {selectedType === "quote" && (
+              <div className="mt-6">
+                <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                  Attribution <span className="font-normal text-muted/60">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={attribution}
+                  onChange={(e) => setAttribution(e.target.value)}
+                  placeholder="Who said it?"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
                 />
               </div>
-            </div>
+            )}
+
+            {/* Essay & Blog → subtitle */}
+            {(selectedType === "essay" || selectedType === "blog") && (
+              <div className="mt-6">
+                <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                  Subtitle <span className="font-normal text-muted/60">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={subtitle}
+                  onChange={(e) => setSubtitle(e.target.value)}
+                  placeholder="A short subtitle or deck"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -3790,7 +3677,9 @@ export default function CreatePost() {
         <div className="mb-8 border-t border-border-light pt-6">
           <p className="text-sm font-ui text-muted uppercase tracking-wider mb-4">Extras</p>
 
-          {/* Soundtrack */}
+          {/* Soundtrack — optional for any non-Music post. The Music format
+              owns its own Spotify control inline above, so hide it there. */}
+          {selectedType !== "audio" && (
           <div className="mb-2">
             <button
               onClick={() => toggleSection('soundtrack')}
@@ -3904,6 +3793,7 @@ export default function CreatePost() {
           </div>
           )}
           </div>
+          )}
 
           {/* Journal Mood */}
           {selectedType === 'journal' && (
