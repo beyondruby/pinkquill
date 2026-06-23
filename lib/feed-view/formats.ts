@@ -26,7 +26,8 @@ export type PostMedium = "text" | "image" | "video" | "audio";
 // Composer modules a format can unlock on Page 2 (the "additional options").
 export type ComposerModule =
   | "journalMeta" // mood · weather · entry date (existing JournalMetadata)
-  | "spotify" // Spotify link (existing spotify_track)
+  | "musicMeta" // Music: artist · album · genre · year · cover (metadata.music)
+  | "spotify" // optional Spotify soundtrack link for non-Music posts (spotify_track)
   | "poemForm" // optional: free verse / haiku / sonnet (later)
   | "subtitle" // optional essay/blog subtitle
   | "attribution" // optional quote source
@@ -92,8 +93,10 @@ export const FORMAT_SPECS: Record<PostFormatId, FormatSpec> = {
   // ▶ Watched — video
   video: { id: "video", label: themed("video"), category: "watched", leadMedium: "video", options: ["videoPoster"], showcase: "video" },
 
-  // 🎧 Sound — audio (Spotify-based Music)
-  audio: { id: "audio", label: "Music", category: "heard", leadMedium: "audio", options: ["spotify"], showcase: "spotify" },
+  // 🎧 Sound — Music: audio the user uploaded on Page 1, described with
+  // Spotify-publishing-style metadata (artist/album/genre/year/cover). NOT a
+  // Spotify embed/link. The audio plays via the in-app AudioPlayer.
+  audio: { id: "audio", label: "Music", category: "heard", leadMedium: "audio", options: ["musicMeta"], showcase: "audioPlayer" },
 };
 
 export const DEFAULT_FORMAT: PostFormatId = "thought";

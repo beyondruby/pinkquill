@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunities, useDrafts, useAutoSave, Community, SearchableUser, createNotification, PostDraft } from "@/lib/hooks";
+import { useAudioUpload } from "@/lib/hooks/useAudioUpload";
 import {
   useCreateTake,
   useSounds,
@@ -32,6 +33,7 @@ import {
   DEFAULT_FORMAT,
   getFormatsByCategory,
   getCategoryOf,
+  getFormatSpec,
   type PostCategory,
   type FormatSpec,
 } from "@/lib/feed-view/formats";
@@ -622,6 +624,8 @@ export default function CreatePost() {
   const { user, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const musicCoverInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
@@ -741,6 +745,15 @@ export default function CreatePost() {
   const [attribution, setAttribution] = useState(""); // Quote — who said it
   const [subtitle, setSubtitle] = useState(""); // Essay / Blog — subtitle
 
+  // Music format — Spotify-publishing-style metadata for audio the user uploaded
+  // on Page 1. Stored in post `metadata.music`; cover art uploaded as an image.
+  const [musicArtist, setMusicArtist] = useState("");
+  const [musicAlbum, setMusicAlbum] = useState("");
+  const [musicGenre, setMusicGenre] = useState("");
+  const [musicYear, setMusicYear] = useState("");
+  const [musicCoverUrl, setMusicCoverUrl] = useState<string | null>(null);
+  const [musicCoverUploading, setMusicCoverUploading] = useState(false);
+
   // Spotify Track
   const [spotifyTrack, setSpotifyTrack] = useState<SpotifyTrack | null>(null);
   const [showSpotifyPicker, setShowSpotifyPicker] = useState(false);
@@ -792,6 +805,9 @@ export default function CreatePost() {
     limit: 20,
   }) || { sounds: [], loading: false };
   const displaySounds = takeSoundSearch ? searchedSounds : trendingSounds;
+
+  // Audio upload (Page-1 "Add sound" medium → post_media media_type 'audio')
+  const { uploadAudio, uploading: audioUploading, error: audioError } = useAudioUpload();
 
   // Drafts
   const { saveDraft, deleteDraft, getMostRecentDraft } = useDrafts(user?.id);
@@ -867,6 +883,9 @@ export default function CreatePost() {
     }
   });
   const currentType = postTypes.find((t) => t.id === selectedType);
+
+  // The single attached sound (Page-1 audio medium), if any.
+  const audioItem = mediaItems.find((m) => m.type === "audio");
 
   // Collapsible section state
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -946,6 +965,16 @@ export default function CreatePost() {
         setJournalMetadata(loadedMetadata as JournalMetadata);
         setAttribution(typeof loadedMetadata.attribution === "string" ? loadedMetadata.attribution : "");
         setSubtitle(typeof loadedMetadata.subtitle === "string" ? loadedMetadata.subtitle : "");
+
+        // Music format metadata (metadata.music = { artist, album, genre, year, coverUrl })
+        const loadedMusic = (loadedMetadata.music && typeof loadedMetadata.music === "object"
+          ? loadedMetadata.music
+          : {}) as Record<string, unknown>;
+        setMusicArtist(typeof loadedMusic.artist === "string" ? loadedMusic.artist : "");
+        setMusicAlbum(typeof loadedMusic.album === "string" ? loadedMusic.album : "");
+        setMusicGenre(typeof loadedMusic.genre === "string" ? loadedMusic.genre : "");
+        setMusicYear(typeof loadedMusic.year === "string" ? loadedMusic.year : "");
+        setMusicCoverUrl(typeof loadedMusic.coverUrl === "string" ? loadedMusic.coverUrl : null);
 
         const loadedStyling = (post.styling || {}) as PostStyling;
         setStyling(loadedStyling);
@@ -1399,6 +1428,72 @@ export default function CreatePost() {
     setMediaItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, caption } : item))
     );
+  };
+
+  // Page-1 "Add sound" — upload audio to the post-audio bucket (via useAudioUpload)
+  // and add it as a MediaItem with type "audio". Persisted on submit like media.
+  const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (audioInputRef.current) audioInputRef.current.value = "";
+    if (!file) return;
+
+    setError(null);
+    const result = await uploadAudio(file, "sound");
+    if (!result) {
+      setError(audioError || "Could not upload that sound.");
+      return;
+    }
+
+    const newItem: MediaItem = {
+      id: crypto.randomUUID(),
+      preview: result.url,
+      media_url: result.url,
+      caption: "",
+      type: "audio",
+      durationSec: result.durationSec,
+    };
+    setMediaItems((prev) => [...prev, newItem]);
+  };
+
+  const handleRemoveAudio = () => {
+    setMediaItems((prev) => {
+      const removed = prev.filter((m) => m.type === "audio" && m.isExisting);
+      setDeletedMediaIds((ids) => [...ids, ...removed.map((m) => m.id)]);
+      return prev.filter((m) => m.type !== "audio");
+    });
+  };
+
+  // Music format — optional cover-art image upload (stored in metadata.music.coverUrl).
+  const handleMusicCoverSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (musicCoverInputRef.current) musicCoverInputRef.current.value = "";
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Cover art must be an image.");
+      return;
+    }
+    if (file.size > MAX_MEDIA_SIZE_BYTES) {
+      setError("Cover art exceeds the 50MB limit.");
+      return;
+    }
+
+    setError(null);
+    setMusicCoverUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/music-covers/${crypto.randomUUID()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("post-media")
+        .upload(fileName, file, { cacheControl: "31536000" });
+      if (uploadError) {
+        setError(`Cover upload failed: ${uploadError.message}`);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("post-media").getPublicUrl(fileName);
+      setMusicCoverUrl(urlData.publicUrl);
+    } finally {
+      setMusicCoverUploading(false);
+    }
   };
 
   // Page-2 format selection. Picking the same format again clears it back to the
@@ -1884,6 +1979,17 @@ export default function CreatePost() {
       }
       if ((selectedType === "essay" || selectedType === "blog") && subtitle.trim()) {
         mergedMetadata.subtitle = subtitle.trim();
+      }
+      // Music format — Spotify-publishing-style metadata (about the audio the user
+      // uploaded on Page 1). No Spotify link/embed here.
+      if (selectedType === "audio") {
+        const music: Record<string, string> = {};
+        if (musicArtist.trim()) music.artist = musicArtist.trim();
+        if (musicAlbum.trim()) music.album = musicAlbum.trim();
+        if (musicGenre.trim()) music.genre = musicGenre.trim();
+        if (musicYear.trim()) music.year = musicYear.trim();
+        if (musicCoverUrl) music.coverUrl = musicCoverUrl;
+        if (Object.keys(music).length > 0) mergedMetadata.music = music;
       }
       const postMetadata = Object.keys(mergedMetadata).length > 0 ? mergedMetadata : null;
 
@@ -2807,33 +2913,16 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Step-2 canvas intro — frames the editable content that follows as one
-            living draft (the same title/body/media editors stay mounted from
-            Step 1, fully editable). */}
-        {!isTakeMode && step === 2 && (
-          <div className="mb-5">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-primary/10 to-pink-vivid/10 text-purple-primary font-ui text-[0.7rem] font-semibold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid" />
-              Your draft
-            </span>
-            <h2 className="mt-3 font-display text-2xl font-bold text-ink">Refine &amp; shape it</h2>
-            <p className="font-ui text-sm text-muted mt-1">
-              Edit your words right here, then choose how the world experiences them.
-            </p>
-          </div>
-        )}
-
         {/* Regular Post Mode - Title Input.
             Kept MOUNTED across both steps because the title lives in this
-            uncontrolled contentEditable div — unmounting would drop it. Fully
-            editable on Step 2 too, so the draft reads as one continuous canvas. */}
+            uncontrolled contentEditable div — unmounting would drop it. The
+            content + toolbar render identically on Step 1 and Step 2 so Step 2
+            reads as a seamless continuation of Step 1 (not a preview). */}
         {!isTakeMode && (
           <div className="mb-6">
-            {step === 1 && (
-              <label className="block text-sm font-ui font-semibold text-ink mb-3">
-                Title <span className="text-muted font-normal">(optional)</span>
-              </label>
-            )}
+            <label className="block text-sm font-ui font-semibold text-ink mb-3">
+              Title <span className="text-muted font-normal">(optional)</span>
+            </label>
             <div className="relative">
               <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
                 <div className="w-full h-full rounded-xl bg-surface" />
@@ -2863,8 +2952,9 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Formatting Toolbar - Hidden in Take mode (Step 1) */}
-        {!isTakeMode && step === 1 && (
+        {/* Formatting Toolbar — shown on BOTH steps (Step 2 is a seamless
+            continuation of Step 1, with the same editable content + toolbar). */}
+        {!isTakeMode && (
         <div className="mb-4 px-4 py-2.5 rounded-xl bg-subtle/80 border border-border-light flex items-center gap-1 flex-wrap">
           {/* Text Formatting */}
           <div className="flex items-center gap-1 pr-3 border-r border-border-light">
@@ -3291,11 +3381,9 @@ export default function CreatePost() {
             editable on Step 2 as part of the continuous draft canvas. */}
         {!isTakeMode && (
         <div className="mb-6">
-          {step === 1 && (
-            <label className="block text-sm font-ui font-semibold text-ink mb-3">
-              Content <span className="text-pink-vivid">*</span>
-            </label>
-          )}
+          <label className="block text-sm font-ui font-semibold text-ink mb-3">
+            Content <span className="text-pink-vivid">*</span>
+          </label>
           <div className="relative">
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm p-[1px]">
               <div className="w-full h-full rounded-xl bg-surface" />
@@ -3362,6 +3450,13 @@ export default function CreatePost() {
               multiple
               accept="image/*,video/*"
               onChange={handleFileSelect}
+              className="hidden"
+            />
+            <input
+              ref={audioInputRef}
+              type="file"
+              accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg"
+              onChange={handleAudioSelect}
               className="hidden"
             />
 
@@ -3437,6 +3532,53 @@ export default function CreatePost() {
                 </div>
               </div>
             )}
+
+            {/* Add sound — audio is a MEDIUM you attach here (not a format). */}
+            <div className="mt-4">
+              {audioItem ? (
+                <div className="rounded-2xl border border-border-light bg-subtle/40 p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-purple-primary/15 to-pink-vivid/15 text-purple-primary flex-shrink-0">
+                      {icons.soundWave}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-ui text-sm font-medium text-ink">Sound attached</p>
+                      <audio src={audioItem.preview} controls className="mt-2 w-full h-9" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveAudio}
+                      className="w-9 h-9 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors flex-shrink-0"
+                      aria-label="Remove sound"
+                    >
+                      {icons.x}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => audioInputRef.current?.click()}
+                  disabled={audioUploading}
+                  className="w-full rounded-2xl border border-dashed border-purple-primary/25 bg-gradient-to-br from-purple-primary/[0.04] via-surface to-pink-vivid/[0.04] p-6 flex items-center justify-center gap-3 text-muted hover:border-purple-primary/50 hover:text-purple-primary transition-all disabled:opacity-60 disabled:cursor-wait"
+                >
+                  {audioUploading ? (
+                    <svg className="w-6 h-6 animate-spin text-purple-primary" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    icons.soundWave
+                  )}
+                  <span className="font-ui text-sm font-medium">
+                    {audioUploading ? "Uploading sound…" : "Add sound"}
+                  </span>
+                </button>
+              )}
+              {audioError && !audioItem && (
+                <p className="mt-2 font-ui text-sm text-red-500">{audioError}</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -3534,139 +3676,183 @@ export default function CreatePost() {
               );
             })()}
 
-            {/* Per-format options — revealed only when the owning format is
-                selected. Each is a single, minimal input. */}
-
-            {/* Music (Sound category) — Spotify-based. Paste a track link to
-                attach it; renders a live Spotify embed player + album card. */}
-            {selectedType === "audio" && (
-              <div className="mt-6 rounded-2xl border border-[#1DB954]/20 bg-[#1DB954]/[0.04] p-4 sm:p-5">
-                <div className="flex items-center gap-2.5 mb-3.5">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#1DB954] text-white">
-                    {icons.spotify}
+            {/* "Add details" panel — revealed only for formats that carry extra
+                info, so it's obvious that picking a format lets you add more.
+                Formats with no extra info (Thought, Poem, Visual, Video, Story,
+                Letter) simply select cleanly with no panel. */}
+            {(selectedType === "audio" ||
+              selectedType === "quote" ||
+              selectedType === "essay" ||
+              selectedType === "blog") && (
+              <div className="mt-6 rounded-2xl border border-purple-primary/15 bg-purple-primary/[0.03] p-5 sm:p-6 animate-fadeIn">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid text-white flex-shrink-0">
+                    <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
                   </span>
                   <div>
-                    <p className="font-ui text-sm font-semibold text-ink">Attach a track</p>
-                    <p className="font-ui text-[0.75rem] text-muted">Paste a Spotify track link to set the soundtrack.</p>
+                    <p className="font-ui text-sm font-semibold text-ink">Add details</p>
+                    <p className="font-ui text-[0.75rem] text-muted">
+                      Optional info to enrich your {getFormatSpec(selectedType).label.toLowerCase()}.
+                    </p>
                   </div>
                 </div>
 
-                {spotifyTrack ? (
-                  <div className="space-y-3.5">
-                    {/* Album-art + title + artist card with remove */}
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border-light">
-                      {spotifyTrack.albumArt ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={spotifyTrack.albumArt}
-                          alt={spotifyTrack.album || spotifyTrack.name}
-                          className="w-14 h-14 rounded-lg object-cover shadow-sm flex-shrink-0"
+                {/* Music — info you'd fill in when publishing to Spotify. The
+                    audio itself is the sound attached on Page 1. NO link/embed. */}
+                {selectedType === "audio" && (
+                  <div className="space-y-4">
+                    {!audioItem && (
+                      <p className="rounded-xl border border-border-light bg-surface px-4 py-3 font-ui text-[0.8rem] text-muted">
+                        Tip: attach the track itself with “Add sound” up in the Media
+                        section. These details describe it.
+                      </p>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                          Artist / creator
+                        </label>
+                        <input
+                          type="text"
+                          value={musicArtist}
+                          onChange={(e) => setMusicArtist(e.target.value)}
+                          placeholder="Who made it?"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
                         />
-                      ) : (
-                        <div className="w-14 h-14 rounded-lg bg-[#1DB954]/10 flex items-center justify-center text-[#1DB954] flex-shrink-0">
-                          {icons.music}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-ui text-sm font-semibold text-ink truncate">{spotifyTrack.name}</p>
-                        <p className="font-ui text-[0.8rem] text-muted truncate">{spotifyTrack.artist}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setSpotifyTrack(null)}
-                        className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-muted hover:text-red-500 transition-colors flex-shrink-0"
-                        aria-label="Remove track"
-                      >
-                        {icons.x}
-                      </button>
+                      <div>
+                        <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                          Album / single <span className="font-normal text-muted/60">(optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={musicAlbum}
+                          onChange={(e) => setMusicAlbum(e.target.value)}
+                          placeholder="Release name"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                          Genre <span className="font-normal text-muted/60">(optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={musicGenre}
+                          onChange={(e) => setMusicGenre(e.target.value)}
+                          placeholder="e.g. Lo-fi, Jazz, Pop"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                          Release year <span className="font-normal text-muted/60">(optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={musicYear}
+                          onChange={(e) => setMusicYear(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
+                          placeholder="2026"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+                        />
+                      </div>
                     </div>
 
-                    {/* Real Spotify embed player */}
-                    <iframe
-                      title="Spotify player"
-                      src={`https://open.spotify.com/embed/track/${spotifyTrack.id}?utm_source=generator`}
-                      width="100%"
-                      height="152"
-                      style={{ border: 0, borderRadius: 12 }}
-                      loading="lazy"
-                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-2.5">
-                    <div className="flex flex-col sm:flex-row gap-2">
+                    {/* Cover art */}
+                    <div>
+                      <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                        Cover art <span className="font-normal text-muted/60">(optional)</span>
+                      </label>
                       <input
-                        type="text"
-                        value={spotifyUrl}
-                        onChange={(e) => setSpotifyUrl(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && spotifyUrl.trim()) {
-                            e.preventDefault();
-                            fetchSpotifyTrack(spotifyUrl.trim());
-                          }
-                        }}
-                        placeholder="https://open.spotify.com/track/..."
-                        className="flex-1 px-4 py-2.5 rounded-xl border border-[#1DB954]/30 bg-surface font-ui text-sm text-ink focus:outline-none focus:border-[#1DB954] focus:ring-1 focus:ring-[#1DB954]/30 transition-all placeholder:text-muted/50"
+                        ref={musicCoverInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleMusicCoverSelect}
+                        className="hidden"
                       />
-                      <button
-                        type="button"
-                        onClick={() => spotifyUrl.trim() && fetchSpotifyTrack(spotifyUrl.trim())}
-                        disabled={loadingSpotify || !spotifyUrl.trim()}
-                        className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#1DB954] font-ui text-sm font-semibold text-white hover:bg-[#1ed760] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {loadingSpotify ? (
-                          <>
-                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      {musicCoverUrl ? (
+                        <div className="flex items-center gap-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={musicCoverUrl}
+                            alt="Album cover art"
+                            className="w-16 h-16 rounded-xl object-cover border border-border-light flex-shrink-0"
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => musicCoverInputRef.current?.click()}
+                              className="px-3 py-2 rounded-lg border border-border-light bg-surface font-ui text-xs font-medium text-muted hover:border-purple-primary hover:text-accent transition-colors"
+                            >
+                              Replace
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setMusicCoverUrl(null)}
+                              className="px-3 py-2 rounded-lg font-ui text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => musicCoverInputRef.current?.click()}
+                          disabled={musicCoverUploading}
+                          className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-border-light bg-surface font-ui text-sm text-muted hover:border-purple-primary/50 hover:text-purple-primary transition-colors disabled:opacity-60 disabled:cursor-wait"
+                        >
+                          {musicCoverUploading ? (
+                            <svg className="w-5 h-5 animate-spin text-purple-primary" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                             </svg>
-                            Fetching...
-                          </>
-                        ) : (
-                          "Attach"
-                        )}
-                      </button>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                          {musicCoverUploading ? "Uploading…" : "Upload cover art"}
+                        </button>
+                      )}
                     </div>
-                    {spotifyError && (
-                      <p className="font-ui text-sm text-red-500">{spotifyError}</p>
-                    )}
-                    <p className="font-ui text-[0.75rem] text-muted/70">
-                      Tip: in Spotify, hit Share → Copy Song Link.
-                    </p>
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Quote → attribution (who said it) */}
-            {selectedType === "quote" && (
-              <div className="mt-6">
-                <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                  Attribution <span className="font-normal text-muted/60">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={attribution}
-                  onChange={(e) => setAttribution(e.target.value)}
-                  placeholder="Who said it?"
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
-                />
-              </div>
-            )}
+                {/* Quote → attribution (who said it) */}
+                {selectedType === "quote" && (
+                  <div>
+                    <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                      Attribution <span className="font-normal text-muted/60">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={attribution}
+                      onChange={(e) => setAttribution(e.target.value)}
+                      placeholder="Who said it?"
+                      className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+                    />
+                  </div>
+                )}
 
-            {/* Essay & Blog → subtitle */}
-            {(selectedType === "essay" || selectedType === "blog") && (
-              <div className="mt-6">
-                <label className="block font-ui text-xs font-medium text-muted mb-1.5">
-                  Subtitle <span className="font-normal text-muted/60">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={subtitle}
-                  onChange={(e) => setSubtitle(e.target.value)}
-                  placeholder="A short subtitle or deck"
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
-                />
+                {/* Essay & Blog → subtitle */}
+                {(selectedType === "essay" || selectedType === "blog") && (
+                  <div>
+                    <label className="block font-ui text-xs font-medium text-muted mb-1.5">
+                      Subtitle <span className="font-normal text-muted/60">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={subtitle}
+                      onChange={(e) => setSubtitle(e.target.value)}
+                      placeholder="A short subtitle or deck"
+                      className="w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface font-ui text-sm text-ink focus:outline-none focus:border-purple-primary transition-colors placeholder:text-muted/50"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
