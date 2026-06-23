@@ -109,7 +109,9 @@
       "Bash(rg \"from ['\\\\\"]@/lib/hooks['\\\\\"]$|from ['\\\\\"]\\\\.\\\\./lib/hooks['\\\\\"]$\" /Users/hadi/projects/pinkquill --type ts --type js)",
       "Bash([ -f \"components/$dir/index.ts\" ])",
       "Bash([ -f \"components/$dir/index.tsx\" ])",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git merge *)",
+      "Bash(perl -0pi -e 's/\\\\n\\\\s*<CategoryFilterBar active=\\\\{categoryFilter\\\\} onChange=\\\\{setCategoryFilter\\\\} \\\\/>//g' components/feed/Feed.tsx)"
     ]
   }
 }

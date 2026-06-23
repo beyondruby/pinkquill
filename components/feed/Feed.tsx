@@ -16,12 +16,6 @@ import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
 import type { Post } from "@/lib/types";
 import type { FeedViewId } from "@/lib/feed-view/registry";
 import { getTimeAgo } from "@/lib/utils/time";
-import {
-  getCategoryOf,
-  CATEGORY_ORDER,
-  POST_CATEGORIES,
-  type PostCategory,
-} from "@/lib/feed-view/formats";
 
 // PERFORMANCE: Moved outside component to prevent recreation on every render
 const TYPE_LABELS: Record<string, string> = {
@@ -236,51 +230,6 @@ function FeedFrame({
   );
 }
 
-// Feed category filter — "All" plus the four human-facing categories
-// (Read · Seen · Watched · Heard) derived from each post's format.
-type CategoryFilter = "all" | PostCategory;
-
-const CATEGORY_FILTERS: { id: CategoryFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  ...CATEGORY_ORDER.map((c) => ({ id: c as CategoryFilter, label: POST_CATEGORIES[c].label })),
-];
-
-function CategoryFilterBar({
-  active,
-  onChange,
-}: {
-  active: CategoryFilter;
-  onChange: (id: CategoryFilter) => void;
-}) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Filter feed by category"
-      className="mx-auto mb-1 flex w-full max-w-[760px] flex-wrap items-center gap-2 px-4 pt-4 md:px-6"
-    >
-      {CATEGORY_FILTERS.map(({ id, label }) => {
-        const selected = active === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            onClick={() => onChange(id)}
-            className={`rounded-full border px-3.5 py-1.5 font-ui text-[0.8rem] font-medium transition-colors ${
-              selected
-                ? "border-accent bg-accent text-on-accent"
-                : "border-border-light bg-surface text-muted hover:border-border-strong hover:text-ink"
-            }`}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function Feed() {
   const { user, loading: authLoading } = useAuth();
   const { subscribeToDeletes } = useModal();
@@ -298,9 +247,6 @@ export default function Feed() {
 
   // Local state for filtering deleted posts (cleared on refresh since fresh data is accurate)
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
-
-  // Category filter — client-side filtering of already-loaded posts.
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
   // Wrap refresh to clear deletedIds since fresh server data reflects accurate state
   const handleRefresh = useCallback(() => {
@@ -351,17 +297,11 @@ export default function Feed() {
     return () => { unsubPosts(); };
   }, [subscribeToDeletes]);
 
-  // PERFORMANCE: Memoize filtered posts - only recalculate when feedPosts,
-  // deletedIds, or the active category filter change. Category is derived from
-  // each post's format via the registry (no extra fetch).
+  // PERFORMANCE: Memoize filtered posts - only recalculate when feedPosts or
+  // deletedIds change.
   const posts = useMemo(
-    () =>
-      feedPosts.filter(
-        (p) =>
-          !deletedIds.has(p.id) &&
-          (categoryFilter === "all" || getCategoryOf(p.type) === categoryFilter)
-      ),
-    [feedPosts, deletedIds, categoryFilter]
+    () => feedPosts.filter((p) => !deletedIds.has(p.id)),
+    [feedPosts, deletedIds]
   );
 
   // PERFORMANCE: Memoize transformed posts - prevents object recreation on every render
@@ -384,7 +324,6 @@ export default function Feed() {
     return (
       <>
         <FeedViewMenu />
-        <CategoryFilterBar active={categoryFilter} onChange={setCategoryFilter} />
         <FeedFrame viewId={viewId}>
           {viewId === "classic"
             ? [...Array(3)].map((_, i) => <PostSkeleton key={i} />)
@@ -414,7 +353,6 @@ export default function Feed() {
     return (
       <>
         <FeedViewMenu />
-        <CategoryFilterBar active={categoryFilter} onChange={setCategoryFilter} />
         <FeedFrame viewId={viewId}>
           <div className="text-center col-span-full md:col-span-12">
             <p className="font-body text-red-500 mb-4">{error}</p>
@@ -431,37 +369,23 @@ export default function Feed() {
   }
 
   if (posts.length === 0) {
-    const filtered = categoryFilter !== "all";
     return (
       <>
         <FeedViewMenu />
-        <CategoryFilterBar active={categoryFilter} onChange={setCategoryFilter} />
         <FeedFrame viewId={viewId}>
           <div className="text-center col-span-full md:col-span-12">
             <h2 className="font-display text-2xl text-ink mb-4">
-              {filtered ? "Nothing here yet" : "The canvas awaits"}
+              The canvas awaits
             </h2>
             <p className="font-body text-muted italic mb-6">
-              {filtered
-                ? `No ${POST_CATEGORIES[categoryFilter as PostCategory].label} posts in your feed right now.`
-                : "No posts yet. Be the first to share your creative voice."}
+              No posts yet. Be the first to share your creative voice.
             </p>
-            {filtered ? (
-              <button
-                type="button"
-                onClick={() => setCategoryFilter("all")}
-                className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-on-accent"
-              >
-                Show all posts
-              </button>
-            ) : (
-              <Link
-                href="/create"
-                className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-on-accent"
-              >
-                Create Something
-              </Link>
-            )}
+            <Link
+              href="/create"
+              className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid font-ui text-[0.95rem] font-medium text-on-accent"
+            >
+              Create Something
+            </Link>
           </div>
         </FeedFrame>
       </>
@@ -471,7 +395,6 @@ export default function Feed() {
   return (
     <>
       <FeedViewMenu />
-      <CategoryFilterBar active={categoryFilter} onChange={setCategoryFilter} />
       <FeedFrame viewId={viewId}>
         {/* PERFORMANCE: Using memoized transformed posts */}
         {transformedPosts.map(({ original, transformed }) => (
