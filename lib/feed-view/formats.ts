@@ -54,10 +54,10 @@ export interface CategoryMeta {
 }
 
 export const POST_CATEGORIES: Record<PostCategory, CategoryMeta> = {
-  read: { id: "read", label: "Ink", medium: "text" },
-  seen: { id: "seen", label: "Lens", medium: "image" },
-  watched: { id: "watched", label: "Motion", medium: "video" },
-  heard: { id: "heard", label: "Sound", medium: "audio" },
+  read: { id: "read", label: "Text", medium: "text" },
+  seen: { id: "seen", label: "Photo", medium: "image" },
+  watched: { id: "watched", label: "Video", medium: "video" },
+  heard: { id: "heard", label: "Audio", medium: "audio" },
 };
 
 export const CATEGORY_ORDER: PostCategory[] = ["read", "seen", "watched", "heard"];

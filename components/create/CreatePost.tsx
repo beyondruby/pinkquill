@@ -508,27 +508,28 @@ const icons: Record<string, React.ReactElement> = {
   ),
 };
 
-// Category tab icons for the Page-2 format picker.
+// Category icons for the Page-2 format picker — plain, recognizable glyphs
+// (document, picture, play, music) so the medium reads at a glance.
 const categoryIcons: Record<PostCategory, React.ReactElement> = {
   read: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
   ),
   seen: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   ),
   watched: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
   heard: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
     </svg>
   ),
 };
@@ -3590,16 +3591,17 @@ export default function CreatePost() {
             selectedType and reveals that format's options below. Sits directly
             beneath the editable draft canvas, reading as one continuous flow. */}
         {!isTakeMode && step === 2 && (
-          <div className="mb-8 rounded-3xl border border-border-light bg-gradient-to-br from-surface via-surface to-purple-primary/[0.03] p-5 sm:p-7">
-            <div className="mb-6">
-              <h3 className="font-display text-lg font-bold text-ink">How should it be experienced?</h3>
+          <div className="mb-8 rounded-3xl border border-border-light bg-gradient-to-br from-surface via-surface to-purple-primary/[0.03] p-6 sm:p-8">
+            <div className="mb-8 text-center">
+              <h3 className="font-display text-lg font-bold text-ink">Choose a format</h3>
               <p className="font-ui text-sm text-muted mt-1">
-                Pick a format to shape your post. Skip it and it stays a Thought.
+                Pick how your post looks in the feed. Skip it to share a simple text post.
               </p>
             </div>
 
-            {/* Category segment cards — elegant, one accent for the active state. */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
+            {/* Category cards — glass circles with the brand gradient ring on the
+                active medium, mirroring the product/service creation wizard. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
               {CATEGORY_ORDER.map((cat) => {
                 const meta = POST_CATEGORIES[cat];
                 const isActive =
@@ -3610,24 +3612,34 @@ export default function CreatePost() {
                     key={cat}
                     type="button"
                     onClick={() => setActiveCategory((prev) => (prev === cat ? null : cat))}
-                    className={`group flex flex-col items-center justify-center gap-2.5 px-3 py-5 rounded-2xl transition-all ${
-                      isActive
-                        ? "bg-gradient-to-br from-purple-primary/10 to-pink-vivid/10 border border-purple-primary/40 shadow-sm"
-                        : "bg-surface border border-border-light hover:border-purple-primary/30"
-                    }`}
+                    className="group flex flex-col items-center text-center"
                   >
-                    <span
-                      className={`flex items-center justify-center w-11 h-11 rounded-2xl transition-colors ${
+                    <div
+                      className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 mb-3 backdrop-blur-sm bg-surface/80 ${
                         isActive
-                          ? "bg-gradient-to-br from-purple-primary to-pink-vivid text-white shadow-sm"
-                          : "bg-subtle text-muted group-hover:text-ink"
+                          ? "shadow-xl shadow-pink-vivid/20"
+                          : "shadow-lg shadow-black/5 group-hover:shadow-xl group-hover:shadow-pink-vivid/10"
                       }`}
+                      style={{
+                        border: isActive ? "2px solid transparent" : "1px solid rgba(0, 0, 0, 0.05)",
+                        backgroundImage: isActive
+                          ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+                          : undefined,
+                        backgroundOrigin: "border-box",
+                        backgroundClip: isActive ? "padding-box, border-box" : undefined,
+                      }}
                     >
-                      {categoryIcons[cat]}
-                    </span>
+                      <span
+                        className={`transition-colors duration-300 ${
+                          isActive ? "text-pink-vivid" : "text-pink-vivid/40 group-hover:text-pink-vivid/70"
+                        }`}
+                      >
+                        {categoryIcons[cat]}
+                      </span>
+                    </div>
                     <span
-                      className={`font-ui text-sm font-semibold tracking-wide ${
-                        isActive ? "text-purple-primary" : "text-muted group-hover:text-ink"
+                      className={`font-ui text-sm font-semibold transition-colors duration-300 ${
+                        isActive ? "text-pink-vivid" : "text-ink group-hover:text-pink-vivid/80"
                       }`}
                     >
                       {meta.label}
@@ -3637,23 +3649,22 @@ export default function CreatePost() {
               })}
             </div>
 
-            {/* Formats for the open category, as refined pills. */}
+            {/* Formats for the open category — selectable cards matching the
+                wizard's subcategory style (gradient ring + check on select). */}
             {(() => {
               const shownCategory: PostCategory | null =
                 activeCategory ??
                 (selectedType !== DEFAULT_FORMAT ? getCategoryOf(selectedType) : null);
               if (!shownCategory) {
                 return (
-                  <div className="rounded-2xl border border-dashed border-border-light bg-subtle/40 px-5 py-6 text-center">
-                    <p className="font-ui text-sm text-muted">
-                      Choose a category above to reveal its formats.
-                    </p>
-                  </div>
+                  <p className="font-ui text-sm text-muted text-center">
+                    Choose one above to see its formats.
+                  </p>
                 );
               }
               const formats: FormatSpec[] = getFormatsByCategory(shownCategory);
               return (
-                <div className="flex flex-wrap gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {formats.map((fmt) => {
                     const chosen = selectedType === fmt.id;
                     return (
@@ -3661,14 +3672,34 @@ export default function CreatePost() {
                         key={fmt.id}
                         type="button"
                         onClick={() => handleSelectFormat(fmt.id)}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-ui text-sm font-medium transition-all ${
-                          chosen
-                            ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white shadow-sm"
-                            : "bg-surface text-muted border border-border-light hover:border-purple-primary/30 hover:text-ink"
+                        className={`relative flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all duration-300 bg-surface ${
+                          chosen ? "shadow-lg shadow-pink-vivid/10" : "shadow-sm hover:shadow-md"
                         }`}
+                        style={{
+                          border: chosen ? "1px solid transparent" : "1px solid rgba(0, 0, 0, 0.05)",
+                          backgroundImage: chosen
+                            ? "linear-gradient(white, white), linear-gradient(to right, #8e44ad, #ff007f, #ff9f43)"
+                            : undefined,
+                          backgroundOrigin: "border-box",
+                          backgroundClip: chosen ? "padding-box, border-box" : undefined,
+                        }}
                       >
-                        {fmt.label}
-                        {chosen && <span>{icons.check}</span>}
+                        <span
+                          className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all ${
+                            chosen
+                              ? "bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm"
+                              : "border border-muted/30"
+                          }`}
+                        >
+                          {chosen && (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </span>
+                        <span className={`font-medium font-ui text-sm ${chosen ? "text-pink-vivid" : "text-ink"}`}>
+                          {fmt.label}
+                        </span>
                       </button>
                     );
                   })}
