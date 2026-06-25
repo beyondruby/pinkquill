@@ -25,6 +25,7 @@ import { icons } from "@/components/ui/Icons";
 import PostTags from "@/components/feed/PostTags";
 import FlairBadge from "@/components/communities/FlairBadge";
 import { createSafeHtml } from "@/lib/utils/sanitize";
+import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { getTimeAgo } from "@/lib/utils/time";
 import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
 import { PostStyling, JournalMetadata, SpotifyTrack, CommunityFlair } from "@/lib/types";
@@ -330,7 +331,11 @@ function PostDetailModalComponent({
   const { counts: reactionCounts } = useReactionCounts(post?.id || "");
   const { reaction: userReaction, setReaction: setUserReaction } = useUserReaction(post?.id || "", user?.id);
 
-  const hasMedia = post?.media && post.media.length > 0;
+  const audioMedia = post?.media?.find((m) => m.media_type === "audio") || null;
+  const visualMediaList = (post?.media || []).filter((m) => m.media_type !== "audio");
+  const hasMedia = visualMediaList.length > 0;
+  const audioCover = visualMediaList.find((m) => m.media_type === "image")?.media_url || null;
+  const isVoicePost = (post?.type as string) === "voice";
   const postUrl = typeof window !== 'undefined' && post ? `${window.location.origin}/post/${post.id}` : '';
   const isOwner = user && post?.authorId && user.id === post.authorId;
   const isAcceptedCollaborator = !!(
@@ -712,8 +717,8 @@ function PostDetailModalComponent({
     loose: 'leading-[2.5]'
   }[lineSpacing];
 
-  // Media handling
-  const media = post.media || [];
+  // Media handling — visual gallery excludes audio (rendered via AudioPlayer).
+  const media = visualMediaList;
 
 
   return (
@@ -954,6 +959,18 @@ function PostDetailModalComponent({
                   </svg>
                   <span className="font-ui text-xs opacity-60">Listening to this track</span>
                 </div>
+              </div>
+            )}
+
+            {/* Sound / Voice — inline branded waveform player */}
+            {audioMedia && (
+              <div className="mb-6">
+                <AudioPlayer
+                  src={audioMedia.media_url}
+                  title={post.title || undefined}
+                  cover={isVoicePost ? null : audioCover}
+                  variant={isVoicePost ? "voice" : "card"}
+                />
               </div>
             )}
 
@@ -1326,7 +1343,7 @@ function PostDetailModalComponent({
         authorName={post.author.name}
         authorUsername={post.author.handle}
         authorAvatar={post.author.avatar}
-        imageUrl={post.media && post.media.length > 0 ? post.media[0].media_url : ""}
+        imageUrl={visualMediaList.length > 0 ? visualMediaList[0].media_url : ""}
       />
     )}
 

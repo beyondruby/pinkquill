@@ -13,6 +13,7 @@ import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import CommentItem from "@/components/feed/CommentItem";
 import ReactionPicker from "@/components/feed/ReactionPicker";
+import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
@@ -751,7 +752,11 @@ export default function PostPage() {
     );
   }
 
-  const hasMedia = post.media && post.media.length > 0;
+  const audioMedia = post.media?.find((m) => m.media_type === "audio") || null;
+  const visualMedia = (post.media || []).filter((m) => m.media_type !== "audio");
+  const hasMedia = visualMedia.length > 0;
+  const audioCover = visualMedia.find((m) => m.media_type === "image")?.media_url || null;
+  const isVoicePost = (post.type as string) === "voice";
   const failedMediaCount = mediaFailedFromUrl ? Number(mediaFailedFromUrl) : 0;
   const hasFailedMediaNotice = Number.isFinite(failedMediaCount) && failedMediaCount > 0;
   const hasBackground = Boolean(post.styling?.background);
@@ -996,6 +1001,18 @@ export default function PostPage() {
                   </div>
                 )}
 
+                {/* Sound / Voice — inline branded waveform player */}
+                {audioMedia && (
+                  <div className="mb-6">
+                    <AudioPlayer
+                      src={audioMedia.media_url}
+                      title={post.title || undefined}
+                      cover={isVoicePost ? null : audioCover}
+                      variant={isVoicePost ? "voice" : "card"}
+                    />
+                  </div>
+                )}
+
                 {post.title && (
                   <h1
                     className={`font-display text-[1.3rem] md:text-[1.6rem] ${titleColorClass} mb-3 md:mb-4 leading-tight ${
@@ -1022,36 +1039,36 @@ export default function PostPage() {
               {hasMedia && (
                 <div className="mt-6">
                   <div className="relative rounded-xl overflow-hidden bg-subtle">
-                    {post.media[currentMediaIndex].media_type === "video" ? (
+                    {visualMedia[currentMediaIndex]?.media_type === "video" ? (
                       <video
-                        src={post.media[currentMediaIndex].media_url}
+                        src={visualMedia[currentMediaIndex].media_url}
                         className="w-full max-h-[500px] object-contain bg-black"
                         controls
                         playsInline
                       />
                     ) : (
                       <img
-                        src={post.media[currentMediaIndex].media_url}
+                        src={visualMedia[currentMediaIndex]?.media_url}
                         alt=""
                         className="w-full max-h-[500px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
                         onClick={() => {
                           window.dispatchEvent(new CustomEvent("openLightbox", {
-                            detail: { images: post.media, index: currentMediaIndex }
+                            detail: { images: visualMedia, index: currentMediaIndex }
                           }));
                         }}
                       />
                     )}
 
-                    {post.media.length > 1 && (
+                    {visualMedia.length > 1 && (
                       <>
                         <button
-                          onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? post.media.length - 1 : prev - 1))}
+                          onClick={() => setCurrentMediaIndex((prev) => (prev === 0 ? visualMedia.length - 1 : prev - 1))}
                           className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-all"
                         >
                           {icons.chevronLeft}
                         </button>
                         <button
-                          onClick={() => setCurrentMediaIndex((prev) => (prev === post.media.length - 1 ? 0 : prev + 1))}
+                          onClick={() => setCurrentMediaIndex((prev) => (prev === visualMedia.length - 1 ? 0 : prev + 1))}
                           className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-ink hover:bg-surface transition-all"
                         >
                           {icons.chevronRight}
@@ -1060,15 +1077,15 @@ export default function PostPage() {
                     )}
                   </div>
 
-                  {post.media[currentMediaIndex].caption && (
+                  {visualMedia[currentMediaIndex]?.caption && (
                     <p className={`text-center font-body text-[0.9rem] italic mt-3 ${mutedColorClass}`}>
-                      {post.media[currentMediaIndex].caption}
+                      {visualMedia[currentMediaIndex].caption}
                     </p>
                   )}
 
-                  {post.media.length > 1 && (
+                  {visualMedia.length > 1 && (
                     <div className="flex gap-2 justify-center mt-4">
-                      {post.media.map((item, idx) => (
+                      {visualMedia.map((item, idx) => (
                         <button
                           key={item.id}
                           onClick={() => setCurrentMediaIndex(idx)}
@@ -1271,7 +1288,7 @@ export default function PostPage() {
         authorName={post.author.display_name || post.author.username}
         authorUsername={post.author.username}
         authorAvatar={post.author.avatar_url || ""}
-        imageUrl={post.media && post.media.length > 0 ? post.media[0].media_url : ""}
+        imageUrl={visualMedia.length > 0 ? visualMedia[0].media_url : ""}
       />
 
       {/* Delete Confirmation Modal */}
