@@ -2500,42 +2500,47 @@ export default function CreatePost() {
         </div>
       )}
 
-      {/* Wizard step indicator (normal posts only) */}
+      {/* Wizard step indicator (normal posts only) — matches the product /
+          commission creation wizard: gradient circles + gradient progress bar. */}
       {!isTakeMode && (
-        <div className="mb-8 flex items-center justify-center gap-3">
-          {([
-            { n: 1 as const, label: "Create" },
-            { n: 2 as const, label: "Format" },
-          ]).map((s, i) => (
-            <div key={s.n} className="flex items-center gap-3">
+        <div className="mb-8">
+          <div className="flex items-center justify-center gap-8 mb-4">
+            {([
+              { n: 1 as const, label: "Create" },
+              { n: 2 as const, label: "Format" },
+            ]).map((s) => (
               <button
+                key={s.n}
                 onClick={() => setStep(s.n)}
-                className="flex items-center gap-2.5"
+                className="flex items-center gap-2"
               >
                 <span
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-ui text-sm font-semibold transition-colors ${
-                    step === s.n
-                      ? "bg-purple-primary text-white"
-                      : step > s.n
-                        ? "bg-emerald-500 text-white"
-                        : "bg-skeleton text-muted"
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                    step >= s.n
+                      ? "bg-gradient-to-r from-orange-warm to-pink-vivid text-white"
+                      : "bg-skeleton text-gray-500"
                   }`}
                 >
-                  {step > s.n ? icons.check : s.n}
+                  {s.n}
                 </span>
                 <span
-                  className={`font-ui text-sm font-medium hidden sm:inline ${
-                    step === s.n ? "text-purple-primary" : "text-muted"
+                  className={`text-sm font-ui hidden sm:inline ${
+                    step >= s.n ? "text-ink font-medium" : "text-muted"
                   }`}
                 >
                   {s.label}
                 </span>
               </button>
-              {i === 0 && (
-                <div className={`w-10 sm:w-16 h-0.5 rounded-full ${step > 1 ? "bg-emerald-500" : "bg-skeleton"}`} />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Progress Bar */}
+          <div className="h-1.5 bg-skeleton rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm transition-all duration-500"
+              style={{ width: `${(step / 2) * 100}%` }}
+            />
+          </div>
         </div>
       )}
 
