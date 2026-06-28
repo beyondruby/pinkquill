@@ -3714,7 +3714,8 @@ export default function CreatePost() {
             {(selectedType === "audio" ||
               selectedType === "quote" ||
               selectedType === "essay" ||
-              selectedType === "blog") && (
+              selectedType === "blog" ||
+              selectedType === "journal") && (
               <div className="mt-6 rounded-2xl border border-purple-primary/15 bg-purple-primary/[0.03] p-5 sm:p-6 animate-fadeIn">
                 <div className="flex items-center gap-2.5 mb-4">
                   <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-purple-primary to-pink-vivid text-white flex-shrink-0">
@@ -3884,6 +3885,16 @@ export default function CreatePost() {
                     />
                   </div>
                 )}
+
+                {/* Journal → mood · weather · entry date · location */}
+                {selectedType === "journal" && (
+                  <JournalMetadataPanel
+                    value={journalMetadata}
+                    onChange={setJournalMetadata}
+                    location={postLocation}
+                    onLocationChange={setPostLocation}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -4009,32 +4020,6 @@ export default function CreatePost() {
           )}
           </div>
           )}
-          </div>
-          )}
-
-          {/* Journal Mood */}
-          {selectedType === 'journal' && (
-          <div className="mb-2">
-            <button
-              onClick={() => toggleSection('journal')}
-              className="w-full flex items-center justify-between py-3 hover:bg-subtle/50 rounded-lg px-2 -mx-2 transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-purple-primary">{icons.book}</span>
-                <span className="font-ui text-sm font-medium text-ink">Journal Mood</span>
-              </div>
-              <svg className={`w-4 h-4 text-muted transition-transform ${expandedSections.has('journal') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-            </button>
-            {expandedSections.has('journal') && (
-              <div className="pb-2 pl-1">
-                <JournalMetadataPanel
-                  value={journalMetadata}
-                  onChange={setJournalMetadata}
-                  location={postLocation}
-                  onLocationChange={setPostLocation}
-                />
-              </div>
-            )}
           </div>
           )}
 
