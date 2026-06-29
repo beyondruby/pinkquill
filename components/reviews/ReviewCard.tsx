@@ -29,11 +29,34 @@ function QuillMeter({ score, size = "sm" }: { score: number; size?: "sm" | "md" 
   );
 }
 
-interface ReviewCardProps {
-  review: Review;
+function relativeTime(dateString: string): string {
+  const then = new Date(dateString).getTime();
+  if (Number.isNaN(then)) return "";
+
+  const seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  const day = 86400;
+
+  if (seconds < day) return "today";
+  if (seconds < day * 2) return "yesterday";
+  if (seconds < day * 7) return `${Math.floor(seconds / day)} days ago`;
+  if (seconds < day * 30) {
+    const weeks = Math.floor(seconds / (day * 7));
+    return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
+  }
+  if (seconds < day * 365) {
+    const months = Math.floor(seconds / (day * 30));
+    return `${months} month${months === 1 ? "" : "s"} ago`;
+  }
+  return new Date(dateString).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
-export default function ReviewCard({ review }: ReviewCardProps) {
+interface ReviewCardProps {
+  review: Review;
+  /** Show what the review was left on. Redundant on a single product's own page. */
+  showProduct?: boolean;
+}
+
+export default function ReviewCard({ review, showProduct = true }: ReviewCardProps) {
   const reviewer = review.reviewer;
   const score = Math.max(1, Math.min(5, Math.round(review.quill_score || 0)));
   const displayName = reviewer?.display_name || reviewer?.username || "Anonymous";
@@ -44,95 +67,90 @@ export default function ReviewCard({ review }: ReviewCardProps) {
       ? `${parts[0]} ${parts[parts.length - 1][0]}.`
       : displayName;
 
-  const formattedDate = new Date(review.created_at)
-    .toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    })
-    .replace(/\//g, ".");
-
+  const highlights = review.highlights || [];
   const productTitle = review.order?.product?.title;
 
   return (
     <article className="group relative rounded-2xl border border-border-light bg-surface p-5 sm:p-6 transition-colors hover:border-border-strong/50">
-      {/* Faint quill watermark — a quiet brand flourish */}
-      <QuillIcon
-        className="pointer-events-none absolute right-5 top-5 h-9 w-9 text-ink/[0.04] transition-colors group-hover:text-pink-vivid/10"
-        gradient={false}
-      />
-
-      {/* Header: identity + rating */}
-      <header className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          {reviewer?.avatar_url ? (
-            <Image
-              src={reviewer.avatar_url}
-              alt=""
-              width={40}
-              height={40}
-              className="h-10 w-10 rounded-full object-cover ring-1 ring-border-light shrink-0"
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center shrink-0">
-              <span className="text-sm font-ui font-bold text-white">
-                {displayName[0].toUpperCase()}
-              </span>
-            </div>
-          )}
-          <div className="min-w-0">
-            {reviewer ? (
-              <Link
-                href={`/studio/${reviewer.username}`}
-                className="block font-ui text-sm font-semibold text-ink hover:text-pink-vivid transition-colors truncate"
-              >
-                {shortName}
-              </Link>
-            ) : (
-              <span className="block font-ui text-sm font-semibold text-ink">Anonymous</span>
-            )}
-            <span className="text-[11px] font-body text-muted">{formattedDate}</span>
+      {/* Person — front and center */}
+      <header className="flex items-center gap-3">
+        {reviewer?.avatar_url ? (
+          <Image
+            src={reviewer.avatar_url}
+            alt=""
+            width={44}
+            height={44}
+            className="h-11 w-11 rounded-full object-cover ring-1 ring-border-light shrink-0"
+          />
+        ) : (
+          <div className="h-11 w-11 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center shrink-0">
+            <span className="text-base font-ui font-bold text-white">
+              {displayName[0].toUpperCase()}
+            </span>
           </div>
-        </div>
-
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          <QuillMeter score={score} />
-          <span className="text-[11px] font-ui font-medium text-pink-vivid">{QUILL_TONE[score]}</span>
+        )}
+        <div className="min-w-0">
+          {reviewer ? (
+            <Link
+              href={`/studio/${reviewer.username}`}
+              className="block font-ui text-[15px] font-semibold text-ink hover:text-pink-vivid transition-colors truncate"
+            >
+              {shortName}
+            </Link>
+          ) : (
+            <span className="block font-ui text-[15px] font-semibold text-ink">Anonymous</span>
+          )}
+          <span className="text-[11px] font-body text-muted">
+            reviewed {relativeTime(review.created_at)}
+            {showProduct && productTitle ? (
+              <>
+                {" · "}
+                <span className="text-ink/55">{productTitle}</span>
+              </>
+            ) : null}
+          </span>
         </div>
       </header>
 
-      {/* Body */}
-      <div className="mt-4">
+      {/* The words — the hero of the card */}
+      <blockquote className="relative mt-4 pl-5">
+        <span
+          aria-hidden="true"
+          className="absolute -top-2 left-0 font-display text-3xl leading-none text-pink-vivid/25 select-none"
+        >
+          &ldquo;
+        </span>
         {review.title && (
-          <h3 className="font-ui font-semibold text-sm text-ink mb-1.5">{review.title}</h3>
+          <p className="font-ui font-semibold text-[15px] text-ink mb-1">{review.title}</p>
         )}
-        <p className="font-body text-[14px] leading-relaxed text-ink/80 whitespace-pre-wrap">
+        <p className="font-body text-[15px] leading-relaxed text-ink/85 whitespace-pre-wrap">
           {review.content}
         </p>
+      </blockquote>
 
-        {/* Highlights */}
-        {(review.highlights || []).length > 0 && (
-          <div className="mt-3.5 flex flex-wrap gap-1.5">
-            {(review.highlights || []).map((highlight) => (
-              <span
-                key={`${review.id}-${highlight}`}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-ui font-medium text-purple-primary/80 bg-purple-primary/[0.06]"
-              >
-                {highlight}
-              </span>
-            ))}
-          </div>
+      {/* Quiet footer — score + what they highlighted */}
+      <footer className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-2">
+        <span className="inline-flex items-center gap-1.5">
+          <QuillMeter score={score} />
+          <span className="text-[11px] font-ui font-medium text-pink-vivid">{QUILL_TONE[score]}</span>
+        </span>
+
+        {highlights.length > 0 && (
+          <>
+            <span className="text-muted/30" aria-hidden="true">&middot;</span>
+            <div className="flex flex-wrap gap-1.5">
+              {highlights.map((highlight) => (
+                <span
+                  key={`${review.id}-${highlight}`}
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-ui font-medium text-purple-primary/80 bg-purple-primary/[0.06]"
+                >
+                  {highlight}
+                </span>
+              ))}
+            </div>
+          </>
         )}
-      </div>
-
-      {/* Footer: what was reviewed */}
-      {productTitle && (
-        <footer className="mt-4 pt-3 border-t border-border-light">
-          <span className="text-[11px] font-body text-muted truncate block">
-            on <span className="text-ink/70">{productTitle}</span>
-          </span>
-        </footer>
-      )}
+      </footer>
     </article>
   );
 }

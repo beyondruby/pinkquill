@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { useCommissionReviews } from "@/lib/hooks/useReviews";
 import type { ReviewRole } from "@/lib/types/store";
-import ReviewCard, { QuillMeter, QUILL_TONE } from "@/components/reviews/ReviewCard";
+import ReviewCard, { QuillMeter } from "@/components/reviews/ReviewCard";
 import QuillIcon from "@/components/reviews/QuillIcon";
 
 interface CommissionReviewsPanelProps {
@@ -34,15 +34,15 @@ export default function CommissionReviewsPanel({
         {Array.from({ length: 3 }).map((_, index) => (
           <div key={index} className="rounded-2xl border border-border-light bg-surface p-5 sm:p-6 animate-pulse">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-skeleton shrink-0" />
+              <div className="w-11 h-11 rounded-full bg-skeleton shrink-0" />
               <div className="space-y-2">
                 <div className="h-3 w-28 rounded bg-skeleton" />
-                <div className="h-2.5 w-16 rounded bg-skeleton" />
+                <div className="h-2.5 w-20 rounded bg-skeleton" />
               </div>
             </div>
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-2 pl-5">
               <div className="h-3.5 w-full rounded bg-skeleton" />
-              <div className="h-3.5 w-3/4 rounded bg-skeleton" />
+              <div className="h-3.5 w-4/5 rounded bg-skeleton" />
             </div>
           </div>
         ))}
@@ -52,37 +52,33 @@ export default function CommissionReviewsPanel({
 
   return (
     <section>
-      {/* Heading — calm editorial style matching the marketplace detail pages */}
-      <div className="flex items-center justify-between gap-4">
+      {/* Heading row — title left, calm aggregate right (no tone word on the average) */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <QuillIcon className="h-4 w-4" gradient />
           <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">{roleTitle}</h3>
         </div>
+
         {reviews.length > 0 && (
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-body text-muted">
-            <svg className="w-3 h-3 text-emerald-500" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.78 5.22a.75.75 0 0 0-1.06 0L7 8.94 5.28 7.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.25-4.25a.75.75 0 0 0 0-1.06Z" />
-            </svg>
-            From completed commissions
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-display text-lg text-ink tabular-nums leading-none">
+              {average.toFixed(1)}
+            </span>
+            <QuillMeter score={roundedAverage} />
+            <span className="text-xs font-body text-muted">
+              · {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+            </span>
+          </div>
         )}
       </div>
 
-      {/* Aggregate summary */}
-      {average > 0 && (
-        <div className="mt-5 flex items-center gap-5">
-          <span className="font-display text-5xl leading-none text-ink tabular-nums">
-            {average.toFixed(1)}
-          </span>
-          <div className="space-y-1.5">
-            <QuillMeter score={roundedAverage} size="md" />
-            <p className="text-xs font-body text-muted">
-              <span className="font-ui font-medium text-pink-vivid">{QUILL_TONE[roundedAverage]}</span>
-              {" · "}
-              {reviews.length} review{reviews.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-        </div>
+      {reviews.length > 0 && (
+        <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-body text-muted">
+          <svg className="w-3 h-3 text-emerald-500" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.78 5.22a.75.75 0 0 0-1.06 0L7 8.94 5.28 7.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.25-4.25a.75.75 0 0 0 0-1.06Z" />
+          </svg>
+          From completed commissions
+        </p>
       )}
 
       {error && <p className="mt-5 text-sm font-body text-red-500">{error}</p>}
@@ -112,7 +108,7 @@ export default function CommissionReviewsPanel({
             onClick={loadMore}
             className="inline-flex items-center gap-1.5 text-xs font-ui font-semibold text-pink-vivid hover:text-accent transition-colors"
           >
-            Load more reviews
+            Read more reviews
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
