@@ -4,29 +4,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { getTimeAgo } from "@/lib/utils/time";
 import type { Order, OrderStatus } from "@/lib/types/store";
+import { getOrderStatusMeta } from "@/lib/utils/orderStatus";
 import OrderTracker from "./OrderTracker";
 
-const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  pending_acceptance: { label: "Pending Approval", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
-  pending_payment: { label: "Awaiting Payment", bg: "bg-yellow-50", text: "text-yellow-700", dot: "bg-yellow-400" },
-  paid: { label: "Paid", bg: "bg-purple-primary/[0.04]", text: "text-purple-primary", dot: "bg-purple-primary" },
-  processing: { label: "Processing", bg: "bg-purple-primary/[0.04]", text: "text-purple-primary", dot: "bg-purple-primary" },
-  in_progress: { label: "In Progress", bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-400" },
-  submitted: { label: "Delivered", bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-400" },
-  revision_requested: { label: "Revision", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
-  completed: { label: "Completed", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
-  delivered: { label: "Delivered", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
-  shipped: { label: "Shipped", bg: "bg-sky-50", text: "text-sky-700", dot: "bg-sky-400" },
-  cancelled: { label: "Cancelled", bg: "bg-red-50", text: "text-red-600", dot: "bg-red-400" },
-  declined: { label: "Declined", bg: "bg-red-50", text: "text-red-600", dot: "bg-red-400" },
-  refunded: { label: "Refunded", bg: "bg-red-50", text: "text-red-600", dot: "bg-red-400" },
-  disputed: { label: "Disputed", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
-  refund_requested: { label: "Refund Requested", bg: "bg-orange-50", text: "text-orange-600", dot: "bg-orange-400" },
-  resolved: { label: "Resolved", bg: "bg-slate-50", text: "text-slate-600", dot: "bg-slate-400" },
-};
-
 function StatusBadge({ status }: { status: OrderStatus }) {
-  const config = STATUS_CONFIG[status] || { label: status, bg: "bg-subtle", text: "text-ink/60", dot: "bg-muted/60" };
+  const config = getOrderStatusMeta(status);
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-ui font-medium ${config.bg} ${config.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
@@ -42,7 +24,7 @@ function getQuickAction(order: Order): { label: string; href: string; variant: "
     case "submitted":
       return { label: "Review Delivery", href: `/orders/${order.id}`, variant: "primary" };
     case "completed":
-      return { label: "Leave Review", href: `/orders/${order.id}#reviews`, variant: "secondary" };
+      return { label: "Leave Review", href: `/orders/${order.id}?tab=reviews`, variant: "secondary" };
     default:
       return null;
   }

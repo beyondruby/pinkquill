@@ -254,7 +254,7 @@ export default function CommunityHeader({ community, tags, userId, onUpdate }: C
               {community.is_member && community.user_status === 'active' && (
                 <Link
                   href={`/create?community=${community.slug}`}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface/20 backdrop-blur-sm border border-surface/30 text-white font-ui text-sm font-medium hover:bg-surface/30 transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface/90 text-purple-primary font-ui text-sm font-medium shadow-lg hover:bg-surface hover:shadow-xl transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

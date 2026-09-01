@@ -1273,7 +1273,7 @@ export default function CommunityInboxView() {
                               <div className={`px-4 py-2.5 rounded-2xl border-2 border-pink-vivid/50 ${
                                 isOwn
                                   ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
-                                  : "bg-surface text-ink rounded-bl-md"
+                                  : "bg-subtle text-ink rounded-bl-md"
                               }`}>
                                 <p className={`font-ui text-[10px] uppercase tracking-wider font-semibold mb-1 ${
                                   isOwn ? "text-white/80" : "text-pink-vivid"
@@ -1332,7 +1332,7 @@ export default function CommunityInboxView() {
                               className={`px-4 py-2.5 rounded-2xl ${
                                 isOwn
                                   ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
-                                  : "bg-surface shadow-sm text-ink rounded-bl-md"
+                                  : "bg-subtle shadow-sm text-ink rounded-bl-md"
                               }`}
                             >
                               {message.message_type === "appeal" && (

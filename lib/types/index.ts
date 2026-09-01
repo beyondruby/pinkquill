@@ -317,6 +317,7 @@ export type NotificationType =
   | "community_role_change"
   | "community_muted"
   | "community_banned"
+  | "community_warning"
   | "collaboration_invite"
   | "collaboration_accepted"
   | "collaboration_declined"

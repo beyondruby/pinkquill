@@ -7,25 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerCustomers } from "@/lib/hooks/useSellerCustomers";
 import Loading from "@/components/ui/Loading";
 import type { SellerCustomer } from "@/lib/hooks/useSellerCustomers";
-
-// ---------------------------------------------------------------------------
-// Status config
-// ---------------------------------------------------------------------------
-
-const STATUS_CONFIG: Record<string, { bg: string; text: string }> = {
-  pending_payment: { bg: "bg-yellow-50", text: "text-yellow-700" },
-  pending_acceptance: { bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { bg: "bg-purple-50", text: "text-purple-700" },
-  in_progress: { bg: "bg-purple-50", text: "text-purple-700" },
-  submitted: { bg: "bg-indigo-50", text: "text-indigo-700" },
-  revision_requested: { bg: "bg-orange-50", text: "text-orange-700" },
-  completed: { bg: "bg-emerald-50", text: "text-emerald-700" },
-  cancelled: { bg: "bg-red-50", text: "text-red-700" },
-  refunded: { bg: "bg-red-50", text: "text-red-600" },
-  shipped: { bg: "bg-sky-50", text: "text-sky-700" },
-  delivered: { bg: "bg-emerald-50", text: "text-emerald-700" },
-  declined: { bg: "bg-red-50", text: "text-red-600" },
-};
+import { getOrderStatusMeta } from "@/lib/utils/orderStatus";
 
 // ---------------------------------------------------------------------------
 // Metric Card
@@ -212,7 +194,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
               <h4 className="text-[11px] font-ui font-semibold text-muted uppercase tracking-wider mb-2">Orders</h4>
               <div className="space-y-0.5">
                 {customer.orders.map((order) => {
-                  const sc = STATUS_CONFIG[order.status] || { bg: "bg-subtle", text: "text-ink/70" };
+                  const sc = getOrderStatusMeta(order.status);
                   return (
                     <Link
                       key={order.id}

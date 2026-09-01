@@ -7,66 +7,56 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerOrders } from "@/lib/hooks/useOrders";
 import Loading from "@/components/ui/Loading";
 import type { Order, OrderStatus } from "@/lib/types/store";
+import { getOrderStatusMeta } from "@/lib/utils/orderStatus";
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 
-const STATUS_TABS: { label: string; value: OrderStatus | "all"; icon: React.ReactNode }[] = [
+const STATUS_TABS: { label: string; key: string; statuses?: OrderStatus[]; icon: React.ReactNode }[] = [
   {
     label: "All",
-    value: "all",
+    key: "all",
     icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>,
   },
   {
     label: "Active",
-    value: "in_progress",
+    key: "active",
+    statuses: ["paid", "processing", "in_progress", "revision_requested"],
     icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
   },
   {
     label: "Pending",
-    value: "pending_payment",
+    key: "pending",
+    statuses: ["pending_payment", "pending_acceptance"],
     icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>,
   },
   {
     label: "Submitted",
-    value: "submitted",
+    key: "submitted",
+    statuses: ["submitted"],
     icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
   },
   {
     label: "Completed",
-    value: "completed",
+    key: "completed",
+    statuses: ["completed", "delivered"],
     icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
   },
   {
     label: "Cancelled",
-    value: "cancelled",
+    key: "cancelled",
+    statuses: ["cancelled", "declined", "refunded"],
     icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>,
   },
 ];
-
-const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-  pending_acceptance: { label: "Pending", dot: "bg-amber-400", bg: "bg-amber-50", text: "text-amber-700" },
-  pending_payment: { label: "Awaiting Payment", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
-  processing: { label: "Processing", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
-  in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
-  submitted: { label: "Delivered", dot: "bg-indigo-400", bg: "bg-indigo-50", text: "text-indigo-700" },
-  revision_requested: { label: "Revision", dot: "bg-orange-400", bg: "bg-orange-50", text: "text-orange-700" },
-  completed: { label: "Completed", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
-  cancelled: { label: "Cancelled", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
-  declined: { label: "Declined", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
-  refunded: { label: "Refunded", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
-  shipped: { label: "Shipped", dot: "bg-sky-400", bg: "bg-sky-50", text: "text-sky-700" },
-  delivered: { label: "Delivered", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
-};
 
 // ---------------------------------------------------------------------------
 // Order Row
 // ---------------------------------------------------------------------------
 
 function OrderRow({ order }: { order: Order }) {
-  const config = STATUS_CONFIG[order.status] || { label: order.status, dot: "bg-muted/60", bg: "bg-subtle", text: "text-ink/60" };
+  const config = getOrderStatusMeta(order.status);
 
   return (
     <Link
@@ -124,9 +114,17 @@ function OrderRow({ order }: { order: Order }) {
 
 export default function SellerOrdersTable() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<OrderStatus | "all">("all");
-  const filters = activeTab === "all" ? {} : { status: activeTab };
-  const { orders, loading, error, hasMore, loadMore } = useSellerOrders(user?.id, filters, 20);
+  const [activeTabIdx, setActiveTabIdx] = useState(0);
+  const activeTab = STATUS_TABS[activeTabIdx];
+
+  const singleFilter =
+    activeTab.statuses?.length === 1 ? { status: activeTab.statuses[0] } : {};
+  const { orders: fetchedOrders, loading, error, hasMore, loadMore } = useSellerOrders(user?.id, singleFilter, 20);
+
+  const orders =
+    activeTab.statuses && activeTab.statuses.length > 1
+      ? fetchedOrders.filter((o) => activeTab.statuses!.includes(o.status))
+      : fetchedOrders;
 
   return (
     <div className="space-y-6">
@@ -143,17 +141,17 @@ export default function SellerOrdersTable() {
       {/* Tab bar */}
       <div className="border-b border-border-light">
         <div className="flex gap-0 overflow-x-auto -mb-px">
-          {STATUS_TABS.map((tab) => (
+          {STATUS_TABS.map((tab, idx) => (
             <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
+              key={tab.key}
+              onClick={() => setActiveTabIdx(idx)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-ui font-medium whitespace-nowrap border-b-2 transition-colors ${
-                activeTab === tab.value
+                activeTabIdx === idx
                   ? "border-purple-primary text-purple-primary"
                   : "border-transparent text-muted hover:text-ink hover:border-border-light"
               }`}
             >
-              <span className={activeTab === tab.value ? "text-purple-primary" : "text-muted"}>
+              <span className={activeTabIdx === idx ? "text-purple-primary" : "text-muted"}>
                 {tab.icon}
               </span>
               {tab.label}
@@ -188,9 +186,9 @@ export default function SellerOrdersTable() {
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
             </svg>
             <p className="font-body text-sm text-muted">
-              {activeTab === "all"
+              {activeTab.key === "all"
                 ? "No orders yet. Your orders will appear here."
-                : `No ${activeTab.replace(/_/g, " ")} orders.`}
+                : `No ${activeTab.label.toLowerCase()} orders.`}
             </p>
           </div>
         ) : (

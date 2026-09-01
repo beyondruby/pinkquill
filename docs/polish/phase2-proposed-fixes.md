@@ -89,31 +89,50 @@ ModeratorPermissions, JoinButton).
 Each item below is independently shippable and small; owner can approve them individually or as
 a batch.
 
-- **Messages:** give incoming bubbles a real fill (an existing subtle-surface token, not a new
-  color) so conversations read as two-sided at a glance.
-- **Community page header:** swap "Create Post"'s text/fill combo for one that keeps contrast
-  against the gradient banner (existing white/near-white token instead of translucent pale pink).
-- **Takes navigation:** give the "previous" chevron the same button chrome (ring, background,
-  hover) as "next," just without forcing them to look identical if intentionally differentiated —
-  at minimum it needs to read as tappable.
-- **Insights overview:** swap the "Interactions" card's icon for a distinct existing glyph so it's
-  not identical to "Engagement Rate."
-- **Marketplace empty state:** branch the copy — genuinely-empty catalog gets different copy/CTA
-  than a filtered-to-zero result (still using the existing empty-state icon/heading/CTA pattern,
-  just two copy variants instead of one that's wrong half the time). Drop the duplicate "0 results"
-  chip.
-- **Explore (and any non-home route without the right rail):** re-center or widen the feed column
-  when there's no right sidebar, instead of leaving the fixed-width gap.
-- **`/settings/notifications`:** smallest-possible real page (or, if scope is off the table this
-  wave, a branded "coming soon" page) so the link never drops a user into the raw Next.js 404 —
-  this alone fixes the worst single moment found in the audit.
-- **Bug fixes (all 7 from the audit — safe, no visual-identity dependency):** literal `&apos;`
-  text, dead "Leave Review" anchor, `to-warm-orange` token typo, seller-orders tab under-filtering,
-  mod-queue "Send Warning" no-op, notification icon fallback, plus consolidating the 6
-  `STATUS_CONFIG` copies into one (fixes the "submitted" mislabeled "Delivered" bug as a side
-  effect).
-- **Reduced motion:** add a `useReducedMotion` hook and wire it into the handful of JS-driven
-  animations (modals, drag interactions) that the CSS-only guard doesn't reach.
+**Status: mostly done.** Landed:
+
+- ✅ **Messages:** incoming bubbles across DMs (`ChatView.tsx`, 4 message-type variants) and the
+  community inbox (`CommunityInboxView.tsx`, 2 variants) swapped from `bg-surface` (near-white on
+  near-white — the actual bug) to `bg-subtle`. Verified live.
+- ✅ **Community page header:** "Create Post" now matches the `JoinButton` convention already used
+  next to it (`bg-surface/90 text-purple-primary`, high contrast) instead of the old translucent
+  `bg-surface/20 text-white`. Verified live.
+- ❌→✅ **Takes navigation — correction, not a bug.** Re-checked live: both arrows share identical
+  CSS (`.takes-nav-arrow`, same 56px gradient-ring styling). The "invisible" up-arrow in the
+  original audit screenshot was the *correctly disabled* state at the first take (`activeIndex ===
+  0`) — confirmed by navigating to a later take, where both arrows render identically. No change
+  made; audit finding retracted.
+- ✅ **Insights overview:** "Interactions" now uses a distinct chat-bubble icon (matching the file's
+  existing inline-SVG style) instead of a second heart. Verified live.
+- ✅ **Marketplace empty state:** copy now branches on `hasActiveFilters` — a genuinely empty
+  catalog says "No products/commissions yet — check back soon," a filtered-to-zero result keeps
+  the old "adjust your filters" copy + Clear-filters CTA (hidden entirely for the empty-catalog
+  case, since there's nothing to clear). Dropped the duplicate "N results" text in
+  `MarketplaceHeader.tsx` (kept the richer badge cluster in `DiscoveryStrip`).
+- ✅ **All 7 known bugs:**
+  - literal `&apos;` in `settings/privacy` → real apostrophe.
+  - "Leave Review" now links `?tab=reviews` (matches what `OrderView` actually reads) instead of
+    the dead `#reviews` hash.
+  - `to-warm-orange` typo → `orange-warm` (real token) in `FollowRequestCard`.
+  - Seller orders tabs rebuilt on the same `{statuses: [...]}` multi-status pattern already used
+    (and already correct) in `BuyerDashboard` — "Active" and "Pending" no longer hide
+    paid/processing/pending-acceptance orders.
+  - Mod-queue "Send Warning" now actually notifies the reported user — required a new
+    `community_warning` notification type, which needed a live Supabase migration (additive CHECK
+    constraint change, applied with your explicit go-ahead) since the `notifications.type` column
+    is constrained. Also added the missing icon/message-copy wiring for it.
+  - Notification icon fallback changed from the misleading heart to a dedicated warning-triangle
+    icon (also now used for `community_warning` itself).
+  - **`STATUS_CONFIG` consolidated**: new `lib/utils/orderStatus.ts` is the single source for
+    `OrderCard`, `SellerDashboard`, `SellerOrdersTable`, and `CustomersCRM` (4 of the 6 — these
+    shared an identical shape). `OrderView.tsx` kept its own copy (it also carries per-status SVG
+    icon paths the others don't have — merging it in would've meant inventing icons for statuses
+    that don't need them) but got the same one-line "submitted" mislabel fix. Net: "submitted"
+    reads "Submitted," not "Delivered," everywhere now.
+- ⬜ **`/settings/notifications`:** not started — still 404s. Biggest remaining item.
+- ⬜ **Explore (and other non-home routes without the right rail):** not started — still leaves
+  the fixed-width dead zone.
+- ⬜ **Reduced motion hook:** not started.
 
 ## Explicitly out of scope for this pass
 

@@ -218,7 +218,7 @@ export default function PrivacySettingsPage() {
             <h3 className="font-ui text-lg text-ink">Blocked Accounts</h3>
             <p className="font-body text-sm text-muted">
               {blockedUsers.length === 0
-                ? "You haven&apos;t blocked anyone"
+                ? "You haven't blocked anyone"
                 : `${blockedUsers.length} blocked ${blockedUsers.length === 1 ? 'account' : 'accounts'}`
               }
             </p>

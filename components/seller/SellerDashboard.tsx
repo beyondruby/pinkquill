@@ -8,25 +8,7 @@ import { useSellerEarnings, useSellerOnboarding } from "@/lib/hooks/usePayments"
 import PendingOrderCard from "./PendingOrderCard";
 import Loading from "@/components/ui/Loading";
 import type { Order } from "@/lib/types/store";
-
-// ---------------------------------------------------------------------------
-// Status config
-// ---------------------------------------------------------------------------
-
-const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-  pending_acceptance: { label: "Pending", dot: "bg-amber-400", bg: "bg-amber-50", text: "text-amber-700" },
-  pending_payment: { label: "Awaiting Payment", dot: "bg-yellow-400", bg: "bg-yellow-50", text: "text-yellow-700" },
-  paid: { label: "Paid", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
-  in_progress: { label: "In Progress", dot: "bg-purple-400", bg: "bg-purple-50", text: "text-purple-700" },
-  submitted: { label: "Delivered", dot: "bg-indigo-400", bg: "bg-indigo-50", text: "text-indigo-700" },
-  revision_requested: { label: "Revision", dot: "bg-orange-400", bg: "bg-orange-50", text: "text-orange-700" },
-  completed: { label: "Completed", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
-  cancelled: { label: "Cancelled", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
-  declined: { label: "Declined", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
-  shipped: { label: "Shipped", dot: "bg-sky-400", bg: "bg-sky-50", text: "text-sky-700" },
-  delivered: { label: "Delivered", dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
-  refunded: { label: "Refunded", dot: "bg-red-400", bg: "bg-red-50", text: "text-red-600" },
-};
+import { getOrderStatusMeta } from "@/lib/utils/orderStatus";
 
 // ---------------------------------------------------------------------------
 // Metric Card
@@ -74,7 +56,7 @@ function MetricCard({
 // ---------------------------------------------------------------------------
 
 function RecentOrderRow({ order }: { order: Order }) {
-  const config = STATUS_CONFIG[order.status] || { label: order.status, dot: "bg-muted/60", bg: "bg-subtle", text: "text-ink/60" };
+  const config = getOrderStatusMeta(order.status);
 
   return (
     <Link

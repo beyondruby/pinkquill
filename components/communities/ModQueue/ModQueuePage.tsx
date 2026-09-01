@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModQueue, useResolveReport, useModerationActions } from "@/lib/hooks/useModQueue";
+import { createNotification } from "@/lib/hooks/useNotifications";
 import ReportCard from "./ReportCard";
 import type { ReportStatus, ReportType, ResolutionAction } from "@/lib/types";
 
@@ -37,6 +38,15 @@ export default function ModQueuePage({ communityId }: ModQueuePageProps) {
           await muteUser(report.reported_user_id, notes || "Violated community guidelines", 7);
         } else if (action === "user_banned" && report.reported_user_id) {
           await banUser(report.reported_user_id, notes || "Violated community guidelines");
+        } else if (action === "warning_sent" && report.reported_user_id) {
+          await createNotification(
+            report.reported_user_id,
+            user.id,
+            "community_warning",
+            report.reported_post_id || undefined,
+            notes || "Your content was reported and reviewed by a moderator. Please review the community guidelines.",
+            communityId
+          );
         }
       }
       refetch();

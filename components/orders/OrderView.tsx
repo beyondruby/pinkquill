@@ -36,7 +36,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgClass: str
   pending_payment:    { label: "Awaiting Payment", color: "#8e44ad", bgClass: "bg-purple-500/10", textClass: "text-purple-600", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   paid:               { label: "Paid", color: "#8e44ad", bgClass: "bg-purple-primary/10", textClass: "text-purple-primary", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
   in_progress:        { label: "In Progress", color: "#8e44ad", bgClass: "bg-purple-primary/10", textClass: "text-purple-primary", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-  submitted:          { label: "Delivered", color: "#6366f1", bgClass: "bg-indigo-500/10", textClass: "text-indigo-600", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+  submitted:          { label: "Submitted", color: "#6366f1", bgClass: "bg-indigo-500/10", textClass: "text-indigo-600", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
   revision_requested: { label: "Revision Requested", color: "#f59e0b", bgClass: "bg-amber-500/10", textClass: "text-amber-600", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
   processing:         { label: "Processing", color: "#8e44ad", bgClass: "bg-purple-primary/10", textClass: "text-purple-primary", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
   shipped:            { label: "Shipped", color: "#06b6d4", bgClass: "bg-cyan-500/10", textClass: "text-cyan-600", icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" },

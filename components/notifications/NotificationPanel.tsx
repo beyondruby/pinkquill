@@ -346,6 +346,24 @@ const icons = {
       <path d="M4.93 4.93l14.14 14.14" stroke="url(#bannedGrad)" strokeWidth="2" />
     </svg>
   ),
+  warning: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="warningGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#8e44ad" />
+          <stop offset="50%" stopColor="#ff007f" />
+          <stop offset="100%" stopColor="#ff9f43" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+        stroke="url(#warningGrad)"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
   joinRequest: (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
       <defs>
@@ -659,6 +677,8 @@ function getNotificationIcon(type: string) {
       return icons.muted;
     case 'community_banned':
       return icons.banned;
+    case 'community_warning':
+      return icons.warning;
     case 'collaboration_invite':
       return icons.collaborationInvite;
     case 'collaboration_accepted':
@@ -702,7 +722,7 @@ function getNotificationIcon(type: string) {
     case 'order_refunded':
       return icons.orderRefunded;
     default:
-      return icons.admire;
+      return icons.warning;
   }
 }
 
@@ -750,6 +770,8 @@ function getNotificationMessage(notification: Notification): { actor: string; ac
       return { actor: 'You were', action: `muted in ${communityName}` };
     case 'community_banned':
       return { actor: 'You were', action: `banned from ${communityName}` };
+    case 'community_warning':
+      return { actor: 'A moderator', action: `sent you a warning in ${communityName}` };
     case 'collaboration_invite':
       return { actor: actorName, action: `invited you to collaborate on their ${postType}` };
     case 'collaboration_accepted':
@@ -925,12 +947,12 @@ function NotificationItem({
           </p>
         )}
 
-        {/* Content preview for mute/ban/join request notifications */}
-        {(notification.type === 'community_muted' || notification.type === 'community_banned' || notification.type === 'community_join_request') && notification.content && (
+        {/* Content preview for mute/ban/warning/join request notifications */}
+        {(notification.type === 'community_muted' || notification.type === 'community_banned' || notification.type === 'community_warning' || notification.type === 'community_join_request') && notification.content && (
           <p className={`font-body text-[0.82rem] mt-1.5 line-clamp-3 ${
             notification.type === 'community_banned'
               ? 'text-red-600/80'
-              : notification.type === 'community_muted'
+              : notification.type === 'community_muted' || notification.type === 'community_warning'
               ? 'text-yellow-600/80'
               : 'text-muted/80'
           }`}>

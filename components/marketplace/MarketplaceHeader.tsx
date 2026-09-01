@@ -238,10 +238,6 @@ export default function MarketplaceHeader({
                 </span>
               )}
             </Link>
-
-            <span className="hidden lg:inline text-xs font-ui text-muted px-1">
-              {totalProducts.toLocaleString()} results
-            </span>
           </div>
         </div>
 

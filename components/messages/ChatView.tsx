@@ -808,7 +808,7 @@ export default function ChatView({
                         className={`max-w-[280px] rounded-2xl overflow-hidden ${
                           isOwn
                             ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
-                            : "bg-surface shadow-sm rounded-bl-md"
+                            : "bg-subtle shadow-sm rounded-bl-md"
                         }`}
                       >
                         <VoiceNotePlayer
@@ -837,7 +837,7 @@ export default function ChatView({
                         className={`max-w-[280px] rounded-2xl overflow-hidden ${
                           isOwn
                             ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
-                            : "bg-surface shadow-sm rounded-bl-md"
+                            : "bg-subtle shadow-sm rounded-bl-md"
                         }`}
                       >
                         {message.media_type === "image" ? (
@@ -876,7 +876,7 @@ export default function ChatView({
                         className={`rounded-2xl overflow-hidden ${
                           isOwn
                             ? "bg-gradient-to-r from-purple-primary to-pink-vivid rounded-br-md"
-                            : "bg-surface shadow-sm rounded-bl-md"
+                            : "bg-subtle shadow-sm rounded-bl-md"
                         }`}
                       >
                         <div className={isOwn ? "p-1" : "p-1"}>
@@ -914,7 +914,7 @@ export default function ChatView({
                         className={`px-4 py-2.5 rounded-2xl ${
                           isOwn
                             ? "bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-br-md"
-                            : "bg-surface text-ink shadow-sm rounded-bl-md"
+                            : "bg-subtle text-ink shadow-sm rounded-bl-md"
                         }`}
                       >
                         <p className="font-body text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words">

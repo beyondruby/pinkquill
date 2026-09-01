@@ -136,21 +136,33 @@ export default function MarketplacePageContent() {
               </svg>
             </div>
             <h3 className="font-display text-lg font-semibold text-ink mb-2">
-              {isService ? "No commissions found" : "No products found"}
+              {hasActiveFilters
+                ? isService
+                  ? "No commissions found"
+                  : "No products found"
+                : isService
+                ? "No commissions yet"
+                : "No products yet"}
             </h3>
             <p className="text-sm font-body text-muted mb-5 max-w-sm mx-auto">
               {filters.keywords?.length
                 ? `No results for "${filters.keywords.join(" ")}"`
+                : hasActiveFilters
+                ? isService
+                  ? "Try widening your timeline, revision, or category filters."
+                  : "Try adjusting your filters to find what you're looking for"
                 : isService
-                ? "Try widening your timeline, revision, or category filters."
-                : "Try adjusting your filters to find what you're looking for"}
+                ? "Check back soon — creators add new commission listings regularly."
+                : "Check back soon — creators add new products regularly."}
             </p>
-            <button
-              onClick={clearFilters}
-              className="px-6 py-2.5 text-sm font-ui font-medium text-white bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full shadow-lg shadow-pink-vivid/20 hover:shadow-xl hover:shadow-pink-vivid/30 transition-all"
-            >
-              Clear all filters
-            </button>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="px-6 py-2.5 text-sm font-ui font-medium text-white bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full shadow-lg shadow-pink-vivid/20 hover:shadow-xl hover:shadow-pink-vivid/30 transition-all"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
         ) : (
           <>

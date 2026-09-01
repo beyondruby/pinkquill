@@ -47,7 +47,7 @@ export default function FollowRequestCard({
   return (
     <div className="bg-surface rounded-2xl border border-border-light p-4 hover:border-accent/20 transition-all">
       {/* Header with gradient accent */}
-      <div className="h-1 w-full bg-gradient-to-r from-purple-primary via-pink-vivid to-warm-orange rounded-full mb-4 -mt-4 -mx-4 px-4" style={{ width: 'calc(100% + 2rem)', marginLeft: '-1rem' }} />
+      <div className="h-1 w-full bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm rounded-full mb-4 -mt-4 -mx-4 px-4" style={{ width: 'calc(100% + 2rem)', marginLeft: '-1rem' }} />
 
       <div className="flex items-start gap-3">
         {/* Avatar */}
