@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUnreadCount, useUnreadMessagesCount } from "@/lib/hooks";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
+import { getMutedNotificationTypes } from "@/lib/utils/notificationCategories";
 
 interface BadgeCountContextType {
   unreadNotifications: number;
@@ -43,9 +44,13 @@ export function useBadgeCounts() {
 }
 
 export function BadgeCountProvider({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [badgeFetchReady, setBadgeFetchReady] = useState(false);
   const userId = user?.id;
+  const mutedNotificationTypes = useMemo(
+    () => getMutedNotificationTypes(profile?.notification_preferences),
+    [profile?.notification_preferences]
+  );
 
   /* eslint-disable react-hooks/set-state-in-effect -- badge counts are intentionally delayed until after primary content starts */
   useEffect(() => {
@@ -65,7 +70,8 @@ export function BadgeCountProvider({ children }: { children: ReactNode }) {
   // route paint has had a chance to request primary content.
   const shouldFetchCounts = badgeFetchReady && !loading && !!user;
   const { count: unreadNotifications, refetch: refetchNotifications } = useUnreadCount(
-    shouldFetchCounts ? userId : undefined
+    shouldFetchCounts ? userId : undefined,
+    mutedNotificationTypes
   );
   const { count: unreadMessages, refetch: refetchMessages } = useUnreadMessagesCount(
     shouldFetchCounts ? userId : undefined

@@ -63,10 +63,11 @@ interface UseNotificationsReturn {
   refetch: () => Promise<void>;
 }
 
-export function useNotifications(userId?: string): UseNotificationsReturn {
+export function useNotifications(userId?: string, mutedTypes?: NotificationType[]): UseNotificationsReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const fetchedRef = useRef(false);
+  const mutedTypesKey = (mutedTypes || []).join(",");
 
   const fetchNotifications = useCallback(async () => {
     if (!userId) {
@@ -81,8 +82,8 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
       }
 
       const { data, error } = await retryWithBackoff(
-        () =>
-          supabase
+        () => {
+          let query = supabase
             .from("notifications")
             .select(
               `
@@ -106,7 +107,14 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
             )
             .eq("user_id", userId)
             .order("created_at", { ascending: false })
-            .limit(50),
+            .limit(50);
+
+          if (mutedTypesKey) {
+            query = query.not("type", "in", `(${mutedTypesKey})`);
+          }
+
+          return query;
+        },
         {
           attempts: 3,
           shouldRetry: isRetryableError,
@@ -125,9 +133,9 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, mutedTypesKey]);
 
-  // Initial fetch - only depends on userId to prevent double-fetch
+  // Initial fetch - depends on userId + muted categories to prevent double-fetch
   useEffect(() => {
     if (userId) {
       fetchNotifications();
@@ -137,12 +145,12 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, mutedTypesKey]);
 
   // Live updates flow through the shared per-user broadcast channel
   // (UserEventsProvider). DB triggers send `notification_change` events with
   // {op, id, type, read}; we patch state in place for UPDATE/DELETE and
-  // hydrate the full row on INSERT.
+  // hydrate the full row on INSERT (skipping types the user has muted).
   useUserEvent("notification_change", async (payload) => {
     if (!userId) return;
     if (payload.op === "DELETE") {
@@ -157,6 +165,10 @@ export function useNotifications(userId?: string): UseNotificationsReturn {
             : n
         )
       );
+      return;
+    }
+
+    if (payload.type && mutedTypes?.includes(payload.type as NotificationType)) {
       return;
     }
 
@@ -205,8 +217,9 @@ interface UseUnreadCountReturn {
   refetch: () => Promise<void>;
 }
 
-export function useUnreadCount(userId?: string): UseUnreadCountReturn {
+export function useUnreadCount(userId?: string, mutedTypes?: NotificationType[]): UseUnreadCountReturn {
   const [count, setCount] = useState(0);
+  const mutedTypesKey = (mutedTypes || []).join(",");
 
   const fetchCount = useCallback(async () => {
     if (!userId) {
@@ -216,12 +229,19 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
 
     try {
       const { count: unreadCount, error } = await retryWithBackoff(
-        () =>
-          supabase
+        () => {
+          let query = supabase
             .from("notifications")
             .select("*", { count: "exact", head: true })
             .eq("user_id", userId)
-            .eq("read", false),
+            .eq("read", false);
+
+          if (mutedTypesKey) {
+            query = query.not("type", "in", `(${mutedTypesKey})`);
+          }
+
+          return query;
+        },
         {
           attempts: 3,
           shouldRetry: isRetryableError,
@@ -238,7 +258,7 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
       const message = err instanceof Error ? err.message : String(err);
       console.error("[useUnreadCount] Unexpected error:", message);
     }
-  }, [userId]);
+  }, [userId, mutedTypesKey]);
 
   // Initial fetch
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -257,6 +277,9 @@ export function useUnreadCount(userId?: string): UseUnreadCountReturn {
   useUserEvent("notification_change", (payload) => {
     if (!userId) return;
     if (payload.op === "INSERT") {
+      if (payload.type && mutedTypes?.includes(payload.type as NotificationType)) {
+        return;
+      }
       if (payload.read !== true) {
         setCount((c) => c + 1);
       }

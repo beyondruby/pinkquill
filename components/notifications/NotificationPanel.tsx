@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useNotifications, useMarkAsRead, useCollaborationInvites, useFollowRequests, Notification } from "@/lib/hooks";
@@ -11,6 +11,7 @@ import CollaborationInviteCard from "./CollaborationInviteCard";
 import FollowRequestCard from "./FollowRequestCard";
 import { CommentIcon } from "@/components/ui/Icons";
 import { getTimeAgoCompact } from "@/lib/utils/time";
+import { getMutedNotificationTypes } from "@/lib/utils/notificationCategories";
 
 interface NotificationPanelProps {
   isOpen: boolean;
@@ -1014,8 +1015,12 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
 }
 
 function NotificationPanelContent({ onClose }: { onClose: () => void }) {
-  const { user } = useAuth();
-  const { notifications, loading } = useNotifications(user?.id);
+  const { user, profile } = useAuth();
+  const mutedNotificationTypes = useMemo(
+    () => getMutedNotificationTypes(profile?.notification_preferences),
+    [profile?.notification_preferences]
+  );
+  const { notifications, loading } = useNotifications(user?.id, mutedNotificationTypes);
   const { markAsRead, markAllAsRead } = useMarkAsRead();
   const { invites: rawInvites, accept: acceptInvite, decline: declineInvite } = useCollaborationInvites(user?.id || "");
   // Filter out invites where post or author is null (e.g., deleted posts)

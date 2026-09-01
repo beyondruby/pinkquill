@@ -41,6 +41,7 @@ interface Profile {
   is_verified: boolean;
   is_private: boolean;
   theme_preference: string | null;
+  notification_preferences: Record<string, boolean> | null;
 }
 
 interface AuthContextType {

@@ -129,10 +129,38 @@ a batch.
     icon paths the others don't have — merging it in would've meant inventing icons for statuses
     that don't need them) but got the same one-line "submitted" mislabel fix. Net: "submitted"
     reads "Submitted," not "Delivered," everywhere now.
-- ⬜ **`/settings/notifications`:** not started — still 404s. Biggest remaining item.
-- ⬜ **Explore (and other non-home routes without the right rail):** not started — still leaves
-  the fixed-width dead zone.
-- ⬜ **Reduced motion hook:** not started.
+- ✅ **`/settings/notifications`:** real page, not a placeholder. New
+  `profiles.notification_preferences` JSONB column (additive migration, applied with your
+  go-ahead), 6 category toggles (`lib/utils/notificationCategories.ts` groups the ~35 notification
+  types), instant-persist like the Appearance page. Filtering happens in `useNotifications` /
+  `useUnreadCount` (both now accept a `mutedTypes` list and apply it server-side via `.not("type",
+  "in", …)`, plus check it on the realtime insert path) — doesn't touch the broadcast-channel
+  subscription itself, per the lower-risk option you picked. Verified the write path directly
+  against the DB and the PostgREST API (both correct). **Could not get a clean live-browser
+  read-back verification** — see below.
+- ✅ **Explore dead-zone — corrected finding.** Re-measured live with `getBoundingClientRect()`
+  before touching anything: the feed column *was* already centered (`mx-auto` was working) — my
+  original "not centered" read was wrong. The real, verified bug: the feed `<main>` was capped at
+  `max-w-[640px]` with no responsive variant, while the header directly above it already had
+  `lg:max-w-[780px]` — a 140px width mismatch between header and content on large screens. Fixed
+  by matching the breakpoint. Verified live: card edges now align with the header edges.
+- ✅→retracted **Reduced motion hook — investigated, nothing to build.** The existing global CSS
+  guard (`app/globals.css:5637`, `*, *::before, *::after { animation-duration/transition-duration:
+  0.01ms !important }`) already catches everything, including inline JS-set durations (`!important`
+  beats non-important regardless of origin). Audited every `requestAnimationFrame` call in the
+  codebase (Modal, ActionMenu, TakesFeed, ReactionPicker, TakeReactionPicker) — all one-shot
+  "wait for next paint" measurement tricks, not animation loops. The one real animation loop
+  (`AudioPlayer.tsx`) drives a functional playback progress bar, not decorative motion. No
+  drag-and-drop exists in the app. Building a hook here would've been unused scaffolding.
+
+**Known issue found while verifying `/settings/notifications` — not caused by this work:** the
+local dev browser's stored Supabase session has a severely expired access token (auth
+initialization consistently timing out at ~10-12s on every navigation throughout this whole
+session, matching the "stuck on loading" pattern in memory). I confirmed the preferences
+read/write is correct at the DB and PostgREST-API layers directly (curl'd both), but couldn't get
+a trustworthy live-browser confirmation because the stale session appears to serve cached/stale
+profile data rather than a fresh fetch. Log out and back in locally, then spot-check the toggle
+persists across a refresh, before trusting this fully.
 
 ## Explicitly out of scope for this pass
 

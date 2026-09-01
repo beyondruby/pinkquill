@@ -239,6 +239,7 @@ export interface Profile {
   is_verified: boolean;
   is_private: boolean;
   theme_preference: string | null;
+  notification_preferences: Record<string, boolean> | null;
   created_at: string;
   works_count: number;
   followers_count: number | null;
