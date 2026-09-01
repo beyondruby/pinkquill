@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useBlock } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import Loading from "@/components/ui/Loading";
+import Button from "@/components/ui/Button";
 
 interface BlockedUser {
   id: string;
@@ -265,20 +266,15 @@ export default function PrivacySettingsPage() {
                   </div>
                 </Link>
 
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleUnblock(blockedUser.id)}
-                  disabled={unblockingId === blockedUser.id}
-                  className="px-5 py-2 rounded-full border border-border-light bg-surface font-ui text-sm text-ink hover:border-accent hover:text-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  loading={unblockingId === blockedUser.id}
+                  loadingText="Unblocking..."
                 >
-                  {unblockingId === blockedUser.id ? (
-                    <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
-                      Unblocking...
-                    </span>
-                  ) : (
-                    "Unblock"
-                  )}
-                </button>
+                  Unblock
+                </Button>
               </div>
             ))}
           </div>

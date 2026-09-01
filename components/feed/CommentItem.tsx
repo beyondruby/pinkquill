@@ -11,6 +11,8 @@ import ReportModal from "@/components/ui/ReportModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { actionToast } from "@/lib/utils/toast";
 import ActionMenu from "@/components/ui/ActionMenu";
+import Button from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Loading";
 
 interface CommentItemProps {
   comment: Comment;
@@ -440,7 +442,7 @@ function CommentItemComponent({
               {showReplies ? "Hide" : "View"} {comment.replies_count}{" "}
               {comment.replies_count === 1 ? "reply" : "replies"}
               {loadingReplies && (
-                <span className="ml-1 inline-block w-3 h-3 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
+                <Spinner size="xs" className="ml-1 inline-block text-purple-primary" />
               )}
             </button>
           )}
@@ -535,24 +537,25 @@ function CommentItemComponent({
               />
             </div>
             <div className="flex gap-3">
-              <button
+              <Button
+                variant="outline"
                 onClick={() => {
                   setShowModDeleteModal(false);
                   setModDeleteReason("");
                 }}
                 disabled={isModDeleting}
-                className="flex-1 py-2.5 rounded-full border border-border-light font-ui text-sm font-medium text-ink hover:bg-subtle transition-colors disabled:opacity-50"
+                className="flex-1"
               >
                 Cancel
-              </button>
+              </Button>
               <button
                 onClick={handleModeratorDelete}
                 disabled={isModDeleting}
-                className="flex-1 py-2.5 rounded-full bg-orange-500 text-white font-ui text-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-full bg-orange-500 text-white font-ui text-sm font-medium transition-all duration-150 hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2"
               >
                 {isModDeleting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <Spinner size="xs" className="text-white" />
                     Deleting...
                   </>
                 ) : (

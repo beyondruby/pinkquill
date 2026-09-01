@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction E — Senses · PinkQuill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAF6; --panel:#FFFFFF; --carbon:#1B1A17;
+    --c60:rgba(27,26,23,.62); --c40:rgba(27,26,23,.42); --c12:rgba(27,26,23,.12);
+    --pink:#F0257F; --pink-wash:rgba(240,37,127,.07);
+    --read:#2447D9;  --read-wash:rgba(36,71,217,.06);
+    --see:#E8480C;   --see-wash:rgba(232,72,12,.06);
+    --watch:#7A2FE0; --watch-wash:rgba(122,47,224,.06);
+    --hear:#0A9B62;  --hear-wash:rgba(10,155,98,.07);
+  }
+  [data-theme="dark"]{
+    --bg:#161519; --panel:#1E1C22; --carbon:#F1EFE9;
+    --c60:rgba(241,239,233,.66); --c40:rgba(241,239,233,.44); --c12:rgba(241,239,233,.14);
+    --pink:#FF4D9B; --pink-wash:rgba(255,77,155,.1);
+    --read:#7B93FF;  --read-wash:rgba(123,147,255,.09);
+    --see:#FF7A45;   --see-wash:rgba(255,122,69,.09);
+    --watch:#B08CFF; --watch-wash:rgba(176,140,255,.09);
+    --hear:#3CD79A;  --hear-wash:rgba(60,215,154,.1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--carbon);
+    font:15.5px/1.6 "Schibsted Grotesk",sans-serif;transition:background .3s,color .3s}
+  .wide{font-family:"Archivo";font-stretch:118%;font-weight:800}
+
+  /* masthead */
+  .mast{max-width:1060px;margin:0 auto;padding:26px 32px 0;display:flex;align-items:baseline;gap:28px}
+  .logo{font-family:"Archivo";font-stretch:122%;font-weight:900;font-size:21px;letter-spacing:-.01em}
+  .logo i{font-style:normal;color:var(--pink)}
+  .mast nav{margin-left:auto;display:flex;gap:22px}
+  .word{font:600 12.5px "Schibsted Grotesk";letter-spacing:.1em;text-transform:uppercase;
+    color:var(--c60);text-decoration:none;background:none;border:none;cursor:pointer;padding:2px 0}
+  .word:hover{color:var(--carbon)}
+  .word sup{color:var(--pink);font-weight:700}
+  .word.hot{color:var(--pink)}
+
+  /* THE SENSES — navigation by how you experience the work */
+  .senses{max-width:1060px;margin:0 auto;padding:34px 32px 6px}
+  .senses .today{font:600 12px "Schibsted Grotesk";letter-spacing:.22em;text-transform:uppercase;color:var(--c40);margin-bottom:10px}
+  .row{display:flex;gap:30px;flex-wrap:wrap;align-items:baseline}
+  .sense{font-family:"Archivo";font-stretch:120%;font-weight:900;font-size:45px;line-height:1;
+    letter-spacing:-.015em;text-transform:uppercase;text-decoration:none;cursor:pointer;background:none;border:none;
+    color:var(--c12);-webkit-text-stroke:1.5px var(--c40);transition:color .15s}
+  .sense.on{-webkit-text-stroke:0;color:var(--carbon)}
+  .sense:hover{-webkit-text-stroke:0}
+  .sense.r:hover{color:var(--read)} .sense.s:hover{color:var(--see)}
+  .sense.w:hover{color:var(--watch)} .sense.h:hover{color:var(--hear)}
+  .sense small{display:block;font:500 11px "Schibsted Grotesk";letter-spacing:.18em;color:var(--c40);
+    -webkit-text-stroke:0;margin-top:6px}
+
+  /* page */
+  .page{max-width:1060px;margin:0 auto;padding:30px 32px 120px;display:grid;gap:26px}
+
+  /* an entry = a stage for one work */
+  .entry{background:var(--panel);border:1px solid var(--c12);border-radius:14px;padding:22px 26px;position:relative}
+  .entry.hear{background:var(--hear-wash);border-color:color-mix(in srgb,var(--hear) 30%,transparent)}
+  .entry.see{padding:0;overflow:hidden}
+  .entry.read{background:var(--read-wash);border-color:color-mix(in srgb,var(--read) 26%,transparent)}
+  .entry.money{background:var(--pink-wash);border-color:color-mix(in srgb,var(--pink) 32%,transparent)}
+
+  .head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .sensetag{font:800 10.5px "Archivo";font-stretch:118%;letter-spacing:.16em;color:#fff;
+    padding:5px 10px;border-radius:6px;text-transform:uppercase}
+  .st-hear{background:var(--hear)} .st-see{background:var(--see)}
+  .st-watch{background:var(--watch)} .st-read{background:var(--read)} .st-pink{background:var(--pink)}
+  .byline{font-weight:700;font-size:15px}
+  .when{font-size:12.5px;color:var(--c40);letter-spacing:.06em}
+  .ava{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:#fff;
+    font:800 14px "Archivo";flex:none}
+
+  .verbs{display:flex;gap:24px;margin-top:18px;align-items:baseline}
+  .verb{font:700 12px "Schibsted Grotesk";letter-spacing:.12em;text-transform:uppercase;
+    color:var(--c60);background:none;border:none;cursor:pointer;padding:2px 0}
+  .verb sup{font-size:9.5px;color:var(--c40);margin-left:2px}
+  .verb:hover,.verb:hover sup{color:var(--pink)}
+  .verb.did,.verb.did sup{color:var(--pink)}
+
+  /* HEAR stage */
+  .player{display:flex;align-items:center;gap:18px;margin-top:6px}
+  .play{width:58px;height:58px;border-radius:50%;background:var(--hear);border:none;cursor:pointer;flex:none;
+    display:grid;place-items:center}
+  .play svg{width:20px;height:20px;fill:#fff;margin-left:3px}
+  .wave{display:flex;align-items:center;gap:3px;height:56px;flex:1;min-width:0}
+  .wave i{width:4px;border-radius:2px;background:color-mix(in srgb,var(--hear) 55%,transparent)}
+  .wave i.p{background:var(--hear)}
+  .track h3{font-family:"Archivo";font-stretch:112%;font-weight:800;font-size:19px}
+  .track .sub{font-size:13px;color:var(--c60)}
+  .dur{font:700 12px "Schibsted Grotesk";color:var(--c60);letter-spacing:.06em;flex:none}
+
+  /* SEE stage */
+  .see .canvas{height:420px;position:relative;background:
+    radial-gradient(120% 90% at 15% 10%, rgba(232,72,12,.5), transparent 55%),
+    radial-gradient(110% 100% at 85% 20%, rgba(36,71,217,.42), transparent 52%),
+    radial-gradient(130% 120% at 50% 110%, rgba(27,26,23,.8), transparent 62%),
+    linear-gradient(160deg,#e8e0d0,#b4a8c8)}
+  .see .canvas svg{position:absolute;inset:0;width:100%;height:100%}
+  .see .below{padding:16px 26px 20px}
+  .see .head{position:absolute;top:16px;left:20px;z-index:2;margin:0}
+  .see .head .byline,.see .head .when{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.35)}
+  .cap{font-size:14px;color:var(--c60)}
+  .cap a{color:var(--see);font-weight:700;text-decoration:none}
+
+  /* WATCH stage */
+  .frames{display:flex;gap:16px;margin-top:4px}
+  .frame{flex:1;aspect-ratio:9/13;border-radius:10px;position:relative;overflow:hidden;cursor:pointer;
+    background:radial-gradient(120% 100% at 30% 20%, rgba(122,47,224,.55), transparent 60%),
+    radial-gradient(120% 100% at 80% 90%, rgba(240,37,127,.4), transparent 55%),linear-gradient(160deg,#221c2e,#3c3450)}
+  .frame .pl{position:absolute;inset:0;display:grid;place-items:center}
+  .frame .pl b{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center}
+  .frame .pl svg{width:16px;height:16px;fill:var(--carbon);margin-left:2px}
+  .frame .fmeta{position:absolute;left:12px;bottom:10px;right:12px;color:#fff;font-size:12.5px;
+    text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .frame .fmeta b{display:block;font-size:13.5px}
+  .frame .views{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.45);color:#fff;
+    font:700 10.5px "Schibsted Grotesk";letter-spacing:.08em;padding:3px 8px;border-radius:5px}
+
+  /* READ stage — words keep their own stage */
+  .read .lit{font-family:"Newsreader",serif;font-size:20px;line-height:1.85;font-style:italic;
+    text-align:center;padding:18px 30px 6px}
+  .read .from{text-align:center;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--c40);padding-bottom:4px}
+
+  /* journal inside read */
+  .hand{font-family:"Caveat",cursive;font-size:22px;line-height:1.5;padding-top:8px}
+
+  /* commission / money */
+  .money .deal{display:flex;gap:20px;align-items:center}
+  .money .thumb{width:96px;height:96px;border-radius:10px;flex:none;
+    background:radial-gradient(100% 100% at 20% 15%,rgba(240,37,127,.5),transparent 60%),
+    radial-gradient(120% 100% at 90% 90%,rgba(27,26,23,.75),transparent 55%),linear-gradient(140deg,#efe4d4,#c8b8dc)}
+  .money h3{font-family:"Archivo";font-stretch:112%;font-weight:800;font-size:18px}
+  .money .sub{font-size:13.5px;color:var(--c60);margin-top:2px}
+  .money .sub b{color:var(--carbon)}
+  .hire{background:var(--pink);color:#fff;border:none;border-radius:8px;padding:11px 20px;
+    font:800 12.5px "Archivo";font-stretch:112%;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;flex:none}
+  .hire:hover{filter:brightness(1.08)}
+  [data-theme="dark"] .hire{color:#161519}
+
+  .demo{position:fixed;right:18px;bottom:18px;z-index:20}
+  .demo button{font:700 11.5px "Schibsted Grotesk";letter-spacing:.12em;text-transform:uppercase;
+    color:var(--c60);background:var(--panel);border:1px solid var(--c12);padding:9px 16px;cursor:pointer;border-radius:8px}
+  .demo button:hover{color:var(--pink);border-color:var(--pink)}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="logo">PINK<i>QUILL</i></div>
+  <nav>
+    <a class="word" href="#">Communities</a>
+    <a class="word" href="#">Marketplace</a>
+    <a class="word" href="#">Bag<sup>1</sup></a>
+    <a class="word" href="#">Messages<sup>2</sup></a>
+    <a class="word" href="#">Notices<sup>4</sup></a>
+    <a class="word" href="#">Search</a>
+    <button class="word hot">+ Make</button>
+  </nav>
+</header>
+
+<!-- Navigation by sense: the platform's own vocabulary.
+     Writers, painters, filmmakers, musicians — four equal stages. -->
+<div class="senses">
+  <div class="today">Wednesday 2 July — for you, in every medium</div>
+  <div class="row">
+    <button class="sense on">All</button>
+    <button class="sense r">Read<small>words</small></button>
+    <button class="sense s">See<small>image &amp; craft</small></button>
+    <button class="sense w">Watch<small>takes &amp; film</small></button>
+    <button class="sense h">Hear<small>music &amp; voice</small></button>
+  </div>
+</div>
+
+<main class="page">
+
+  <!-- HEAR — a musician is not a decoration here -->
+  <article class="entry hear">
+    <div class="head">
+      <span class="sensetag st-hear">Hear</span>
+      <div class="ava" style="background:var(--hear)">K</div>
+      <div><div class="byline">Kwame Mensah</div><div class="when">MUSIC · 2H AGO</div></div>
+    </div>
+    <div class="player">
+      <button class="play" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg></button>
+      <div class="track" style="flex:none;min-width:170px">
+        <h3>Night Bus, Pt. II</h3>
+        <div class="sub">demo · neo-soul · 2026</div>
+      </div>
+      <div class="wave" aria-hidden="true">
+        <i class="p" style="height:30%"></i><i class="p" style="height:55%"></i><i class="p" style="height:80%"></i><i class="p" style="height:45%"></i><i class="p" style="height:70%"></i><i class="p" style="height:95%"></i><i class="p" style="height:60%"></i><i style="height:75%"></i><i style="height:40%"></i><i style="height:88%"></i><i style="height:52%"></i><i style="height:66%"></i><i style="height:34%"></i><i style="height:78%"></i><i style="height:58%"></i><i style="height:90%"></i><i style="height:44%"></i><i style="height:68%"></i><i style="height:30%"></i><i style="height:82%"></i><i style="height:50%"></i><i style="height:72%"></i><i style="height:38%"></i><i style="height:60%"></i><i style="height:85%"></i><i style="height:47%"></i><i style="height:63%"></i><i style="height:29%"></i><i style="height:76%"></i><i style="height:54%"></i>
+      </div>
+      <div class="dur">1:12 / 3:47</div>
+    </div>
+    <div class="verbs">
+      <button class="verb did">Admire<sup>214</sup></button>
+      <button class="verb">Reply<sup>36</sup></button>
+      <button class="verb">Relay<sup>19</sup></button>
+      <button class="verb">Keep</button>
+      <button class="verb">More</button>
+    </div>
+  </article>
+
+  <!-- SEE — the image IS the card -->
+  <article class="entry see">
+    <div class="head">
+      <span class="sensetag st-see">See</span>
+      <div><div class="byline">Jun Park</div><div class="when" style="color:rgba(255,255,255,.85)">VISUAL · THIS MORNING</div></div>
+    </div>
+    <div class="canvas">
+      <svg viewBox="0 0 900 420" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 300 C 180 210, 360 340, 540 250 S 810 180, 900 260" stroke="rgba(250,250,246,.85)" stroke-width="4" fill="none"/>
+        <circle cx="700" cy="110" r="44" fill="rgba(250,250,246,.5)"/>
+      </svg>
+    </div>
+    <div class="below">
+      <div class="cap">Harbour study no. 6 — gouache &amp; ink · <a href="#">#gouache</a> <a href="#">#seascape</a></div>
+      <div class="verbs">
+        <button class="verb">Admire<sup>342</sup></button>
+        <button class="verb">Reply<sup>27</sup></button>
+        <button class="verb">Relay<sup>18</sup></button>
+        <button class="verb">Keep</button>
+        <button class="verb">More</button>
+      </div>
+    </div>
+  </article>
+
+  <!-- WATCH — takes as first-class frames -->
+  <article class="entry">
+    <div class="head">
+      <span class="sensetag st-watch">Watch</span>
+      <div class="ava" style="background:var(--watch)">A</div>
+      <div><div class="byline">Ana &amp; the Cutting Room</div><div class="when">TAKES · TODAY</div></div>
+    </div>
+    <div class="frames">
+      <div class="frame">
+        <span class="views">12.4K</span>
+        <div class="pl"><b><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg></b></div>
+        <div class="fmeta"><b>Cutting a poem into film</b>0:47 · sound: original</div>
+      </div>
+      <div class="frame" style="background:radial-gradient(120% 100% at 70% 20%, rgba(10,155,98,.5), transparent 60%),radial-gradient(120% 100% at 20% 90%, rgba(122,47,224,.45), transparent 55%),linear-gradient(160deg,#1c2620,#2e4038)">
+        <span class="views">3.1K</span>
+        <div class="pl"><b><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg></b></div>
+        <div class="fmeta"><b>Studio tour, week 12</b>1:20 · sound: Night Bus Pt. II</div>
+      </div>
+      <div class="frame" style="background:radial-gradient(120% 100% at 30% 80%, rgba(232,72,12,.5), transparent 60%),radial-gradient(120% 100% at 80% 15%, rgba(240,37,127,.4), transparent 55%),linear-gradient(160deg,#2a1e1a,#443028)">
+        <span class="views">890</span>
+        <div class="pl"><b><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg></b></div>
+        <div class="fmeta"><b>Glaze test, raw</b>0:31 · sound: original</div>
+      </div>
+    </div>
+    <div class="verbs">
+      <button class="verb">Admire<sup>1.2K</sup></button>
+      <button class="verb">Reply<sup>88</sup></button>
+      <button class="verb">Relay<sup>41</sup></button>
+      <button class="verb">Keep</button>
+      <button class="verb">More</button>
+    </div>
+  </article>
+
+  <!-- READ — writing keeps its typeset stage, as one sense among four -->
+  <article class="entry read">
+    <div class="head">
+      <span class="sensetag st-read">Read</span>
+      <div class="ava" style="background:var(--read)">M</div>
+      <div><div class="byline">Mara Ellison</div><div class="when">POEM · 12:04</div></div>
+    </div>
+    <div class="lit">The rain kept every promise<br>the morning couldn’t make —<br>it wrote on every window<br>in a hand I couldn’t fake.</div>
+    <div class="from">from “Small Weathers”</div>
+    <div class="verbs">
+      <button class="verb">Admire<sup>128</sup></button>
+      <button class="verb">Reply<sup>14</sup></button>
+      <button class="verb">Relay<sup>9</sup></button>
+      <button class="verb">Keep</button>
+      <button class="verb">More</button>
+    </div>
+  </article>
+
+  <!-- MONEY — commissions are pink, the platform's own ink -->
+  <article class="entry money">
+    <div class="head" style="margin-bottom:10px">
+      <span class="sensetag st-pink">Open for commissions</span>
+    </div>
+    <div class="deal">
+      <div class="thumb"></div>
+      <div style="flex:1;min-width:0">
+        <h3>Custom ink portrait, from your photo</h3>
+        <div class="sub">by <b>Jun Park Studio</b> · ★ 4.9 (61) · 5-day delivery · <b>$45+</b> pay what you want</div>
+      </div>
+      <button class="hire">Commission</button>
+    </div>
+  </article>
+
+</main>
+
+<div class="demo">
+  <button onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='light'?'dark':'light'">Light / Dark</button>
+</div>
+</body>
+</html>

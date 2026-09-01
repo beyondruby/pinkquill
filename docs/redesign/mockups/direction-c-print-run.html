@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction C — Print Run · PinkQuill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Karla:ital,wght@0,400;0,500;0,700;1,400&family=Space+Mono:wght@400;700&family=EB+Garamond:ital@0;1&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --stock:#F5F1E8; --sheet:#FBF8F1; --ink:#1D1D1B;
+    --subdued:rgba(29,29,27,.68); --muted:rgba(29,29,27,.46);
+    --line:rgba(29,29,27,.14); --line-strong:rgba(29,29,27,.85);
+    --pink:#FF48B0; --blue:#0078BF; --green:#00A95C; --orange:#FF6C2F;
+    --pink-soft:rgba(255,72,176,.14); --blue-soft:rgba(0,120,191,.12);
+    --blend:multiply;
+  }
+  [data-theme="dark"]{
+    --stock:#131520; --sheet:#1B1E2B; --ink:#EFEBE0;
+    --subdued:rgba(239,235,224,.7); --muted:rgba(239,235,224,.46);
+    --line:rgba(239,235,224,.16); --line-strong:rgba(239,235,224,.85);
+    --pink:#FF5FBB; --blue:#4FA8E8;
+    --pink-soft:rgba(255,95,187,.16); --blue-soft:rgba(79,168,232,.16);
+    --blend:screen;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--stock);color:var(--ink);font:14.5px/1.5 "Karla",sans-serif;transition:background .25s,color .25s}
+  .mono{font-family:"Space Mono",monospace;font-size:11.5px;letter-spacing:.03em;color:var(--muted)}
+  .demo-bar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+    padding:10px 20px;background:var(--sheet);border-bottom:2px solid var(--line-strong)}
+  .demo-bar b{font-family:"Archivo";font-stretch:115%;font-weight:900;font-size:14px;text-transform:uppercase}
+  .toggle{font:700 13px "Karla";color:var(--ink);background:none;border:2px solid var(--line-strong);
+    border-radius:4px;padding:7px 14px;cursor:pointer}
+  .toggle:hover{background:var(--pink);border-color:var(--pink);color:#1D1D1B}
+
+  .app{display:grid;grid-template-columns:210px minmax(0,600px) 270px;gap:32px;
+    max-width:1220px;margin:0 auto;padding:26px 22px 90px}
+
+  /* rail */
+  .rail{position:sticky;top:70px;height:fit-content}
+  .wordmark{font-family:"Archivo";font-stretch:120%;font-weight:900;font-size:25px;line-height:.95;
+    text-transform:uppercase;letter-spacing:-.01em}
+  .wordmark .pk{color:var(--pink)}
+  .issue{margin:8px 0 24px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;margin:3px 0;border:2px solid transparent;
+    border-radius:4px;color:var(--subdued);text-decoration:none;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.02em}
+  .nav a:hover{border-color:var(--line)}
+  .nav a.active{border-color:var(--line-strong);color:var(--ink);background:var(--sheet);box-shadow:3px 3px 0 var(--pink)}
+  .badge{margin-left:auto;background:var(--blue);color:#fff;border-radius:3px;font:700 10.5px "Space Mono";padding:2px 6px}
+  .badge.p{background:var(--pink);color:#1D1D1B}
+  .create{margin-top:20px;width:100%;background:var(--pink);color:#1D1D1B;border:2px solid var(--line-strong);
+    border-radius:4px;padding:12px;font:800 14px "Archivo";font-stretch:110%;text-transform:uppercase;
+    letter-spacing:.04em;cursor:pointer;box-shadow:3px 3px 0 var(--line-strong)}
+  .create:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--line-strong)}
+
+  /* feed */
+  .feed-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+  .feed-head h1{font-family:"Archivo";font-stretch:118%;font-weight:900;font-size:24px;text-transform:uppercase}
+  .overprint-demo{position:relative;height:22px;width:130px}
+  .overprint-demo i{position:absolute;top:0;height:22px;width:80px;border-radius:3px;mix-blend-mode:var(--blend);opacity:.85}
+  .card{background:var(--sheet);border:2px solid var(--line-strong);border-radius:4px;padding:18px 20px;margin-bottom:22px;position:relative}
+  .regmark{position:absolute;top:10px;right:12px;color:var(--muted)}
+  .who{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+  .ava{width:40px;height:40px;border-radius:4px;border:2px solid var(--line-strong);flex:none;display:grid;
+    place-items:center;color:#1D1D1B;font:800 15px "Archivo"}
+  .who .name{font-weight:700;font-size:15px}
+  .typechip{margin-left:auto;font:700 10.5px "Space Mono";text-transform:uppercase;letter-spacing:.08em;
+    padding:4px 9px;border-radius:3px;transform:rotate(-2deg)}
+  .typechip.poem{background:var(--pink-soft);color:var(--pink);border:1.5px solid var(--pink)}
+  .typechip.visual{background:var(--blue-soft);color:var(--blue);border:1.5px solid var(--blue)}
+  .typechip.journal{background:rgba(255,108,47,.12);color:var(--orange);border:1.5px solid var(--orange)}
+
+  .poem{font-family:"EB Garamond",serif;font-style:italic;font-size:19px;line-height:1.7;text-align:center;padding:14px 6px}
+  .duo{border:2px solid var(--line-strong);border-radius:3px;height:280px;position:relative;overflow:hidden;margin-bottom:10px;background:var(--sheet)}
+  .duo .layer{position:absolute;inset:0;mix-blend-mode:var(--blend)}
+  .duo .l-pink{background:radial-gradient(120% 90% at 20% 15%, var(--pink) 0%, transparent 55%),
+    radial-gradient(90% 90% at 75% 85%, var(--pink) 0%, transparent 45%);opacity:.8}
+  .duo .l-blue{background:radial-gradient(110% 100% at 80% 20%, var(--blue) 0%, transparent 52%),
+    radial-gradient(100% 110% at 30% 95%, var(--blue) 0%, transparent 50%);opacity:.8;transform:translate(3px,-2px)}
+  .duo svg{position:absolute;inset:0;width:100%;height:100%}
+  .hand{font-family:"Caveat",cursive;font-size:21px;line-height:1.45}
+  .jmeta{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .chip{border:1.5px solid var(--line);border-radius:3px;padding:3px 9px;font:700 10.5px "Space Mono";
+    text-transform:uppercase;color:var(--subdued)}
+
+  .rule{height:2px;background:var(--line);margin:14px -20px 10px}
+  .actions{display:flex;align-items:center;gap:3px}
+  .re{display:flex;align-items:center;gap:6px;border:2px solid transparent;background:none;cursor:pointer;
+    color:var(--subdued);font:700 12px "Space Mono";padding:6px 10px;border-radius:3px}
+  .re:hover{border-color:var(--line-strong);color:var(--ink)}
+  .re:active{transform:scale(1.06) rotate(-.5deg)}
+  .re svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .re.done{color:var(--pink);border-color:var(--pink);background:var(--pink-soft)}
+  .re.done svg{fill:var(--pink);stroke:var(--pink)}
+  .spacer{flex:1}
+
+  /* product */
+  .prod{display:flex;gap:16px}
+  .prod .duo{flex:none;width:132px;height:132px;margin:0}
+  .prod h3{font-family:"Archivo";font-stretch:112%;font-weight:800;font-size:16.5px;text-transform:uppercase;margin:2px 0 4px}
+  .price{font:700 18px "Space Mono";margin:8px 0 2px}
+  .price small{font-size:12px;color:var(--muted);font-weight:400}
+  .buy{background:var(--blue);color:#fff;border:2px solid var(--line-strong);border-radius:4px;padding:9px 16px;
+    font:800 12.5px "Archivo";font-stretch:110%;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;
+    box-shadow:3px 3px 0 var(--line-strong);margin-top:10px}
+  .buy:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--line-strong)}
+  .ghost{background:var(--sheet);color:var(--ink);margin-left:10px}
+  .stars{color:var(--orange);font-size:13px;letter-spacing:2px}
+
+  /* right */
+  .right{position:sticky;top:70px;height:fit-content}
+  .panel{background:var(--sheet);border:2px solid var(--line-strong);border-radius:4px;padding:16px;margin-bottom:20px}
+  .panel h4{font-family:"Archivo";font-stretch:115%;font-weight:900;font-size:13.5px;text-transform:uppercase;margin-bottom:12px}
+  .frow{display:flex;align-items:center;gap:10px;padding:7px 0}
+  .frow .name{font-weight:700;font-size:14px}
+  .follow{margin-left:auto;border:2px solid var(--line-strong);color:var(--ink);background:none;border-radius:3px;
+    padding:4px 12px;font:700 11.5px "Space Mono";text-transform:uppercase;cursor:pointer}
+  .follow:hover{background:var(--pink);border-color:var(--pink);color:#1D1D1B}
+  .trend{display:flex;justify-content:space-between;padding:7px 0;text-decoration:none;border-bottom:1.5px dashed var(--line)}
+  .trend .t{color:var(--blue);font-weight:700;font-size:14px}
+  .stamped{display:inline-block;font:700 11px "Space Mono";text-transform:uppercase;color:var(--green);
+    border:2px solid var(--green);border-radius:3px;padding:3px 8px;transform:rotate(-4deg)}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="demo-bar">
+  <div><b>Direction C — “Print Run”</b> &nbsp;<span class="mono">THE RISO INK CHART IS THE PALETTE · PINK × BLUE OVERPRINT → VIOLET</span></div>
+  <button class="toggle" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='light'?'dark':'light'">Light / Dark</button>
+</div>
+
+<div class="app">
+  <aside class="rail">
+    <div class="wordmark"><span class="pk">Pink</span><br>Quill</div>
+    <div class="issue mono">ISSUE Nº 214 · JUL 02 2026</div>
+    <nav class="nav">
+      <a class="active" href="#">Home</a>
+      <a href="#">Takes</a>
+      <a href="#">Explore</a>
+      <a href="#">Communities</a>
+      <a href="#">Marketplace</a>
+      <a href="#">Saved</a>
+      <a href="#">Alerts<span class="badge p">4</span></a>
+      <a href="#">Messages<span class="badge">2</span></a>
+    </nav>
+    <button class="create">+ New print</button>
+  </aside>
+
+  <main>
+    <div class="feed-head">
+      <h1>Fresh off the press</h1>
+      <div class="overprint-demo" title="two inks, one violet">
+        <i style="left:0;background:var(--pink)"></i>
+        <i style="left:50px;background:var(--blue)"></i>
+      </div>
+    </div>
+
+    <!-- POEM -->
+    <article class="card">
+      <svg class="regmark" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 0v16M0 8h16" stroke="currentColor" stroke-width="1.2"/></svg>
+      <div class="who">
+        <div class="ava" style="background:var(--pink)">M</div>
+        <div><div class="name">Mara Ellison</div><div class="mono">12:04 · JUL 2 · Nº 4021</div></div>
+        <span class="typechip poem">Poem</span>
+      </div>
+      <div class="poem">The rain kept every promise<br>the morning couldn’t make —<br>it wrote on every window<br>in a hand I couldn’t fake.</div>
+      <div class="mono" style="text-align:center">— FROM “SMALL WEATHERS”</div>
+      <div class="rule"></div>
+      <div class="actions">
+        <button class="re done"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5C5 7.5 7 5.5 9.5 5.5c1.2 0 2 .5 2.5 1.2.5-.7 1.3-1.2 2.5-1.2C17 5.5 19 7.5 19 10.5 19 15.6 12 20 12 20z"/></svg>128</button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M12 3v10M8.5 7.5 12 3l3.5 4.5"/></svg>31</button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M5 6h14v10H9l-4 3z"/></svg>14</button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="m7 8-4 4 4 4M17 8l4 4-4 4M13 5l-2 14"/></svg>9</button>
+        <span class="spacer"></span>
+        <span class="stamped">Saved ✓</span>
+      </div>
+    </article>
+
+    <!-- VISUAL: duotone overprint -->
+    <article class="card">
+      <svg class="regmark" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 0v16M0 8h16" stroke="currentColor" stroke-width="1.2"/></svg>
+      <div class="who">
+        <div class="ava" style="background:var(--blue);color:#fff">J</div>
+        <div><div class="name">Jun Park</div><div class="mono">09:41 · JUL 2 · Nº 4020</div></div>
+        <span class="typechip visual">Visual</span>
+      </div>
+      <div class="duo">
+        <div class="layer l-pink"></div>
+        <div class="layer l-blue"></div>
+        <svg viewBox="0 0 600 280" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 200 C 120 130, 240 240, 360 170 S 540 110, 600 180" stroke="rgba(29,29,27,.6)" stroke-width="3" fill="none"/>
+          <circle cx="470" cy="70" r="30" fill="none" stroke="rgba(29,29,27,.55)" stroke-width="3"/>
+        </svg>
+      </div>
+      <p>Harbour study no. 6 — two-ink proof. <a style="color:var(--blue);font-weight:700;text-decoration:none" href="#">#gouache</a> <a style="color:var(--blue);font-weight:700;text-decoration:none" href="#">#seascape</a></p>
+      <div class="rule"></div>
+      <div class="actions">
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5C5 7.5 7 5.5 9.5 5.5c1.2 0 2 .5 2.5 1.2.5-.7 1.3-1.2 2.5-1.2C17 5.5 19 7.5 19 10.5 19 15.6 12 20 12 20z"/></svg>342</button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M12 3v10M8.5 7.5 12 3l3.5 4.5"/></svg>96</button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M5 6h14v10H9l-4 3z"/></svg>27</button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="m7 8-4 4 4 4M17 8l4 4-4 4M13 5l-2 14"/></svg>18</button>
+        <span class="spacer"></span>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20z"/></svg>Save</button>
+      </div>
+    </article>
+
+    <!-- JOURNAL -->
+    <article class="card">
+      <div class="who">
+        <div class="ava" style="background:var(--orange)">S</div>
+        <div><div class="name">Sofía Reyes</div><div class="mono">YESTERDAY · 23:12 · Nº 4014</div></div>
+        <span class="typechip journal">Journal</span>
+      </div>
+      <div class="jmeta"><span class="chip">☁ 19°</span><span class="chip">Mood: quiet</span><span class="chip">Lisbon</span></div>
+      <p class="hand">Day 40 of the residency. I finally stopped counting the days and started counting the drafts. The difference, it turns out, is everything…</p>
+      <div class="rule"></div>
+      <div class="actions">
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5C5 7.5 7 5.5 9.5 5.5c1.2 0 2 .5 2.5 1.2.5-.7 1.3-1.2 2.5-1.2C17 5.5 19 7.5 19 10.5 19 15.6 12 20 12 20z"/></svg>57</button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M5 6h14v10H9l-4 3z"/></svg>8</button>
+        <span class="spacer"></span>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20z"/></svg>Save</button>
+      </div>
+    </article>
+
+    <!-- COMMISSION -->
+    <article class="card prod">
+      <div class="duo"><div class="layer l-pink"></div><div class="layer l-blue" style="transform:translate(-3px,2px)"></div></div>
+      <div>
+        <div class="mono">COMMISSION · JUN PARK STUDIO</div>
+        <h3>Custom ink portrait</h3>
+        <div class="stars">★★★★★ <span class="mono">4.9 (61)</span></div>
+        <div class="price">$45<small>+ · PWYW, $45 MIN · 5-DAY</small></div>
+        <div><button class="buy">Commission</button><button class="buy ghost">Add to bag</button></div>
+      </div>
+    </article>
+  </main>
+
+  <aside class="right">
+    <div class="panel">
+      <h4>Press pass</h4>
+      <div class="frow"><div class="ava" style="background:var(--green);color:#fff">L</div><div><div class="name">Lena Okafor</div><div class="mono">ESSAYIST</div></div><button class="follow">Follow</button></div>
+      <div class="frow"><div class="ava" style="background:var(--pink)">T</div><div><div class="name">Théo Marchand</div><div class="mono">PRINTMAKER</div></div><button class="follow">Follow</button></div>
+    </div>
+    <div class="panel">
+      <h4>Hot off the press</h4>
+      <a class="trend" href="#"><span class="t">#smallweathers</span><span class="mono">1,204</span></a>
+      <a class="trend" href="#"><span class="t">#morningpages</span><span class="mono">862</span></a>
+      <a class="trend" href="#"><span class="t">#inktober</span><span class="mono">540</span></a>
+    </div>
+    <div class="panel">
+      <h4>The overprint</h4>
+      <div style="position:relative;height:64px">
+        <div style="position:absolute;left:0;top:6px;width:110px;height:48px;border-radius:4px;background:var(--pink);mix-blend-mode:var(--blend);opacity:.85"></div>
+        <div style="position:absolute;left:70px;top:12px;width:110px;height:48px;border-radius:4px;background:var(--blue);mix-blend-mode:var(--blend);opacity:.85"></div>
+      </div>
+      <div class="mono" style="margin-top:8px">TWO INKS. WHERE THEY MEET, VIOLET. NEVER OVER YOUR ART.</div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

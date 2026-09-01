@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 import Loading from "@/components/ui/Loading";
+import Avatar from "@/components/ui/Avatar";
 
 interface User {
   id: string;
@@ -339,13 +340,11 @@ export default function NewMessageModal({
                         : 'hover:bg-accent/5 active:bg-purple-primary/10'
                     } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <img
-                      src={
-                        user.avatar_url ||
-                        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
-                      }
+                    <Avatar
+                      src={user.avatar_url}
                       alt={user.display_name || user.username}
-                      className={`w-12 h-12 rounded-full object-cover transition-all ${
+                      size={48}
+                      className={`transition-all ${
                         isSelected ? 'ring-2 ring-purple-primary' : 'group-hover:ring-2 group-hover:ring-purple-primary/30'
                       }`}
                     />

@@ -9,6 +9,7 @@ import { useCommunity, useCommunityMembers, useCommunityModeration, useModLog } 
 import { stripHtml } from "@/lib/utils/sanitize";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
+import { Spinner } from "@/components/ui/Loading";
 
 type TabType = 'mod-log' | 'muted' | 'banned';
 
@@ -120,7 +121,7 @@ export default function CommunityModerationSettingsPage() {
         <>
           {modLogLoading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-3 border-purple-primary/20 border-t-purple-primary" />
+              <Spinner size="xl" className="text-purple-primary" />
             </div>
           ) : modLogEntries.length > 0 ? (
             <div className="space-y-3">
@@ -256,7 +257,7 @@ export default function CommunityModerationSettingsPage() {
 
         return currentLoading ? (
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-3 border-purple-primary/20 border-t-purple-primary" />
+            <Spinner size="xl" className="text-purple-primary" />
           </div>
         ) : currentMembers.length > 0 ? (
           <div className="space-y-2">

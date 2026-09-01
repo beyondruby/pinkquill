@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction D — Unbound · PinkQuill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F4EE; --paper-deep:#EFECE3;
+    --ink:#221E1A; --ink-60:rgba(34,30,26,.62); --ink-38:rgba(34,30,26,.38); --ink-14:rgba(34,30,26,.14);
+    --pink:#D8006B; --pink-wash:rgba(216,0,107,.07);
+  }
+  [data-theme="dark"]{
+    --paper:#15110D; --paper-deep:#1C1712;
+    --ink:#EAE4D8; --ink-60:rgba(234,228,216,.64); --ink-38:rgba(234,228,216,.4); --ink-14:rgba(234,228,216,.15);
+    --pink:#FF5CA8; --pink-wash:rgba(255,92,168,.09);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);
+    font:16px/1.65 "Newsreader",Georgia,serif;font-optical-sizing:auto;
+    transition:background .3s,color .3s}
+  a{color:inherit}
+  ::selection{background:var(--pink-wash);color:var(--pink)}
+
+  /* ————— verbs: the interface is words, not icons ————— */
+  .verb{font-family:"Newsreader";font-size:12.5px;font-weight:500;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-60);text-decoration:none;cursor:pointer;
+    background:none;border:none;padding:2px 0}
+  .verb sup{font-size:9.5px;letter-spacing:0;margin-left:3px;color:var(--ink-38);font-style:italic}
+  .verb:hover{color:var(--pink)}
+  .verb:hover sup{color:var(--pink)}
+  .verb.did{color:var(--pink)}
+  .verb.did sup{color:var(--pink)}
+  .verbs{display:flex;gap:26px;margin-top:22px}
+
+  /* ————— the spine shelf ————— */
+  .spine{position:fixed;top:0;left:0;bottom:0;width:76px;display:flex;flex-direction:column;
+    background:var(--paper-deep);z-index:10}
+  .spine a{flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none;
+    writing-mode:vertical-rl;transform:rotate(180deg);
+    font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-60);
+    border-top:1px solid var(--ink-14);transition:transform .15s}
+  .spine a:first-of-type{border-top:none}
+  .spine a:hover{color:var(--ink);transform:rotate(180deg) translateY(2px)}
+  .spine a.here{color:var(--pink);font-weight:600;background:var(--paper)}
+  .spine a sup{writing-mode:horizontal-tb;transform:rotate(180deg);font-size:10px;font-style:italic;margin-top:8px;color:var(--pink)}
+  .spine .me{flex:none;height:88px;display:grid;place-items:center;border-top:1px solid var(--ink-14)}
+  .me .oval{width:34px;height:42px;border-radius:50%;background:var(--pink);
+    display:grid;place-items:center;color:var(--paper);font:600 15px "Newsreader";font-style:italic}
+
+  /* ————— masthead ————— */
+  .sheet{margin-left:76px;min-height:100vh}
+  .masthead{max-width:980px;margin:0 auto;padding:34px 48px 0;
+    display:flex;align-items:baseline;justify-content:space-between}
+  .masthead .words{display:flex;gap:26px}
+  .brand{text-align:center;max-width:980px;margin:14px auto 0;padding:0 48px}
+  .brand h1{font-size:54px;font-weight:400;letter-spacing:.01em;line-height:1}
+  .brand h1 i{color:var(--pink)}
+  .dateline{margin-top:14px;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-38)}
+  .asterism{ text-align:center;color:var(--pink);font-size:14px;letter-spacing:0;padding:36px 0 8px;word-spacing:14px}
+
+  /* ————— the page ————— */
+  .page{max-width:980px;margin:0 auto;padding:8px 48px 140px;
+    display:grid;grid-template-columns:minmax(0,600px) 212px;column-gap:56px;justify-content:center}
+  .full{grid-column:1 / -1}
+  .entry{padding:38px 0 6px}
+  .byline{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);font-weight:600}
+  .byline .sep{color:var(--ink-38);font-weight:400;margin:0 8px}
+  .byline .kind{color:var(--pink);font-weight:500}
+  .title{font-size:30px;font-weight:500;font-style:italic;margin:10px 0 4px;letter-spacing:.005em}
+
+  /* marginalia */
+  .margin{padding:44px 0 0;font-style:italic;font-size:13.5px;color:var(--ink-38);line-height:1.75}
+  .margin .tick{color:var(--pink);font-style:normal}
+  .margin .oval{width:30px;height:38px;border-radius:50%;display:inline-grid;place-items:center;
+    color:var(--paper);font:600 13px "Newsreader";font-style:italic;margin-bottom:8px}
+
+  /* content treatments per type */
+  .verse{font-size:21px;line-height:2;font-weight:400;text-align:center;padding:26px 0 8px;font-style:italic}
+  .verse b{font-style:normal;font-weight:500}
+  .prose{font-size:17px;line-height:1.8;padding-top:12px}
+  .prose:first-letter{initial-letter:3;-webkit-initial-letter:3;color:var(--pink);font-weight:500;padding-right:10px}
+  .hand{font-family:"Caveat",cursive;font-size:24px;line-height:1.5;padding-top:10px}
+  .journal-day{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-60);padding-top:14px}
+  .journal-day i{color:var(--pink);font-style:normal}
+
+  .plate{margin:22px 0 10px;position:relative;
+    box-shadow:0 1px 0 var(--ink-14), 0 -1px 0 var(--ink-14)}
+  .plate .img{height:360px;background:
+    radial-gradient(120% 90% at 15% 10%, rgba(216,0,107,.34), transparent 55%),
+    radial-gradient(110% 100% at 85% 20%, rgba(34,30,26,.5), transparent 52%),
+    radial-gradient(130% 120% at 50% 110%, rgba(34,30,26,.75), transparent 62%),
+    linear-gradient(160deg,#ded7c6,#a89bb0)}
+  .plate svg{position:absolute;top:0;left:0;width:100%;height:360px}
+  .plate .cap{font-style:italic;font-size:14px;color:var(--ink-60);padding:12px 2px 14px}
+  .plate .cap b{font-style:normal;font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+
+  .footnote{margin-top:16px;padding-top:12px;border-top:1px solid var(--ink-14);
+    font-size:14px;font-style:italic;color:var(--ink-60)}
+  .footnote sup{color:var(--pink);font-style:normal;margin-right:6px}
+
+  /* the composer line */
+  .begin{grid-column:1;padding:26px 0 4px;font-size:22px;font-style:italic;color:var(--ink-38);cursor:text}
+  .begin .caret{display:inline-block;width:2px;height:24px;background:var(--pink);
+    vertical-align:-4px;margin-left:6px;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* classified (commission) */
+  .classified{margin-top:40px;padding:26px 0 22px;
+    border-top:3px double var(--ink);border-bottom:3px double var(--ink)}
+  .classified .rubric{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--pink);font-weight:600}
+  .classified h3{font-size:26px;font-style:italic;font-weight:500;margin:8px 0 6px}
+  .classified .terms{font-size:15px;color:var(--ink-60)}
+  .classified .terms b{color:var(--ink);font-weight:600}
+  .classified .engage{margin-top:16px;display:flex;gap:26px;align-items:baseline}
+  .engage .verb.primary{color:var(--paper);background:var(--pink);padding:9px 22px;letter-spacing:.18em}
+  .engage .verb.primary:hover{filter:brightness(1.1);color:var(--paper)}
+
+  .colophon{grid-column:1;text-align:center;padding-top:70px;font-style:italic;color:var(--ink-38);font-size:14px}
+  .colophon .asterism{padding:0 0 18px}
+
+  /* demo chrome */
+  .demo{position:fixed;right:18px;bottom:18px;z-index:20;display:flex;gap:10px}
+  .demo button{font:500 12px "Newsreader";letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-60);background:var(--paper);border:1px solid var(--ink-14);
+    padding:9px 16px;cursor:pointer}
+  .demo button:hover{color:var(--pink);border-color:var(--pink)}
+  @media (prefers-reduced-motion: reduce){.begin .caret{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- THE SPINE SHELF — navigation as a shelf of books -->
+<nav class="spine" aria-label="Sections">
+  <a class="here" href="#">The Feed</a>
+  <a href="#">Takes<sup>·</sup></a>
+  <a href="#">Explore</a>
+  <a href="#">Communities</a>
+  <a href="#">Marketplace</a>
+  <a href="#">Letters<sup>2</sup></a>
+  <a href="#">Notices<sup>4</sup></a>
+  <div class="me"><div class="oval">h</div></div>
+</nav>
+
+<div class="sheet">
+  <!-- masthead: words, not icons -->
+  <header class="masthead">
+    <span class="verb">Search</span>
+    <div class="words">
+      <button class="verb">Saved</button>
+      <button class="verb">Bag<sup>1</sup></button>
+      <button class="verb did">Write</button>
+    </div>
+  </header>
+
+  <div class="brand">
+    <h1>Pink<i>Quill</i></h1>
+    <div class="dateline">The Evening Edition — Wednesday 2 July 2026 — For You</div>
+  </div>
+
+  <div class="asterism">⁎ ⁎ ⁎</div>
+
+  <main class="page">
+
+    <!-- the composer is a sentence, not a box -->
+    <div class="begin">The page is yours —<span class="caret"></span></div>
+    <div></div>
+
+    <!-- ENTRY 1 · POEM -->
+    <article class="entry">
+      <div class="byline">Mara Ellison<span class="sep">·</span><span class="kind">Poem</span></div>
+      <h2 class="title">Small Weathers</h2>
+      <div class="verse">The rain kept every promise<br>the morning couldn’t make —<br>it wrote on every window<br>in a hand I couldn’t fake.</div>
+      <div class="verbs">
+        <button class="verb did">Admire<sup>128</sup></button>
+        <button class="verb">Reply<sup>14</sup></button>
+        <button class="verb">Relay<sup>9</sup></button>
+        <button class="verb">Keep</button>
+        <button class="verb">More</button>
+      </div>
+      <div class="footnote"><sup>14</sup>latest reply, from Théo Marchand — “this is the exact rain from my window in Ghent.”</div>
+    </article>
+    <aside class="margin">
+      <div class="oval" style="background:#6B5CA5">M</div><br>
+      12.04, this morning<br>
+      from “Small Weathers”<br>
+      <span class="tick">✓</span> you admired this
+    </aside>
+
+    <div class="asterism full">⁎ ⁎ ⁎</div>
+
+    <!-- ENTRY 2 · VISUAL -->
+    <article class="entry">
+      <div class="byline">Jun Park<span class="sep">·</span><span class="kind">Visual</span></div>
+      <figure class="plate">
+        <div class="img"></div>
+        <svg viewBox="0 0 600 360" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 250 C 120 170, 240 290, 360 210 S 540 150, 600 220" stroke="rgba(246,244,238,.8)" stroke-width="3" fill="none"/>
+          <circle cx="470" cy="90" r="34" fill="rgba(246,244,238,.55)"/>
+        </svg>
+        <figcaption class="cap"><b>Plate VI</b> — Harbour study no. 6, gouache &amp; ink · #gouache #seascape</figcaption>
+      </figure>
+      <div class="verbs">
+        <button class="verb">Admire<sup>342</sup></button>
+        <button class="verb">Reply<sup>27</sup></button>
+        <button class="verb">Relay<sup>18</sup></button>
+        <button class="verb">Keep</button>
+        <button class="verb">More</button>
+      </div>
+    </article>
+    <aside class="margin">
+      <div class="oval" style="background:#2F6B57">J</div><br>
+      09.41, this morning<br>
+      sixth in a series<br>
+      admired by Lena &amp; 341 others
+    </aside>
+
+    <div class="asterism full">⁎ ⁎ ⁎</div>
+
+    <!-- ENTRY 3 · JOURNAL -->
+    <article class="entry">
+      <div class="byline">Sofía Reyes<span class="sep">·</span><span class="kind">Journal</span></div>
+      <div class="journal-day">Day 40 <i>—</i> Lisbon <i>—</i> overcast, 19° <i>—</i> quiet</div>
+      <p class="hand">I finally stopped counting the days and started counting the drafts. The difference, it turns out, is everything…</p>
+      <div class="verbs">
+        <button class="verb">Admire<sup>57</sup></button>
+        <button class="verb">Reply<sup>8</sup></button>
+        <button class="verb">Keep</button>
+        <button class="verb">More</button>
+      </div>
+    </article>
+    <aside class="margin">
+      <div class="oval" style="background:#A5551F">S</div><br>
+      yesterday, 23.12<br>
+      residency notebook,<br>entry forty
+    </aside>
+
+    <div class="asterism full">⁎ ⁎ ⁎</div>
+
+    <!-- ENTRY 4 · ESSAY (drop cap) -->
+    <article class="entry">
+      <div class="byline">Lena Okafor<span class="sep">·</span><span class="kind">Essay</span></div>
+      <h2 class="title">Against the Blank Page</h2>
+      <p class="prose">Nobody warns you that the blank page is a myth. Every page arrives already crowded — with the last thing you read, the writer you wish you were, the sentence you almost wrote on the train. The work is not to fill the page but to clear it…</p>
+      <div class="verbs">
+        <button class="verb">Admire<sup>203</sup></button>
+        <button class="verb">Reply<sup>41</sup></button>
+        <button class="verb">Relay<sup>22</sup></button>
+        <button class="verb">Keep</button>
+        <button class="verb">More</button>
+      </div>
+      <div class="footnote"><sup>41</sup>a discussion is unfolding — join it</div>
+    </article>
+    <aside class="margin">
+      <div class="oval" style="background:#8A2D52">L</div><br>
+      07.18, this morning<br>
+      six-minute read<br>
+      relayed by Théo
+    </aside>
+
+    <!-- COMMISSION as a classified notice -->
+    <article class="classified">
+      <div class="rubric">Commissions — Open</div>
+      <h3>Custom ink portrait, from your photograph</h3>
+      <div class="terms">by <b>Jun Park Studio</b> · ★ 4.9, sixty-one patrons · five-day delivery ·
+        <b>$45</b> or what you will, $45 the floor</div>
+      <div class="engage">
+        <button class="verb primary">Commission</button>
+        <button class="verb">Add to bag</button>
+        <button class="verb">Ask the artist</button>
+      </div>
+    </article>
+    <aside class="margin">
+      <br><br>a notice from the<br>marketplace — sellers<br>set their own terms
+    </aside>
+
+    <div class="colophon full">
+      <div class="asterism">⁎ ⁎ ⁎</div>
+      You are caught up. The next edition is being written<span class="caret" style="display:inline-block;width:2px;height:16px;background:var(--pink);margin-left:5px;animation:blink 1.1s steps(1) infinite"></span>
+    </div>
+  </main>
+</div>
+
+<div class="demo">
+  <button onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='light'?'dark':'light'">Lamplight / Daylight</button>
+</div>
+</body>
+</html>

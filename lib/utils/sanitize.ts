@@ -80,23 +80,25 @@ function sanitizeInlineStyle(style: string): string {
     .join("; ");
 }
 
-DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-  const element = node as Element;
-  if (
-    node.nodeType !== 1 ||
-    typeof element.hasAttribute !== "function" ||
-    !element.hasAttribute("style")
-  ) {
-    return;
-  }
+if (typeof DOMPurify.addHook === "function") {
+  DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+    const element = node as Element;
+    if (
+      node.nodeType !== 1 ||
+      typeof element.hasAttribute !== "function" ||
+      !element.hasAttribute("style")
+    ) {
+      return;
+    }
 
-  const safeStyle = sanitizeInlineStyle(element.getAttribute("style") || "");
-  if (safeStyle) {
-    element.setAttribute("style", safeStyle);
-  } else {
-    element.removeAttribute("style");
-  }
-});
+    const safeStyle = sanitizeInlineStyle(element.getAttribute("style") || "");
+    if (safeStyle) {
+      element.setAttribute("style", safeStyle);
+    } else {
+      element.removeAttribute("style");
+    }
+  });
+}
 
 // Strict config for displaying user content
 const STRICT_CONFIG: Config = {

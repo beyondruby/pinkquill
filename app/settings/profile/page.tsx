@@ -5,6 +5,9 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { parseSocialLinks, detectPlatform, PLATFORMS } from "@/lib/utils/social";
 import type { SocialLink } from "@/lib/utils/social";
+import Avatar from "@/components/ui/Avatar";
+import { Spinner } from "@/components/ui/Loading";
+import Button from "@/components/ui/Button";
 
 export default function EditProfilePage() {
   const { user, profile } = useAuth();
@@ -232,7 +235,7 @@ export default function EditProfilePage() {
             )}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               {coverUploading ? (
-                <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <Spinner size="xl" className="text-white" />
               ) : (
                 <div className="text-white font-ui text-sm flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,14 +269,10 @@ export default function EditProfilePage() {
               className="relative w-24 h-24 rounded-full overflow-hidden cursor-pointer group"
               onClick={() => avatarInputRef.current?.click()}
             >
-              <img
-                src={form.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200"}
-                alt="Avatar"
-                className="w-full h-full object-cover"
-              />
+              <Avatar src={form.avatar_url} alt="Avatar" size={96} />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 {avatarUploading ? (
-                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <Spinner size="lg" className="text-white" />
                 ) : (
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -543,20 +542,15 @@ export default function EditProfilePage() {
 
         {/* Submit Button */}
         <div className="flex justify-end pt-4">
-          <button
+          <Button
             type="submit"
-            disabled={saving || avatarUploading || coverUploading}
-            className="px-8 py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium rounded-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            size="lg"
+            disabled={avatarUploading || coverUploading}
+            loading={saving}
+            loadingText="Saving..."
           >
-            {saving ? (
-              <span className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Saving...
-              </span>
-            ) : (
-              "Save Changes"
-            )}
-          </button>
+            Save Changes
+          </Button>
         </div>
       </form>
     </div>

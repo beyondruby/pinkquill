@@ -11,6 +11,7 @@ import ModeratorPermissionsModal from "@/components/communities/ModeratorPermiss
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 import { actionToast } from "@/lib/utils/toast";
+import { Spinner } from "@/components/ui/Loading";
 
 type RoleFilter = 'all' | 'admin' | 'moderator' | 'member';
 type ModerationTab = 'members' | 'muted' | 'banned';
@@ -473,7 +474,7 @@ export default function CommunityMembersPage() {
         <>
           {loading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-3 border-purple-primary/20 border-t-purple-primary" />
+              <Spinner size="xl" className="text-purple-primary" />
             </div>
           ) : filteredMembers.length > 0 ? (
             <div className="space-y-2">
@@ -656,7 +657,7 @@ export default function CommunityMembersPage() {
         <>
           {mutedLoading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-3 border-yellow-500/20 border-t-yellow-500" />
+              <Spinner size="xl" className="text-yellow-500" />
             </div>
           ) : mutedMembers.length > 0 ? (
             <div className="space-y-2">
@@ -750,7 +751,7 @@ export default function CommunityMembersPage() {
         <>
           {bannedLoading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-3 border-red-500/20 border-t-red-500" />
+              <Spinner size="xl" className="text-red-500" />
             </div>
           ) : bannedMembers.length > 0 ? (
             <div className="space-y-2">

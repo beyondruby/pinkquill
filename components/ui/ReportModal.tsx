@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Button from "./Button";
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -53,10 +54,10 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2100] animate-fadeIn"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-(--z-modal) animate-fadeIn"
         onClick={() => !submitting && handleClose()}
       />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-surface rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] z-[2101] overflow-hidden animate-scaleIn">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-surface rounded-2xl shadow-modal z-(--z-modal) overflow-hidden animate-scaleIn">
         {submitted ? (
           /* Success State */
           <div className="p-10 text-center">
@@ -101,12 +102,9 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
 
             {/* Footer */}
             <div className="px-6 py-5">
-              <button
-                onClick={handleClose}
-                className="w-full py-3 font-ui text-[0.9rem] text-muted hover:text-ink transition-colors"
-              >
+              <Button variant="ghost" onClick={handleClose} fullWidth>
                 Cancel
-              </button>
+              </Button>
             </div>
           </>
         ) : (
@@ -149,27 +147,18 @@ export default function ReportModal({ isOpen, onClose, onSubmit, submitting, sub
 
             {/* Footer */}
             <div className="px-6 py-5 flex gap-3">
-              <button
-                onClick={handleBack}
-                disabled={submitting}
-                className="flex-1 py-3.5 rounded-xl font-ui text-[0.9rem] text-muted border border-border-light hover:border-border-strong hover:text-ink transition-all disabled:opacity-50"
-              >
+              <Button variant="outline" onClick={handleBack} disabled={submitting} className="flex-1">
                 Back
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 onClick={handleSubmit}
-                disabled={submitting}
-                className="flex-1 py-3.5 rounded-xl font-ui text-[0.9rem] font-medium text-white bg-gradient-to-r from-purple-primary to-pink-vivid shadow-md shadow-pink-vivid/20 hover:shadow-lg hover:shadow-pink-vivid/30 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-md flex items-center justify-center gap-2"
+                loading={submitting}
+                loadingText="Sending..."
+                className="flex-1"
               >
-                {submitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-surface/30 border-t-white rounded-full animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  "Submit"
-                )}
-              </button>
+                Submit
+              </Button>
             </div>
           </>
         )}

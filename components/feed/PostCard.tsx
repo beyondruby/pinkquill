@@ -17,6 +17,8 @@ const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: 
 const SendToDMModal = dynamic(() => import("@/components/messages/SendToDMModal"), { ssr: false });
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
+import Button from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Loading";
 import CommunityBadge from "@/components/communities/CommunityBadge";
 import FlairBadge from "@/components/communities/FlairBadge";
 import ReactionPicker from "@/components/feed/ReactionPicker";
@@ -1251,10 +1253,10 @@ function PostCardComponent({
       {showModeratorDeleteConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] animate-fadeIn"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-(--z-modal) animate-fadeIn"
             onClick={() => !moderatorDeleting && setShowModeratorDeleteConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-[1001] overflow-hidden animate-scaleIn">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-(--z-modal) overflow-hidden animate-scaleIn">
             <div className="p-7">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-11 h-11 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
@@ -1281,24 +1283,24 @@ function PostCardComponent({
               </div>
 
               <div className="flex justify-end gap-2.5">
-                <button
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setShowModeratorDeleteConfirm(false);
                     setModeratorDeleteReason("");
                   }}
                   disabled={moderatorDeleting}
-                  className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all disabled:opacity-50"
                 >
                   Cancel
-                </button>
+                </Button>
                 <button
                   onClick={handleModeratorDelete}
                   disabled={moderatorDeleting}
-                  className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 transition-all disabled:opacity-70 flex items-center gap-2 shadow-sm hover:shadow-md hover:shadow-orange-500/20"
+                  className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-orange-500 transition-all duration-150 hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.97] disabled:opacity-70 disabled:active:scale-100 flex items-center gap-2 shadow-sm hover:shadow-md hover:shadow-orange-500/20"
                 >
                   {moderatorDeleting ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <Spinner size="xs" className="text-white" />
                       Sweeping...
                     </>
                   ) : (
@@ -1326,10 +1328,10 @@ function PostCardComponent({
       {showBlockConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] animate-fadeIn"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-(--z-modal) animate-fadeIn"
             onClick={() => !blockLoading && setShowBlockConfirm(false)}
           />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-[1001] p-7 animate-scaleIn">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-(--z-modal) p-7 animate-scaleIn">
             <h3 className="font-display text-xl text-ink mb-3">
               Close the door on @{post.author.handle.replace('@', '')}?
             </h3>
@@ -1337,27 +1339,17 @@ function PostCardComponent({
               Their posts vanish from your feed and yours from theirs. They won&apos;t be able to follow you, message you, or knock again.
             </p>
             <div className="flex justify-end gap-2.5">
-              <button
-                onClick={() => setShowBlockConfirm(false)}
-                disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all disabled:opacity-50"
-              >
+              <Button variant="secondary" onClick={() => setShowBlockConfirm(false)} disabled={blockLoading}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="danger"
                 onClick={handleBlockUser}
-                disabled={blockLoading}
-                className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-all disabled:opacity-70 flex items-center gap-2 shadow-sm hover:shadow-md hover:shadow-red-500/20"
+                loading={blockLoading}
+                loadingText="Closing..."
               >
-                {blockLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Closing...
-                  </>
-                ) : (
-                  "Block"
-                )}
-              </button>
+                Block
+              </Button>
             </div>
           </div>
         </>

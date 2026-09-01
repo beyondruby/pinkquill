@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { Conversation } from "./MessagesView";
 import { ConversationSkeleton } from "@/components/ui/Skeleton";
-import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
+import Avatar from "@/components/ui/Avatar";
 
 function formatVoiceDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -72,19 +72,18 @@ function ConversationList({
         <div
           key={conversation.id}
           onClick={() => onSelect(conversation.id)}
-          className={`flex items-center gap-3 p-4 cursor-pointer transition-all border-b border-border-light ${
+          className={`flex items-center gap-3 p-4 cursor-pointer transition-all border ${
             selectedId === conversation.id
-              ? "bg-purple-primary/10 border-l-[3px] border-l-purple-primary"
-              : "hover:bg-accent/5"
+              ? "bg-purple-primary/10 border-purple-primary/20"
+              : "border-transparent border-b-border-light hover:bg-accent/5"
           }`}
         >
           {/* Avatar */}
           <div className="relative flex-shrink-0">
-            <img
-              src={getOptimizedAvatarUrl(conversation.participant.avatar_url, 48) || DEFAULT_AVATAR}
+            <Avatar
+              src={conversation.participant.avatar_url}
               alt={conversation.participant.display_name || conversation.participant.username}
-              className="w-12 h-12 rounded-full object-cover"
-              loading="lazy"
+              size={48}
             />
             {/* Online indicator - placeholder for future feature */}
             {/* <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" /> */}

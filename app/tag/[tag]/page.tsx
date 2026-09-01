@@ -8,6 +8,7 @@ import { useTagPosts, useTrendingTags } from "@/lib/hooks";
 import PostCard from "@/components/feed/PostCard";
 import type { PostProps, PostType } from "@/components/feed/PostCard/types";
 import { getTimeAgoCompact } from "@/lib/utils/time";
+import { Spinner } from "@/components/ui/Loading";
 
 // Loading skeleton
 function PostSkeleton() {
@@ -234,7 +235,7 @@ export default function TagPage() {
             {/* Loading More */}
             {loading && posts.length > 0 && (
               <div className="flex justify-center py-8">
-                <div className="w-5 h-5 border-[1.5px] border-border-light border-t-ink/60 rounded-full animate-spin" />
+                <Spinner size="md" className="text-ink/60" />
               </div>
             )}
 

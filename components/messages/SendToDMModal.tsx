@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useShareToDM } from "@/lib/hooks";
 import type { Post } from "@/lib/types";
-import { DEFAULT_AVATAR } from "@/lib/utils/image";
+import Avatar from "@/components/ui/Avatar";
+import { Spinner } from "@/components/ui/Loading";
 import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 
 interface SendToDMModalProps {
@@ -320,11 +321,7 @@ export default function SendToDMModal({
                       onClick={() => toggleRecipient(recipient)}
                       className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 bg-gradient-to-r from-purple-primary to-pink-vivid rounded-full text-white text-xs font-ui font-medium hover:opacity-90 transition-opacity"
                     >
-                      <img
-                        src={recipient.avatar_url || DEFAULT_AVATAR}
-                        alt=""
-                        className="w-5 h-5 rounded-full object-cover"
-                      />
+                      <Avatar src={recipient.avatar_url} alt="" size={20} />
                       <span>{recipient.display_name || recipient.username}</span>
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -339,7 +336,7 @@ export default function SendToDMModal({
             <div className="flex-1 overflow-y-auto min-h-0">
               {loading ? (
                 <div className="p-8 flex justify-center">
-                  <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin" />
+                  <Spinner size="md" className="text-purple-primary" />
                 </div>
               ) : displayList.length === 0 ? (
                 <div className="p-8 text-center">
@@ -371,11 +368,7 @@ export default function SendToDMModal({
                         }`}
                       >
                         <div className="relative">
-                          <img
-                            src={recipient.avatar_url || DEFAULT_AVATAR}
-                            alt=""
-                            className="w-11 h-11 rounded-full object-cover"
-                          />
+                          <Avatar src={recipient.avatar_url} alt="" size={44} />
                           {recipient.is_verified && (
                             <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-purple-primary rounded-full flex items-center justify-center">
                               <svg

@@ -27,6 +27,8 @@ const CollectionSelector = dynamic(() => import("@/components/collections/Collec
 import { useAddPostToCollectionItem } from "@/lib/hooks/useCollections";
 import type { Collection, CollectionItem } from "@/lib/types";
 import { getBackgroundStyle, isDarkBackground } from "@/lib/utils/background";
+import { Spinner } from "@/components/ui/Loading";
+import Button from "@/components/ui/Button";
 import {
   POST_CATEGORIES,
   CATEGORY_ORDER,
@@ -2386,7 +2388,7 @@ export default function CreatePost() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center px-6">
-          <div className="w-10 h-10 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <Spinner size="xl" className="text-purple-primary mx-auto mb-4" />
           <p className="font-body text-muted">Loading post...</p>
         </div>
       </div>
@@ -3569,10 +3571,7 @@ export default function CreatePost() {
                   className="w-full rounded-2xl border border-dashed border-purple-primary/25 bg-gradient-to-br from-purple-primary/[0.04] via-surface to-pink-vivid/[0.04] p-6 flex items-center justify-center gap-3 text-muted hover:border-purple-primary/50 hover:text-purple-primary transition-all disabled:opacity-60 disabled:cursor-wait"
                 >
                   {audioUploading ? (
-                    <svg className="w-6 h-6 animate-spin text-purple-primary" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
+                    <Spinner size="lg" className="text-purple-primary" />
                   ) : (
                     icons.soundWave
                   )}
@@ -3843,10 +3842,7 @@ export default function CreatePost() {
                           className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-border-light bg-surface font-ui text-sm text-muted hover:border-purple-primary/50 hover:text-purple-primary transition-colors disabled:opacity-60 disabled:cursor-wait"
                         >
                           {musicCoverUploading ? (
-                            <svg className="w-5 h-5 animate-spin text-purple-primary" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                            </svg>
+                            <Spinner size="md" className="text-purple-primary" />
                           ) : (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -3986,14 +3982,7 @@ export default function CreatePost() {
                   disabled={loadingSpotify || !spotifyUrl.trim()}
                   className="px-4 py-2.5 rounded-xl bg-[#1DB954] font-ui text-sm font-medium text-white hover:bg-[#1ed760] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {loadingSpotify ? (
-                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                  ) : (
-                    "Add"
-                  )}
+                  {loadingSpotify ? <Spinner size="md" /> : "Add"}
                 </button>
                 <button
                   onClick={() => {
@@ -4374,7 +4363,7 @@ export default function CreatePost() {
                     className={`flex items-center gap-2 px-4 py-2 rounded-full border border-border-light bg-surface text-muted hover:border-purple-primary hover:text-accent font-ui text-[0.85rem] transition-all ${authLoading ? 'opacity-60 cursor-wait' : ''}`}
                   >
                     {(communitiesLoading || authLoading) ? (
-                      <div className="w-4 h-4 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
+                      <Spinner size="xs" className="text-muted" />
                     ) : (
                       icons.users
                     )}
@@ -4404,7 +4393,7 @@ export default function CreatePost() {
                     </button>
                     {communitiesLoading && (
                       <div className="flex items-center gap-3 px-4 py-3 font-ui text-[0.85rem] text-muted">
-                        <div className="w-4 h-4 border-2 border-muted/30 border-t-muted rounded-full animate-spin" />
+                        <Spinner size="xs" className="text-muted" />
                         <span>Loading communities...</span>
                       </div>
                     )}
@@ -4487,10 +4476,7 @@ export default function CreatePost() {
               >
                 {draftSaveStatus === "saving" ? (
                   <>
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
+                    <Spinner size="xs" />
                     Saving...
                   </>
                 ) : draftSaveStatus === "saved" ? (
@@ -4508,40 +4494,36 @@ export default function CreatePost() {
 
             {/* Next (Step 1, normal posts) */}
             {!isTakeMode && step === 1 && (
-              <button
+              <Button
+                variant="outline-gradient"
+                size="lg"
                 onClick={handleGoToFormatStep}
-                className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-6 sm:px-10 py-3 rounded-full border-2 border-transparent font-ui text-sm sm:text-base font-semibold text-orange-warm hover:opacity-90 transition-opacity"
-                style={{
-                  background: "linear-gradient(white, white) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box",
-                }}
+                className="flex-1 sm:flex-initial"
               >
                 Next
                 {icons.arrowRight}
-              </button>
+              </Button>
             )}
 
             {/* Publish (Step 2, normal posts) / Post Take (Take mode) */}
             {(isTakeMode || step === 2) && (
-              <button
+              <Button
+                variant="outline-gradient"
+                size="lg"
                 onClick={handlePublish}
-                disabled={loading || takeUploading || (isTakeMode && !takeVideoFile)}
-                className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-6 sm:px-10 py-3 rounded-full border-2 border-transparent font-ui text-sm sm:text-base font-semibold text-orange-warm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  background: "linear-gradient(white, white) padding-box, linear-gradient(to right, #ff9f43, #ff007f) border-box",
-                }}
-              >
-                {isTakeMode
-                  ? takeUploading
+                disabled={isTakeMode && !takeVideoFile}
+                loading={loading || takeUploading}
+                loadingText={
+                  isTakeMode
                     ? `Uploading... ${Math.round(takeProgress)}%`
-                    : "Post Take"
-                  : loading
-                  ? isEditing
+                    : isEditing
                     ? "Updating..."
                     : "Publishing..."
-                  : isEditing
-                  ? "Update"
-                  : "Publish"}
-              </button>
+                }
+                className="flex-1 sm:flex-initial"
+              >
+                {isTakeMode ? "Post Take" : isEditing ? "Update" : "Publish"}
+              </Button>
             )}
           </div>
         </div>

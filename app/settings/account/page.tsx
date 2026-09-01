@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { safeResponseJson } from "@/lib/utils/fetch";
 import { PASSWORD_MIN_LENGTH, validatePasswordStrength } from "@/lib/auth/constants";
 import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
+import Button from "@/components/ui/Button";
 
 export default function AccountSettingsPage() {
   const { user } = useAuth();
@@ -297,20 +298,14 @@ export default function AccountSettingsPage() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
-            disabled={emailLoading || !newEmail.trim() || !currentPasswordForEmail}
-            className="px-6 py-2.5 bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium rounded-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            disabled={!newEmail.trim() || !currentPasswordForEmail}
+            loading={emailLoading}
+            loadingText="Sending..."
           >
-            {emailLoading ? (
-              <span className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Sending...
-              </span>
-            ) : (
-              "Update Email"
-            )}
-          </button>
+            Update Email
+          </Button>
         </form>
       </section>
 
@@ -410,20 +405,14 @@ export default function AccountSettingsPage() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
-            disabled={passwordLoading || !newPassword || !confirmPassword || (!isRecoveryFlow && !currentPassword)}
-            className="px-6 py-2.5 bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium rounded-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            disabled={!newPassword || !confirmPassword || (!isRecoveryFlow && !currentPassword)}
+            loading={passwordLoading}
+            loadingText="Updating..."
           >
-            {passwordLoading ? (
-              <span className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Updating...
-              </span>
-            ) : (
-              "Update Password"
-            )}
-          </button>
+            Update Password
+          </Button>
         </form>
       </section>
 

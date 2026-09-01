@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction B — The Atelier · PinkQuill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fragment+Mono&family=EB+Garamond:ital@0;1&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plaster:#F4F2ED; --wall:#FDFCFA; --graphite:#26241F;
+    --subdued:rgba(38,36,31,.66); --muted:rgba(38,36,31,.44);
+    --line:rgba(38,36,31,.12); --line-strong:rgba(38,36,31,.24);
+    --madder:#D23A6E; --madder-soft:rgba(210,58,110,.08);
+    --brass:#8C6D3F; --brass-soft:rgba(140,109,63,.1);
+  }
+  [data-theme="dark"]{
+    --plaster:#17181B; --wall:#1F2125; --graphite:#E9E7E1;
+    --subdued:rgba(233,231,225,.68); --muted:rgba(233,231,225,.45);
+    --line:rgba(233,231,225,.14); --line-strong:rgba(233,231,225,.28);
+    --madder:#F0698F; --madder-soft:rgba(240,105,143,.12);
+    --brass:#C9A96A; --brass-soft:rgba(201,169,106,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--plaster);color:var(--graphite);font:15px/1.55 "Hanken Grotesk",sans-serif;
+    transition:background .25s,color .25s}
+  .mono{font-family:"Fragment Mono",monospace;font-size:11.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  .demo-bar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+    padding:10px 20px;background:var(--wall);border-bottom:1px solid var(--line)}
+  .demo-bar b{font-family:"Syne";font-weight:700;font-size:14px}
+  .toggle{font:600 13px "Hanken Grotesk";color:var(--graphite);background:none;
+    border:1px solid var(--line-strong);border-radius:4px;padding:8px 14px;cursor:pointer}
+  .toggle:hover{border-color:var(--madder);color:var(--madder)}
+
+  .app{display:grid;grid-template-columns:220px minmax(0,660px) 260px;gap:56px;
+    max-width:1320px;margin:0 auto;padding:40px 40px 100px}
+
+  /* rail */
+  .rail{position:sticky;top:90px;height:fit-content}
+  .wordmark{font-family:"Syne";font-weight:800;font-size:24px;letter-spacing:-.01em;margin-bottom:6px}
+  .wordmark span{color:var(--madder)}
+  .estd{margin-bottom:34px}
+  .nav a{display:block;padding:9px 0;color:var(--subdued);text-decoration:none;font-weight:500;font-size:15px}
+  .nav a:hover{color:var(--graphite)}
+  .nav a.active{color:var(--graphite);font-weight:700}
+  .nav a.active::before{content:"— "}
+  .nav .count{font-family:"Fragment Mono";font-size:11px;color:var(--madder);margin-left:8px}
+  .create{margin-top:28px;width:100%;background:var(--graphite);color:var(--plaster);border:none;border-radius:4px;
+    padding:13px;font:700 14px "Hanken Grotesk";letter-spacing:.02em;cursor:pointer}
+  .create:hover{background:var(--madder);color:#fff}
+
+  /* gallery feed */
+  .feed-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:34px}
+  .feed-head h1{font-family:"Syne";font-weight:700;font-size:30px;letter-spacing:-.01em}
+  .work{background:var(--wall);border:1px solid var(--line);border-radius:8px;padding:34px 38px 22px;margin-bottom:44px;
+    animation:settle .5s ease both}
+  @keyframes settle{from{transform:translateY(-2px);opacity:.6}to{transform:none;opacity:1}}
+  .poem{font-family:"EB Garamond",serif;font-style:italic;font-size:22px;line-height:1.8;text-align:center;padding:26px 10px 30px}
+  .art{border-radius:2px;height:330px;position:relative;overflow:hidden;margin:2px 0 8px;
+    background:
+     radial-gradient(120% 90% at 15% 10%, rgba(210,58,110,.5), transparent 55%),
+     radial-gradient(110% 100% at 85% 20%, rgba(140,109,63,.45), transparent 50%),
+     radial-gradient(130% 120% at 50% 100%, rgba(38,36,31,.7), transparent 60%),
+     linear-gradient(160deg,#e9e2d6,#cfc4ab)}
+  .art svg{position:absolute;inset:0;width:100%;height:100%}
+  .hand{font-family:"Caveat",cursive;font-size:23px;line-height:1.45;padding:10px 4px 14px}
+  .jmeta{display:flex;gap:16px;margin:2px 0 6px}
+
+  /* the plaque */
+  .plaque{margin-top:18px;border-top:1px solid var(--line-strong);padding-top:14px;
+    display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+  .plaque .l1{font-family:"Fragment Mono";font-size:12.5px;letter-spacing:.04em;color:var(--graphite)}
+  .plaque .l2{font-family:"Fragment Mono";font-size:11.5px;letter-spacing:.06em;color:var(--muted);
+    text-transform:uppercase;margin-top:4px}
+  .plaque .artist{color:var(--madder)}
+  .plaque .brassline{color:var(--brass);font-weight:700}
+  .actions{display:flex;gap:2px;margin-top:14px}
+  .re{display:flex;align-items:center;gap:7px;border:none;background:none;cursor:pointer;
+    color:var(--subdued);font:500 13px "Hanken Grotesk";padding:7px 11px;border-radius:4px}
+  .re:hover{background:var(--madder-soft);color:var(--madder)}
+  .re svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .re .n{font-family:"Fragment Mono";font-size:11.5px}
+  .re.done{color:var(--madder)}
+  .re.done svg{fill:var(--madder);stroke:var(--madder)}
+  .spacer{flex:1}
+
+  /* product = work with brass plaque */
+  .prod .art{height:230px;background:
+     radial-gradient(100% 100% at 20% 15%,rgba(210,58,110,.55),transparent 60%),
+     radial-gradient(120% 100% at 90% 90%,rgba(38,36,31,.75),transparent 55%),linear-gradient(140deg,#efe8da,#d8c9a8)}
+  .buy{background:var(--brass);color:#fff;border:1px solid transparent;border-radius:4px;padding:10px 20px;
+    font:700 13.5px "Hanken Grotesk";letter-spacing:.02em;cursor:pointer}
+  .buy:hover{filter:brightness(1.08)}
+  [data-theme="dark"] .buy{color:#17181B}
+  .ghost{background:transparent!important;color:var(--graphite)!important;border:1px solid var(--line-strong);margin-left:8px}
+  .plaque > div:last-child{display:flex;gap:8px;align-items:flex-start;flex:none}
+
+  /* right rail */
+  .right{position:sticky;top:90px;height:fit-content}
+  .panel{border-top:2px solid var(--graphite);padding:16px 0 8px;margin-bottom:28px}
+  .panel h4{font-family:"Syne";font-weight:700;font-size:15px;margin-bottom:14px}
+  .frow{display:flex;align-items:center;gap:10px;padding:8px 0}
+  .ava{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font:700 14px "Syne"}
+  .frow .name{font-weight:600;font-size:14px}
+  .follow{margin-left:auto;border:1px solid var(--graphite);color:var(--graphite);background:none;
+    border-radius:4px;padding:5px 13px;font:600 12px "Hanken Grotesk";cursor:pointer}
+  .follow:hover{background:var(--graphite);color:var(--plaster)}
+  .counter{font-family:"Fragment Mono";font-size:26px;letter-spacing:.1em;color:var(--graphite)}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="demo-bar">
+  <div><b>Direction B — “The Atelier”</b> &nbsp;<span class="mono">Every post is a work on display · madder for people, brass for money</span></div>
+  <button class="toggle" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='light'?'dark':'light'">Light / Dark</button>
+</div>
+
+<div class="app">
+  <aside class="rail">
+    <div class="wordmark">Pink<span>Quill</span></div>
+    <div class="estd mono">The working gallery</div>
+    <nav class="nav">
+      <a class="active" href="#">Home</a>
+      <a href="#">Takes</a>
+      <a href="#">Explore</a>
+      <a href="#">Communities</a>
+      <a href="#">Marketplace</a>
+      <a href="#">Saved</a>
+      <a href="#">Notifications<span class="count">04</span></a>
+      <a href="#">Messages<span class="count">02</span></a>
+    </nav>
+    <button class="create">HANG A NEW WORK</button>
+  </aside>
+
+  <main>
+    <div class="feed-head">
+      <h1>On display today</h1>
+      <span class="mono">Wing I — Following</span>
+    </div>
+
+    <!-- POEM as exhibited work -->
+    <article class="work">
+      <div class="poem">The rain kept every promise<br>the morning couldn’t make —<br>it wrote on every window<br>in a hand I couldn’t fake.</div>
+      <div class="plaque">
+        <div>
+          <div class="l1"><span class="artist">Mara Ellison</span> — <i>Small Weathers</i></div>
+          <div class="l2">Poem · ink on air · Jul 2026</div>
+        </div>
+        <div class="counter">128</div>
+      </div>
+      <div class="actions">
+        <button class="re done"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5C5 7.5 7 5.5 9.5 5.5c1.2 0 2 .5 2.5 1.2.5-.7 1.3-1.2 2.5-1.2C17 5.5 19 7.5 19 10.5 19 15.6 12 20 12 20z"/></svg>Admire</button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M12 3v10M8.5 7.5 12 3l3.5 4.5"/></svg>Ovation <span class="n">31</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M5 6h14v10H9l-4 3z"/></svg><span class="n">14</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="m7 8-4 4 4 4M17 8l4 4-4 4M13 5l-2 14"/></svg>Relay <span class="n">9</span></button>
+        <span class="spacer"></span>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20z"/></svg>Save</button>
+      </div>
+    </article>
+
+    <!-- VISUAL -->
+    <article class="work" style="animation-delay:.08s">
+      <div class="art">
+        <svg viewBox="0 0 600 330" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 240 C 120 160, 240 280, 360 200 S 540 140, 600 210" stroke="rgba(255,255,255,.75)" stroke-width="3" fill="none"/>
+          <path d="M0 270 C 150 220, 300 310, 460 240 S 580 210, 600 250" stroke="rgba(38,36,31,.5)" stroke-width="2" fill="none"/>
+          <circle cx="470" cy="90" r="36" fill="rgba(255,255,255,.6)"/>
+        </svg>
+      </div>
+      <div class="plaque">
+        <div>
+          <div class="l1"><span class="artist">Jun Park</span> — <i>Harbour Study No. 6</i></div>
+          <div class="l2">Visual · gouache &amp; ink · Jul 2026 · #gouache #seascape</div>
+        </div>
+        <div class="counter">342</div>
+      </div>
+      <div class="actions">
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5C5 7.5 7 5.5 9.5 5.5c1.2 0 2 .5 2.5 1.2.5-.7 1.3-1.2 2.5-1.2C17 5.5 19 7.5 19 10.5 19 15.6 12 20 12 20z"/></svg>Admire</button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M12 3v10M8.5 7.5 12 3l3.5 4.5"/></svg>Ovation <span class="n">96</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M5 6h14v10H9l-4 3z"/></svg><span class="n">27</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="m7 8-4 4 4 4M17 8l4 4-4 4M13 5l-2 14"/></svg>Relay <span class="n">18</span></button>
+        <span class="spacer"></span>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20z"/></svg>Save</button>
+      </div>
+    </article>
+
+    <!-- JOURNAL -->
+    <article class="work" style="animation-delay:.16s">
+      <div class="jmeta mono"><span>☁ overcast · 19°</span><span>mood · quiet</span><span>Lisbon</span></div>
+      <div class="hand">Day 40 of the residency. I finally stopped counting the days and started counting the drafts. The difference, it turns out, is everything…</div>
+      <div class="plaque">
+        <div>
+          <div class="l1"><span class="artist">Sofía Reyes</span> — <i>Residency Notebook</i></div>
+          <div class="l2">Journal · entry 40 · Jul 2026</div>
+        </div>
+        <div class="counter">57</div>
+      </div>
+      <div class="actions">
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5C5 7.5 7 5.5 9.5 5.5c1.2 0 2 .5 2.5 1.2.5-.7 1.3-1.2 2.5-1.2C17 5.5 19 7.5 19 10.5 19 15.6 12 20 12 20z"/></svg>Admire</button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M5 6h14v10H9l-4 3z"/></svg><span class="n">8</span></button>
+        <span class="spacer"></span>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20z"/></svg>Save</button>
+      </div>
+    </article>
+
+    <!-- COMMISSION with brass plaque -->
+    <article class="work" style="animation-delay:.24s">
+      <div class="art"></div>
+      <div class="plaque">
+        <div>
+          <div class="l1"><span class="artist">Jun Park Studio</span> — <i>Custom Ink Portrait</i></div>
+          <div class="l2">Commission · edition of you · 5-day delivery · ★ 4.9 (61)</div>
+          <div class="l1 brassline" style="margin-top:8px">$45+ · pay what you want, $45 minimum</div>
+        </div>
+        <div><button class="buy">COMMISSION</button><button class="buy ghost">ADD TO BAG</button></div>
+      </div>
+    </article>
+  </main>
+
+  <aside class="right">
+    <div class="panel">
+      <h4>Studios to visit</h4>
+      <div class="frow"><div class="ava" style="background:#8C6D3F">L</div><div><div class="name">Lena Okafor</div><div class="mono">Essayist</div></div><button class="follow">Follow</button></div>
+      <div class="frow"><div class="ava" style="background:#D23A6E">T</div><div><div class="name">Théo Marchand</div><div class="mono">Printmaker</div></div><button class="follow">Follow</button></div>
+    </div>
+    <div class="panel">
+      <h4>In the halls</h4>
+      <div class="frow"><div><div class="name" style="color:var(--madder)">#smallweathers</div><div class="mono">1,204 works</div></div></div>
+      <div class="frow"><div><div class="name" style="color:var(--madder)">#morningpages</div><div class="mono">862 works</div></div></div>
+      <div class="frow"><div><div class="name" style="color:var(--madder)">#inktober</div><div class="mono">540 works</div></div></div>
+    </div>
+    <div class="panel">
+      <h4>The plaque</h4>
+      <div class="mono" style="text-transform:none;line-height:1.7">Metadata is the design: every work carries its museum label — artist, medium, date. Money is always brass. People are always madder.</div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

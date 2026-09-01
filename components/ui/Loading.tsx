@@ -98,3 +98,45 @@ export function FullPageLoading({ text = "Loading" }: { text?: string }) {
     </div>
   );
 }
+
+const SPINNER_SIZES = { xs: 14, sm: 16, md: 20, lg: 24, xl: 32 } as const;
+
+/**
+ * Small inline spinner — for buttons and other tight spaces where the full
+ * Loading block (icon + text + dots) doesn't fit. Shares the brand gradient
+ * so it reads as the same loading language, just compact. Consolidates the
+ * ~50 hand-rolled `animate-spin` divs/SVGs found in the Sep 2026 polish
+ * audit; prefer this over a new one-off spinner.
+ */
+export function Spinner({
+  size = "sm",
+  className = "",
+}: {
+  size?: keyof typeof SPINNER_SIZES;
+  className?: string;
+}) {
+  const px = SPINNER_SIZES[size];
+  return (
+    <svg
+      className={`animate-spin ${className}`}
+      style={{ width: px, height: px }}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-90"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
+    </svg>
+  );
+}

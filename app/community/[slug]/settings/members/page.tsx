@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useCommunityMembers, useJoinRequests, useCommunityModeration } from "@/lib/hooks";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { Spinner } from "@/components/ui/Loading";
 
 type TabType = 'moderators' | 'requests';
 
@@ -115,7 +116,7 @@ export default function CommunityMembersSettingsPage() {
         <>
           {modsLoading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-3 border-purple-primary/20 border-t-purple-primary" />
+              <Spinner size="xl" className="text-purple-primary" />
             </div>
           ) : moderators.length > 0 ? (
             <div className="space-y-2">
@@ -195,7 +196,7 @@ export default function CommunityMembersSettingsPage() {
         <>
           {requestsLoading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-3 border-purple-primary/20 border-t-purple-primary" />
+              <Spinner size="xl" className="text-purple-primary" />
             </div>
           ) : pendingRequests.length > 0 ? (
             <div className="space-y-3">

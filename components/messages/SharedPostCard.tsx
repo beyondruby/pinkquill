@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import type { SharedPostPreview, PostType } from "@/lib/types";
 import { fetchSharedPostPreview } from "@/lib/hooks";
-import { DEFAULT_AVATAR } from "@/lib/utils/image";
+import Avatar from "@/components/ui/Avatar";
 
 interface SharedPostCardProps {
   postId: string;
@@ -123,7 +123,7 @@ export default function SharedPostCard({
             )}
             {/* Type badge on media */}
             <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm">
-              <span className="font-ui text-[10px] font-medium text-white">{typeLabel}</span>
+              <span className="font-ui text-3xs font-medium text-white">{typeLabel}</span>
             </div>
           </div>
         ) : (
@@ -138,21 +138,22 @@ export default function SharedPostCard({
         {/* Footer */}
         <div className="p-3 border-t border-border-light">
           <div className="flex items-center gap-2">
-            <img
-              src={post.author.avatar_url || DEFAULT_AVATAR}
+            <Avatar
+              src={post.author.avatar_url}
               alt=""
-              className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+              size={24}
+              className="flex-shrink-0"
             />
             <div className="flex-1 min-w-0">
               <p className="font-ui text-xs font-semibold text-ink truncate">
                 {post.author.display_name || post.author.username}
               </p>
-              <p className="font-ui text-[10px] text-muted truncate">
+              <p className="font-ui text-3xs text-muted truncate">
                 @{post.author.username}
               </p>
             </div>
             {!hasMedia && (
-              <span className="px-2 py-0.5 rounded-full bg-accent/10 font-ui text-[10px] font-medium text-accent">
+              <span className="px-2 py-0.5 rounded-full bg-accent/10 font-ui text-3xs font-medium text-accent">
                 {typeLabel}
               </span>
             )}

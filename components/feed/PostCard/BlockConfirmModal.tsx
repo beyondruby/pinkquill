@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { BlockIcon } from "@/components/ui/Icons";
+import Button from "@/components/ui/Button";
 
 interface BlockConfirmModalProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ function BlockConfirmModalComponent({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-(--z-modal)"
       onClick={(e) => {
         e.stopPropagation();
         if (!isLoading) onCancel();
@@ -43,27 +44,18 @@ function BlockConfirmModalComponent({
           You can unblock them anytime from Settings &gt; Privacy.
         </p>
         <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            disabled={isLoading}
-            className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-ink hover:bg-subtle transition-colors disabled:opacity-50"
-          >
+          <Button variant="outline" onClick={onCancel} disabled={isLoading} className="flex-1">
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
             onClick={onConfirm}
-            disabled={isLoading}
-            className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            loading={isLoading}
+            loadingText="Blocking..."
+            className="flex-1"
           >
-            {isLoading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-surface/30 border-t-white rounded-full animate-spin" />
-                Blocking...
-              </>
-            ) : (
-              "Block"
-            )}
-          </button>
+            Block
+          </Button>
         </div>
       </div>
     </div>

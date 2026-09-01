@@ -16,6 +16,7 @@ import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
 import type { Post } from "@/lib/types";
 import type { FeedViewId } from "@/lib/feed-view/registry";
 import { getTimeAgo } from "@/lib/utils/time";
+import { Spinner } from "@/components/ui/Loading";
 
 // PERFORMANCE: Moved outside component to prevent recreation on every render
 const TYPE_LABELS: Record<string, string> = {
@@ -424,7 +425,7 @@ export default function Feed() {
 
         {postsLoading && posts.length > 0 && (
           <div className="flex justify-center py-8 col-span-full md:col-span-12">
-            <div className="w-8 h-8 border-3 border-border-strong border-t-purple-primary rounded-full animate-spin" />
+            <Spinner size="xl" className="text-purple-primary" />
           </div>
         )}
 

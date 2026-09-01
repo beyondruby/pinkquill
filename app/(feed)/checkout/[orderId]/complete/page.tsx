@@ -7,8 +7,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCheckCircle,
   faTimesCircle,
-  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
+import { Spinner } from "@/components/ui/Loading";
 
 type CheckoutStatus = "loading" | "success" | "failed" | "expired";
 
@@ -117,10 +117,7 @@ export default function CheckoutCompletePage() {
       <div className="max-w-md w-full text-center">
         {status === "loading" && (
           <div className="space-y-4">
-            <FontAwesomeIcon
-              icon={faSpinner}
-              className="text-4xl text-purple-500 animate-spin"
-            />
+            <Spinner size="xl" className="text-purple-500 mx-auto" />
             <h2 className="text-xl font-display font-semibold text-ink">
               Confirming your payment...
             </h2>

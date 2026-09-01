@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity } from "@/lib/hooks";
 import FlairManager from "@/components/communities/FlairManager";
+import { Spinner } from "@/components/ui/Loading";
 
 export default function CommunityFlairsSettingsPage() {
   const params = useParams();
@@ -17,7 +18,7 @@ export default function CommunityFlairsSettingsPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-3 border-purple-primary/20 border-t-purple-primary" />
+        <Spinner size="xl" className="text-purple-primary" />
       </div>
     );
   }

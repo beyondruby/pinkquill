@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useUpdateCommunity } from "@/lib/hooks";
+import Button from "@/components/ui/Button";
 
 export default function CommunityChatSettingsPage() {
   const params = useParams();
@@ -217,16 +218,9 @@ export default function CommunityChatSettingsPage() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={updating}
-          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui text-sm font-medium hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center gap-2"
-        >
-          {updating && (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          )}
+        <Button type="submit" loading={updating} loadingText="Saving...">
           Save Chat Settings
-        </button>
+        </Button>
       </form>
     </div>
   );

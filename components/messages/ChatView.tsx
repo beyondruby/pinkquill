@@ -13,7 +13,7 @@ import SharedPostCard from "./SharedPostCard";
 import Loading from "@/components/ui/Loading";
 import EmojiPicker from "@/components/ui/EmojiPicker";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import { DEFAULT_AVATAR } from "@/lib/utils/image";
+import Avatar from "@/components/ui/Avatar";
 import ActionMenu from "@/components/ui/ActionMenu";
 
 // Local type for chat participants (simplified from ConversationParticipant)
@@ -646,11 +646,11 @@ export default function ChatView({
           href={`/studio/${participant?.username}`}
           className="flex items-center gap-3 flex-1 group"
         >
-          <img
-            src={participant?.avatar_url || DEFAULT_AVATAR}
-            alt={participant?.display_name || participant?.username}
-            className="w-11 h-11 rounded-full object-cover group-hover:ring-2 group-hover:ring-purple-primary/30 transition-all"
-            loading="lazy"
+          <Avatar
+            src={participant?.avatar_url}
+            alt={participant?.display_name || participant?.username || "Participant"}
+            size={44}
+            className="group-hover:ring-2 group-hover:ring-purple-primary/30 transition-all"
           />
           <div>
             <h2 className="font-ui text-[1rem] font-medium text-ink group-hover:text-accent transition-colors">
@@ -741,11 +741,12 @@ export default function ChatView({
         {messages.length === 0 ? (
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="text-center">
-              <img
-                src={participant?.avatar_url || DEFAULT_AVATAR}
-                alt={participant?.display_name || participant?.username}
-                className="w-20 h-20 rounded-full object-cover mx-auto mb-4 shadow-lg"
-                loading="lazy"
+              <Avatar
+                src={participant?.avatar_url}
+                alt={participant?.display_name || participant?.username || "Participant"}
+                size={80}
+                shadow
+                className="mx-auto mb-4"
               />
               <h3 className="font-display text-[1.2rem] text-ink mb-1">
                 {participant?.display_name || participant?.username}
@@ -1261,10 +1262,10 @@ export default function ChatView({
       {lightboxImage && (
         <>
           <div
-            className="fixed inset-0 bg-black/90 z-[1000]"
+            className="fixed inset-0 bg-black/90 z-(--z-modal)"
             onClick={() => setLightboxImage(null)}
           />
-          <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 pointer-events-none">
+          <div className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 pointer-events-none">
             <img
               src={lightboxImage}
               alt="Full size image"

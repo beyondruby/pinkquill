@@ -18,6 +18,8 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
 const ReportModal = dynamic(() => import("@/components/ui/ReportModal"), { ssr: false });
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import Button from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Loading";
 import ActionMenu, { type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { supabase } from "@/lib/supabase";
 import { deleteOwnPost } from "@/lib/posts-client";
@@ -1262,7 +1264,7 @@ function PostDetailModalComponent({
             <div className="flex-1 overflow-y-auto p-6">
               {commentsLoading ? (
                 <div className="text-center py-8">
-                  <div className="w-6 h-6 border-2 border-purple-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                  <Spinner size="lg" className="text-purple-primary mx-auto" />
                 </div>
               ) : comments.length === 0 ? (
                 <div className="text-center py-8">
@@ -1376,7 +1378,7 @@ function PostDetailModalComponent({
 
     {/* Block Confirmation Modal */}
     {showBlockConfirm && (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] animate-fadeIn">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-(--z-modal) animate-fadeIn">
         <div className="w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light p-7 animate-scaleIn">
           <h3 className="font-display text-xl text-ink mb-3">
             Close the door on @{post.author.handle}?
@@ -1385,26 +1387,12 @@ function PostDetailModalComponent({
             Their posts vanish from your feed and yours from theirs. They won&apos;t be able to follow you, message you, or knock again — and we won&apos;t tell them.
           </p>
           <div className="flex justify-end gap-2.5">
-            <button
-              onClick={() => setShowBlockConfirm(false)}
-              className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all"
-            >
+            <Button variant="secondary" onClick={() => setShowBlockConfirm(false)}>
               Cancel
-            </button>
-            <button
-              onClick={handleBlock}
-              disabled={isBlocking}
-              className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-all disabled:opacity-70 flex items-center gap-2 shadow-sm hover:shadow-md hover:shadow-red-500/20"
-            >
-              {isBlocking ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Closing...
-                </>
-              ) : (
-                "Block"
-              )}
-            </button>
+            </Button>
+            <Button variant="danger" onClick={handleBlock} loading={isBlocking} loadingText="Closing...">
+              Block
+            </Button>
           </div>
         </div>
       </div>

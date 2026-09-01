@@ -111,7 +111,7 @@ export default function Modal({ isOpen, onClose, children, ariaLabel = "Modal di
 
   return (
     <div
-      className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[2000] flex justify-center items-center md:items-center opacity-0 animate-fadeIn"
+      className="fixed inset-0 bg-black/90 backdrop-blur-xl z-(--z-modal) flex justify-center items-center md:items-center opacity-0 animate-fadeIn"
       onClick={onClose}
       role="presentation"
       aria-hidden="true"

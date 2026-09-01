@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity, useDeleteCommunity } from "@/lib/hooks";
+import { Spinner } from "@/components/ui/Loading";
+import Button from "@/components/ui/Button";
 
 export default function CommunitySettingsPage() {
   const params = useParams();
@@ -28,7 +30,7 @@ export default function CommunitySettingsPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-3 border-purple-primary/20 border-t-purple-primary" />
+        <Spinner size="xl" className="text-purple-primary" />
       </div>
     );
   }
@@ -207,30 +209,25 @@ export default function CommunitySettingsPage() {
             </div>
 
             <div className="flex justify-end gap-3">
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => {
                   setShowDeleteModal(false);
                   setConfirmName('');
                 }}
                 disabled={deleting}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-muted bg-skeleton/70 hover:bg-skeleton transition-colors disabled:opacity-50"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="danger"
                 onClick={handleDelete}
-                disabled={deleting || confirmName !== community?.name}
-                className="px-5 py-2.5 rounded-full font-ui text-sm text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                disabled={confirmName !== community?.name}
+                loading={deleting}
+                loadingText="Deleting..."
               >
-                {deleting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete Forever"
-                )}
-              </button>
+                Delete Forever
+              </Button>
             </div>
           </div>
         </>

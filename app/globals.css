@@ -54,6 +54,33 @@
   --font-display: var(--font-poppins), sans-serif;
   --font-body: var(--font-open-sans), sans-serif;
   --font-ui: var(--font-poppins), sans-serif;
+
+  /* === ELEVATION — named tokens for the hand-rolled glow/elevation shadows
+     found in the Sep 2026 polish audit (10 one-off shadow-[…] values with no
+     shared name). Ordinary cards should keep using the built-in
+     shadow-sm/md/lg/xl/2xl scale; these are only for the brand-glow and
+     deep-elevation cases those don't cover. === */
+  --shadow-glow-brand: 0 8px 24px -10px color-mix(in oklab, var(--color-purple-primary) 80%, transparent);
+  --shadow-glow-accent2: 0 6px 20px -6px color-mix(in oklab, var(--color-pink-vivid) 70%, transparent);
+  --shadow-card: 0 20px 60px -15px rgba(0, 0, 0, 0.05);
+  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-elevated: 0 18px 40px color-mix(in oklab, var(--color-ink) 9%, transparent);
+
+  /* === TYPE SCALE EXTENSIONS — the 3 most-repeated arbitrary text sizes
+     found in the Sep 2026 polish audit (text-[10px] ×59, text-[11px] ×77,
+     text-[0.95rem] ×61). Use these instead of a new arbitrary value; existing
+     arbitrary usages migrate to these (or to the nearest standard step)
+     incrementally as files are touched, not in one sweep. === */
+  --text-3xs: 0.625rem;   /* 10px */
+  --text-2xs: 0.6875rem;  /* 11px */
+  --text-15: 0.95rem;
+
+  /* No new --radius-* or --spacing-* tokens: Tailwind's built-in radius scale
+     (xs…4xl, full) and spacing scale already cover every real design need
+     here. The audit's "sprawl" findings there are inconsistent *usage* of an
+     already-complete scale (plus 27 arbitrary rounded-[…] and 98 arbitrary
+     p-/m-/gap-/w-/h-[…] one-offs) — a per-file migration task for a later
+     wave, not missing infrastructure. */
 }
 
 :root {
@@ -66,7 +93,44 @@
   --muted-text: var(--color-muted);
   --glass-border: var(--color-border-light);
   --glass-bg: var(--color-glass);
+
+  /* === Z-INDEX SCALE — added in the Sep 2026 polish pass. The codebase had
+     21 unrelated z-index literals living in two stacks that never
+     reconciled: a "modal stack" around 1000-1002 (ReportModal,
+     ConfirmationModal, PeoplePickerModal, Lightbox, Modal) and a separate
+     Takes-overlay stack around 2000-3000 (TakeReactionPicker,
+     TakeCommentsPanel, TakePostCard) — meaning a global dialog opened while
+     viewing Takes could render *behind* the Takes UI. This scale replaces
+     both with one ordered set.
+     z-index has no --z-index-* Tailwind v4 theme namespace, so these stay
+     plain custom properties rather than @theme entries — consume them with
+     Tailwind's CSS-variable arbitrary-value syntax, e.g. `z-(--z-modal)`.
+     Migrate call sites onto these incrementally; don't hand-pick a new raw
+     z-[…] literal. */
+  --z-base: 0;        /* was z-0 */
+  --z-raised: 10;      /* was z-10 */
+  --z-sticky: 30;      /* was z-20 / z-30 */
+  --z-dropdown: 50;    /* was z-40 / z-50 */
+  --z-panel: 100;      /* was z-[60] z-[61] z-[100] z-[110] z-[120] — slide-in nav/notification panels, app-shell chrome */
+  --z-overlay: 500;    /* was z-[200] — backdrop/scrim behind a modal or panel */
+  --z-modal: 1000;     /* was z-[1000] z-[1001] z-[1002] — dialogs: ReportModal, ConfirmationModal, PeoplePickerModal, Lightbox */
+  --z-popover: 1100;   /* was z-[2000] z-[2100] z-[2101] — transient overlays that must escape their container: Takes reaction picker/comments panel, emoji picker */
+  --z-toast: 9000;     /* toast notifications — stay visible above an open modal */
+  --z-max: 9999;       /* was z-[3000] z-[9998] z-[9999] — absolute ceiling, dev-only */
 }
+
+/* ============================================================================
+   MOTION DURATION CONVENTION
+   ----------------------------------------------------------------------------
+   Not new CSS: Tailwind v4 generates duration-* utilities from a fixed
+   numeric scale rather than a themeable token, so there is nothing to add
+   here. 9 different duration-* values are in active use (150/200/300/400/
+   500/700/1000, plus two one-offs) — converge new and touched code on these
+   3 instead of reaching for a 4th:
+     duration-150  — micro-interactions (hover, press, focus ring)
+     duration-300  — standard transitions (panels, dropdowns, modals)
+     duration-500  — large layout shifts (page transitions, big reveals)
+   ============================================================================ */
 
 /* ============================================================================
    THEME OVERRIDES

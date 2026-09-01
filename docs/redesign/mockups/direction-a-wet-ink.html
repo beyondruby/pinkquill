@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction A — Wet Ink · PinkQuill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&family=Spline+Sans+Mono:wght@400;500&family=EB+Garamond:ital@0;1&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --page:#FAF8F5; --surface:#FFFFFF; --ink:#1B1823;
+    --subdued:rgba(27,24,35,.66); --muted:rgba(27,24,35,.45);
+    --line:rgba(27,24,35,.08); --line-strong:rgba(27,24,35,.16);
+    --inkpink:#D6136B; --inkpink-soft:rgba(214,19,107,.08);
+    --iris:#5B51D8; --iris-soft:rgba(91,81,216,.09);
+    --shadow:0 1px 2px rgba(27,24,35,.05),0 6px 20px rgba(27,24,35,.05);
+  }
+  [data-theme="dark"]{
+    --page:#141119; --surface:#1C1824; --ink:#ECE8E1;
+    --subdued:rgba(236,232,225,.68); --muted:rgba(236,232,225,.45);
+    --line:rgba(236,232,225,.10); --line-strong:rgba(236,232,225,.2);
+    --inkpink:#FF5C9E; --inkpink-soft:rgba(255,92,158,.12);
+    --iris:#8F86F0; --iris-soft:rgba(143,134,240,.14);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+  [data-theme="dark"] .create,[data-theme="dark"] .buy:not(.ghost),[data-theme="dark"] .badge{color:#141119}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--page);color:var(--ink);font:15px/1.5 "Schibsted Grotesk",sans-serif;
+       transition:background .25s ease,color .25s ease}
+  .mono{font-family:"Spline Sans Mono",monospace;font-size:12px;letter-spacing:.04em;color:var(--muted)}
+  .demo-bar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+    padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--line)}
+  .demo-bar b{font-family:"Bricolage Grotesque";font-weight:700;font-size:14px}
+  .demo-bar .mono{font-size:11px}
+  .toggle{font:600 13px "Schibsted Grotesk";color:var(--ink);background:none;
+    border:1px solid var(--line-strong);border-radius:8px;padding:8px 14px;cursor:pointer}
+  .toggle:hover{border-color:var(--inkpink);color:var(--inkpink)}
+
+  .app{display:grid;grid-template-columns:230px minmax(0,620px) 280px;gap:36px;
+       max-width:1240px;margin:0 auto;padding:28px 24px 80px}
+
+  /* ---------- left rail ---------- */
+  .rail{position:sticky;top:76px;height:fit-content}
+  .wordmark{font-family:"Bricolage Grotesque";font-weight:800;font-size:26px;letter-spacing:-.01em}
+  .wordmark .q{color:var(--inkpink)}
+  .inkline{display:block;margin:2px 0 26px}
+  .inkline path{fill:none;stroke:var(--inkpink);stroke-width:2.4;stroke-linecap:round;
+    stroke-dasharray:130;stroke-dashoffset:130;animation:draw 2.8s ease forwards infinite}
+  @keyframes draw{0%{stroke-dashoffset:130}45%{stroke-dashoffset:0}80%{stroke-dashoffset:0;opacity:1}
+    95%{opacity:0}100%{stroke-dashoffset:130;opacity:1}}
+  .nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;margin:2px 0;border-radius:8px;
+    color:var(--subdued);text-decoration:none;font-weight:500;position:relative}
+  .nav a:hover{background:var(--surface);color:var(--ink)}
+  .nav a.active{color:var(--ink);font-weight:700}
+  .nav a.active .navline{position:absolute;left:40px;bottom:3px;width:52px}
+  .navline path{fill:none;stroke:var(--inkpink);stroke-width:2;stroke-linecap:round}
+  .nav svg.icon{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .badge{margin-left:auto;background:var(--inkpink);color:#fff;border-radius:99px;
+    font:600 11px "Spline Sans Mono";padding:2px 7px}
+  .create{margin-top:20px;width:100%;background:var(--inkpink);color:#fff;border:none;border-radius:10px;
+    padding:12px;font:700 15px "Schibsted Grotesk";cursor:pointer;position:relative;overflow:hidden}
+  .create:hover{filter:brightness(1.06)}
+
+  /* ---------- feed ---------- */
+  .feed-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+  .feed-head h1{font-family:"Bricolage Grotesque";font-weight:700;font-size:22px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    box-shadow:var(--shadow);padding:20px 22px;margin-bottom:20px}
+  .who{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .ava{width:42px;height:42px;border-radius:50%;flex:none;display:grid;place-items:center;
+    color:#fff;font:700 15px "Bricolage Grotesque"}
+  .who .name{font-weight:700;font-size:15px}
+  .who .meta{margin-top:1px}
+  .stamp{margin-left:auto;flex:none;width:34px;height:34px;border-radius:50%;
+    border:1.6px solid var(--inkpink);color:var(--inkpink);background:var(--inkpink-soft);
+    display:grid;place-items:center;font:600 12px "Spline Sans Mono";transform:rotate(-6deg)}
+  .stamp.iris{border-color:var(--iris);color:var(--iris);background:var(--iris-soft);transform:rotate(4deg)}
+
+  .poem{font-family:"EB Garamond",serif;font-style:italic;font-size:20px;line-height:1.75;
+    text-align:center;padding:14px 8px 18px;color:var(--ink)}
+  .attribution{text-align:center;margin-top:-6px;padding-bottom:8px}
+
+  .art{border-radius:8px;height:300px;position:relative;overflow:hidden;margin-bottom:12px;
+    background:
+     radial-gradient(120% 90% at 15% 10%, rgba(214,19,107,.55), transparent 55%),
+     radial-gradient(110% 100% at 85% 20%, rgba(91,81,216,.5), transparent 50%),
+     radial-gradient(130% 120% at 50% 100%, rgba(27,24,35,.75), transparent 60%),
+     linear-gradient(160deg,#e9e2d6,#b9aed6)}
+  .art svg{position:absolute;inset:0;width:100%;height:100%}
+  .caption{color:var(--subdued);font-size:14px}
+  .tag{color:var(--iris);text-decoration:none;font-weight:500}
+
+  .journal-meta{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .chip{border:1px solid var(--line-strong);border-radius:99px;padding:4px 12px;
+    font:500 12px "Spline Sans Mono";color:var(--subdued);background:var(--page)}
+  .hand{font-family:"Caveat",cursive;font-size:22px;line-height:1.45;color:var(--ink)}
+
+  .rule{height:1px;background:var(--line);margin:16px -22px 12px}
+  .actions{display:flex;align-items:center;gap:4px}
+  .re{position:relative;display:flex;align-items:center;gap:7px;border:none;background:none;cursor:pointer;
+    color:var(--subdued);font:500 13px "Schibsted Grotesk";padding:8px 12px;border-radius:8px}
+  .re:hover{background:var(--inkpink-soft);color:var(--inkpink)}
+  .re svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .re .n{font-family:"Spline Sans Mono";font-size:12px}
+  .re::after{content:"";position:absolute;left:18px;top:8px;width:10px;height:10px;border-radius:50% 46% 55% 48%;
+    background:var(--inkpink);opacity:0;transform:scale(.2);pointer-events:none}
+  .re:active::after{animation:bloom .45s ease-out}
+  @keyframes bloom{0%{opacity:.85;transform:scale(.2)}70%{opacity:.25;transform:scale(2.6)}100%{opacity:0;transform:scale(3)}}
+  .re.done{color:var(--inkpink)}
+  .re.done svg{fill:var(--inkpink);stroke:var(--inkpink)}
+  .spacer{flex:1}
+
+  /* product card */
+  .prod{display:flex;gap:18px}
+  .prod .thumb{flex:none;width:130px;height:130px;border-radius:8px;
+    background:radial-gradient(100% 100% at 20% 15%,rgba(214,19,107,.6),transparent 60%),
+    radial-gradient(120% 100% at 90% 90%,rgba(27,24,35,.8),transparent 55%),linear-gradient(140deg,#efe8da,#cabfe0)}
+  .prod h3{font-family:"Bricolage Grotesque";font-weight:700;font-size:17px;margin-bottom:4px}
+  .price{font:500 15px "Spline Sans Mono";color:var(--ink);margin:8px 0 2px}
+  .price b{font-size:19px}
+  .pwyw{font-size:12.5px;color:var(--muted)}
+  .buy{margin-top:12px;display:inline-block;background:var(--inkpink);color:#fff;border:none;
+    border-radius:8px;padding:9px 18px;font:700 14px "Schibsted Grotesk";cursor:pointer}
+  .ghost{background:none;color:var(--ink);border:1px solid var(--line-strong);margin-left:8px}
+  .stars{color:var(--inkpink);font-size:13px;letter-spacing:2px}
+
+  /* right rail */
+  .right{position:sticky;top:76px;height:fit-content}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:20px}
+  .panel h4{font-family:"Bricolage Grotesque";font-weight:700;font-size:15px;margin-bottom:14px}
+  .frow{display:flex;align-items:center;gap:10px;padding:8px 0}
+  .frow .name{font-weight:600;font-size:14px}
+  .follow{margin-left:auto;border:1px solid var(--inkpink);color:var(--inkpink);background:none;
+    border-radius:99px;padding:5px 14px;font:600 12.5px "Schibsted Grotesk";cursor:pointer}
+  .follow:hover{background:var(--inkpink);color:#fff}
+  .trend{display:block;padding:7px 0;text-decoration:none}
+  .trend .t{color:var(--iris);font-weight:600;font-size:14px}
+  .skel{margin-top:10px}
+  .skelline{height:12px;border-radius:6px;margin:10px 0;background:linear-gradient(90deg,var(--line) 25%,var(--line-strong) 50%,var(--line) 75%);
+    background-size:200% 100%;animation:wash 1.6s linear infinite}
+  @keyframes wash{to{background-position:-200% 0}}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+</style>
+</head>
+<body>
+<div class="demo-bar">
+  <div><b>Direction A — “Wet Ink”</b> &nbsp;<span class="mono">THE PLATFORM WRITES ITSELF IN INK · ONE ACCENT, USED LIKE A CALLIGRAPHER</span></div>
+  <button class="toggle" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='light'?'dark':'light'">Light / Dark</button>
+</div>
+
+<div class="app">
+  <!-- LEFT RAIL -->
+  <aside class="rail">
+    <div class="wordmark">Pink<span class="q">Quill</span></div>
+    <svg class="inkline" width="128" height="12" viewBox="0 0 128 12" aria-hidden="true">
+      <path d="M3 8 C 22 2, 44 12, 66 7 S 105 3, 125 8"/>
+    </svg>
+    <nav class="nav">
+      <a class="active" href="#">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10.5V20h13v-9.5"/></svg>Home
+        <svg class="navline" width="52" height="7" viewBox="0 0 52 7"><path d="M2 4.5 C 12 1.5, 24 6.5, 36 3.5 S 48 3, 50 4.5"/></svg>
+      </a>
+      <a href="#"><svg class="icon" viewBox="0 0 24 24"><path d="M4 5.5h16M4 12h16M4 18.5h10"/><circle cx="18.5" cy="18.5" r="2.6"/></svg>Takes</a>
+      <a href="#"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>Explore</a>
+      <a href="#"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3"/><circle cx="16.5" cy="10.5" r="2.4"/><path d="M3.5 19c.6-3 2.8-4.7 5.5-4.7s4.9 1.7 5.5 4.7M14.5 15.4c2.6.2 4.4 1.5 5 3.6"/></svg>Communities</a>
+      <a href="#"><svg class="icon" viewBox="0 0 24 24"><path d="M4 8.5 6 4h12l2 4.5M4 8.5h16M4 8.5V20h16V8.5M10 12h4"/></svg>Marketplace</a>
+      <a href="#"><svg class="icon" viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20z"/></svg>Saved</a>
+      <a href="#"><svg class="icon" viewBox="0 0 24 24"><path d="M12 4c-3.5 0-5.5 2.3-5.5 5.5V13l-1.8 3h14.6L17.5 13V9.5C17.5 6.3 15.5 4 12 4zM10 19a2 2 0 0 0 4 0"/></svg>Notifications<span class="badge">4</span></a>
+      <a href="#"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16v11H8l-4 3z"/></svg>Messages<span class="badge">2</span></a>
+    </nav>
+    <button class="create">Write something</button>
+  </aside>
+
+  <!-- FEED -->
+  <main>
+    <div class="feed-head">
+      <h1>Your feed</h1>
+      <span class="mono">CLASSIC · COMPACT · GRID · MAGAZINE</span>
+    </div>
+
+    <!-- POEM -->
+    <article class="card">
+      <div class="who">
+        <div class="ava" style="background:#5B51D8">M</div>
+        <div><div class="name">Mara Ellison</div><div class="meta mono">POEM · 12:04 · JUL 2</div></div>
+        <div class="stamp" title="Poem">Po</div>
+      </div>
+      <div class="poem">The rain kept every promise<br>the morning couldn’t make —<br>it wrote on every window<br>in a hand I couldn’t fake.</div>
+      <div class="attribution mono">— FROM “SMALL WEATHERS”</div>
+      <div class="rule"></div>
+      <div class="actions">
+        <button class="re done"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5C5 7.5 7 5.5 9.5 5.5c1.2 0 2 .5 2.5 1.2.5-.7 1.3-1.2 2.5-1.2C17 5.5 19 7.5 19 10.5 19 15.6 12 20 12 20z"/></svg>Admire <span class="n">128</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M12 3v10M8.5 7.5 12 3l3.5 4.5"/></svg>Ovation <span class="n">31</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M5 6h14v10H9l-4 3z"/></svg><span class="n">14</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="m7 8-4 4 4 4M17 8l4 4-4 4M13 5l-2 14"/></svg>Relay <span class="n">9</span></button>
+        <span class="spacer"></span>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20z"/></svg></button>
+        <button class="re"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
+      </div>
+    </article>
+
+    <!-- VISUAL -->
+    <article class="card">
+      <div class="who">
+        <div class="ava" style="background:#D6136B">J</div>
+        <div><div class="name">Jun Park</div><div class="meta mono">VISUAL · 09:41 · JUL 2</div></div>
+        <div class="stamp iris" title="Visual">Vi</div>
+      </div>
+      <div class="art">
+        <svg viewBox="0 0 600 300" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 220 C 120 140, 240 260, 360 180 S 540 120, 600 190" stroke="rgba(255,255,255,.75)" stroke-width="3" fill="none"/>
+          <path d="M0 250 C 150 200, 300 290, 460 220 S 580 190, 600 230" stroke="rgba(27,24,35,.5)" stroke-width="2" fill="none"/>
+          <circle cx="470" cy="80" r="34" fill="rgba(255,255,255,.65)"/>
+        </svg>
+      </div>
+      <p class="caption">Harbour study no. 6 — gouache & ink. <a class="tag" href="#">#gouache</a> <a class="tag" href="#">#seascape</a></p>
+      <div class="rule"></div>
+      <div class="actions">
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5C5 7.5 7 5.5 9.5 5.5c1.2 0 2 .5 2.5 1.2.5-.7 1.3-1.2 2.5-1.2C17 5.5 19 7.5 19 10.5 19 15.6 12 20 12 20z"/></svg>Admire <span class="n">342</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M12 3v10M8.5 7.5 12 3l3.5 4.5"/></svg>Ovation <span class="n">96</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M5 6h14v10H9l-4 3z"/></svg><span class="n">27</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="m7 8-4 4 4 4M17 8l4 4-4 4M13 5l-2 14"/></svg>Relay <span class="n">18</span></button>
+        <span class="spacer"></span>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20z"/></svg></button>
+        <button class="re"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
+      </div>
+    </article>
+
+    <!-- JOURNAL -->
+    <article class="card">
+      <div class="who">
+        <div class="ava" style="background:#A85A00">S</div>
+        <div><div class="name">Sofía Reyes</div><div class="meta mono">JOURNAL · YESTERDAY · 23:12</div></div>
+        <div class="stamp" title="Journal" style="transform:rotate(3deg)">Jo</div>
+      </div>
+      <div class="journal-meta">
+        <span class="chip">☁ OVERCAST · 19°</span><span class="chip">MOOD · QUIET</span><span class="chip">LISBON</span>
+      </div>
+      <p class="hand">Day 40 of the residency. I finally stopped counting the days and started counting the drafts. The difference, it turns out, is everything…</p>
+      <div class="rule"></div>
+      <div class="actions">
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5C5 7.5 7 5.5 9.5 5.5c1.2 0 2 .5 2.5 1.2.5-.7 1.3-1.2 2.5-1.2C17 5.5 19 7.5 19 10.5 19 15.6 12 20 12 20z"/></svg>Admire <span class="n">57</span></button>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M5 6h14v10H9l-4 3z"/></svg><span class="n">8</span></button>
+        <span class="spacer"></span>
+        <button class="re"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4.5L6 20z"/></svg></button>
+      </div>
+    </article>
+
+    <!-- COMMISSION -->
+    <article class="card prod">
+      <div class="thumb"></div>
+      <div>
+        <div class="mono" style="margin-bottom:4px">COMMISSION · JUN PARK STUDIO</div>
+        <h3>Custom ink portrait, from your photo</h3>
+        <div class="stars">★★★★★ <span class="mono" style="color:var(--muted)">4.9 (61)</span></div>
+        <div class="price"><b>$45</b>+</div>
+        <div class="pwyw">Pay what you want · $45 minimum · 5-day delivery</div>
+        <div><button class="buy">Commission</button><button class="buy ghost">Add to Bag</button></div>
+      </div>
+    </article>
+  </main>
+
+  <!-- RIGHT RAIL -->
+  <aside class="right">
+    <div class="panel">
+      <h4>Studios to follow</h4>
+      <div class="frow"><div class="ava" style="width:34px;height:34px;background:#20794D;font-size:13px">L</div><div><div class="name">Lena Okafor</div><div class="mono">ESSAYIST</div></div><button class="follow">Follow</button></div>
+      <div class="frow"><div class="ava" style="width:34px;height:34px;background:#5B51D8;font-size:13px">T</div><div><div class="name">Théo Marchand</div><div class="mono">PRINTMAKER</div></div><button class="follow">Follow</button></div>
+    </div>
+    <div class="panel">
+      <h4>Trending ink</h4>
+      <a class="trend" href="#"><span class="t">#smallweathers</span><div class="mono">1,204 POSTS</div></a>
+      <a class="trend" href="#"><span class="t">#morningpages</span><div class="mono">862 POSTS</div></a>
+      <a class="trend" href="#"><span class="t">#inktober</span><div class="mono">540 POSTS</div></a>
+    </div>
+    <div class="panel">
+      <h4>Loading, the ink way</h4>
+      <svg width="100%" height="14" viewBox="0 0 220 14" style="display:block">
+        <path d="M4 9 C 40 3, 80 13, 120 8 S 190 4, 216 9" fill="none" stroke="var(--inkpink)" stroke-width="2.4" stroke-linecap="round"
+          stroke-dasharray="230" stroke-dashoffset="230" style="animation:draw 2.2s ease infinite"/>
+      </svg>
+      <div class="skel"><div class="skelline" style="width:90%"></div><div class="skelline" style="width:70%"></div></div>
+      <div class="mono" style="margin-top:6px">NO SPINNERS. THE PAGE WRITES ITSELF.</div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

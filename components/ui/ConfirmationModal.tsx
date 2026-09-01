@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Button from "./Button";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -57,13 +58,13 @@ export default function ConfirmationModal({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2100] animate-fadeIn"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-(--z-modal) animate-fadeIn"
         onClick={loading ? undefined : onClose}
         aria-hidden="true"
       />
       <div
         ref={modalRef}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-[2101] overflow-hidden animate-scaleIn"
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw] bg-surface rounded-3xl shadow-2xl border border-border-light z-(--z-modal) overflow-hidden animate-scaleIn"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirmation-modal-title"
@@ -105,46 +106,17 @@ export default function ConfirmationModal({
           </p>
 
           <div className="flex justify-end gap-2.5">
-            <button
-              onClick={onClose}
-              disabled={loading}
-              className="px-5 py-2.5 rounded-full font-ui text-sm font-medium text-ink bg-subtle hover:bg-skeleton/80 transition-all disabled:opacity-50"
-            >
+            <Button variant="secondary" onClick={onClose} disabled={loading}>
               {cancelText}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={isDanger ? "danger" : "primary"}
               onClick={handleConfirm}
-              disabled={loading}
-              className={`px-5 py-2.5 rounded-full font-ui text-sm font-medium text-white transition-all disabled:opacity-70 flex items-center gap-2 ${
-                isDanger
-                  ? "bg-red-500 hover:bg-red-600 shadow-sm hover:shadow-md hover:shadow-red-500/20"
-                  : "bg-gradient-to-r from-purple-primary to-pink-vivid hover:shadow-lg hover:shadow-pink-vivid/25 hover:scale-[1.02]"
-              }`}
+              loading={loading}
+              loadingText={isDanger ? "Erasing..." : "Working..."}
             >
-              {loading ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  {isDanger ? "Erasing..." : "Working..."}
-                </>
-              ) : (
-                confirmText
-              )}
-            </button>
+              {confirmText}
+            </Button>
           </div>
         </div>
       </div>
