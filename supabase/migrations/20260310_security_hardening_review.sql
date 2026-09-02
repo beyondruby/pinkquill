@@ -1,3 +1,8 @@
+-- NOTE (2026-09-02, docs/commissions/03-progress.md Phase 1a): this file was NEVER
+-- APPLIED TO PRODUCTION and is superseded. The live schema is reconciled by
+-- 20260902_commissions_phase1a_reconcile_schema.sql; any change still wanted from
+-- here must be re-issued as a new migration. Do not apply this file.
+
 -- ==========================================================================
 -- Security hardening fixes from code review (March 2026)
 -- ==========================================================================

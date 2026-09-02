@@ -16,6 +16,7 @@ export interface OrderStatusMeta {
 export const ORDER_STATUS_CONFIG: Record<string, OrderStatusMeta> = {
   pending_acceptance: { label: "Pending Approval", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
   pending_payment: { label: "Awaiting Payment", bg: "bg-yellow-50", text: "text-yellow-700", dot: "bg-yellow-400" },
+  expired: { label: "Checkout Expired", bg: "bg-subtle", text: "text-ink/60", dot: "bg-muted/60" },
   paid: { label: "Paid", bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-400" },
   processing: { label: "Processing", bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-400" },
   in_progress: { label: "In Progress", bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-400" },

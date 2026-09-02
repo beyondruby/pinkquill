@@ -49,6 +49,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgClass: str
   disputed:           { label: "Disputed", color: "#ef4444", bgClass: "bg-red-500/10", textClass: "text-red-500", icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" },
   resolved:           { label: "Resolved", color: "#10b981", bgClass: "bg-emerald-500/10", textClass: "text-emerald-600", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
   declined:           { label: "Declined", color: "#777777", bgClass: "bg-skeleton/70", textClass: "text-muted", icon: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" },
+  expired:            { label: "Checkout Expired", color: "#777777", bgClass: "bg-skeleton/70", textClass: "text-muted", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
 };
 
 function getDefaultTab(order: Order): OrderTab {

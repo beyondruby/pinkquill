@@ -7,14 +7,14 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | Phase | Status | Date |
 |---|---|---|
 | 0 — Stop the bleeding | **done, applied to production** | 2026-09-02 |
-| 1a — Schema truth | not started | |
+| 1a — Schema truth | **done, applied to production** | 2026-09-02 |
 | 1b — Verified payment record + full webhook | not started | |
 | 1c — Payout release, ledger, cron | not started (blocked on decisions D1, D2, D3, D4) | |
 | 1d — Refunds, cancellations, disputes, chargebacks | not started (D6, D8) | |
 | 1e — Test harness + go-live checklist | not started | |
 | 2–4 | not started | |
 
-Open decisions (plan §2): D1 platform Stripe country, D2 release window, D3 fee model, D4 cron host, D5 delete the two placeholder orders, D6 refund policy, D7 email provider, D8 admin access. None answered yet.
+Open decisions (plan §2): D1 platform Stripe country, D2 release window, D3 fee model, D4 cron host, D6 refund policy, D7 email provider, D8 admin access. Answered: D5 = yes (test orders deleted in 1a).
 
 ---
 
@@ -45,4 +45,41 @@ Open decisions (plan §2): D1 platform Stripe country, D2 release window, D3 fee
 - `orders.status` CHECK still lacks `expired`; `auto_complete_orders` still aborts; webhook side-effect writes still hit rejected CHECK values — all Phase 1a.
 - GitHub Actions cron left as is (D4 in 1c).
 
-**Next:** Phase 1a — schema truth (`02-plan.md` §3). Before starting it, answer D5 (delete the two placeholder test orders). Also paste Stripe test keys into `.env.local` so 1b can be exercised locally.
+**Next (at the time):** Phase 1a. Superseded by the entry below.
+
+---
+
+## Phase 1a — what changed (2026-09-02)
+
+**Closes:** RC-A5 (repo ≠ production; CHECK constraints reject values the code writes; dead triggers/overloads; cron RPC aborts) and the lock half of RC-A8 (transition RPCs now take `FOR UPDATE`; `listing_type` enforced). Findings now moot: A5.1–A5.6, A8.1, A8.2, A8.4, A4.4's silent-drop half, A2.3's silent-drop half.
+
+**Data (D5 = yes).** Deleted the two placeholder orders and every dependent row: 15 notifications, 3 order_reviews, 6 transactions, 14 order_events, 14 order_messages, 1 download token, 1 promo redemption. Production now has zero orders.
+
+**Migration** `supabase/migrations/20260902_commissions_phase1a_reconcile_schema.sql` — applied as `commissions_phase1a_reconcile_schema` (in remote migration history). Idempotent. It:
+
+1. Snapshots live-only objects so the repo builds production: `orders.checkout_session_id / transfer_id / transfer_status / transfer_amount`, `profiles.stripe_customer_id`, indexes `idx_orders_checkout_session / _transfer_status / _payment_intent`, tables `reviews` and `seller_stats` (with RLS, SELECT policies, write grants revoked), the `order-files` bucket, functions `create_order_notification`, `notify_order_created`, `notify_order_message`, `notify_review_submitted`, `set_auto_completion_deadline`, `mark_order_transfer_completed`, and the triggers `trg_order_created_notification`, `trg_order_status_notification`, `trg_set_auto_completion_deadline`, `trg_order_message_notification`, `trg_review_notification`.
+2. Constraints: `orders.status` and `orders.payment_status` accept `expired`; `order_events.event_type` accepts `amount_mismatch`, `transfer_failed`; `transactions.status` accepts `reversal_failed`; `notifications.type` accepts `order_transfer_failed`, `order_expired` (rebuilt from the live list); `orders.payment_provider` default is now `'stripe'` (was `'paypal'`).
+3. `auto_complete_orders` rewritten: `sender_id` on the system message (the live body violated NOT NULL and aborted every run), `FOR UPDATE SKIP LOCKED`.
+4. `restore_order_stock_on_early_exit` also fires on `expired`.
+5. `remove_promo_from_order` recomputes `platform_fee` / `seller_amount` on the same base as `apply_promo_to_order`.
+6. `update_order_as_buyer`, `update_order_as_seller`, `open_dispute`, `submit_order_review` take `FOR UPDATE`; seller transitions are gated by `listing_type` (no `shipped` service orders, no `in_progress` products); buyer `revision_requested` requires a service order; `open_dispute` requires a paid, post-payment order (was allowed on `pending_acceptance`/`declined`). **Cancel-from-`paid` is deliberately left as-is** (commented in the migration) — Phase 1d turns it into a refund.
+7. Drops dead objects: trigger `trg_auto_complete_digital` + `auto_complete_digital_order`, `update_order_payment`, `sync_seller_account`, `update_purchase_as_buyer/seller`, `submit_review`, `respond_to_review`, `reveal_expired_reviews`, `recalculate_seller_stats`, `release_order_escrow`, the 5-arg `mark_order_payment_failed` overload.
+
+`supabase/migrations/20260331_comprehensive_fixes.sql` and `20260310_security_hardening_review.sql` now carry a header stating they were never applied and are superseded (their contents are unchanged; do not apply them).
+
+**Code**
+- `lib/types/store.ts`: `expired` added to `OrderStatus` and `PaymentStatus`; `checkout_session_id` added to `Order`.
+- `lib/utils/orderStatus.ts` and `components/orders/OrderView.tsx`: `expired` → "Checkout Expired" (muted) instead of falling back to "Paid" styling.
+- `app/api/orders/auto-complete/route.ts`, `app/api/stripe/webhooks/route.ts`: the `order_transfer_failed` notification inserts now pass `actor_id` and `order_id` (`notifications.actor_id` is NOT NULL — discovered during verification; without it those rows were still rejected).
+
+**Verified**
+- Rolled-back live test (a `DO` block ending in `RAISE`, so nothing persisted; row counts confirmed 0 afterwards): a seeded `pending_payment` service order → `mark_order_expired` → `expired/expired`; a seeded `submitted` order with a past `auto_completion_at` → `auto_complete_orders()` returns 1, order `completed`, one system message written; inserts of `order_events` `transfer_failed` / `amount_mismatch`, a `notifications` row of type `order_transfer_failed`, and `transactions.status = 'reversal_failed'` all succeed.
+- Catalog after apply: all ten dropped functions absent; one `mark_order_payment_failed` overload; six triggers on `orders` (digital auto-complete gone); `payment_provider` default `'stripe'`; `notifications_type_check` includes `order_transfer_failed`.
+- `npx tsc --noEmit`: clean (outside the stale `.next/types` file). ESLint on changed files: one pre-existing unused-import warning in `OrderView.tsx` (RC-D6, left for Phase 4). `npx vitest run`: 138 tests pass. `npm run build`: succeeds.
+- Not exercised: a Stripe-CLI replay of `checkout.session.expired` (no test keys in this session); the RPC it calls was exercised directly above.
+
+**Deferred**
+- `supabase db diff` was not run (project is not linked locally); parity was checked by catalog queries instead. Linking the CLI and running `supabase db diff --linked` once is a cheap follow-up before 1b.
+- The `.next/types/validator.ts` reference to the removed `/queue` route is a stale generated file; `npm run build` regenerates it.
+
+**Next:** Phase 1b — verified payment record + full webhook (`02-plan.md` §3). Needs Stripe **test** keys in `.env.local` and `stripe listen` for local webhook delivery. D3 (fee model) is needed for the checkout display numbers in 1b; D1/D2/D4 for 1c.

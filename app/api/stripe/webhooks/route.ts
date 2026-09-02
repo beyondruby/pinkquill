@@ -279,12 +279,16 @@ export async function POST(request: Request) {
                 .insert([
                   {
                     user_id: order.seller_id,
+                    actor_id: order.buyer_id,
                     type: "order_transfer_failed",
+                    order_id: order.id,
                     content: "Refund reversal requires manual review.",
                   },
                   {
                     user_id: order.buyer_id,
+                    actor_id: order.seller_id,
                     type: "order_transfer_failed",
+                    order_id: order.id,
                     content: "Your refund is being processed manually.",
                   },
                 ]);

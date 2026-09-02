@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     // Transfer funds to sellers for completed orders that haven't been transferred yet
     const { data: pendingTransfers, error: transferQueryError } = await supabaseAdmin
       .from("orders")
-      .select("id, seller_id")
+      .select("id, seller_id, buyer_id")
       .eq("status", "completed")
       .is("transfer_status", null)
       .in("payment_status", ["paid"])
@@ -84,8 +84,10 @@ export async function POST(request: Request) {
               .from("notifications")
               .insert({
                 user_id: order.seller_id,
+                // notifications.actor_id is NOT NULL; attribute to the buyer.
+                actor_id: order.buyer_id,
                 type: "order_transfer_failed",
-                post_id: null,
+                order_id: order.id,
                 content: "Payment transfer for order failed. Our team will retry automatically.",
                 read: false,
               });

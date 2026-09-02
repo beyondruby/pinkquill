@@ -28,6 +28,7 @@ export type OrderStatus =
   | 'pending_acceptance'
   | 'declined'
   | 'pending_payment'
+  | 'expired'
   | 'paid'
   | 'in_progress'
   | 'submitted'
@@ -42,7 +43,7 @@ export type OrderStatus =
   | 'disputed'
   | 'resolved';
 
-export type PaymentStatus = 'pending' | 'authorized' | 'paid' | 'refunded' | 'partially_refunded' | 'failed';
+export type PaymentStatus = 'pending' | 'authorized' | 'paid' | 'refunded' | 'partially_refunded' | 'failed' | 'expired';
 export type OrderMessageType = 'text' | 'file' | 'status_update' | 'system';
 export type OrderEventType = 'status_change' | 'payment' | 'message' | 'revision' | 'dispute' | 'system';
 
@@ -353,6 +354,7 @@ export interface Order {
   payment_intent_id: string | null;
   payment_provider?: "stripe" | "placeholder" | null;
   payment_reference?: string | null;
+  checkout_session_id?: string | null;
   payment_status: PaymentStatus;
   escrow_released: boolean;
   escrow_released_at: string | null;
