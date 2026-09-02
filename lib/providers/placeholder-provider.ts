@@ -11,6 +11,7 @@ import type {
   SellerStatusResult,
   DashboardResult,
   CheckoutSessionResult,
+  TransferRequest,
   TransferResult,
   RefundResult,
   OrderForCheckout,
@@ -23,7 +24,8 @@ export class PlaceholderProvider implements PaymentProviderInterface {
   async createSellerAccount(
     userId: string,
     _email: string,
-    _profile: { username?: string; displayName?: string }
+    _profile: { username?: string; displayName?: string },
+    country: string
   ): Promise<OnboardingResult> {
     const { data: existing } = await supabaseAdmin
       .from("seller_accounts")
@@ -34,6 +36,7 @@ export class PlaceholderProvider implements PaymentProviderInterface {
     if (!existing) {
       await supabaseAdmin.from("seller_accounts").insert({
         user_id: userId,
+        country: country.toUpperCase(),
         onboarding_complete: true,
         charges_enabled: true,
         payouts_enabled: true,
@@ -106,19 +109,11 @@ export class PlaceholderProvider implements PaymentProviderInterface {
     };
   }
 
-  async transferToSeller(orderId: string): Promise<TransferResult> {
-    await supabaseAdmin
-      .from("orders")
-      .update({
-        transfer_id: `tr_placeholder_${orderId}`,
-        transfer_status: "completed",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", orderId);
-
+  async createTransfer(request: TransferRequest): Promise<TransferResult> {
     return {
-      success: true,
-      transferId: `tr_placeholder_${orderId}`,
+      transferId: `tr_placeholder_${request.payoutId}`,
+      balanceTransactionId: null,
+      amountCents: request.amountCents,
     };
   }
 

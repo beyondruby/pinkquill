@@ -1,48 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { verifyCronSecret } from "@/lib/api-security";
 
 export const runtime = "nodejs";
 
-
-export async function POST(request: NextRequest) {
+/** Manual trigger for the 10-minute job (scheduled in pg_cron). */
+export async function POST(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
     return NextResponse.json({ error: "CRON_SECRET is not configured" }, { status: 500 });
   }
-  const authHeader = request.headers.get("authorization");
-  if (!verifyCronSecret(authHeader, cronSecret)) {
+  if (!verifyCronSecret(request.headers.get("authorization"), cronSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const { data, error } = await supabaseAdmin.rpc("auto_decline_expired_orders");
-
-    if (error) {
-      console.error("[auto-decline] RPC error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    const count = typeof data === "number" ? data : 0;
-
-    // Housekeeping: rate-limit buckets are never read again once their
-    // window has passed, but nothing deleted them (findings L6). Windows are
-    // at most 1h; anything older than a day is garbage.
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { error: pruneError } = await supabaseAdmin
-      .from("api_rate_limits")
-      .delete()
-      .lt("window_start", cutoff);
-    if (pruneError) {
-      console.warn("[auto-decline] rate-limit prune failed:", pruneError.message);
-    }
-
-    return NextResponse.json({ declined: count });
-  } catch (err) {
-    console.error("[auto-decline] Error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal server error" },
-      { status: 500 }
-    );
+  const { data, error } = await supabaseAdmin.rpc("run_cron_job", { p_job: "auto_decline" });
+  if (error) {
+    console.error("[auto-decline] run_cron_job error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  return NextResponse.json({ ok: true, result: data });
 }

@@ -12,17 +12,20 @@
  */
 
 import Stripe from "stripe";
-import type {
-  PaymentProviderInterface,
-  OnboardingResult,
-  SellerStatusResult,
-  DashboardResult,
-  CheckoutSessionResult,
-  TransferResult,
-  RefundResult,
-  OrderForCheckout,
+import {
+  TransferBlockedError,
+  type PaymentProviderInterface,
+  type OnboardingResult,
+  type SellerStatusResult,
+  type DashboardResult,
+  type CheckoutSessionResult,
+  type TransferRequest,
+  type TransferResult,
+  type RefundResult,
+  type OrderForCheckout,
 } from "@/lib/payment-provider";
 import { getStripeServer, CONNECT_ACCOUNT_TYPE } from "@/lib/stripe";
+import { PLATFORM_COUNTRY } from "@/lib/payments";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 // ============================================================================
@@ -78,47 +81,63 @@ export class StripeProvider implements PaymentProviderInterface {
   async createSellerAccount(
     userId: string,
     email: string,
-    profile: { username?: string; displayName?: string }
+    profile: { username?: string; displayName?: string },
+    country: string
   ): Promise<OnboardingResult> {
     const stripe = getStripeServer();
+    const countryCode = country.toUpperCase();
+    // Non-Canadian sellers are paid through Stripe's cross-border payouts,
+    // which requires the "recipient" service agreement (transfers only).
+    const serviceAgreement = countryCode === PLATFORM_COUNTRY ? "full" : "recipient";
 
     const { data: existing } = await supabaseAdmin
       .from("seller_accounts")
       .select("*")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    let stripeAccountId = existing?.stripe_account_id;
+    let stripeAccountId = existing?.stripe_account_id as string | null | undefined;
 
     if (!stripeAccountId) {
-      const account = await stripe.accounts.create({
-        type: CONNECT_ACCOUNT_TYPE,
-        email,
-        metadata: {
-          user_id: userId,
-          username: profile.username || "",
-        },
-        business_profile: {
-          name: profile.displayName || profile.username || undefined,
-        },
-        capabilities: REQUESTED_CONNECT_CAPABILITIES,
-      });
+      let account: Stripe.Account;
+      try {
+        account = await stripe.accounts.create(
+          {
+            type: CONNECT_ACCOUNT_TYPE,
+            country: countryCode,
+            email,
+            metadata: { user_id: userId, username: profile.username || "" },
+            business_profile: { name: profile.displayName || profile.username || undefined },
+            capabilities: REQUESTED_CONNECT_CAPABILITIES,
+            ...(serviceAgreement === "recipient"
+              ? { tos_acceptance: { service_agreement: "recipient" } }
+              : {}),
+          },
+          // Never create two accounts for one seller on a double click.
+          { idempotencyKey: `connect_account_${userId}_${countryCode}` }
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Stripe rejected the account";
+        if (/country|service_agreement|not supported|unsupported/i.test(message)) {
+          throw new TransferBlockedError(
+            "country_not_supported",
+            "Payouts aren't available in your country yet. We're working on it."
+          );
+        }
+        throw err;
+      }
       stripeAccountId = account.id;
 
-      if (existing) {
-        await supabaseAdmin
-          .from("seller_accounts")
-          .update({
-            stripe_account_id: stripeAccountId,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("user_id", userId);
-      } else {
-        await supabaseAdmin.from("seller_accounts").insert({
+      await supabaseAdmin.from("seller_accounts").upsert(
+        {
           user_id: userId,
           stripe_account_id: stripeAccountId,
-        });
-      }
+          country: countryCode,
+          service_agreement: serviceAgreement,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
     }
 
     const origin = getSiteUrl();
@@ -223,16 +242,23 @@ export class StripeProvider implements PaymentProviderInterface {
     order: OrderForCheckout
   ): Promise<CheckoutSessionResult> {
     const stripe = getStripeServer();
-    const amountCents = Math.round(order.amount * 100);
-    const buyerFeeCents = Math.round((order.buyerFee || 0) * 100);
-    const totalCents = amountCents + buyerFeeCents;
-    const currency = (order.currency || "usd").toLowerCase();
+    // Charge in the settlement currency when a quote is attached (USD listing,
+    // CAD charge today); otherwise in the listing currency.
+    const listingTotalCents = Math.round(order.amount * 100) + Math.round((order.buyerFee || 0) * 100);
+    const buyerFeeCents = order.charge ? order.charge.feeCents : Math.round((order.buyerFee || 0) * 100);
+    const totalCents = order.charge ? order.charge.amountCents : listingTotalCents;
+    const amountCents = totalCents - buyerFeeCents;
+    const currency = (order.charge?.currency || order.currency || "usd").toLowerCase();
+    const listingCurrency = (order.currency || "usd").toUpperCase();
+    const convertedNote = order.charge && order.charge.currency.toLowerCase() !== listingCurrency.toLowerCase()
+      ? ` (${listingCurrency} ${(listingTotalCents / 100).toFixed(2)} at ${order.charge.rate.toFixed(4)} ${listingCurrency}/${order.charge.currency.toUpperCase()})`
+      : "";
     const orderReference = order.orderNumber || order.id;
     const compactTitle = String(order.productTitle || "").trim().slice(0, 80);
     const productName = compactTitle || `Order ${orderReference}`;
-    const description = compactTitle
+    const description = (compactTitle
       ? `PinkQuill ${orderReference} — ${compactTitle}`
-      : `PinkQuill order ${orderReference}`;
+      : `PinkQuill order ${orderReference}`) + convertedNote;
 
     // Reuse the order's current session if it is still open AND still charges
     // the right total; otherwise expire it so only one live session exists.
@@ -356,105 +382,45 @@ export class StripeProvider implements PaymentProviderInterface {
   }
 
   // ============================================================================
-  // TRANSFERS — Pay seller after order completion
+  // TRANSFERS — one Stripe Transfer per released payout (payout worker only)
   // ============================================================================
 
-  async transferToSeller(orderId: string): Promise<TransferResult> {
+  async createTransfer(request: TransferRequest): Promise<TransferResult> {
     const stripe = getStripeServer();
-
-    const { data: order, error: orderError } = await supabaseAdmin
-      .from("orders")
-      .select("*")
-      .eq("id", orderId)
-      .single();
-
-    if (orderError || !order) {
-      throw new Error("Order not found");
-    }
-
-    // Already transferred
-    if (order.transfer_id) {
-      return { success: true, alreadyTransferred: true };
-    }
-
-    // Phase 0 guard (docs/commissions/02-plan.md): never move money for an
-    // order that was not paid through a real Stripe Checkout Session. Orders
-    // finalized via the placeholder provider or /api/checkout/confirm carry
-    // payment_provider = 'placeholder' or a 'cs_placeholder_' reference and
-    // must never reach stripe.transfers.create. Phase 1c replaces this with a
-    // webhook-written payment record.
-    const paidThroughStripe =
-      order.payment_provider === "stripe" &&
-      order.payment_status === "paid" &&
-      typeof order.checkout_session_id === "string" &&
-      order.checkout_session_id.startsWith("cs_") &&
-      !order.checkout_session_id.startsWith("cs_placeholder_");
-    if (!paidThroughStripe) {
-      throw new Error(
-        `Order ${orderId} has no verified Stripe payment (provider=${order.payment_provider}, payment_status=${order.payment_status}); refusing to transfer`
-      );
-    }
-
-    // Get seller's Connect account
-    const { data: sellerAccount } = await supabaseAdmin
-      .from("seller_accounts")
-      .select("stripe_account_id, payouts_enabled, onboarding_complete")
-      .eq("user_id", order.seller_id)
-      .single();
-
-    // Seller hasn't completed Connect onboarding — queue for later
-    if (
-      !sellerAccount?.stripe_account_id ||
-      !sellerAccount.payouts_enabled
-    ) {
-      await supabaseAdmin
-        .from("orders")
-        .update({ transfer_status: "pending_onboarding" })
-        .eq("id", orderId);
-
-      return { success: true, pendingOnboarding: true };
-    }
-
-    // Pay exactly what the ledger says. `seller_amount` is computed once by
-    // create_marketplace_order / apply_promo_to_order (5% of the goods or
-    // service amount, shipping passed through); recomputing here from
-    // `amount` (which includes shipping) made payouts disagree with what the
-    // dashboards show (findings S10).
-    const amountCents = Math.round(Number(order.amount) * 100);
-    const sellerAmountCents = Math.round(Number(order.seller_amount) * 100);
-    if (!Number.isFinite(sellerAmountCents) || sellerAmountCents <= 0 || sellerAmountCents > amountCents) {
-      throw new Error(`Order ${orderId} has an invalid seller_amount (${order.seller_amount})`);
-    }
-    const platformFeeCents = amountCents - sellerAmountCents;
-
-    const transfer = await stripe.transfers.create(
-      {
-        amount: sellerAmountCents,
-        currency: order.currency || "usd",
-        destination: sellerAccount.stripe_account_id,
-        transfer_group: orderId,
-        metadata: {
-          order_id: orderId,
-          order_number: order.order_number || "",
+    try {
+      const transfer = await stripe.transfers.create(
+        {
+          amount: request.amountCents,
+          currency: request.currency,
+          destination: request.destinationAccountId,
+          transfer_group: request.orderId,
+          // Tie the transfer to the charge that funded it so it can draw on
+          // the platform's pending balance instead of waiting for settlement.
+          ...(request.sourceChargeId ? { source_transaction: request.sourceChargeId } : {}),
+          metadata: { payout_id: request.payoutId, order_id: request.orderId, ...(request.metadata || {}) },
         },
-      },
-      { idempotencyKey: `transfer_${orderId}` }
-    );
-
-    // Record transfer via RPC
-    await supabaseAdmin.rpc("mark_order_transfer_completed", {
-      p_order_id: orderId,
-      p_transfer_id: transfer.id,
-      p_transfer_amount: sellerAmountCents,
-      p_source: "stripe_transfer",
-    });
-
-    return {
-      success: true,
-      transferId: transfer.id,
-      amount: sellerAmountCents,
-      platformFee: platformFeeCents,
-    };
+        { idempotencyKey: `payout_${request.payoutId}` }
+      );
+      return {
+        transferId: transfer.id,
+        balanceTransactionId:
+          typeof transfer.balance_transaction === "string"
+            ? transfer.balance_transaction
+            : transfer.balance_transaction?.id ?? null,
+        amountCents: transfer.amount,
+      };
+    } catch (err) {
+      const stripeErr = err as { code?: string; message?: string; type?: string };
+      // Destination problems are not transient: block until the seller fixes their account.
+      if (
+        stripeErr.code === "account_invalid" ||
+        stripeErr.code === "transfers_not_allowed" ||
+        /No such destination|capabilit|not enabled|restricted/i.test(stripeErr.message || "")
+      ) {
+        throw new TransferBlockedError(stripeErr.code || "destination_invalid", stripeErr.message);
+      }
+      throw err;
+    }
   }
 
   // ============================================================================

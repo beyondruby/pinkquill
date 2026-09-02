@@ -5,6 +5,8 @@ import { supabaseAdmin } from "@/lib/supabase-server";
 import { getActiveProvider } from "@/lib/payment-provider";
 import type { OrderForCheckout } from "@/lib/payment-provider";
 import { verifyTurnstileToken } from "@/lib/turnstile-server";
+import { quoteSettlement } from "@/lib/fx";
+import { setOrderCharge } from "@/lib/payments-server";
 
 export const runtime = "nodejs";
 
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
       .select(`
         id, order_number, buyer_id, seller_id, amount, currency,
         listing_type, status, payment_status, checkout_session_id,
-        quantity, pricing_id, shipping_cost, discount_amount, buyer_fee, total_amount,
+        quantity, pricing_id, shipping_cost, discount_amount, buyer_fee, total_amount, platform_fee, seller_amount,
         product:products (id, title, listing_type)
       `)
       .eq("id", parsed.data.order_id)
@@ -131,6 +133,26 @@ export async function POST(request: Request) {
       }
     }
 
+    // Settlement-currency quote (USD listing → CAD charge today). Stored on the
+    // order so the webhook verifies the charged amount against it.
+    const quote = await quoteSettlement({
+      currency: order.currency || "usd",
+      amount: Number(order.amount),
+      buyer_fee: Number(order.buyer_fee ?? 0),
+      platform_fee: Number(order.platform_fee ?? 0),
+      seller_amount: Number(order.seller_amount ?? 0),
+    });
+    await setOrderCharge({
+      orderId: order.id,
+      chargeCurrency: quote.chargeCurrency,
+      chargeAmountCents: quote.chargeAmountCents,
+      chargeFeeCents: quote.chargeFeeCents,
+      sellerCents: quote.sellerCents,
+      platformCents: quote.platformCents,
+      buyerCents: quote.buyerFeeCents,
+      fxRate: quote.rate,
+    });
+
     // Build order data for the provider
     const product = Array.isArray(order.product) ? order.product[0] : order.product;
     const orderForCheckout: OrderForCheckout = {
@@ -141,6 +163,12 @@ export async function POST(request: Request) {
       amount: Number(order.amount),
       buyerFee: Number(order.buyer_fee ?? 0),
       currency: order.currency || "usd",
+      charge: {
+        currency: quote.chargeCurrency,
+        amountCents: quote.chargeAmountCents,
+        feeCents: quote.chargeFeeCents,
+        rate: quote.rate,
+      },
       listingType: order.listing_type,
       productTitle: product?.title || null,
     };
@@ -153,6 +181,12 @@ export async function POST(request: Request) {
       client_secret: result.clientSecret,
       session_id: result.sessionId,
       message: result.message,
+      charge: {
+        currency: quote.chargeCurrency,
+        amount_cents: quote.chargeAmountCents,
+        rate: quote.rate,
+        converted: quote.converted,
+      },
     });
   } catch (err) {
     console.error("[POST /api/checkout] Error:", err);

@@ -507,6 +507,13 @@ export default function OrderView({ orderId }: OrderViewProps) {
                       {formatCurrency(isBuyer ? Number(order.total_amount ?? order.amount) : Number(order.seller_amount))}
                     </span>
                   </div>
+                  {order.charge_currency && order.charge_currency !== order.currency && order.payment_status === "paid" && (
+                    <p className="text-xs font-body text-muted">
+                      {isBuyer
+                        ? `Charged as ${formatCurrency(Number(order.charge_amount_cents ?? 0) / 100, order.charge_currency)}`
+                        : `Paid out as ${formatCurrency(Number(order.seller_amount_charge_cents ?? 0) / 100, order.charge_currency)} (converted at 1 ${order.currency.toUpperCase()} = ${Number(order.fx_rate ?? 1).toFixed(4)} ${order.charge_currency.toUpperCase()})`}
+                    </p>
+                  )}
                 </div>
               </Card>
 

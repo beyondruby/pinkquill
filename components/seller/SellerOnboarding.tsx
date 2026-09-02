@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useSellerOnboarding } from "@/lib/hooks/usePayments";
+import { SELLER_COUNTRIES } from "@/lib/payments";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faStore,
@@ -23,6 +25,7 @@ function getProviderLabel(provider?: string): string {
 export default function SellerOnboarding() {
   const { account, loading, error, startOnboarding, checkStatus, openDashboard } =
     useSellerOnboarding();
+  const [country, setCountry] = useState("");
 
   const providerLabel = getProviderLabel(account?.provider);
   const isSetupComplete = Boolean(
@@ -50,18 +53,38 @@ export default function SellerOnboarding() {
         <p className="text-ink/60 mb-2">
           Share your art, offer commissions, and earn from your creative work.
         </p>
-        <p className="text-sm text-muted mb-8">
+        <p className="text-sm text-muted mb-6">
           Complete setup to receive payouts for your sales.
-          Quill charges a 5% platform fee on all sales.
+          Pinkquill keeps 5% of each sale; buyers pay a small processing fee on top.
         </p>
+
+        <label className="block text-left mb-6">
+          <span className="block text-xs font-ui uppercase tracking-wide text-muted mb-1.5">
+            Country where you&apos;ll receive payouts
+          </span>
+          <select
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            className="w-full rounded-xl border border-border-strong bg-surface px-3 py-2.5 text-sm font-body text-ink"
+          >
+            <option value="">Choose your country</option>
+            {SELLER_COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.name}</option>
+            ))}
+          </select>
+          <span className="block text-xs font-body text-muted mt-1.5">
+            Prices are in USD. Outside the US and Canada, Stripe converts your payouts to your local currency.
+          </span>
+        </label>
 
         {error && (
           <p className="text-red-600 text-sm mb-4">{error}</p>
         )}
 
         <button
-          onClick={startOnboarding}
-          className="px-8 py-3 bg-[var(--color-purple-primary)] text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+          onClick={() => startOnboarding(country)}
+          disabled={!country}
+          className="px-8 py-3 bg-[var(--color-purple-primary)] text-white rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Set Up Seller Account
         </button>
@@ -93,13 +116,13 @@ export default function SellerOnboarding() {
 
         <div className="flex gap-3 justify-center">
           <button
-            onClick={startOnboarding}
+            onClick={() => startOnboarding()}
             className="px-6 py-2.5 bg-[var(--color-purple-primary)] text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
           >
             Continue Setup
           </button>
           <button
-            onClick={checkStatus}
+            onClick={() => checkStatus()}
             className="px-6 py-2.5 border border-border-strong rounded-lg text-sm font-medium text-ink/70 hover:bg-subtle"
           >
             Refresh Status

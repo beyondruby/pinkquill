@@ -56,11 +56,11 @@ One fee function `compute_order_money(item_amount, shipping, discount)` in SQL, 
 
 | # | Decision | Options | My recommendation | Blocks |
 |---|---|---|---|---|
-| D1 | Platform Stripe account country and target seller countries | — | Verify in Stripe dashboard before 1c. If non-US and you want global sellers, we must switch to destination charges + `on_behalf_of` (seller as MoR) in 1c — same phase, different provider code. | 1c |
-| D2 | Release window after completion | 0 h / 72 h / 7 d / 14 d | **72 h** for commissions (matches auto-complete cadence; Fiverr uses 14 d, VGen releases on approval). Digital products: same window, no instant transfer. | 1c |
-| D3 | Fee model | (a) seller pays 5 % (status quo, platform margin negative < $15); (b) seller 5 % + buyer "processing fee" line ≈ 3 % + $0.30; (c) seller 10 %, no buyer fee; (d) seller 5 % + raise minimum price to $15 | **(b)** — transparent, mirrors real costs, keeps $5 minimum viable; every screen shows "Seller receives X · Pinkquill fee Y · Processing Z". | 1b (display), 1c (ledger) |
-| D4 | Cron host | GitHub Actions (status quo) / Vercel Cron (`vercel.json crons`, needs Pro) / Supabase `pg_cron` + `pg_net` | **Vercel Cron** if the project is on Pro; otherwise `pg_cron`. Either way the job must be observable (last-run row in DB). | 1c |
-| D5 | Delete the two placeholder test orders and their transactions before 1a | yes / no | **yes** | 1a |
+| D1 | Platform Stripe account country and target seller countries | — | **Answered:** Canada / CAD. Cross-border "recipient" accounts are unavailable to CA platforms; sellers get full connected accounts in Stripe-supported countries; CAD settlement with USD listings (see 03-progress Phase 1c). | done |
+| D2 | Release window after completion | 0 h / 72 h / 7 d / 14 d | **Answered: 7 days** (`release_window_hours`), same for digital products. | done |
+| D3 | Fee model (**answered: (b), buyer fee 3.5 % + $0.30**) | (a) seller pays 5 % (status quo, platform margin negative < $15); (b) seller 5 % + buyer "processing fee" line ≈ 3 % + $0.30; (c) seller 10 %, no buyer fee; (d) seller 5 % + raise minimum price to $15 | **(b)** — transparent, mirrors real costs, keeps $5 minimum viable; every screen shows "Seller receives X · Pinkquill fee Y · Processing Z". | 1b (display), 1c (ledger) |
+| D4 | Cron host | GitHub Actions / Vercel Cron / Supabase `pg_cron` + `pg_net` | **Answered: pg_cron + pg_net** (no Pro plan). Runs logged in `cron_runs`. | done |
+| D5 | Delete the two placeholder test orders and their transactions before 1a | yes / no | **Answered: yes** (done in 1a) | done |
 | D6 | Refund policy defaults | who can cancel when; partial-refund permissions; whether buyer can cancel a `paid` order before `in_progress` without seller consent | Proposed in 1d: buyer may cancel free before `in_progress`; after that cancellation is a request the seller approves (partial allowed); late-by-N-days gives the buyer a unilateral cancel. | 1d |
 | D7 | Email provider for order notifications (Phase 2d) | Resend / Supabase SMTP / none | Resend (templates already exist in `email-templates/`). | 2d |
 | D8 | Admin/operator access | env allow-list of user ids / `profiles.role = 'admin'` | `profiles.role` with a `/admin/orders` route gated server-side | 1d, 2f |

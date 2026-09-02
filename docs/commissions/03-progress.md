@@ -9,12 +9,12 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 0 — Stop the bleeding | **done, applied to production** | 2026-09-02 |
 | 1a — Schema truth | **done, applied to production** | 2026-09-02 |
 | 1b — Verified payment record + full webhook | **done, applied to production** | 2026-09-02 |
-| 1c — Payout release, ledger, cron | not started (blocked on decisions D1, D2, D3, D4) | |
+| 1c — Payout release, ledger, cron, settlement currency | **done, applied to production** | 2026-09-02 |
 | 1d — Refunds, cancellations, disputes, chargebacks | not started (D6, D8) | |
 | 1e — Test harness + go-live checklist | not started | |
 | 2–4 | not started | |
 
-Open decisions (plan §2): D2 release window, D4 cron host, D6 refund policy, D7 email provider, D8 admin access. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
+Open decisions (plan §2): D6 refund policy, D7 email provider, D8 admin access. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
 ---
 
@@ -152,4 +152,47 @@ Open decisions (plan §2): D2 release window, D4 cron host, D6 refund policy, D7
 - Chargebacks are recorded but do not yet freeze the order or block/reverse payouts — 1d.
 - `processed_stripe_events` is no longer written; dropped in 4c.
 
-**Next:** Phase 1c — payout release, ledger, cron. Needs D2 (release window; recommended 72 h) and D4 (cron host). D1 is Canada/CAD with worldwide sellers and any currency, so 1c must also decide the settlement model: charge in the buyer's currency, settle in CAD (Stripe converts), transfer to sellers in the platform balance currency with Stripe converting at payout, using cross-border payouts (`recipient` service agreement) for non-Canadian Express accounts.
+**Next (at the time):** Phase 1c. Superseded by the entry below.
+
+---
+
+## Phase 1c — what changed (2026-09-02)
+
+**Closes:** release half of RC-A2 (money leaves only through one gate, from a verified payment, after the hold), RC-A7.3 (cron on GitHub secrets), RC-A6.5 and A6.7 (cross-border and currency model decided from Stripe facts), RC-A8.5 (duplicate Express accounts), A4.5 partly (`transfer.reversed`, `payout.failed` handled; account requirements stored).
+
+**Decisions.** D2 = 7-day hold after completion; D4 = pg_cron + pg_net inside Supabase; buyer fee raised to 3.5 % + $0.30; currency model below.
+
+**Stripe facts established in test mode (drove the design):**
+- The platform account settles in **CAD only**: a $20 USD test charge became C$25.81 immediately (Stripe converts at charge time, with its fee). Transfers must be in CAD; a USD transfer fails with "insufficient available funds" and `source_transaction` in USD is rejected because the charge's balance transaction is CAD.
+- Stripe's **cross-border "recipient" agreement is not available to Canadian platforms** for any country probed (US, GB, DE, FR, AU, SA, AE, IN, BR, MX, JP, SG, NZ, TR, EG, NG). Full connected accounts in other Stripe-supported countries **can** be created (`card_payments` + `transfers` must both be requested); Saudi Arabia is not supported by Stripe at all. A CAD transfer from the platform to a US connected account succeeds.
+- Stripe's exchange-rates endpoint no longer exists on this API version.
+
+**Currency design (money-optimal for the platform, switchable):** listings and all order money columns stay USD. At checkout the order is quoted into the settlement currency (`lib/fx.ts`: ECB rate from frankfurter.dev cached in `fx_rates`, refreshed after 6 h, stale-tolerant for 3 days, otherwise checkout refuses) with a 1.5 % buffer on what the buyer pays; the seller/platform/buyer-fee split is fixed at the mid-market rate and stored on the order (`charge_currency`, `charge_amount_cents`, `seller_amount_charge_cents`, …, `fx_rate`). The buyer's card is charged in CAD (their bank converts — Pinkquill pays no conversion), the webhook verifies the CAD amount, the ledger is kept in CAD, and the seller's payout is fixed in CAD at charge time (no FX drift during the hold); Stripe converts the CAD transfer to the seller's local currency at payout. The buffer remainder lands in a `fx_reserve` ledger account. Setting `platform_settings.settlement_currency = "usd"` (after adding a USD bank account) makes every path degrade to rate 1 / no conversion.
+
+**Migrations** `20260902_commissions_phase1c_payouts_ledger_cron.sql` and `20260902_commissions_phase1c_settlement_currency.sql` — applied (remote history). They add:
+- Settings: `release_window_hours 168`, `payout_batch_size 25`, `payout_max_attempts 3`, `supported_currencies ["usd"]`, `app_base_url`, `settlement_currency "cad"`, `fx_buffer_rate 0.015`, `fx_max_age_hours 6`; `buyer_fee_rate` → 0.035.
+- `ledger_entries` (append-only, trigger blocks UPDATE/DELETE; accounts stripe_balance / stripe_fees_expense / buyer_fee_revenue / platform_fee_revenue / seller_liability / seller_paid_out / refunds / fx_reserve; signed cents; every money RPC posts entries), `payouts` (one per order; pending → processing → sent | blocked | failed | reversed | cancelled; amount in charge currency + listing amount for display), `cron_runs`, `fx_rates`; `orders` charge-currency columns; `seller_accounts.service_agreement` + `UNIQUE(user_id)`; currency guard trigger on `orders` (USD only today).
+- RPCs (service_role): `release_eligible_payouts` (completed + hold elapsed + succeeded unrefunded payment + no open dispute + no unresolved chargeback + no payout yet), `claim_pending_payouts` (`FOR UPDATE SKIP LOCKED`), `mark_payout_sent`, `mark_payout_failed` (block / retry with backoff / failed after 3), `mark_payout_reversed`, `unblock_payouts_for_seller`, `set_order_charge`, `run_cron_job`. `record_payment_succeeded` / `record_payment_refund` now verify against the charge currency and post ledger entries; a full refund cancels a not-yet-sent payout.
+- pg_cron: `marketplace-auto-decline` (*/10), `marketplace-hourly` (:05 — auto-complete, review reveal, payout release), `marketplace-payout-worker` (*/15 — `net.http_post` to `<app_base_url>/api/payouts/run` with the bearer secret from Vault `cron_secret`, only when pending payouts exist). Every run logs to `cron_runs`.
+
+**Code**
+- `app/api/payouts/run/route.ts` (new): the only code path that moves money to sellers — release → claim → one idempotent Stripe transfer per payout (`payout_<id>`, `source_transaction` = the order's charge so it can draw on pending balance) → mark sent / blocked / retry.
+- `lib/payment-provider.ts`: `transferToSeller(orderId)` replaced by `createTransfer(request)`; `TransferBlockedError`; `createSellerAccount(..., country)`. `lib/providers/stripe-provider.ts`: account creation with country, idempotency key per user, upsert on `user_id`, friendly error when Stripe can't pay out there; Checkout line items in the charge currency with the USD amount and rate in the description. Placeholder provider updated.
+- `lib/fx.ts` (new): settlement quotes. `app/api/checkout/route.ts`: quote → `set_order_charge` → session; response carries `charge` so the page can show "Your card will be charged C$7.75 (CAD, at 1 USD = 1.3925 CAD)". `components/orders/OrderView.tsx`: "Charged as C$…" / "Paid out as C$… (converted at …)".
+- `app/api/stripe/webhooks/route.ts`: `account.updated` unblocks payouts instead of transferring; `transfer.reversed` and full-refund reversals go through `mark_payout_reversed`. `app/api/orders/auto-complete` and `auto-decline` are thin manual triggers for `run_cron_job`. `.github/workflows/marketplace-cron.yml` deleted.
+- `components/seller/SellerOnboarding.tsx` + `usePayments`: country select (list in `lib/payments.ts` `SELLER_COUNTRIES`; Stripe is the authority — unsupported countries get a clear error) and honest copy about USD pricing and payout conversion. `EarningsOverview`: buyer-fee row label.
+
+**Verified live (test mode, then cleaned up)**
+- Order PQ-20260902-1053 ($5 commission): quote stored as C$7.75 total / C$0.68 fee / seller C$6.61 / platform C$0.35 / buyer fee C$0.67 / reserve C$0.12 at 1.3925; Stripe session `775 cad`, card only. Paid via fixture → `paid`, Stripe fee C$0.59 captured; ledger sums: stripe_balance 716, seller_liability 661, platform 35, buyer fee 67, reserve 12, fees 59.
+- Completed with `completed_at` 8 days back → `/api/payouts/run` #1: released 1, **blocked** (seller had no Stripe account). Seller account attached → `unblock_payouts_for_seller` → run #2: **sent** — Stripe transfer `tr_3UBJjk…` of **661 CAD** to a US test connected account, funded by the order's charge; payout row `sent` with transfer + balance-transaction ids; `orders.transfer_*` and `transactions.seller_payout` updated; ledger: seller_liability 0, seller_paid_out 661, stripe_balance 55 (= platform net); seller notified "Your payout of 6.61 CAD is on its way".
+- pg_cron confirmed running on schedule (`cron_runs`: auto_decline twice, payout_worker "no pending payouts"); `run_cron_job('hourly')` returns counts.
+- Cleanup: test seller account row removed, test order and all dependents deleted (ledger trigger disabled for the deletion only, re-enabled — `tgenabled = O`), production back to zero orders and zero ledger rows. The Stripe test-mode connected account `acct_1UBJbGFZheMwg36N` (US, fully verified, payouts manual) is kept for future payout tests.
+- `npx tsc` clean; ESLint clean on changed files; 138 unit tests pass; `npm run build` succeeds.
+
+**Deferred / follow-ups**
+- Production must set `CRON_SECRET` in Vercel to the same value as Vault `cron_secret` (the local value was used). The payout worker URL is `platform_settings.app_base_url` + `/api/payouts/run`; the route ships with this branch, so the 15-minute job will 404 on production until the branch is deployed (harmless: it only fires when pending payouts exist).
+- Partial payout reversals on partial refunds, chargeback freeze/reversal, `payouts.status = failed` operator queue — 1d.
+- Existing `seller_accounts` rows for hadi and hii are **live-mode** Canadian accounts created before this phase; they keep working. New sellers pick a country; non-Canadian sellers get full connected accounts (Stripe requires card_payments + transfers).
+- Sellers in countries Stripe does not serve (e.g. Saudi Arabia) cannot be paid through Stripe Connect at all; onboarding tells them so. A second payout rail (e.g. Wise/Payoneer) would be a separate phase.
+
+**Next:** Phase 1d — refunds, cancellations, disputes, chargebacks. Needs D6 (refund policy defaults) and D8 (admin access).

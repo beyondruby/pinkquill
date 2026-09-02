@@ -21,14 +21,15 @@ import { NextResponse } from "next/server";
 import {
   claimStripeEvent,
   finishStripeEvent,
+  markPayoutReversed,
   recordCheckoutExpired,
   recordPaymentFailed,
   recordPaymentRefund,
   recordPaymentSucceeded,
+  unblockPayoutsForSeller,
 } from "@/lib/payments-server";
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { getActiveProvider } from "@/lib/payment-provider";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -199,37 +200,32 @@ async function handleChargeRefunded(stripe: Stripe, charge: Stripe.Charge, event
     return { status: "ignored", note: "refund for a charge with no payments row", orderId };
   }
 
-  // If the seller had already been transferred for this order and the buyer
-  // got a full refund, pull the payout back. (1d replaces this with the
-  // payouts table and partial reversals.)
+  // Full refund after the seller was already paid: pull the transfer back.
+  // Partial reversals and the no-balance case are handled in 1d.
   if (orderId && result.outcome === "refunded") {
-    const { data: order } = await supabaseAdmin
-      .from("orders")
-      .select("id, transfer_id, transfer_status")
-      .eq("id", orderId)
+    const { data: payout } = await supabaseAdmin
+      .from("payouts")
+      .select("id, transfer_id, amount_cents, reversed_cents, status")
+      .eq("order_id", orderId)
       .maybeSingle();
-    if (order?.transfer_id && order.transfer_status !== "reversed") {
+    if (payout?.transfer_id && payout.status === "sent") {
       try {
-        await stripe.transfers.createReversal(
-          order.transfer_id,
+        const reversal = await stripe.transfers.createReversal(
+          payout.transfer_id,
           { metadata: { order_id: orderId, reason: "refund", stripe_event_id: event.id } },
-          { idempotencyKey: `reversal_${orderId}` }
+          { idempotencyKey: `reversal_${payout.id}` }
         );
-        await supabaseAdmin
-          .from("orders")
-          .update({ transfer_status: "reversed", updated_at: new Date().toISOString() })
-          .eq("id", orderId);
+        await markPayoutReversed({
+          transferId: payout.transfer_id,
+          reversedCents: (payout.reversed_cents ?? 0) + reversal.amount,
+          reason: "refund",
+        });
       } catch (err) {
         console.error("[Stripe Webhook] Transfer reversal failed:", err);
-        await supabaseAdmin
-          .from("transactions")
-          .update({ status: "reversal_failed" })
-          .eq("order_id", orderId)
-          .eq("type", "seller_payout");
         await supabaseAdmin.from("order_events").insert({
           order_id: orderId,
           event_type: "transfer_failed",
-          metadata: { action: "reversal_failed", transfer_id: order.transfer_id, stripe_event_id: event.id,
+          metadata: { action: "reversal_failed", transfer_id: payout.transfer_id, stripe_event_id: event.id,
             error: err instanceof Error ? err.message : "Unknown" },
         });
       }
@@ -264,23 +260,13 @@ async function handleDispute(stripe: Stripe, dispute: Stripe.Dispute, event: Str
 }
 
 async function handleTransferReversed(transfer: Stripe.Transfer, event: Stripe.Event): Promise<Outcome> {
-  const { data: order } = await supabaseAdmin
-    .from("orders")
-    .select("id")
-    .eq("transfer_id", transfer.id)
-    .maybeSingle();
-  if (!order) return { status: "ignored", note: "reversal for unknown transfer" };
-  await supabaseAdmin
-    .from("orders")
-    .update({ transfer_status: "reversed", updated_at: new Date().toISOString() })
-    .eq("id", order.id);
-  await supabaseAdmin.from("order_events").insert({
-    order_id: order.id,
-    event_type: "payment",
-    metadata: { action: "transfer_reversed", transfer_id: transfer.id,
-      amount_reversed: transfer.amount_reversed, stripe_event_id: event.id },
+  const result = await markPayoutReversed({
+    transferId: transfer.id,
+    reversedCents: transfer.amount_reversed,
+    reason: `stripe:${event.type}`,
   });
-  return { status: "processed", orderId: order.id };
+  if (result.outcome === "no_payout") return { status: "ignored", note: "reversal for unknown transfer" };
+  return { status: "processed", note: result.outcome };
 }
 
 async function handlePayoutFailed(payout: Stripe.Payout, event: Stripe.Event): Promise<Outcome> {
@@ -324,22 +310,10 @@ async function handleAccountUpdated(account: Stripe.Account): Promise<Outcome> {
     })
     .eq("id", sellerAccount.id);
 
-  // Seller just became payable: release anything that was waiting on onboarding.
+  // Seller just became payable: blocked payouts go back to the queue.
   if (!wasPayoutsEnabled && account.payouts_enabled) {
-    const { data: pendingOrders } = await supabaseAdmin
-      .from("orders")
-      .select("id")
-      .eq("seller_id", sellerAccount.user_id)
-      .eq("transfer_status", "pending_onboarding")
-      .eq("status", "completed");
-    const provider = getActiveProvider();
-    for (const order of pendingOrders ?? []) {
-      try {
-        await provider.transferToSeller(order.id);
-      } catch (err) {
-        console.error(`[Stripe Webhook] pending transfer failed for order ${order.id}:`, err);
-      }
-    }
+    const n = await unblockPayoutsForSeller(sellerAccount.user_id);
+    if (n > 0) console.log(`[Stripe Webhook] unblocked ${n} payout(s) for ${sellerAccount.user_id}`);
   }
   return { status: "processed" };
 }

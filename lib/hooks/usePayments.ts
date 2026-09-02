@@ -14,7 +14,7 @@ interface UseSellerOnboardingReturn {
   account: SellerAccount | null;
   loading: boolean;
   error: string | null;
-  startOnboarding: () => Promise<void>;
+  startOnboarding: (country?: string) => Promise<void>;
   checkStatus: () => Promise<void>;
   openDashboard: () => Promise<void>;
 }
@@ -85,7 +85,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
     }
   }, []);
 
-  const startOnboarding = useCallback(async () => {
+  const startOnboarding = useCallback(async (country?: string) => {
     try {
       setError(null);
       setLoading(true);
@@ -94,6 +94,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
       const res = await fetch("/api/stripe/connect/onboard", {
         method: "POST",
         headers: await buildAuthenticatedHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(country ? { country } : {}),
       });
       const data = await safeResponseJson<Record<string, unknown>>(res);
 

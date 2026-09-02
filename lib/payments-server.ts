@@ -160,3 +160,99 @@ export async function recordPaymentRefund(args: {
     p_source: args.source,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Payouts (Phase 1c)
+// ---------------------------------------------------------------------------
+export interface PayoutRow {
+  id: string;
+  order_id: string;
+  seller_id: string;
+  payment_id: string | null;
+  amount_cents: number;
+  currency: string;
+  status: string;
+  attempts: number;
+  source_charge_id: string | null;
+  destination_account_id: string | null;
+  transfer_id: string | null;
+}
+
+export async function releaseEligiblePayouts(): Promise<number> {
+  return rpc<number>("release_eligible_payouts", {});
+}
+
+export async function claimPendingPayouts(limit: number): Promise<PayoutRow[]> {
+  const { data, error } = await supabaseAdmin.rpc("claim_pending_payouts", { p_limit: limit });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PayoutRow[];
+}
+
+export async function markPayoutSent(args: {
+  payoutId: string;
+  transferId: string;
+  balanceTransactionId: string | null;
+  destinationAccountId: string;
+}): Promise<void> {
+  await rpc("mark_payout_sent", {
+    p_payout_id: args.payoutId,
+    p_transfer_id: args.transferId,
+    p_balance_transaction_id: args.balanceTransactionId,
+    p_destination_account_id: args.destinationAccountId,
+  });
+}
+
+export async function markPayoutFailed(args: {
+  payoutId: string;
+  error: string;
+  block?: boolean;
+  blockReason?: string | null;
+}): Promise<{ outcome: string }> {
+  return rpc<{ outcome: string }>("mark_payout_failed", {
+    p_payout_id: args.payoutId,
+    p_error: args.error,
+    p_block: args.block ?? false,
+    p_block_reason: args.blockReason ?? null,
+  });
+}
+
+export async function markPayoutReversed(args: {
+  transferId: string;
+  reversedCents: number;
+  reason?: string | null;
+}): Promise<{ outcome: string }> {
+  return rpc<{ outcome: string }>("mark_payout_reversed", {
+    p_transfer_id: args.transferId,
+    p_reversed_cents: args.reversedCents,
+    p_reason: args.reason ?? null,
+  });
+}
+
+export async function unblockPayoutsForSeller(sellerId: string): Promise<number> {
+  const { data, error } = await supabaseAdmin.rpc("unblock_payouts_for_seller", { p_seller_id: sellerId });
+  if (error) throw new Error(error.message);
+  return Number(data ?? 0);
+}
+
+/** Persist the settlement-currency quote on the order before creating the session. */
+export async function setOrderCharge(args: {
+  orderId: string;
+  chargeCurrency: string;
+  chargeAmountCents: number;
+  chargeFeeCents: number;
+  sellerCents: number;
+  platformCents: number;
+  buyerCents: number;
+  fxRate: number;
+}): Promise<void> {
+  await rpc("set_order_charge", {
+    p_order_id: args.orderId,
+    p_charge_currency: args.chargeCurrency,
+    p_charge_amount_cents: args.chargeAmountCents,
+    p_charge_fee_cents: args.chargeFeeCents,
+    p_seller_cents: args.sellerCents,
+    p_platform_cents: args.platformCents,
+    p_buyer_cents: args.buyerCents,
+    p_fx_rate: args.fxRate,
+  });
+}

@@ -20,6 +20,16 @@ const TX_CONFIG: Record<string, { label: string; color: string; sign: string; ic
       </svg>
     ),
   },
+  buyer_fee: {
+    label: "Buyer processing fee",
+    color: "text-muted",
+    sign: "",
+    icon: (
+      <svg className="w-4 h-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a4 4 0 0 0-8 0v2" />
+      </svg>
+    ),
+  },
   platform_fee: {
     label: "Platform fee",
     color: "text-muted",

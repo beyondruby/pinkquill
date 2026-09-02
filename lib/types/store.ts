@@ -357,8 +357,15 @@ export interface Order {
   checkout_session_id?: string | null;
   /** Buyer-side processing fee charged on top of `amount` (D3) */
   buyer_fee?: number;
-  /** amount + buyer_fee — what the buyer is charged (generated column) */
+  /** amount + buyer_fee in the listing currency (generated column) */
   total_amount?: number;
+  /** Settlement-currency charge (Phase 1c): what Stripe actually charged */
+  charge_currency?: string | null;
+  charge_amount_cents?: number | null;
+  charge_fee_cents?: number | null;
+  seller_amount_charge_cents?: number | null;
+  fx_rate?: number | null;
+  fx_rate_at?: string | null;
   payment_status: PaymentStatus;
   escrow_released: boolean;
   escrow_released_at: string | null;

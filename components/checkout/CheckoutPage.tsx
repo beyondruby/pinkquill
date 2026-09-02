@@ -290,6 +290,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
   // Checkout session state
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [chargeInfo, setChargeInfo] = useState<{ currency: string; amountCents: number; rate: number; converted: boolean } | null>(null);
   // One live Stripe session per (order, total): the effect below re-runs on
   // every order/promo change, so it must not mint a session when one already
   // exists for the same total or while a request is in flight.
@@ -445,6 +446,11 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
         setCheckoutMode(data.mode || "placeholder");
         setClientSecret(data.client_secret || null);
+        setChargeInfo(
+          data.charge
+            ? { currency: data.charge.currency, amountCents: data.charge.amount_cents, rate: data.charge.rate, converted: Boolean(data.charge.converted) }
+            : null
+        );
         setPaymentUnlocked(true);
       } catch (err) {
         setCheckoutError(
@@ -1349,6 +1355,12 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 <span>Total</span>
                 <span>{formatCurrency(totalDue, currency)}</span>
               </div>
+
+              {chargeInfo?.converted && (
+                <p className="text-xs font-body text-muted pt-1">
+                  Your card will be charged {formatCurrency(chargeInfo.amountCents / 100, chargeInfo.currency)} ({chargeInfo.currency.toUpperCase()}, at 1 {currency.toUpperCase()} = {chargeInfo.rate.toFixed(4)} {chargeInfo.currency.toUpperCase()}). Your bank may apply its own conversion.
+                </p>
+              )}
             </div>
 
             {zeroTotal && effectiveDiscount > 0 && (

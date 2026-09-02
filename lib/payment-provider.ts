@@ -46,16 +46,31 @@ export interface CheckoutSessionResult {
   message?: string;
 }
 
+export interface TransferRequest {
+  /** payouts.id — also the idempotency key */
+  payoutId: string;
+  orderId: string;
+  amountCents: number;
+  currency: string;
+  /** Connected account id */
+  destinationAccountId: string;
+  /** Charge that funded this payout; lets Stripe transfer from pending balance */
+  sourceChargeId?: string | null;
+  metadata?: Record<string, string>;
+}
+
 export interface TransferResult {
-  success: boolean;
-  transferId?: string;
-  /** Cents transferred to seller */
-  amount?: number;
-  /** Cents kept by platform */
-  platformFee?: number;
-  alreadyTransferred?: boolean;
-  /** Seller hasn't completed Connect onboarding yet */
-  pendingOnboarding?: boolean;
+  transferId: string;
+  balanceTransactionId: string | null;
+  amountCents: number;
+}
+
+/** Thrown by createTransfer when the destination cannot receive money (not a retry). */
+export class TransferBlockedError extends Error {
+  constructor(public readonly reason: string, message?: string) {
+    super(message || reason);
+    this.name = "TransferBlockedError";
+  }
 }
 
 export interface RefundResult {
@@ -77,7 +92,15 @@ export interface OrderForCheckout {
   amount: number;
   /** Buyer-side processing fee charged on top of `amount` */
   buyerFee: number;
+  /** Listing currency (USD) */
   currency: string;
+  /** Settlement-currency charge (lib/fx.ts). When absent, charge in `currency`. */
+  charge?: {
+    currency: string;
+    amountCents: number;
+    feeCents: number;
+    rate: number;
+  };
   listingType: string;
   productTitle?: string | null;
 }
@@ -93,7 +116,9 @@ export interface PaymentProviderInterface {
   createSellerAccount(
     userId: string,
     email: string,
-    profile: { username?: string; displayName?: string }
+    profile: { username?: string; displayName?: string },
+    /** ISO-3166 alpha-2; drives cross-border (recipient) agreement for non-platform countries */
+    country: string
   ): Promise<OnboardingResult>;
   checkSellerStatus(userId: string): Promise<SellerStatusResult>;
   getSellerDashboardUrl(userId: string): Promise<DashboardResult>;
@@ -101,8 +126,8 @@ export interface PaymentProviderInterface {
   // Checkout — creates embedded checkout session on platform's account
   createCheckoutSession(order: OrderForCheckout): Promise<CheckoutSessionResult>;
 
-  // Transfers — pay seller after order completion
-  transferToSeller(orderId: string): Promise<TransferResult>;
+  // Transfers — one per released payout (called by the payout worker only)
+  createTransfer(request: TransferRequest): Promise<TransferResult>;
 
   // Refunds — refund buyer, reverse transfer if needed
   refundPayment(orderId: string): Promise<RefundResult>;
