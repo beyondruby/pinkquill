@@ -289,4 +289,11 @@ Do these in order. Everything before step 6 is reversible.
    - fx rate stale alert → `fx_rates` feed (frankfurter) is down; quotes fall back to the last rate up to `fx_max_age_hours`, after which checkout refuses with a clear error. Insert a manual row if it lasts.
 9. **Later, when a USD bank account exists:** add it in Stripe (Settings → Bank accounts → USD), set `platform_settings.settlement_currency = 'usd'` — no code change; the fx buffer and reserve stop applying to new orders.
 
-**Next:** Phase 2 (product features) needs your go — start with 2a Availability & slots. D7 (email provider) is decided in 2d.
+**Go-live progress (2026-09-02, after the merge to main was deployed)**
+- Step 1 done: branch merged fast-forward into `main` and deployed. Every new route answers in production; the payout worker accepted the Vault `cron_secret` (200, empty run) so Vercel `CRON_SECRET` matches; the webhook route rejects unsigned posts, so `STRIPE_WEBHOOK_SECRET` is set.
+- Step 3 done (live Stripe): the existing "Your account" destination (`we_1T0NhhFXksFnlAjh6nDT9nty`, secret unchanged) now listens to the full 15-event list; `payment_intent.created/succeeded` removed; the stray thin-payload `v2.core.account.*` destination deleted. A second destination **`pinkquill-connected-accounts`** (`we_1UBL0vFXksFnlAjh6B8jFNkt`, events from Connected accounts: `account.updated`, `payout.failed`, `account.application.deauthorized`) was created because Stripe only delivers connected-account events to a Connect-scoped destination. Its signing secret must be added in Vercel as **`STRIPE_CONNECT_WEBHOOK_SECRET`** (code accepts both secrets, commit `1c3dc7e`). Both destinations stay on API version 2020-08-27 (the account default; the fields the handler reads are identical there).
+- Step 4 partly done: customer emails for successful payments and refunds turned **on**. **Statement descriptor still reads `BEYOND RUBY`** — change it to `PINKQUILL` (Settings → Business details → Statement descriptor; shortened descriptor too). Connect branding / tax forms not reviewed yet.
+- Step 5 done: cron jobs active and on schedule, `platform_admins` = 1, settings correct, fx rate fresh, `run_money_selftest()` ok, ledger balanced, no failed events, no open alerts.
+- Steps 2 (`STRIPE_CONNECT_WEBHOOK_SECRET`), 6 (first live dollar), 7 (24 h observation) remain.
+
+**Next:** finish the go-live steps above, then Phase 2 (product features) needs your go — start with 2a Availability & slots. D7 (email provider) is decided in 2d.
