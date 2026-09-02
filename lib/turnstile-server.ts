@@ -69,6 +69,9 @@ export async function verifyTurnstileToken({
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: form.toString(),
       cache: "no-store",
+      // Checkout used to block for the platform's whole function timeout
+      // when Cloudflare stalled (findings H11).
+      signal: AbortSignal.timeout(8000),
     });
   } catch (error) {
     console.error("[Turnstile] siteverify request failed", error);

@@ -126,6 +126,17 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
 
   const pageRef = useRef(0);
   const fetchingRef = useRef(false);
+  // Every fetch gets an id; state is only written by the latest one, so a
+  // tag change while a fetch is in flight replaces it instead of being
+  // dropped (and the old tag's posts can no longer land in state).
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Use ref for userId to avoid re-fetching all posts when auth resolves
   const userIdRef = useRef(userId);
@@ -138,8 +149,11 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
       setLoading(false);
       return;
     }
-    if (fetchingRef.current) return;
+    // Appends queue behind an in-flight fetch; a fresh load supersedes it.
+    if (append && fetchingRef.current) return;
     fetchingRef.current = true;
+    const requestId = ++requestIdRef.current;
+    const stale = () => !mountedRef.current || requestIdRef.current !== requestId;
 
     try {
       if (!append) {
@@ -195,6 +209,7 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
       }
 
       // Fetch the actual posts
+      if (stale()) return;
       const { data: postsData, error: postsError } = await supabase
         .from("posts")
         .select(`
@@ -299,6 +314,7 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
         hashtags: tagsByPost.get(post.id) || [],
       }));
 
+      if (stale()) return;
       if (append) {
         setPosts((prev) => [...prev, ...transformedPosts]);
       } else {
@@ -308,10 +324,14 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
       setHasMore(postIds.length === PAGE_SIZE);
       pageRef.current = page;
     } catch (err) {
+      if (stale()) return;
       console.error("[useTagPosts] Error:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch posts");
     } finally {
-      setLoading(false);
+      if (!stale()) {
+        setLoading(false);
+        fetchingRef.current = false;
+      }
       fetchingRef.current = false;
     }
   }, [tagName]);

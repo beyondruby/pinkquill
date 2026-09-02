@@ -22,8 +22,10 @@ export async function GET(request: Request) {
   const type = requestUrl.searchParams.get("type");
 
   if (!code) {
+    // No session exists yet, so the message must land on a public page —
+    // /settings is proxy-protected and would bounce to /login and lose it.
     return NextResponse.redirect(
-      new URL("/settings/account?error=email_confirmation_failed", requestUrl.origin)
+      new URL("/login?error=" + encodeURIComponent("That link is invalid or has expired. Please request a new one."), requestUrl.origin)
     );
   }
 
@@ -61,9 +63,11 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error("[Auth Callback] Code exchange failed:", error.message);
+    // Typical cause: the link was opened in a different browser than the one
+    // that requested it (the PKCE verifier lives in that browser's cookies).
     return NextResponse.redirect(
       new URL(
-        `/settings/account?error=${encodeURIComponent(error.message)}`,
+        "/login?error=" + encodeURIComponent("We couldn't complete that link. Open it in the same browser you requested it from, or request a new one."),
         requestUrl.origin
       )
     );

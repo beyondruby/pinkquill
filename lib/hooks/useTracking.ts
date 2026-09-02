@@ -272,11 +272,13 @@ export function useTrackPostImpression(
   postId: string | undefined,
   source: string = "feed"
 ) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const tracked = useRef(false);
 
   useEffect(() => {
-    if (!postId || tracked.current) return;
+    // Wait for auth to settle; otherwise a signed-in user's first impressions
+    // were queued as anonymous and never re-attributed.
+    if (!postId || tracked.current || authLoading) return;
     tracked.current = true;
 
     const queueImpression = () => {
@@ -297,7 +299,7 @@ export function useTrackPostImpression(
     return () => {
       cancelIdle();
     };
-  }, [postId, user?.id, source]);
+  }, [postId, user?.id, authLoading, source]);
 }
 
 /**
@@ -433,11 +435,11 @@ export function useTrackTakeImpression(
   source: string = "feed",
   enabled: boolean = true
 ) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const tracked = useRef(false);
 
   useEffect(() => {
-    if (!enabled || !takeId || tracked.current) return;
+    if (!enabled || !takeId || tracked.current || authLoading) return;
     tracked.current = true;
 
     const queueImpression = () => {
@@ -458,7 +460,7 @@ export function useTrackTakeImpression(
     return () => {
       cancelIdle();
     };
-  }, [enabled, takeId, user?.id, source]);
+  }, [enabled, takeId, user?.id, authLoading, source]);
 }
 
 /**

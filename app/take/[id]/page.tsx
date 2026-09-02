@@ -456,6 +456,7 @@ export default function SingleTakePage({ params }: PageProps) {
       await supabase.from("reports").insert({
         reporter_id: user.id,
         reported_user_id: take.author_id,
+        take_id: take.id,
         reason: reason + (details ? `: ${details}` : ""),
         type: "take",
       });

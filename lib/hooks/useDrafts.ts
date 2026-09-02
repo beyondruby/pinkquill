@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type {
   CommunityFlair,
   JournalMetadata,
@@ -287,16 +287,24 @@ export function useAutoSave(
     }
   }, [getDraftData, saveDraft, draftId, onSave]);
 
-  // Auto-save on interval
+  // Auto-save on a STABLE interval. `triggerSave` changes on every edit
+  // (it closes over the draft getter), so keying the interval on it reset
+  // the timer on each keystroke and an actively edited draft was never
+  // saved (findings H9).
+  const triggerSaveRef = useRef(triggerSave);
+  useEffect(() => {
+    triggerSaveRef.current = triggerSave;
+  }, [triggerSave]);
+
   useEffect(() => {
     if (!enabled) return;
 
     const timer = setInterval(() => {
-      triggerSave();
+      triggerSaveRef.current();
     }, interval);
 
     return () => clearInterval(timer);
-  }, [enabled, interval, triggerSave]);
+  }, [enabled, interval]);
 
   return {
     draftId,

@@ -1,6 +1,6 @@
 # Pinkquill — Audit Progress
 
-Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). Work happens on stacked branches: `fix/phase1-site-loads` (from `main` at `0c9625b`) → `fix/phase2-realtime` → `fix/phase3-security` → `fix/phase4-tracking` → `fix/phase5-read-path`.
+Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). Work happens on stacked branches: `fix/phase1-site-loads` (from `main` at `0c9625b`) → `fix/phase2-realtime` → `fix/phase3-security` → `fix/phase4-tracking` → `fix/phase5-read-path` → merged to `main` (2026-09-02) → `fix/phase6-hardening`.
 
 ## Status by phase
 | Phase | Status | Commit(s) | Notes |
@@ -10,7 +10,7 @@ Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). 
 | 3 — Security + money | **done, needs prod verification** | see `git log fix/phase3-security` | Two migrations applied to prod; typecheck/lint/tests/build green; local smoke on messages media OK |
 | 4 — Tracking layer | **done, needs prod verification** | see `git log fix/phase4-tracking` | Migration applied to prod; RPC paths verified as anon and as authenticated; typecheck/lint/tests/build green |
 | 5 — Read path + latency | **done (first pass), needs prod verification** | see `git log fix/phase5-read-path` | Migration applied to prod; prose routes static; typecheck/lint/tests/build green; two items deferred (below) |
-| 6 — Hang-adjacent + half-finished | not started | – | |
+| 6 — Hang-adjacent + half-finished | **done, needs prod verification** | see `git log fix/phase6-hardening` | Migration applied to prod; typecheck/lint/tests/build green |
 | 7 — Consolidation | not started | – | |
 | 8 — Dead code + bundle | not started | – | |
 
@@ -118,8 +118,26 @@ Verification: typecheck, lint (0 errors), 136/136 tests, production build with t
 
 Deploy notes: `vercel.json` changes the function region on the next deploy — verify in `vercel inspect` that builds show `[sin1]`. `NEXT_PUBLIC_BASE_URL` is still unset in Vercel; the code default now points at the real domain, so previews work either way.
 
+## Phase 6 — what changed (2026-09-02)
+
+Root causes addressed: H8, H9, H10, H11, B5, B8, S6, S9 from `01-findings.md`, plus the Phase-4 note about blocks not being enforced in RLS.
+
+| Step | Change | Files |
+|---|---|---|
+| DB | Migration `20260902_phase6_hardening.sql` — **applied to prod.** (a) `reports.take_id` added: take reports inserted `reported_post_id`, a column that does not exist, so **every take report has failed since launch**. (b) `notifications_type_check` gains `refund_declined`. (c) **Blocks enforced in RLS**: `posts_select_policy` and `takes_select` now exclude content where a block exists in either direction between viewer and author (the client-side checks were the only gate before). (d) `follows_enforce_request_status` BEFORE INSERT trigger forces `pending` when the target profile is private and the inserter is the follower — the client can no longer self-accept a follow of a private account. (e) `on_auth_user_email_updated` trigger keeps `profiles.email` in sync with `auth.users.email`. | `supabase/migrations/20260902_phase6_hardening.sql` |
+| Boundaries | `app/not-found.tsx` (there was none) and an `error.tsx` for every route group that lacked one (community, studio, post, take, seller, settings, insights, sell, product, commissions, takes, tag) via a shared `RouteError`, so a thrown render error replaces the page, not the whole shell. | `app/not-found.tsx`, `app/*/error.tsx`, `components/ui/RouteError.tsx` |
+| Auth edges | `/auth/callback` errors (expired link, link opened in another browser) now land on `/login?error=…` — a public page — instead of the proxy-protected `/settings/account` where they were never seen; `AuthForm` shows the message. Email change goes through GoTrue's confirmation flow (`updateUser({ email })` as the user): the address changes only after the confirmation link is opened, and `profiles.email` follows via the trigger; the admin overwrite with `email_confirm:true` is gone. Settings copy updated accordingly. | `app/auth/callback/route.ts`, `components/auth/AuthForm.tsx`, `app/api/auth/change-email/route.ts`, `app/settings/account/page.tsx` |
+| Timeouts / in-flight | Turnstile siteverify has an 8 s abort. `useTagPosts`: a tag change supersedes an in-flight fetch (request ids) instead of being dropped; unmounted/stale responses never write state. `useBuyerOrders` / `useSellerOrders`: a filter change during a fetch replaces it instead of being silently ignored. `useCommunityMembers` / `useCommunityPosts` now actually pass the abort signal they create. | `lib/turnstile-server.ts`, `lib/hooks/useTags.ts`, `lib/hooks/useOrders.ts`, `lib/hooks.legacy.ts` |
+| Half-finished | `useAutoSave` interval no longer restarts on every keystroke (drafts of actively edited posts now save every 30 s). One follow implementation: `followUserRecord` (private → pending + `follow_request` notification) used by both the profile button and the takes feed; the old-schema fallback insert is gone. Take reports use `take_id` (3 sites). Refund-declined notifications use `refund_declined`. Impressions wait for auth to settle so they are attributed to the signed-in user. Reaction hooks reset when the post modal closes. Dead `category` option removed from `useDiscoverCommunities`. | `lib/hooks/useDrafts.ts`, `lib/hooks/useProfile.ts`, `lib/hooks/useTakes.ts`, `components/takes/TakeDetailModal.tsx`, `app/take/[id]/page.tsx`, `app/api/payments/refund/route.ts`, `lib/hooks/useTracking.ts`, `lib/hooks/useInteractions.ts`, `lib/hooks.legacy.ts` |
+
+Verification: typecheck, lint (0 errors), 136/136 tests, production build. Live (rolled-back transaction as an authenticated user): before a block the viewer sees 22 of the author's posts, after inserting a block 0; a follow of a private account inserted with `status='accepted'` is stored as `pending`; a take report inserts with `take_id`.
+
+Not done in this phase (explicit): re-enabling Sentry (needs the DSN in Vercel env and the Next 16 `instrumentation-client.ts` layout; `@sentry/nextjs` 10.73 supports Next 16); constraining `notifications.type`/`user_id` beyond `actor_id = auth.uid()` (S9 remainder); request-id guards on the six `useInsights` hooks; the community `top`/`hot` server sort and the Phase-5 pagination deferrals. `useSellerCustomers` "revenue" was left as gross-paid (comment added); it already excludes refunded/cancelled orders.
+
+Deploy note: the migration is live and backward compatible. Until this branch deploys, the old client's take reports keep failing (as they always have) and email changes still use the old immediate path.
+
 ## Next
-Deploy `fix/phase5-read-path` (contains Phases 1–4; merge to `main` triggers Vercel), flip leaked-password protection in the Supabase dashboard, watch `vercel logs` for `[auth-diagnostic]` and the realtime inspector for a day, then start Phase 6 (`02-plan.md`), or the Phase 5 deferrals (profile pagination) if launch traffic makes profile pages slow.
+Phases 1–5 are merged to `main` and pushed. Merge `fix/phase6-hardening` to `main` (fast-forward) to deploy it. Still open from earlier phases: flip leaked-password protection in the Supabase dashboard; watch `vercel logs` for `[auth-diagnostic]`; confirm `vercel inspect` shows `[sin1]`. Then Phase 7 (`02-plan.md`) or the Phase 5 deferrals (profile pagination) if launch traffic makes profile pages slow.
 
 ## How to resume in a fresh session
 1. Read `02-plan.md` for the phase being worked on and `01-findings.md` for the IDs it cites; `00-system-map.md` only as needed.

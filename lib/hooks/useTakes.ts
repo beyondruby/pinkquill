@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { deleteOwnTake } from "@/lib/content-client";
 import { supabase } from "../supabase";
+import { followUserRecord } from "./useProfile";
 import { sanitizePostgrestSearchTerm } from "../utils/postgrest";
 
 // ============================================================================
@@ -825,7 +826,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     try {
       const { error } = await supabase.from("reports").insert({
         reporter_id: userId,
-        reported_post_id: takeId,
+        take_id: takeId,
         reason: reason,
         details: details || null,
         type: "take",
@@ -836,7 +837,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         if (error.message?.includes('details') || error.message?.includes('type')) {
           await supabase.from("reports").insert({
             reporter_id: userId,
-            reported_post_id: takeId,
+            take_id: takeId,
             reason: reason,
           });
         } else {
@@ -1299,7 +1300,9 @@ export function useTakesFollowing(userId?: string) {
       if (isFollowing) {
         await supabase.from("follows").delete().eq("follower_id", userId).eq("following_id", authorId);
       } else {
-        await supabase.from("follows").insert({ follower_id: userId, following_id: authorId });
+        // Same path as the profile follow button: private accounts get a
+        // pending request + notification instead of an instant follow.
+        await followUserRecord(userId, authorId);
       }
     } catch {
       // Revert

@@ -6,7 +6,7 @@ import {
   rateLimitResponse,
   safeJsonParse,
 } from "@/lib/api-security";
-import { getAuthUser } from "@/lib/auth-server";
+import { getAuthUser, createSupabaseServerClient } from "@/lib/auth-server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
@@ -120,17 +120,21 @@ export async function POST(request: Request) {
     // (findings S4).
     await transient.auth.signOut({ scope: "local" }).catch(() => {});
 
-    // Update via admin API + mark confirmed. Mirrors the corresponding
-    // step in /api/auth/change-password and dodges every cookie-session
-    // edge case that has bitten this flow.
-    const { error: adminError } = await supabaseAdmin.auth.admin.updateUserById(
-      user.id,
-      { email: newEmail, email_confirm: true }
+    // Ask GoTrue to send a confirmation link to the new address (and, with
+    // secure email change enabled, to the old one). The email only changes
+    // once confirmed; profiles.email follows via the on_auth_user_email_updated
+    // trigger. This replaces the admin overwrite with email_confirm:true,
+    // which let a typo lock the user out and let a hijacked session re-point
+    // the account silently (findings S6).
+    const supabase = await createSupabaseServerClient();
+    const origin = new URL(request.url).origin;
+    const { error: updateError } = await supabase.auth.updateUser(
+      { email: newEmail },
+      { emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/settings/account?email_changed=true")}` }
     );
 
-    if (adminError) {
-      const message = adminError.message || "";
-      const lower = message.toLowerCase();
+    if (updateError) {
+      const lower = (updateError.message || "").toLowerCase();
       if (
         lower.includes("already") ||
         lower.includes("registered") ||
@@ -142,25 +146,14 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      console.error("[Auth Change Email] admin update failed:", adminError);
+      console.error("[Auth Change Email] updateUser failed:", updateError);
       return NextResponse.json(
         { error: "Could not update email right now." },
         { status: 500 }
       );
     }
 
-    // Keep the public profile email in sync too — used for username login
-    // resolution. If profile sync fails the auth email still updated, so
-    // we log and continue rather than failing the whole request.
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .update({ email: newEmail })
-      .eq("id", user.id);
-    if (profileError) {
-      console.warn("[Auth Change Email] profile email sync failed:", profileError);
-    }
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, pending_confirmation: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[Auth Change Email] unexpected:", message, error);

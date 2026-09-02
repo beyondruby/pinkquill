@@ -213,7 +213,7 @@ export async function POST(request: Request) {
       await supabaseAdmin.from("notifications").insert({
         user_id: order.buyer_id,
         actor_id: order.seller_id,
-        type: "order_paid",
+        type: "refund_declined",
         order_id: order.id,
         content: `Your refund request has been declined by the seller.${reason ? ` Reason: ${reason}` : ""}`,
       });

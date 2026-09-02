@@ -25,6 +25,8 @@ export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTarget = getSafeRedirectPath(searchParams.get("redirect"));
+  // Errors handed over by /auth/callback (expired or cross-browser links).
+  const urlError = searchParams.get("error");
   const { user: signedInUser, status: authStatus } = useAuth();
 
   // Already signed in: there is nothing to do on this page.
@@ -233,9 +235,9 @@ export default function AuthForm() {
                     </div>
                   )}
 
-                  {error && (
+                  {(error || urlError) && (
                     <div className="p-3 rounded-lg bg-red-50/80 border border-red-100 text-red-600 font-ui text-xs backdrop-blur-sm">
-                      {error}
+                      {error || urlError}
                     </div>
                   )}
 

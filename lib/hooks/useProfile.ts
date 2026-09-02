@@ -307,6 +307,31 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
 // useFollow - Follow/unfollow functionality
 // ============================================================================
 
+/**
+ * Follow another user. Handles the private-account request flow (pending +
+ * follow_request notification) and is the ONLY client path that should insert
+ * into `follows`; a DB trigger additionally forces 'pending' for private
+ * targets regardless of what a client sends.
+ */
+export async function followUserRecord(followerId: string, followingId: string): Promise<FollowStatus> {
+  const { data: target } = await supabase.from("profiles").select("is_private").eq("id", followingId).single();
+  const isPrivate = target?.is_private || false;
+  const status: FollowStatus = isPrivate ? "pending" : "accepted";
+
+  const { error } = await supabase.from("follows").insert({
+    follower_id: followerId,
+    following_id: followingId,
+    status,
+  });
+  if (error) {
+    console.error("[followUserRecord] Follow failed:", error.message);
+    throw new Error(`Failed to follow: ${error.message}`);
+  }
+
+  await createNotification(followingId, followerId, isPrivate ? "follow_request" : "follow");
+  return status;
+}
+
 export function useFollow() {
   const checkFollowStatus = async (followerId: string, followingId: string): Promise<FollowStatus> => {
     const { data, error } = await supabase
@@ -340,38 +365,8 @@ export function useFollow() {
     return data?.is_private || false;
   };
 
-  const follow = async (followerId: string, followingId: string): Promise<FollowStatus> => {
-    const isPrivate = await checkIsPrivate(followingId);
-
-    const status = isPrivate ? "pending" : "accepted";
-    const notificationType = isPrivate ? "follow_request" : "follow";
-
-    const { error } = await supabase.from("follows").insert({
-      follower_id: followerId,
-      following_id: followingId,
-      status,
-    });
-
-    if (error) {
-      // Fallback for old schema - but validate the fallback succeeds
-      const { error: fallbackError } = await supabase.from("follows").insert({
-        follower_id: followerId,
-        following_id: followingId,
-      });
-
-      if (fallbackError) {
-        console.error("[useFollow] Follow failed:", error.message, "Fallback also failed:", fallbackError.message);
-        throw new Error(`Failed to follow: ${fallbackError.message}`);
-      }
-
-      // Only create notification if fallback succeeded
-      await createNotification(followingId, followerId, "follow");
-      return "accepted";
-    }
-
-    await createNotification(followingId, followerId, notificationType);
-    return status as FollowStatus;
-  };
+  const follow = (followerId: string, followingId: string): Promise<FollowStatus> =>
+    followUserRecord(followerId, followingId);
 
   const unfollow = async (followerId: string, followingId: string): Promise<void> => {
     const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", followingId);

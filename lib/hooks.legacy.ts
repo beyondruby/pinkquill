@@ -387,7 +387,7 @@ export function useCommunities(
 }
 
 // Discover communities (for explore/browse)
-export function useDiscoverCommunities(options?: { category?: string; tag?: string; limit?: number }) {
+export function useDiscoverCommunities(options?: { tag?: string; limit?: number }) {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [trending, setTrending] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
@@ -489,7 +489,7 @@ export function useDiscoverCommunities(options?: { category?: string; tag?: stri
         abortControllerRef.current.abort();
       }
     };
-  }, [options?.category, options?.tag, limit]);
+  }, [options?.tag, limit]);
 
   return { communities, trending, loading, error };
 }
@@ -630,7 +630,8 @@ export function useCommunityMembers(
         `)
         .eq("community_id", communityId)
         .order("joined_at", { ascending: false })
-        .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1);
+        .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1)
+        .abortSignal(abortControllerRef.current.signal);
 
       if (options?.role) {
         query = query.eq("role", options.role);
@@ -816,7 +817,7 @@ export function useCommunityPosts(
       // For newest, we just order by created_at
       query = query.order("created_at", { ascending: false });
 
-      const { data, error: fetchError } = await query;
+      const { data, error: fetchError } = await query.abortSignal(abortControllerRef.current.signal);
 
       if (!mountedRef.current) return;
       if (fetchError) throw fetchError;

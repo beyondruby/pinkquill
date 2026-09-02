@@ -281,6 +281,8 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
 
   const fetchCounts = useCallback(async () => {
     if (!postId) {
+      // Modal closed / no post: never show the previous post's numbers.
+      setCounts(initialCounts || { admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0 });
       setLoading(false);
       return;
     }
@@ -492,6 +494,7 @@ export function useUserReaction(postId: string, userId?: string, options?: UseUs
 
   const fetchReaction = useCallback(async () => {
     if (!postId || !userId) {
+      setReaction(initialReaction ?? null);
       setLoading(false);
       return;
     }

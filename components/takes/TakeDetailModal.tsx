@@ -179,7 +179,7 @@ export default function TakeDetailModal({
     setReportSubmitting(true);
     try {
       const { error } = await supabase.from("reports").insert({
-        reported_post_id: take.id,
+        take_id: take.id,
         reporter_id: user.id,
         reason: reason,
         details: details || null,

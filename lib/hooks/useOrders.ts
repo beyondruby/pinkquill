@@ -307,6 +307,7 @@ export function useBuyerOrders(
   const [hasMore, setHasMore] = useState(true);
   const pageRef = useRef(0);
   const fetchingRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   // Stabilize filter values to avoid infinite re-fetch from new object refs
   const statusFilter = filters?.status;
@@ -320,8 +321,9 @@ export function useBuyerOrders(
       setLoading(false);
       return;
     }
-    if (fetchingRef.current) return;
+    if (append && fetchingRef.current) return;
     fetchingRef.current = true;
+    const requestId = ++requestIdRef.current;
 
     try {
       if (!append) setLoading(true);
@@ -342,6 +344,8 @@ export function useBuyerOrders(
       const { data, count, error: queryError } = await query.range(start, start + pageSize - 1);
 
       if (queryError) throw queryError;
+      // A newer fetch (filter change) superseded this one: drop the result.
+      if (requestIdRef.current !== requestId) return;
 
       const transformed = (data || []).map(transformOrder);
 
@@ -354,12 +358,15 @@ export function useBuyerOrders(
       pageRef.current = page;
       setHasMore(start + pageSize < (count ?? 0));
     } catch (err: unknown) {
+      if (requestIdRef.current !== requestId) return;
       const message = err instanceof Error ? err.message : String(err);
       console.error("[useBuyerOrders] Error:", message);
       setError(message);
     } finally {
-      fetchingRef.current = false;
-      setLoading(false);
+      if (requestIdRef.current === requestId) {
+        fetchingRef.current = false;
+        setLoading(false);
+      }
     }
   }, [userId, statusFilter, listingTypeFilter, dateFrom, dateTo, pageSize]);
 
@@ -395,6 +402,7 @@ export function useSellerOrders(
   const [hasMore, setHasMore] = useState(true);
   const pageRef = useRef(0);
   const fetchingRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   // Stabilize filter values to avoid infinite re-fetch from new object refs
   const statusFilter = filters?.status;
@@ -408,8 +416,9 @@ export function useSellerOrders(
       setLoading(false);
       return;
     }
-    if (fetchingRef.current) return;
+    if (append && fetchingRef.current) return;
     fetchingRef.current = true;
+    const requestId = ++requestIdRef.current;
 
     try {
       if (!append) setLoading(true);
@@ -430,6 +439,8 @@ export function useSellerOrders(
       const { data, count, error: queryError } = await query.range(start, start + pageSize - 1);
 
       if (queryError) throw queryError;
+      // A newer fetch (filter change) superseded this one: drop the result.
+      if (requestIdRef.current !== requestId) return;
 
       const transformed = (data || []).map(transformOrder);
 
@@ -442,12 +453,15 @@ export function useSellerOrders(
       pageRef.current = page;
       setHasMore(start + pageSize < (count ?? 0));
     } catch (err: unknown) {
+      if (requestIdRef.current !== requestId) return;
       const message = err instanceof Error ? err.message : String(err);
       console.error("[useSellerOrders] Error:", message);
       setError(message);
     } finally {
-      fetchingRef.current = false;
-      setLoading(false);
+      if (requestIdRef.current === requestId) {
+        fetchingRef.current = false;
+        setLoading(false);
+      }
     }
   }, [userId, statusFilter, listingTypeFilter, dateFrom, dateTo, pageSize]);
 
