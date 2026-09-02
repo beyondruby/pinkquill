@@ -14,7 +14,7 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 1e — Test harness + go-live checklist | not started | |
 | 2–4 | not started | |
 
-Open decisions (plan §2): D1 platform Stripe country, D2 release window, D3 fee model, D4 cron host, D6 refund policy, D7 email provider, D8 admin access. Answered: D5 = yes (test orders deleted in 1a).
+Open decisions (plan §2): D2 release window, D3 fee model, D4 cron host, D6 refund policy, D7 email provider, D8 admin access. Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
 ---
 
@@ -83,3 +83,32 @@ Open decisions (plan §2): D1 platform Stripe country, D2 release window, D3 fee
 - The `.next/types/validator.ts` reference to the removed `/queue` route is a stale generated file; `npm run build` regenerates it.
 
 **Next:** Phase 1b — verified payment record + full webhook (`02-plan.md` §3). Needs Stripe **test** keys in `.env.local` and `stripe listen` for local webhook delivery. D3 (fee model) is needed for the checkout display numbers in 1b; D1/D2/D4 for 1c.
+
+---
+
+## Local Stripe test setup — done (2026-09-02, between 1a and 1b)
+
+**What is in place**
+- `.env.local` now holds the account's **test-mode** keys (`pk_test_…`, `sk_test_…`) taken from the Stripe dashboard sandbox, and the Stripe CLI webhook signing secret (`whsec_…`). `NEXT_PUBLIC_SITE_URL` is `http://localhost:3000` locally so Stripe's return URL lands on the dev server. This file is gitignored; live keys exist only in the production host env.
+- Stripe CLI installed via Homebrew (`stripe` on PATH). The CLI is **not** persistently logged in; every command needs `--api-key "$(grep ^STRIPE_SECRET_KEY= .env.local | cut -d= -f2)"`.
+- To forward webhooks to the dev server (must be running while testing payments):
+  ```
+  SK=$(grep ^STRIPE_SECRET_KEY= .env.local | cut -d= -f2)
+  stripe listen --api-key "$SK" --forward-to localhost:3000/api/stripe/webhooks
+  ```
+  The signing secret it prints must equal `STRIPE_WEBHOOK_SECRET` in `.env.local` (it is stable per machine).
+- The Chrome extension cannot type into Stripe's cross-origin card iframe. To complete a checkout without a human, use a fixture that mirrors the CLI's built-in `checkout.session.completed` fixture with the order's real amount and metadata (kept in the session scratchpad as `fixture-checkout-500.json`; recreate from the CLI binary's fixture if needed — the confirm step is `POST /v1/payment_pages/${checkout_session:id}/confirm` with `expected_amount` as a number). Run with `stripe fixtures <file> --api-key "$SK"`.
+
+**Verified live in test mode** (order PQ-20260902-1049, $5 commission from `poet`, bought by the signed-in local user, then deleted):
+- Hire → `/checkout/[id]` → embedded Stripe Checkout rendered with the new keys.
+- `checkout.session.completed` delivered by the CLI forwarder → signature verified → `processed_stripe_events` claimed → `finalize_order_payment` → `payment_status = paid`, three `transactions` rows, `payment_confirmed` event, system message, seller + buyer notifications.
+- A first fixture run with the wrong amount ($30) took the **amount-mismatch** path and the `order_events.event_type = 'amount_mismatch'` row was written (rejected by CHECK before 1a).
+
+**New bugs confirmed by the run (all Phase 1b)**
+- **A4.10 (added to `01-findings.md`)** — the webhook's instant-delivery branch keys on `products.delivery_type = 'digital'` alone; the service listing has `delivery_type = 'digital'`, so a just-paid commission was set to `delivered`, `transferToSeller` ran (recorded `pending_onboarding` because `poet` is not onboarded — with an onboarded seller it would have paid out $4.75 at payment time), and the buyer's order page showed "Delivered · Confirm Receipt · Auto-completes in 2d 23h" with the seller having done nothing. Fix in 1b: branch on `listing_type = 'product' AND delivery_type = 'digital'`, and no instant transfer for anything until 1c's release gate.
+- Duplicate `order_paid` notification to the seller (webhook insert + trigger) — confirmed, two rows.
+- Two Checkout Sessions created in the same second for one order (`CheckoutPage` effect + unlock) — confirmed via the Stripe API; the embedded form remounted and cleared mid-entry.
+
+**Cleanup.** The test order and its notifications, transactions, events and messages were deleted; production is back to zero orders. Two `open` test sessions remain in Stripe test mode and expire on their own.
+
+**Next:** Phase 1b. D3 (fee model) still needed for the checkout display.
