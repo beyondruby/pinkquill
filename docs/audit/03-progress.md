@@ -1,6 +1,6 @@
 # Pinkquill — Audit Progress
 
-Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). Work happens on stacked branches: `fix/phase1-site-loads` (from `main` at `0c9625b`) → `fix/phase2-realtime` → `fix/phase3-security`.
+Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). Work happens on stacked branches: `fix/phase1-site-loads` (from `main` at `0c9625b`) → `fix/phase2-realtime` → `fix/phase3-security` → `fix/phase4-tracking`.
 
 ## Status by phase
 | Phase | Status | Commit(s) | Notes |
@@ -8,7 +8,7 @@ Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). 
 | 1 — Site does not load | **done, needs prod verification** | see `git log fix/phase1-site-loads` | All 7 steps applied; typecheck/lint/tests/build green; local smoke on logged-in + multi-tab OK |
 | 2 — Realtime / DM storm | **done, needs prod verification** | see `git log fix/phase2-realtime` | Migration applied to prod; typecheck/lint/tests/build green; local smoke on /messages OK |
 | 3 — Security + money | **done, needs prod verification** | see `git log fix/phase3-security` | Two migrations applied to prod; typecheck/lint/tests/build green; local smoke on messages media OK |
-| 4 — Tracking layer | not started | – | |
+| 4 — Tracking layer | **done, needs prod verification** | see `git log fix/phase4-tracking` | Migration applied to prod; RPC paths verified as anon and as authenticated; typecheck/lint/tests/build green |
 | 5 — Read path + latency | not started | – | |
 | 6 — Hang-adjacent + half-finished | not started | – | |
 | 7 — Consolidation | not started | – | |
@@ -78,8 +78,26 @@ Not done in this phase (explicit): **Supabase leaked-password protection** is a 
 
 Deploy note: the migrations are live. The currently deployed client still calls `get_community_chat_*` with its own id (allowed) and nothing it uses was revoked, so prod keeps working before this branch deploys; DM attachments in prod are already private and the **old** client cannot re-sign legacy public links until this deploys (images in old DM threads show broken until then). Deploy Phases 1–3 together.
 
+## Phase 4 — what changed (2026-09-02)
+
+Root causes addressed: L3, B1, B2, S8 from `01-findings.md`.
+
+| Step | Change | Files |
+|---|---|---|
+| DB | Migration `20260902_phase4_tracking_rpcs.sql` — **applied to prod.** (a) Non-partial unique indexes `(x_id, session_id, view_date)` on `post_views`, `take_views`, `community_views`, `profile_views` so the anonymous `ON CONFLICT` target is inferable (the partial ones never were → every anonymous view failed with 42P10); partial duplicates dropped. (b) `record_content_view(kind, id, session, source)` (anon + authenticated): derives `viewer_id` from `auth.uid()`, refuses self-views, skips blocked pairs, computes `is_follower` / `is_member` server-side, upserts with `DO NOTHING`. (c) `update_content_view(kind, id, session, metrics)`: read-time / watch metrics for today's row of the caller or its session, clamped. (d) `record_profile_view_admin(...)` for the server route (carries geo; `service_role` only). (e) Policies: **no direct client writes** to the four view tables any more; SELECT scoped to the content owner (post/take author, profile owner, community manager). `take_views` and `profile_views` had no SELECT policy at all before — insights on takes/profile views were empty by construction. `take_impressions` INSERT now requires `viewer_id` = caller or null. `user_locations` policy wrapped `auth.uid()`. | `supabase/migrations/20260902_phase4_tracking_rpcs.sql` |
+| Client | `useTracking`: `isBlockedEitherWay`, `checkIsFollowing`, both relationship caches and all direct `post_views`/`take_views`/`community_views` upserts/updates removed; each view is one `record_content_view` call and each metric flush one `update_content_view` call. Hook signatures unchanged (the `authorId` argument is now unused). Profile views no longer send `is_follower`. Impressions keep the batched direct insert. | `lib/hooks/useTracking.ts` |
+| Route | `/api/track/profile-view` calls `record_profile_view_admin` (self/block/follower decided server-side) instead of a trusting upsert. | `app/api/track/profile-view/route.ts` |
+
+Effect on the feed: a viewed post costs one RPC instead of 2×`blocks` + 1×`follows` + 1 upsert (4 requests). On a signed-in load of `/`, `/rest/v1/blocks` no longer appears in the network log at all (it was the #2 endpoint platform-wide).
+
+Verification: typecheck, lint (0 errors), 136/136 tests, production build. Live as `anon`: `record_content_view` for a post → `true` twice (second is a silent conflict), for a take → `true` (first `take_views` row ever), `update_content_view` read time → 204 and stored; direct `POST /rest/v1/post_views` → 401; anon `GET post_views` → empty; `record_profile_view_admin` → 404 for anon. Live as `authenticated` (rolled-back transaction): another user's view recorded with `is_follower=true` computed server-side, read time updated to 12, author can read the row, viewer cannot, self-view refused. Probe rows deleted afterwards.
+
+Not verified: the browser-driven path end-to-end (impressions and the 1-second visibility timer) — the automated tab runs in the background where Chrome suspends idle callbacks, so nothing fires; the RPC and policy layers it calls were verified directly. Check the Postgres log after deploy: `42P10` and `take_views` RLS errors should be gone and `take_views` should start filling.
+
+Left as-is on purpose (differs from the plan text): the per-page block checks in `useProfile`, `/post/[id]`, `/take/[id]` were **kept** — `posts_select_policy` does not enforce blocks, so those client checks are currently the only gate that hides a blocker's content. Moving block enforcement into RLS is a Phase 6 item.
+
 ## Next
-Deploy `fix/phase3-security` (contains Phases 1–2; merge to `main` triggers Vercel), flip leaked-password protection in the Supabase dashboard, watch `vercel logs` for `[auth-diagnostic]` and the realtime inspector for a day, then start Phase 4 (`02-plan.md`).
+Deploy `fix/phase4-tracking` (contains Phases 1–3; merge to `main` triggers Vercel), flip leaked-password protection in the Supabase dashboard, watch `vercel logs` for `[auth-diagnostic]` and the realtime inspector for a day, then start Phase 5 (`02-plan.md`).
 
 ## How to resume in a fresh session
 1. Read `02-plan.md` for the phase being worked on and `01-findings.md` for the IDs it cites; `00-system-map.md` only as needed.

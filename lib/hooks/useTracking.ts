@@ -9,16 +9,6 @@ import { useAuth } from "@/components/providers/AuthProvider";
 // ============================================================================
 
 const SESSION_ID_KEY = "quill_session_id";
-const RELATIONSHIP_CACHE_TTL_MS = 2 * 60 * 1000;
-
-interface BooleanCacheEntry {
-  value: boolean;
-  fetchedAt: number;
-}
-
-const blockedRelationshipCache = new Map<string, BooleanCacheEntry>();
-const followRelationshipCache = new Map<string, BooleanCacheEntry>();
-
 type IdleCallback = (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void;
 type IdleWindow = Window & {
   requestIdleCallback?: (callback: IdleCallback, options?: { timeout: number }) => number;
@@ -56,27 +46,6 @@ let queuedTakeImpressions: TakeImpressionInsertRow[] = [];
 let takeImpressionFlushTimer: number | null = null;
 let takeImpressionFlushInFlight: Promise<void> | null = null;
 let takeImpressionFlushListenersBound = false;
-
-function getCachedBoolean(
-  cache: Map<string, BooleanCacheEntry>,
-  key: string
-): boolean | undefined {
-  const cached = cache.get(key);
-  if (!cached) return undefined;
-  if (Date.now() - cached.fetchedAt >= RELATIONSHIP_CACHE_TTL_MS) {
-    cache.delete(key);
-    return undefined;
-  }
-  return cached.value;
-}
-
-function setCachedBoolean(
-  cache: Map<string, BooleanCacheEntry>,
-  key: string,
-  value: boolean
-) {
-  cache.set(key, { value, fetchedAt: Date.now() });
-}
 
 function runWhenIdle(task: () => void, timeout: number = 1200): () => void {
   if (typeof window === "undefined") {
@@ -252,82 +221,42 @@ export function getSessionId(): string {
 }
 
 // ============================================================================
-// BLOCKED USER CHECK
+// VIEW WRITES — single RPC per write (Phase 4)
+//
+// The server derives viewer_id from auth.uid(), skips self-views and blocked
+// pairs, computes is_follower / is_member, and owns the conflict targets.
+// The client sends only the target id, the anonymous session id and the
+// source. This replaced 2x blocks + 1x follows lookups per viewed item.
 // ============================================================================
 
-async function isBlockedEitherWay(
-  userId1: string | null,
-  userId2: string
-): Promise<boolean> {
-  if (!userId1) return false;
-  if (userId1 === userId2) return false;
+type ViewKind = "post" | "take" | "community" | "profile";
 
-  const cacheKey = [userId1, userId2].sort().join(":");
-  const cached = getCachedBoolean(blockedRelationshipCache, cacheKey);
-  if (cached !== undefined) return cached;
-
-  try {
-    // Check both directions separately to avoid SQL injection from string interpolation
-    const [{ data: block1, error: error1 }, { data: block2, error: error2 }] = await Promise.all([
-      supabase
-        .from("blocks")
-        .select("id")
-        .eq("blocker_id", userId1)
-        .eq("blocked_id", userId2)
-        .maybeSingle(),
-      supabase
-        .from("blocks")
-        .select("id")
-        .eq("blocker_id", userId2)
-        .eq("blocked_id", userId1)
-        .maybeSingle(),
-    ]);
-
-    if (error1 || error2) {
-      throw error1 || error2;
-    }
-
-    const blocked = !!(block1 || block2);
-    setCachedBoolean(blockedRelationshipCache, cacheKey, blocked);
-    return blocked;
-  } catch (err) {
-    console.warn("[tracking] block lookup failed:", err);
-    return false;
+async function recordContentView(kind: ViewKind, targetId: string, source: string, isAnonymous: boolean) {
+  const { error } = await supabase.rpc("record_content_view", {
+    p_kind: kind,
+    p_target_id: targetId,
+    p_session_id: isAnonymous ? getSessionId() : null,
+    p_source: source,
+  });
+  if (error) {
+    console.warn(`[tracking] record ${kind} view failed:`, error.message);
   }
 }
 
-// ============================================================================
-// FOLLOWER CHECK
-// ============================================================================
-
-async function checkIsFollowing(
-  followerId: string | null,
-  followingId: string
-): Promise<boolean> {
-  if (!followerId || followerId === followingId) return false;
-
-  const cacheKey = `${followerId}->${followingId}`;
-  const cached = getCachedBoolean(followRelationshipCache, cacheKey);
-  if (cached !== undefined) return cached;
-
-  try {
-    const { data, error } = await supabase
-      .from("follows")
-      .select("follower_id")
-      .eq("follower_id", followerId)
-      .eq("following_id", followingId)
-      .maybeSingle();
-
-    if (error) {
-      throw error;
-    }
-
-    const isFollowing = !!data;
-    setCachedBoolean(followRelationshipCache, cacheKey, isFollowing);
-    return isFollowing;
-  } catch (err) {
-    console.warn("[tracking] follow lookup failed:", err);
-    return false;
+async function updateContentView(
+  kind: "post" | "take",
+  targetId: string,
+  metrics: Record<string, number | boolean>,
+  isAnonymous: boolean
+) {
+  const { error } = await supabase.rpc("update_content_view", {
+    p_kind: kind,
+    p_target_id: targetId,
+    p_session_id: isAnonymous ? getSessionId() : null,
+    p_metrics: metrics,
+  });
+  if (error) {
+    console.warn(`[tracking] update ${kind} view failed:`, error.message);
   }
 }
 
@@ -377,7 +306,8 @@ export function useTrackPostImpression(
  */
 export function useTrackPostView(
   postId: string | undefined,
-  authorId: string | undefined,
+  // Resolved server-side now; kept in the signature for call-site compatibility.
+  _authorId: string | undefined,
   source: string = "feed"
 ) {
   const { user } = useAuth();
@@ -386,51 +316,24 @@ export function useTrackPostView(
   const readStartTime = useRef<number | null>(null);
   const elementRef = useRef<HTMLElement | null>(null);
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
+  // `authorId` is kept in the signature for callers; the server resolves the
+  // author, self-view and block rules itself.
+  const isAnonymous = !user?.id;
+
   const recordView = useCallback(async () => {
-    if (!postId || !authorId || viewRecorded.current) return;
-
-    // Check if blocked
-    const blocked = await isBlockedEitherWay(user?.id || null, authorId);
-    if (blocked) return;
-
+    if (!postId || viewRecorded.current) return;
     viewRecorded.current = true;
-    const sessionId = getSessionId();
-    const isFollower = user?.id
-      ? await checkIsFollowing(user.id, authorId)
-      : false;
-
-    await supabase.from("post_views").upsert(
-      {
-        post_id: postId,
-        viewer_id: user?.id || null,
-        session_id: user?.id ? null : sessionId,
-        source,
-        is_follower: isFollower,
-        read_time_seconds: 0,
-      },
-      {
-        onConflict: user?.id ? "post_id,viewer_id,view_date" : "post_id,session_id,view_date",
-        ignoreDuplicates: true,
-      }
-    );
-  }, [postId, authorId, user?.id, source]);
+    await recordContentView("post", postId, source, isAnonymous);
+  }, [postId, source, isAnonymous]);
 
   const updateReadTime = useCallback(async () => {
-    if (!postId || !readStartTime.current) return;
+    if (!postId || !readStartTime.current || !viewRecorded.current) return;
 
     const readTime = Math.floor((Date.now() - readStartTime.current) / 1000);
     if (readTime < 1) return;
 
-    const sessionId = getSessionId();
-
-    await supabase
-      .from("post_views")
-      .update({ read_time_seconds: readTime })
-      .eq("post_id", postId)
-      .eq(user?.id ? "viewer_id" : "session_id", user?.id || sessionId)
-      .eq("view_date", new Date().toISOString().split("T")[0]);
-  }, [postId, user?.id]);
+    await updateContentView("post", postId, { read_time_seconds: readTime }, isAnonymous);
+  }, [postId, isAnonymous]);
 
   const startTracking = useCallback(
     (element: HTMLElement) => {
@@ -564,7 +467,8 @@ export function useTrackTakeImpression(
  */
 export function useTrackTakeView(
   takeId: string | undefined,
-  authorId: string | undefined,
+  // Resolved server-side now; kept in the signature for call-site compatibility.
+  _authorId: string | undefined,
   takeDurationSeconds: number = 0,
   source: string = "feed"
 ) {
@@ -577,63 +481,34 @@ export function useTrackTakeView(
   const isWatching = useRef(false);
   const viewTimer = useRef<number | null>(null);
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
+  const isAnonymous = !user?.id;
+
   const recordView = useCallback(async () => {
-    if (!takeId || !authorId || viewRecorded.current) return;
-
-    // Check if blocked
-    const blocked = await isBlockedEitherWay(user?.id || null, authorId);
-    if (blocked) return;
-
+    if (!takeId || viewRecorded.current) return;
     viewRecorded.current = true;
-    const sessionId = getSessionId();
-    const isFollower = user?.id
-      ? await checkIsFollowing(user.id, authorId)
-      : false;
-
-    await supabase.from("take_views").upsert(
-      {
-        take_id: takeId,
-        viewer_id: user?.id || null,
-        session_id: user?.id ? null : sessionId,
-        source,
-        is_follower: isFollower,
-        watch_time_seconds: 0,
-        watch_percentage: 0,
-        loop_count: 1,
-        completed: false,
-      },
-      {
-        onConflict: user?.id ? "take_id,viewer_id,view_date" : "take_id,session_id,view_date",
-        ignoreDuplicates: true,
-      }
-    );
-  }, [takeId, authorId, user?.id, source]);
+    await recordContentView("take", takeId, source, isAnonymous);
+  }, [takeId, source, isAnonymous]);
 
   const updateWatchMetrics = useCallback(async () => {
-    if (!takeId) return;
+    if (!takeId || !viewRecorded.current) return;
 
-    const sessionId = getSessionId();
     const watchPercentage =
       takeDurationSeconds > 0
-        ? Math.min(
-            100,
-            Math.round((totalWatchTime.current / takeDurationSeconds) * 100)
-          )
+        ? Math.min(100, Math.round((totalWatchTime.current / takeDurationSeconds) * 100))
         : 0;
 
-    await supabase
-      .from("take_views")
-      .update({
+    await updateContentView(
+      "take",
+      takeId,
+      {
         watch_time_seconds: Math.floor(totalWatchTime.current),
         watch_percentage: watchPercentage,
         loop_count: Math.max(1, loopCount.current),
         completed: hasCompleted.current,
-      })
-      .eq("take_id", takeId)
-      .eq(user?.id ? "viewer_id" : "session_id", user?.id || sessionId)
-      .eq("view_date", new Date().toISOString().split("T")[0]);
-  }, [takeId, user?.id, takeDurationSeconds]);
+      },
+      isAnonymous
+    );
+  }, [takeId, isAnonymous, takeDurationSeconds]);
 
   const startWatching = useCallback(() => {
     if (isWatching.current) return;
@@ -738,17 +613,10 @@ export function useTrackProfileView(
 
     const timer = setTimeout(async () => {
       if (viewRecorded.current) return;
-
-      // Check if blocked
-      const blocked = await isBlockedEitherWay(user?.id || null, profileId);
-      if (blocked) return;
-
       viewRecorded.current = true;
-      const sessionId = getSessionId();
-      const isFollower = user?.id
-        ? await checkIsFollowing(user.id, profileId)
-        : false;
 
+      // Server route (it also captures geo headers) decides self/blocked/
+      // follower itself; the client no longer sends is_follower.
       try {
         await fetch("/api/track/profile-view", {
           method: "POST",
@@ -757,9 +625,8 @@ export function useTrackProfileView(
           keepalive: true,
           body: JSON.stringify({
             profile_id: profileId,
-            session_id: user?.id ? null : sessionId,
+            session_id: user?.id ? null : getSessionId(),
             source,
-            is_follower: isFollower,
           }),
         });
       } catch (err) {
@@ -788,33 +655,7 @@ export function useTrackCommunityView(communityId: string | undefined) {
     const timer = setTimeout(async () => {
       if (viewRecorded.current) return;
       viewRecorded.current = true;
-
-      const sessionId = getSessionId();
-
-      // Check if user is a member
-      let isMember = false;
-      if (user?.id) {
-        const { data } = await supabase
-          .from("community_members")
-          .select("user_id")
-          .eq("community_id", communityId)
-          .eq("user_id", user.id)
-          .maybeSingle();
-        isMember = !!data;
-      }
-
-      await supabase.from("community_views").upsert(
-        {
-          community_id: communityId,
-          viewer_id: user?.id || null,
-          session_id: user?.id ? null : sessionId,
-          is_member: isMember,
-        },
-        {
-          onConflict: user?.id ? "community_id,viewer_id,view_date" : "community_id,session_id,view_date",
-          ignoreDuplicates: true,
-        }
-      );
+      await recordContentView("community", communityId, "direct", !user?.id);
     }, 2000);
 
     return () => clearTimeout(timer);

@@ -14,7 +14,6 @@ interface TrackProfileViewPayload {
   profile_id?: string;
   session_id?: string;
   source?: string;
-  is_follower?: boolean;
 }
 
 function decodeHeader(value: string | null): string | null {
@@ -56,7 +55,7 @@ export async function POST(request: Request) {
 
   const parsed = await safeJsonParse<TrackProfileViewPayload>(request);
   if ("error" in parsed) return parsed.error;
-  const { profile_id, session_id, source, is_follower } = parsed.data;
+  const { profile_id, session_id, source } = parsed.data;
 
   if (!profile_id || !UUID_RE.test(profile_id)) {
     return NextResponse.json({ error: "Invalid profile_id" }, { status: 400 });
@@ -89,29 +88,20 @@ export async function POST(request: Request) {
   const normalizedSource =
     typeof source === "string" && source.length <= 32 ? source : "direct";
 
-  const { error: insertError } = await supabaseAdmin
-    .from("profile_views")
-    .upsert(
-      {
-        profile_id,
-        viewer_id: user?.id ?? null,
-        session_id: user ? null : safeSessionId,
-        source: normalizedSource,
-        is_follower: Boolean(is_follower),
-        country: geo.country,
-        region: geo.region,
-        city: geo.city,
-      },
-      {
-        onConflict: user
-          ? "profile_id,viewer_id,view_date"
-          : "profile_id,session_id,view_date",
-        ignoreDuplicates: true,
-      }
-    );
+  // The RPC decides self-view, blocks and follower status server-side —
+  // the client used to send `is_follower` and could inflate follower views.
+  const { error: insertError } = await supabaseAdmin.rpc("record_profile_view_admin", {
+    p_viewer_id: user?.id ?? null,
+    p_profile_id: profile_id,
+    p_session_id: user ? null : safeSessionId,
+    p_source: normalizedSource,
+    p_country: geo.country,
+    p_region: geo.region,
+    p_city: geo.city,
+  });
 
   if (insertError) {
-    console.error("[track/profile-view] insert error:", insertError);
+    console.error("[track/profile-view] rpc error:", insertError);
     return NextResponse.json({ error: "Failed to record view" }, { status: 500 });
   }
 
