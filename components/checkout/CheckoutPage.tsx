@@ -1,7 +1,7 @@
 "use client";
 
 import { formatCurrency } from "@/lib/utils/currency";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   EmbeddedCheckoutProvider,
@@ -113,7 +113,7 @@ function PromoCodeSection({
   orderAmount: number;
   listingType?: string;
   currency: string;
-  onApplied: (discount: number, finalAmount: number) => void;
+  onApplied: (discount: number, finalAmount: number, buyerFee: number | null) => void;
 }) {
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{
@@ -169,7 +169,11 @@ function PromoCodeSection({
       finalAmount,
     });
 
-    onApplied(discount, finalAmount);
+    onApplied(
+      discount,
+      finalAmount,
+      typeof applyResult.buyer_fee === "number" ? applyResult.buyer_fee : null
+    );
   }, [
     apply,
     asAmount,
@@ -206,7 +210,11 @@ function PromoCodeSection({
               setApplied(null);
               setCode("");
               clear();
-              onApplied(0, finalAmount);
+              onApplied(
+                0,
+                finalAmount,
+                typeof result.buyer_fee === "number" ? result.buyer_fee : null
+              );
             }}
             disabled={removing}
             className="rounded-full border border-green-300 px-3 py-1 text-xs font-ui font-semibold text-green-700 hover:bg-green-100 disabled:opacity-60"
@@ -282,6 +290,11 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
   // Checkout session state
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  // One live Stripe session per (order, total): the effect below re-runs on
+  // every order/promo change, so it must not mint a session when one already
+  // exists for the same total or while a request is in flight.
+  const checkoutInFlightRef = useRef(false);
+  const lastCheckoutKeyRef = useRef<string | null>(null);
   const [checkoutMode, setCheckoutMode] = useState<"stripe" | "placeholder">(
     "placeholder"
   );
@@ -293,7 +306,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
 
   // UI state
   const [promoOverrides, setPromoOverrides] = useState<
-    Record<string, { amount: number; discount: number }>
+    Record<string, { amount: number; discount: number; buyerFee: number | null }>
   >({});
   const [confirmingFree, setConfirmingFree] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -407,6 +420,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
         return;
       }
 
+      if (checkoutInFlightRef.current) return;
+      checkoutInFlightRef.current = true;
       setCheckoutLoading(true);
       setCheckoutError(null);
       setClientSecret(null);
@@ -441,6 +456,7 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
           setPaymentUnlocked(false);
         }
       } finally {
+        checkoutInFlightRef.current = false;
         setCheckoutLoading(false);
       }
     },
@@ -460,10 +476,17 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
       (hasRequiredShippingAddress(order.shipping_address) &&
         String(order.buyer_phone || "").trim().length > 0);
 
-    if (shippingReady) {
-      createCheckout(order.id);
-    }
-  }, [order, createCheckout, requiresSecurityCheck]);
+    if (!shippingReady) return;
+
+    const override = promoOverrides[order.id];
+    const key = `${order.id}:${override?.amount ?? order.amount}:${
+      override?.buyerFee ?? order.buyer_fee ?? 0
+    }`;
+    if (checkoutInFlightRef.current) return;
+    if (lastCheckoutKeyRef.current === key && clientSecret) return;
+    lastCheckoutKeyRef.current = key;
+    createCheckout(order.id);
+  }, [order, promoOverrides, clientSecret, createCheckout, requiresSecurityCheck]);
 
   // Redirect only on a resolved signed-out state; a timed-out auth check
   // shows a retry panel below instead of bouncing the buyer mid-checkout.
@@ -642,7 +665,13 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     0
   );
   const subtotal = Math.max(originalAmount - shippingCost, 0);
-  const zeroTotal = amount <= 0;
+  // Buyer-side processing fee (D3): charged on top of `amount`.
+  const buyerFee = Math.max(
+    promoOverride?.buyerFee ?? Number(order.buyer_fee || 0),
+    0
+  );
+  const totalDue = amount + buyerFee;
+  const zeroTotal = totalDue <= 0;
   const isPhysicalProduct =
     order.listing_type === "product" &&
     order.product?.delivery_type !== "digital";
@@ -750,10 +779,10 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                   orderAmount={originalAmount}
                   listingType={order.listing_type}
                   currency={currency}
-                  onApplied={(discount, final) => {
+                  onApplied={(discount, final, buyerFee) => {
                     setPromoOverrides((prev) => ({
                       ...prev,
-                      [order.id]: { amount: final, discount },
+                      [order.id]: { amount: final, discount, buyerFee },
                     }));
                     setActionError(null);
                     // Pricing changes invalidate the existing checkout session.
@@ -1309,16 +1338,16 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
                 </div>
               )}
 
-              <div className="flex justify-between text-xs text-muted">
-                <span>Platform fee (5%)</span>
-                <span>
-                  {formatCurrency(Number(order.platform_fee), currency)}
-                </span>
-              </div>
+              {buyerFee > 0 && (
+                <div className="flex justify-between text-xs text-muted">
+                  <span>Processing fee</span>
+                  <span>{formatCurrency(buyerFee, currency)}</span>
+                </div>
+              )}
 
               <div className="border-t border-border-light pt-2 flex justify-between text-base font-ui font-semibold text-ink">
                 <span>Total</span>
-                <span>{formatCurrency(amount, currency)}</span>
+                <span>{formatCurrency(totalDue, currency)}</span>
               </div>
             </div>
 

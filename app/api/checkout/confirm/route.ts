@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, buyer_id, status, payment_provider, payment_reference, amount, listing_type")
+      .select("id, buyer_id, status, payment_provider, payment_reference, amount, buyer_fee, total_amount, listing_type")
       .eq("id", parsed.data.order_id)
       .single();
 
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
       activeProviderName = "stripe";
     }
     const isPlaceholderMode = activeProviderName === "placeholder";
-    const isFreeOrder = Number(order.amount) <= 0;
+    const isFreeOrder = Number(order.total_amount ?? order.amount) <= 0;
 
     // In a real-payment environment only genuinely free ($0) orders may be finalized
     // here; any order with a positive total MUST be captured via the Stripe webhook.
@@ -92,14 +92,7 @@ export async function POST(request: Request) {
       source: "checkout_confirm",
     });
 
-    // Auto-transfer for placeholder mode
-    if (!result.already_processed) {
-      try {
-        await getActiveProvider().transferToSeller(order.id);
-      } catch {
-        // Non-blocking — transfer can be retried later
-      }
-    }
+    // No transfer here: payouts are released by the completion path (1c).
 
     return NextResponse.json({
       success: true,

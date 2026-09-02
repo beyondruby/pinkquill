@@ -73,7 +73,10 @@ export interface OrderForCheckout {
   buyerId: string;
   buyerEmail?: string;
   buyerName?: string;
+  /** Order amount (goods/service + shipping − discount), excluding the buyer fee */
   amount: number;
+  /** Buyer-side processing fee charged on top of `amount` */
+  buyerFee: number;
   currency: string;
   listingType: string;
   productTitle?: string | null;

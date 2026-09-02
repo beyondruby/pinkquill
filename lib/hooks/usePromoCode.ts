@@ -24,6 +24,8 @@ export interface ApplyPromoResult {
   original_amount?: number;
   discount_amount?: number;
   final_amount?: number;
+  buyer_fee?: number;
+  total_amount?: number;
 }
 
 export interface RemovePromoResult {
@@ -32,6 +34,8 @@ export interface RemovePromoResult {
   original_amount?: number;
   discount_amount?: number;
   final_amount?: number;
+  buyer_fee?: number;
+  total_amount?: number;
 }
 
 interface UseValidatePromoCodeReturn {

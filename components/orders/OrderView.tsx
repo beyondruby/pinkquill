@@ -307,8 +307,8 @@ export default function OrderView({ orderId }: OrderViewProps) {
           {/* Key metrics strip */}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 py-3 border-t border-b border-border-light text-sm font-body">
             <div>
-              <span className="text-muted">Total</span>
-              <span className="ml-1.5 font-semibold text-ink text-base">{formatCurrency(order.amount)}</span>
+              <span className="text-muted">{isBuyer ? "Total paid" : "Order total"}</span>
+              <span className="ml-1.5 font-semibold text-ink text-base">{formatCurrency(isBuyer ? Number(order.total_amount ?? order.amount) : order.amount)}</span>
             </div>
             {!isBuyer && (
               <div>
@@ -495,12 +495,17 @@ export default function OrderView({ orderId }: OrderViewProps) {
                   {discountAmount > 0 && (
                     <SummaryRow label="Discount" value={`-${formatCurrency(discountAmount)}`} className="text-emerald-600" />
                   )}
-                  {isBuyer && (
-                    <SummaryRow label="Platform Fee" value={formatCurrency(order.platform_fee)} muted />
+                  {isBuyer && Number(order.buyer_fee || 0) > 0 && (
+                    <SummaryRow label="Processing fee" value={formatCurrency(Number(order.buyer_fee))} muted />
+                  )}
+                  {!isBuyer && (
+                    <SummaryRow label="Pinkquill fee" value={`-${formatCurrency(order.platform_fee)}`} muted />
                   )}
                   <div className="border-t border-border-light pt-3 flex justify-between font-semibold text-ink">
-                    <span>Total</span>
-                    <span className="text-base">{formatCurrency(order.amount)}</span>
+                    <span>{isBuyer ? "Total paid" : "You receive"}</span>
+                    <span className="text-base">
+                      {formatCurrency(isBuyer ? Number(order.total_amount ?? order.amount) : Number(order.seller_amount))}
+                    </span>
                   </div>
                 </div>
               </Card>

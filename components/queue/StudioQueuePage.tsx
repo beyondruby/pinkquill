@@ -221,7 +221,7 @@ function OrderSummary({ items }: { items: StudioQueueItem[] }) {
         <span>{formatPrice(subtotal, currency)}</span>
       </div>
       <p className="text-[11px] font-body text-muted mt-1.5">
-        Platform fees calculated at checkout
+        Processing fee shown at checkout
       </p>
 
       <div className="mt-4 pt-3 border-t border-border-light">

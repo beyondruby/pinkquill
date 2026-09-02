@@ -355,6 +355,10 @@ export interface Order {
   payment_provider?: "stripe" | "placeholder" | null;
   payment_reference?: string | null;
   checkout_session_id?: string | null;
+  /** Buyer-side processing fee charged on top of `amount` (D3) */
+  buyer_fee?: number;
+  /** amount + buyer_fee — what the buyer is charged (generated column) */
+  total_amount?: number;
   payment_status: PaymentStatus;
   escrow_released: boolean;
   escrow_released_at: string | null;
@@ -508,7 +512,7 @@ export interface SellerAccount {
 export interface Transaction {
   id: string;
   order_id: string;
-  type: 'payment' | 'platform_fee' | 'seller_payout' | 'refund';
+  type: 'payment' | 'buyer_fee' | 'platform_fee' | 'seller_payout' | 'refund';
   amount: number;
   currency: string;
   stripe_payment_intent_id: string | null;

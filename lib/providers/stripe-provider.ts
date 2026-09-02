@@ -224,6 +224,8 @@ export class StripeProvider implements PaymentProviderInterface {
   ): Promise<CheckoutSessionResult> {
     const stripe = getStripeServer();
     const amountCents = Math.round(order.amount * 100);
+    const buyerFeeCents = Math.round((order.buyerFee || 0) * 100);
+    const totalCents = amountCents + buyerFeeCents;
     const currency = (order.currency || "usd").toLowerCase();
     const orderReference = order.orderNumber || order.id;
     const compactTitle = String(order.productTitle || "").trim().slice(0, 80);
@@ -232,7 +234,8 @@ export class StripeProvider implements PaymentProviderInterface {
       ? `PinkQuill ${orderReference} — ${compactTitle}`
       : `PinkQuill order ${orderReference}`;
 
-    // Check for existing checkout session on this order
+    // Reuse the order's current session if it is still open AND still charges
+    // the right total; otherwise expire it so only one live session exists.
     const { data: existingOrder } = await supabaseAdmin
       .from("orders")
       .select("checkout_session_id")
@@ -245,16 +248,6 @@ export class StripeProvider implements PaymentProviderInterface {
           existingOrder.checkout_session_id
         );
 
-        // If session is still open, reuse it
-        if (existingSession.status === "open" && existingSession.client_secret) {
-          return {
-            mode: "stripe",
-            clientSecret: existingSession.client_secret,
-            sessionId: existingSession.id,
-          };
-        }
-
-        // If already completed, return as-is
         if (existingSession.status === "complete") {
           return {
             mode: "stripe",
@@ -263,52 +256,88 @@ export class StripeProvider implements PaymentProviderInterface {
             message: "Payment already completed",
           };
         }
+
+        if (existingSession.status === "open" && existingSession.client_secret) {
+          if (
+            existingSession.amount_total === totalCents &&
+            (existingSession.currency || "").toLowerCase() === currency
+          ) {
+            return {
+              mode: "stripe",
+              clientSecret: existingSession.client_secret,
+              sessionId: existingSession.id,
+            };
+          }
+          // Total changed (promo applied/removed): retire the stale session.
+          await stripe.checkout.sessions.expire(existingSession.id);
+        }
       } catch {
-        // Session not found or expired — create a new one
+        // Session not found or already expired — create a new one
       }
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const metadata = {
+      order_id: order.id,
+      order_number: order.orderNumber || "",
+      buyer_id: order.buyerId,
+      listing_type: order.listingType,
+    };
+
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+      {
+        price_data: {
+          currency,
+          product_data: { name: productName, description },
+          unit_amount: amountCents,
+        },
+        quantity: 1,
+      },
+    ];
+    if (buyerFeeCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency,
+          product_data: {
+            name: "Processing fee",
+            description: "Payment processing and buyer protection",
+          },
+          unit_amount: buyerFeeCents,
+        },
+        quantity: 1,
+      });
+    }
+
+    const params: Stripe.Checkout.SessionCreateParams = {
       mode: "payment",
       ui_mode: "embedded",
-      line_items: [
-        {
-          price_data: {
-            currency,
-            product_data: {
-              name: productName,
-              description,
-            },
-            unit_amount: amountCents,
-          },
-          quantity: 1,
-        },
-      ],
+      // Cards only: delayed-notification methods would complete the session
+      // before money exists (checkout.session.completed with payment_status
+      // 'unpaid'). Revisit in 1c if other methods are wanted.
+      payment_method_types: ["card"],
+      line_items: lineItems,
       payment_intent_data: {
-        metadata: {
-          order_id: order.id,
-          order_number: order.orderNumber || "",
-          buyer_id: order.buyerId,
-          listing_type: order.listingType,
-        },
+        capture_method: "automatic",
+        metadata,
         ...(normalizeDescriptorSuffix(order.orderNumber)
-          ? {
-              statement_descriptor_suffix:
-                normalizeDescriptorSuffix(order.orderNumber),
-            }
+          ? { statement_descriptor_suffix: normalizeDescriptorSuffix(order.orderNumber) }
           : {}),
       },
       ...(order.buyerEmail ? { customer_email: order.buyerEmail } : {}),
-      metadata: {
-        order_id: order.id,
-        order_number: order.orderNumber || "",
-        buyer_id: order.buyerId,
-        listing_type: order.listingType,
-      },
+      metadata,
       return_url: `${getSiteUrl()}/checkout/${order.id}/complete?session_id={CHECKOUT_SESSION_ID}`,
-    });
+    };
 
-    // Persist checkout session on order
+    // Idempotency: concurrent calls for the same order + total get the same
+    // session back from Stripe instead of minting two. If the replayed session
+    // is no longer open (keys live 24h), create a fresh one under a new key.
+    const stableKey = `checkout_${order.id}_${totalCents}_${currency}`;
+    let session = await stripe.checkout.sessions.create(params, { idempotencyKey: stableKey });
+    if (session.status !== "open" || !session.client_secret) {
+      session = await stripe.checkout.sessions.create(params, {
+        idempotencyKey: `${stableKey}_${Date.now()}`,
+      });
+    }
+
     await supabaseAdmin
       .from("orders")
       .update({

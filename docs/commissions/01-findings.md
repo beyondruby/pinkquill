@@ -89,6 +89,8 @@ Findings are grouped by **root cause** (RC). Each RC lists the symptoms it produ
 
 ### RC-A4 — Webhook coverage is four events — CRITICAL
 
+> **Status 2026-09-02:** closed by Phase 1b except chargeback money handling (1d). See `03-progress.md`.
+
 **What.** `app/api/stripe/webhooks/route.ts` handles `checkout.session.completed`, `checkout.session.expired`, `charge.refunded`, `account.updated`. Signature verification and the `processed_stripe_events` idempotency claim are correct.
 
 **Symptoms.**

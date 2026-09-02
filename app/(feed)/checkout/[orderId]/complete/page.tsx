@@ -10,9 +10,9 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { Spinner } from "@/components/ui/Loading";
 
-type CheckoutStatus = "loading" | "success" | "failed" | "expired";
+type CheckoutStatus = "loading" | "success" | "failed" | "expired" | "processing";
 
-const MAX_POLLS = 10;
+const MAX_POLLS = 15;
 const POLL_INTERVAL_MS = 2000;
 const AUTO_REDIRECT_DELAY_MS = 2000;
 
@@ -24,48 +24,49 @@ export default function CheckoutCompletePage() {
   const sessionId = searchParams.get("session_id");
 
   const [status, setStatus] = useState<CheckoutStatus>("loading");
+  const [failureMessage, setFailureMessage] = useState<string | null>(null);
   const [redirectCountdown, setRedirectCountdown] = useState(2);
   const pollCountRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // The database (written by the Stripe webhook) is the only source of truth
+  // here. Stripe's own session status is never used to declare success.
   const checkStatus = useCallback(async (): Promise<boolean> => {
-    if (!sessionId) {
-      setStatus("failed");
-      return true; // stop polling
-    }
+    const query = sessionId
+      ? `session_id=${encodeURIComponent(sessionId)}`
+      : `order_id=${encodeURIComponent(orderId)}`;
 
     try {
-      const res = await fetch(
-        `/api/checkout/status?session_id=${encodeURIComponent(sessionId)}`,
-        { headers: await buildAuthenticatedHeaders() }
-      );
+      const res = await fetch(`/api/checkout/status?${query}`, {
+        headers: await buildAuthenticatedHeaders(),
+      });
 
       if (!res.ok) {
-        // Auth might not be ready yet — retry
-        if (res.status === 401 && pollCountRef.current < MAX_POLLS) {
-          return false; // keep polling
-        }
-        setStatus("failed");
-        return true;
+        // Auth might not be ready yet, or the webhook hasn't linked the
+        // session to the order yet — keep polling.
+        return false;
       }
 
       const data = await res.json();
 
-      if (data.status === "complete" || data.payment_status === "paid") {
+      if (data.order_payment_status === "paid") {
         setStatus("success");
         return true;
-      } else if (data.status === "expired") {
+      }
+      if (data.order_status === "expired") {
         setStatus("expired");
         return true;
-      } else {
-        // Session still open — payment may be processing
-        return false; // keep polling
       }
+      if (data.order_payment_status === "failed") {
+        setFailureMessage(data.last_payment_error || null);
+        setStatus("failed");
+        return true;
+      }
+      return false; // still pending — keep polling
     } catch {
-      // Network error — retry
       return false;
     }
-  }, [sessionId]);
+  }, [sessionId, orderId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,8 +79,9 @@ export default function CheckoutCompletePage() {
       if (!done && !cancelled) {
         pollCountRef.current += 1;
         if (pollCountRef.current >= MAX_POLLS) {
-          // Give up after max polls — show failed
-          setStatus("failed");
+          // Webhook hasn't landed yet. Never claim failure: the charge may
+          // have succeeded. The order page keeps updating on its own.
+          setStatus("processing");
           return;
         }
         timerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
@@ -119,10 +121,10 @@ export default function CheckoutCompletePage() {
           <div className="space-y-4">
             <Spinner size="xl" className="text-purple-500 mx-auto" />
             <h2 className="text-xl font-display font-semibold text-ink">
-              Confirming your payment...
+              Payment received, confirming…
             </h2>
             <p className="font-body text-muted">
-              Please wait while we verify your payment.
+              We&apos;re waiting for Stripe to confirm. This usually takes a few seconds.
             </p>
           </div>
         )}
@@ -136,7 +138,7 @@ export default function CheckoutCompletePage() {
               />
             </div>
             <h2 className="text-2xl font-display font-semibold text-ink">
-              Payment Successful!
+              Payment confirmed
             </h2>
             <p className="font-body text-muted">
               Redirecting to your order{redirectCountdown > 0 ? ` in ${redirectCountdown}s` : ""}...
@@ -157,10 +159,10 @@ export default function CheckoutCompletePage() {
               className="text-5xl text-red-500"
             />
             <h2 className="text-2xl font-display font-semibold text-ink">
-              Payment Failed
+              Payment declined
             </h2>
             <p className="font-body text-muted">
-              Something went wrong with your payment. No charges were made.
+              {failureMessage || "Your card was declined."} Nothing was charged. You can try again with another card.
             </p>
             <div className="flex flex-col gap-3 mt-6">
               <button
@@ -174,6 +176,26 @@ export default function CheckoutCompletePage() {
                 className="px-6 py-3 font-ui text-purple-primary hover:text-pink-vivid transition-colors font-medium"
               >
                 Back to Feed
+              </button>
+            </div>
+          </div>
+        )}
+
+        {status === "processing" && (
+          <div className="space-y-4">
+            <Spinner size="xl" className="text-purple-500 mx-auto" />
+            <h2 className="text-2xl font-display font-semibold text-ink">
+              Still processing
+            </h2>
+            <p className="font-body text-muted">
+              Your payment is taking longer than usual to confirm. Your order page will update as soon as it lands, and you&apos;ll get a notification.
+            </p>
+            <div className="flex flex-col gap-3 mt-6">
+              <button
+                onClick={() => router.push(`/orders/${orderId}`)}
+                className="px-6 py-3 bg-gradient-to-r from-purple-primary to-pink-vivid text-white rounded-xl font-ui font-semibold hover:opacity-90 transition-opacity"
+              >
+                Go to your order
               </button>
             </div>
           </div>

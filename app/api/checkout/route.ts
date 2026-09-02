@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       .select(`
         id, order_number, buyer_id, seller_id, amount, currency,
         listing_type, status, payment_status, checkout_session_id,
-        quantity, pricing_id, shipping_cost, discount_amount,
+        quantity, pricing_id, shipping_cost, discount_amount, buyer_fee, total_amount,
         product:products (id, title, listing_type)
       `)
       .eq("id", parsed.data.order_id)
@@ -139,6 +139,7 @@ export async function POST(request: Request) {
       buyerId: order.buyer_id,
       buyerEmail: user.email || undefined,
       amount: Number(order.amount),
+      buyerFee: Number(order.buyer_fee ?? 0),
       currency: order.currency || "usd",
       listingType: order.listing_type,
       productTitle: product?.title || null,

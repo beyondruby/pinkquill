@@ -8,13 +8,13 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 |---|---|---|
 | 0 — Stop the bleeding | **done, applied to production** | 2026-09-02 |
 | 1a — Schema truth | **done, applied to production** | 2026-09-02 |
-| 1b — Verified payment record + full webhook | not started | |
+| 1b — Verified payment record + full webhook | **done, applied to production** | 2026-09-02 |
 | 1c — Payout release, ledger, cron | not started (blocked on decisions D1, D2, D3, D4) | |
 | 1d — Refunds, cancellations, disputes, chargebacks | not started (D6, D8) | |
 | 1e — Test harness + go-live checklist | not started | |
 | 2–4 | not started | |
 
-Open decisions (plan §2): D2 release window, D3 fee model, D4 cron host, D6 refund policy, D7 email provider, D8 admin access. Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
+Open decisions (plan §2): D2 release window, D4 cron host, D6 refund policy, D7 email provider, D8 admin access. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
 ---
 
@@ -111,4 +111,45 @@ Open decisions (plan §2): D2 release window, D3 fee model, D4 cron host, D6 ref
 
 **Cleanup.** The test order and its notifications, transactions, events and messages were deleted; production is back to zero orders. Two `open` test sessions remain in Stripe test mode and expire on their own.
 
-**Next:** Phase 1b. D3 (fee model) still needed for the checkout display.
+**Next (at the time):** Phase 1b. Superseded by the entry below.
+
+---
+
+## Phase 1b — what changed (2026-09-02)
+
+**Closes:** RC-A4 (webhook happy-path only: items A4.1 partially — chargebacks recorded, money handling in 1d — A4.2, A4.3, A4.4, A4.6, A4.7, A4.8, A4.9, A4.10), the record half of RC-A2 (money now enters the DB only through a webhook-written `payments` row; A2.4 `payment_intent_id` persisted), RC-A6.3 and A6.4 (fee shown to the buyer is now a fee the buyer pays; one fee function), A7.5 (status route no longer calls Stripe per poll).
+
+**Decision D3 = (b).** Seller pays the 5 % platform fee on the goods/service amount; the buyer pays a processing fee of 3 % of the order amount + $0.30, shown as its own line and charged as a second Checkout line item. Free ($0) orders carry no fee. Rates are rows in `platform_settings` (`platform_fee_rate`, `buyer_fee_rate`, `buyer_fee_fixed`, `min_service_price`), read by one SQL function `compute_order_money(item, shipping, discount)` → `amount, platform_fee, seller_amount, buyer_fee, total_amount`. `lib/payments.ts`'s `PLATFORM_FEE_RATE` is now display-only (marketplace hero); Phase 4 removes it.
+
+**Migration** `supabase/migrations/20260902_commissions_phase1b_payment_record.sql` — applied as `commissions_phase1b_payment_record` (+ one hotfix `CREATE OR REPLACE` of `record_payment_failed` for message punctuation, already in the file). Idempotent. It adds:
+- `platform_settings`, `platform_setting_numeric()`, `compute_order_money()`.
+- `orders.buyer_fee` and generated `orders.total_amount = amount + buyer_fee`; `transactions.type` gains `buyer_fee`; `notifications.type` gains `order_payment_failed`.
+- `payments` (one row per PaymentIntent: amounts, currency, Stripe fee from the balance transaction, refunded cents, status ∈ succeeded / amount_mismatch / unexpected_status / refunded / partially_refunded / failed; participants can SELECT, nobody but service_role writes).
+- `stripe_events` (event id, type, order, status processing/processed/failed/ignored, attempts, error) with `claim_stripe_event` (duplicate detection, 5-minute in-progress window, retry after failure) and `finish_stripe_event`.
+- RPCs (service_role only, all `FOR UPDATE`, all side effects inside): `record_payment_succeeded` (amount + currency check against `total_amount`; only `listing_type = 'product' AND delivery_type = 'digital'` is delivered at payment — commissions start at `paid`; writes payments + 4 ledger rows + event + system message; returns `paid | already_processed | amount_mismatch | unexpected_status`), `record_payment_failed` (payment_status `failed`, `last_payment_error`, buyer notification), `record_checkout_expired` (ignores a session that is not the order's current one), `record_payment_refund` (full/partial, mismatch refunds leave the order awaiting payment).
+- `seller_accounts.requirements_currently_due / disabled_reason / requirements_synced_at`.
+- `create_marketplace_order`, `apply_promo_to_order`, `remove_promo_from_order` recompute all five money columns via `compute_order_money`; `finalize_order_payment` is now free-orders-only (raises if `total_amount > 0`) and writes a `payments` row too.
+
+**Code**
+- `app/api/stripe/webhooks/route.ts` rewritten: claim → handler → finish; handlers for `checkout.session.completed` (requires `payment_status = 'paid'`), `checkout.session.async_payment_succeeded / async_payment_failed`, `checkout.session.expired`, `payment_intent.payment_failed`, `charge.refunded` (RPC + transfer reversal if the seller had been paid), `charge.dispute.created / updated / closed / funds_withdrawn / funds_reinstated` (recorded as `order_events` `dispute` rows; money handling is 1d), `transfer.reversed`, `payout.failed` (seller notified), `account.updated` (incl. requirements), `account.application.deauthorized`. No direct notification inserts, **no transfer on payment**. Wrong-amount / unexpected payments are refunded automatically (idempotent per PaymentIntent) and recorded.
+- `lib/payments-server.ts`: typed wrappers for the RPCs above; `markOrderPaymentFailed` / `markOrderExpired` removed.
+- `lib/providers/stripe-provider.ts` `createCheckoutSession`: `payment_method_types: ['card']`, second line item "Processing fee", Stripe idempotency key `checkout_<order>_<totalCents>_<currency>` (concurrent calls get one session; a replayed non-open session is re-created under a timestamped key), reuses the order's open session only if its `amount_total` still matches and expires it otherwise. `OrderForCheckout.buyerFee` added.
+- `app/api/checkout/route.ts` passes `buyer_fee`; `app/api/checkout/confirm/route.ts` gates on `total_amount ≤ 0` and no longer transfers; `app/api/checkout/status/route.ts` returns DB state only (`order_status`, `order_payment_status`, `last_payment_error`), accepts `order_id` or `session_id`.
+- `app/(feed)/checkout/[orderId]/complete/page.tsx` decides from the order row (paid / expired / failed with the decline message) and shows "Still processing → Go to your order" after 15 polls instead of a false "Payment Failed / No charges were made".
+- `components/checkout/CheckoutPage.tsx`: summary rows Subtotal / Shipping / Discount / **Processing fee** / Total (= `amount + buyer_fee`); the "Platform fee (5 %)" row buyers never paid is gone; promo apply/remove pass `buyer_fee` through; `createCheckout` has an in-flight ref and a `(order, amount, buyer_fee)` key so the effect no longer mints a session per render — the double-session bug from the earlier live run is gone (verified: exactly one session per order).
+- `components/orders/OrderView.tsx`: buyer sees Processing fee + "Total paid"; seller sees "Pinkquill fee" + "You receive"; header metric uses `total_amount` for buyers. `components/queue/StudioQueuePage.tsx` copy: "Processing fee shown at checkout".
+- `lib/types/store.ts`: `Order.buyer_fee`, `Order.total_amount`; `Transaction.type` gains `buyer_fee`. `lib/hooks/usePromoCode.ts` result types gain `buyer_fee`, `total_amount`.
+- Sentry is **not** installed in this project (no `@sentry/nextjs` in package.json despite the config files), so failures are recorded in `stripe_events.error` and `console.error`; an alerting hook is a 1e item.
+
+**Verified**
+- Rolled-back RPC run: `compute_order_money(5)` → 5.00 / 0.25 / 4.75 / 0.45 / 5.45; `(100, 10, 20)` → 90 / 4.00 / 86 / 3.00 / 93; a $0 order has no buyer fee; claim/duplicate/processed; mismatch → refund → order still `pending_payment`; decline; stale-session expiry ignored; success → `paid` with 4 ledger rows and exactly one `order_paid` notification; replay → `already_processed`; second payment → `unexpected_status`; partial then full refund; current-session expiry → `expired`.
+- Live in Stripe test mode with a real order (PQ-20260902-1052, then deleted): checkout page shows Subtotal $5.00 / Processing fee $0.45 / Total $5.45; exactly one Checkout Session for the order, `amount_total = 545`, `payment_method_types = ['card']`. Via the CLI forwarder: `checkout.session.expired` for a foreign session → `ignored:stale_session`; `payment_intent.payment_failed` → `payment_status = failed`, `last_payment_error.code = generic_decline`, buyer notified; a $5.00 fixture payment → `amount_mismatch`, auto-refunded (Stripe fee 70 ¢ captured), the resulting `charge.refunded` recognised as already processed; a $5.45 fixture payment → `paid` (not `delivered`), `payment_intent_id` stored, Stripe fee 73 ¢ captured, `transfer_status` null (no instant payout), one seller notification. Order page: status **Paid**, summary with Processing fee and Total paid $5.45. All five `stripe_events` rows `processed` with their outcome note.
+- `npx tsc --noEmit` clean; ESLint clean on changed files (two pre-existing warnings remain); `npx vitest run` 138 pass; `npm run build` succeeds.
+
+**Deferred**
+- The refund route (`/api/payments/refund`) and `StripeProvider.refundPayment` still write `orders.status` directly and refund the full PaymentIntent (including the buyer fee) — 1d.
+- Instant payouts on `account.updated` for `pending_onboarding` orders still go through `transferToSeller` — 1c replaces with the release gate.
+- Chargebacks are recorded but do not yet freeze the order or block/reverse payouts — 1d.
+- `processed_stripe_events` is no longer written; dropped in 4c.
+
+**Next:** Phase 1c — payout release, ledger, cron. Needs D2 (release window; recommended 72 h) and D4 (cron host). D1 is Canada/CAD with worldwide sellers and any currency, so 1c must also decide the settlement model: charge in the buyer's currency, settle in CAD (Stripe converts), transfer to sellers in the platform balance currency with Stripe converting at payout, using cross-border payouts (`recipient` service agreement) for non-Canadian Express accounts.
