@@ -76,7 +76,9 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
             username,
             display_name,
             avatar_url
-          )
+          ),
+          likes_agg:comment_likes(count),
+          replies_agg:comments!parent_id(count)
         `
         )
         .eq("post_id", postId)
@@ -101,38 +103,36 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
 
       const commentIds = data.map((c) => c.id);
 
-      // Batch fetch likes and reply counts
+      // Like and reply counts arrive embedded as aggregates; only the
+      // viewer's own likes need a second (small, indexed) query. This used to
+      // fetch every like row AND every reply row for the page just to count
+      // them (findings L4).
       const currentUserId = userIdRef.current;
-      const [likesResult, userLikesResult, repliesCountResult] = await Promise.all([
-        supabase.from("comment_likes").select("comment_id").in("comment_id", commentIds).abortSignal(signal),
-        currentUserId
-          ? supabase
-              .from("comment_likes")
-              .select("comment_id")
-              .eq("user_id", currentUserId)
-              .in("comment_id", commentIds)
-              .abortSignal(signal)
-          : Promise.resolve({ data: [] }),
-        supabase.from("comments").select("parent_id").in("parent_id", commentIds).abortSignal(signal),
-      ]);
+      const userLikesResult = currentUserId
+        ? await supabase
+            .from("comment_likes")
+            .select("comment_id")
+            .eq("user_id", currentUserId)
+            .in("comment_id", commentIds)
+            .abortSignal(signal)
+        : { data: [] as { comment_id: string }[] };
 
-      // Check if still mounted after second batch of queries
       if (!mountedRef.current || signal.aborted) return;
 
+      const aggCount = (agg: unknown): number => {
+        if (Array.isArray(agg) && agg[0] && typeof agg[0].count === "number") return agg[0].count;
+        return 0;
+      };
       const likesCounts: Record<string, number> = {};
       const userLikes = new Set<string>();
       const repliesCounts: Record<string, number> = {};
 
-      (likesResult.data || []).forEach((l) => {
-        likesCounts[l.comment_id] = (likesCounts[l.comment_id] || 0) + 1;
-      });
+      for (const c of data) {
+        likesCounts[c.id] = aggCount(c.likes_agg);
+        repliesCounts[c.id] = aggCount(c.replies_agg);
+      }
       (userLikesResult.data || []).forEach((l) => {
         userLikes.add(l.comment_id);
-      });
-      (repliesCountResult.data || []).forEach((r) => {
-        if (r.parent_id) {
-          repliesCounts[r.parent_id] = (repliesCounts[r.parent_id] || 0) + 1;
-        }
       });
 
       // Transform comments

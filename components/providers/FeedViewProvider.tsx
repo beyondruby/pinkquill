@@ -35,17 +35,29 @@ function writeCookie(name: string, value: string, maxAgeSeconds: number) {
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax${secure}`;
 }
 
-interface FeedViewProviderProps {
-  children: React.ReactNode;
-  initialViewId: FeedViewId;
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const escaped = name.replace(/[.$?*|{}()[\]\\\/+^]/g, "\\$&");
+  const match = document.cookie.match(new RegExp("(?:^|; )" + escaped + "=([^;]*)"));
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
-export function FeedViewProvider({
-  children,
-  initialViewId,
-}: FeedViewProviderProps) {
+interface FeedViewProviderProps {
+  children: React.ReactNode;
+}
+
+export function FeedViewProvider({ children }: FeedViewProviderProps) {
   const { user, profile, loading: authLoading } = useAuth();
-  const [viewId, setViewIdState] = useState<FeedViewId>(initialViewId);
+  // SSR/hydration use the default; the cookie is adopted right after mount
+  // (the root layout no longer reads cookies so pages can be static).
+  const [viewId, setViewIdState] = useState<FeedViewId>(DEFAULT_FEED_VIEW);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const raw = readCookie(FEED_VIEW_COOKIE);
+    if (raw && isFeedViewId(raw)) setViewIdState(raw);
+    setHydrated(true);
+  }, []);
   // Per-user latch so we don't repeatedly retry seeding feed_view_preference
   // if the first write fails.
   const seededUserIdRef = useRef<string | null>(null);
@@ -68,24 +80,10 @@ export function FeedViewProvider({
       setViewIdState(DEFAULT_FEED_VIEW);
     }
     writeCookie(FEED_VIEW_COOKIE, DEFAULT_FEED_VIEW, FEED_VIEW_COOKIE_MAX_AGE);
-
-    const stored = (profile as { feed_view_preference?: string | null })
-      .feed_view_preference;
-    if (stored !== DEFAULT_FEED_VIEW) {
-      void supabase
-        .from("profiles")
-        .update({ feed_view_preference: DEFAULT_FEED_VIEW })
-        .eq("id", user.id)
-        .then(({ error }) => {
-          if (error) {
-            console.warn(
-              "[FeedViewProvider] could not reset feed_view_preference:",
-              error
-            );
-            seededUserIdRef.current = null;
-          }
-        });
-    }
+    // The profile column is only written on an explicit user choice
+    // (setView). It used to be rewritten to 'classic' on EVERY page load for
+    // any user whose stored value differed — a write per navigation for
+    // nothing (docs/audit/01-findings.md L8).
     // viewId intentionally excluded — reset fires once per (user, page-load),
     // not on every local toggle (those are handled in setView).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,8 +113,8 @@ export function FeedViewProvider({
   );
 
   const value = useMemo<FeedViewContextValue>(
-    () => ({ viewId, setView, isReady: !authLoading }),
-    [viewId, setView, authLoading]
+    () => ({ viewId, setView, isReady: hydrated && !authLoading }),
+    [viewId, setView, hydrated, authLoading]
   );
 
   return (

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCommunity } from "@/lib/hooks";
+import { CommunityProvider } from "@/components/communities/CommunityContext";
 import CommunityHeader from "@/components/communities/CommunityHeader";
 import JoinButton from "@/components/communities/JoinButton";
 import Loading from "@/components/ui/Loading";
@@ -17,7 +18,8 @@ export default function CommunityLayoutClient({
   const params = useParams();
   const slug = params.slug as string;
   const { user } = useAuth();
-  const { community, tags, loading, error, refetch } = useCommunity(slug, user?.id);
+  const communityState = useCommunity(slug, user?.id);
+  const { community, tags, loading, error, refetch } = communityState;
 
   if (loading) {
     return (
@@ -186,16 +188,18 @@ export default function CommunityLayoutClient({
   }
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <CommunityHeader
-        community={community}
-        tags={tags}
-        userId={user?.id}
-        onUpdate={refetch}
-      />
-      <div className="max-w-7xl mx-auto px-4 md:px-12 lg:px-16 py-6 md:py-8">
-        {children}
+    <CommunityProvider value={{ slug, ...communityState }}>
+      <div className="min-h-screen bg-canvas">
+        <CommunityHeader
+          community={community}
+          tags={tags}
+          userId={user?.id}
+          onUpdate={refetch}
+        />
+        <div className="max-w-7xl mx-auto px-4 md:px-12 lg:px-16 py-6 md:py-8">
+          {children}
+        </div>
       </div>
-    </div>
+    </CommunityProvider>
   );
 }

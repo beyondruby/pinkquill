@@ -386,8 +386,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
             reactions:reactions(count),
             comments:comments(count),
             relays:relays(count)
-          `,
-            { count: "exact" }
+          `
           )
           .eq("status", "published")
           .eq("visibility", "public")
@@ -401,11 +400,11 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
           query = query.eq("type", activeTab);
         }
 
-        // For algorithmic tabs, fetch slightly more posts to score and sort
-        // Reduced from 3x to 1.5x to prevent excessive database load and memory usage
-        const isAlgorithmicTab = activeTab === "for-you" || activeTab === "trending" || activeTab === "communities";
-        const fetchMultiplier = isAlgorithmicTab ? 1.5 : 1; // Fetch 1.5x for algorithmic scoring (was 3x)
-        const fetchLimit = Math.ceil(pageSize * fetchMultiplier);
+        // Exactly one page per request. Fetching 1.5x and slicing to pageSize
+        // made consecutive pages overlap (rows 20–29 fetched twice, some never
+        // shown) and produced duplicate keys (findings B7). Scoring now ranks
+        // within the page window.
+        const fetchLimit = pageSize;
 
         // Exclude user's own posts for discovery
         if (userId) {
@@ -416,7 +415,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         const rangeStart = page * pageSize;
         const rangeEnd = rangeStart + fetchLimit - 1;
 
-        const { data: postsData, count: totalCount, error: queryError } = await query
+        const { data: postsData, error: queryError } = await query
           .order("created_at", { ascending: false })
           .range(rangeStart, rangeEnd);
 
@@ -671,24 +670,23 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         // Final abort/mount check before state update
         if (abortController.signal.aborted || !mountedRef.current) return;
 
-        // Update state
+        // Update state (de-duplicated by id so a post can never render twice)
         if (append) {
-          setPosts((prev) => [...prev, ...paginatedPosts]);
+          setPosts((prev) => {
+            const seen = new Set(prev.map((p) => p.id));
+            return [...prev, ...paginatedPosts.filter((p) => !seen.has(p.id))];
+          });
         } else {
           setPosts(paginatedPosts);
         }
 
-        // Use database total count for hasMore calculation
-        // This ensures we know if there are more posts to fetch
-        const dbTotal = totalCount ?? 0;
-        const currentOffset = page * pageSize * fetchMultiplier;
-        const hasMoreInDb = currentOffset + transformedPosts.length < dbTotal;
-
+        // A full page means there may be more; no exact COUNT(*) over the
+        // whole posts table per page any more (findings L7).
         setPagination({
           page,
           pageSize,
-          hasMore: hasMoreInDb && paginatedPosts.length === pageSize,
-          total: dbTotal,
+          hasMore: (postsData || []).length === fetchLimit,
+          total: undefined,
         });
       } catch (err) {
         // Ignore abort errors - they're expected when cancelling requests

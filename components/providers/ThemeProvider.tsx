@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -43,22 +44,35 @@ function writeCookie(name: string, value: string, maxAgeSeconds: number) {
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  initialThemeId: ThemeId;
 }
 
-export function ThemeProvider({ children, initialThemeId }: ThemeProviderProps) {
+// SSR and the hydration render always use 'system'; the real preference is
+// read from the cookie in a layout effect right after hydration (the inline
+// script in app/layout.tsx has already stamped <html data-theme> before
+// paint, so there is no flash). Reading the cookie during render would make
+// the server and client markup disagree.
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+export function ThemeProvider({ children }: ThemeProviderProps) {
   const { user, profile, loading: authLoading } = useAuth();
-  const [themeId, setThemeIdState] = useState<ThemeId>(initialThemeId);
+  const [themeId, setThemeIdState] = useState<ThemeId>("system");
   const [prefersDark, setPrefersDark] = useState<boolean>(false);
+  const [hydrated, setHydrated] = useState(false);
   // Per-user latch so we don't repeatedly try to seed theme_preference if
   // the first attempt fails or the column is briefly null between fetches.
   const seededUserIdRef = useRef<string | null>(null);
 
-  // Track OS dark-mode preference live so 'system' updates without a reload.
-  useEffect(() => {
+  // First client pass: adopt the cookie preference and the OS setting before
+  // anything is painted, then track OS changes live.
+  useIsomorphicLayoutEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const cookieRaw = readCookie(THEME_COOKIE);
     setPrefersDark(mq.matches);
+    if (cookieRaw && isThemeId(cookieRaw)) {
+      setThemeIdState(cookieRaw);
+    }
+    setHydrated(true);
     const onChange = (e: MediaQueryListEvent) => setPrefersDark(e.matches);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
@@ -71,12 +85,14 @@ export function ThemeProvider({ children, initialThemeId }: ThemeProviderProps) 
 
   // The <html data-theme> attribute is the cascade root for every CSS
   // variable override. Updating it is the entire "switch theme" operation.
-  useEffect(() => {
-    if (typeof document === "undefined") return;
+  // Not before hydration: the inline script's stamp is authoritative until
+  // the cookie has been read above.
+  useIsomorphicLayoutEffect(() => {
+    if (!hydrated || typeof document === "undefined") return;
     const root = document.documentElement;
     root.dataset.theme = resolvedId;
     root.dataset.themeMode = themeId === "system" ? "system" : "explicit";
-  }, [resolvedId, themeId]);
+  }, [hydrated, resolvedId, themeId]);
 
   // Sync from authoritative profile preference once the user is loaded.
   // theme_preference == NULL means "never chosen" → seed it from the cookie
@@ -146,8 +162,8 @@ export function ThemeProvider({ children, initialThemeId }: ThemeProviderProps) 
   );
 
   const value = useMemo<ThemeContextValue>(
-    () => ({ themeId, resolvedId, setTheme, isReady: !authLoading }),
-    [themeId, resolvedId, setTheme, authLoading]
+    () => ({ themeId, resolvedId, setTheme, isReady: hydrated && !authLoading }),
+    [themeId, resolvedId, setTheme, hydrated, authLoading]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

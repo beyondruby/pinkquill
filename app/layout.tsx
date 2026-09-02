@@ -27,8 +27,8 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { FeedViewProvider } from "@/components/providers/FeedViewProvider";
 import { LightboxProvider } from "@/components/ui/Lightbox";
 import AuthModal from "@/components/auth/AuthModal";
-import { getServerTheme, getInlineThemeResolveScript } from "@/lib/theme/server";
-import { getServerFeedView } from "@/lib/feed-view/server";
+import { getInlineThemeResolveScript } from "@/lib/theme/server";
+import { SYSTEM_LIGHT } from "@/lib/theme/registry";
 
 function getSupabaseOrigin(): string | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -171,7 +171,9 @@ const cormorantGaramond = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://pinkquill.co"),
+  // Production domain is www.pinkquill.com; the old fallback (pinkquill.co)
+  // does not resolve, which broke every social preview image.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://www.pinkquill.com"),
   title: "PinkQuill - The Creative Platform",
   description: "The social platform built for creatives. Share your art, grow your audience, and connect with a community that gets it.",
   icons: {
@@ -200,35 +202,32 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const supabaseOrigin = getSupabaseOrigin();
-  const { storedId, resolvedId, needsClientResolve } = await getServerTheme();
-  const initialFeedViewId = await getServerFeedView();
 
+  // No cookies()/headers() here on purpose: reading them in the root layout
+  // made every route dynamic. Theme and feed-view preferences are resolved
+  // on the client (inline script below + the providers).
   return (
     <html
       lang="en"
-      data-theme={resolvedId}
-      data-theme-mode={storedId === "system" ? "system" : "explicit"}
+      data-theme={SYSTEM_LIGHT}
+      data-theme-mode="system"
       suppressHydrationWarning
     >
       <head>
         {/*
-          Inline theme-resolve script: when the user's stored preference is
-          'system', we stamp the light fallback in SSR and then re-stamp to
-          the OS-preferred variant here, synchronously, before paint. For
-          explicit themes the SSR data-theme is already correct and this
-          script is omitted entirely.
+          Inline theme-resolve script: reads the theme cookie and re-stamps
+          <html data-theme> synchronously before first paint, so explicit
+          themes never flash and 'system' follows the OS preference.
         */}
-        {needsClientResolve ? (
-          <script
-            dangerouslySetInnerHTML={{ __html: getInlineThemeResolveScript() }}
-          />
-        ) : null}
+        <script
+          dangerouslySetInnerHTML={{ __html: getInlineThemeResolveScript() }}
+        />
         {/* Preconnect to critical origins for faster resource loading */}
         {supabaseOrigin ? (
           <>
@@ -246,8 +245,8 @@ export default async function RootLayout({
         <div className="aura-blob blob-3" />
 
         <AuthProvider>
-          <ThemeProvider initialThemeId={storedId}>
-            <FeedViewProvider initialViewId={initialFeedViewId}>
+          <ThemeProvider>
+            <FeedViewProvider>
               <UserEventsProvider>
                 <BadgeCountProvider>
                   <AuthModalProvider>

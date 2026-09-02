@@ -1,6 +1,6 @@
 # Pinkquill — Audit Progress
 
-Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). Work happens on stacked branches: `fix/phase1-site-loads` (from `main` at `0c9625b`) → `fix/phase2-realtime` → `fix/phase3-security` → `fix/phase4-tracking`.
+Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). Work happens on stacked branches: `fix/phase1-site-loads` (from `main` at `0c9625b`) → `fix/phase2-realtime` → `fix/phase3-security` → `fix/phase4-tracking` → `fix/phase5-read-path`.
 
 ## Status by phase
 | Phase | Status | Commit(s) | Notes |
@@ -9,7 +9,7 @@ Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). 
 | 2 — Realtime / DM storm | **done, needs prod verification** | see `git log fix/phase2-realtime` | Migration applied to prod; typecheck/lint/tests/build green; local smoke on /messages OK |
 | 3 — Security + money | **done, needs prod verification** | see `git log fix/phase3-security` | Two migrations applied to prod; typecheck/lint/tests/build green; local smoke on messages media OK |
 | 4 — Tracking layer | **done, needs prod verification** | see `git log fix/phase4-tracking` | Migration applied to prod; RPC paths verified as anon and as authenticated; typecheck/lint/tests/build green |
-| 5 — Read path + latency | not started | – | |
+| 5 — Read path + latency | **done (first pass), needs prod verification** | see `git log fix/phase5-read-path` | Migration applied to prod; prose routes static; typecheck/lint/tests/build green; two items deferred (below) |
 | 6 — Hang-adjacent + half-finished | not started | – | |
 | 7 — Consolidation | not started | – | |
 | 8 — Dead code + bundle | not started | – | |
@@ -96,8 +96,30 @@ Not verified: the browser-driven path end-to-end (impressions and the 1-second v
 
 Left as-is on purpose (differs from the plan text): the per-page block checks in `useProfile`, `/post/[id]`, `/take/[id]` were **kept** — `posts_select_policy` does not enforce blocks, so those client checks are currently the only gate that hides a blocker's content. Moving block enforcement into RLS is a Phase 6 item.
 
+## Phase 5 — what changed (2026-09-02)
+
+Root causes addressed: H12, L7, L8, L11, B7 (explore + tags), L4 (community posts, comments) from `01-findings.md`. Sub-steps 1–7 of the plan, with two explicit deferrals.
+
+| Step | Change | Files |
+|---|---|---|
+| Infra / latency | `vercel.json` pins functions to **sin1** (same region as Supabase; server↔DB RTT drops from ~230 ms to ~1 ms). `metadataBase` falls back to `https://www.pinkquill.com` (B4: social previews pointed at the dead `pinkquill.co`). Root layout no longer reads cookies: theme is stamped by an inline head script that reads the cookie itself, so routes without server data prerender — **`/about`, `/help`, `/login`, `/privacy`, `/terms`, `/community-guidelines`, `/marketplace-guidelines` are now static** (`○` in the build output; before, the only static route was `/_global-error`). `/about` lost its redundant `force-dynamic`. The proxy no longer runs the GoTrue round trip for those prose paths. | `vercel.json` (new), `app/layout.tsx`, `lib/theme/server.ts`, `lib/feed-view/server.ts` (deleted), `proxy.ts`, `app/about/page.tsx` |
+| Providers | `ThemeProvider` / `FeedViewProvider` take no server props; they adopt the cookie in a post-hydration (layout) effect, so SSR markup and the hydration render agree and the inline script's stamp stays authoritative until then. `FeedViewProvider` no longer writes `profiles.feed_view_preference` on every page load (L8) — only on an explicit user choice. | `components/providers/ThemeProvider.tsx`, `components/providers/FeedViewProvider.tsx` |
+| DB hygiene | Migration `20260902_phase5_db_hygiene.sql` — **applied to prod.** 5 duplicate indexes dropped; covering indexes for all 9 unindexed FKs; `community_member_history` policy uses `(select auth.uid())`; the 8 tables with multiple permissive policies for one command (`orders`, `order_reviews`, `product_files`, `product_purchases`, `reports`, `reviews`, `transactions` SELECT; `community_members` INSERT) merged into one policy each with identical semantics. Performance advisor now reports only `unused_index` notices (125; deliberately left until real traffic shows which are used). | `supabase/migrations/20260902_phase5_db_hygiene.sql` |
+| Duplicate mounts | `CommunityContext`: the community layout fetches once and shares; `useCommunity(slug)` returns the shared value when rendered under that layout and only queries otherwise (was 2–3 × (1 + 7 queries) per navigation). `useTrendingTags`: module-level cache per limit with in-flight dedupe (3 instances → 1 request). `useSellerOnboarding`: shared 5-minute cache for the Stripe-backed status route (2 mounts → 1 Stripe call per dashboard visit). | `components/communities/CommunityContext.tsx` (new), `app/community/[slug]/CommunityLayoutClient.tsx`, `lib/hooks.legacy.ts`, `lib/hooks/useTags.ts`, `lib/hooks/usePayments.ts` |
+| Aggregates | `useCommunityPosts` embeds `admires/comments/relays/reactions(count)` instead of fetching every engagement row for the page (10 → 6 queries per page, bounded). `useComments` embeds `comment_likes(count)` and `comments!parent_id(count)` instead of fetching every like row and every reply row (4 → 2 queries per page). `useExplore` no longer requests an exact `COUNT(*)` over all public posts per page. | `lib/hooks.legacy.ts`, `lib/hooks/useComments.ts`, `lib/hooks/useExplore.ts` |
+| Pagination correctness | Explore fetches exactly one page per request (no more 1.5× fetch + slice → overlapping pages and duplicate keys) and de-duplicates on append; `hasMore` = full page. Tag pages order `post_tags` deterministically before `.range()`. | `lib/hooks/useExplore.ts`, `lib/hooks/useTags.ts` |
+
+Verification: typecheck, lint (0 errors), 136/136 tests, production build with the seven prose routes marked static. Live: PostgREST resolves the new count embeds (`admires_agg`, `comments!parent_id(count)`); as the signed-in user, the merged policies return the expected rows for orders/reviews/files/purchases/transactions/community_members. Local: `/community/test1` issues one `communities` query (was 2–3), theme stamped from the cookie with no hydration warnings, view recorded via RPC; `/explore` renders 12 unique posts with no duplicate keys and no console errors; the Topics tab shows "No topics yet" because `get_trending_tags(30 days)` legitimately returns `[]` for this dataset (verified with curl).
+
+**Deferred from the plan (explicitly):**
+- **Unbounded profile posts (`useProfile`, L5) and the other unbounded lists** — bounding the profile query requires tab-level pagination in the 2,900-line `StudioProfile`; not started. Same for `useSavedPosts`, `useRelays`, community chat lists, seller lists.
+- **Community `top`/`hot` sort** is still computed within the fetched page; a server-side ordering RPC is needed.
+- `useCommunityMembers` ×3 on the members page and the settings pages' `profiles` refetch were left as-is (small, page-local).
+
+Deploy notes: `vercel.json` changes the function region on the next deploy — verify in `vercel inspect` that builds show `[sin1]`. `NEXT_PUBLIC_BASE_URL` is still unset in Vercel; the code default now points at the real domain, so previews work either way.
+
 ## Next
-Deploy `fix/phase4-tracking` (contains Phases 1–3; merge to `main` triggers Vercel), flip leaked-password protection in the Supabase dashboard, watch `vercel logs` for `[auth-diagnostic]` and the realtime inspector for a day, then start Phase 5 (`02-plan.md`).
+Deploy `fix/phase5-read-path` (contains Phases 1–4; merge to `main` triggers Vercel), flip leaked-password protection in the Supabase dashboard, watch `vercel logs` for `[auth-diagnostic]` and the realtime inspector for a day, then start Phase 6 (`02-plan.md`), or the Phase 5 deferrals (profile pagination) if launch traffic makes profile pages slow.
 
 ## How to resume in a fresh session
 1. Read `02-plan.md` for the phase being worked on and `01-findings.md` for the IDs it cites; `00-system-map.md` only as needed.

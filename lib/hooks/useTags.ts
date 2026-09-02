@@ -38,51 +38,55 @@ interface UseTrendingTagsReturn {
 // useTrendingTags - Fetch real trending tags from database
 // ============================================================================
 
+// Module-level cache shared by every instance (sidebar + explore mount it
+// 2–3 times on one page). One request per limit per 5 minutes; concurrent
+// mounts share the in-flight promise.
+const TRENDING_TAGS_TTL_MS = 5 * 60 * 1000;
+const trendingTagsCache = new Map<number, { tags: TrendingTag[]; fetchedAt: number }>();
+const trendingTagsInFlight = new Map<number, Promise<TrendingTag[]>>();
+
+async function loadTrendingTags(limit: number, force = false): Promise<TrendingTag[]> {
+  const cached = trendingTagsCache.get(limit);
+  if (!force && cached && Date.now() - cached.fetchedAt < TRENDING_TAGS_TTL_MS) {
+    return cached.tags;
+  }
+  const inFlight = trendingTagsInFlight.get(limit);
+  if (inFlight) return inFlight;
+
+  const promise = (async () => {
+    // Server-side RPC does the GROUP BY; this used to fetch 500+ rows.
+    const { data, error } = await supabase.rpc("get_trending_tags", { p_limit: limit, p_days: 30 });
+    if (error) throw error;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tags: TrendingTag[] = (data || []).map((row: any) => ({
+      name: row.name,
+      post_count: Number(row.post_count),
+      recent_posts: Number(row.recent_posts),
+    }));
+    trendingTagsCache.set(limit, { tags, fetchedAt: Date.now() });
+    return tags;
+  })();
+  trendingTagsInFlight.set(limit, promise);
+  try {
+    return await promise;
+  } finally {
+    trendingTagsInFlight.delete(limit);
+  }
+}
+
 export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
-  const [tags, setTags] = useState<TrendingTag[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = trendingTagsCache.get(limit);
+  const [tags, setTags] = useState<TrendingTag[]>(cached?.tags ?? []);
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const fetchedRef = useRef(false);
 
-  const fetchTrendingTags = useCallback(async () => {
-    // Prevent duplicate fetches on initial load
-    if (fetchedRef.current) {
-      setLoading(false);
-      return;
-    }
-
-    // Abort any in-flight request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-
+  const fetchTrendingTags = useCallback(async (force = false) => {
     try {
-      setLoading(true);
       setError(null);
-
-      // Use server-side RPC for efficient GROUP BY aggregation
-      // This replaces fetching 500+ rows and counting client-side
-      const { data, error: rpcError } = await supabase.rpc("get_trending_tags", {
-        p_limit: limit,
-        p_days: 30,
-      }).abortSignal(signal);
-
-      if (!mountedRef.current || signal.aborted) return;
-      if (rpcError) throw rpcError;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const trendingTags: TrendingTag[] = (data || []).map((row: any) => ({
-        name: row.name,
-        post_count: Number(row.post_count),
-        recent_posts: Number(row.recent_posts),
-      }));
-
-      setTags(trendingTags);
-      fetchedRef.current = true;
+      const next = await loadTrendingTags(limit, force);
+      if (!mountedRef.current) return;
+      setTags(next);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useTrendingTags] Error:", err);
@@ -90,25 +94,21 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
         setError(err instanceof Error ? err.message : "Failed to fetch trending tags");
       }
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+      if (mountedRef.current) setLoading(false);
     }
   }, [limit]);
 
   useEffect(() => {
     mountedRef.current = true;
     fetchTrendingTags();
-
     return () => {
       mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
     };
   }, [fetchTrendingTags]);
 
-  return { tags, loading, error, refetch: fetchTrendingTags };
+  const refetch = useCallback(() => fetchTrendingTags(true), [fetchTrendingTags]);
+
+  return { tags, loading, error, refetch };
 }
 
 // ============================================================================
@@ -172,10 +172,12 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
       setTagInfo({ name: tagData.name, totalPosts: totalCount || 0 });
 
       // Get post IDs for this tag with pagination
+      // .range() without .order() is non-deterministic across pages.
       const { data: postTagData, error: postTagError } = await supabase
         .from("post_tags")
         .select("post_id")
         .eq("tag_id", tagData.id)
+        .order("post_id", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (postTagError) throw postTagError;

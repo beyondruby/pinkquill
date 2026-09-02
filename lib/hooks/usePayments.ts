@@ -19,20 +19,43 @@ interface UseSellerOnboardingReturn {
   openDashboard: () => Promise<void>;
 }
 
+// The status route calls Stripe (accounts.retrieve) and writes seller_accounts
+// on every request. Two components mount this hook on the seller dashboard,
+// so share one result for a few minutes and dedupe concurrent calls.
+const SELLER_STATUS_TTL_MS = 5 * 60 * 1000;
+let sellerStatusCache: { data: Record<string, unknown>; fetchedAt: number } | null = null;
+let sellerStatusInFlight: Promise<Record<string, unknown>> | null = null;
+
+async function loadSellerStatus(force = false): Promise<Record<string, unknown>> {
+  if (!force && sellerStatusCache && Date.now() - sellerStatusCache.fetchedAt < SELLER_STATUS_TTL_MS) {
+    return sellerStatusCache.data;
+  }
+  if (sellerStatusInFlight) return sellerStatusInFlight;
+  sellerStatusInFlight = (async () => {
+    const res = await fetch("/api/stripe/connect/status", {
+      headers: await buildAuthenticatedHeaders(),
+    });
+    const data = await safeResponseJson<Record<string, unknown>>(res);
+    if (!res.ok) throw new Error((data.error as string) || `Request failed (${res.status})`);
+    sellerStatusCache = { data, fetchedAt: Date.now() };
+    return data;
+  })();
+  try {
+    return await sellerStatusInFlight;
+  } finally {
+    sellerStatusInFlight = null;
+  }
+}
+
 export function useSellerOnboarding(): UseSellerOnboardingReturn {
   const [account, setAccount] = useState<SellerAccount | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const checkStatus = useCallback(async () => {
+  const checkStatus = useCallback(async (force = false) => {
     try {
       setError(null);
-      const res = await fetch("/api/stripe/connect/status", {
-        headers: await buildAuthenticatedHeaders(),
-      });
-      const data = await safeResponseJson<Record<string, unknown>>(res);
-
-      if (!res.ok) throw new Error((data.error as string) || `Request failed (${res.status})`);
+      const data = await loadSellerStatus(force);
 
       if (data.has_account) {
         setAccount({
@@ -67,6 +90,7 @@ export function useSellerOnboarding(): UseSellerOnboardingReturn {
       setError(null);
       setLoading(true);
 
+      sellerStatusCache = null;
       const res = await fetch("/api/stripe/connect/onboard", {
         method: "POST",
         headers: await buildAuthenticatedHeaders({ "Content-Type": "application/json" }),

@@ -15,6 +15,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
 import { createNotification } from "./hooks/useNotifications";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
+import { useCommunityContext } from "@/components/communities/CommunityContext";
 import { sanitizePostgrestSearchTerm } from "./utils/postgrest";
 import { retryWithBackoff, isRetryableError } from "./utils/retry";
 import type {
@@ -64,7 +65,21 @@ function withCommunityCounts(community: CommunityWithCounts): Community {
 }
 
 // Fetch a single community by slug
+/**
+ * Community by slug. When rendered under /community/[slug], the layout has
+ * already fetched it and shares it through CommunityContext, so this returns
+ * the shared value and performs no query of its own. Outside that layout it
+ * fetches as before.
+ */
 export function useCommunity(slug: string, userId?: string) {
+  const ctx = useCommunityContext();
+  const shared = ctx && ctx.slug === slug ? ctx : null;
+  // Hooks must run unconditionally; an empty slug makes the query a no-op.
+  const own = useCommunityQuery(shared ? "" : slug, userId);
+  return shared ?? own;
+}
+
+function useCommunityQuery(slug: string, userId?: string) {
   const [community, setCommunity] = useState<Community | null>(null);
   const [rules, setRules] = useState<CommunityRule[]>([]);
   const [tags, setTags] = useState<CommunityTag[]>([]);
@@ -772,7 +787,11 @@ export function useCommunityPosts(
             emoji,
             position,
             created_at
-          )
+          ),
+          admires_agg:admires(count),
+          comments_agg:comments(count),
+          relays_agg:relays(count),
+          reactions_agg:reactions(count)
         `)
         .eq("community_id", communityId)
         .eq("status", "published");
@@ -808,34 +827,24 @@ export function useCommunityPosts(
         return;
       }
 
-      // Get engagement counts for sorting
+      // Engagement counts come embedded as aggregates (one query) — this used
+      // to fetch every admire/comment/relay/reaction ROW for the page and count
+      // them in JS (findings L4).
       const postIds = data.map(p => p.id);
-      const [admiresResult, commentsResult, relaysResult, reactionsResult] = await Promise.all([
-        supabase.from("admires").select("post_id").in("post_id", postIds),
-        supabase.from("comments").select("post_id").in("post_id", postIds),
-        supabase.from("relays").select("post_id").in("post_id", postIds),
-        supabase.from("reactions").select("post_id, reaction_type").in("post_id", postIds),
-      ]);
-
-      if (!mountedRef.current) return;
-
+      const aggCount = (agg: unknown): number => {
+        if (Array.isArray(agg) && agg[0] && typeof agg[0].count === "number") return agg[0].count;
+        return 0;
+      };
       const admiresCounts: Record<string, number> = {};
       const commentsCounts: Record<string, number> = {};
       const relaysCounts: Record<string, number> = {};
       const reactionsCounts: Record<string, number> = {};
-
-      (admiresResult.data || []).forEach(a => {
-        admiresCounts[a.post_id] = (admiresCounts[a.post_id] || 0) + 1;
-      });
-      (commentsResult.data || []).forEach(c => {
-        commentsCounts[c.post_id] = (commentsCounts[c.post_id] || 0) + 1;
-      });
-      (relaysResult.data || []).forEach(r => {
-        relaysCounts[r.post_id] = (relaysCounts[r.post_id] || 0) + 1;
-      });
-      (reactionsResult.data || []).forEach(r => {
-        reactionsCounts[r.post_id] = (reactionsCounts[r.post_id] || 0) + 1;
-      });
+      for (const post of data) {
+        admiresCounts[post.id] = aggCount(post.admires_agg);
+        commentsCounts[post.id] = aggCount(post.comments_agg);
+        relaysCounts[post.id] = aggCount(post.relays_agg);
+        reactionsCounts[post.id] = aggCount(post.reactions_agg);
+      }
 
       // Check user interactions if logged in
       let userAdmires: Set<string> = new Set();
@@ -861,7 +870,8 @@ export function useCommunityPosts(
         });
       }
 
-      const enrichedPosts = data.map(post => ({
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the aggregate helpers off the row
+      const enrichedPosts = data.map(({ admires_agg, comments_agg, relays_agg, reactions_agg, ...post }) => ({
         ...post,
         flair: (Array.isArray(post.flair) ? post.flair[0] : post.flair) || null,
         admires_count: admiresCounts[post.id] || 0,
