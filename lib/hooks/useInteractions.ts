@@ -278,11 +278,15 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
   const [loading, setLoading] = useState(!skipInitialFetch);
   const mountedRef = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Read through a ref so a parent passing a fresh object each render does
+  // not change fetchCounts' identity (and refetch in a loop).
+  const initialCountsRef = useRef(initialCounts);
+  initialCountsRef.current = initialCounts;
 
   const fetchCounts = useCallback(async () => {
     if (!postId) {
       // Modal closed / no post: never show the previous post's numbers.
-      setCounts(initialCounts || { admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0 });
+      setCounts(initialCountsRef.current || { admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0 });
       setLoading(false);
       return;
     }
@@ -491,10 +495,12 @@ export function useUserReaction(postId: string, userId?: string, options?: UseUs
   const [loading, setLoading] = useState(!skipInitialFetch && !!userId);
   const mountedRef = useRef(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const initialReactionRef = useRef(initialReaction);
+  initialReactionRef.current = initialReaction;
 
   const fetchReaction = useCallback(async () => {
     if (!postId || !userId) {
-      setReaction(initialReaction ?? null);
+      setReaction(initialReactionRef.current ?? null);
       setLoading(false);
       return;
     }

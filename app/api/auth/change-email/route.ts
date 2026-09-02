@@ -7,7 +7,6 @@ import {
   safeJsonParse,
 } from "@/lib/api-security";
 import { getAuthUser, createSupabaseServerClient } from "@/lib/auth-server";
-import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
 
