@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getClientIp as getPlatformClientIp } from "@/lib/api-security";
 
 interface VerifyTurnstileOptions {
   request: Request;
@@ -18,19 +19,8 @@ export interface TurnstileVerificationResult {
 }
 
 function getClientIp(request: Request): string | null {
-  const cfConnectingIp = request.headers.get("cf-connecting-ip");
-  if (cfConnectingIp) return cfConnectingIp.trim();
-
-  const xRealIp = request.headers.get("x-real-ip");
-  if (xRealIp) return xRealIp.trim();
-
-  const xForwardedFor = request.headers.get("x-forwarded-for");
-  if (xForwardedFor) {
-    const first = xForwardedFor.split(",")[0]?.trim();
-    if (first) return first;
-  }
-
-  return null;
+  const ip = getPlatformClientIp(request);
+  return ip === "unknown" ? null : ip;
 }
 
 export async function verifyTurnstileToken({

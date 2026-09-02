@@ -172,7 +172,12 @@ export async function POST(request: Request) {
           ? orderWithProduct.product[0]
           : orderWithProduct?.product;
 
-        if (productData?.delivery_type === "digital" || order.listing_type === "product") {
+        // Digital goods are delivered by the platform the moment payment lands,
+        // so paying the seller immediately is correct. Physical products and
+        // services must go through shipping / delivery confirmation / escrow
+        // (`listing_type === "product"` used to be in this condition and paid
+        // sellers for unshipped physical goods — findings S2).
+        if (productData?.delivery_type === "digital") {
           try {
             await getActiveProvider().transferToSeller(order.id);
             // Only mark as delivered after transfer succeeds

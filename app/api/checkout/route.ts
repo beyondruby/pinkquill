@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     const rateLimit = await checkRateLimit({
       request,
-      scope: "user",
+      scope: "checkout.create",
       identifier: user.id,
       limit: 10,
       windowSeconds: 60,

@@ -19,6 +19,15 @@ export default function CommunityModerationSettingsPage() {
   const slug = params.slug as string;
   const { user } = useAuth();
   const { community } = useCommunity(slug, user?.id);
+
+  // Role gate: redirect from an effect (a router.push during render is a
+  // React error and can loop). The proxy already requires a session; the
+  // real authorization lives in RLS and the moderation RPCs.
+  useEffect(() => {
+    if (community && (community.user_role !== "admin" && community.user_role !== "moderator")) {
+      router.replace(`/community/${slug}`);
+    }
+  }, [community, router, slug]);
   const [activeTab, setActiveTab] = useState<TabType>('mod-log');
 
   const { members: mutedMembers, loading: mutedLoading, refetch: refetchMuted } = useCommunityMembers(
@@ -55,7 +64,6 @@ export default function CommunityModerationSettingsPage() {
   const isMod = community.user_role === 'moderator';
 
   if (!isAdmin && !isMod) {
-    router.push(`/community/${slug}`);
     return null;
   }
 

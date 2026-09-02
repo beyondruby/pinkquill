@@ -22,7 +22,7 @@ export async function DELETE(request: Request) {
 
     const rateLimit = await checkRateLimit({
       request,
-      scope: "user",
+      scope: "account.delete",
       identifier: user.id,
       limit: 3,
       windowSeconds: 3600,

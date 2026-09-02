@@ -43,6 +43,46 @@ function getBearerToken(request?: Request): string | null {
   return normalizedToken || null;
 }
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return null;
+    const json = Buffer.from(part.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+const RECOVERY_AMR_MAX_AGE_SECONDS = 30 * 60;
+
+/**
+ * True when the caller's access token was issued through a password-recovery
+ * link recently. Used by /api/auth/change-password to allow a reset without
+ * the current password ONLY in that flow. The token itself has already been
+ * validated by getAuthUser(); this only reads its claims.
+ */
+export async function hasRecentRecoveryAuth(request?: Request): Promise<boolean> {
+  let token = getBearerToken(request);
+  if (!token) {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase.auth.getSession();
+    token = data.session?.access_token ?? null;
+  }
+  if (!token) return false;
+
+  const claims = decodeJwtPayload(token);
+  const amr = claims?.amr;
+  if (!Array.isArray(amr)) return false;
+  const now = Math.floor(Date.now() / 1000);
+  return amr.some((entry) => {
+    if (!entry || typeof entry !== "object") return false;
+    const { method, timestamp } = entry as { method?: string; timestamp?: number };
+    if (method !== "recovery") return false;
+    return typeof timestamp === "number" ? now - timestamp <= RECOVERY_AMR_MAX_AGE_SECONDS : true;
+  });
+}
+
 /**
  * Gets the authenticated user from the current request.
  * Prefers an Authorization bearer token (current client session) and

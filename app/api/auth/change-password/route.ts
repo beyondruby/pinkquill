@@ -6,7 +6,7 @@ import {
   rateLimitResponse,
   safeJsonParse,
 } from "@/lib/api-security";
-import { getAuthUser } from "@/lib/auth-server";
+import { getAuthUser, hasRecentRecoveryAuth } from "@/lib/auth-server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import {
   PASSWORD_MAX_LENGTH,
@@ -96,6 +96,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Proof of possession: the current password, or a session that was
+    // established through a password-recovery link in the last 30 minutes
+    // (GoTrue stamps `amr: [{ method: "recovery" }]` on such sessions). Any
+    // other session must present the current password — otherwise an XSS or
+    // a borrowed device could rotate the password (findings S6).
+    if (!currentPassword) {
+      const recovering = await hasRecentRecoveryAuth(request);
+      if (!recovering) {
+        return NextResponse.json(
+          { error: "Current password is required." },
+          { status: 400 }
+        );
+      }
+    }
+
     if (currentPassword) {
       const transient = createTransientAuthClient();
       const { error: verifyError } = await transient.auth.signInWithPassword({
@@ -108,7 +123,8 @@ export async function POST(request: Request) {
           { status: 401 }
         );
       }
-      await transient.auth.signOut().catch(() => {});
+      // scope "local": never revoke the user's other sessions from here.
+      await transient.auth.signOut({ scope: "local" }).catch(() => {});
     }
 
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(

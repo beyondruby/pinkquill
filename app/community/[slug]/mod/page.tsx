@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -14,6 +14,15 @@ export default function CommunityModQueuePage() {
   const slug = params.slug as string;
   const { user } = useAuth();
   const { community, loading } = useCommunity(slug, user?.id);
+
+  // Role gate: redirect from an effect (a router.push during render is a
+  // React error and can loop). The proxy already requires a session; the
+  // real authorization lives in RLS and the moderation RPCs.
+  useEffect(() => {
+    if (community && (community.user_role !== "admin" && community.user_role !== "moderator")) {
+      router.replace(`/community/${slug}`);
+    }
+  }, [community, router, slug]);
 
   if (loading) {
     return (
@@ -29,7 +38,6 @@ export default function CommunityModQueuePage() {
 
   // Only admins and moderators can access the mod queue
   if (community.user_role !== "admin" && community.user_role !== "moderator") {
-    router.push(`/community/${slug}`);
     return null;
   }
 

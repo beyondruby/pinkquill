@@ -23,7 +23,6 @@ import type {
   OrderForCheckout,
 } from "@/lib/payment-provider";
 import { getStripeServer, CONNECT_ACCOUNT_TYPE } from "@/lib/stripe";
-import { PLATFORM_FEE_RATE } from "@/lib/payments";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 // ============================================================================
@@ -369,9 +368,17 @@ export class StripeProvider implements PaymentProviderInterface {
       return { success: true, pendingOnboarding: true };
     }
 
+    // Pay exactly what the ledger says. `seller_amount` is computed once by
+    // create_marketplace_order / apply_promo_to_order (5% of the goods or
+    // service amount, shipping passed through); recomputing here from
+    // `amount` (which includes shipping) made payouts disagree with what the
+    // dashboards show (findings S10).
     const amountCents = Math.round(Number(order.amount) * 100);
-    const platformFeeCents = Math.round(amountCents * PLATFORM_FEE_RATE);
-    const sellerAmountCents = amountCents - platformFeeCents;
+    const sellerAmountCents = Math.round(Number(order.seller_amount) * 100);
+    if (!Number.isFinite(sellerAmountCents) || sellerAmountCents <= 0 || sellerAmountCents > amountCents) {
+      throw new Error(`Order ${orderId} has an invalid seller_amount (${order.seller_amount})`);
+    }
+    const platformFeeCents = amountCents - sellerAmountCents;
 
     const transfer = await stripe.transfers.create(
       {

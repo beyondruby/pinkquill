@@ -10,6 +10,7 @@ import VoiceNotePlayer from "./VoiceNotePlayer";
 import MessageReactionPicker, { ReactionsDisplay } from "./MessageReactionPicker";
 import TypingIndicator from "./TypingIndicator";
 import SharedPostCard from "./SharedPostCard";
+import MessageMediaBody from "./MessageMediaBody";
 import Loading from "@/components/ui/Loading";
 import EmojiPicker from "@/components/ui/EmojiPicker";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
@@ -854,22 +855,11 @@ export default function ChatView({
                             : "bg-subtle shadow-sm rounded-bl-md"
                         }`}
                       >
-                        {message.media_type === "image" ? (
-                          <img
-                            src={message.media_url}
-                            alt="Shared image"
-                            className="w-full max-h-[300px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
-                            onClick={() => setLightboxImage(message.media_url!)}
-                          />
-                        ) : (
-                          <video
-                            src={message.media_url}
-                            className="w-full max-h-[300px] rounded-t-xl"
-                            controls
-                            preload="metadata"
-                            playsInline
-                          />
-                        )}
+                        <MessageMediaBody
+                          url={message.media_url}
+                          mediaType={message.media_type}
+                          onOpenImage={setLightboxImage}
+                        />
                         <div
                           className={`flex items-center justify-end gap-1 px-3 py-2 ${
                             isOwn ? "text-white/70" : "text-muted"

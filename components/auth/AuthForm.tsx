@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthFlow } from "@/lib/hooks/useAuthFlow";
 import { getSafeRedirectPath } from "@/lib/utils/redirect";
 import { PASSWORD_MIN_LENGTH } from "@/lib/auth/constants";
@@ -21,8 +22,17 @@ import {
 
 export default function AuthForm() {
   const { state, actions } = useAuthFlow();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTarget = getSafeRedirectPath(searchParams.get("redirect"));
+  const { user: signedInUser, status: authStatus } = useAuth();
+
+  // Already signed in: there is nothing to do on this page.
+  useEffect(() => {
+    if (authStatus === "authenticated" && signedInUser) {
+      router.replace(redirectTarget);
+    }
+  }, [authStatus, signedInUser, redirectTarget, router]);
   const {
     isLogin, step, emailOrUsername, password, username, displayName,
     otpCode, pendingEmail, resendCooldown, loading, error, message,

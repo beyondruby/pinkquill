@@ -33,6 +33,19 @@ export async function POST(request: NextRequest) {
     }
 
     const count = typeof data === "number" ? data : 0;
+
+    // Housekeeping: rate-limit buckets are never read again once their
+    // window has passed, but nothing deleted them (findings L6). Windows are
+    // at most 1h; anything older than a day is garbage.
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { error: pruneError } = await supabaseAdmin
+      .from("api_rate_limits")
+      .delete()
+      .lt("window_start", cutoff);
+    if (pruneError) {
+      console.warn("[auto-decline] rate-limit prune failed:", pruneError.message);
+    }
+
     return NextResponse.json({ declined: count });
   } catch (err) {
     console.error("[auto-decline] Error:", err);

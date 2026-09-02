@@ -4,11 +4,14 @@ const PROTECTED_PREFIXES = [
   "/saved",
   "/settings",
   "/orders",
-  "/queue",
+  "/checkout",
   "/cart",
   "/pending-collaborations",
   "/seller",
+  "/sell",
   "/insights",
+  "/community/create",
+  "/takes/create",
 ];
 
 export function isProtectedPath(pathname: string): boolean {

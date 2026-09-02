@@ -1,13 +1,13 @@
 # Pinkquill — Audit Progress
 
-Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). Work happens on stacked branches: `fix/phase1-site-loads` (from `main` at `0c9625b`) → `fix/phase2-realtime`.
+Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). Work happens on stacked branches: `fix/phase1-site-loads` (from `main` at `0c9625b`) → `fix/phase2-realtime` → `fix/phase3-security`.
 
 ## Status by phase
 | Phase | Status | Commit(s) | Notes |
 |---|---|---|---|
 | 1 — Site does not load | **done, needs prod verification** | see `git log fix/phase1-site-loads` | All 7 steps applied; typecheck/lint/tests/build green; local smoke on logged-in + multi-tab OK |
 | 2 — Realtime / DM storm | **done, needs prod verification** | see `git log fix/phase2-realtime` | Migration applied to prod; typecheck/lint/tests/build green; local smoke on /messages OK |
-| 3 — Security + money | not started | – | |
+| 3 — Security + money | **done, needs prod verification** | see `git log fix/phase3-security` | Two migrations applied to prod; typecheck/lint/tests/build green; local smoke on messages media OK |
 | 4 — Tracking layer | not started | – | |
 | 5 — Read path + latency | not started | – | |
 | 6 — Hang-adjacent + half-finished | not started | – | |
@@ -59,8 +59,27 @@ Not verified (needs two users): live delta path end-to-end (peer sends → list 
 
 Deploy note: the migration is already live. Until this branch deploys, the **currently deployed** client keeps subscribing to a few tables that are no longer published (`conversation_participants`, `message_reactions`, `reactions`, `post_collaborators`) — those channels simply go quiet; nothing errors. Deploy Phases 1+2 together.
 
+## Phase 3 — what changed (2026-09-02)
+
+Root causes addressed: S1, S2, S3, S4, S5, S6 (partial), S7, S10, S11, L6 (rate-limit growth) from `01-findings.md`.
+
+| Step | Change | Files |
+|---|---|---|
+| DB | Migrations `20260902_phase3_security_grants_and_money.sql` (+ the trigger-function section applied as `phase3_lock_trigger_functions`) — **applied to prod.** (a) 11 server-only/unused SECURITY DEFINER functions locked to `service_role` (`enforce_api_rate_limit`, `create_order_notification`, `auto_complete_orders`, `auto_decline_expired_orders`, `reveal_expired_reviews`, `get_user_conversation_ids`, `get_total_reactions`, `is_following`, `is_blocked_either_way`, `increment_sound_use`, `increment_take_view`). (b) 34 user-action RPCs revoked from `PUBLIC`/`anon`, granted to `authenticated`+`service_role`. (c) 18 trigger functions locked to `service_role` (verified in a rolled-back transaction that `authenticated` DML still fires them). (d) `auth.uid()` guards: `get_community_chat_overview`/`_unread_count` return nothing unless `p_user_id` is the caller; `ensure_community_chat_thread` requires self or community staff. (e) `search_path` pinned on the 25 flagged functions. (f) `apply_promo_to_order` fee base = discounted amount minus shipping (same rule as `create_marketplace_order`). (g) `message-media` and `voice-notes` buckets private; SELECT/INSERT policies scoped to conversation participants via the `<sender>/<conversation>/…` path; size limits on the six unlimited buckets. Left as-is on purpose: RLS helper predicates (`is_community_*`, `is_post_*`, `can_access_community_chat_thread`, `has_pending_invitation`, `user_is_conversation_participant`) stay PUBLIC because policies evaluate them as the invoking role; `get_seller_stats` stays anon for the public storefront. | `supabase/migrations/20260902_phase3_security_grants_and_money.sql` |
+| Money | Webhook pays the seller and marks `delivered` only for `delivery_type === "digital"` (physical products now go through shipping/escrow). Buyer refund requests go through the guarded `request_refund` RPC as the buyer (cookie client) — statuses limited to paid/completed/delivered, blocked after escrow release; the route no longer writes events/notifications itself. `transferToSeller` pays the stored `seller_amount` instead of recomputing from the shipping-inclusive total, and refuses invalid amounts. | `app/api/stripe/webhooks/route.ts`, `app/api/payments/refund/route.ts`, `lib/providers/stripe-provider.ts` |
+| Rate limiting | Client IP = `x-real-ip` → `x-forwarded-for` (platform-set on Vercel); `cf-connecting-ip` dropped (client-spoofable here). Turnstile reuses the same helper. Shared `"user"` bucket split into `checkout.create`, `checkout.confirm`, `account.delete`, `posts.delete`. The 10-minute auto-decline cron prunes `api_rate_limits` rows older than 24 h. | `lib/api-security.ts`, `lib/turnstile-server.ts`, `app/api/checkout/route.ts`, `app/api/checkout/confirm/route.ts`, `app/api/account/route.ts`, `app/api/posts/delete/route.ts`, `app/api/orders/auto-decline/route.ts` |
+| Auth routes | Transient sign-outs use `scope: "local"` (no more global session revocation after a password/email change). Password change requires the current password unless the session's JWT `amr` contains a `recovery` entry from the last 30 min (`hasRecentRecoveryAuth`). | `app/api/auth/change-email/route.ts`, `app/api/auth/change-password/route.ts`, `lib/auth-server.ts` |
+| Gating | Proxy-protected prefixes now include `/checkout`, `/sell`, `/community/create`, `/takes/create`; dead `/queue` removed. Community settings/mod pages redirect non-staff from an effect instead of during render. `/login` redirects already-signed-in users to their target. | `lib/auth/protected-paths.ts`, `app/community/[slug]/settings/**`, `app/community/[slug]/mod/page.tsx`, `components/auth/AuthForm.tsx` |
+| Media | `useFreshMediaUrl` / `needsFreshSignedUrl`: stored attachment links (expired signed or legacy `/object/public/` into a private bucket) are re-signed on read by the participant; new `MessageMediaBody` renders DM images/videos through it; voice player uses the same check. | `lib/hooks/useMedia.ts`, `components/messages/MessageMediaBody.tsx`, `components/messages/ChatView.tsx` |
+
+Verification: typecheck, lint (0 errors), 136/136 tests, production build. Live probes as `anon`: `enforce_api_rate_limit`, `create_order_notification`, `get_user_conversation_ids`, `is_following`, `get_community_chat_overview`, `accept_order` → 404 (not visible to the role); `/object/public/message-media/…` → 400. Security advisor after: 0 `function_search_path_mutable`; remaining `*_security_definer_function_executable` entries are only the RLS predicates, trigger functions (advisor counts them although they are not RPC-callable) and `get_seller_stats`. Local proxy: anonymous `/checkout/x`, `/community/create`, `/takes/create`, `/sell` → 307 to `/login`. Local `/messages` conversation with a legacy public `message-media` link and voice notes: both re-signed (`/object/sign/…` 200) and rendered.
+
+Not done in this phase (explicit): **Supabase leaked-password protection** is a dashboard toggle (Authentication → Providers → Email → "Prevent use of leaked passwords"); no MCP/API path from here. New-email confirmation (S6) and the remaining S9 client-write items are Phase 6.
+
+Deploy note: the migrations are live. The currently deployed client still calls `get_community_chat_*` with its own id (allowed) and nothing it uses was revoked, so prod keeps working before this branch deploys; DM attachments in prod are already private and the **old** client cannot re-sign legacy public links until this deploys (images in old DM threads show broken until then). Deploy Phases 1–3 together.
+
 ## Next
-Deploy `fix/phase2-realtime` (contains Phase 1; merge to `main` triggers Vercel), watch `vercel logs` for `[auth-diagnostic]` and the realtime inspector for a day, then start Phase 3 (`02-plan.md`).
+Deploy `fix/phase3-security` (contains Phases 1–2; merge to `main` triggers Vercel), flip leaked-password protection in the Supabase dashboard, watch `vercel logs` for `[auth-diagnostic]` and the realtime inspector for a day, then start Phase 4 (`02-plan.md`).
 
 ## How to resume in a fresh session
 1. Read `02-plan.md` for the phase being worked on and `01-findings.md` for the IDs it cites; `00-system-map.md` only as needed.

@@ -115,7 +115,10 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
-    await transient.auth.signOut().catch(() => {});
+    // scope "local" — the default "global" revoked EVERY refresh token of the
+    // account, silently logging the user out of all devices within the hour
+    // (findings S4).
+    await transient.auth.signOut({ scope: "local" }).catch(() => {});
 
     // Update via admin API + mark confirmed. Mirrors the corresponding
     // step in /api/auth/change-password and dodges every cookie-session

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth-server";
+import { getAuthUser, createSupabaseServerClient } from "@/lib/auth-server";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
 import { getActiveProvider } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
@@ -89,56 +89,23 @@ export async function POST(request: Request) {
 
   // ─── BUYER: Request a refund (no money moves) ───────────────────
   if (resolvedAction === "request" && isBuyer) {
-    const requestableStatuses = ["paid", "completed", "delivered", "in_progress", "submitted", "shipped"];
-    if (!requestableStatuses.includes(order.status)) {
-      return NextResponse.json(
-        { error: `Cannot request a refund for an order with status: ${order.status}` },
-        { status: 400 }
-      );
-    }
-
+    // The guarded RPC (supabase/migrations/20260621_phase1_request_refund_escrow_guard.sql)
+    // owns the rules: only paid/completed/delivered orders, never after escrow
+    // release, and it writes the event, system message and seller notification
+    // itself. It runs as the caller (cookie client) so auth.uid() is the buyer.
     try {
-      const now = new Date().toISOString();
-
-      // Update order status to refund_requested
-      await supabaseAdmin
-        .from("orders")
-        .update({
-          status: "refund_requested",
-          cancel_reason: reason || null,
-          updated_at: now,
-        })
-        .eq("id", order_id);
-
-      // Notify seller
-      await supabaseAdmin.from("notifications").insert({
-        user_id: order.seller_id,
-        actor_id: order.buyer_id,
-        type: "refund_requested",
-        order_id: order.id,
-        content: `A refund of $${Number(order.amount).toFixed(2)} has been requested.${reason ? ` Reason: ${reason}` : ""}`,
+      const supabase = await createSupabaseServerClient();
+      const { error: rpcError } = await supabase.rpc("request_refund", {
+        p_order_id: order_id,
+        p_reason: reason || null,
       });
 
-      // Order event
-      await supabaseAdmin.from("order_events").insert({
-        order_id: order.id,
-        actor_id: user.id,
-        event_type: "status_change",
-        from_status: order.status,
-        to_status: "refund_requested",
-        metadata: {
-          action: "buyer_refund_request",
-          reason: reason || null,
-        },
-      });
-
-      // System message
-      await supabaseAdmin.from("order_messages").insert({
-        order_id: order.id,
-        sender_id: user.id,
-        content: `Refund requested${reason ? `: ${reason}` : "."}`,
-        message_type: "system",
-      });
+      if (rpcError) {
+        const message = rpcError.message || "Failed to request refund";
+        const isRuleViolation =
+          /cannot request|not authorized|after funds have been released/i.test(message);
+        return NextResponse.json({ error: message }, { status: isRuleViolation ? 400 : 500 });
+      }
 
       return NextResponse.json({ success: true, status: "refund_requested" });
     } catch (err) {

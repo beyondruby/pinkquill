@@ -16,10 +16,14 @@ interface RateLimitDecision {
   resetAt: string | null;
 }
 
-function getClientIp(request: Request): string {
-  const cfConnectingIp = request.headers.get("cf-connecting-ip");
-  if (cfConnectingIp) return cfConnectingIp.trim();
-
+/**
+ * Client IP as set by the hosting platform. On Vercel both `x-real-ip` and
+ * `x-forwarded-for` are populated by the edge and cannot be spoofed by the
+ * client; `cf-connecting-ip` is NOT (we are not behind Cloudflare), so it was
+ * a free per-request bypass of every IP rate limit (findings S5). If the
+ * deployment ever moves behind Cloudflare, add that header back at the top.
+ */
+export function getClientIp(request: Request): string {
   const xRealIp = request.headers.get("x-real-ip");
   if (xRealIp) return xRealIp.trim();
 

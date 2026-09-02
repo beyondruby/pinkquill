@@ -384,8 +384,9 @@ function isSignedUrlExpired(url: string): boolean {
 function extractStoragePath(url: string): { bucket: string; path: string } | null {
   try {
     const parsed = new URL(url);
-    // Supabase storage URLs have format: /storage/v1/object/sign/<bucket>/<path>
-    const match = parsed.pathname.match(/\/storage\/v1\/object\/sign\/([^/]+)\/(.+)/);
+    // Supabase storage URLs: /storage/v1/object/sign/<bucket>/<path> (signed)
+    // or /storage/v1/object/public/<bucket>/<path> (legacy public links).
+    const match = parsed.pathname.match(/\/storage\/v1\/object\/(?:sign|public)\/([^/]+)\/(.+)/);
     if (match) {
       return { bucket: match[1], path: decodeURIComponent(match[2]) };
     }
@@ -393,6 +394,43 @@ function extractStoragePath(url: string): { bucket: string; path: string } | nul
   } catch {
     return null;
   }
+}
+
+// DM attachment buckets are private (Phase 3): a stored `/object/public/`
+// link no longer serves, and a stored signed link expires after an hour.
+// Either must be re-signed on read by a conversation participant.
+const PRIVATE_MESSAGE_BUCKETS = new Set(["message-media", "voice-notes"]);
+
+export function needsFreshSignedUrl(url: string): boolean {
+  if (isSignedUrl(url)) return isSignedUrlExpired(url);
+  const info = extractStoragePath(url);
+  return !!info && PRIVATE_MESSAGE_BUCKETS.has(info.bucket);
+}
+
+/**
+ * Resolve a stored message-attachment URL to one that will actually load:
+ * re-signs expired signed URLs and legacy public links into private buckets.
+ * Returns null while resolving so callers never render a URL that 400s.
+ */
+export function useFreshMediaUrl(url: string | null | undefined): string | null {
+  // Synchronous case: the stored URL is already servable.
+  const immediate = url && !needsFreshSignedUrl(url) ? url : null;
+  const [resolved, setResolved] = useState<{ source: string; url: string } | null>(null);
+
+  useEffect(() => {
+    if (!url || immediate) return;
+    let cancelled = false;
+    refreshSignedUrl(url).then((fresh) => {
+      if (!cancelled) setResolved({ source: url, url: fresh });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [url, immediate]);
+
+  if (immediate) return immediate;
+  if (url && resolved && resolved.source === url) return resolved.url;
+  return null;
 }
 
 async function refreshSignedUrl(url: string): Promise<string> {
@@ -436,7 +474,7 @@ export function useAudioPlayer(audioUrl: string | null) {
     const initAudio = async (url: string) => {
       // If the URL is a signed URL that is expired, refresh it
       let resolvedUrl = url;
-      if (isSignedUrl(url) && isSignedUrlExpired(url)) {
+      if (needsFreshSignedUrl(url)) {
         resolvedUrl = await refreshSignedUrl(url);
         if (cancelled) return;
       }
@@ -454,7 +492,7 @@ export function useAudioPlayer(audioUrl: string | null) {
       audio.onpause = () => setState((prev) => ({ ...prev, isPlaying: false }));
       audio.onerror = async () => {
         // If the error might be due to an expired signed URL, try refreshing
-        if (isSignedUrl(resolvedUrl) && isSignedUrlExpired(resolvedUrl)) {
+        if (needsFreshSignedUrl(resolvedUrl)) {
           const newUrl = await refreshSignedUrl(resolvedUrl);
           if (!cancelled && newUrl !== resolvedUrl) {
             resolvedUrlRef.current = newUrl;
