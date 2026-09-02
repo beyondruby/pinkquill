@@ -364,9 +364,35 @@ async function handleAccountDeauthorized(event: Stripe.Event): Promise<Outcome> 
   return { status: "processed" };
 }
 
+/**
+ * Signing secrets to try, in order. Stripe issues one secret per event
+ * destination and the platform needs two destinations (events from "Your
+ * account" and events from "Connected accounts"), so both
+ * STRIPE_WEBHOOK_SECRET and STRIPE_CONNECT_WEBHOOK_SECRET are accepted, and
+ * either may hold a comma-separated list (useful while rolling a secret).
+ */
+function webhookSecrets(): string[] {
+  return [process.env.STRIPE_WEBHOOK_SECRET, process.env.STRIPE_CONNECT_WEBHOOK_SECRET]
+    .flatMap((v) => (v ? v.split(",") : []))
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function constructEvent(stripe: Stripe, payload: string, signature: string, secrets: string[]): Stripe.Event {
+  let lastError: unknown;
+  for (const secret of secrets) {
+    try {
+      return stripe.webhooks.constructEvent(payload, signature, secret);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Invalid webhook signature");
+}
+
 export async function POST(request: Request) {
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!webhookSecret) {
+  const secrets = webhookSecrets();
+  if (secrets.length === 0) {
     return NextResponse.json({ error: "Missing STRIPE_WEBHOOK_SECRET" }, { status: 500 });
   }
 
@@ -380,7 +406,7 @@ export async function POST(request: Request) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    event = constructEvent(stripe, payload, signature, secrets);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid webhook signature";
     return NextResponse.json({ error: message }, { status: 400 });

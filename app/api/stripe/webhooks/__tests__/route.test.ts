@@ -72,6 +72,15 @@ describe("POST /api/stripe/webhooks", () => {
     expect(rpc.claimStripeEvent).not.toHaveBeenCalled();
   });
 
+  it("accepts a signature from the Connect destination's secret", async () => {
+    process.env.STRIPE_CONNECT_WEBHOOK_SECRET = "whsec_connect_secret";
+    rpc.recordPaymentSucceeded.mockResolvedValue({ outcome: "paid" });
+    const res = await POST(signedRequest(sessionPaid, "whsec_connect_secret"));
+    delete process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+    expect(res.status).toBe(200);
+    expect(rpc.claimStripeEvent).toHaveBeenCalledWith("evt_1", "checkout.session.completed");
+  });
+
   it("acknowledges duplicates without processing", async () => {
     rpc.claimStripeEvent.mockResolvedValue("duplicate");
     const res = await POST(signedRequest(sessionPaid));
