@@ -9,7 +9,9 @@ import { useFeedView } from "@/components/providers/FeedViewProvider";
 import { useFeed } from "@/lib/hooks/useFeed";
 import PostCard from "./PostCard";
 import PostSkeleton from "./PostSkeleton";
-import { CompactPostCard, GridPostCard, MagazinePostCard } from "./AlternateCards";
+import { StreamFeed } from "./StreamView";
+import { GalleryFeed } from "./GalleryView";
+import { getPostTypePhrase } from "@/lib/feed-view/post-type-theme";
 import { FeedViewMenu } from "./FeedViewMenu";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { PostCardErrorFallback } from "@/components/ui/ErrorFallbacks";
@@ -18,23 +20,10 @@ import type { FeedViewId } from "@/lib/feed-view/registry";
 import { getTimeAgo } from "@/lib/utils/time";
 import { Spinner } from "@/components/ui/Loading";
 
-// PERFORMANCE: Moved outside component to prevent recreation on every render
-const TYPE_LABELS: Record<string, string> = {
-  poem: "wrote a poem",
-  journal: "wrote in their journal",
-  thought: "shared a thought",
-  visual: "shared a visual story",
-  audio: "recorded a voice note",
-  video: "shared a video",
-  essay: "wrote an essay",
-  blog: "published a blog post",
-  story: "shared a story",
-  letter: "wrote a letter",
-  quote: "shared a quote",
-};
-
+// Conversational phrase ("wrote a poem") — used by the DM share card. Single
+// source of truth: lib/feed-view/post-type-theme.ts.
 function getTypeLabel(type: string): string {
-  return TYPE_LABELS[type] || "shared something";
+  return getPostTypePhrase(type);
 }
 
 // PERFORMANCE: Transform post data once, memoized by post ID
@@ -86,13 +75,12 @@ function transformPostForCard(post: Post) {
 
 // Per-view container styling. The Classic view keeps the original modern
 // post styling via the `home-feed-modern` class + injected <style jsx>. Other
-// views use Tailwind utility containers and let their own card components
-// own all visual treatment.
+// views (Stream, Gallery) use plain max-width containers and own all visual
+// treatment via components/feed/StreamView.tsx and GalleryView.tsx.
 const VIEW_CONTAINER_CLASS: Record<FeedViewId, string> = {
   classic: "home-feed-modern w-full max-w-[580px] mx-auto pt-6 pb-6 px-4 md:pt-8 md:pb-12 md:px-6",
-  compact: "w-full max-w-[760px] mx-auto pt-6 pb-6 px-4 md:pt-8 md:pb-10 md:px-6 flex flex-col gap-3",
-  grid: "w-full max-w-[1240px] mx-auto pt-6 pb-6 px-4 md:pt-8 md:pb-10 md:px-6 grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-12 auto-rows-[136px] sm:auto-rows-[150px] gap-2.5 sm:gap-3 grid-flow-dense",
-  magazine: "w-full max-w-[1120px] mx-auto pt-6 pb-6 px-4 md:pt-8 md:pb-10 md:px-6 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 items-start",
+  compact: "w-full max-w-[780px] mx-auto pt-6 pb-6 px-3 md:pt-8 md:pb-10 md:px-6",
+  grid: "w-full max-w-[1240px] mx-auto pt-5 pb-6 px-3 md:pt-8 md:pb-10 md:px-5",
 };
 
 function FeedFrame({
@@ -398,29 +386,27 @@ export default function Feed() {
       <FeedViewMenu />
       <FeedFrame viewId={viewId}>
         {/* PERFORMANCE: Using memoized transformed posts */}
-        {transformedPosts.map(({ original, transformed }) => (
-          <ErrorBoundary
-            key={original.id}
-            section={`PostCard:${original.id}`}
-            fallback={({ reset }) => <PostCardErrorFallback onRetry={reset} />}
-          >
-            {viewId === "classic" ? (
+        {viewId === "classic" ? (
+          transformedPosts.map(({ original, transformed }) => (
+            <ErrorBoundary
+              key={original.id}
+              section={`PostCard:${original.id}`}
+              fallback={({ reset }) => <PostCardErrorFallback onRetry={reset} />}
+            >
               <PostCard
                 post={transformed}
                 onPostDeleted={handlePostDeleted}
                 disableRealtimeSubscriptions={true}
               />
-            ) : viewId === "compact" ? (
-              <CompactPostCard post={transformed} />
-            ) : viewId === "grid" ? (
-              <GridPostCard post={transformed} />
-            ) : (
-              <MagazinePostCard post={transformed} />
-            )}
-          </ErrorBoundary>
-        ))}
+            </ErrorBoundary>
+          ))
+        ) : viewId === "compact" ? (
+          <StreamFeed items={transformedPosts} onPostDeleted={handlePostDeleted} />
+        ) : (
+          <GalleryFeed items={transformedPosts} />
+        )}
 
-        {/* Infinite scroll trigger — full-width row in grid/magazine layouts */}
+        {/* Infinite scroll trigger */}
         <div ref={bottomRef} className="h-4 col-span-full md:col-span-12" />
 
         {postsLoading && posts.length > 0 && (

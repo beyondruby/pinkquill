@@ -161,10 +161,17 @@ export function sanitizeMinimal(html: string): string {
 export function stripHtml(html: string): string {
   if (!html) return "";
 
-  // Sanitize first to ensure safety, then extract text
-  const sanitized = DOMPurify.sanitize(html, { ALLOWED_TAGS: [] });
+  // Block boundaries and <br> become a space so "…end.</p><p>Start…" never
+  // collapses into "end.Start" once the tags are gone.
+  const spaced = html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|div|h[1-6]|li|blockquote|pre|tr|td|th)>/gi, " ");
 
-  // Decode HTML entities
+  // Sanitize first to ensure safety, then extract text
+  const sanitized = DOMPurify.sanitize(spaced, { ALLOWED_TAGS: [] });
+
+  // Decode HTML entities; collapse runs of spaces (newlines are preserved for
+  // stripHtmlPreserveLines, which pre-inserts them).
   return sanitized
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
@@ -172,6 +179,8 @@ export function stripHtml(html: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/ *\n */g, "\n")
     .trim();
 }
 
@@ -269,3 +278,26 @@ export default {
   sanitizeUrl,
   createSafeHtml,
 };
+
+/**
+ * Strip HTML but keep the author's line structure — paragraph and heading
+ * boundaries and <br> become newlines. Used for forms where line breaks carry
+ * meaning (poems, letters) and for "first line" headlines.
+ *
+ * @param html - Raw HTML content
+ * @returns Plain text with \n between lines, blank lines collapsed to one.
+ */
+export function stripHtmlPreserveLines(html: string): string {
+  if (!html) return "";
+  const withBreaks = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li|blockquote|pre|tr)>/gi, "\n")
+    .replace(/<(p|div|h[1-6]|li|blockquote|pre|tr)[^>]*>/gi, "");
+  const text = stripHtml(withBreaks);
+  return text
+    .split("\n")
+    .map((line) => line.replace(/[ \t ]+$/g, "").replace(/^[ \t ]+/g, ""))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}

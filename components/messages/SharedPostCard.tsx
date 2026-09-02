@@ -1,8 +1,9 @@
 "use client";
 
+import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import type { SharedPostPreview, PostType } from "@/lib/types";
+import type { SharedPostPreview } from "@/lib/types";
 import { fetchSharedPostPreview } from "@/lib/hooks";
 import Avatar from "@/components/ui/Avatar";
 
@@ -11,20 +12,6 @@ interface SharedPostCardProps {
   isOwnMessage: boolean;
   cachedPost?: SharedPostPreview;
 }
-
-const POST_TYPE_LABELS: Record<PostType, string> = {
-  poem: "Poem",
-  journal: "Journal",
-  thought: "Thought",
-  visual: "Visual",
-  audio: "Audio",
-  video: "Video",
-  essay: "Essay",
-  blog: "Blog",
-  story: "Story",
-  letter: "Letter",
-  quote: "Quote",
-};
 
 function getExcerpt(html: string, maxLength: number = 80): string {
   const text = html.replace(/<[^>]*>/g, "").trim();
@@ -98,7 +85,7 @@ export default function SharedPostCard({
     );
   }
 
-  const typeLabel = POST_TYPE_LABELS[post.type] || "Post";
+  const typeLabel = getPostTypeTheme(post.type).label;
   const hasMedia = post.media && post.media.media_url;
 
   return (

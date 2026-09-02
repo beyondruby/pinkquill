@@ -25,44 +25,42 @@ function ClassicPreview({ isActive }: PreviewProps) {
   );
 }
 
-function CompactPreview({ isActive }: PreviewProps) {
+function StreamPreview({ isActive }: PreviewProps) {
   const bar = isActive ? "bg-on-accent/85" : "bg-muted/40";
-  const tile = isActive ? "bg-on-accent/15" : "bg-skeleton";
+  const soft = isActive ? "bg-on-accent/40" : "bg-muted/20";
+  const dot = isActive ? "bg-on-accent/60" : "bg-muted/35";
   return (
-    <div className="flex flex-col gap-1 w-full h-full p-2 justify-center">
-      {[0, 1, 2, 3].map((i) => (
+    <div className="flex flex-col gap-1.5 w-full h-full p-2 justify-center">
+      <div className={`h-0.5 w-1/4 rounded ${soft}`} />
+      {[0, 1, 2].map((i) => (
         <div key={i} className="flex items-center gap-1.5">
-          <div className={`w-4 h-4 rounded ${tile} flex-shrink-0`} />
-          <div className={`h-1 rounded ${bar}`} style={{ width: `${60 + (i % 3) * 10}%` }} />
+          <div className={`w-3 h-3 rounded-full ${dot} flex-shrink-0`} />
+          <div className="flex-1 flex flex-col gap-0.5">
+            <div className={`h-1 rounded ${bar}`} style={{ width: `${55 + (i % 3) * 12}%` }} />
+            <div className={`h-0.5 rounded ${soft}`} style={{ width: `${35 + (i % 2) * 10}%` }} />
+          </div>
         </div>
       ))}
     </div>
   );
 }
 
-function GridPreview({ isActive }: PreviewProps) {
+function GalleryPreview({ isActive }: PreviewProps) {
   const tile = isActive ? "bg-on-accent/25 border-on-accent/40" : "bg-skeleton border-border-light";
+  const heights = [
+    ["45%", "30%"],
+    ["25%", "50%"],
+    ["38%", "36%"],
+  ];
   return (
     <div className="grid grid-cols-3 gap-1 w-full h-full p-2">
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className={`rounded border ${tile}`} />
+      {heights.map((col, i) => (
+        <div key={i} className="flex flex-col gap-1 h-full">
+          {col.map((h, j) => (
+            <div key={j} className={`rounded border ${tile}`} style={{ height: h }} />
+          ))}
+        </div>
       ))}
-    </div>
-  );
-}
-
-function MagazinePreview({ isActive }: PreviewProps) {
-  const tile = isActive ? "bg-on-accent/25 border-on-accent/40" : "bg-skeleton border-border-light";
-  return (
-    <div className="grid grid-cols-2 gap-1 w-full h-full p-2">
-      <div className="flex flex-col gap-1">
-        <div className={`rounded border ${tile}`} style={{ height: "60%" }} />
-        <div className={`rounded border ${tile} flex-1`} />
-      </div>
-      <div className="flex flex-col gap-1">
-        <div className={`rounded border ${tile}`} style={{ height: "35%" }} />
-        <div className={`rounded border ${tile} flex-1`} />
-      </div>
     </div>
   );
 }
@@ -70,9 +68,8 @@ function MagazinePreview({ isActive }: PreviewProps) {
 const PREVIEWS: Record<FeedViewId, (props: PreviewProps) => React.JSX.Element> =
   {
     classic: ClassicPreview,
-    compact: CompactPreview,
-    grid: GridPreview,
-    magazine: MagazinePreview,
+    compact: StreamPreview,
+    grid: GalleryPreview,
   };
 
 export function FeedViewPicker() {
@@ -80,7 +77,7 @@ export function FeedViewPicker() {
   const views = Object.values(FEED_VIEWS);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {views.map((v) => {
         const Preview = PREVIEWS[v.id as FeedViewId];
         const isActive = v.id === viewId;

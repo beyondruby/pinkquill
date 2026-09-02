@@ -31,10 +31,12 @@ const VIEW_ICONS: Record<FeedViewId, ReactElement> = {
       className="w-4 h-4"
       aria-hidden="true"
     >
-      <line x1="5" y1="6" x2="19" y2="6" />
-      <line x1="5" y1="10" x2="19" y2="10" />
-      <line x1="5" y1="14" x2="19" y2="14" />
-      <line x1="5" y1="18" x2="19" y2="18" />
+      <circle cx="5.5" cy="7" r="1.25" />
+      <line x1="10" y1="7" x2="19" y2="7" />
+      <circle cx="5.5" cy="12" r="1.25" />
+      <line x1="10" y1="12" x2="19" y2="12" />
+      <circle cx="5.5" cy="17" r="1.25" />
+      <line x1="10" y1="17" x2="19" y2="17" />
     </svg>
   ),
   grid: (
@@ -48,34 +50,17 @@ const VIEW_ICONS: Record<FeedViewId, ReactElement> = {
       className="w-4 h-4"
       aria-hidden="true"
     >
-      <rect x="4" y="4" width="7" height="7" rx="1.25" />
-      <rect x="13" y="4" width="7" height="7" rx="1.25" />
-      <rect x="4" y="13" width="7" height="7" rx="1.25" />
-      <rect x="13" y="13" width="7" height="7" rx="1.25" />
-    </svg>
-  ),
-  magazine: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="w-4 h-4"
-      aria-hidden="true"
-    >
-      <rect x="4" y="4" width="9" height="10" rx="1.25" />
-      <rect x="15" y="4" width="5" height="6" rx="1.25" />
-      <rect x="15" y="12" width="5" height="8" rx="1.25" />
-      <rect x="4" y="16" width="9" height="4" rx="1.25" />
+      <rect x="4" y="4" width="7" height="9" rx="1.25" />
+      <rect x="13" y="4" width="7" height="6" rx="1.25" />
+      <rect x="4" y="15" width="7" height="5" rx="1.25" />
+      <rect x="13" y="12" width="7" height="8" rx="1.25" />
     </svg>
   ),
 };
 
 // Icon-only feed layout switcher. On desktop it renders as a fixed horizontal
 // rail just left of the right sidebar. On mobile we collapse it into a single
-// pill button that expands to the four options on tap — keeps the top-right
+// pill button that expands to the three options on tap — keeps the top-right
 // of the feed visually clean while still being one tap away.
 export function FeedViewMenu() {
   const { viewId, setView } = useFeedView();

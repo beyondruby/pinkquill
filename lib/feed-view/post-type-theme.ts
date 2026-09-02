@@ -1,146 +1,75 @@
-// Per-post-type visual personality. Used by the alternate feed views (compact,
-// grid, magazine) to give each post type a distinct feel without breaking the
-// design system. The classes below resolve to CSS variables in globals.css,
-// so the alternate feed never leaks one-off Tailwind hues outside the active
-// Pinkquill theme.
+// =============================================================================
+// POST TYPE THEME — the single source of truth for how a post type is named
+// and *shaped* across the product (feed views, modal, notifications, share).
 //
-// Memory rule: NO accent-line boxes (no border-l/-t/-r/-b-N). All themes use a
-// full subtle background and a full matching border.
+// Strategy (locked Sep 2026): "type is form, not colour".
+//   • No per-type colour. Every type is signalled by ONE monochrome chip
+//     (icon + label, see components/feed/PostTypeChip.tsx) so colour stays
+//     free for brand, hover and active states, and dark mode stays clean.
+//   • A type earns its identity through its FORM — how the body renders
+//     (poem keeps line breaks in a serif, quote is a pull-quote, journal
+//     carries its date/mood strip, editorial gets subtitle + reading time).
+//   • Icons live in components/feed/PostTypeIcon.tsx (one stroke style).
+//
+// Do NOT re-introduce per-layout label/colour maps in components.
+// =============================================================================
 
 import type { PostType } from "@/components/feed/PostCard/types";
 
+/** How a post body is rendered. Mirrors `showcase` in formats.ts. */
+export type PostForm =
+  | "text" // plain thought
+  | "poem" // line-preserving verse
+  | "journal" // dated entry with mood/weather strip
+  | "editorial" // essay / blog / story / letter — title, deck, reading time
+  | "quote" // pull-quote with attribution
+  | "gallery" // media-first
+  | "video" // poster + play
+  | "music"; // Spotify / audio card
+
 export interface PostTypeTheme {
-  /** Short display label, used for badges. */
+  /** Canonical display label — "Poem", "Journal", "Thought"… */
   label: string;
-  /** Single-character/glyph icon — keeps tiles light and avoids extra SVG cost. */
-  glyph: string;
-  /** Full background tint class — gradient for richer treatments. */
-  tintBg: string;
-  /** Full matching subtle border class (no accent lines). */
-  tintBorder: string;
-  /** Subdued text color for badges / type label. */
-  tintText: string;
-  /** Solid token background — used for compact-view marks. */
-  dotBg: string;
-  /** Optional family hint for the body preview ("serif" | "ui" | "italic"). */
-  bodyClass: string;
-  /** Optional family hint for the title. */
-  titleClass: string;
+  /** Conversational verb phrase for notifications / share cards ("wrote a"). */
+  verb: string;
+  /** Body treatment. */
+  form: PostForm;
 }
 
 export const POST_TYPE_THEMES: Record<PostType, PostTypeTheme> = {
-  poem: {
-    label: "Poem",
-    glyph: "✦",
-    tintBg: "pq-type-wash-primary",
-    tintBorder: "pq-type-border-primary",
-    tintText: "pq-type-text-primary",
-    dotBg: "pq-type-fill-primary",
-    bodyClass: "font-display italic",
-    titleClass: "font-display italic",
-  },
-  journal: {
-    label: "Journal",
-    glyph: "◐",
-    tintBg: "pq-type-wash-warm",
-    tintBorder: "pq-type-border-warm",
-    tintText: "pq-type-text-warm",
-    dotBg: "pq-type-fill-warm",
-    bodyClass: "font-body italic",
-    titleClass: "font-display",
-  },
-  thought: {
-    label: "Thought",
-    glyph: "✸",
-    tintBg: "pq-type-wash-soft",
-    tintBorder: "pq-type-border-soft",
-    tintText: "pq-type-text-soft",
-    dotBg: "pq-type-fill-soft",
-    bodyClass: "font-body",
-    titleClass: "font-display",
-  },
-  visual: {
-    label: "Visual",
-    glyph: "◆",
-    tintBg: "pq-type-wash-primary",
-    tintBorder: "pq-type-border-primary",
-    tintText: "pq-type-text-primary",
-    dotBg: "pq-type-fill-primary",
-    bodyClass: "font-ui",
-    titleClass: "font-display",
-  },
-  audio: {
-    label: "Voice",
-    glyph: "♪",
-    tintBg: "pq-type-wash-secondary",
-    tintBorder: "pq-type-border-secondary",
-    tintText: "pq-type-text-secondary",
-    dotBg: "pq-type-fill-secondary",
-    bodyClass: "font-ui",
-    titleClass: "font-display",
-  },
-  video: {
-    label: "Video",
-    glyph: "▶",
-    tintBg: "pq-type-wash-primary",
-    tintBorder: "pq-type-border-primary",
-    tintText: "pq-type-text-primary",
-    dotBg: "pq-type-fill-primary",
-    bodyClass: "font-ui",
-    titleClass: "font-display",
-  },
-  essay: {
-    label: "Essay",
-    glyph: "§",
-    tintBg: "pq-type-wash-soft",
-    tintBorder: "pq-type-border-soft",
-    tintText: "pq-type-text-soft",
-    dotBg: "pq-type-fill-soft",
-    bodyClass: "font-body",
-    titleClass: "font-display",
-  },
-  blog: {
-    label: "Blog",
-    glyph: "❖",
-    tintBg: "pq-type-wash-soft",
-    tintBorder: "pq-type-border-soft",
-    tintText: "pq-type-text-soft",
-    dotBg: "pq-type-fill-soft",
-    bodyClass: "font-body",
-    titleClass: "font-display",
-  },
-  story: {
-    label: "Story",
-    glyph: "✧",
-    tintBg: "pq-type-wash-secondary",
-    tintBorder: "pq-type-border-secondary",
-    tintText: "pq-type-text-secondary",
-    dotBg: "pq-type-fill-secondary",
-    bodyClass: "font-display",
-    titleClass: "font-display",
-  },
-  letter: {
-    label: "Letter",
-    glyph: "✉",
-    tintBg: "pq-type-wash-warm",
-    tintBorder: "pq-type-border-warm",
-    tintText: "pq-type-text-warm",
-    dotBg: "pq-type-fill-warm",
-    bodyClass: "font-display italic",
-    titleClass: "font-display italic",
-  },
-  quote: {
-    label: "Quote",
-    glyph: "“",
-    tintBg: "pq-type-wash-secondary",
-    tintBorder: "pq-type-border-secondary",
-    tintText: "pq-type-text-secondary",
-    dotBg: "pq-type-fill-secondary",
-    bodyClass: "font-display italic",
-    titleClass: "font-display italic",
-  },
+  thought: { label: "Thought", verb: "shared a", form: "text" },
+  poem: { label: "Poem", verb: "wrote a", form: "poem" },
+  journal: { label: "Journal", verb: "wrote in their", form: "journal" },
+  essay: { label: "Essay", verb: "wrote an", form: "editorial" },
+  blog: { label: "Blog", verb: "published a", form: "editorial" },
+  story: { label: "Story", verb: "shared a", form: "editorial" },
+  letter: { label: "Letter", verb: "wrote a", form: "editorial" },
+  quote: { label: "Quote", verb: "shared a", form: "quote" },
+  visual: { label: "Visual", verb: "shared a", form: "gallery" },
+  video: { label: "Video", verb: "shared a", form: "video" },
+  audio: { label: "Music", verb: "shared", form: "music" },
 };
 
-export function getPostTypeTheme(type: PostType): PostTypeTheme {
-  return POST_TYPE_THEMES[type] ?? POST_TYPE_THEMES.thought;
+export const POST_TYPE_ORDER: PostType[] = [
+  "thought",
+  "poem",
+  "journal",
+  "essay",
+  "blog",
+  "story",
+  "letter",
+  "quote",
+  "visual",
+  "video",
+  "audio",
+];
+
+export function getPostTypeTheme(type: PostType | string): PostTypeTheme {
+  return POST_TYPE_THEMES[type as PostType] ?? POST_TYPE_THEMES.thought;
+}
+
+/** "wrote a poem", "shared a thought" — conversational, lower-case. */
+export function getPostTypePhrase(type: PostType | string): string {
+  const t = getPostTypeTheme(type);
+  return `${t.verb} ${t.label.toLowerCase()}`;
 }
