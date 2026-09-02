@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useDeleteCommunity } from "@/lib/hooks";
+import { useCommunity, useDeleteCommunity } from "@/lib/hooks.legacy";
 import { Spinner } from "@/components/ui/Loading";
 import Button from "@/components/ui/Button";
 

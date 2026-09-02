@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useAudioPlayer } from "@/lib/hooks";
+import { useAudioPlayer } from "@/lib/hooks/useMedia";
 
 interface VoiceNotePlayerProps {
   audioUrl: string;

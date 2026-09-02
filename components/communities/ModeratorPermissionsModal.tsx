@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { ModeratorPermissions, DEFAULT_MODERATOR_PERMISSIONS } from "@/lib/hooks";
+import { DEFAULT_MODERATOR_PERMISSIONS } from "@/lib/types";
+import type { ModeratorPermissions } from "@/lib/types";
 
 interface ModeratorPermissionsModalProps {
   isOpen: boolean;

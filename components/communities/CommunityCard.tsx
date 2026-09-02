@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Community } from "@/lib/hooks";
+import type { Community } from "@/lib/types";
 
 interface CommunityCardProps {
   community: Community;

@@ -250,62 +250,6 @@ export function useCommunityChatOverview(userId?: string): UseCommunityChatOverv
   };
 }
 
-export function useCommunityChatUnreadCount(userId?: string): UseCommunityChatUnreadCountReturn {
-  const [count, setCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-
-  const fetchUnreadCount = useCallback(async () => {
-    if (!userId) {
-      setCount(0);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error: fetchError } = await supabase.rpc(
-        "get_community_chat_unread_count",
-        { p_user_id: userId }
-      );
-
-      if (!mountedRef.current) return;
-      if (fetchError) throw fetchError;
-
-      setCount(Number(data || 0));
-    } catch (err) {
-      console.error("[useCommunityChatUnreadCount] Error:", err);
-      if (mountedRef.current) {
-        setError("Failed to load unread community messages");
-        setCount(0);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    fetchUnreadCount();
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [fetchUnreadCount]);
-
-  // Refresh on focus instead of a realtime subscription (see useCommunityChatOverview).
-  usePollOnFocus(fetchUnreadCount);
-
-  return {
-    count,
-    loading,
-    error,
-    refetch: fetchUnreadCount,
-  };
-}
-
 export function useCommunityChatMemberSearch(
   communityId: string,
   query: string,

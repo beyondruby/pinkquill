@@ -101,45 +101,6 @@ export function useOrderDispute(orderId: string | undefined) {
 
 // ============================================================================
 // useResolveDispute — Resolve a dispute (admin/service)
-// ============================================================================
-
-export function useResolveDispute() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const resolveDispute = useCallback(
-    async (
-      disputeId: string,
-      resolution: DisputeResolution,
-      notes?: string,
-      refundAmount?: number
-    ) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const { data, error: rpcError } = await supabase.rpc("resolve_dispute", {
-          p_dispute_id: disputeId,
-          p_resolution: resolution,
-          p_resolution_notes: notes ?? null,
-          p_refund_amount: refundAmount ?? null,
-        });
-
-        if (rpcError) throw rpcError;
-        return data as Dispute;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to resolve dispute";
-        setError(msg);
-        return null;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  return { resolveDispute, loading, error };
-}
 
 // ============================================================================
 // useRequestRefund — Buyer requests a refund (status → refund_requested)

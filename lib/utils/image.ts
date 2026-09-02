@@ -25,17 +25,12 @@ export function isSupabaseStorageUrl(url: string): boolean {
 }
 
 /**
- * Get optimized avatar URL for a specific size
+ * Avatar URL for display.
  *
  * Returns the original URL without transformation to preserve the original
- * image composition. CSS object-fit:cover handles the circular display.
+ * image composition; CSS object-fit:cover handles the circular display.
  */
-export function getOptimizedAvatarUrl(
-  url: string | null | undefined,
-  size: AvatarSize | number = 'md'
-): string {
-  // Return original URL to preserve image composition
-  // The browser handles display via CSS object-fit
+export function getOptimizedAvatarUrl(url: string | null | undefined): string {
   return url || '';
 }
 
@@ -47,12 +42,9 @@ export const DEFAULT_AVATAR = '/defaultprofile.png';
 /**
  * Get avatar URL with fallback
  */
-export function getAvatarUrl(
-  url: string | null | undefined,
-  size: AvatarSize | number = 'md'
-): string {
+export function getAvatarUrl(url: string | null | undefined): string {
   if (!url) return DEFAULT_AVATAR;
-  return getOptimizedAvatarUrl(url, size);
+  return getOptimizedAvatarUrl(url);
 }
 
 /**

@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useMarketplace } from "@/lib/hooks";
+import { useMarketplace } from "@/lib/hooks/useMarketplace";
 import {
   countActiveMarketplaceFilters,
   hasActiveMarketplaceFilters,

@@ -1,5 +1,7 @@
 "use client";
 
+import "./takes.css";
+
 import { useState, useEffect, useRef } from "react";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
@@ -7,7 +9,7 @@ import Image from "next/image";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Take, RelayedTake, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
-import { useBlock } from "@/lib/hooks";
+import { useBlock } from "@/lib/hooks/useInteractions";
 import { deleteOwnTake } from "@/lib/content-client";
 import ShareModal from "@/components/ui/ShareModal";
 import ReportModal from "@/components/ui/ReportModal";

@@ -28,13 +28,6 @@ export function useShareToDM(): UseShareToDMReturn {
   const [sharing, setSharing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
-  // Both resolve to the same atomic server-side find-or-create; kept as two
-  // names so the sharing loop below reads naturally.
-  const findExistingConversation = async (_userId: string, recipientId: string): Promise<string | null> =>
-    getOrCreateConversation(recipientId).catch(() => null);
-  const createConversation = async (_userId: string, recipientId: string): Promise<string | null> =>
-    getOrCreateConversation(recipientId).catch(() => null);
-
   /**
    * Send a post share message to a conversation
    */
@@ -90,15 +83,8 @@ export function useShareToDM(): UseShareToDMReturn {
         setProgress({ current: i + 1, total: recipientIds.length });
 
         try {
-          // Find or create conversation
-          let conversationId = await findExistingConversation(
-            currentUserId,
-            recipientId
-          );
-
-          if (!conversationId) {
-            conversationId = await createConversation(currentUserId, recipientId);
-          }
+          // Atomic server-side find-or-create (get_or_create_dm_conversation)
+          const conversationId = await getOrCreateConversation(recipientId).catch(() => null);
 
           if (!conversationId) {
             results.push({

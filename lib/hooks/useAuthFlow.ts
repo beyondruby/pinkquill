@@ -16,7 +16,6 @@ import {
 export type AuthStep = "credentials" | "otp" | "forgot" | "forgot_sent";
 
 /** Tracks which flow triggered the OTP so verifyOtp gets the right `type`. */
-export type OtpFlow = "signup" | "recovery";
 
 export interface AuthFlowState {
   isLogin: boolean;
@@ -100,7 +99,6 @@ export function useAuthFlow(options?: { initialIsLogin?: boolean }) {
   const [message, setMessage] = useState<string | null>(null);
 
   /** Which flow we entered the OTP screen from. */
-  const otpFlowRef = useRef<OtpFlow>("signup");
 
   /** Prevent double-submit. */
   const pendingRef = useRef(false);
@@ -260,7 +258,6 @@ export function useAuthFlow(options?: { initialIsLogin?: boolean }) {
 
           if (!result.success) {
             if (result.requiresVerification && result.pendingEmail) {
-              otpFlowRef.current = "signup";
               setPendingEmail(result.pendingEmail);
               setResendCooldown(60);
               setStep("otp");
@@ -297,7 +294,6 @@ export function useAuthFlow(options?: { initialIsLogin?: boolean }) {
             throw new Error(result.error || "Unable to create your account right now.");
           }
 
-          otpFlowRef.current = "signup";
           setPendingEmail(result.pendingEmail || emailOrUsername.toLowerCase());
           setResendCooldown(60);
           setStep("otp");
@@ -332,13 +328,12 @@ export function useAuthFlow(options?: { initialIsLogin?: boolean }) {
       setError(null);
 
       try {
-        // Use the correct OTP type based on which flow got us here
-        const otpType = otpFlowRef.current === "recovery" ? "recovery" : "signup";
-
+        // The OTP step only ever follows signup / unverified login; password
+        // recovery uses the emailed link (/auth/callback), never a code.
         const { data, error: verifyError } = await supabase.auth.verifyOtp({
           email: pendingEmail,
           token: otpString,
-          type: otpType,
+          type: "signup",
         });
 
         if (verifyError) {
@@ -383,12 +378,10 @@ export function useAuthFlow(options?: { initialIsLogin?: boolean }) {
     setMessage(null);
 
     try {
-      const resendType = otpFlowRef.current === "recovery" ? "email_change" : "signup";
-
       const response = await fetch("/api/auth/resend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: pendingEmail, type: resendType }),
+        body: JSON.stringify({ email: pendingEmail, type: "signup" }),
       });
 
       if (response.status === 429) {

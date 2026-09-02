@@ -78,37 +78,6 @@ interface UseGenerateDownloadsReturn {
   error: string | null;
 }
 
-export function useGenerateDownloads(): UseGenerateDownloadsReturn {
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const generate = useCallback(async (orderId: string): Promise<number> => {
-    setGenerating(true);
-    setError(null);
-
-    try {
-      const { data, error: rpcError } = await supabase.rpc(
-        "generate_order_download_tokens",
-        { p_order_id: orderId }
-      );
-
-      if (rpcError) throw rpcError;
-
-      const result = data as { tokens_generated?: number } | null;
-      return result?.tokens_generated ?? 0;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useGenerateDownloads] Error:", message);
-      setError(message);
-      return 0;
-    } finally {
-      setGenerating(false);
-    }
-  }, []);
-
-  return { generate, generating, error };
-}
-
 // ============================================================================
 // useDownloadFile — Consume a download token and get the file URL
 // ============================================================================

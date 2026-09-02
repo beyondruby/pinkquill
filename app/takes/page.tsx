@@ -1,5 +1,7 @@
 "use client";
 
+import "@/components/takes/takes.css";
+
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import TakesFeed from "@/components/takes/TakesFeed";

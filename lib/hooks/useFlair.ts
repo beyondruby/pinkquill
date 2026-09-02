@@ -208,37 +208,4 @@ export function useManageFlairs(communityId: string) {
 
 // ============================================================================
 // usePostFlair - Set/remove flair on posts
-// ============================================================================
 
-export function usePostFlair() {
-  const [loading, setLoading] = useState(false);
-
-  const setFlair = useCallback(
-    async (postId: string, flairId: string | null): Promise<boolean> => {
-      setLoading(true);
-
-      try {
-        const { error } = await supabase
-          .from("posts")
-          .update({ flair_id: flairId })
-          .eq("id", postId);
-
-        if (error) throw error;
-
-        return true;
-      } catch (err) {
-        console.error("Error setting post flair:", err);
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  const removeFlair = useCallback(async (postId: string): Promise<boolean> => {
-    return setFlair(postId, null);
-  }, [setFlair]);
-
-  return { setFlair, removeFlair, loading };
-}

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { useInView } from "react-intersection-observer";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useFeedView } from "@/components/providers/FeedViewProvider";
@@ -268,11 +267,18 @@ export default function Feed() {
     }
   }, [postsLoading, feedPosts.length, handleRefresh]);
 
-  // Intersection observer for infinite scroll
-  const { ref: bottomRef, inView } = useInView({
-    threshold: 0,
-    rootMargin: "100px",
-  });
+  // Infinite scroll: observe the sentinel div at the bottom of the list.
+  const [bottomEl, setBottomEl] = useState<HTMLDivElement | null>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    if (!bottomEl || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0, rootMargin: "100px" }
+    );
+    observer.observe(bottomEl);
+    return () => observer.disconnect();
+  }, [bottomEl]);
 
   // Load more when scrolling
   useEffect(() => {
@@ -410,7 +416,7 @@ export default function Feed() {
         )}
 
         {/* Infinite scroll trigger */}
-        <div ref={bottomRef} className="h-4 col-span-full md:col-span-12" />
+        <div ref={setBottomEl} className="h-4 col-span-full md:col-span-12" />
 
         {postsLoading && posts.length > 0 && (
           <div className="flex justify-center py-8 col-span-full md:col-span-12">

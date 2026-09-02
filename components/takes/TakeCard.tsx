@@ -1,5 +1,7 @@
 "use client";
 
+import "./takes.css";
+
 import { useState, useCallback, useRef, useEffect, useMemo, memo, type CSSProperties } from "react";
 import Link from "next/link";
 import TakePlayer from "./TakePlayer";
@@ -86,12 +88,7 @@ function TakeCard({
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showContent, setShowContent] = useState(!take.content_warning);
-  const { startWatching, stopWatching, recordLoop, recordCompletion } = useTrackTakeView(
-    take.id,
-    take.author_id,
-    take.duration,
-    "feed"
-  );
+  const { startWatching, stopWatching, recordLoop, recordCompletion } = useTrackTakeView(take.id, take.duration, "feed");
 
   useTrackTakeImpression(take.id, "feed", isActive && showContent);
 
@@ -408,7 +405,7 @@ function TakeCard({
         <div className="tiktok-action-profile">
           <Link href={`/studio/${take.author.username}`} className="tiktok-profile-link">
             {take.author.avatar_url ? (
-              <img src={getOptimizedAvatarUrl(take.author.avatar_url, 48)} alt={take.author.username} loading="lazy" />
+              <img src={getOptimizedAvatarUrl(take.author.avatar_url)} alt={take.author.username} loading="lazy" />
             ) : (
               <div className="tiktok-profile-placeholder">
                 {take.author.username[0]?.toUpperCase()}

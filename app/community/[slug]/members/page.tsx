@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useCommunityMembers, useCommunityModeration, useJoinRequests, ModeratorPermissions } from "@/lib/hooks";
+import { useCommunity, useCommunityMembers, useCommunityModeration, useJoinRequests } from "@/lib/hooks.legacy";
+import type { ModeratorPermissions } from "@/lib/types";
 import InviteModal from "@/components/communities/InviteModal";
 import ModeratorPermissionsModal from "@/components/communities/ModeratorPermissionsModal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
@@ -347,7 +348,7 @@ export default function CommunityMembersPage() {
                     <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {request.profile?.avatar_url ? (
                         <Image
-                          src={getOptimizedAvatarUrl(request.profile.avatar_url, 40)}
+                          src={getOptimizedAvatarUrl(request.profile.avatar_url)}
                           alt=""
                           fill
                           sizes="40px"
@@ -491,7 +492,7 @@ export default function CommunityMembersPage() {
                     <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {member.profile?.avatar_url ? (
                         <Image
-                          src={getOptimizedAvatarUrl(member.profile.avatar_url, 48)}
+                          src={getOptimizedAvatarUrl(member.profile.avatar_url)}
                           alt=""
                           fill
                           sizes="48px"
@@ -671,7 +672,7 @@ export default function CommunityMembersPage() {
                     <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {member.profile?.avatar_url ? (
                         <Image
-                          src={getOptimizedAvatarUrl(member.profile.avatar_url, 40)}
+                          src={getOptimizedAvatarUrl(member.profile.avatar_url)}
                           alt=""
                           fill
                           sizes="40px"
@@ -765,7 +766,7 @@ export default function CommunityMembersPage() {
                     <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-primary to-pink-vivid">
                       {member.profile?.avatar_url ? (
                         <Image
-                          src={getOptimizedAvatarUrl(member.profile.avatar_url, 40)}
+                          src={getOptimizedAvatarUrl(member.profile.avatar_url)}
                           alt=""
                           fill
                           sizes="40px"

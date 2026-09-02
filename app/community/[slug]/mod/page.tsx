@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity } from "@/lib/hooks";
+import { useCommunity } from "@/lib/hooks.legacy";
 import { ModQueuePage } from "@/components/communities/ModQueue";
 import { Spinner } from "@/components/ui/Loading";
 

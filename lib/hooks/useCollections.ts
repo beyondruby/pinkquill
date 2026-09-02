@@ -123,88 +123,6 @@ interface UseCollectionReturn {
   refetch: () => Promise<void>;
 }
 
-export function useCollection(userId?: string, slug?: string): UseCollectionReturn {
-  const [collection, setCollection] = useState<CollectionWithItems | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-
-  const fetchCollection = useCallback(async () => {
-    if (!userId || !slug) {
-      setCollection(null);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from("collections")
-        .select(`
-          *,
-          items:collection_items (
-            *,
-            posts:collection_item_posts (
-              *,
-              post:posts (
-                id, title, type, content, created_at,
-                author:profiles!posts_author_id_fkey (username, display_name, avatar_url),
-                media:post_media (id, media_url, media_type)
-              )
-            )
-          )
-        `)
-        .eq("user_id", userId)
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (!mountedRef.current) return;
-      if (fetchError) throw fetchError;
-      if (!data) throw new Error("Collection not found");
-
-      // Transform data
-      const transformedCollection: CollectionWithItems = {
-        ...data,
-        items_count: data.items?.length || 0,
-        items: (data.items || [])
-          .map((item: CollectionItem & { posts?: CollectionItemPost[] }) => ({
-            ...item,
-            posts_count: item.posts?.length || 0,
-            posts: (item.posts || []).sort(
-              (a: CollectionItemPost, b: CollectionItemPost) => a.position - b.position
-            ),
-          }))
-          .sort((a: CollectionItem, b: CollectionItem) => a.position - b.position),
-      };
-
-      setCollection(transformedCollection);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useCollection] Error:", message);
-      if (mountedRef.current) {
-        setError(message || "Failed to fetch collection");
-      }
-    } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [userId, slug]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    fetchCollection();
-
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [fetchCollection]);
-
-  return { collection, loading, error, refetch: fetchCollection };
-}
-
 // ============================================================================
 // useCollectionItem - Fetch a single collection item by slug
 // ============================================================================
@@ -690,51 +608,6 @@ interface UseUpdateCollectionItemReturn {
   error: string | null;
 }
 
-export function useUpdateCollectionItem(): UseUpdateCollectionItemReturn {
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const updateItem = useCallback(
-    async (
-      itemId: string,
-      updates: Partial<{
-        name: string;
-        description: string | null;
-        cover_url: string | null;
-        icon_emoji: string | null;
-        metadata: CollectionItemMetadata;
-      }>
-    ): Promise<boolean> => {
-      try {
-        setUpdating(true);
-        setError(null);
-
-        const { error: updateError } = await supabase
-          .from("collection_items")
-          .update({
-            ...updates,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", itemId);
-
-        if (updateError) throw updateError;
-
-        return true;
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[useUpdateCollectionItem] Error:", message);
-        setError(message || "Failed to update collection item");
-        return false;
-      } finally {
-        setUpdating(false);
-      }
-    },
-    []
-  );
-
-  return { updateItem, updating, error };
-}
-
 // ============================================================================
 // useDeleteCollection - Delete a collection
 // ============================================================================
@@ -745,36 +618,6 @@ interface UseDeleteCollectionReturn {
   error: string | null;
 }
 
-export function useDeleteCollection(): UseDeleteCollectionReturn {
-  const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const deleteCollection = useCallback(async (collectionId: string): Promise<boolean> => {
-    try {
-      setDeleting(true);
-      setError(null);
-
-      const { error: deleteError } = await supabase
-        .from("collections")
-        .delete()
-        .eq("id", collectionId);
-
-      if (deleteError) throw deleteError;
-
-      return true;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useDeleteCollection] Error:", message);
-      setError(message || "Failed to delete collection");
-      return false;
-    } finally {
-      setDeleting(false);
-    }
-  }, []);
-
-  return { deleteCollection, deleting, error };
-}
-
 // ============================================================================
 // useDeleteCollectionItem - Delete a collection item
 // ============================================================================
@@ -783,36 +626,6 @@ interface UseDeleteCollectionItemReturn {
   deleteItem: (itemId: string) => Promise<boolean>;
   deleting: boolean;
   error: string | null;
-}
-
-export function useDeleteCollectionItem(): UseDeleteCollectionItemReturn {
-  const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const deleteItem = useCallback(async (itemId: string): Promise<boolean> => {
-    try {
-      setDeleting(true);
-      setError(null);
-
-      const { error: deleteError } = await supabase
-        .from("collection_items")
-        .delete()
-        .eq("id", itemId);
-
-      if (deleteError) throw deleteError;
-
-      return true;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useDeleteCollectionItem] Error:", message);
-      setError(message || "Failed to delete collection item");
-      return false;
-    } finally {
-      setDeleting(false);
-    }
-  }, []);
-
-  return { deleteItem, deleting, error };
 }
 
 // ============================================================================
@@ -866,39 +679,6 @@ interface UseReorderCollectionItemsReturn {
   reorderItems: (itemIds: string[]) => Promise<boolean>;
   reordering: boolean;
   error: string | null;
-}
-
-export function useReorderCollectionItems(): UseReorderCollectionItemsReturn {
-  const [reordering, setReordering] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const reorderItems = useCallback(async (itemIds: string[]): Promise<boolean> => {
-    try {
-      setReordering(true);
-      setError(null);
-
-      // Update positions for all items
-      const updates = itemIds.map((id, index) =>
-        supabase
-          .from("collection_items")
-          .update({ position: index, updated_at: new Date().toISOString() })
-          .eq("id", id)
-      );
-
-      await Promise.all(updates);
-
-      return true;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useReorderCollectionItems] Error:", message);
-      setError(message || "Failed to reorder items");
-      return false;
-    } finally {
-      setReordering(false);
-    }
-  }, []);
-
-  return { reorderItems, reordering, error };
 }
 
 // ============================================================================

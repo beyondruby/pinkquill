@@ -4,7 +4,12 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunities, useDrafts, useAutoSave, Community, SearchableUser, createNotification, PostDraft } from "@/lib/hooks";
+import { useCommunities } from "@/lib/hooks.legacy";
+import type { SearchableUser } from "@/lib/hooks.legacy";
+import { useDrafts, useAutoSave } from "@/lib/hooks/useDrafts";
+import type { PostDraft } from "@/lib/hooks/useDrafts";
+import { createNotification } from "@/lib/hooks/useNotifications";
+import type { Community } from "@/lib/types";
 import { useAudioUpload } from "@/lib/hooks/useAudioUpload";
 import {
   useCreateTake,
@@ -189,26 +194,30 @@ function splitHighlightAncestorsAtRange(range: Range, editor: Element): void {
   endMarker.remove();
 }
 
+// Families are the next/font CSS variables registered in app/layout.tsx; a
+// literal family name would never resolve because next/font serves each font
+// under a hashed name. The sanitizer (lib/utils/sanitize.ts) allows exactly
+// these var() values on rendered post HTML.
 const fontOptions = [
   // Serif fonts - great for literary content
-  { id: "default", label: "Crimson Pro", family: "'Crimson Pro', serif" },
-  { id: "libre", label: "Libre Baskerville", family: "'Libre Baskerville', serif" },
-  { id: "playfair", label: "Playfair Display", family: "'Playfair Display', serif" },
-  { id: "lora", label: "Lora", family: "'Lora', serif" },
-  { id: "merriweather", label: "Merriweather", family: "'Merriweather', serif" },
-  { id: "spectral", label: "Spectral", family: "'Spectral', serif" },
-  { id: "eb-garamond", label: "EB Garamond", family: "'EB Garamond', serif" },
-  { id: "cormorant", label: "Cormorant Garamond", family: "'Cormorant Garamond', serif" },
+  { id: "default", label: "Crimson Pro", family: "var(--font-crimson-pro), serif" },
+  { id: "libre", label: "Libre Baskerville", family: "var(--font-libre-baskerville), serif" },
+  { id: "playfair", label: "Playfair Display", family: "var(--font-playfair-display), serif" },
+  { id: "lora", label: "Lora", family: "var(--font-lora), serif" },
+  { id: "merriweather", label: "Merriweather", family: "var(--font-merriweather), serif" },
+  { id: "spectral", label: "Spectral", family: "var(--font-spectral), serif" },
+  { id: "eb-garamond", label: "EB Garamond", family: "var(--font-eb-garamond), serif" },
+  { id: "cormorant", label: "Cormorant Garamond", family: "var(--font-cormorant-garamond), serif" },
   // Sans-serif fonts - clean and modern
-  { id: "inter", label: "Inter", family: "'Inter', sans-serif" },
-  { id: "josefin", label: "Josefin Sans", family: "'Josefin Sans', sans-serif" },
-  { id: "poppins", label: "Poppins", family: "'Poppins', sans-serif" },
-  { id: "open-sans", label: "Open Sans", family: "'Open Sans', sans-serif" },
+  { id: "inter", label: "Inter", family: "var(--font-inter), sans-serif" },
+  { id: "josefin", label: "Josefin Sans", family: "var(--font-josefin-sans), sans-serif" },
+  { id: "poppins", label: "Poppins", family: "var(--font-poppins), sans-serif" },
+  { id: "open-sans", label: "Open Sans", family: "var(--font-open-sans), sans-serif" },
   // Handwriting fonts - personal touch
-  { id: "dancing", label: "Dancing Script", family: "'Dancing Script', cursive" },
-  { id: "caveat", label: "Caveat", family: "'Caveat', cursive" },
+  { id: "dancing", label: "Dancing Script", family: "var(--font-dancing-script), cursive" },
+  { id: "caveat", label: "Caveat", family: "var(--font-caveat), cursive" },
   // Monospace - for code or typewriter effect
-  { id: "source-code", label: "Source Code Pro", family: "'Source Code Pro', monospace" },
+  { id: "source-code", label: "Source Code Pro", family: "var(--font-source-code-pro), monospace" },
 ];
 
 // Take aspect ratio options

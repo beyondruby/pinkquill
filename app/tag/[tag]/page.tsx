@@ -4,7 +4,7 @@ import { useRef, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useTagPosts, useTrendingTags } from "@/lib/hooks";
+import { useTagPosts, useTrendingTags } from "@/lib/hooks/useTags";
 import PostCard from "@/components/feed/PostCard";
 import type { PostProps, PostType } from "@/components/feed/PostCard/types";
 import { getTimeAgoCompact } from "@/lib/utils/time";

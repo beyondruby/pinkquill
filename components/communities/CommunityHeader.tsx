@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Community, CommunityTag } from "@/lib/hooks";
+import type { Community, CommunityTag } from "@/lib/types";
 import JoinButton from "./JoinButton";
 import ReportModal from "@/components/ui/ReportModal";
 import { supabase } from "@/lib/supabase";

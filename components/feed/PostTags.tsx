@@ -58,7 +58,7 @@ export default function PostTags({ hashtags = [], mentions = [], collaborators =
               >
                 <div className="collab-chip-avatar">
                   {collab.user.avatar_url ? (
-                    <img src={getOptimizedAvatarUrl(collab.user.avatar_url, 24)} alt={collab.user.display_name || collab.user.username} loading="lazy" />
+                    <img src={getOptimizedAvatarUrl(collab.user.avatar_url)} alt={collab.user.display_name || collab.user.username} loading="lazy" />
                   ) : (
                     <span className="collab-chip-avatar-fallback">
                       {(collab.user.display_name || collab.user.username)[0].toUpperCase()}

@@ -1,7 +1,9 @@
 "use client";
 
+import "./messages.css";
+
 import { useState, useRef, useEffect } from "react";
-import { useVoiceRecorder, useAudioPlayer } from "@/lib/hooks";
+import { useVoiceRecorder, useAudioPlayer } from "@/lib/hooks/useMedia";
 
 interface VoiceRecorderProps {
   onSend: (audioBlob: Blob, duration: number, waveformData: number[]) => void;

@@ -2,7 +2,7 @@
 
 import React from "react";
 import SearchResultItem from "./SearchResultItem";
-import type { SearchResults } from "@/lib/hooks";
+import type { SearchResults } from "@/lib/hooks.legacy";
 
 export interface SearchHistoryEntry {
   query: string;

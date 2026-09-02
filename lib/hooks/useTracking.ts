@@ -306,12 +306,7 @@ export function useTrackPostImpression(
  * Track post view (records unique view after 1 second visibility)
  * Uses IntersectionObserver to detect when post is visible
  */
-export function useTrackPostView(
-  postId: string | undefined,
-  // Resolved server-side now; kept in the signature for call-site compatibility.
-  _authorId: string | undefined,
-  source: string = "feed"
-) {
+export function useTrackPostView(postId: string | undefined, source: string = "feed") {
   const { user } = useAuth();
   const viewRecorded = useRef(false);
   const visibilityTimer = useRef<NodeJS.Timeout | null>(null);
@@ -378,16 +373,8 @@ export function useTrackPostView(
  * Hook that combines view tracking with IntersectionObserver
  * Auto-tracks when element enters/exits viewport
  */
-export function usePostViewTracker(
-  postId: string | undefined,
-  authorId: string | undefined,
-  source: string = "feed"
-) {
-  const { startTracking, stopTracking } = useTrackPostView(
-    postId,
-    authorId,
-    source
-  );
+export function usePostViewTracker(postId: string | undefined, source: string = "feed") {
+  const { startTracking, stopTracking } = useTrackPostView(postId, source);
   const elementRef = useRef<HTMLDivElement>(null);
   const isVisible = useRef(false);
 
@@ -469,8 +456,6 @@ export function useTrackTakeImpression(
  */
 export function useTrackTakeView(
   takeId: string | undefined,
-  // Resolved server-side now; kept in the signature for call-site compatibility.
-  _authorId: string | undefined,
   takeDurationSeconds: number = 0,
   source: string = "feed"
 ) {
@@ -668,25 +653,3 @@ export function useTrackCommunityView(communityId: string | undefined) {
 // SOURCE DETECTION HELPER
 // ============================================================================
 
-/**
- * Get the source from URL search params
- * Use this to determine where the user came from
- */
-export function getSourceFromUrl(): string {
-  if (typeof window === "undefined") return "direct";
-
-  const params = new URLSearchParams(window.location.search);
-  const source = params.get("source");
-
-  const validSources = [
-    "feed",
-    "search",
-    "profile",
-    "community",
-    "direct",
-    "relay",
-    "post",
-    "take",
-  ];
-  return validSources.includes(source || "") ? source! : "direct";
-}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
-import type { FollowRequest } from "@/lib/hooks";
+import type { FollowRequest } from "@/lib/types";
 
 interface FollowRequestCardProps {
   request: FollowRequest;

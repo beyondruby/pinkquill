@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { ReactionType, ReactionCounts } from "@/lib/hooks";
+import type { ReactionType, ReactionCounts } from "@/lib/types";
 
 interface Reaction {
   type: ReactionType;

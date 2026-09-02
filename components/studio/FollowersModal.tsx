@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useFollowList, FollowUser } from "@/lib/hooks";
+import { useFollowList } from "@/lib/hooks/useProfile";
+import type { FollowUser } from "@/lib/types";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { getOptimizedAvatarUrl, DEFAULT_AVATAR } from "@/lib/utils/image";
@@ -63,7 +64,7 @@ function UserCard({
     <div className="flex items-center gap-4 p-4 hover:bg-subtle rounded-xl transition-all">
       <Link href={`/studio/${user.username}`} className="flex-shrink-0">
         <img
-          src={getOptimizedAvatarUrl(user.avatar_url, 48) || DEFAULT_AVATAR}
+          src={getOptimizedAvatarUrl(user.avatar_url) || DEFAULT_AVATAR}
           alt={user.display_name || user.username}
           className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
           loading="lazy"

@@ -5,7 +5,7 @@ import { getTimeAgo } from "@/lib/utils/time";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useCommunityMembers, useCommunityModeration, useModLog } from "@/lib/hooks";
+import { useCommunity, useCommunityMembers, useCommunityModeration, useModLog } from "@/lib/hooks.legacy";
 import { stripHtml } from "@/lib/utils/sanitize";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";

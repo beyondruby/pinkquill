@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useNotifications, useMarkAsRead, useCollaborationInvites, useFollowRequests, Notification } from "@/lib/hooks";
+import { useCollaborationInvites } from "@/lib/hooks.legacy";
+import { useNotifications, useMarkAsRead } from "@/lib/hooks/useNotifications";
+import { useFollowRequests } from "@/lib/hooks/useProfile";
+import type { Notification } from "@/lib/types";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { NotificationSkeleton } from "@/components/ui/Skeleton";
 import { setRequestMetricsScope } from "@/lib/utils/requestMetrics";

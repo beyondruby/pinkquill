@@ -93,7 +93,7 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
         <div className="p-4 flex flex-col h-[calc(100%-0px)]">
           <div className="flex items-center gap-2 mb-2">
             <Image
-              src={getOptimizedAvatarUrl(product.seller?.avatar_url, 28) || DEFAULT_AVATAR}
+              src={getOptimizedAvatarUrl(product.seller?.avatar_url) || DEFAULT_AVATAR}
               alt={sellerName}
               width={24}
               height={24}
@@ -250,7 +250,7 @@ function ProductMarketplaceCard({ product }: { product: Product }) {
         <div className="p-4">
           <div className="flex items-center gap-2 mb-2">
             <Image
-              src={getOptimizedAvatarUrl(product.seller?.avatar_url, 24) || DEFAULT_AVATAR}
+              src={getOptimizedAvatarUrl(product.seller?.avatar_url) || DEFAULT_AVATAR}
               alt={sellerName}
               width={20}
               height={20}

@@ -4,7 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity } from "@/lib/hooks";
+import { useCommunity } from "@/lib/hooks.legacy";
 import { CommunityProvider } from "@/components/communities/CommunityContext";
 import CommunityHeader from "@/components/communities/CommunityHeader";
 import JoinButton from "@/components/communities/JoinButton";

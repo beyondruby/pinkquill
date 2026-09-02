@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useProfile } from "@/lib/hooks";
+import { useProfile } from "@/lib/hooks/useProfile";
 import { useCollectionItem } from "@/lib/hooks/useCollections";
 import Loading from "@/components/ui/Loading";
 import PostCard from "@/components/feed/PostCard";

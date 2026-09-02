@@ -5,15 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
-import {
-  useCommunityAnnouncements,
-  useCommunityChatActions,
-  useCommunityChatMemberSearch,
-  useCommunityChatOverview,
-  useCommunityChatMemberships,
-  useCommunityChatMessages,
-  useCommunityChatThreads,
-} from "@/lib/hooks";
+import { useCommunityAnnouncements, useCommunityChatActions, useCommunityChatMemberSearch, useCommunityChatOverview, useCommunityChatMemberships, useCommunityChatMessages, useCommunityChatThreads } from "@/lib/hooks/useCommunityChat";
 import { DEFAULT_AVATAR } from "@/lib/utils/image";
 import { showToast } from "@/lib/utils/toast";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";

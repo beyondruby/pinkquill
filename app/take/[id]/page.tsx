@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMuted, useVolume, TakeReactionType, TakeReactionCounts } from "@/lib/hooks/useTakes";
-import { useBlock } from "@/lib/hooks";
+import { useBlock } from "@/lib/hooks/useInteractions";
 import { useTakeComments } from "@/lib/hooks/useTakes";
 import { deleteOwnTake } from "@/lib/content-client";
 import TakeReactionPicker from "@/components/takes/TakeReactionPicker";

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useSellerProducts, useUpdateProductStatus, useDeleteProduct } from "@/lib/hooks";
+import { useSellerProducts, useUpdateProductStatus, useDeleteProduct } from "@/lib/hooks/useProducts";
 import type { DeleteListingResult } from "@/lib/content-client";
 import ActionMenu from "@/components/ui/ActionMenu";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";

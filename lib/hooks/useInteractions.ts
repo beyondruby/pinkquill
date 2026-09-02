@@ -113,13 +113,7 @@ export function useToggleReaction() {
           .eq("post_id", postId)
           .eq("user_id", userId);
 
-        if (error) {
-          // Fallback to admires if reactions table doesn't exist
-          if (error.code === "42P01" || error.message?.includes("does not exist")) {
-            return reactWithAdmires(postId, userId, reactionType, currentReaction);
-          }
-          throw error;
-        }
+        if (error) throw error;
         return { success: true, removed: true };
       } else if (currentReaction) {
         // Different reaction - update it
@@ -129,12 +123,7 @@ export function useToggleReaction() {
           .eq("post_id", postId)
           .eq("user_id", userId);
 
-        if (error) {
-          if (error.code === "42P01" || error.message?.includes("does not exist")) {
-            return reactWithAdmires(postId, userId, reactionType, currentReaction);
-          }
-          throw error;
-        }
+        if (error) throw error;
         return { success: true, changed: true };
       } else {
         // No current reaction - insert new
@@ -144,46 +133,11 @@ export function useToggleReaction() {
           reaction_type: reactionType,
         });
 
-        if (error) {
-          if (error.code === "42P01" || error.message?.includes("does not exist")) {
-            return reactWithAdmires(postId, userId, reactionType, currentReaction);
-          }
-          throw error;
-        }
+        if (error) throw error;
         return { success: true, added: true };
       }
     } catch (err) {
       console.error("[useToggleReaction] Error:", err);
-      return { success: false, error: err };
-    }
-  };
-
-  // Fallback using admires table (only supports admire reaction)
-  const reactWithAdmires = async (
-    postId: string,
-    userId: string,
-    reactionType: ReactionType,
-    currentReaction: ReactionType | null
-  ): Promise<ReactResult> => {
-    if (reactionType !== "admire") {
-      return { success: false, error: "Only admire is supported in fallback mode" };
-    }
-
-    try {
-      if (currentReaction === "admire") {
-        const { error } = await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
-        if (error) throw error;
-        return { success: true, removed: true };
-      } else {
-        const { error } = await supabase.from("admires").insert({
-          post_id: postId,
-          user_id: userId,
-        });
-        if (error) throw error;
-        return { success: true, added: true };
-      }
-    } catch (err) {
-      console.error("[useToggleReaction] Fallback Error:", err);
       return { success: false, error: err };
     }
   };
@@ -196,14 +150,7 @@ export function useToggleReaction() {
         .eq("post_id", postId)
         .eq("user_id", userId);
 
-      if (error) {
-        if (error.code === "42P01" || error.message?.includes("does not exist")) {
-          const { error: fallbackError } = await supabase.from("admires").delete().eq("post_id", postId).eq("user_id", userId);
-          if (fallbackError) throw fallbackError;
-        } else {
-          throw error;
-        }
-      }
+      if (error) throw error;
       return { success: true };
     } catch (err) {
       console.error("[useToggleReaction] Remove Error:", err);
@@ -220,18 +167,7 @@ export function useToggleReaction() {
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (error) {
-        if (error.code === "42P01" || error.message?.includes("does not exist")) {
-          const { data: admireData } = await supabase
-            .from("admires")
-            .select("post_id")
-            .eq("post_id", postId)
-            .eq("user_id", userId)
-            .maybeSingle();
-          return admireData ? "admire" : null;
-        }
-        throw error;
-      }
+      if (error) throw error;
       return data?.reaction_type || null;
     } catch {
       return null;
@@ -309,60 +245,7 @@ export function useReactionCounts(postId: string, options?: UseReactionCountsOpt
 
       if (!mountedRef.current) return;
 
-      if (error) {
-        // Fallback to client-side counting if RPC not available
-        if (error.code === "42883" || error.message?.includes("does not exist")) {
-          const { data: reactions, error: selectError } = await supabase
-            .from("reactions")
-            .select("reaction_type")
-            .eq("post_id", postId);
-
-          if (!mountedRef.current) return;
-
-          if (selectError) {
-            // Final fallback to admires table
-            if (selectError.code === "42P01" || selectError.message?.includes("does not exist")) {
-              const { count } = await supabase
-                .from("admires")
-                .select("*", { count: "exact", head: true })
-                .eq("post_id", postId);
-
-              if (!mountedRef.current) return;
-
-              setCounts({
-                admire: count || 0,
-                snap: 0,
-                ovation: 0,
-                support: 0,
-                inspired: 0,
-                applaud: 0,
-                total: count || 0,
-              });
-              return;
-            }
-            throw selectError;
-          }
-
-          // Client-side counting fallback
-          const fallbackCounts: ReactionCounts = {
-            admire: 0, snap: 0, ovation: 0, support: 0, inspired: 0, applaud: 0, total: 0,
-          };
-          reactions?.forEach((r) => {
-            const type = r.reaction_type as ReactionType;
-            if (type in fallbackCounts) {
-              fallbackCounts[type]++;
-              fallbackCounts.total++;
-            }
-          });
-          // Fold in legacy admires (heart-button writes only to admires table)
-          const extraLegacy = Math.max(0, legacyAdmireCount - fallbackCounts.admire);
-          fallbackCounts.admire += extraLegacy;
-          fallbackCounts.total += extraLegacy;
-          setCounts(fallbackCounts);
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       // Use aggregated data from RPC, then fold in any legacy admires not already represented
       const row = data?.[0];
@@ -517,22 +400,7 @@ export function useUserReaction(postId: string, userId?: string, options?: UseUs
 
       if (!mountedRef.current) return;
 
-      if (error) {
-        if (error.code === "42P01" || error.message?.includes("does not exist")) {
-          const { data: admireData } = await supabase
-            .from("admires")
-            .select("post_id")
-            .eq("post_id", postId)
-            .eq("user_id", userId)
-            .maybeSingle();
-
-          if (!mountedRef.current) return;
-
-          setReaction(admireData ? "admire" : null);
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       setReaction(data?.reaction_type || null);
     } catch (err) {

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useUnreadCount, useUnreadMessagesCount } from "@/lib/hooks";
+import { useUnreadCount, useUnreadMessagesCount } from "@/lib/hooks/useNotifications";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
 import { getMutedNotificationTypes } from "@/lib/utils/notificationCategories";
 

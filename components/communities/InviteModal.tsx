@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { useCommunityModeration } from "@/lib/hooks";
+import { useCommunityModeration } from "@/lib/hooks.legacy";
 import { sanitizePostgrestSearchTerm } from "@/lib/utils/postgrest";
 import { actionToast } from "@/lib/utils/toast";
 

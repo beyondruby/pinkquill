@@ -1,0 +1,176 @@
+/* studio styles — moved out of app/globals.css (Phase 8) so they load only on the routes
+   that render these components. Class names are unchanged. */
+
+/* Masonry Layout */
+.studio-works-grid {
+  columns: 3;
+  column-gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .studio-works-grid {
+    columns: 2;
+    column-gap: 1.25rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .studio-works-grid {
+    columns: 1;
+  }
+}
+
+
+/* Empty State */
+.studio-works-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--color-subtle);
+  border-radius: 12px;
+}
+
+.studio-works-empty-icon {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-works-empty-icon svg {
+  width: 28px;
+  height: 28px;
+  color: var(--muted-text);
+  opacity: 0.4;
+}
+
+.studio-works-empty-text {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-style: italic;
+  color: var(--muted-text);
+}
+
+
+/* Relay Badge */
+.studio-relay-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-purple-primary) 90%, transparent) 0%, color-mix(in srgb, var(--color-pink-vivid) 85%, transparent) 100%);
+  border-radius: 20px;
+  color: var(--color-on-accent);
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-purple-primary) 30%, transparent);
+}
+
+.studio-relay-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+
+/* Relay Footer */
+.studio-relay-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.studio-relay-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-relay-author-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid color-mix(in srgb, var(--color-purple-primary) 10%, transparent);
+}
+
+.studio-relay-author-name {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.studio-relay-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studio-relay-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--muted-text);
+}
+
+.studio-relay-stat svg {
+  width: 14px;
+  height: 14px;
+}
+
+
+/* ========== STUDIO COVER - WATERCOLOR AESTHETIC ========== */
+
+/* Soft Watercolor Background - Brand Colors */
+.studio-cover-watercolor {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 30%, color-mix(in srgb, var(--color-purple-primary) 8%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--color-pink-vivid) 5%, transparent) 0%, transparent 45%),
+    radial-gradient(ellipse at 60% 80%, color-mix(in srgb, var(--color-orange-warm) 5%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse at 10% 70%, color-mix(in srgb, var(--color-purple-primary) 4%, transparent) 0%, transparent 40%),
+    linear-gradient(135deg, var(--color-subtle) 0%, var(--color-surface) 50%, var(--color-subtle) 100%);
+  pointer-events: none;
+}
+
+
+/* Ink Splash Accents */
+.studio-ink-splash {
+  position: absolute;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--color-purple-primary) 8%, transparent) 0%, transparent 70%);
+  border-radius: 40% 60% 55% 45% / 55% 45% 60% 40%;
+  pointer-events: none;
+}
+
+.studio-ink-splash.splash-1 {
+  width: 300px;
+  height: 200px;
+  top: 10%;
+  right: 5%;
+  transform: rotate(-15deg);
+}
+
+.studio-ink-splash.splash-2 {
+  width: 200px;
+  height: 150px;
+  bottom: 20%;
+  left: 10%;
+  transform: rotate(20deg);
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--color-pink-vivid) 6%, transparent) 0%, transparent 70%);
+}
+

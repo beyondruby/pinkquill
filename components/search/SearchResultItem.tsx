@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import type { SearchResultProfile, SearchResultCommunity, SearchResultTag } from "@/lib/hooks";
+import type { SearchResultProfile, SearchResultCommunity, SearchResultTag } from "@/lib/hooks.legacy";
 
 interface ProfileItemProps {
   type: "profile";

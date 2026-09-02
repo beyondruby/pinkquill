@@ -9,7 +9,7 @@ import {
   faSpinner,
   faEye,
 } from "@fortawesome/free-solid-svg-icons";
-import { CollaborationInvite } from "@/lib/hooks";
+import type { CollaborationInvite } from "@/lib/hooks.legacy";
 import { getTimeAgo } from "@/lib/utils/time";
 
 interface CollaborationInviteCardProps {

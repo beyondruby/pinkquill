@@ -366,12 +366,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
         return;
       }
 
-      if (
-        rpcError
-        && rpcError.code !== "PGRST202"
-        && rpcError.code !== "42883"
-        && !rpcError.message?.includes("get_takes_feed")
-      ) {
+      if (rpcError) {
         console.warn("[useTakes] Optimized feed RPC failed; using fallback queries:", rpcError.message);
       }
 
@@ -657,25 +652,19 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     }));
 
     try {
-      // Try take_reactions table first
       if (isSameReaction) {
         // Remove reaction
         const { error } = await supabase.from("take_reactions").delete()
           .eq("take_id", takeId).eq("user_id", userId);
 
-        if (error && (error.code === '42P01' || error.message?.includes('does not exist'))) {
-          // Fall back to take_admires
-          await supabase.from("take_admires").delete().eq("take_id", takeId).eq("user_id", userId);
-        }
+        if (error) throw error;
       } else if (currentReaction) {
         // Update existing reaction
         const { error } = await supabase.from("take_reactions")
           .update({ reaction_type: reactionType })
           .eq("take_id", takeId).eq("user_id", userId);
 
-        if (error && (error.code === '42P01' || error.message?.includes('does not exist'))) {
-          // take_admires doesn't support different reactions, just keep it
-        }
+        if (error) throw error;
       } else {
         // Insert new reaction
         const { error } = await supabase.from("take_reactions").insert({
@@ -684,12 +673,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
           reaction_type: reactionType,
         });
 
-        if (error && (error.code === '42P01' || error.message?.includes('does not exist'))) {
-          // Fall back to take_admires (only 'admire' type)
-          if (reactionType === 'admire') {
-            await supabase.from("take_admires").insert({ take_id: takeId, user_id: userId });
-          }
-        }
+        if (error) throw error;
       }
     } catch {
       // Revert on error
@@ -885,33 +869,12 @@ export function useTakeReactionCounts(takeId: string) {
 
   const fetchCounts = useCallback(async () => {
     try {
-      // Try take_reactions table first
       const { data, error } = await supabase
         .from("take_reactions")
         .select("reaction_type")
         .eq("take_id", takeId);
 
-      if (error) {
-        // Fall back to take_admires
-        if (error.code === '42P01' || error.message?.includes('does not exist')) {
-          const { count } = await supabase
-            .from("take_admires")
-            .select("*", { count: "exact", head: true })
-            .eq("take_id", takeId);
-
-          setCounts({
-            admire: count || 0,
-            snap: 0,
-            ovation: 0,
-            support: 0,
-            inspired: 0,
-            applaud: 0,
-            total: count || 0,
-          });
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       const newCounts: TakeReactionCounts = {
         admire: 0,
@@ -2033,63 +1996,6 @@ export function useTrendingSounds(limit = 10) {
   return useSounds(undefined, { limit, trending: true });
 }
 
-// Favorite sounds hook
-export function useFavoriteSounds(userId?: string) {
-  const [sounds, setSounds] = useState<Sound[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchFavorites = useCallback(async () => {
-    if (!userId) {
-      setSounds([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data: favData } = await supabase
-        .from("sound_favorites")
-        .select("sound_id, created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (!favData || favData.length === 0) {
-        setSounds([]);
-        return;
-      }
-
-      const soundIds = favData.map(f => f.sound_id);
-
-      const { data: soundsData } = await supabase
-        .from("sounds")
-        .select("*")
-        .in("id", soundIds);
-
-      // Preserve favorite order
-      const soundMap = new Map((soundsData || []).map(s => [s.id, s]));
-      const orderedSounds = soundIds
-        .map(id => soundMap.get(id))
-        .filter((s): s is Sound => !!s);
-
-      setSounds(orderedSounds);
-    } catch (err) {
-      console.error("[useFavoriteSounds] Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to load favorite sounds");
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchFavorites();
-  }, [fetchFavorites]);
-
-  return { sounds, loading, error, refetch: fetchFavorites };
-}
-
 // Single sound hook
 export function useSound(soundId?: string) {
   const [sound, setSound] = useState<Sound | null>(null);
@@ -2166,62 +2072,3 @@ export function useSound(soundId?: string) {
   return { sound, loading, takesUsingSound };
 }
 
-// Create original sound from take
-export function useCreateSound() {
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const createFromTake = useCallback(async (
-    userId: string,
-    takeId: string,
-    audioFile: File,
-    name: string,
-    duration: number
-  ) => {
-    try {
-      setCreating(true);
-      setError(null);
-
-      // Upload audio to storage
-      const fileExt = audioFile.name.split(".").pop() || "mp3";
-      const fileName = `${userId}/${Date.now()}.${fileExt}`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("sounds")
-        .upload(fileName, audioFile, {
-          cacheControl: "31536000",
-          upsert: false,
-        });
-
-      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-
-      const { data: { publicUrl } } = supabase.storage.from("sounds").getPublicUrl(uploadData.path);
-
-      // Create sound record
-      const { data: sound, error: insertError } = await supabase
-        .from("sounds")
-        .insert({
-          name,
-          audio_url: publicUrl,
-          duration,
-          is_original: true,
-          original_take_id: takeId,
-          created_by: userId,
-        })
-        .select()
-        .single();
-
-      if (insertError) throw new Error(`Failed to create sound: ${insertError.message}`);
-
-      return sound;
-    } catch (err) {
-      console.error("[useCreateSound] Error:", err);
-      setError(err instanceof Error ? err.message : "Failed to create sound");
-      return null;
-    } finally {
-      setCreating(false);
-    }
-  }, []);
-
-  return { createFromTake, creating, error };
-}

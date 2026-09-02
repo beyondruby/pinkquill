@@ -14,7 +14,7 @@ import {
   TakeEffect,
   Sound,
 } from "@/lib/hooks/useTakes";
-import { useCommunities } from "@/lib/hooks";
+import { useCommunities } from "@/lib/hooks.legacy";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCloudUploadAlt,
@@ -38,7 +38,7 @@ import {
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
 import PeoplePickerModal, { CollaboratorWithRole } from "@/components/ui/PeoplePickerModal";
-import { SearchableUser } from "@/lib/hooks";
+import type { SearchableUser } from "@/lib/hooks.legacy";
 import { supabase } from "@/lib/supabase";
 
 interface CreateTakeProps {

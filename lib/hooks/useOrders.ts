@@ -904,49 +904,6 @@ interface UseOrderEventsReturn {
   error: string | null;
 }
 
-export function useOrderEvents(orderId?: string): UseOrderEventsReturn {
-  const [events, setEvents] = useState<OrderEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!orderId) {
-      setEvents([]);
-      setLoading(false);
-      return;
-    }
-
-    async function fetch() {
-      try {
-        setLoading(true);
-        const { data, error: queryError } = await supabase
-          .from("order_events")
-          .select(`
-            *,
-            actor:profiles (
-              id, username, display_name, avatar_url, is_verified
-            )
-          `)
-          .eq("order_id", orderId)
-          .order("created_at", { ascending: true });
-
-        if (queryError) throw queryError;
-        setEvents((data || []) as OrderEvent[]);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("[useOrderEvents] Error:", message);
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetch();
-  }, [orderId]);
-
-  return { events, loading, error };
-}
-
 // ============================================================================
 // useOrderStats — Aggregated stats for seller dashboard
 // ============================================================================

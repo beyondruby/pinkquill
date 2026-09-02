@@ -12,7 +12,8 @@ import {
   faUserTag,
   faPen,
 } from "@fortawesome/free-solid-svg-icons";
-import { useUserSearch, SearchableUser } from "@/lib/hooks";
+import { useUserSearch } from "@/lib/hooks.legacy";
+import type { SearchableUser } from "@/lib/hooks.legacy";
 import { getOptimizedAvatarUrl } from "@/lib/utils/image";
 
 // Extended user with role for collaborators
@@ -230,7 +231,7 @@ export default function PeoplePickerModal({
                       <div className="relative">
                         {user.avatar_url ? (
                           <img
-                            src={getOptimizedAvatarUrl(user.avatar_url, 24)}
+                            src={getOptimizedAvatarUrl(user.avatar_url)}
                             alt={user.display_name || user.username}
                             className="w-6 h-6 rounded-full object-cover"
                             loading="lazy"
@@ -456,7 +457,7 @@ function UserRow({ user, isSelected, onClick, disabled }: UserRowProps) {
       <div className="relative flex-shrink-0">
         {user.avatar_url ? (
           <img
-            src={getOptimizedAvatarUrl(user.avatar_url, 40)}
+            src={getOptimizedAvatarUrl(user.avatar_url)}
             alt={user.display_name || user.username}
             className="w-10 h-10 rounded-full object-cover"
             loading="lazy"

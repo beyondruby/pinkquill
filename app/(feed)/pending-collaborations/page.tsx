@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { usePendingCollaborations } from "@/lib/hooks";
+import { usePendingCollaborations } from "@/lib/hooks.legacy";
 import Loading from "@/components/ui/Loading";
 
 interface RawCollaborator {

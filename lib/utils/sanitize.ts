@@ -22,7 +22,42 @@ const SAFE_STYLE_PROPERTIES = new Set([
   "background-color",
   "border-radius",
   "padding",
+  "font-family",
 ]);
+
+// Fonts the composer can apply, keyed by the next/font CSS variable slug
+// registered in app/layout.tsx. Older posts stored the literal family name
+// (e.g. "'Lora', serif"), which next/font never serves; those are rewritten to
+// the variable so they finally render in the chosen font.
+const FONT_FAMILIES: Record<string, { legacy: string; generic: string }> = {
+  "crimson-pro": { legacy: "crimson pro", generic: "serif" },
+  "libre-baskerville": { legacy: "libre baskerville", generic: "serif" },
+  "playfair-display": { legacy: "playfair display", generic: "serif" },
+  lora: { legacy: "lora", generic: "serif" },
+  merriweather: { legacy: "merriweather", generic: "serif" },
+  spectral: { legacy: "spectral", generic: "serif" },
+  "eb-garamond": { legacy: "eb garamond", generic: "serif" },
+  "cormorant-garamond": { legacy: "cormorant garamond", generic: "serif" },
+  inter: { legacy: "inter", generic: "sans-serif" },
+  "josefin-sans": { legacy: "josefin sans", generic: "sans-serif" },
+  poppins: { legacy: "poppins", generic: "sans-serif" },
+  "open-sans": { legacy: "open sans", generic: "sans-serif" },
+  "dancing-script": { legacy: "dancing script", generic: "cursive" },
+  caveat: { legacy: "caveat", generic: "cursive" },
+  "source-code-pro": { legacy: "source code pro", generic: "monospace" },
+};
+const LEGACY_FONT_TO_SLUG = new Map(
+  Object.entries(FONT_FAMILIES).map(([slug, { legacy }]) => [legacy, slug])
+);
+
+/** Returns the canonical `var(--font-x), generic` value, or null if not an allowed font. */
+function normalizeFontFamily(value: string): string | null {
+  const first = value.split(",")[0]?.trim().replace(/^['"]|['"]$/g, "").toLowerCase() ?? "";
+  const varMatch = first.match(/^var\(--font-([a-z0-9-]+)\)$/);
+  const slug = varMatch ? varMatch[1] : LEGACY_FONT_TO_SLUG.get(first);
+  if (!slug || !FONT_FAMILIES[slug]) return null;
+  return `var(--font-${slug}), ${FONT_FAMILIES[slug].generic}`;
+}
 
 const SAFE_COLOR_VALUE =
   /^(#[0-9a-f]{3,8}|rgba?\(\s*(\d{1,3}%?\s*,\s*){2}\d{1,3}%?(\s*,\s*(0|1|0?\.\d+|\d{1,3}%))?\s*\)|hsla?\(\s*\d{1,3}(deg)?\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%(\s*,\s*(0|1|0?\.\d+|\d{1,3}%))?\s*\)|transparent)$/i;
@@ -70,9 +105,14 @@ function sanitizeInlineStyle(style: string): string {
       const property = declaration.slice(0, separatorIndex).trim().toLowerCase();
       const value = declaration.slice(separatorIndex + 1).trim();
 
-      if (!SAFE_STYLE_PROPERTIES.has(property) || !isSafeStyleValue(property, value)) {
-        return "";
+      if (!SAFE_STYLE_PROPERTIES.has(property)) return "";
+
+      if (property === "font-family") {
+        const normalized = normalizeFontFamily(value);
+        return normalized ? `font-family: ${normalized}` : "";
       }
+
+      if (!isSafeStyleValue(property, value)) return "";
 
       return `${property}: ${value}`;
     })

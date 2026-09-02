@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useSearch } from "@/lib/hooks";
+import { useSearch } from "@/lib/hooks.legacy";
 import { useAuth } from "@/components/providers/AuthProvider";
 import SearchDropdown, { type SearchHistoryEntry } from "./SearchDropdown";
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useUpdateCommunity } from "@/lib/hooks";
+import { useCommunity, useUpdateCommunity } from "@/lib/hooks.legacy";
 import Button from "@/components/ui/Button";
 
 export default function CommunityChatSettingsPage() {

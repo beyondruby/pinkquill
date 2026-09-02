@@ -1,5 +1,7 @@
 "use client";
 
+import "./messages.css";
+
 import type { TypingUser } from "@/lib/types";
 import Avatar from "@/components/ui/Avatar";
 

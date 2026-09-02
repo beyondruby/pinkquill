@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import type { TakeComment } from "@/lib/hooks/useTakes";
-import { useBlock } from "@/lib/hooks";
+import { useBlock } from "@/lib/hooks/useInteractions";
 import { supabase } from "@/lib/supabase";
 import ReportModal from "@/components/ui/ReportModal";
 import { icons } from "@/components/ui/Icons";

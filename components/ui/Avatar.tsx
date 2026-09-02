@@ -49,7 +49,7 @@ export default function Avatar({
   const optimizedSrc = error || !src
     ? DEFAULT_AVATAR
     : isSupabaseUrl
-      ? getOptimizedAvatarUrl(src, size)
+      ? getOptimizedAvatarUrl(src)
       : src;
 
   // Build class names

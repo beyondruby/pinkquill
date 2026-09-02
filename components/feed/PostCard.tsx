@@ -9,7 +9,10 @@ import { useRouter } from "next/navigation";
 import { useModal } from "@/components/providers/ModalProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthModal } from "@/components/providers/AuthModalProvider";
-import { useToggleAdmire, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, createNotification, useBlock, removeSelfAsCollaborator, ReactionType, ReactionCounts } from "@/lib/hooks";
+import { removeSelfAsCollaborator } from "@/lib/hooks.legacy";
+import { useToggleAdmire, useToggleSave, useToggleRelay, useToggleReaction, useReactionCounts, useUserReaction, useBlock } from "@/lib/hooks/useInteractions";
+import { createNotification } from "@/lib/hooks/useNotifications";
+import type { ReactionType, ReactionCounts } from "@/lib/types";
 import { usePostViewTracker, useTrackPostImpression } from "@/lib/hooks/useTracking";
 
 const ShareModal = dynamic(() => import("@/components/ui/ShareModal"), { ssr: false });
@@ -25,7 +28,7 @@ import ReactionPicker from "@/components/feed/ReactionPicker";
 import { AudioPlayer } from "@/components/feed/AudioPlayer";
 import { supabase } from "@/lib/supabase";
 import { PostType } from "@/lib/types";
-import { deleteOwnPost } from "@/lib/posts-client";
+import { deleteOwnPost } from "@/lib/content-client";
 import { actionToast, showToast } from "@/lib/utils/toast";
 import {
   MentionsDisplay,
@@ -195,7 +198,7 @@ function PostCardComponent({
   }, []);
 
   // Track post views and impressions
-  const viewTrackerRef = usePostViewTracker(post.id, post.authorId, "feed");
+  const viewTrackerRef = usePostViewTracker(post.id, "feed");
   useTrackPostImpression(post.id, "feed");
 
   // Audio (Sound/Voice formats) renders as a player; visual media keeps the grid.

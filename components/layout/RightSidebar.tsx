@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useTrendingTags, useDiscoverCommunities } from "@/lib/hooks";
+import { useDiscoverCommunities } from "@/lib/hooks.legacy";
+import { useTrendingTags } from "@/lib/hooks/useTags";
 
 interface SuggestedUser {
   id: string;

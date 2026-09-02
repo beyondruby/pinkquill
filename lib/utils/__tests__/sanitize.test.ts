@@ -214,3 +214,22 @@ describe("createSafeHtml", () => {
     expect(result.__html).not.toContain("onclick");
   });
 });
+
+describe("sanitizeHtml font-family (composer fonts)", () => {
+  it("keeps the composer's next/font variable values", () => {
+    const result = sanitizeHtml('<span style="font-family: var(--font-lora), serif">x</span>');
+    expect(result).toContain("font-family: var(--font-lora), serif");
+  });
+
+  it("rewrites legacy literal family names to the variable", () => {
+    const result = sanitizeHtml("<span style=\"font-family: 'Crimson Pro', serif\">x</span>");
+    expect(result).toContain("font-family: var(--font-crimson-pro), serif");
+  });
+
+  it("drops fonts that are not registered", () => {
+    const result = sanitizeHtml('<span style="font-family: var(--font-evil), serif; color: #333">x</span>');
+    expect(result).not.toContain("font-family");
+    expect(result).toContain("color: #333");
+    expect(sanitizeHtml('<span style="font-family: Wingdings">x</span>')).not.toContain("font-family");
+  });
+});

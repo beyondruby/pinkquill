@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MESSAGE_REACTION_EMOJIS } from "@/lib/hooks";
+import { MESSAGE_REACTION_EMOJIS } from "@/lib/hooks/useMessaging";
 import type { MessageReaction, MessageReactionEmoji } from "@/lib/types";
 
 interface MessageReactionPickerProps {

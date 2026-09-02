@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { useShareToDM } from "@/lib/hooks";
+import { useShareToDM } from "@/lib/hooks/useShareToDM";
 import type { Post } from "@/lib/types";
 import Avatar from "@/components/ui/Avatar";
 import { Spinner } from "@/components/ui/Loading";

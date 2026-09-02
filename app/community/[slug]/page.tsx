@@ -6,7 +6,9 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useModal } from "@/components/providers/ModalProvider";
-import { useCommunity, useCommunityPosts, useCommunityPinnedPosts, useCommunityModeration, Post } from "@/lib/hooks";
+import { useCommunity, useCommunityPosts, useCommunityModeration } from "@/lib/hooks.legacy";
+import { useCommunityPinnedPosts } from "@/lib/hooks/usePinnedPosts";
+import type { Post } from "@/lib/types";
 import { useTrackCommunityView } from "@/lib/hooks/useTracking";
 import PostCard from "@/components/feed/PostCard";
 

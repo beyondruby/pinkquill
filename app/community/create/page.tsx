@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCreateCommunity } from "@/lib/hooks";
+import { useCreateCommunity } from "@/lib/hooks.legacy";
 
 // ===========================================
 // HIERARCHICAL CATEGORY SYSTEM

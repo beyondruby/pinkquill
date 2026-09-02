@@ -1,0 +1,583 @@
+/* takes styles — moved out of app/globals.css (Phase 8) so they load only on the routes
+   that render these components. Class names are unchanged. */
+
+/* Loading More */
+.tiktok-loading-more {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* Mute Button - Minimalist */
+.tiktok-mute-btn {
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 50%;
+  color: var(--color-on-accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.tiktok-mute-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tiktok-mute-btn:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+
+/* Progress Bar */
+.tiktok-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  z-index: 25;
+}
+
+.tiktok-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-purple), var(--vivid-pink));
+  transition: width 0.1s linear;
+}
+
+
+/* Overlay States */
+.tiktok-player-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+
+/* Branded Play Button */
+.tiktok-play-btn {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-accent);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-purple-primary) 50%, transparent);
+  animation: playPulse 2s ease-in-out infinite;
+}
+
+.tiktok-play-btn svg {
+  width: 36px;
+  height: 36px;
+  margin-left: 4px;
+}
+
+
+/* Error State */
+.tiktok-player-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 15;
+  gap: 16px;
+  padding: 24px;
+}
+
+.tiktok-error-icon {
+  width: 48px;
+  height: 48px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tiktok-error-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.tiktok-player-error p {
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  text-align: center;
+  margin: 0;
+}
+
+.tiktok-retry-btn {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
+  border: none;
+  border-radius: 24px;
+  color: var(--color-on-accent);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tiktok-retry-btn:hover {
+  transform: scale(1.05);
+}
+
+
+/* Comment Input */
+.take-comments-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--color-surface);
+}
+
+.take-comments-input-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.take-comments-input {
+  flex: 1;
+  padding: 10px 16px;
+  background: var(--color-subtle);
+  border: 2px solid transparent;
+  border-radius: 20px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.take-comments-input:focus {
+  background: var(--color-surface);
+  border-color: var(--primary-purple);
+}
+
+.take-comments-input::placeholder {
+  color: var(--muted-text);
+}
+
+.take-comments-submit {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
+  border: none;
+  border-radius: 50%;
+  color: var(--color-on-accent);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.take-comments-submit svg {
+  width: 18px;
+  height: 18px;
+}
+
+.take-comments-submit:hover:not(:disabled) {
+  transform: scale(1.1);
+}
+
+.take-comments-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.take-comments-login-prompt {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  color: var(--primary-purple);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.take-comments-login-prompt:hover {
+  text-decoration: underline;
+}
+
+
+/* Feed variant - uses .post base class */
+.take-post {
+  /* Inherits from .post */
+}
+
+
+/* Relayed badge */
+.take-relayed-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  color: #22c55e;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+}
+
+.take-relayed-badge svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.take-relayed-badge a {
+  font-weight: 600;
+  color: #22c55e;
+  text-decoration: none;
+}
+
+.take-relayed-badge a:hover {
+  text-decoration: underline;
+}
+
+.take-relayed-time {
+  color: var(--muted-text);
+}
+
+
+/* Video container */
+.take-video-container {
+  position: relative;
+  margin: 16px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--color-subtle);
+  aspect-ratio: 9/16;
+  max-height: 420px;
+  cursor: pointer;
+}
+
+.take-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+/* Play overlay */
+.take-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  transition: background 0.2s ease;
+}
+
+.take-video-container:hover .take-play-overlay {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.take-play-btn {
+  width: 64px;
+  height: 64px;
+  background: var(--color-surface);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-purple);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.take-video-container:hover .take-play-btn {
+  transform: scale(1.08);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--color-purple-primary) 25%, transparent);
+}
+
+.take-play-btn svg {
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+}
+
+
+/* Duration badge */
+.take-duration-badge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 5px 10px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  color: var(--color-on-accent);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+
+/* Take type badge */
+.take-type-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
+  border-radius: 20px;
+  color: var(--color-on-accent);
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.take-type-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+
+/* Caption */
+.take-caption {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ink);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+
+/* Caption */
+.take-caption {
+  margin-top: 8px;
+}
+
+.take-caption-text {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-on-accent);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.take-caption-toggle {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+}
+
+
+/* Comment input */
+.take-comments-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-light);
+  background: var(--color-surface);
+}
+
+.take-comments-input-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.take-comments-input {
+  flex: 1;
+  padding: 10px 16px;
+  background: var(--color-subtle);
+  border: 2px solid transparent;
+  border-radius: 20px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.take-comments-input:focus {
+  background: var(--color-surface);
+  border-color: var(--primary-purple);
+}
+
+.take-comments-input::placeholder {
+  color: var(--muted-text);
+}
+
+.take-comments-submit {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
+  border: none;
+  border-radius: 50%;
+  color: var(--color-on-accent);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.take-comments-submit:hover:not(:disabled) {
+  transform: scale(1.1);
+}
+
+.take-comments-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.take-comments-login-prompt {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  color: var(--primary-purple);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.take-comments-login-prompt:hover {
+  text-decoration: underline;
+}
+
+
+/* Feed Status States */
+.takes-feed-status {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  color: var(--color-on-accent);
+  font-family: var(--font-ui);
+  gap: 12px;
+}
+
+.takes-feed-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.takes-feed-error-msg,
+.takes-feed-empty-msg {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.takes-feed-loading-more {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* Comment Input */
+.take-comments-input {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-light);
+  background: var(--color-surface);
+}
+
+.take-comments-input input {
+  flex: 1;
+  padding: 10px 16px;
+  background: var(--color-subtle);
+  border: 2px solid transparent;
+  border-radius: 20px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.take-comments-input input:focus {
+  background: var(--color-surface);
+  border-color: var(--primary-purple);
+}
+
+.take-comments-input input::placeholder {
+  color: var(--muted-text);
+}
+
+.take-comments-input button {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--primary-purple), var(--vivid-pink));
+  border: none;
+  border-radius: 20px;
+  color: var(--color-on-accent);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.take-comments-input button:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.take-comments-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+/* Login Prompt */
+.take-comments-login {
+  padding: 16px 20px;
+  text-align: center;
+  border-top: 1px solid var(--border-light);
+}
+
+.take-comments-login a {
+  color: var(--primary-purple);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.take-comments-login a:hover {
+  text-decoration: underline;
+}
+

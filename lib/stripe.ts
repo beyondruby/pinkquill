@@ -14,27 +14,7 @@ export function getStripeServer(): Stripe {
   return _stripe;
 }
 
-/**
- * @deprecated Use getStripeServer() instead for lazy initialization.
- * Kept as a convenience alias for API routes.
- */
-export const stripe = new Proxy({} as Stripe, {
-  get(_target, prop) {
-    return (getStripeServer() as unknown as Record<string | symbol, unknown>)[prop];
-  },
-});
-
-// Platform fee rate — 5% flat on all sales
-export const STRIPE_FEES = {
-  product: 0.05,
-  service: 0.05,
-} as const;
-
 // Stripe Connect account type
 export const CONNECT_ACCOUNT_TYPE = "express" as const;
 
-// Currency
-export const DEFAULT_CURRENCY = "usd" as const;
-
-// Minimum payout amount in cents
-export const MIN_PAYOUT_AMOUNT = 100; // $1.00
+ // $1.00

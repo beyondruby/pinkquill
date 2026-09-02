@@ -19,7 +19,6 @@ import type {
 // SLUG HELPER
 // ============================================================================
 
-
 function normalizeShippingRelation(
   shipping: ProductShipping | ProductShipping[] | null | undefined
 ): ProductShipping | null {
@@ -930,50 +929,6 @@ interface UseUpdateProductReturn {
   update: (productId: string, updates: Partial<Product>) => Promise<boolean>;
   updating: boolean;
   error: string | null;
-}
-
-export function useUpdateProduct(): UseUpdateProductReturn {
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const update = useCallback(async (productId: string, updates: Partial<Product>): Promise<boolean> => {
-    setUpdating(true);
-    setError(null);
-
-    try {
-      // SECURITY: Verify current user owns this product
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("Not authenticated");
-      }
-
-      const { error: updateError } = await supabase
-        .from("products")
-        .update({
-          title: updates.title,
-          description: updates.description,
-          category: updates.category,
-          subcategory: updates.subcategory,
-          attributes: updates.attributes,
-          year_created: updates.year_created,
-          status: updates.status,
-        })
-        .eq("id", productId)
-        .eq("seller_id", user.id); // SECURITY: Only update if user owns this product
-
-      if (updateError) throw updateError;
-      return true;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useUpdateProduct] Error:", message);
-      setError(message || "Failed to update product");
-      return false;
-    } finally {
-      setUpdating(false);
-    }
-  }, []);
-
-  return { update, updating, error };
 }
 
 // ============================================================================

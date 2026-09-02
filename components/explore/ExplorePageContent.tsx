@@ -3,8 +3,9 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useExplore, useTrendingTags } from "@/lib/hooks";
-import type { ExploreTab } from "@/lib/hooks";
+import { useExplore } from "@/lib/hooks/useExplore";
+import { useTrendingTags } from "@/lib/hooks/useTags";
+import type { ExploreTab } from "@/lib/hooks/useExplore";
 import PostCard from "@/components/feed/PostCard";
 import type { PostProps, PostType } from "@/components/feed/PostCard/types";
 import Link from "next/link";

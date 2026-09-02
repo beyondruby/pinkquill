@@ -4,7 +4,7 @@ import { getPostTypeTheme } from "@/lib/feed-view/post-type-theme";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import type { SharedPostPreview } from "@/lib/types";
-import { fetchSharedPostPreview } from "@/lib/hooks";
+import { fetchSharedPostPreview } from "@/lib/hooks/useShareToDM";
 import Avatar from "@/components/ui/Avatar";
 
 interface SharedPostCardProps {

@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from "react";
-import PostDetailModal from "@/components/feed/PostDetailModal";
-import TakeDetailModal, { TakeUpdate } from "@/components/takes/TakeDetailModal";
+import dynamic from "next/dynamic";
+import type { TakeUpdate } from "@/components/takes/TakeDetailModal";
 import { Take, TakeReactionType } from "@/lib/hooks/useTakes";
 import { PostStyling, JournalMetadata, CommunityFlair } from "@/lib/types";
 
@@ -107,6 +107,12 @@ interface ModalContextType {
   // Moderation context methods
   setModerationContext: (context: ModerationContext | null) => void;
 }
+
+// The two detail modals are ~2,000 lines together and only needed once a user
+// opens a post or a take, so they load on first open instead of in the root
+// chunk of every page.
+const PostDetailModal = dynamic(() => import("@/components/feed/PostDetailModal"), { ssr: false });
+const TakeDetailModal = dynamic(() => import("@/components/takes/TakeDetailModal"), { ssr: false });
 
 const ModalContext = createContext<ModalContextType | undefined>(undefined);
 

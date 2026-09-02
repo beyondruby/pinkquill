@@ -31,12 +31,7 @@ describe("getOptimizedAvatarUrl", () => {
     "https://loaitxbibjftsytlgddi.supabase.co/storage/v1/object/public/avatars/test.jpg";
 
   it("should return the original URL unchanged", () => {
-    const result = getOptimizedAvatarUrl(supabaseUrl, "md");
-    expect(result).toBe(supabaseUrl);
-  });
-
-  it("should work with numeric sizes", () => {
-    const result = getOptimizedAvatarUrl(supabaseUrl, 50);
+    const result = getOptimizedAvatarUrl(supabaseUrl);
     expect(result).toBe(supabaseUrl);
   });
 
@@ -51,7 +46,7 @@ describe("getAvatarUrl", () => {
     "https://loaitxbibjftsytlgddi.supabase.co/storage/v1/object/public/avatars/test.jpg";
 
   it("should return the original URL for valid URLs", () => {
-    const result = getAvatarUrl(supabaseUrl, "md");
+    const result = getAvatarUrl(supabaseUrl);
     expect(result).toBe(supabaseUrl);
   });
 

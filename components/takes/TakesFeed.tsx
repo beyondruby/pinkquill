@@ -1,5 +1,7 @@
 "use client";
 
+import "./takes.css";
+
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import TakeCard from "./TakeCard";

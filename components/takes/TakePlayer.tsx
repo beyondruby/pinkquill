@@ -1,5 +1,7 @@
 "use client";
 
+import "./takes.css";
+
 import { useRef, useState, useEffect, useCallback, type CSSProperties } from "react";
 
 interface TakePlayerProps {

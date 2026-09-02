@@ -1,9 +1,18 @@
 "use client";
 
+import "./studio.css";
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { getOrCreateConversation } from "@/lib/messaging/conversations";
-import { useProfile, useFollow, useRelays, useBlock, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, usePinnedPosts, useReorderCollections, COLLAB_SELF_REMOVED_EVENT, type CollabSelfRemovedDetail } from "@/lib/hooks";
+import { fetchCollaboratedPosts, useCommunities, COLLAB_SELF_REMOVED_EVENT } from "@/lib/hooks.legacy";
+import type { CollabSelfRemovedDetail } from "@/lib/hooks.legacy";
+import { useCollections, useToggleCollectionCollapse, useReorderCollections } from "@/lib/hooks/useCollections";
+import { useRelays } from "@/lib/hooks/useFeed";
+import { useBlock } from "@/lib/hooks/useInteractions";
+import { usePinnedPosts } from "@/lib/hooks/usePinnedPosts";
+import { useProfile, useFollow } from "@/lib/hooks/useProfile";
+import type { FollowStatus } from "@/lib/types";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
 import { getTimeAgo } from "@/lib/utils/time";

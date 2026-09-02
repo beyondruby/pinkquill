@@ -1,11 +1,13 @@
 "use client";
 
+import "./messages.css";
+
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
-import { useCommunityChatOverview } from "@/lib/hooks";
+import { useCommunityChatOverview } from "@/lib/hooks/useCommunityChat";
 import { usePollOnFocus } from "@/lib/hooks/usePollOnFocus";
 import ConversationList from "./ConversationList";
 import ChatView from "./ChatView";

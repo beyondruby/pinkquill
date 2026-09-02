@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunity, useCommunityMembers } from "@/lib/hooks";
+import { useCommunity, useCommunityMembers } from "@/lib/hooks.legacy";
 
 export default function CommunityAboutPage() {
   const params = useParams();

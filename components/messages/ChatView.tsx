@@ -1,9 +1,13 @@
 "use client";
 
+import "./messages.css";
+
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { useBlock, useSendVoiceNote, useSendMedia, useChatFeatures } from "@/lib/hooks";
+import { useBlock } from "@/lib/hooks/useInteractions";
+import { useSendVoiceNote, useSendMedia } from "@/lib/hooks/useMedia";
+import { useChatFeatures } from "@/lib/hooks/useMessaging";
 import type { Message, MessageReactionEmoji } from "@/lib/types";
 import VoiceRecorder from "./VoiceRecorder";
 import VoiceNotePlayer from "./VoiceNotePlayer";

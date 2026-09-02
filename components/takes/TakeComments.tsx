@@ -1,5 +1,7 @@
 "use client";
 
+import "./takes.css";
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useTakeComments } from "@/lib/hooks/useTakes";
@@ -126,7 +128,7 @@ export default function TakeComments({ isOpen, onClose, takeId }: TakeCommentsPr
             <div key={comment.id} className="take-comment">
               <Link href={`/studio/${comment.author.username}`} className="take-comment-avatar">
                 {comment.author.avatar_url ? (
-                  <img src={getOptimizedAvatarUrl(comment.author.avatar_url, 32)} alt={comment.author.username} loading="lazy" />
+                  <img src={getOptimizedAvatarUrl(comment.author.avatar_url)} alt={comment.author.username} loading="lazy" />
                 ) : (
                   <div className="take-comment-avatar-placeholder">
                     {comment.author.username[0]?.toUpperCase()}

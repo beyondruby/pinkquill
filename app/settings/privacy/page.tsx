@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useBlock } from "@/lib/hooks";
+import { useBlock } from "@/lib/hooks/useInteractions";
 import { supabase } from "@/lib/supabase";
 import Loading from "@/components/ui/Loading";
 import Button from "@/components/ui/Button";

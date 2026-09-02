@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useCommunities, useDiscoverCommunities, useSuggestedCommunities } from "@/lib/hooks";
+import { useCommunities, useDiscoverCommunities, useSuggestedCommunities } from "@/lib/hooks.legacy";
 import CommunityCard from "@/components/communities/CommunityCard";
 import Loading from "@/components/ui/Loading";
 

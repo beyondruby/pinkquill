@@ -391,7 +391,7 @@ export default function LeftSidebar() {
               title={!isExpanded ? profile.display_name || profile.username : undefined}
             >
               <img
-                src={getOptimizedAvatarUrl(profile.avatar_url, isExpanded ? 38 : 36) || DEFAULT_AVATAR}
+                src={getOptimizedAvatarUrl(profile.avatar_url) || DEFAULT_AVATAR}
                 alt="Profile"
                 className={`rounded-full object-cover border-2 border-pink-vivid flex-shrink-0 ${
                   isExpanded ? "w-[38px] h-[38px]" : "w-9 h-9"
