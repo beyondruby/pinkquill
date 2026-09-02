@@ -348,6 +348,24 @@ export class StripeProvider implements PaymentProviderInterface {
       return { success: true, alreadyTransferred: true };
     }
 
+    // Phase 0 guard (docs/commissions/02-plan.md): never move money for an
+    // order that was not paid through a real Stripe Checkout Session. Orders
+    // finalized via the placeholder provider or /api/checkout/confirm carry
+    // payment_provider = 'placeholder' or a 'cs_placeholder_' reference and
+    // must never reach stripe.transfers.create. Phase 1c replaces this with a
+    // webhook-written payment record.
+    const paidThroughStripe =
+      order.payment_provider === "stripe" &&
+      order.payment_status === "paid" &&
+      typeof order.checkout_session_id === "string" &&
+      order.checkout_session_id.startsWith("cs_") &&
+      !order.checkout_session_id.startsWith("cs_placeholder_");
+    if (!paidThroughStripe) {
+      throw new Error(
+        `Order ${orderId} has no verified Stripe payment (provider=${order.payment_provider}, payment_status=${order.payment_status}); refusing to transfer`
+      );
+    }
+
     // Get seller's Connect account
     const { data: sellerAccount } = await supabaseAdmin
       .from("seller_accounts")
