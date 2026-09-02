@@ -73,9 +73,30 @@ export class TransferBlockedError extends Error {
   }
 }
 
+export interface RefundRequest {
+  paymentIntentId: string;
+  amountCents: number;
+  idempotencyKey: string;
+  reason?: "duplicate" | "fraudulent" | "requested_by_customer";
+  metadata?: Record<string, string>;
+}
+
 export interface RefundResult {
-  success: boolean;
-  alreadyRefunded?: boolean;
+  refundId: string;
+  amountCents: number;
+  status: string | null;
+}
+
+export interface ReversalRequest {
+  transferId: string;
+  amountCents: number;
+  idempotencyKey: string;
+  metadata?: Record<string, string>;
+}
+
+export interface ReversalResult {
+  reversalId: string;
+  amountCents: number;
 }
 
 // ============================================================================
@@ -129,8 +150,9 @@ export interface PaymentProviderInterface {
   // Transfers — one per released payout (called by the payout worker only)
   createTransfer(request: TransferRequest): Promise<TransferResult>;
 
-  // Refunds — refund buyer, reverse transfer if needed
-  refundPayment(orderId: string): Promise<RefundResult>;
+  // Refunds / reversals — money movement only; bookkeeping lives in the RPCs
+  createRefund(request: RefundRequest): Promise<RefundResult>;
+  reverseTransfer(request: ReversalRequest): Promise<ReversalResult>;
 }
 
 // ============================================================================

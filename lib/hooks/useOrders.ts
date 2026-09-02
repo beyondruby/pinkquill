@@ -501,17 +501,7 @@ interface UseUpdateOrderStatusReturn {
   error: string | null;
 }
 
-const VALID_TRANSITIONS: Record<string, string[]> = {
-  pending_payment: ["paid", "cancelled"],
-  pending_acceptance: ["paid", "declined", "cancelled"],
-  paid: ["in_progress", "cancelled", "refund_requested"],
-  in_progress: ["submitted", "cancelled", "refund_requested"],
-  submitted: ["revision_requested", "completed"],
-  revision_requested: ["in_progress"],
-  delivered: ["completed"],
-  completed: ["refund_requested"],
-  refund_requested: ["refunded"],
-};
+// Transition rules live in the database (update_order_as_* / cancel_order / get_order_actions).
 
 export function useUpdateOrderStatus(): UseUpdateOrderStatusReturn {
   const [updating, setUpdating] = useState(false);
@@ -542,12 +532,6 @@ export function useUpdateOrderStatus(): UseUpdateOrderStatusReturn {
         .single();
 
       if (orderError) throw orderError;
-
-      // Validate state transition
-      const allowed = VALID_TRANSITIONS[order.status];
-      if (!allowed || !allowed.includes(status)) {
-        throw new Error(`Invalid status transition: "${order.status}" → "${status}"`);
-      }
 
       const isBuyer = order.buyer_id === user.id;
       const isSeller = order.seller_id === user.id;

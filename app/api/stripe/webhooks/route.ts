@@ -22,6 +22,7 @@ import {
   claimStripeEvent,
   finishStripeEvent,
   markPayoutReversed,
+  recordChargeback,
   recordCheckoutExpired,
   recordPaymentFailed,
   recordPaymentRefund,
@@ -235,28 +236,48 @@ async function handleChargeRefunded(stripe: Stripe, charge: Stripe.Charge, event
   return { status: "processed", note: result.outcome, orderId };
 }
 
-/** Chargebacks: recorded now, money handling wired in 1d. */
+/** Chargebacks (card-network disputes): freeze the order, hold/reclaim the payout, track the outcome. */
 async function handleDispute(stripe: Stripe, dispute: Stripe.Dispute, event: Stripe.Event): Promise<Outcome> {
   const paymentIntentId = idOf(dispute.payment_intent as string | Stripe.PaymentIntent | null);
-  const orderId = paymentIntentId ? await orderIdForPaymentIntent(stripe, paymentIntentId) : null;
-  if (!orderId) return { status: "ignored", note: "dispute for unknown payment" };
+  if (!paymentIntentId) return { status: "ignored", note: "dispute without payment_intent" };
+  const phase = event.type.replace("charge.dispute.", "") as "created" | "updated" | "closed" | "funds_withdrawn" | "funds_reinstated";
 
-  await supabaseAdmin.from("order_events").insert({
-    order_id: orderId,
-    event_type: "dispute",
-    metadata: {
-      action: `chargeback_${event.type.replace("charge.dispute.", "")}`,
-      stripe_dispute_id: dispute.id,
-      dispute_status: dispute.status,
-      reason: dispute.reason,
-      amount_cents: dispute.amount,
-      currency: dispute.currency,
-      evidence_due_by: dispute.evidence_details?.due_by ?? null,
-      stripe_event_id: event.id,
-    },
+  const result = await recordChargeback({
+    paymentIntentId,
+    stripeDisputeId: dispute.id,
+    phase,
+    stripeStatus: dispute.status,
+    reason: dispute.reason ?? null,
+    amountCents: dispute.amount,
+    currency: dispute.currency,
+    evidenceDueBy: dispute.evidence_details?.due_by ? new Date(dispute.evidence_details.due_by * 1000).toISOString() : null,
+    eventId: event.id,
   });
-  console.error(`[Stripe Webhook] Chargeback ${event.type} on order ${orderId} (${dispute.id}, ${dispute.status})`);
-  return { status: "processed", note: `chargeback ${dispute.status} recorded (1d wires money)`, orderId };
+  if (result.outcome === "no_payment_record") return { status: "ignored", note: "chargeback for unknown payment" };
+
+  // If the seller was already paid, reclaim the payout while the case is open.
+  if (phase === "created" && result.payout_transfer_id) {
+    try {
+      const reversal = await stripe.transfers.createReversal(
+        result.payout_transfer_id,
+        { metadata: { reason: "chargeback", stripe_dispute_id: dispute.id, stripe_event_id: event.id } },
+        { idempotencyKey: `reversal_chargeback_${dispute.id}` }
+      );
+      await markPayoutReversed({ transferId: result.payout_transfer_id, reversedCents: reversal.amount, reason: `chargeback ${dispute.id}` });
+    } catch (err) {
+      console.error("[Stripe Webhook] chargeback payout reversal failed:", err);
+      const orderId = (await orderIdForPaymentIntent(stripe, paymentIntentId)) ?? undefined;
+      if (orderId) {
+        await supabaseAdmin.from("order_events").insert({
+          order_id: orderId, event_type: "transfer_failed",
+          metadata: { action: "reversal_failed", reason: "chargeback", transfer_id: result.payout_transfer_id, stripe_dispute_id: dispute.id,
+            error: err instanceof Error ? err.message : "Unknown" },
+        });
+      }
+    }
+  }
+  console.error(`[Stripe Webhook] chargeback ${phase} (${dispute.id}, ${dispute.status})`);
+  return { status: "processed", note: `chargeback ${phase} → ${result.order_status ?? ""}`, orderId: null };
 }
 
 async function handleTransferReversed(transfer: Stripe.Transfer, event: Stripe.Event): Promise<Outcome> {

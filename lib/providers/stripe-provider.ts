@@ -21,7 +21,10 @@ import {
   type CheckoutSessionResult,
   type TransferRequest,
   type TransferResult,
+  type RefundRequest,
   type RefundResult,
+  type ReversalRequest,
+  type ReversalResult,
   type OrderForCheckout,
 } from "@/lib/payment-provider";
 import { getStripeServer, CONNECT_ACCOUNT_TYPE } from "@/lib/stripe";
@@ -424,81 +427,36 @@ export class StripeProvider implements PaymentProviderInterface {
   }
 
   // ============================================================================
-  // REFUNDS — Refund buyer + reverse transfer if needed
+  // REFUNDS / REVERSALS — called by lib/refunds-server.ts only
   // ============================================================================
 
-  async refundPayment(orderId: string): Promise<RefundResult> {
+  async createRefund(request: RefundRequest): Promise<RefundResult> {
     const stripe = getStripeServer();
-
-    const { data: order, error: orderError } = await supabaseAdmin
-      .from("orders")
-      .select("*")
-      .eq("id", orderId)
-      .single();
-
-    if (orderError || !order) {
-      throw new Error("Order not found");
-    }
-
-    // Get the PaymentIntent from the Checkout Session
-    let paymentIntentId: string | null = null;
-
-    if (order.checkout_session_id) {
-      const session = await stripe.checkout.sessions.retrieve(
-        order.checkout_session_id
-      );
-      paymentIntentId =
-        typeof session.payment_intent === "string"
-          ? session.payment_intent
-          : session.payment_intent?.id || null;
-    } else if (order.payment_intent_id) {
-      // Fallback for legacy orders
-      paymentIntentId = order.payment_intent_id;
-    }
-
-    if (!paymentIntentId) {
-      throw new Error("No payment found for this order");
-    }
-
-    // If transfer was already sent to seller, reverse it first. If the reversal
-    // fails (e.g. seller already spent the balance), do NOT proceed to refund the
-    // buyer — otherwise the platform refunds the buyer while the seller keeps the
-    // payout, eating the loss. Halt for manual review instead.
-    if (order.transfer_id) {
-      try {
-        await stripe.transfers.createReversal(
-          order.transfer_id,
-          { metadata: { order_id: orderId, reason: "refund" } },
-          { idempotencyKey: `reversal_${orderId}` }
-        );
-      } catch (err) {
-        console.error("[StripeProvider] Transfer reversal failed:", err);
-        throw new Error(
-          "Refund halted: the seller payout could not be reclaimed. This order needs manual review before a refund can be issued."
-        );
-      }
-    }
-
-    // Refund the buyer (idempotent so webhook/double-submit retries can't double-refund)
-    await stripe.refunds.create(
+    const refund = await stripe.refunds.create(
       {
-        payment_intent: paymentIntentId,
-        reason: "requested_by_customer",
-        metadata: { order_id: orderId },
+        payment_intent: request.paymentIntentId,
+        amount: request.amountCents,
+        ...(request.reason ? { reason: request.reason } : {}),
+        metadata: request.metadata ?? {},
       },
-      { idempotencyKey: `refund_${orderId}` }
+      { idempotencyKey: request.idempotencyKey }
     );
+    return { refundId: refund.id, amountCents: refund.amount, status: refund.status ?? null };
+  }
 
-    // Update order status
-    await supabaseAdmin
-      .from("orders")
-      .update({
-        payment_status: "refunded",
-        status: "refunded",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", orderId);
-
-    return { success: true };
+  async reverseTransfer(request: ReversalRequest): Promise<ReversalResult> {
+    const stripe = getStripeServer();
+    try {
+      const reversal = await stripe.transfers.createReversal(
+        request.transferId,
+        { amount: request.amountCents, metadata: request.metadata ?? {} },
+        { idempotencyKey: request.idempotencyKey }
+      );
+      return { reversalId: reversal.id, amountCents: reversal.amount };
+    } catch (err) {
+      const e = err as { code?: string; message?: string };
+      // Insufficient connected-account balance etc.: not retryable without a human.
+      throw new TransferBlockedError(e.code || "reversal_failed", e.message);
+    }
   }
 }

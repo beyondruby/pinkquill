@@ -215,3 +215,85 @@ export function useApproveRefund() {
 
   return { approveRefund, loading, error };
 }
+
+// ============================================================================
+// Phase 1d: cancel / issue refund / server-decided actions
+// ============================================================================
+async function postRefundAction(body: Record<string, unknown>): Promise<{ ok: boolean; error?: string; result?: unknown }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const response = await fetch("/api/payments/refund", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+    body: JSON.stringify(body),
+  });
+  let json: { error?: string; result?: unknown } = {};
+  try { json = await response.json(); } catch { /* non-JSON error page */ }
+  if (!response.ok) return { ok: false, error: json.error || `Request failed (${response.status})` };
+  return { ok: true, result: json.result };
+}
+
+export function useCancelOrder() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cancelOrder = useCallback(async (orderId: string, reason?: string) => {
+    setLoading(true); setError(null);
+    const r = await postRefundAction({ order_id: orderId, action: "cancel", reason });
+    if (!r.ok) setError(r.error || "Failed to cancel order");
+    setLoading(false);
+    return r.ok ? (r.result as { outcome: string; refund?: boolean }) : null;
+  }, []);
+  return { cancelOrder, loading, error };
+}
+
+export function useIssueRefund() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  /** amount in listing currency (USD); omit for a full refund */
+  const issueRefund = useCallback(async (orderId: string, amount?: number, reason?: string) => {
+    setLoading(true); setError(null);
+    const r = await postRefundAction({ order_id: orderId, action: "issue", amount, reason });
+    if (!r.ok) setError(r.error || "Failed to issue refund");
+    setLoading(false);
+    return r.ok;
+  }, []);
+  return { issueRefund, loading, error };
+}
+
+export interface OrderActions {
+  role: "buyer" | "seller" | "admin";
+  status: string;
+  payment_status: string;
+  is_late: boolean;
+  can_accept: boolean; can_decline: boolean; can_start: boolean; can_deliver: boolean; can_ship: boolean; can_mark_delivered: boolean;
+  can_pay: boolean; can_accept_delivery: boolean; can_request_revision: boolean; revisions_left: number | null;
+  can_cancel: boolean; cancel_mode: "free" | "refund" | "request" | null;
+  can_request_refund: boolean; can_issue_refund: boolean; can_decide_refund: boolean;
+  can_open_dispute: boolean; can_add_evidence: boolean;
+  seller_share_remaining_listing_cents: number;
+  paid_out: boolean;
+  payout: { status: string; amount_cents: number; currency: string; listing_amount_cents: number | null; sent_at: string | null; block_reason: string | null } | null;
+  release_at: string | null;
+  auto_complete_at: string | null;
+  refund: { id: string; status: string; kind: "full" | "partial"; amount_cents: number; currency: string; listing_amount_cents: number | null; initiator_role: string; reason: string | null } | null;
+  dispute: { id: string; kind: string; status: string; reason: string; evidence_due_by: string | null; evidence_count: number } | null;
+}
+
+/** What the current user may do on this order — decided by the server (get_order_actions). */
+export function useOrderActions(orderId?: string, version?: unknown) {
+  const [actions, setActions] = useState<OrderActions | null>(null);
+  const [loading, setLoading] = useState<boolean>(Boolean(orderId));
+  const refetch = useCallback(async () => {
+    if (!orderId) return;
+    const { data, error: rpcError } = await supabase.rpc("get_order_actions", { p_order_id: orderId });
+    if (rpcError) { console.error("[useOrderActions]", rpcError.message); setActions(null); }
+    else setActions(data as OrderActions);
+    setLoading(false);
+  }, [orderId]);
+  useEffect(() => {
+    if (!orderId) return;
+    // Deferred so the fetch (and its setState) never runs synchronously in the effect.
+    const t = setTimeout(() => { void refetch(); }, 0);
+    return () => clearTimeout(t);
+  }, [refetch, version, orderId]);
+  return { actions, loading, refetch };
+}

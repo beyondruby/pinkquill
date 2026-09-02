@@ -23,6 +23,7 @@ import {
   markPayoutSent,
   releaseEligiblePayouts,
 } from "@/lib/payments-server";
+import { executeApprovedRefunds } from "@/lib/refunds-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,9 +44,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const summary = { released: 0, claimed: 0, sent: 0, blocked: 0, retry: 0, failed: 0, errors: [] as string[] };
+  const summary = {
+    released: 0, claimed: 0, sent: 0, blocked: 0, retry: 0, failed: 0, errors: [] as string[],
+    refunds: { claimed: 0, submitted: 0, needs_review: 0, retry: 0, errors: [] as string[] },
+  };
 
   try {
+    // Money going back to buyers first (approved refunds), then money to sellers.
+    summary.refunds = await executeApprovedRefunds(null, 25);
     summary.released = await releaseEligiblePayouts();
 
     const { data: batchSetting } = await supabaseAdmin

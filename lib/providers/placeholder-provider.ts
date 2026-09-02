@@ -13,7 +13,10 @@ import type {
   CheckoutSessionResult,
   TransferRequest,
   TransferResult,
+  RefundRequest,
   RefundResult,
+  ReversalRequest,
+  ReversalResult,
   OrderForCheckout,
 } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
@@ -117,16 +120,11 @@ export class PlaceholderProvider implements PaymentProviderInterface {
     };
   }
 
-  async refundPayment(orderId: string): Promise<RefundResult> {
-    await supabaseAdmin
-      .from("orders")
-      .update({
-        payment_status: "refunded",
-        status: "refunded",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", orderId);
+  async createRefund(request: RefundRequest): Promise<RefundResult> {
+    return { refundId: `re_placeholder_${request.idempotencyKey}`, amountCents: request.amountCents, status: "succeeded" };
+  }
 
-    return { success: true };
+  async reverseTransfer(request: ReversalRequest): Promise<ReversalResult> {
+    return { reversalId: `trr_placeholder_${request.idempotencyKey}`, amountCents: request.amountCents };
   }
 }

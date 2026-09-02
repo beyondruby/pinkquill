@@ -10,11 +10,11 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 1a — Schema truth | **done, applied to production** | 2026-09-02 |
 | 1b — Verified payment record + full webhook | **done, applied to production** | 2026-09-02 |
 | 1c — Payout release, ledger, cron, settlement currency | **done, applied to production** | 2026-09-02 |
-| 1d — Refunds, cancellations, disputes, chargebacks | not started (D6, D8) | |
+| 1d — Refunds, cancellations, disputes, chargebacks | **done, applied to production** | 2026-09-02 |
 | 1e — Test harness + go-live checklist | not started | |
 | 2–4 | not started | |
 
-Open decisions (plan §2): D6 refund policy, D7 email provider, D8 admin access. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
+Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
 ---
 
@@ -195,4 +195,39 @@ Open decisions (plan §2): D6 refund policy, D7 email provider, D8 admin access.
 - Existing `seller_accounts` rows for hadi and hii are **live-mode** Canadian accounts created before this phase; they keep working. New sellers pick a country; non-Canadian sellers get full connected accounts (Stripe requires card_payments + transfers).
 - Sellers in countries Stripe does not serve (e.g. Saudi Arabia) cannot be paid through Stripe Connect at all; onboarding tells them so. A second payout rail (e.g. Wise/Payoneer) would be a separate phase.
 
-**Next:** Phase 1d — refunds, cancellations, disputes, chargebacks. Needs D6 (refund policy defaults) and D8 (admin access).
+**Next (at the time):** Phase 1d. Superseded by the entry below.
+
+---
+
+## Phase 1d — what changed (2026-09-02)
+
+**Closes:** RC-A3 (every post-payment exit now moves money correctly: cancel-after-pay, refund window, partial refunds, dispute resolution, chargebacks), the server half of RC-D1 (`get_order_actions` replaces the client transition table, which is deleted), A4.1/A4.10-adjacent chargeback handling, A8.1 races on the exit paths.
+
+**Decisions.** D6 and D8 as recorded above. Money rules: a full refund returns everything to the buyer (fees included) and cancels the seller's claim; the platform absorbs Stripe's processing fee. A partial refund is capped at the seller's remaining share and leaves the platform and buyer fees untouched. If the seller was already paid, the seller's share is reversed from the transfer **before** the buyer is refunded; if the reversal fails the refund parks in `needs_review` and admins are notified — the buyer is never refunded while the seller keeps the money.
+
+**Migration** `supabase/migrations/20260902_commissions_phase1d_refunds_disputes.sql` — applied as `commissions_phase1d_refunds_disputes` (plus one hotfix `CREATE OR REPLACE` of `get_order_actions` for two NULL booleans, already in the file). It adds:
+- `platform_admins` + `is_platform_admin()`; `refunds` (one row per refund attempt: initiator role, kind, charge-currency amount, listing amount, seller share, status requested → approved → processing → succeeded | declined | needs_review | failed | cancelled, Stripe refund/reversal ids); dispute columns (`kind` dispute/chargeback, `previous_status`, `evidence` jsonb, Stripe dispute fields) with one-active-dispute-per-order instead of one-ever; ledger account `chargebacks`; notification types `refund_approved`, `chargeback_opened`, `chargeback_closed`.
+- RPCs (authenticated, `FOR UPDATE`): `request_order_refund` (buyer; full or partial; refused after payout), `decide_refund_request` (seller/admin; approve → full = order cancelled, partial = order resumes; decline → previous status restored), `issue_order_refund` (seller/admin, proactive), `cancel_order` (D6 policy; pre-payment = plain cancel, otherwise cancel + approved full refund, or converts to a refund request), `open_dispute` (records previous status, blocks pending payouts, folds an open refund request in, notifies admins), `add_dispute_evidence`, `get_order_actions` (role, every can_* flag, cancel_mode free|refund|request, is_late, revisions_left, payout/refund/dispute summaries, release_at). `update_order_as_buyer/seller` no longer cancel directly (they delegate to `cancel_order`).
+- RPCs (service): `claim_approved_refunds`, `mark_refund_submitted`, `mark_refund_needs_review`, `resolve_dispute(…, p_admin_id)` (admin-only; full_refund / partial_refund / release_to_seller / order_cancelled / mutual_agreement; unblocks or cancels the payout), `record_chargeback` (created → order `disputed`, payouts blocked, seller + admins notified with the evidence deadline; funds_withdrawn/reinstated → ledger; closed won → order and payout restored; closed lost → order refunded, seller claim cancelled, refund row recorded). `record_payment_refund` now links `charge.refunded` to the requesting `refunds` row (or records a dashboard refund), and on partial refunds shrinks the seller's liability and any not-yet-sent payout.
+
+**Code**
+- `lib/refunds-server.ts` (new): the only code that moves refund money — claim approved refunds, reverse the seller's share first if paid out, create the Stripe refund (idempotent on refund id), record ids; failures park for review with retries for transient errors.
+- `app/api/payments/refund/route.ts` rewritten: actions `request | approve | decline | issue | cancel` → RPCs as the caller → executes any approved refund inline (the worker retries anything left).
+- `app/api/admin/disputes/route.ts` (new): GET open disputes with evidence; POST resolve (admin gate via `platform_admins`); executes any refund the resolution created.
+- `app/api/payouts/run/route.ts`: executes approved refunds first, then payouts.
+- `app/api/stripe/webhooks/route.ts`: `charge.dispute.*` → `record_chargeback`; on creation, a sent payout is reversed immediately (idempotent).
+- `lib/payment-provider.ts` / providers: `refundPayment` replaced by `createRefund` + `reverseTransfer` (no DB writes in the provider).
+- `lib/hooks/useDisputes.ts`: `useCancelOrder`, `useIssueRefund`, `useOrderActions` (calls `get_order_actions`). `lib/hooks/useOrders.ts`: `VALID_TRANSITIONS` deleted — the server decides. `components/orders/OrderActions.tsx`: cancel/refund/dispute buttons are shown from the server's answer; the cancel form explains the mode ("Ask the seller to cancel?" vs "Cancel and refund"); seller "Issue Refund" is a real refund of the buyer's total.
+
+**Verified**
+- Rolled-back scenario run impersonating buyer, seller and admin: (a) cancel at `paid` → cancelled + approved full refund (seller share 661), Stripe confirmation → `cancelled/refunded`, seller liability 0, balance −59 (Stripe fee absorbed); (b) after work started: buyer cancel → refund request, seller declines → `in_progress` restored, buyer requests $2 partial (279 ¢ CAD), seller approves, Stripe partial → `in_progress/partially_refunded`, seller share 661 → 382, over-refund of $4 refused; (c) 5-days-overdue order → buyer unilateral cancel; (d) completed + released payout → dispute opened → payout `blocked/dispute_open`, evidence added, seller cannot resolve, admin `release_to_seller` → order `completed`, payout `pending`; (e) chargeback created → `disputed`, funds withdrawn → ledger, closed lost → `refunded/refunded`, seller liability 0; (g) after a sent payout: cancel refused, `can_cancel = false`, `can_open_dispute = true`.
+- Live in Stripe test mode: order paid C$7.75 via fixture → buyer `cancel_order` → refund row approved (full, 775 CAD, seller share 661) → `/api/payouts/run` submitted one refund → Stripe `charge.refunded` → order `cancelled/refunded`, refund row `succeeded` with Stripe id, payment `refunded 775/775`, ledger: refunds 775, seller_liability 0, platform/buyer fee revenue 0, fx_reserve 0, stripe_balance −59. Cleaned up; production back to zero orders.
+- `npx tsc` clean; ESLint clean on changed files (one pre-existing warning); 138 unit tests pass; `npm run build` succeeds.
+
+**Deferred**
+- Partial-refund UI (amount field) and dispute-evidence UI — Phase 3a; the RPCs and route already accept them.
+- Admin dispute desk is an API only; a page comes in 2f.
+- `refundPayment`-era `order_events` for reversal failures remain as `transfer_failed` events; an operator queue view is 2f.
+- Chargeback evidence submission to Stripe is manual in the dashboard for now.
+
+**Next:** Phase 1e — test harness and go-live checklist. No decisions pending (D7 email provider is Phase 2d).

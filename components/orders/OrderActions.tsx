@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUpdateOrderStatus, useAcceptOrder, useDeclineOrder } from "@/lib/hooks/useOrders";
-import { useRequestRefund, useApproveRefund, useDeclineRefund } from "@/lib/hooks/useDisputes";
+import { useRequestRefund, useApproveRefund, useDeclineRefund, useCancelOrder, useIssueRefund, useOrderActions } from "@/lib/hooks/useDisputes";
 import DisputeModal from "./DisputeModal";
 import type { Order, OrderStatus } from "@/lib/types/store";
 
@@ -20,6 +20,10 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
   const { requestRefund, loading: requestingRefund, error: requestRefundError } = useRequestRefund();
   const { approveRefund, loading: approvingRefund, error: approveRefundError } = useApproveRefund();
   const { declineRefund, loading: decliningRefund, error: declineRefundError } = useDeclineRefund();
+  const { cancelOrder, loading: cancelling, error: cancelError } = useCancelOrder();
+  const { issueRefund, loading: issuingRefund, error: issueRefundError } = useIssueRefund();
+  // The server decides what is allowed (get_order_actions); the UI only renders it.
+  const { actions } = useOrderActions(order.id, `${order.status}:${order.updated_at}`);
   const [deliveryNote, setDeliveryNote] = useState("");
   const [declineReason, setDeclineReason] = useState("");
   const [showDecline, setShowDecline] = useState(false);
@@ -53,7 +57,25 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
     if (success) {
       setShowRefund(false);
       setRefundReason("");
-      if (onUpdate) onUpdate({ ...order, status: "refunded", payment_status: "refunded" });
+      if (onUpdate) onUpdate({ ...order, status: "cancelled" });
+    }
+  };
+
+  const handleSellerIssueRefund = async () => {
+    const success = await issueRefund(order.id, undefined, refundReason || undefined);
+    if (success) {
+      setShowRefund(false);
+      setRefundReason("");
+      if (onUpdate) onUpdate({ ...order, status: "cancelled" });
+    }
+  };
+
+  const handleCancel = async () => {
+    const result = await cancelOrder(order.id, cancelReason || undefined);
+    if (result) {
+      setShowCancel(false);
+      setCancelReason("");
+      if (onUpdate) onUpdate({ ...order, status: result.outcome === "requested" ? "refund_requested" : "cancelled" });
     }
   };
 
@@ -148,7 +170,9 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
           <div>
             <p className="text-sm font-ui font-semibold text-orange-700">Refund Requested</p>
             <p className="text-xs font-body text-orange-600/70">
-              {isBuyer ? "Waiting for seller response" : `Buyer requests refund of $${Number(order.amount).toFixed(2)}`}
+              {isBuyer
+                ? "Waiting for the seller's response"
+                : `Buyer requests a ${actions?.refund?.kind === "partial" ? "partial" : "full"} refund of $${((actions?.refund?.listing_amount_cents ?? Math.round(Number(order.amount) * 100)) / 100).toFixed(2)}`}
             </p>
           </div>
         </div>
@@ -188,10 +212,11 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
     (isBuyer && ["submitted", "delivered"].includes(order.status))
   );
 
-  // Don't render if there are no actions to show
-  const canCancel = order.status === "pending_payment";
-  const canRefund = ["paid", "completed", "delivered", "in_progress", "submitted", "shipped"].includes(order.status);
-  const canDispute = !["pending_payment", "cancelled", "refunded", "disputed", "resolved", "refund_requested"].includes(order.status);
+  // Don't render if there are no actions to show (server-decided)
+  const canCancel = actions ? actions.can_cancel : order.status === "pending_payment";
+  const canRefund = actions ? (isSeller ? actions.can_issue_refund : actions.can_request_refund) : false;
+  const canDispute = actions ? actions.can_open_dispute : false;
+  const cancelMode = actions?.cancel_mode ?? "free";
 
   if (!hasMainActions && !canCancel && !canRefund && !canDispute && !order.auto_completion_at && !order.delivery_note && !order.tracking_number) {
     return null;
@@ -297,14 +322,19 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
       {/* Cancel flow */}
       {showCancel && (
         <InlineForm
-          title="Cancel this order?"
+          title={cancelMode === "request" ? "Ask the seller to cancel?" : cancelMode === "refund" ? "Cancel and refund this order?" : "Cancel this order?"}
+          subtitle={cancelMode === "request"
+            ? "Work has already started, so the seller decides. If they agree you get a full refund."
+            : cancelMode === "refund"
+              ? (isBuyer && actions?.is_late ? "This order is overdue, so you can cancel it. A full refund will be issued." : "A full refund will be issued to the buyer.")
+              : undefined}
           placeholder="Reason for cancellation (optional)"
           value={cancelReason}
           onChange={setCancelReason}
-          onConfirm={() => handleAction("cancelled", { cancelReason: cancelReason || undefined })}
+          onConfirm={handleCancel}
           onCancel={() => { setShowCancel(false); setCancelReason(""); }}
-          confirmLabel="Confirm Cancel"
-          loading={updating}
+          confirmLabel={cancelMode === "request" ? "Send Request" : "Confirm Cancel"}
+          loading={cancelling}
           color="red"
         />
       )}
@@ -314,16 +344,16 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
         <InlineForm
           title={isSeller ? "Issue a refund to the buyer?" : "Request a refund from the seller?"}
           subtitle={isSeller
-            ? `This will immediately refund $${Number(order.amount).toFixed(2)} to the buyer.`
+            ? `This refunds $${Number(order.total_amount ?? order.amount).toFixed(2)} to the buyer and cancels the order.`
             : "Your request will be sent to the seller for approval."
           }
           placeholder={isSeller ? "Reason for refund (visible to buyer)" : "Why are you requesting a refund?"}
           value={refundReason}
           onChange={setRefundReason}
-          onConfirm={isSeller ? handleSellerApproveRefund : handleBuyerRefundRequest}
+          onConfirm={isSeller ? handleSellerIssueRefund : handleBuyerRefundRequest}
           onCancel={() => { setShowRefund(false); setRefundReason(""); }}
           confirmLabel={isSeller ? "Confirm Refund" : "Submit Request"}
-          loading={requestingRefund || approvingRefund}
+          loading={requestingRefund || issuingRefund}
           color="orange"
         />
       )}
@@ -339,6 +369,8 @@ export default function OrderActions({ order, onUpdate }: OrderActionsProps) {
 
       {requestRefundError && <p className="text-sm text-red-500 font-body">{requestRefundError}</p>}
       {approveRefundError && <p className="text-sm text-red-500 font-body">{approveRefundError}</p>}
+      {issueRefundError && <p className="text-sm text-red-500 font-body">{issueRefundError}</p>}
+      {cancelError && <p className="text-sm text-red-500 font-body">{cancelError}</p>}
       {error && <p className="text-sm text-red-500 font-body">{error}</p>}
     </div>
   );

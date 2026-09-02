@@ -256,3 +256,89 @@ export async function setOrderCharge(args: {
     p_fx_rate: args.fxRate,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Refunds / disputes / chargebacks (Phase 1d)
+// ---------------------------------------------------------------------------
+export interface RefundRow {
+  id: string;
+  order_id: string;
+  payment_id: string | null;
+  initiator_role: string;
+  kind: "full" | "partial";
+  amount_cents: number;
+  currency: string;
+  seller_share_cents: number;
+  status: string;
+  attempts: number;
+  stripe_refund_id: string | null;
+}
+
+export async function claimApprovedRefunds(orderId: string | null, limit: number): Promise<RefundRow[]> {
+  const { data, error } = await supabaseAdmin.rpc("claim_approved_refunds", { p_order_id: orderId, p_limit: limit });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as RefundRow[];
+}
+
+export async function markRefundSubmitted(args: {
+  refundId: string;
+  stripeRefundId: string;
+  reversalId?: string | null;
+  reversalCents?: number;
+}): Promise<void> {
+  await rpc("mark_refund_submitted", {
+    p_refund_id: args.refundId,
+    p_stripe_refund_id: args.stripeRefundId,
+    p_reversal_id: args.reversalId ?? null,
+    p_reversal_cents: args.reversalCents ?? 0,
+  });
+}
+
+export async function markRefundNeedsReview(refundId: string, error: string, retryable = false): Promise<{ outcome: string }> {
+  return rpc<{ outcome: string }>("mark_refund_needs_review", { p_refund_id: refundId, p_error: error, p_retryable: retryable });
+}
+
+export async function recordChargeback(args: {
+  paymentIntentId: string;
+  stripeDisputeId: string;
+  phase: "created" | "updated" | "closed" | "funds_withdrawn" | "funds_reinstated";
+  stripeStatus: string;
+  reason: string | null;
+  amountCents: number;
+  currency: string;
+  evidenceDueBy: string | null;
+  eventId: string;
+}): Promise<{ outcome: string; dispute_id?: string; order_status?: string; payout_transfer_id?: string | null; payout_id?: string | null }> {
+  return rpc("record_chargeback", {
+    p_payment_intent_id: args.paymentIntentId,
+    p_stripe_dispute_id: args.stripeDisputeId,
+    p_phase: args.phase,
+    p_stripe_status: args.stripeStatus,
+    p_reason: args.reason,
+    p_amount_cents: args.amountCents,
+    p_currency: args.currency,
+    p_evidence_due_by: args.evidenceDueBy,
+    p_event_id: args.eventId,
+  });
+}
+
+export async function resolveDisputeAsAdmin(args: {
+  disputeId: string;
+  resolution: string;
+  notes?: string | null;
+  refundAmount?: number | null;
+  adminId: string;
+}): Promise<{ outcome: string; status?: string; refund_id?: string | null }> {
+  return rpc("resolve_dispute", {
+    p_dispute_id: args.disputeId,
+    p_resolution: args.resolution,
+    p_resolution_notes: args.notes ?? null,
+    p_refund_amount: args.refundAmount ?? null,
+    p_admin_id: args.adminId,
+  });
+}
+
+export async function isPlatformAdmin(userId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin.from("platform_admins").select("user_id").eq("user_id", userId).maybeSingle();
+  return Boolean(data);
+}
