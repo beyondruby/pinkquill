@@ -158,7 +158,8 @@ export function useMarketplace(
               id, username, display_name, avatar_url, is_verified
             ),
             media:product_media (*),
-            pricing:product_pricing (*)
+            pricing:product_pricing (*),
+            commission_listing:commission_listings (*)
           `,
             { count: "exact" }
           )

@@ -20,6 +20,7 @@ import ActionMenu from "@/components/ui/ActionMenu";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { showToast } from "@/lib/utils/toast";
 import CommissionReviewsPanel from "./CommissionReviewsPanel";
+import AvailabilityPill from "./AvailabilityPill";
 
 interface CommissionsTabProps {
   userId: string;
@@ -397,7 +398,7 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
           {hasServices && filtered.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
               {filtered.map((commission, index) => (
-                <CommissionCard key={commission.id} commission={commission} isOwnProfile={isOwnProfile} index={index} onRefetch={refetch} />
+                <CommissionCard key={commission.id} commission={commission} isOwnProfile={isOwnProfile} index={index} onRefetch={refetch} sellerAccepting={sellerProfile?.is_accepting_commissions ?? true} />
               ))}
             </div>
           )}
@@ -432,11 +433,13 @@ function CommissionCard({
   isOwnProfile,
   index,
   onRefetch,
+  sellerAccepting = true,
 }: {
   commission: Product;
   isOwnProfile: boolean;
   index: number;
   onRefetch: () => Promise<void>;
+  sellerAccepting?: boolean;
 }) {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -553,6 +556,7 @@ function CommissionCard({
           </p>
 
           <div className="mt-3 flex flex-wrap gap-2">
+            <AvailabilityPill listing={commission.commission_listing} sellerAccepting={sellerAccepting} />
             <MetaChip label={`${packageCount} package${packageCount === 1 ? "" : "s"}`} />
             <MetaChip label={minDelivery ? `${minDelivery} day delivery` : "Custom timeline"} />
             {maxRevisions !== undefined && <MetaChip label={`${maxRevisions} revision${maxRevisions === 1 ? "" : "s"}`} />}

@@ -9,6 +9,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useOrder, useUpdateOrderDraft } from "@/lib/hooks/useOrders";
 import { useOrderReviews } from "@/lib/hooks/useReviews";
 import { useOrderDispute } from "@/lib/hooks/useDisputes";
+import { useOrderQueuePosition } from "@/lib/hooks/useCommissions";
 import { useConfirmDelivery } from "@/lib/hooks/useShipping";
 import ReviewForm from "@/components/reviews/ReviewForm";
 import ReviewCard from "@/components/reviews/ReviewCard";
@@ -85,6 +86,11 @@ export default function OrderView({ orderId }: OrderViewProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { order, loading, error, refetch } = useOrder(orderId);
+  // Phase 2a: where this request sits in the creator's queue (before work starts)
+  const queue = useOrderQueuePosition(
+    order?.id,
+    order?.listing_type === "service" && ["pending_acceptance", "pending_payment", "paid"].includes(order.status)
+  );
   const { updateDraft, updating: updatingDraft, error: updateDraftError } = useUpdateOrderDraft();
   const searchParams = useSearchParams();
   const paymentSyncTriggeredRef = useRef(false);
@@ -284,6 +290,11 @@ export default function OrderView({ orderId }: OrderViewProps) {
                 </h1>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="text-sm font-body text-muted">{order.order_number}</span>
+                  {queue && queue.total_active > 1 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-ui font-medium">
+                      #{queue.position} of {queue.total_active} in queue{queue.slots_total ? ` · ${queue.slots_total} slot${queue.slots_total === 1 ? "" : "s"}` : ""}
+                    </span>
+                  )}
                   <span className="hidden sm:inline text-muted/40">|</span>
                   <span className="flex items-center gap-1.5 text-sm font-body text-muted">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

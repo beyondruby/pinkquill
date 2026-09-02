@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import AvailabilityPill from "@/components/commissions/AvailabilityPill";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -66,9 +67,12 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
           />
 
           <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-            <span className="px-2.5 py-1 bg-surface/90 text-pink-vivid text-[0.65rem] font-ui font-semibold uppercase tracking-wide rounded-full border border-pink-vivid/15">
-              Commission
-            </span>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="px-2.5 py-1 bg-surface/90 text-pink-vivid text-[0.65rem] font-ui font-semibold uppercase tracking-wide rounded-full border border-pink-vivid/15">
+                Commission
+              </span>
+              <AvailabilityPill listing={product.commission_listing} className="bg-surface/90" />
+            </div>
             {minDeliveryDays !== undefined && (
               <span className="px-2.5 py-1 bg-black/55 backdrop-blur text-white text-[0.65rem] font-ui font-medium rounded-full">
                 {minDeliveryDays} day delivery

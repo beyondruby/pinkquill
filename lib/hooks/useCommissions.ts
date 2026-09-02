@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { generateSlug } from "@/lib/utils/slug";
 import type {
+  CommissionAvailabilityInfo,
   CommissionPackageFormState,
   CommissionWizardState,
   Product,
@@ -21,6 +22,29 @@ function extractErrorMessage(err: unknown): string {
     if (parts.length > 0) return parts.join(" — ");
   }
   return "Unknown error";
+}
+
+/** Availability & slots settings (Phase 2a) → `commission_listings` row. */
+function listingRowFromState(state: CommissionWizardState, productId: string, sellerId: string) {
+  const scheduled = state.availability === "scheduled";
+  const opensAt = scheduled && state.opensAt ? new Date(`${state.opensAt}T00:00:00`) : null;
+  if (scheduled && (!opensAt || Number.isNaN(opensAt.getTime()))) {
+    throw new Error("Pick the date this commission opens");
+  }
+  const slots = state.slotsTotal === null || state.slotsTotal === undefined
+    ? null
+    : Math.min(500, Math.max(1, Math.round(Number(state.slotsTotal))));
+  return {
+    product_id: productId,
+    seller_id: sellerId,
+    availability: state.availability,
+    opens_at: opensAt ? opensAt.toISOString() : null,
+    slots_total: slots,
+    lead_time_days: Math.min(365, Math.max(0, Math.round(Number(state.leadTimeDays || 0)))),
+    turnaround_starts: state.turnaroundStarts,
+    terms: state.terms.trim() ? state.terms.trim().slice(0, 5000) : null,
+    accepts_custom_quotes: Boolean(state.acceptsCustomQuotes),
+  };
 }
 
 interface UseCreateCommissionReturn {
@@ -93,6 +117,13 @@ export function useCreateCommission(): UseCreateCommissionReturn {
         .single();
 
       if (productError) throw productError;
+
+      {
+        const { error: listingError } = await supabase
+          .from("commission_listings")
+          .upsert(listingRowFromState(state, product.id, user.id), { onConflict: "product_id" });
+        if (listingError) throw listingError;
+      }
 
       const uploadableMedia = state.mediaPreviews.filter((preview) => preview.file instanceof File);
       if (uploadableMedia.length > 0) {
@@ -292,6 +323,13 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
         .eq("id", productId)
         .eq("seller_id", user.id);
       if (productUpdateError) throw productUpdateError;
+
+      {
+        const { error: listingError } = await supabase
+          .from("commission_listings")
+          .upsert(listingRowFromState(state, productId, user.id), { onConflict: "product_id" });
+        if (listingError) throw listingError;
+      }
 
       const { error: deleteKeywordsError } = await supabase
         .from("product_keywords")
@@ -512,6 +550,85 @@ export function useUpdateCommission(): UseUpdateCommissionReturn {
   }, []);
 
   return { updateCommission, updating, error };
+}
+
+// ============================================================================
+// useCommissionAvailability — live "can I order this right now?" (Phase 2a)
+// ============================================================================
+// Calls get_commission_availability(): listing settings + live slot count +
+// the seller-level is_accepting_commissions switch, decided by the same
+// function create_marketplace_order enforces.
+
+interface UseCommissionAvailabilityReturn {
+  availability: CommissionAvailabilityInfo | null;
+  loading: boolean;
+  refetch: () => Promise<void>;
+}
+
+export function useCommissionAvailability(productId?: string | null): UseCommissionAvailabilityReturn {
+  const [availability, setAvailability] = useState<CommissionAvailabilityInfo | null>(null);
+  const [loading, setLoading] = useState(Boolean(productId));
+
+  const refetch = useCallback(async () => {
+    if (!productId) {
+      setAvailability(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("get_commission_availability", { p_product_id: productId });
+      if (error) throw error;
+      setAvailability((data as CommissionAvailabilityInfo | null) ?? null);
+    } catch (err) {
+      console.error("[useCommissionAvailability]", extractErrorMessage(err));
+      setAvailability(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [productId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { void refetch(); }, 0);
+    return () => clearTimeout(timer);
+  }, [refetch]);
+
+  return { availability, loading, refetch };
+}
+
+// ============================================================================
+// useOrderQueuePosition — where a request sits in the creator's queue
+// ============================================================================
+
+export interface OrderQueuePosition {
+  position: number;
+  total_active: number;
+  slots_total: number | null;
+}
+
+export function useOrderQueuePosition(orderId?: string | null, enabled = true): OrderQueuePosition | null {
+  const [queue, setQueue] = useState<OrderQueuePosition | null>(null);
+
+  useEffect(() => {
+    if (!orderId || !enabled) {
+      const timer = setTimeout(() => setQueue(null), 0);
+      return () => clearTimeout(timer);
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data, error } = await supabase.rpc("get_order_queue_position", { p_order_id: orderId });
+      if (cancelled) return;
+      if (error) {
+        console.error("[useOrderQueuePosition]", error.message);
+        setQueue(null);
+        return;
+      }
+      setQueue((data as OrderQueuePosition | null) ?? null);
+    }, 0);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [orderId, enabled]);
+
+  return queue;
 }
 
 interface UseSellerCommissionsReturn {

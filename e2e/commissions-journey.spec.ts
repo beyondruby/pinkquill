@@ -48,20 +48,20 @@ test.describe("Commissions money journey", () => {
 
     await page.getByRole("button", { name: "Design" }).click();
     await page.getByRole("button", { name: "UI/UX Design" }).click();
-    await page.getByPlaceholder("I will design a conversion-ready landing page for your brand").fill(serviceTitle);
-    await page.getByPlaceholder("Fast delivery, strategic UX, and copy-ready handoff").fill("E2E money-path service");
+    await page.getByPlaceholder(/Custom watercolor portrait/i).fill(serviceTitle);
+    await page.getByPlaceholder(/Handcrafted with love/i).fill("E2E money-path service");
     await page
-      .getByPlaceholder("Describe your process, what buyers get, and why your approach is different.")
+      .getByPlaceholder(/Share your creative process/i)
       .fill("Automated test service used to verify the commissions payment path end to end.");
     await page.getByRole("button", { name: /^Continue$/ }).click();
 
     await page.getByPlaceholder("Package name").first().fill("Starter");
     await page.getByPlaceholder("Price \(USD\)").first().fill(String(PRICE_USD));
-    await page.getByPlaceholder("Describe scope and deliverables.").first().fill("One small deliverable.");
+    await page.getByPlaceholder(/Describe what the person will receive/i).first().fill("One small deliverable.");
     await page.getByPlaceholder("Delivery days").first().fill("3");
     await page.getByPlaceholder("Revisions").first().fill("1");
     await page.getByRole("button", { name: /\+ Add line/i }).first().click();
-    await page.getByPlaceholder("e.g., 3 design concepts, source file, commercial use").first().fill("One concept");
+    await page.getByPlaceholder(/High-res file, commercial license/i).first().fill("One concept");
     await page.getByRole("button", { name: /^Continue$/ }).click();
 
     await page.locator('input[type="file"]').first().setInputFiles(path.join(process.cwd(), "public/defaultprofile.png"));
@@ -85,6 +85,8 @@ test.describe("Commissions money journey", () => {
     await page.goto(commissionPath);
     await expect(page.getByRole("heading", { name: serviceTitle })).toBeVisible({ timeout: 20_000 });
 
+    // Phase 2a: availability is decided by the database and shown before the CTA
+    await expect(page.getByText(/Open for orders|slots open/i)).toBeVisible({ timeout: 20_000 });
     await page.getByRole("button", { name: /Hire Creator/i }).click();
     await page
       .getByPlaceholder("Describe goals, style references, scope, and must-have deliverables.")

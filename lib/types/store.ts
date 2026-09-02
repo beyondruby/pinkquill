@@ -221,6 +221,49 @@ export interface ServiceMetadata {
 }
 
 // ============================================================================
+// COMMISSION LISTING SETTINGS (Phase 2a — availability & slots)
+// ============================================================================
+
+export type CommissionAvailability = 'open' | 'waitlist' | 'closed' | 'scheduled';
+export type CommissionTurnaroundStart = 'payment' | 'acceptance';
+
+/** One row per service product (`commission_listings`). */
+export interface CommissionListing {
+  product_id: string;
+  seller_id: string;
+  availability: CommissionAvailability;
+  opens_at: string | null;
+  /** NULL = unlimited */
+  slots_total: number | null;
+  /** Maintained by a DB trigger from active orders. */
+  slots_used: number;
+  lead_time_days: number;
+  turnaround_starts: CommissionTurnaroundStart;
+  terms: string | null;
+  accepts_custom_quotes: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Result of `get_commission_availability(product_id)`. */
+export interface CommissionAvailabilityInfo {
+  can_order: boolean;
+  mode: 'order' | 'waitlist' | 'closed';
+  reason: string | null;
+  availability: CommissionAvailability;
+  opens_at: string | null;
+  slots_total: number | null;
+  slots_used: number;
+  slots_open: number | null;
+  queue_length: number;
+  lead_time_days: number;
+  turnaround_starts: CommissionTurnaroundStart;
+  seller_accepting: boolean;
+  accepts_custom_quotes: boolean;
+  terms: string | null;
+}
+
+// ============================================================================
 // MAIN PRODUCT INTERFACE
 // ============================================================================
 
@@ -249,6 +292,8 @@ export interface Product {
   shipping?: ProductShipping | null;
   files?: ProductFile[];
   keywords?: string[];
+  /** Availability/slots settings for services (joined from commission_listings). */
+  commission_listing?: CommissionListing | null;
 
   // Computed fields
   primary_image_url?: string;
@@ -815,6 +860,16 @@ export interface CommissionWizardState {
   requirements: string[];
   faqs: ServiceFaqItem[];
   keywords: string[];
+  /** Phase 2a — availability & slots */
+  availability: CommissionAvailability;
+  /** ISO date (yyyy-mm-dd) when availability === 'scheduled' */
+  opensAt: string;
+  /** null = unlimited */
+  slotsTotal: number | null;
+  leadTimeDays: number;
+  turnaroundStarts: CommissionTurnaroundStart;
+  terms: string;
+  acceptsCustomQuotes: boolean;
 }
 
 export const initialWizardState: ProductWizardState = {
@@ -869,6 +924,13 @@ export const initialCommissionWizardState: CommissionWizardState = {
   requirements: [],
   faqs: [],
   keywords: [],
+  availability: "open",
+  opensAt: "",
+  slotsTotal: null,
+  leadTimeDays: 0,
+  turnaroundStarts: "payment",
+  terms: "",
+  acceptsCustomQuotes: false,
 };
 
 // ============================================================================

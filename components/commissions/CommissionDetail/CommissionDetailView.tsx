@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useDeleteProduct, useProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
+import { useCommissionAvailability } from "@/lib/hooks/useCommissions";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
 import { COMMISSION_CATEGORIES, getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
@@ -26,13 +27,13 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
   const { deleteProduct, deleting } = useDeleteProduct();
   const { createOrder, creating: hiring, error: hireError } = useCreateOrder();
   const { addItem, hasItem } = useStudioCart();
+  const { availability, refetch: refetchAvailability } = useCommissionAvailability(product?.id);
 
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showHireModal, setShowHireModal] = useState(false);
   const [brief, setBrief] = useState("");
-  const [timelineDays, setTimelineDays] = useState(7);
   const [requirementsText, setRequirementsText] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -129,9 +130,18 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
       return;
     }
 
+    if (availability && !availability.can_order) {
+      setLocalError(availability.reason || "This commission is not taking orders right now.");
+      return;
+    }
+
     setShowHireModal(true);
     setLocalError(null);
   };
+
+  const isWaitlist = availability?.mode === "waitlist";
+  const canOrder = availability ? availability.can_order : true;
+  const estimatedDays = (availability?.lead_time_days ?? 0) + (selectedPackage?.delivery_days ?? 0);
 
   const submitHire = async () => {
     if (!selectedPackage || !product) return;
@@ -141,18 +151,21 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
       return;
     }
 
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + Math.max(1, timelineDays));
-
+    // The due date is the seller's: lead time + package delivery days,
+    // re-based by the database when the clock actually starts.
     const order = await createOrder({
       product_id: product.id,
       pricing_id: selectedPackage.id,
       brief,
-      due_date: dueDate.toISOString(),
       requirements: {
         notes: requirementsText,
       },
     });
+
+    if (!order) {
+      // e.g. the last slot went to someone else while the form was open
+      void refetchAvailability();
+    }
 
     if (order) {
       setShowHireModal(false);
@@ -494,12 +507,45 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                   </>
                 ) : (
                   <>
+                    {availability && (
+                      <div className="mt-5 rounded-xl border border-border-light bg-subtle/60 px-4 py-3 text-sm font-body">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-ui font-semibold text-ink">
+                            {!availability.can_order
+                              ? "Not available"
+                              : isWaitlist
+                                ? "Waitlist"
+                                : availability.slots_total !== null
+                                  ? `${availability.slots_open} of ${availability.slots_total} slots open`
+                                  : "Open for orders"}
+                          </span>
+                          {availability.queue_length > 0 && (
+                            <span className="text-xs text-muted">{availability.queue_length} in progress</span>
+                          )}
+                        </div>
+                        {!availability.can_order && availability.reason && (
+                          <p className="mt-1 text-muted">{availability.reason}</p>
+                        )}
+                        {availability.can_order && (
+                          <p className="mt-1 text-muted">
+                            {isWaitlist ? "The creator approves each request before you pay. " : ""}
+                            Estimated delivery {estimatedDays} day{estimatedDays === 1 ? "" : "s"}
+                            {availability.lead_time_days > 0 ? ` (includes a ${availability.lead_time_days}-day lead time)` : ""}
+                            {" · clock starts at "}{availability.turnaround_starts === "acceptance" ? "acceptance" : "payment"}.
+                          </p>
+                        )}
+                        {availability.accepts_custom_quotes && (
+                          <p className="mt-1 text-xs text-purple-primary">Open to custom requests — describe what you need in your brief.</p>
+                        )}
+                      </div>
+                    )}
+
                     <button
                       onClick={openHireModal}
-                      disabled={!selectedPackage}
-                      className="mt-6 w-full py-3.5 rounded-full text-white font-display font-semibold text-lg bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60"
+                      disabled={!selectedPackage || !canOrder}
+                      className="mt-4 w-full py-3.5 rounded-full text-white font-display font-semibold text-lg bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Hire Creator
+                      {!canOrder ? "Not taking orders" : isWaitlist ? "Join the Waitlist" : "Hire Creator"}
                     </button>
 
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -577,16 +623,14 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-ui font-semibold text-ink mb-2">Target timeline (days)</label>
-                  <input
-                    type="number"
-                    min={selectedPackage.delivery_days || 1}
-                    value={timelineDays}
-                    onChange={(event) =>
-                      setTimelineDays(Math.max(selectedPackage.delivery_days || 1, Number(event.target.value || 1)))
-                    }
-                    className="w-full px-4 py-3 rounded-xl border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-                  />
+                  <label className="block text-sm font-ui font-semibold text-ink mb-2">Delivery</label>
+                  <div className="w-full px-4 py-3 rounded-xl border border-border-light bg-subtle/60 text-sm font-body text-ink">
+                    About {estimatedDays} day{estimatedDays === 1 ? "" : "s"}
+                    <span className="block text-xs text-muted mt-0.5">
+                      {availability?.lead_time_days ? `${availability.lead_time_days}-day lead time + ` : ""}
+                      {selectedPackage.delivery_days || 0}-day delivery, counted from {availability?.turnaround_starts === "acceptance" ? "acceptance" : "payment"}.
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-ui font-semibold text-ink mb-2">Extra notes</label>
@@ -599,6 +643,14 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                 </div>
               </div>
 
+              {availability?.terms && (
+                <div className="rounded-xl border border-border-light bg-subtle/60 px-4 py-3">
+                  <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Creator&apos;s terms</p>
+                  <p className="mt-1.5 text-sm font-body text-ink/85 whitespace-pre-line max-h-40 overflow-y-auto">{availability.terms}</p>
+                  <p className="mt-2 text-xs font-body text-muted">By continuing you agree to these terms.</p>
+                </div>
+              )}
+
               {(localError || hireError) && <p className="text-sm font-body text-red-500">{localError || hireError}</p>}
 
               <button
@@ -606,7 +658,7 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
                 disabled={hiring || !brief.trim()}
                 className="w-full py-3.5 rounded-xl text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {hiring ? "Submitting..." : "Confirm & Start Order"}
+                {hiring ? "Submitting..." : isWaitlist ? "Send Request" : "Confirm & Start Order"}
               </button>
             </div>
           </div>

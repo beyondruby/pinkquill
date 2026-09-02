@@ -74,6 +74,7 @@ export function useSellerProducts(
           ),
           media:product_media (*),
           pricing:product_pricing (*),
+          commission_listing:commission_listings (*),
           shipping:product_shipping (*),
           keywords:product_keywords (keyword)
         `)
@@ -174,6 +175,7 @@ export function useProduct(productId?: string): UseProductReturn {
           ),
           media:product_media (*),
           pricing:product_pricing (*),
+          commission_listing:commission_listings (*),
           shipping:product_shipping (*),
           files:product_files (*),
           keywords:product_keywords (keyword)
@@ -1119,7 +1121,8 @@ export function useSavedProducts(userId?: string): UseSavedProductsReturn {
             id, username, display_name, avatar_url, is_verified
           ),
           media:product_media (*),
-          pricing:product_pricing (*)
+          pricing:product_pricing (*),
+          commission_listing:commission_listings (*)
         `)
         .in("id", productIds)
         .eq("status", "active");

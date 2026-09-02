@@ -159,6 +159,13 @@ function mapProductToCommissionState(product: Product): CommissionWizardState {
     requirements,
     faqs,
     keywords: Array.isArray(product.keywords) ? product.keywords : [],
+    availability: product.commission_listing?.availability ?? "open",
+    opensAt: product.commission_listing?.opens_at ? product.commission_listing.opens_at.slice(0, 10) : "",
+    slotsTotal: product.commission_listing?.slots_total ?? null,
+    leadTimeDays: product.commission_listing?.lead_time_days ?? 0,
+    turnaroundStarts: product.commission_listing?.turnaround_starts ?? "payment",
+    terms: product.commission_listing?.terms ?? "",
+    acceptsCustomQuotes: product.commission_listing?.accepts_custom_quotes ?? false,
   };
 }
 
@@ -371,6 +378,11 @@ export default function CreateCommissionWizard({
           return false;
         }
       }
+    }
+
+    if (targetStep === 2 && state.availability === "scheduled" && !state.opensAt) {
+      setError("Pick the date this commission opens.");
+      return false;
     }
 
     if (targetStep === 3) {
@@ -671,6 +683,14 @@ export default function CreateCommissionWizard({
                         )}
                       </div>
                     </SectionCard>
+
+                    <SectionCard
+                      title="Availability & slots"
+                      description="Control how many commissions you take at once and when the clock starts."
+                      tone="neutral"
+                    >
+                      <AvailabilityEditor state={state} onChange={updateState} />
+                    </SectionCard>
                   </div>
                 )}
 
@@ -799,6 +819,8 @@ export default function CreateCommissionWizard({
                         <ReviewItem label="Packages" value={`${state.packages.length} tier(s)`} />
                         <ReviewItem label="Requirements" value={`${state.requirements.length} question(s)`} />
                         <ReviewItem label="FAQs" value={`${state.faqs.length} item(s)`} />
+                        <ReviewItem label="Availability" value={describeAvailabilityState(state)} />
+                        <ReviewItem label="Turnaround" value={`${state.leadTimeDays > 0 ? `${state.leadTimeDays}-day lead time, ` : ""}starts at ${state.turnaroundStarts === "acceptance" ? "acceptance" : "payment"}`} />
                       </div>
                     </SectionCard>
 
@@ -1155,6 +1177,166 @@ function FaqEditor({
       <button type="button" onClick={addItem} className="text-xs font-ui font-semibold text-purple-primary hover:text-pink-vivid">
         + Add FAQ
       </button>
+    </div>
+  );
+}
+
+function describeAvailabilityState(state: CommissionWizardState): string {
+  const slots = state.slotsTotal === null ? "unlimited slots" : `${state.slotsTotal} slot${state.slotsTotal === 1 ? "" : "s"}`;
+  switch (state.availability) {
+    case "closed": return "Closed";
+    case "waitlist": return `Waitlist (${slots})`;
+    case "scheduled": return state.opensAt ? `Opens ${state.opensAt} (${slots})` : "Scheduled — pick a date";
+    default: return `Open (${slots})`;
+  }
+}
+
+const AVAILABILITY_OPTIONS: Array<{ value: CommissionWizardState["availability"]; label: string; hint: string }> = [
+  { value: "open", label: "Open", hint: "Buyers can order right away while slots are free." },
+  { value: "waitlist", label: "Waitlist", hint: "Requests come in, but you approve each one before payment." },
+  { value: "scheduled", label: "Opens on a date", hint: "Closed until the date you pick, then open." },
+  { value: "closed", label: "Closed", hint: "Listing stays visible, nobody can order." },
+];
+
+function AvailabilityEditor({
+  state,
+  onChange,
+}: {
+  state: CommissionWizardState;
+  onChange: (updates: Partial<CommissionWizardState>) => void;
+}) {
+  const unlimited = state.slotsTotal === null;
+  const inputClass = "w-full px-4 py-2.5 rounded-xl border border-border-light bg-surface text-sm font-body text-ink focus:outline-none focus:ring-2 focus:ring-pink-vivid/20";
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {AVAILABILITY_OPTIONS.map((option) => {
+          const active = state.availability === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange({ availability: option.value })}
+              className={`text-left rounded-xl border px-4 py-3 transition-colors ${
+                active ? "border-purple-primary bg-purple-50" : "border-border-light bg-surface hover:border-border-strong"
+              }`}
+            >
+              <p className={`text-sm font-ui font-semibold ${active ? "text-purple-primary" : "text-ink"}`}>{option.label}</p>
+              <p className="text-xs font-body text-muted mt-0.5">{option.hint}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      {state.availability === "scheduled" && (
+        <div>
+          <FieldLabel text="Opens on" required />
+          <input
+            type="date"
+            value={state.opensAt}
+            min={new Date().toISOString().slice(0, 10)}
+            onChange={(event) => onChange({ opensAt: event.target.value })}
+            className={inputClass}
+          />
+        </div>
+      )}
+
+      {state.availability !== "closed" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <FieldLabel text="Slots at a time" />
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={1}
+                max={500}
+                disabled={unlimited}
+                value={unlimited ? "" : state.slotsTotal ?? ""}
+                placeholder={unlimited ? "Unlimited" : "e.g. 3"}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  onChange({ slotsTotal: Number.isFinite(value) && value > 0 ? Math.min(500, Math.round(value)) : null });
+                }}
+                className={`${inputClass} disabled:opacity-60`}
+              />
+              <label className="flex items-center gap-2 text-xs font-ui text-muted whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={unlimited}
+                  onChange={(event) => onChange({ slotsTotal: event.target.checked ? null : 3 })}
+                  className="accent-[var(--color-purple-primary)]"
+                />
+                Unlimited
+              </label>
+            </div>
+            <p className="text-xs font-body text-muted mt-1">Active orders count against this. New requests are refused when it&apos;s full.</p>
+          </div>
+          <div>
+            <FieldLabel text="Lead time (days)" />
+            <input
+              type="number"
+              min={0}
+              max={365}
+              value={state.leadTimeDays}
+              onChange={(event) => onChange({ leadTimeDays: Math.max(0, Math.min(365, Math.round(Number(event.target.value) || 0))) })}
+              className={inputClass}
+            />
+            <p className="text-xs font-body text-muted mt-1">Added before the package delivery time when a due date is set.</p>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <FieldLabel text="Delivery clock starts" />
+        <div className="flex flex-wrap gap-2">
+          {([
+            { value: "payment", label: "When the buyer pays" },
+            { value: "acceptance", label: "When I accept the request" },
+          ] as const).map((option) => {
+            const active = state.turnaroundStarts === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onChange({ turnaroundStarts: option.value })}
+                className={`px-3.5 py-2 rounded-full text-sm font-ui border transition-colors ${
+                  active ? "border-purple-primary bg-purple-50 text-purple-primary" : "border-border-light text-ink hover:border-border-strong"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between">
+          <FieldLabel text="Terms (optional)" />
+          <span className="text-xs font-ui text-muted">{state.terms.length}/5000</span>
+        </div>
+        <textarea
+          rows={4}
+          maxLength={5000}
+          value={state.terms}
+          onChange={(event) => onChange({ terms: event.target.value })}
+          placeholder="Usage rights, what counts as a revision, cancellation and kill fee, anything buyers agree to before ordering."
+          className={`${inputClass} resize-y`}
+        />
+      </div>
+
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={state.acceptsCustomQuotes}
+          onChange={(event) => onChange({ acceptsCustomQuotes: event.target.checked })}
+          className="mt-1 accent-[var(--color-purple-primary)]"
+        />
+        <span>
+          <span className="block text-sm font-ui font-semibold text-ink">Open to custom quotes</span>
+          <span className="block text-xs font-body text-muted">Shown on your listing so buyers know they can ask for something outside these packages.</span>
+        </span>
+      </label>
     </div>
   );
 }

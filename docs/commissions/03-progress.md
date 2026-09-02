@@ -11,6 +11,7 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 1b — Verified payment record + full webhook | **done, applied to production** | 2026-09-02 |
 | 1c — Payout release, ledger, cron, settlement currency | **done, applied to production** | 2026-09-02 |
 | 1d — Refunds, cancellations, disputes, chargebacks | **done, applied to production** | 2026-09-02 |
+| 2a — Availability & slots | **done, applied to production** | 2026-09-03 |
 | 1e — Test harness + go-live checklist | **done, applied to production** (go-live checklist below; live keys NOT yet configured) | 2026-09-02 |
 | 2–4 | not started | |
 
@@ -297,3 +298,33 @@ Do these in order. Everything before step 6 is reversible.
 - Steps 2 (`STRIPE_CONNECT_WEBHOOK_SECRET`), 6 (first live dollar), 7 (24 h observation) remain.
 
 **Next:** finish the go-live steps above, then Phase 2 (product features) needs your go — start with 2a Availability & slots. D7 (email provider) is decided in 2d.
+
+---
+
+## Phase 2a — Availability & slots (2026-09-03)
+
+**Closes:** the overselling half of RC-B1 (a creator can now say how many commissions they take at once, close or schedule a listing, and the database refuses the order that would break it — including the "last slot" race), plus the seller-level `is_accepting_commissions` switch that the studio displayed but nothing enforced.
+
+**Migration** `supabase/migrations/20260903_commissions_phase2a_availability_slots.sql` — applied as `commissions_phase2a_availability_slots`.
+- `commission_listings` (1:1 with service products, auto-created by trigger and backfilled): `availability` open | waitlist | closed | scheduled (+ `opens_at`), `slots_total` (NULL = unlimited), `slots_used` (trigger-maintained from active orders — an order holds a slot from creation, including `pending_payment`, until it reaches a terminal state; stale checkouts free it when they expire), `lead_time_days`, `turnaround_starts` payment | acceptance, `terms` (≤ 5000 chars), `accepts_custom_quotes`. RLS: public read for active products, sellers write their own rows; `slots_used` is not grantable to clients.
+- `commission_order_gate(product_id)`: one rule set → `can_order`, `mode` (order | waitlist | closed), a buyer-facing `reason`. Order of checks: seller switch → closed → scheduled-in-future → waitlist → slots full.
+- `create_marketplace_order`: for services, runs the gate **after** taking the existing `products` row lock, so two buyers racing for the last slot are serialized and the second gets "The only slot is taken right now." Waitlisted requests are always `pending_acceptance` (the seller decides), with `queued` + `queue_position` in the event metadata and the RPC result. Due date = now + lead time + package delivery days; a buyer-supplied date can only push it later. The hire form no longer lets buyers pick a shorter timeline.
+- `trg_orders_rebase_due_date`: when the turnaround clock actually starts (`status → paid` for `turnaround_starts = payment`, `seller_accepted → true` for `acceptance`) the due date is recomputed from that moment.
+- `get_commission_availability(product_id)` (public): live availability incl. slot counts, queue length, terms, lead time — the same gate the order path uses. `get_order_queue_position(order_id)` (buyer/seller/admin): position among active orders for the listing, before work starts.
+- `run_listing_selftest()` (service role, rolled back): 1 slot → second buyer refused → waitlist forces approval at position 2 → cancel frees the slot → closed / future-scheduled / seller-off refused, past-scheduled opens → due date re-based on payment → public RPC agrees. Ran green on production; `run_money_selftest()` still green; production still has zero orders.
+
+**Code**
+- `lib/types/store.ts`: `CommissionListing`, `CommissionAvailabilityInfo`, `Product.commission_listing`, wizard state fields (`availability`, `opensAt`, `slotsTotal`, `leadTimeDays`, `turnaroundStarts`, `terms`, `acceptsCustomQuotes`).
+- `lib/hooks/useProducts.ts`, `useMarketplace.ts`: product selects join `commission_listing:commission_listings(*)`.
+- `lib/hooks/useCommissions.ts`: create/update upsert the listing row from the wizard state; `useCommissionAvailability(productId)` (RPC) and `useOrderQueuePosition(orderId)`.
+- `CreateCommissionWizard`: step 2 gets an **Availability & slots** card (mode picker, opens-on date, slots or unlimited, lead time, when the clock starts, terms, custom-quotes toggle); review step shows availability and turnaround; scheduled requires a date.
+- `CommissionDetailView`: availability box above the CTA (slots open / waitlist / not available with the reason, estimated delivery = lead + package days, clock start, custom-quote note); button becomes "Join the Waitlist" or "Not taking orders"; the hire modal shows the creator's terms and a computed delivery estimate instead of a buyer-chosen timeline; a refused order refreshes availability.
+- `components/commissions/AvailabilityPill.tsx`: shared pill (Open · 2 of 5 slots open · Waitlist · Closed · Opens Sep 12 · Not taking orders) used on the marketplace commission card and the studio commission card.
+- `OrderView`: "#2 of 4 in queue · 3 slots" pill for service orders before work starts.
+- `lib/__tests__/listing-selftest.test.ts` (opt-in, `RUN_DB_SELFTEST=1`).
+
+**Verified:** `npx tsc` clean; ESLint 0 errors (pre-existing warnings only); 161 tests pass incl. both DB self-tests; `npm run build` succeeds.
+
+**Not in this phase (by design):** custom quotes are a flag only (2b builds the quote flow); terms are shown, not versioned/acknowledged per order (2c/3c); no email when a slot opens (2d); the studio header card with the availability pill is 3b.
+
+**Next:** Phase 2c (intake, references, revisions, deliveries) per the recommended order, or 2b if you prefer quotes first. Needs your go.
