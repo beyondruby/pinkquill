@@ -308,29 +308,8 @@ export default function PostPage() {
         hasCollaborationAccess = true;
       }
 
-      if (!isOwner && user) {
-        // Check both block directions in parallel
-        const [{ data: blockedByAuthor }, { data: userBlockedAuthor }] = await Promise.all([
-          supabase
-            .from("blocks")
-            .select("id")
-            .eq("blocker_id", postData.author_id)
-            .eq("blocked_id", user.id)
-            .maybeSingle(),
-          supabase
-            .from("blocks")
-            .select("id")
-            .eq("blocker_id", user.id)
-            .eq("blocked_id", postData.author_id)
-            .maybeSingle(),
-        ]);
-
-        if (blockedByAuthor || userBlockedAuthor) {
-          setError("Post not found");
-          setLoading(false);
-          return;
-        }
-      }
+      // Blocks are enforced by the posts read policy (Phase 6): a blocked
+      // viewer never receives the row, so no client-side check is needed.
 
       // SECURITY CHECK: Enforce visibility rules (Rule Set 2, 3, 4)
       const visibility = postData.visibility;

@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { supabase } from "../supabase";
+import { generateSlug } from "@/lib/utils/slug";
 import type {
   CommissionPackageFormState,
   CommissionWizardState,
@@ -9,15 +10,6 @@ import type {
 } from "../types/store";
 import { useSellerProducts } from "./useProducts";
 
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .substring(0, 50);
-}
 
 function extractErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;

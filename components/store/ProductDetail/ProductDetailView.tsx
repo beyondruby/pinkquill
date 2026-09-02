@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/lib/utils/currency";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -132,14 +133,7 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
     ? Number(product.shipping?.shipping_cost || 0)
     : 0;
 
-  const formatPrice = (price: number, currency = "USD") => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(price);
-  };
+  const formatPrice = (price: number, currency = "USD") => formatCurrency(price, currency);
 
   const getDisplayAttributes = () => {
     if (!categoryConfig || !product.attributes) return [];
@@ -482,7 +476,6 @@ export default function ProductDetailView({ productId }: ProductDetailViewProps)
                     const order = await createOrder({
                       product_id: product.id,
                       pricing_id: activePricing.id,
-                      listing_type: "product",
                       chosen_amount: chosenAmount,
                     });
                     if (order) {

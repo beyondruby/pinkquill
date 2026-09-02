@@ -14,6 +14,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { MessageReaction, MessageReactionEmoji, TypingUser } from "@/lib/types";
 import { MESSAGE_REACTION_EMOJIS } from "@/lib/types";
+import { isAbortError } from "../utils/retry";
 
 type ChatProfile = {
   username: string;
@@ -140,7 +141,7 @@ export function useMessageReactions({
           return next;
         });
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
         console.error("Error fetching reactions:", err);
       } finally {
         if (mountedRef.current) setLoading(false);

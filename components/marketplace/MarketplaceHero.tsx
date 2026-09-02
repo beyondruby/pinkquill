@@ -2,13 +2,13 @@
 
 import React from "react";
 import Image from "next/image";
-import { PLATFORM_FEES } from "@/lib/types/store";
+import { PLATFORM_FEE_RATE } from "@/lib/payments";
 
 interface MarketplaceHeroProps {
   listingType: "product" | "service";
 }
 
-const PRODUCT_FEE_LABEL = `${Math.round(PLATFORM_FEES.product * 100)}% Platform Fee`;
+const PRODUCT_FEE_LABEL = `${Math.round(PLATFORM_FEE_RATE * 100)}% Platform Fee`;
 
 export default function MarketplaceHero({ listingType }: MarketplaceHeroProps) {
   const isService = listingType === "service";

@@ -124,39 +124,8 @@ export default function SingleTakePage({ params }: PageProps) {
 
       const isOwnerCheck = user?.id === takeData.author_id;
 
-      // SECURITY CHECK: Blocking (Highest Priority)
-      // If User A blocks User B, User B CANNOT see User A's takes (even via direct link)
-      if (!isOwnerCheck && user) {
-        // Check if the take author has blocked the current user
-        const { data: blockedByAuthor } = await supabase
-          .from("blocks")
-          .select("id")
-          .eq("blocker_id", takeData.author_id)
-          .eq("blocked_id", user.id)
-          .maybeSingle();
-
-        if (blockedByAuthor) {
-          // Author blocked this user - show as if take doesn't exist
-          setError("Take not found");
-          setLoading(false);
-          return;
-        }
-
-        // Check if the current user has blocked the take author
-        const { data: userBlockedAuthor } = await supabase
-          .from("blocks")
-          .select("id")
-          .eq("blocker_id", user.id)
-          .eq("blocked_id", takeData.author_id)
-          .maybeSingle();
-
-        if (userBlockedAuthor) {
-          // User blocked the author - show as if take doesn't exist
-          setError("Take not found");
-          setLoading(false);
-          return;
-        }
-      }
+      // Blocks are enforced by the takes read policy (Phase 6): a blocked
+      // viewer never receives the row, so no client-side check is needed.
 
       // SECURITY CHECK: Enforce visibility rules
       const visibility = takeData.visibility;

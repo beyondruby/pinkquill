@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
@@ -23,6 +24,19 @@ interface RateLimitDecision {
  * a free per-request bypass of every IP rate limit (findings S5). If the
  * deployment ever moves behind Cloudflare, add that header back at the top.
  */
+/**
+ * Constant-time check of the cron bearer secret (shared by the cron routes).
+ */
+export function verifyCronSecret(authHeader: string | null, secret: string): boolean {
+  const expected = `Bearer ${secret}`;
+  if (!authHeader || authHeader.length !== expected.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
 export function getClientIp(request: Request): string {
   const xRealIp = request.headers.get("x-real-ip");
   if (xRealIp) return xRealIp.trim();

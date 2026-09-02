@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
 import { createNotification } from "./useNotifications";
 import type { Comment } from "../types";
+import { isAbortError } from "../utils/retry";
 
 // ============================================================================
 // useComments - Optimized with lazy-loaded replies
@@ -153,7 +154,7 @@ export function useComments(postId: string, userId?: string): UseCommentsReturn 
       pageRef.current = page;
       setHasMore(data.length === COMMENTS_PAGE_SIZE);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (isAbortError(err)) return;
       console.error("[useComments] Error:", err);
     } finally {
       if (mountedRef.current) {

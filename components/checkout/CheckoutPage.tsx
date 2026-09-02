@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/lib/utils/currency";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -20,14 +21,6 @@ import {
 import { supabase } from "@/lib/supabase";
 import type { Order, ShippingAddress } from "@/lib/types/store";
 
-function formatCurrency(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
 
 const REQUIRED_SHIPPING_FIELDS = ["name", "line1", "city", "country"] as const;
 type RequiredShippingField = (typeof REQUIRED_SHIPPING_FIELDS)[number];

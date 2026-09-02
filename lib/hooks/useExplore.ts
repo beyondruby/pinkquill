@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
-import type { Post, PostMedia, PaginationState, ReactionType, AggregateCount } from "../types";
-import { getAggregateCount } from "../types";
+import { enrichPost, fetchUserPostFlags, POST_RELATIONS_SELECT } from "@/lib/posts/enrich";
+import type { Post, PaginationState } from "../types";
+import { isAbortError } from "../utils/retry";
 
 // ============================================================================
 // TYPES
@@ -289,7 +290,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         fetchedAt: Date.now(),
       };
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
+      if (isAbortError(err)) {
         return null;
       }
       console.error("[useExplore] Failed to fetch user interests:", err);
@@ -382,6 +383,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
               position,
               created_at
             ),
+            ${POST_RELATIONS_SELECT},
             admires:admires(count),
             reactions:reactions(count),
             comments:comments(count),
@@ -426,149 +428,12 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         // Get post IDs for batch fetching
         const postIds = (postsData || []).map((p) => p.id);
 
-        // Batch fetch user interactions if logged in
-        let userAdmires = new Set<string>();
-        let userSaves = new Set<string>();
-        let userRelays = new Set<string>();
-        const userReactions = new Map<string, string>();
-
-        if (userId && postIds.length > 0) {
-        const [admiresResult, savesResult, relaysResult, reactionsResult] = await Promise.all([
-            supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
-            supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
-            supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
-            supabase.from("reactions").select("post_id, reaction_type").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
-          ]);
-
-          if (abortController.signal.aborted || !mountedRef.current) return;
-
-          userAdmires = new Set((admiresResult.data || []).map((a) => a.post_id));
-          userSaves = new Set((savesResult.data || []).map((s) => s.post_id));
-          userRelays = new Set((relaysResult.data || []).map((r) => r.post_id));
-          (reactionsResult.data || []).forEach((r) => {
-            userReactions.set(r.post_id, r.reaction_type);
-          });
-        }
-
-        // Batch fetch collaborators and mentions
-        type CollabData = { status: string; role: string | null; user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null };
-        type MentionData = { user: { id: string; username: string; display_name: string | null; avatar_url: string | null } | null };
-        const collaboratorsByPost = new Map<string, CollabData[]>();
-        const mentionsByPost = new Map<string, MentionData[]>();
-        const hashtagsByPost = new Map<string, string[]>();
-
-        if (postIds.length > 0) {
-          const [collaboratorsResult, mentionsResult, tagsResult] = await Promise.all([
-            supabase
-              .from("post_collaborators")
-              .select(`
-                post_id,
-                status,
-                role,
-                user:profiles!post_collaborators_user_id_fkey (
-                  id,
-                  username,
-                  display_name,
-                  avatar_url
-                )
-              `)
-              .in("post_id", postIds)
-              .eq("status", "accepted")
-              .abortSignal(signal),
-            supabase
-              .from("post_mentions")
-              .select(`
-                post_id,
-                user:profiles!post_mentions_user_id_fkey (
-                  id,
-                  username,
-                  display_name,
-                  avatar_url
-                  )
-              `)
-              .in("post_id", postIds)
-              .abortSignal(signal),
-            supabase
-              .from("post_tags")
-              .select(`
-                post_id,
-                tag:tags(name)
-              `)
-              .in("post_id", postIds)
-              .abortSignal(signal),
-          ]);
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (collaboratorsResult.data || []).forEach((c: any) => {
-            if (!collaboratorsByPost.has(c.post_id)) {
-              collaboratorsByPost.set(c.post_id, []);
-            }
-            const u = Array.isArray(c.user) ? c.user[0] : c.user;
-            collaboratorsByPost.get(c.post_id)!.push({
-              status: c.status,
-              role: c.role,
-              user: u,
-            });
-          });
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (mentionsResult.data || []).forEach((m: any) => {
-            if (!mentionsByPost.has(m.post_id)) {
-              mentionsByPost.set(m.post_id, []);
-            }
-            const u = Array.isArray(m.user) ? m.user[0] : m.user;
-            mentionsByPost.get(m.post_id)!.push({ user: u });
-          });
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (tagsResult.data || []).forEach((t: any) => {
-            const tag = Array.isArray(t.tag) ? t.tag[0] : t.tag;
-            const tagName = tag?.name;
-            if (tagName) {
-              if (!hashtagsByPost.has(t.post_id)) {
-                hashtagsByPost.set(t.post_id, []);
-              }
-              hashtagsByPost.get(t.post_id)!.push(tagName);
-            }
-          });
-
-          if (abortController.signal.aborted || !mountedRef.current) return;
-        }
-
-        // Transform posts with all data
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let transformedPosts = (postsData as any[] || []).map((post) => ({
-          id: post.id,
-          author_id: post.author_id,
-          type: post.type,
-          title: post.title,
-          content: post.content,
-          visibility: post.visibility,
-          status: post.status,
-          content_warning: post.content_warning,
-          created_at: post.created_at,
-          community_id: post.community_id,
-          author: post.author,
-          media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-          community: post.community,
-          flair_id: post.flair_id ?? null,
-          flair: (Array.isArray(post.flair) ? post.flair[0] : post.flair) || null,
-          admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
-          comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
-          relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-          reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
-          user_has_admired: userAdmires.has(post.id),
-          user_has_saved: userSaves.has(post.id),
-          user_has_relayed: userRelays.has(post.id),
-          user_reaction_type: (userReactions.get(post.id) as ReactionType | undefined) || null,
-          collaborators: collaboratorsByPost.get(post.id) || [],
-          mentions: mentionsByPost.get(post.id) || [],
-          hashtags: hashtagsByPost.get(post.id) || [],
-          // Creative styling fields
-          styling: post.styling || null,
-          post_location: post.post_location || null,
-          metadata: post.metadata || null,
-        }));
+        // Viewer flags + row → Post through the shared enrichment helper.
+        // Collaborators/mentions/tags are embedded in the posts query now
+        // (this used to be a third round of 3 queries per page).
+        const flags = await fetchUserPostFlags(userId, postIds, signal);
+        if (abortController.signal.aborted || !mountedRef.current) return;
+        let transformedPosts: Post[] = (postsData || []).map((post) => enrichPost(post, flags));
 
         // Apply algorithm scoring and sorting
         // Optimized: Use Map for scores to avoid object spread overhead
@@ -690,7 +555,7 @@ export function useExplore(userId?: string, options: UseExploreOptions = {}): Us
         });
       } catch (err) {
         // Ignore abort errors - they're expected when cancelling requests
-        if ((err instanceof Error && err.name === "AbortError") || abortController.signal.aborted) {
+        if (isAbortError(err) || abortController.signal.aborted) {
           return;
         }
         console.error("[useExplore] Error:", err);

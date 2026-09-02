@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeUsername } from "@/lib/auth/constants";
 import { checkRateLimit, enforceSameOrigin, rateLimitResponse, safeJsonParse } from "@/lib/api-security";
 import { createSupabaseServerClient } from "@/lib/auth-server";
 import { supabaseAdmin } from "@/lib/supabase-server";
@@ -14,9 +15,6 @@ function isUsernameIdentifier(value: string): boolean {
   return !value.includes("@") || value.startsWith("@");
 }
 
-function normalizeUsername(value: string): string {
-  return value.toLowerCase().replace(/^@/, "").trim();
-}
 
 function invalidCredentialsResponse() {
   return NextResponse.json(

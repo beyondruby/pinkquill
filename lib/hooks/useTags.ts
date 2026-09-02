@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
-import type { Post, PostMedia, AggregateCount, ReactionType } from "../types";
-import { getAggregateCount } from "../types";
+import { enrichPost, fetchUserPostFlags } from "@/lib/posts/enrich";
+import type { Post } from "../types";
+import { isAbortError } from "../utils/retry";
 
 // ============================================================================
 // TYPES
@@ -88,7 +89,7 @@ export function useTrendingTags(limit: number = 10): UseTrendingTagsReturn {
       if (!mountedRef.current) return;
       setTags(next);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (isAbortError(err)) return;
       console.error("[useTrendingTags] Error:", err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to fetch trending tags");
@@ -228,6 +229,9 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
             caption,
             position
           ),
+          tags:post_tags (
+            tag:tags(name)
+          ),
           admires:admires(count),
           reactions:reactions(count),
           comments:comments(count),
@@ -240,79 +244,11 @@ export function useTagPosts(tagName: string, userId?: string): UseTagPostsReturn
 
       if (postsError) throw postsError;
 
-      // Get user interactions if logged in
-      let userAdmires = new Set<string>();
-      let userSaves = new Set<string>();
-      let userRelays = new Set<string>();
-      const userReactions = new Map<string, ReactionType>();
-      const currentUserId = userIdRef.current;
-
-      if (currentUserId && postIds.length > 0) {
-        const [admiresResult, savesResult, relaysResult, reactionsResult] = await Promise.all([
-          supabase.from("admires").select("post_id").eq("user_id", currentUserId).in("post_id", postIds),
-          supabase.from("saves").select("post_id").eq("user_id", currentUserId).in("post_id", postIds),
-          supabase.from("relays").select("post_id").eq("user_id", currentUserId).in("post_id", postIds),
-          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", currentUserId).in("post_id", postIds),
-        ]);
-
-        userAdmires = new Set((admiresResult.data || []).map((a) => a.post_id));
-        userSaves = new Set((savesResult.data || []).map((s) => s.post_id));
-        userRelays = new Set((relaysResult.data || []).map((r) => r.post_id));
-
-        if (!reactionsResult.error) {
-          (reactionsResult.data || []).forEach((reaction) => {
-            if (reaction.post_id && reaction.reaction_type) {
-              userReactions.set(reaction.post_id, reaction.reaction_type as ReactionType);
-            }
-          });
-        }
-      }
-
-      // Fetch tags for each post
-      const { data: allPostTags } = await supabase
-        .from("post_tags")
-        .select(`
-          post_id,
-          tags (name)
-        `)
-        .in("post_id", postIds);
-
-      const tagsByPost = new Map<string, string[]>();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (allPostTags || []).forEach((pt: any) => {
-        const tags = Array.isArray(pt.tags) ? pt.tags[0] : pt.tags;
-        const tagName = tags?.name;
-        if (tagName) {
-          const existing = tagsByPost.get(pt.post_id) || [];
-          existing.push(tagName);
-          tagsByPost.set(pt.post_id, existing);
-        }
-      });
-
-      // Transform posts
-      const transformedPosts: Post[] = (postsData || []).map((post) => ({
-        id: post.id,
-        author_id: post.author_id,
-        type: post.type,
-        title: post.title,
-        content: post.content,
-        visibility: post.visibility,
-        status: post.status,
-        content_warning: post.content_warning,
-        created_at: post.created_at,
-        author: post.author,
-        media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-        admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
-        comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
-        relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-        reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
-        user_has_admired: userAdmires.has(post.id),
-        user_has_saved: userSaves.has(post.id),
-        user_has_relayed: userRelays.has(post.id),
-        user_reaction_type: userReactions.get(post.id) || null,
-        community_id: post.community_id || null,
-        hashtags: tagsByPost.get(post.id) || [],
-      }));
+      // Viewer flags + row → Post through the shared enrichment helper
+      // (hashtags are embedded in the posts query; no extra post_tags fetch).
+      const flags = await fetchUserPostFlags(userIdRef.current, postIds);
+      if (stale()) return;
+      const transformedPosts: Post[] = (postsData || []).map((post) => enrichPost(post, flags));
 
       if (stale()) return;
       if (append) {
@@ -424,7 +360,7 @@ export function usePopularTags(limit: number = 20) {
         setTags(sortedTags);
         fetchedRef.current = true;
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
         console.error("[usePopularTags] Error:", err);
       } finally {
         if (mountedRef.current) {

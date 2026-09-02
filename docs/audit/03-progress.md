@@ -11,7 +11,7 @@ Audit produced 2026-09-02 (`00-system-map.md`, `01-findings.md`, `02-plan.md`). 
 | 4 — Tracking layer | **done, needs prod verification** | see `git log fix/phase4-tracking` | Migration applied to prod; RPC paths verified as anon and as authenticated; typecheck/lint/tests/build green |
 | 5 — Read path + latency | **done (first pass), needs prod verification** | see `git log fix/phase5-read-path` | Migration applied to prod; prose routes static; typecheck/lint/tests/build green; two items deferred (below) |
 | 6 — Hang-adjacent + half-finished | **done, needs prod verification** | see `git log fix/phase6-hardening` | Migration applied to prod; typecheck/lint/tests/build green |
-| 7 — Consolidation | not started | – | |
+| 7 — Consolidation | **done (first pass), needs prod verification** | `74f6ac1` on `main` (also `fix/phase7-consolidation`) | Migration applied to prod; typecheck/lint/tests/build green; several plan items deferred (below) |
 | 8 — Dead code + bundle | not started | – | |
 
 ## Phase 1 — what changed (2026-09-02)
@@ -136,8 +136,27 @@ Not done in this phase (explicit): re-enabling Sentry (needs the DSN in Vercel e
 
 Deploy note: the migration is live and backward compatible. Until this branch deploys, the old client's take reports keep failing (as they always have) and email changes still use the old immediate path.
 
+## Phase 7 — what changed (2026-09-02)
+
+Root causes addressed: C2, C3, C4, C5 (partial), L9 (partial) from `01-findings.md`, plus one new shared bug found during the smoke test (aborted-request detection, below).
+
+| Step | Change | Files |
+|---|---|---|
+| Post enrichment | One raw-row → `Post` mapper. `lib/posts/enrich.ts` exports `POST_RELATIONS_SELECT`, `POST_COUNTS_SELECT`, `fetchUserPostFlags` (one batched admires/saves/relays/reactions read per page) and `enrichPost`. Adopted by the main feed, saved feed, explore, tag pages, profile posts and community posts; explore embeds relations in the page query instead of a third round trip. The five hand-rolled copies (each missing different fields) are gone. | `lib/posts/enrich.ts`, `lib/hooks/useFeed.ts`, `lib/hooks/useExplore.ts`, `lib/hooks/useTags.ts`, `lib/hooks/useProfile.ts`, `lib/hooks.legacy.ts` |
+| Block checks | The page-level block gates on `/post/[id]` and `/take/[id]` are removed: Phase 6 put blocks into `posts_select_policy` / `takes_select`, so a blocked viewer now gets the same 404 path everywhere instead of two client checks that disagreed with the feeds. | `app/post/[id]/page.tsx`, `app/take/[id]/page.tsx` |
+| Fees + money display | `PLATFORM_FEE_RATE` in `lib/payments.ts` is the only fee constant (`PLATFORM_FEES`/`calculateFees` in `lib/types/store.ts` and `PLATFORM_FEE_RATES` deleted); callers stopped sending the legacy `amount/platform_fee/seller_amount` fields the RPC ignores. `formatCurrency` in `lib/utils/currency.ts` replaces five local `Intl.NumberFormat` copies. | `lib/payments.ts`, `lib/types/store.ts`, `components/marketplace/MarketplaceHero.tsx`, `components/commissions/CommissionDetail/CommissionDetailView.tsx`, `components/queue/StudioQueuePage.tsx`, `components/store/ProductDetail/ProductDetailView.tsx`, `components/checkout/CheckoutPage.tsx`, `components/orders/OrderView.tsx`, `components/store/StoreTab.tsx`, `lib/utils/currency.ts` |
+| DM find-or-create | Migration `20260902_phase7_dm_conversation_rpc.sql` — **applied to prod.** `get_or_create_dm_conversation(p_other_user_id)`: auth + self/blocked/exists checks, advisory lock, atomic insert of conversation + both participants. Replaces three client-side select-then-insert copies (each could create duplicate conversations or a conversation with one participant under concurrency). `lib/messaging/conversations.ts` wraps it. | `supabase/migrations/20260902_phase7_dm_conversation_rpc.sql`, `lib/messaging/conversations.ts`, `components/messages/NewMessageModal.tsx`, `components/studio/StudioProfile.tsx`, `lib/hooks/useShareToDM.ts` |
+| Helper dedupe | `verifyCronSecret` (both cron routes), `generateSlug` (products + commissions), `readCookie`/`writeCookie` (theme + feed-view providers), `normalizeUsername` in the login route — each had 2–3 diverging copies. | `lib/api-security.ts`, `app/api/orders/auto-complete/route.ts`, `app/api/orders/auto-decline/route.ts`, `lib/utils/slug.ts`, `lib/hooks/useProducts.ts`, `lib/hooks/useCommissions.ts`, `lib/utils/cookies.ts`, `components/providers/ThemeProvider.tsx`, `components/providers/FeedViewProvider.tsx`, `app/api/auth/login/route.ts` |
+| Abort detection (new) | supabase-js does not rethrow a fetch `AbortError`; it returns a PostgrestError-shaped object whose `message` starts with `"AbortError:"`. 23 hooks tested `err instanceof Error && err.name === "AbortError"`, which is false for that shape, so every superseded or unmounted request logged `console.error` and, where the hook lacked a `signal.aborted` guard, wrote an error state. One `isAbortError` in `lib/utils/retry.ts` handles both shapes; `isRetryableError` uses it too (the wrapped form was never retried, but only because its message happened not to match). | `lib/utils/retry.ts`, `lib/hooks.legacy.ts`, `lib/hooks/useTags.ts`, `lib/hooks/useComments.ts`, `lib/hooks/useTakes.ts`, `lib/hooks/useExplore.ts`, `lib/hooks/useFeed.ts`, `lib/hooks/useProfile.ts`, `lib/hooks/useMessaging.ts`, `components/providers/AuthProvider.tsx` |
+
+Verification: typecheck, lint (0 errors), 136/136 tests, production build. Live: the explore-shaped select with `collaborators/mentions/tags` embeds resolves; `get_or_create_dm_conversation` returns 401 as anon and, as the signed-in user, returns the existing conversation idempotently. Local smoke as a signed-in user: home feed (10 posts, no console errors after the abort fix), explore, `/tag/color`, `/community/test1`, `/studio/hadi`, and the New Message search.
+
+Not done in this phase (explicit, each is a visual or transactional change that needs its own show-before-ship pass): `PostDetail`/`TakeDetail` page-vs-modal unification; `ORDER_STATUS_CONFIG` and `MetricCard` dedupe; the time-formatter copies; `RequireAuth` adoption in the 7 hand-rolled gates; product/commission create+update and community create/delete moved into RPC transactions (the rest of L9); one reaction write target.
+
+Deploy note: the migration is live and backward compatible (the old client's select-then-insert still works). Nothing else in this phase changes data shape.
+
 ## Next
-Phases 1–5 are merged to `main` and pushed. Merge `fix/phase6-hardening` to `main` (fast-forward) to deploy it. Still open from earlier phases: flip leaked-password protection in the Supabase dashboard; watch `vercel logs` for `[auth-diagnostic]`; confirm `vercel inspect` shows `[sin1]`. Then Phase 7 (`02-plan.md`) or the Phase 5 deferrals (profile pagination) if launch traffic makes profile pages slow.
+Phases 1–7 are on `main` (Phase 7 landed directly on `main`; the `fix/phase7-consolidation` branch tag points at the same commit). Push `main` to deploy it. Still open from earlier phases: flip leaked-password protection in the Supabase dashboard; watch `vercel logs` for `[auth-diagnostic]`; confirm `vercel inspect` shows `[sin1]`. Then Phase 8 (`02-plan.md`), the Phase 7 deferrals above, or the Phase 5 deferrals (profile pagination) if launch traffic makes profile pages slow.
 
 ## How to resume in a fresh session
 1. Read `02-plan.md` for the phase being worked on and `01-findings.md` for the IDs it cites; `00-system-map.md` only as needed.

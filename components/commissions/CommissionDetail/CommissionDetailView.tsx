@@ -8,7 +8,6 @@ import { useDeleteProduct, useProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
 import { COMMISSION_CATEGORIES, getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
-import { PLATFORM_FEES } from "@/lib/types/store";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
 import SellerRating from "@/components/reviews/SellerRating";
 import ActionMenu from "@/components/ui/ActionMenu";
@@ -148,14 +147,8 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
     const order = await createOrder({
       product_id: product.id,
       pricing_id: selectedPackage.id,
-      listing_type: "service",
-      amount: selectedPackage.price,
-      platform_fee: Math.round(selectedPackage.price * PLATFORM_FEES.service * 100) / 100,
-      seller_amount: Math.round(selectedPackage.price * (1 - PLATFORM_FEES.service) * 100) / 100,
-      currency: selectedPackage.currency,
       brief,
       due_date: dueDate.toISOString(),
-      max_revisions: selectedPackage.revisions || undefined,
       requirements: {
         notes: requirementsText,
       },

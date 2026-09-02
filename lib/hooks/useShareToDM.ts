@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { getOrCreateConversation } from "@/lib/messaging/conversations";
 import type { Post, SharedPostPreview } from "@/lib/types";
 
 interface ShareToDMResult {
@@ -27,71 +28,12 @@ export function useShareToDM(): UseShareToDMReturn {
   const [sharing, setSharing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
-  /**
-   * Find existing conversation between two users
-   */
-  const findExistingConversation = async (
-    userId1: string,
-    userId2: string
-  ): Promise<string | null> => {
-    // Get all conversations for user1
-    const { data: user1Convos } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id")
-      .eq("user_id", userId1);
-
-    if (!user1Convos || user1Convos.length === 0) return null;
-
-    const conversationIds = user1Convos.map((c) => c.conversation_id);
-
-    // Check if user2 is in any of those conversations
-    const { data: sharedConvo } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id")
-      .eq("user_id", userId2)
-      .in("conversation_id", conversationIds)
-      .limit(1)
-      .single();
-
-    return sharedConvo?.conversation_id || null;
-  };
-
-  /**
-   * Create a new conversation between two users
-   */
-  const createConversation = async (
-    userId1: string,
-    userId2: string
-  ): Promise<string | null> => {
-    // Create the conversation
-    const { data: conversation, error: convError } = await supabase
-      .from("conversations")
-      .insert({ updated_at: new Date().toISOString() })
-      .select()
-      .single();
-
-    if (convError || !conversation) {
-      console.error("Failed to create conversation:", convError);
-      return null;
-    }
-
-    // Add both participants
-    const { error: participantError } = await supabase
-      .from("conversation_participants")
-      .insert([
-        { conversation_id: conversation.id, user_id: userId1 },
-        { conversation_id: conversation.id, user_id: userId2 },
-      ]);
-
-    if (participantError) {
-      console.error("Failed to add participants:", participantError);
-      // Clean up the conversation
-      await supabase.from("conversations").delete().eq("id", conversation.id);
-      return null;
-    }
-
-    return conversation.id;
-  };
+  // Both resolve to the same atomic server-side find-or-create; kept as two
+  // names so the sharing loop below reads naturally.
+  const findExistingConversation = async (_userId: string, recipientId: string): Promise<string | null> =>
+    getOrCreateConversation(recipientId).catch(() => null);
+  const createConversation = async (_userId: string, recipientId: string): Promise<string | null> =>
+    getOrCreateConversation(recipientId).catch(() => null);
 
   /**
    * Send a post share message to a conversation

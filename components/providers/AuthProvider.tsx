@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { supabase } from "@/lib/supabase";
 import { User, Session } from "@supabase/supabase-js";
 import { reportAuthDiagnostic } from "@/lib/diagnostics/authDiagnostics";
+import { isAbortError } from "@/lib/utils/retry";
 
 /**
  * Push the current session JWT into the realtime client. Required for
@@ -75,10 +76,6 @@ const PROFILE_TIMEOUT_MS = 10_000;
 const PROFILE_RETRY_DELAYS_MS = [2_000, 5_000, 10_000];
 const AUTH_INIT_TIMEOUT_MS = PROFILE_TIMEOUT_MS + 2_000;
 const AUTH_INIT_SLOW_MS = 8_000;
-
-function isAbortError(err: unknown) {
-  return err instanceof Error && err.name === "AbortError";
-}
 
 export function useAuth() {
   const context = useContext(AuthContext);

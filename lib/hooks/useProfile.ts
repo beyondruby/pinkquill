@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabase";
-import type { Profile, Post, PostMedia, FollowUser, FollowStatus, FollowRequest, AggregateCount } from "../types";
+import { enrichPost, fetchUserPostFlags } from "@/lib/posts/enrich";
+import type { Profile, Post, FollowUser, FollowStatus, FollowRequest, AggregateCount } from "../types";
 import { getAggregateCount } from "../types";
 import { createNotification } from "./useNotifications";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
+import { isAbortError } from "../utils/retry";
 
 // ============================================================================
 // useProfile - Fetch user profile and posts
@@ -226,57 +228,16 @@ export function useProfile(username: string, viewerId?: string): UseProfileRetur
         admires_count: totalAdmires,
       });
 
-      // Fetch user interaction data for profile posts
+      // Viewer flags + row → Post through the shared enrichment helper.
       const postIds = (postsData.data || []).map((p) => p.id);
-      let userAdmires = new Set<string>();
-      let userSaves = new Set<string>();
-      let userRelays = new Set<string>();
-      const userReactions = new Map<string, string>();
-
-      if (currentViewerId && postIds.length > 0) {
-        const [admiresRes, savesRes, relaysRes, reactionsRes] = await Promise.all([
-          supabase.from("admires").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds).abortSignal(signal),
-          supabase.from("saves").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds).abortSignal(signal),
-          supabase.from("relays").select("post_id").eq("user_id", currentViewerId).in("post_id", postIds).abortSignal(signal),
-          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", currentViewerId).in("post_id", postIds).abortSignal(signal),
-        ]);
-
-        if (!mountedRef.current || signal.aborted) return;
-
-        userAdmires = new Set((admiresRes.data || []).map((a) => a.post_id));
-        userSaves = new Set((savesRes.data || []).map((s) => s.post_id));
-        userRelays = new Set((relaysRes.data || []).map((r) => r.post_id));
-        (reactionsRes.data || []).forEach((r) => {
-          if (r.post_id && r.reaction_type) userReactions.set(r.post_id, r.reaction_type);
-        });
-      }
-
-      // Transform posts
-      const postsWithStats = (postsData.data || []).map((post) => ({
-        ...post,
-        flair: (Array.isArray(post.flair) ? post.flair[0] : post.flair) || null,
-        media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-        admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
-        comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
-        relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-        reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
-        user_has_admired: userAdmires.has(post.id),
-        user_has_saved: userSaves.has(post.id),
-        user_has_relayed: userRelays.has(post.id),
-        user_reaction_type: userReactions.get(post.id) || null,
-        // Creative styling fields
-        styling: post.styling || null,
-        post_location: post.post_location || null,
-        metadata: post.metadata || null,
-        // Community data
-        community: post.community || null,
-        community_id: post.community_id || null,
-      }));
+      const flags = await fetchUserPostFlags(currentViewerId, postIds, signal);
+      if (!mountedRef.current || signal.aborted) return;
+      const postsWithStats = (postsData.data || []).map((post) => enrichPost(post, flags));
 
       if (!mountedRef.current || signal.aborted) return;
       setPosts(postsWithStats as Post[]);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (isAbortError(err)) return;
       console.error("[useProfile] Error:", err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to fetch profile");
@@ -527,7 +488,7 @@ export function useFollowList(userId: string, type: "followers" | "following", p
         setUsers((prev) => pageNum === 0 ? newUsers : [...prev, ...newUsers]);
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (isAbortError(err)) return;
       console.error("[useFollowList] Error:", err);
     } finally {
       if (mountedRef.current) {

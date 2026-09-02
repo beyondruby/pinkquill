@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { deleteOwnListing, type DeleteListingResult } from "@/lib/content-client";
 import { supabase } from "../supabase";
+import { generateSlug } from "@/lib/utils/slug";
 import type {
   ListingType,
   Product,
@@ -18,15 +19,6 @@ import type {
 // SLUG HELPER
 // ============================================================================
 
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .substring(0, 50);
-}
 
 function normalizeShippingRelation(
   shipping: ProductShipping | ProductShipping[] | null | undefined

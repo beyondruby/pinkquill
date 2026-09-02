@@ -1,19 +1,10 @@
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { verifyCronSecret } from "@/lib/api-security";
 import { getActiveProvider } from "@/lib/payment-provider";
 
 export const runtime = "nodejs";
 
-function verifyCronSecret(authHeader: string | null, secret: string): boolean {
-  const expected = `Bearer ${secret}`;
-  if (!authHeader || authHeader.length !== expected.length) return false;
-  try {
-    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(request: Request) {
   try {

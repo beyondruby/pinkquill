@@ -40,12 +40,29 @@ function getErrorMessage(error: unknown): string {
 /**
  * Best-effort retryability detection for transient network/database failures.
  */
+/**
+ * True when `error` is a client-side abort — either the native
+ * AbortError/DOMException, or the wrapped shape supabase-js returns when the
+ * underlying fetch throws (a PostgrestError-like object whose message starts
+ * with "AbortError:"). Every hook that cancels in-flight requests must use
+ * this instead of `err.name === "AbortError"`: the wrapped form is not an
+ * Error instance, so the hand-rolled check let aborted requests fall through
+ * into console.error / setError paths.
+ */
+export function isAbortError(error: unknown): boolean {
+  if (error instanceof Error && error.name === "AbortError") return true;
+  if (!error || typeof error !== "object") return false;
+  const { name, message } = error as { name?: unknown; message?: unknown };
+  if (name === "AbortError") return true;
+  return typeof message === "string" && /^AbortError\b/.test(message);
+}
+
 export function isRetryableError(error: unknown): boolean {
   // A client-side abort (our own fetch timeout in lib/supabase.ts, or a
   // caller cancelling) must never be retried: each retry would wait the full
   // timeout again, turning one slow request into a multi-minute stall
   // (docs/audit/01-findings.md H6).
-  if (error instanceof Error && error.name === "AbortError") {
+  if (isAbortError(error)) {
     return false;
   }
 

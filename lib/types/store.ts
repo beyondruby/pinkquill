@@ -446,17 +446,12 @@ export interface OrderEvent {
 export interface CreateOrderData {
   product_id: string;
   pricing_id: string;
-  // Legacy client fields retained for compatibility.
-  // Server computes authoritative values from product/pricing.
-  listing_type?: ListingType;
-  amount?: number;
-  platform_fee?: number;
-  seller_amount?: number;
-  currency?: string;
+  // Amounts, fees, currency and listing type are computed by the server
+  // (create_marketplace_order) from the product/pricing rows. The client
+  // never sends money figures.
   brief?: string;
   requirements?: Record<string, string | string[]>;
   due_date?: string;
-  max_revisions?: number;
   quantity?: number;
   shipping_address?: ShippingAddress;
   chosen_amount?: number | null;
@@ -637,22 +632,6 @@ export interface Dispute {
   // Joined
   initiator?: ProductSeller;
   order?: Order;
-}
-
-// ============================================================================
-// FEE CALCULATION
-// ============================================================================
-
-export const PLATFORM_FEES = {
-  product: 0.05,    // 5% flat fee
-  service: 0.05,    // 5% flat fee
-} as const;
-
-export function calculateFees(amount: number, listingType: ListingType) {
-  const feeRate = PLATFORM_FEES[listingType];
-  const platformFee = Math.round(amount * feeRate * 100) / 100;
-  const sellerAmount = Math.round((amount - platformFee) * 100) / 100;
-  return { platformFee, sellerAmount };
 }
 
 // ============================================================================

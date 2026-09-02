@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { getOrCreateConversation } from "@/lib/messaging/conversations";
 import { useProfile, useFollow, useRelays, useBlock, fetchCollaboratedPosts, FollowStatus, useCommunities, useCollections, useToggleCollectionCollapse, usePinnedPosts, useReorderCollections, COLLAB_SELF_REMOVED_EVENT, type CollabSelfRemovedDetail } from "@/lib/hooks";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { CommentIcon } from "@/components/ui/Icons";
@@ -1111,42 +1112,8 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                     setMessageLoading(true);
 
                     try {
-                      // Check for existing conversation
-                      const { data: existingParticipations } = await supabase
-                        .from("conversation_participants")
-                        .select("conversation_id")
-                        .eq("user_id", user.id);
-
-                      if (existingParticipations) {
-                        for (const participation of existingParticipations) {
-                          const { data: otherParticipant } = await supabase
-                            .from("conversation_participants")
-                            .select("user_id")
-                            .eq("conversation_id", participation.conversation_id)
-                            .eq("user_id", profile.id)
-                            .single();
-
-                          if (otherParticipant) {
-                            router.push(`/messages?conversation=${participation.conversation_id}`);
-                            return;
-                          }
-                        }
-                      }
-
-                      // Create new conversation
-                      const { data: newConversation } = await supabase
-                        .from("conversations")
-                        .insert({})
-                        .select()
-                        .single();
-
-                      if (newConversation) {
-                        await supabase.from("conversation_participants").insert([
-                          { conversation_id: newConversation.id, user_id: user.id },
-                          { conversation_id: newConversation.id, user_id: profile.id },
-                        ]);
-                        router.push(`/messages?conversation=${newConversation.id}`);
-                      }
+                      const conversationId = await getOrCreateConversation(profile.id);
+                      router.push(`/messages?conversation=${conversationId}`);
                     } catch (err) {
                       console.error("Failed to start conversation:", err);
                       setMessageLoading(false);

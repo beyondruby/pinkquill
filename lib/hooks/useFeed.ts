@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabase";
-import type { Post, PostMedia, PaginationState, RelayedPost, ReactionType, AggregateCount, PostAuthor, PostType, PostVisibility } from "../types";
-import { getAggregateCount } from "../types";
-import { categorizeError, retryWithBackoff, isRetryableError } from "../utils/retry";
+import type { Post, PostMedia, PaginationState, RelayedPost, PostAuthor, PostType, PostVisibility } from "../types";
+import { categorizeError, retryWithBackoff, isRetryableError, isAbortError } from "../utils/retry";
+import { enrichPost, fetchUserPostFlags, type UserPostFlags } from "@/lib/posts/enrich";
 
 // ============================================================================
 // CONSTANTS
@@ -178,118 +178,10 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         // Get post IDs for batch fetching user interactions
         const postIds = (postsData || []).map((p) => p.id);
 
-        // Batch fetch user interaction data in parallel.
-        // Collaborators/mentions/tags are embedded directly in the posts query.
-        let userAdmires = new Set<string>();
-        let userSaves = new Set<string>();
-        let userRelays = new Set<string>();
-        const userReactions = new Map<string, string>();
-
-        if (postIds.length > 0) {
-          const results = userId
-            ? await Promise.all([
-                supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
-                supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
-                supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds).abortSignal(signal),
-                supabase
-                  .from("reactions")
-                  .select("post_id, reaction_type")
-                  .eq("user_id", userId)
-                  .in("post_id", postIds)
-                  .abortSignal(signal),
-              ])
-            : [];
-
-          // Check abort after await
-          if (abortController.signal.aborted || !mountedRef.current) return;
-
-          if (userId && results.length === 4) {
-            const admiresResult = results[0];
-            const savesResult = results[1];
-            const relaysResult = results[2];
-            const reactionsResult = results[3];
-            userAdmires = new Set((admiresResult.data || []).map((a: { post_id: string }) => a.post_id));
-            userSaves = new Set((savesResult.data || []).map((s: { post_id: string }) => s.post_id));
-            userRelays = new Set((relaysResult.data || []).map((r: { post_id: string }) => r.post_id));
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (reactionsResult.data || []).forEach((r: any) => {
-              userReactions.set(r.post_id, r.reaction_type);
-            });
-          }
-        }
-
-        // Transform posts with all data
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const transformedPosts = (postsData as any[] || []).map((post) => {
-          const collaborators = (post.collaborators || [])
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .filter((c: any) => c.status === "accepted")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .map((c: any) => ({
-              status: c.status,
-              role: c.role,
-              user: Array.isArray(c.user) ? c.user[0] : c.user,
-            }))
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .filter((c: any) => c.user);
-
-          const mentions = (post.mentions || [])
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .map((m: any) => ({
-              user: Array.isArray(m.user) ? m.user[0] : m.user,
-            }))
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .filter((m: any) => m.user);
-
-          const hashtags = (post.tags || [])
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .map((t: any) => t.tag?.name)
-            .filter((tag: unknown): tag is string => typeof tag === "string" && tag.length > 0);
-
-          const flair = Array.isArray(post.flair) ? post.flair[0] : post.flair;
-
-          return {
-            id: post.id,
-            author_id: post.author_id,
-            type: post.type,
-            title: post.title,
-            content: post.content,
-            visibility: post.visibility,
-            status: post.status,
-            content_warning: post.content_warning,
-            created_at: post.created_at,
-            community_id: post.community_id,
-            flair_id: post.flair_id ?? null,
-            flair: flair || null,
-            // Creative styling fields
-            styling: post.styling || null,
-            post_location: post.post_location || null,
-            metadata: post.metadata || null,
-            spotify_track: post.spotify_track || null,
-            author: post.author,
-            media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-            community: post.community,
-            // Extract counts from aggregation
-            admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
-            comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
-            relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-            reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
-            // User flags
-            user_has_admired: userAdmires.has(post.id),
-            user_has_saved: userSaves.has(post.id),
-            user_has_relayed: userRelays.has(post.id),
-            user_reaction_type: (userReactions.get(post.id) as ReactionType | undefined) || null,
-            collaborators,
-            mentions,
-            hashtags,
-          };
-        });
-
-        // Final abort/mount check before state update
+        // Viewer flags + row → Post through the shared enrichment helper.
+        const flags = await fetchUserPostFlags(userId, postIds, signal);
         if (abortController.signal.aborted || !mountedRef.current) return;
-
-        // Update state
-        const typedPosts = transformedPosts as Post[];
+        const typedPosts: Post[] = (postsData || []).map((row) => enrichPost(row, flags));
         if (append) {
           setPosts((prev) => {
             const combined = [...prev, ...typedPosts];
@@ -310,7 +202,7 @@ export function useFeed(userId?: string, options: UseFeedOptions = {}): UseFeedR
         });
       } catch (err: unknown) {
         // Ignore abort errors - they're expected when cancelling requests
-        if ((err instanceof Error && err.name === "AbortError") || abortController.signal.aborted) {
+        if (isAbortError(err) || abortController.signal.aborted) {
           return;
         }
 
@@ -506,22 +398,16 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
         return;
       }
 
-      const userAdmires = new Set((userAdmiresResult.data || []).map((a) => a.post_id));
-      const userRelays = new Set((userRelaysResult.data || []).map((r) => r.post_id));
+      const savedFlags: UserPostFlags = {
+        admires: new Set((userAdmiresResult.data || []).map((a) => a.post_id)),
+        saves: new Set(postsResult.data.map((p) => p.id)),
+        relays: new Set((userRelaysResult.data || []).map((r) => r.post_id)),
+        reactions: new Map(),
+      };
 
       // Transform posts
       const postsWithStats = postsResult.data.map((post) => ({
-        ...post,
-        flair: (Array.isArray(post.flair) ? post.flair[0] : post.flair) || null,
-        media: (post.media || []).sort((a: PostMedia, b: PostMedia) => a.position - b.position),
-        admires_count: getAggregateCount(post.admires as AggregateCount[] | null),
-        comments_count: getAggregateCount(post.comments as AggregateCount[] | null),
-        relays_count: getAggregateCount(post.relays as AggregateCount[] | null),
-        reactions_count: getAggregateCount(post.reactions as AggregateCount[] | null),
-        user_has_admired: userAdmires.has(post.id),
-        user_has_saved: true,
-        user_has_relayed: userRelays.has(post.id),
-        user_reaction_type: null,
+        ...enrichPost(post, savedFlags),
         saved_at: savedTimestamps.get(post.id),
       }));
 
@@ -535,7 +421,7 @@ export function useSavedPosts(userId?: string): UseSavedPostsReturn {
       if (abortController.signal.aborted || !mountedRef.current) return;
       setPosts(postsWithStats as Post[]);
     } catch (err: unknown) {
-      if ((err instanceof Error && err.name === "AbortError") || abortController.signal.aborted) return;
+      if (isAbortError(err) || abortController.signal.aborted) return;
       console.error("[useSavedPosts] Error:", err);
       if (mountedRef.current) {
         setError("Failed to load saved posts");
@@ -730,7 +616,7 @@ export function useRelays(username: string) {
         if (abortController.signal.aborted || !mountedRef.current) return;
         setRelays(processedRelays);
       } catch (err: unknown) {
-        if ((err instanceof Error && err.name === "AbortError") || abortControllerRef.current?.signal.aborted) return;
+        if (isAbortError(err) || abortControllerRef.current?.signal.aborted) return;
         console.error("[useRelays] Error:", err);
       } finally {
         if (mountedRef.current) {

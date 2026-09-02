@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { supabase } from "@/lib/supabase";
+import { readCookie, writeCookie } from "@/lib/utils/cookies";
 import { useAuth } from "./AuthProvider";
 import {
   isFeedViewId,
@@ -28,19 +29,6 @@ interface FeedViewContextValue {
 }
 
 const FeedViewContext = createContext<FeedViewContextValue | null>(null);
-
-function writeCookie(name: string, value: string, maxAgeSeconds: number) {
-  if (typeof document === "undefined") return;
-  const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax${secure}`;
-}
-
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const escaped = name.replace(/[.$?*|{}()[\]\\\/+^]/g, "\\$&");
-  const match = document.cookie.match(new RegExp("(?:^|; )" + escaped + "=([^;]*)"));
-  return match ? decodeURIComponent(match[1]) : null;
-}
 
 interface FeedViewProviderProps {
   children: React.ReactNode;

@@ -5,6 +5,7 @@ import { deleteOwnTake } from "@/lib/content-client";
 import { supabase } from "../supabase";
 import { followUserRecord } from "./useProfile";
 import { sanitizePostgrestSearchTerm } from "../utils/postgrest";
+import { isAbortError } from "../utils/retry";
 
 // ============================================================================
 // TYPES
@@ -542,7 +543,7 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
       offsetRef.current += pageCount;
     } catch (err: unknown) {
       // Ignore abort errors - they're expected when cancelling requests
-      if ((err instanceof Error && err.name === "AbortError") || abortControllerRef.current?.signal.aborted) {
+      if (isAbortError(err) || abortControllerRef.current?.signal.aborted) {
         return;
       }
       console.error("[useTakes] Error:", err);

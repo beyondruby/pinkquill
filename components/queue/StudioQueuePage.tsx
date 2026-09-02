@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/lib/utils/currency";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,14 +19,7 @@ function createDefaultServiceFields(): ServiceFields {
   return { brief: "", notes: "", timelineDays: 7 };
 }
 
-function formatPrice(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
+const formatPrice = (amount: number, currency: string) => formatCurrency(amount, currency);
 
 /* ------------------------------------------------------------------ */
 /*  Empty State                                                        */
@@ -294,11 +288,6 @@ export default function StudioCartPage() {
         const order = await createOrder({
           product_id: item.product_id,
           pricing_id: item.pricing_id,
-          listing_type: "service",
-          amount: item.price,
-          platform_fee: 0,
-          seller_amount: 0,
-          currency: item.currency,
           brief: fields.brief.trim(),
           due_date: dueDate.toISOString(),
           requirements: { notes: fields.notes || "" },
@@ -314,11 +303,6 @@ export default function StudioCartPage() {
       const order = await createOrder({
         product_id: item.product_id,
         pricing_id: item.pricing_id,
-        listing_type: "product",
-        amount: typeof item.chosen_amount === "number" ? item.chosen_amount : item.price,
-        platform_fee: 0,
-        seller_amount: 0,
-        currency: item.currency,
         chosen_amount: typeof item.chosen_amount === "number" ? item.chosen_amount : null,
       });
 

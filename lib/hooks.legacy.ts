@@ -16,8 +16,9 @@ import { supabase } from "./supabase";
 import { createNotification } from "./hooks/useNotifications";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { useCommunityContext } from "@/components/communities/CommunityContext";
+import { enrichPost, fetchUserPostFlags } from "@/lib/posts/enrich";
 import { sanitizePostgrestSearchTerm } from "./utils/postgrest";
-import { retryWithBackoff, isRetryableError } from "./utils/retry";
+import { retryWithBackoff, isRetryableError, isAbortError } from "./utils/retry";
 import type {
   Post,
   Community,
@@ -163,7 +164,7 @@ function useCommunityQuery(slug: string, userId?: string) {
           const res = (await promise) as { data: T; count?: number | null };
           return { data: (res?.data ?? fallback) as T, count: res?.count ?? null };
         } catch (err) {
-          if (!(err instanceof Error && err.name === "AbortError")) {
+          if (!isAbortError(err)) {
             console.warn("[useCommunity] sub-query failed:", err);
           }
           return { data: fallback };
@@ -212,7 +213,7 @@ function useCommunityQuery(slug: string, userId?: string) {
       setRules(rulesResult.data || []);
       setTags(tagsResult.data || []);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (isAbortError(err)) return;
       if (signal.aborted) return;
       console.error("[useCommunity] Error:", err);
       if (mountedRef.current) {
@@ -359,7 +360,7 @@ export function useCommunities(
 
       setCommunities(enrichedCommunities);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (isAbortError(err)) return;
       console.error("[useCommunities] Error:", err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to fetch communities");
@@ -469,7 +470,7 @@ export function useDiscoverCommunities(options?: { tag?: string; limit?: number 
         // Set trending as top 6 by member count
         setTrending(enrichedCommunities.slice(0, 6));
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
         console.error("[useDiscoverCommunities] Error:", err);
         if (mountedRef.current) {
           setError(err instanceof Error ? err.message : "Failed to discover communities");
@@ -566,7 +567,7 @@ export function useSuggestedCommunities(userId?: string, limit: number = 10, ena
           setCommunities([]);
         }
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
         console.error("[useSuggestedCommunities] Error:", err);
       } finally {
         if (mountedRef.current) {
@@ -654,7 +655,7 @@ export function useCommunityMembers(
       setHasMore(newMembers.length === pageSize);
       setPage(pageNum);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (isAbortError(err)) return;
       console.error("[useCommunityMembers] Error:", err);
     } finally {
       if (mountedRef.current) {
@@ -828,62 +829,12 @@ export function useCommunityPosts(
         return;
       }
 
-      // Engagement counts come embedded as aggregates (one query) — this used
-      // to fetch every admire/comment/relay/reaction ROW for the page and count
-      // them in JS (findings L4).
+      // Counts are embedded aggregates; viewer flags + row → Post through
+      // the shared enrichment helper.
       const postIds = data.map(p => p.id);
-      const aggCount = (agg: unknown): number => {
-        if (Array.isArray(agg) && agg[0] && typeof agg[0].count === "number") return agg[0].count;
-        return 0;
-      };
-      const admiresCounts: Record<string, number> = {};
-      const commentsCounts: Record<string, number> = {};
-      const relaysCounts: Record<string, number> = {};
-      const reactionsCounts: Record<string, number> = {};
-      for (const post of data) {
-        admiresCounts[post.id] = aggCount(post.admires_agg);
-        commentsCounts[post.id] = aggCount(post.comments_agg);
-        relaysCounts[post.id] = aggCount(post.relays_agg);
-        reactionsCounts[post.id] = aggCount(post.reactions_agg);
-      }
-
-      // Check user interactions if logged in
-      let userAdmires: Set<string> = new Set();
-      let userSaves: Set<string> = new Set();
-      let userRelays: Set<string> = new Set();
-      const userReactions: Record<string, string> = {};
-
-      if (userId) {
-        const [userAdmiresResult, userSavesResult, userRelaysResult, userReactionsResult] = await Promise.all([
-          supabase.from("admires").select("post_id").eq("user_id", userId).in("post_id", postIds),
-          supabase.from("saves").select("post_id").eq("user_id", userId).in("post_id", postIds),
-          supabase.from("relays").select("post_id").eq("user_id", userId).in("post_id", postIds),
-          supabase.from("reactions").select("post_id, reaction_type").eq("user_id", userId).in("post_id", postIds),
-        ]);
-
-        if (!mountedRef.current) return;
-
-        userAdmires = new Set((userAdmiresResult.data || []).map(a => a.post_id));
-        userSaves = new Set((userSavesResult.data || []).map(s => s.post_id));
-        userRelays = new Set((userRelaysResult.data || []).map(r => r.post_id));
-        (userReactionsResult.data || []).forEach(r => {
-          userReactions[r.post_id] = r.reaction_type;
-        });
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the aggregate helpers off the row
-      const enrichedPosts = data.map(({ admires_agg, comments_agg, relays_agg, reactions_agg, ...post }) => ({
-        ...post,
-        flair: (Array.isArray(post.flair) ? post.flair[0] : post.flair) || null,
-        admires_count: admiresCounts[post.id] || 0,
-        comments_count: commentsCounts[post.id] || 0,
-        relays_count: relaysCounts[post.id] || 0,
-        reactions_count: reactionsCounts[post.id] || 0,
-        user_has_admired: userAdmires.has(post.id),
-        user_has_saved: userSaves.has(post.id),
-        user_has_relayed: userRelays.has(post.id),
-        user_reaction_type: userReactions[post.id] || null,
-      }));
+      const flags = await fetchUserPostFlags(userId, postIds, abortControllerRef.current.signal);
+      if (!mountedRef.current) return;
+      const enrichedPosts = data.map((row) => enrichPost(row, flags));
 
       // Sort by engagement for 'top' or hot score for 'hot'
       if (sortBy === 'top') {
@@ -920,7 +871,7 @@ export function useCommunityPosts(
       setHasMore(data.length === pageSize);
       setPage(pageNum);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (isAbortError(err)) return;
       console.error("[useCommunityPosts] Error:", err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : "Failed to fetch posts");
@@ -1115,7 +1066,7 @@ export function useCommunityInvitations(userId?: string) {
       if (error) throw error;
       setInvitations(data || []);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (isAbortError(err)) return;
       console.error("[useCommunityInvitations] Error:", err);
     } finally {
       if (mountedRef.current) {
@@ -1211,7 +1162,7 @@ export function useJoinRequests(communityId: string) {
       if (error) throw error;
       setRequests(data || []);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (isAbortError(err)) return;
       console.error("[useJoinRequests] Error:", err);
     } finally {
       if (mountedRef.current) {
@@ -2113,7 +2064,7 @@ export function useSearch(query: string, options?: { debounceMs?: number; limit?
           setResults({ profiles, communities: enrichedCommunities, tags });
         }
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
         console.error("[useSearch] Error:", err);
         if (mountedRef.current) {
           setError(err instanceof Error ? err.message : "Search failed");

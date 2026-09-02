@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/lib/utils/currency";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -169,15 +170,8 @@ function ProductCard({
   const categoryConfig = getCategoryConfig(product.category);
 
   // Format price display
-  const formatPrice = (price?: number) => {
-    if (price === undefined) return null;
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
+  const formatPrice = (price?: number) =>
+    price === undefined ? null : formatCurrency(price, "USD", { fractionDigits: 0 });
 
   const priceDisplay =
     product.min_price !== undefined

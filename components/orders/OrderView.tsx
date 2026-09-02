@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/lib/utils/currency";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -66,10 +67,6 @@ function getOrderTypeIcon(order: Order): string {
   if (order.listing_type === "service") return "M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z";
   if (order.product?.delivery_type === "digital") return "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10";
   return "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4";
-}
-
-function formatCurrency(amount: number | string): string {
-  return `$${Number(amount).toFixed(2)}`;
 }
 
 function formatDate(dateStr: string, includeTime = false): string {
