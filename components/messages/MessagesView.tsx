@@ -1,25 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { useCommunityChatOverview } from "@/lib/hooks";
-import { buildPostgrestInFilter } from "@/lib/utils/postgrest";
+import { usePollOnFocus } from "@/lib/hooks/usePollOnFocus";
 import ConversationList from "./ConversationList";
 import ChatView from "./ChatView";
 import NewMessageModal from "./NewMessageModal";
-
-// Type for the participant query result from Supabase
-interface ParticipantQueryResult {
-  user_id: string;
-  user: {
-    id: string;
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  } | null;
-}
 
 export interface Conversation {
   id: string;
@@ -39,6 +29,58 @@ export interface Conversation {
     media_type?: "image" | "video";
   } | null;
   unread_count: number;
+  is_blocked?: boolean;
+}
+
+/** Row shape of the `get_dm_conversation_overview` RPC. */
+interface ConversationOverviewRow {
+  conversation_id: string;
+  updated_at: string | null;
+  participant_id: string | null;
+  participant_username: string | null;
+  participant_display_name: string | null;
+  participant_avatar_url: string | null;
+  is_blocked: boolean;
+  last_message_content: string | null;
+  last_message_created_at: string | null;
+  last_message_sender_id: string | null;
+  last_message_type: "text" | "voice" | "media" | null;
+  last_message_voice_duration: number | null;
+  last_message_media_type: "image" | "video" | null;
+  unread_count: number;
+}
+
+function rowToConversation(row: ConversationOverviewRow): Conversation | null {
+  if (!row.participant_id) return null;
+  return {
+    id: row.conversation_id,
+    updated_at: row.updated_at || "",
+    participant: {
+      id: row.participant_id,
+      username: row.participant_username || "Unknown",
+      display_name: row.participant_display_name,
+      avatar_url: row.participant_avatar_url,
+    },
+    last_message:
+      row.last_message_created_at && row.last_message_sender_id
+        ? {
+            content: row.last_message_content || "",
+            created_at: row.last_message_created_at,
+            sender_id: row.last_message_sender_id,
+            message_type: row.last_message_type ?? undefined,
+            voice_duration: row.last_message_voice_duration ?? undefined,
+            media_type: row.last_message_media_type ?? undefined,
+          }
+        : null,
+    unread_count: row.unread_count || 0,
+    is_blocked: row.is_blocked,
+  };
+}
+
+function sortByRecent(list: Conversation[]): Conversation[] {
+  return [...list].sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  );
 }
 
 const icons = {
@@ -62,8 +104,16 @@ const icons = {
 export default function MessagesView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
-  const { totalUnreadCount: communityUnreadCount } = useCommunityChatOverview(user?.id);
+  const { user, profile } = useAuth();
+  const userId = user?.id;
+  const { totalUnreadCount: communityUnreadCount } = useCommunityChatOverview(userId);
+  const currentUserProfile = useMemo(
+    () =>
+      profile
+        ? { username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url }
+        : undefined,
+    [profile]
+  );
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,297 +127,107 @@ export default function MessagesView() {
     }
   }, [searchParams]);
 
-  // Fetch conversations - OPTIMIZED: Batched queries instead of N+1
-  const fetchConversations = async (showLoading = true) => {
-    if (!user) return;
+  // Conversation list = ONE aggregate RPC (last message + unread per
+  // conversation, block-aware, computed in SQL). Replaces the 7-query scan
+  // that pulled every message of every conversation into the browser and
+  // re-ran on each read receipt (docs/audit/01-findings.md L1).
+  const fetchConversations = useCallback(async (showLoading = true) => {
+    if (!userId) return;
 
     try {
       if (showLoading) setLoading(true);
 
-      // BATCH QUERY 1: Get all conversations with participants in one query
-      const { data: participations } = await supabase
-        .from("conversation_participants")
-        .select("conversation_id")
-        .eq("user_id", user.id);
+      const { data, error } = await supabase.rpc("get_dm_conversation_overview");
+      if (error) throw error;
 
-      if (!participations || participations.length === 0) {
-        setConversations([]);
-        if (showLoading) setLoading(false);
-        return;
-      }
-
-      const conversationIds = participations.map((p) => p.conversation_id);
-
-      // BATCH QUERY 2-5: Run all queries in parallel instead of per-conversation
-      const [
-        conversationsResult,
-        allParticipantsResult,
-        blockedByMeResult,
-        blockedMeResult,
-        allMessagesResult,
-        unreadCountsResult,
-      ] = await Promise.all([
-        // Get all conversations at once
-        supabase
-          .from("conversations")
-          .select("id, updated_at")
-          .in("id", conversationIds),
-        // Get all other participants at once
-        supabase
-          .from("conversation_participants")
-          .select(`
-            conversation_id,
-            user_id,
-            user:profiles (
-              id,
-              username,
-              display_name,
-              avatar_url
-            )
-          `)
-          .in("conversation_id", conversationIds)
-          .neq("user_id", user.id),
-        // Get all users I've blocked
-        supabase
-          .from("blocks")
-          .select("blocked_id")
-          .eq("blocker_id", user.id),
-        // Get all users who blocked me
-        supabase
-          .from("blocks")
-          .select("blocker_id")
-          .eq("blocked_id", user.id),
-        // Get latest message per conversation (we'll filter in JS)
-        supabase
-          .from("messages")
-          .select("conversation_id, content, created_at, sender_id, message_type, voice_duration, media_type")
-          .in("conversation_id", conversationIds)
-          .order("created_at", { ascending: false }),
-        // Get unread counts per conversation
-        supabase
-          .from("messages")
-          .select("conversation_id, sender_id")
-          .in("conversation_id", conversationIds)
-          .eq("is_read", false)
-          .neq("sender_id", user.id),
-      ]);
-
-      // Build lookup maps for O(1) access
-      const conversationsMap = new Map(
-        (conversationsResult.data || []).map((c) => [c.id, c])
-      );
-
-      const participantsMap = new Map<string, ParticipantQueryResult["user"]>();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (allParticipantsResult.data || []).forEach((p: any) => {
-        const u = Array.isArray(p.user) ? p.user[0] : p.user;
-        if (u && !participantsMap.has(p.conversation_id)) {
-          participantsMap.set(p.conversation_id, u);
-        }
-      });
-
-      // Build blocked sets
-      const blockedByMe = new Set((blockedByMeResult.data || []).map((b) => b.blocked_id));
-      const blockedMe = new Set((blockedMeResult.data || []).map((b) => b.blocker_id));
-
-      // Build last message map (first message per conversation since ordered desc)
-      type MessageData = { id: string; conversation_id: string; sender_id: string; content: string; created_at: string; message_type?: "text" | "voice" | "media"; voice_duration?: number; media_type?: "image" | "video" };
-      const lastMessageMap = new Map<string, MessageData>();
-      const myLastMessageMap = new Map<string, MessageData>(); // For blocked users
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (allMessagesResult.data || []).forEach((m: any) => {
-        // Store first (latest) message per conversation
-        if (!lastMessageMap.has(m.conversation_id)) {
-          lastMessageMap.set(m.conversation_id, m);
-        }
-        // Also track my last message for blocked scenarios
-        if (m.sender_id === user.id && !myLastMessageMap.has(m.conversation_id)) {
-          myLastMessageMap.set(m.conversation_id, m);
-        }
-      });
-
-      // Build unread count map (excluding blocked users)
-      const unreadCountMap = new Map<string, number>();
-      (unreadCountsResult.data || []).forEach((m: { conversation_id: string; sender_id: string }) => {
-        // Only count if sender is not blocked
-        if (!blockedByMe.has(m.sender_id) && !blockedMe.has(m.sender_id)) {
-          unreadCountMap.set(
-            m.conversation_id,
-            (unreadCountMap.get(m.conversation_id) || 0) + 1
-          );
-        }
-      });
-
-      // Transform data
-      const conversationsData: Conversation[] = conversationIds
-        .map((convId) => {
-          const conv = conversationsMap.get(convId);
-          const otherParticipant = participantsMap.get(convId);
-
-          // Check block status
-          const isBlocked = otherParticipant
-            ? blockedByMe.has(otherParticipant.id) || blockedMe.has(otherParticipant.id)
-            : false;
-
-          // Get appropriate last message
-          const lastMessage = isBlocked
-            ? myLastMessageMap.get(convId) || null
-            : lastMessageMap.get(convId) || null;
-
-          // Get unread count (already filtered for blocks)
-          const unreadCount = isBlocked ? 0 : unreadCountMap.get(convId) || 0;
-
-          return {
-            id: convId,
-            updated_at: conv?.updated_at || "",
-            participant: otherParticipant || {
-              id: "",
-              username: "Unknown",
-              display_name: null,
-              avatar_url: null,
-            },
-            last_message: lastMessage
-              ? {
-                  content: lastMessage.content,
-                  created_at: lastMessage.created_at,
-                  sender_id: lastMessage.sender_id,
-                  message_type: lastMessage.message_type,
-                  voice_duration: lastMessage.voice_duration,
-                  media_type: lastMessage.media_type,
-                }
-              : null,
-            unread_count: unreadCount,
-          };
-        })
-        .filter((c) => c.participant.id); // Filter out conversations with unknown participants
-
-      // Sort by most recent
-      conversationsData.sort(
-        (a, b) =>
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      );
-
-      setConversations(conversationsData);
+      const rows = (data || []) as ConversationOverviewRow[];
+      const next = rows
+        .map(rowToConversation)
+        .filter((c): c is Conversation => c !== null);
+      setConversations(sortByRecent(next));
     } catch (err) {
       console.error("Failed to fetch conversations:", err);
     } finally {
       if (showLoading) setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchConversations(true);
-  }, [user]);
+  }, [fetchConversations]);
 
-  const conversationIdsFilter = useMemo(
-    () => buildPostgrestInFilter("conversation_id", conversations.map((conversation) => conversation.id)),
-    [conversations]
-  );
+  // Backstop for anything the delta handler cannot express (deleted
+  // messages, new conversations). Throttled; no interval.
+  usePollOnFocus(() => fetchConversations(false), 30_000);
 
-  // Real-time subscription for new messages - incremental update for message inserts,
-  // full refetch only for participant changes or message updates (read receipts etc.)
+  const refetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRefetch = useCallback(() => {
+    if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+    refetchTimerRef.current = setTimeout(() => {
+      refetchTimerRef.current = null;
+      fetchConversations(false);
+    }, 500);
+  }, [fetchConversations]);
   useEffect(() => {
-    if (!user) return;
-
-    let debounceTimer: NodeJS.Timeout | null = null;
-    const debouncedRefetch = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        fetchConversations(false); // Silent full update
-      }, 500);
+    return () => {
+      if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
     };
+  }, []);
 
-    // Handle new message inserts by updating only the affected conversation
-    const handleMessageInsert = (payload: { new: Record<string, unknown> }) => {
-      const newMsg = payload.new as {
-        conversation_id: string;
-        sender_id: string;
-        content: string;
-        created_at: string;
-        message_type?: "text" | "voice" | "media";
-        voice_duration?: number;
-        media_type?: "image" | "video";
-      };
+  // Live updates arrive on the per-user broadcast channel (DB trigger on
+  // `messages`) and are applied as deltas — no postgres_changes subscription
+  // and no refetch on read receipts.
+  useUserEvent("dm_unread_change", (payload) => {
+    if (!userId) return;
+    const { op, conversation_id, sender_id } = payload;
+    const isFromOther = sender_id !== userId;
 
-      setConversations((prev) => {
-        const convIndex = prev.findIndex((c) => c.id === newMsg.conversation_id);
-        if (convIndex === -1) {
-          // New conversation we don't know about yet -- full refetch
-          debouncedRefetch();
-          return prev;
-        }
-
-        const updated = prev.map((conv) => {
-          if (conv.id !== newMsg.conversation_id) return conv;
-
-          const isFromOther = newMsg.sender_id !== user.id;
-          return {
-            ...conv,
-            last_message: {
-              content: newMsg.content,
-              created_at: newMsg.created_at,
-              sender_id: newMsg.sender_id,
-              message_type: newMsg.message_type,
-              voice_duration: newMsg.voice_duration,
-              media_type: newMsg.media_type,
-            },
-            unread_count: isFromOther ? conv.unread_count + 1 : conv.unread_count,
-            updated_at: newMsg.created_at,
-          };
-        });
-
-        // Re-sort by most recent
-        return updated.sort(
-          (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-        );
-      });
-    };
-
-    // Use user-specific channel name to prevent conflicts
-    const channel = supabase.channel(`messages-list-${user.id}`);
-
-    if (conversationIdsFilter) {
-      channel
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-            filter: conversationIdsFilter,
-          },
-          handleMessageInsert
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "messages",
-            filter: conversationIdsFilter,
-          },
-          debouncedRefetch
-        );
+    if (op === "DELETE") {
+      scheduleRefetch();
+      return;
     }
 
-    channel.on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "conversation_participants",
-        filter: `user_id=eq.${user.id}`,
-      },
-      debouncedRefetch
-    );
+    setConversations((prev) => {
+      const index = prev.findIndex((c) => c.id === conversation_id);
+      if (index === -1) {
+        scheduleRefetch();
+        return prev;
+      }
+      const conv = prev[index];
+      if (conv.is_blocked && isFromOther) return prev;
 
-    channel.subscribe();
+      if (op === "INSERT") {
+        const createdAt = payload.created_at || new Date().toISOString();
+        const updated: Conversation = {
+          ...conv,
+          last_message: {
+            content: payload.content || "",
+            created_at: createdAt,
+            sender_id,
+            message_type: payload.message_type ?? undefined,
+            voice_duration: payload.voice_duration ?? undefined,
+            media_type: payload.media_type ?? undefined,
+          },
+          unread_count:
+            isFromOther && payload.is_read !== true ? conv.unread_count + 1 : conv.unread_count,
+          updated_at: createdAt,
+        };
+        const next = [...prev];
+        next[index] = updated;
+        return sortByRecent(next);
+      }
 
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
-    };
-  }, [conversationIdsFilter, user]);
+      // UPDATE: only read-state flips are broadcast.
+      if (!isFromOther) return prev;
+      let delta = 0;
+      if (payload.was_read === false && payload.is_read === true) delta = -1;
+      else if (payload.was_read === true && payload.is_read === false) delta = 1;
+      if (delta === 0) return prev;
+      const next = [...prev];
+      next[index] = { ...conv, unread_count: Math.max(0, conv.unread_count + delta) };
+      return next;
+    });
+  });
 
   const handleSelectConversation = (conversationId: string) => {
     setSelectedConversation(conversationId);
@@ -452,6 +312,7 @@ export default function MessagesView() {
           <ChatView
             conversationId={selectedConversation}
             currentUserId={user.id}
+            currentUserProfile={currentUserProfile}
             onBack={() => {
               setSelectedConversation(null);
               router.push("/messages", { scroll: false });

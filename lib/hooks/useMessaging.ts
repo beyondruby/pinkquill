@@ -1,13 +1,32 @@
 /**
- * Messaging hooks for message reactions and typing indicators
- * Implements Instagram-style message reactions and real-time typing status
+ * Messaging hooks for message reactions and typing indicators.
+ *
+ * Realtime design (docs/audit/02-plan.md Phase 2): one *broadcast* channel per
+ * open conversation (`dm-live-<conversationId>`) carries both typing events
+ * and reaction events between the participants. Nothing here opens a
+ * `postgres_changes` subscription — the previous per-conversation
+ * `message_reactions` stream was re-created on every message and was the
+ * primary source of realtime subscription churn (findings H7).
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { buildPostgrestInFilter } from "@/lib/utils/postgrest";
 import type { MessageReaction, MessageReactionEmoji, TypingUser } from "@/lib/types";
 import { MESSAGE_REACTION_EMOJIS } from "@/lib/types";
+
+type ChatProfile = {
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
+type BroadcastSend = (event: "typing" | "reaction", payload: Record<string, unknown>) => void;
+
+type ReactionBroadcast = {
+  op: "upsert" | "delete";
+  reaction: MessageReaction;
+};
 
 // ============================================================================
 // MESSAGE REACTIONS HOOK
@@ -16,374 +35,153 @@ import { MESSAGE_REACTION_EMOJIS } from "@/lib/types";
 interface UseMessageReactionsOptions {
   conversationId: string;
   currentUserId: string;
+  currentUserProfile?: ChatProfile;
+  /** Real (server) message ids only — never optimistic `temp-` ids. */
   messageIds?: string[];
+  send: BroadcastSend;
 }
 
 interface UseMessageReactionsReturn {
-  // Map of message_id -> reactions array
   reactionsByMessage: Map<string, MessageReaction[]>;
-  // Add or update a reaction (if same emoji, removes it - toggle behavior)
   toggleReaction: (messageId: string, emoji: MessageReactionEmoji) => Promise<void>;
-  // Remove user's reaction from a message
   removeReaction: (messageId: string) => Promise<void>;
-  // Get user's reaction for a specific message
   getUserReaction: (messageId: string) => MessageReaction | undefined;
-  // Loading state
   loading: boolean;
+  /** Apply a reaction event broadcast by the other participant. */
+  applyRemote: (payload: ReactionBroadcast) => void;
+}
+
+function upsertInto(map: Map<string, MessageReaction[]>, reaction: MessageReaction) {
+  const existing = map.get(reaction.message_id) || [];
+  const filtered = existing.filter((r) => r.user_id !== reaction.user_id);
+  map.set(reaction.message_id, [...filtered, reaction]);
 }
 
 export function useMessageReactions({
   conversationId,
   currentUserId,
+  currentUserProfile,
   messageIds = [],
+  send,
 }: UseMessageReactionsOptions): UseMessageReactionsReturn {
   const [reactionsByMessage, setReactionsByMessage] = useState<Map<string, MessageReaction[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const fetchedIdsRef = useRef<Set<string>>(new Set());
   const messageIdsKey = messageIds.join(",");
 
-  // Optimized: Single query using inner join through messages table
-  const fetchReactions = useCallback(async () => {
+  // Reset per conversation.
+  useEffect(() => {
+    fetchedIdsRef.current = new Set();
+    setReactionsByMessage(new Map());
+    setLoading(true);
+  }, [conversationId]);
+
+  // Fetch reactions only for message ids we have not fetched yet. A new
+  // message or an older page adds ids; read receipts and edits do not, so
+  // they no longer trigger a query.
+  useEffect(() => {
+    mountedRef.current = true;
     if (!conversationId) {
       setLoading(false);
       return;
     }
-
-    if (messageIds.length === 0) {
-      setReactionsByMessage(new Map());
+    const ids = messageIdsKey ? messageIdsKey.split(",") : [];
+    const newIds = ids.filter((id) => id && !id.startsWith("temp-") && !fetchedIdsRef.current.has(id));
+    if (newIds.length === 0) {
       setLoading(false);
       return;
     }
+    newIds.forEach((id) => fetchedIdsRef.current.add(id));
 
-    // Abort any in-flight request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-
-    try {
-      const { data: reactions, error } = await supabase
-        .from("message_reactions")
-        .select(`
-          id,
-          message_id,
-          user_id,
-          emoji,
-          created_at,
-          user:profiles!message_reactions_user_id_fkey (
-            username,
-            display_name,
-            avatar_url
-          ),
-          message:messages!inner (
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("message_reactions")
+          .select(`
             id,
-            conversation_id
-          )
-        `)
-        .in("message_id", messageIds)
-        .eq("message.conversation_id", conversationId)
-        .abortSignal(signal);
+            message_id,
+            user_id,
+            emoji,
+            created_at,
+            user:profiles!message_reactions_user_id_fkey (
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .in("message_id", newIds)
+          .abortSignal(controller.signal);
 
-      if (!mountedRef.current || signal.aborted) return;
-
-      if (error) {
-        console.error("Failed to fetch message reactions:", error);
-        setLoading(false);
-        return;
-      }
-
-      // Group reactions by message_id (efficient single pass)
-      const reactionsMap = new Map<string, MessageReaction[]>();
-      const reactionsArray = reactions || [];
-
-      for (let i = 0; i < reactionsArray.length; i++) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const reaction = reactionsArray[i] as any;
-        const messageId = reaction.message_id;
-        const u = Array.isArray(reaction.user) ? reaction.user[0] : reaction.user;
-
-        let messageReactions = reactionsMap.get(messageId);
-        if (!messageReactions) {
-          messageReactions = [];
-          reactionsMap.set(messageId, messageReactions);
+        if (!mountedRef.current || controller.signal.aborted) return;
+        if (error) {
+          console.error("Failed to fetch message reactions:", error);
+          // Allow a retry for these ids on the next change.
+          newIds.forEach((id) => fetchedIdsRef.current.delete(id));
+          return;
         }
 
-        messageReactions.push({
-          id: reaction.id,
-          message_id: reaction.message_id,
-          user_id: reaction.user_id,
-          emoji: reaction.emoji as MessageReactionEmoji,
-          created_at: reaction.created_at,
-          user: u,
+        setReactionsByMessage((prev) => {
+          const next = new Map(prev);
+          for (const raw of data || []) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const r = raw as any;
+            const u = Array.isArray(r.user) ? r.user[0] : r.user;
+            upsertInto(next, {
+              id: r.id,
+              message_id: r.message_id,
+              user_id: r.user_id,
+              emoji: r.emoji as MessageReactionEmoji,
+              created_at: r.created_at,
+              user: u,
+            });
+          }
+          return next;
         });
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        console.error("Error fetching reactions:", err);
+      } finally {
+        if (mountedRef.current) setLoading(false);
       }
-
-      if (mountedRef.current) {
-        setReactionsByMessage(reactionsMap);
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
-      console.error("Error fetching reactions:", err);
-    } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [conversationId, messageIds]);
-
-  // Initial fetch with cleanup
-  useEffect(() => {
-    mountedRef.current = true;
-    fetchReactions();
+    })();
 
     return () => {
       mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [fetchReactions]);
-
-  // Real-time subscription for reactions with proper cleanup
-  useEffect(() => {
-    if (!conversationId) {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-      return;
-    }
-
-    const messageIdsFilter = buildPostgrestInFilter("message_id", messageIds);
-    if (!messageIdsFilter) {
-      return;
-    }
-
-    // Clean up previous channel
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-
-    // Cache for user profiles to avoid repeated fetches
-    type UserProfile = { username: string; display_name: string | null; avatar_url: string | null };
-    const userProfileCache = new Map<string, UserProfile>();
-
-    const channel = supabase
-      .channel(`message-reactions-${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "message_reactions",
-          filter: messageIdsFilter,
-        },
-        async (payload) => {
-          if (!mountedRef.current) return;
-
-          if (payload.eventType === "INSERT") {
-            const newReaction = payload.new as { id: string; message_id: string; user_id: string; emoji: string; created_at: string };
-
-            // Check cache first for user info
-            let userData = userProfileCache.get(newReaction.user_id);
-
-            if (!userData) {
-              // Fetch user info only if not in cache
-              const { data } = await supabase
-                .from("profiles")
-                .select("username, display_name, avatar_url")
-                .eq("id", newReaction.user_id)
-                .single();
-
-              userData = data as UserProfile | undefined;
-              if (data) {
-                userProfileCache.set(newReaction.user_id, data as UserProfile);
-              }
-            }
-
-            if (!mountedRef.current) return;
-
-            const reaction: MessageReaction = {
-              id: newReaction.id,
-              message_id: newReaction.message_id,
-              user_id: newReaction.user_id,
-              emoji: newReaction.emoji as MessageReactionEmoji,
-              created_at: newReaction.created_at,
-              user: userData,
-            };
-
-            setReactionsByMessage(prev => {
-              const newMap = new Map(prev);
-              const messageReactions = newMap.get(reaction.message_id) || [];
-              // Remove any existing reaction from same user (in case of update)
-              const filtered = messageReactions.filter(r => r.user_id !== reaction.user_id);
-              newMap.set(reaction.message_id, [...filtered, reaction]);
-              return newMap;
-            });
-          } else if (payload.eventType === "DELETE") {
-            const oldReaction = payload.old as { id: string; message_id: string };
-            setReactionsByMessage(prev => {
-              const newMap = new Map(prev);
-              const messageReactions = newMap.get(oldReaction.message_id) || [];
-              newMap.set(
-                oldReaction.message_id,
-                messageReactions.filter(r => r.id !== oldReaction.id)
-              );
-              return newMap;
-            });
-          } else if (payload.eventType === "UPDATE") {
-            const updatedReaction = payload.new as { id: string; message_id: string; emoji: string };
-            setReactionsByMessage(prev => {
-              const newMap = new Map(prev);
-              const messageReactions = newMap.get(updatedReaction.message_id) || [];
-              const index = messageReactions.findIndex(r => r.id === updatedReaction.id);
-              if (index !== -1) {
-                messageReactions[index] = {
-                  ...messageReactions[index],
-                  emoji: updatedReaction.emoji as MessageReactionEmoji,
-                };
-                newMap.set(updatedReaction.message_id, [...messageReactions]);
-              }
-              return newMap;
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      controller.abort();
     };
   }, [conversationId, messageIdsKey]);
 
-  // Toggle reaction (add if not exists or different emoji, remove if same emoji)
-  const toggleReaction = useCallback(async (messageId: string, emoji: MessageReactionEmoji) => {
-    if (!currentUserId) return;
-
-    // Block check: fetch the message sender and check for blocks in either direction
-    const { data: message } = await supabase
-      .from("messages")
-      .select("sender_id")
-      .eq("id", messageId)
-      .single();
-
-    if (message && message.sender_id !== currentUserId) {
-      const { count } = await supabase
-        .from("blocks")
-        .select("id", { count: "exact", head: true })
-        .or(
-          `and(blocker_id.eq.${currentUserId},blocked_id.eq.${message.sender_id}),and(blocker_id.eq.${message.sender_id},blocked_id.eq.${currentUserId})`
+  const applyRemote = useCallback((payload: ReactionBroadcast) => {
+    if (!payload?.reaction?.message_id) return;
+    setReactionsByMessage((prev) => {
+      const next = new Map(prev);
+      if (payload.op === "delete") {
+        const existing = next.get(payload.reaction.message_id) || [];
+        next.set(
+          payload.reaction.message_id,
+          existing.filter((r) => r.user_id !== payload.reaction.user_id)
         );
-
-      if (count && count > 0) return;
-    }
-
-    // Check if user already has a reaction on this message
-    const existingReactions = reactionsByMessage.get(messageId) || [];
-    const userReaction = existingReactions.find(r => r.user_id === currentUserId);
-
-    if (userReaction) {
-      if (userReaction.emoji === emoji) {
-        // Same emoji - remove the reaction
-        await removeReaction(messageId);
-        return;
+      } else {
+        upsertInto(next, payload.reaction);
       }
-      // Different emoji - update the reaction
-      // Optimistic update
-      setReactionsByMessage(prev => {
-        const newMap = new Map(prev);
-        const reactions = (newMap.get(messageId) || []).map(r =>
-          r.user_id === currentUserId ? { ...r, emoji } : r
-        );
-        newMap.set(messageId, reactions);
-        return newMap;
-      });
+      return next;
+    });
+  }, []);
 
-      // Database update
-      const { error } = await supabase
-        .from("message_reactions")
-        .update({ emoji })
-        .eq("message_id", messageId)
-        .eq("user_id", currentUserId);
-
-      if (error) {
-        console.error("Failed to update reaction:", error);
-        // Revert optimistic update
-        fetchReactions();
-      }
-    } else {
-      // No existing reaction - add new one
-      // Optimistic update
-      const optimisticReaction: MessageReaction = {
-        id: `temp-${Date.now()}`,
-        message_id: messageId,
-        user_id: currentUserId,
-        emoji,
-        created_at: new Date().toISOString(),
-      };
-
-      setReactionsByMessage(prev => {
-        const newMap = new Map(prev);
-        const reactions = newMap.get(messageId) || [];
-        newMap.set(messageId, [...reactions, optimisticReaction]);
-        return newMap;
-      });
-
-      // Database insert
-      const { data, error } = await supabase
-        .from("message_reactions")
-        .insert({
-          message_id: messageId,
-          user_id: currentUserId,
-          emoji,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Failed to add reaction:", error);
-        // Revert optimistic update
-        setReactionsByMessage(prev => {
-          const newMap = new Map(prev);
-          const reactions = (newMap.get(messageId) || []).filter(r => r.id !== optimisticReaction.id);
-          newMap.set(messageId, reactions);
-          return newMap;
-        });
-      } else if (data) {
-        // Replace optimistic with real data
-        setReactionsByMessage(prev => {
-          const newMap = new Map(prev);
-          const reactions = (newMap.get(messageId) || []).map(r =>
-            r.id === optimisticReaction.id ? { ...r, id: data.id } : r
-          );
-          newMap.set(messageId, reactions);
-          return newMap;
-        });
-      }
-    }
-  }, [currentUserId, reactionsByMessage, fetchReactions]);
-
-  // Remove user's reaction from a message
   const removeReaction = useCallback(async (messageId: string) => {
     if (!currentUserId) return;
 
-    // Optimistic update
-    setReactionsByMessage(prev => {
-      const newMap = new Map(prev);
-      const reactions = (newMap.get(messageId) || []).filter(r => r.user_id !== currentUserId);
-      newMap.set(messageId, reactions);
-      return newMap;
+    let removed: MessageReaction | undefined;
+    setReactionsByMessage((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(messageId) || [];
+      removed = existing.find((r) => r.user_id === currentUserId);
+      next.set(messageId, existing.filter((r) => r.user_id !== currentUserId));
+      return next;
     });
 
-    // Database delete
     const { error } = await supabase
       .from("message_reactions")
       .delete()
@@ -392,15 +190,92 @@ export function useMessageReactions({
 
     if (error) {
       console.error("Failed to remove reaction:", error);
-      // Revert on error
-      fetchReactions();
+      if (removed) {
+        const restore = removed;
+        setReactionsByMessage((prev) => {
+          const next = new Map(prev);
+          upsertInto(next, restore);
+          return next;
+        });
+      }
+      return;
     }
-  }, [currentUserId, fetchReactions]);
 
-  // Get user's reaction for a specific message
+    send("reaction", {
+      op: "delete",
+      reaction: {
+        id: removed?.id ?? "",
+        message_id: messageId,
+        user_id: currentUserId,
+        emoji: removed?.emoji ?? MESSAGE_REACTION_EMOJIS[0],
+        created_at: new Date().toISOString(),
+      },
+    });
+  }, [currentUserId, send]);
+
+  const toggleReaction = useCallback(async (messageId: string, emoji: MessageReactionEmoji) => {
+    if (!currentUserId || messageId.startsWith("temp-")) return;
+
+    const existingReactions = reactionsByMessage.get(messageId) || [];
+    const userReaction = existingReactions.find((r) => r.user_id === currentUserId);
+
+    if (userReaction && userReaction.emoji === emoji) {
+      await removeReaction(messageId);
+      return;
+    }
+
+    const optimistic: MessageReaction = {
+      id: userReaction?.id ?? `temp-${crypto.randomUUID()}`,
+      message_id: messageId,
+      user_id: currentUserId,
+      emoji,
+      created_at: new Date().toISOString(),
+      user: currentUserProfile,
+    };
+
+    setReactionsByMessage((prev) => {
+      const next = new Map(prev);
+      upsertInto(next, optimistic);
+      return next;
+    });
+
+    // One upsert instead of insert-or-update: (message_id, user_id) is unique.
+    // RLS on message_reactions enforces that the user is a participant and
+    // not blocked; the old client-side block pre-check (2 extra reads per
+    // click) is redundant with it.
+    const { data, error } = await supabase
+      .from("message_reactions")
+      .upsert(
+        { message_id: messageId, user_id: currentUserId, emoji },
+        { onConflict: "message_id,user_id" }
+      )
+      .select("id, created_at")
+      .single();
+
+    if (error) {
+      console.error("Failed to save reaction:", error);
+      setReactionsByMessage((prev) => {
+        const next = new Map(prev);
+        const existing = (next.get(messageId) || []).filter((r) => r.user_id !== currentUserId);
+        if (userReaction) existing.push(userReaction);
+        next.set(messageId, existing);
+        return next;
+      });
+      return;
+    }
+
+    const saved: MessageReaction = { ...optimistic, id: data?.id ?? optimistic.id, created_at: data?.created_at ?? optimistic.created_at };
+    setReactionsByMessage((prev) => {
+      const next = new Map(prev);
+      upsertInto(next, saved);
+      return next;
+    });
+    send("reaction", { op: "upsert", reaction: saved });
+  }, [currentUserId, currentUserProfile, reactionsByMessage, removeReaction, send]);
+
   const getUserReaction = useCallback((messageId: string): MessageReaction | undefined => {
     const reactions = reactionsByMessage.get(messageId) || [];
-    return reactions.find(r => r.user_id === currentUserId);
+    return reactions.find((r) => r.user_id === currentUserId);
   }, [reactionsByMessage, currentUserId]);
 
   return {
@@ -409,6 +284,7 @@ export function useMessageReactions({
     removeReaction,
     getUserReaction,
     loading,
+    applyRemote,
   };
 }
 
@@ -417,227 +293,189 @@ export function useMessageReactions({
 // ============================================================================
 
 interface UseTypingIndicatorOptions {
-  conversationId: string;
   currentUserId: string;
-  currentUserProfile?: {
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
+  currentUserProfile?: ChatProfile;
+  send: BroadcastSend;
 }
 
 interface UseTypingIndicatorReturn {
-  // Users currently typing (excluding current user)
   typingUsers: TypingUser[];
-  // Call when user starts/continues typing
   setTyping: (isTyping: boolean) => void;
-  // Formatted string like "John is typing..." or "John and Jane are typing..."
   typingText: string | null;
+  applyRemote: (payload: TypingBroadcast) => void;
 }
 
-// Typing state expires after this many milliseconds of no activity
+type TypingBroadcast = {
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  is_typing: boolean;
+};
+
 const TYPING_TIMEOUT_MS = 3000;
-// Debounce interval for sending typing updates
 const TYPING_DEBOUNCE_MS = 1000;
 
 export function useTypingIndicator({
-  conversationId,
   currentUserId,
   currentUserProfile,
+  send,
 }: UseTypingIndicatorOptions): UseTypingIndicatorReturn {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const lastTypingBroadcastRef = useRef<number>(0);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
-  // Clean up expired typing indicators
+  const profileRef = useRef(currentUserProfile);
   useEffect(() => {
+    profileRef.current = currentUserProfile;
+  }, [currentUserProfile]);
+
+  // Expire stale indicators. Only tick while someone is typing.
+  useEffect(() => {
+    if (typingUsers.length === 0) return;
     const interval = setInterval(() => {
       const now = Date.now();
-      setTypingUsers(prev =>
-        prev.filter(user => now - user.started_at < TYPING_TIMEOUT_MS)
-      );
+      setTypingUsers((prev) => prev.filter((u) => now - u.started_at < TYPING_TIMEOUT_MS));
     }, 1000);
-
     return () => clearInterval(interval);
+  }, [typingUsers.length]);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
   }, []);
 
-  // Set up real-time channel for typing indicators
-  useEffect(() => {
-    if (!conversationId || !currentUserId) return;
-
-    const channelName = `typing-${conversationId}`;
-
-    // Create a broadcast channel for typing indicators
-    const channel = supabase.channel(channelName, {
-      config: {
-        broadcast: {
-          self: false, // Don't receive own broadcasts
-        },
-      },
-    });
-
-    channel
-      .on("broadcast", { event: "typing" }, (payload) => {
-        const data = payload.payload as {
-          user_id: string;
-          username: string;
-          display_name: string | null;
-          avatar_url: string | null;
-          is_typing: boolean;
+  const applyRemote = useCallback((data: TypingBroadcast) => {
+    if (!data || data.user_id === currentUserId) return;
+    if (data.is_typing) {
+      setTypingUsers((prev) => {
+        const typingUser: TypingUser = {
+          user_id: data.user_id,
+          username: data.username,
+          display_name: data.display_name,
+          avatar_url: data.avatar_url,
+          started_at: Date.now(),
         };
-
-        // Ignore own typing events
-        if (data.user_id === currentUserId) return;
-
-        if (data.is_typing) {
-          setTypingUsers(prev => {
-            // Update existing user or add new one
-            const existingIndex = prev.findIndex(u => u.user_id === data.user_id);
-            const typingUser: TypingUser = {
-              user_id: data.user_id,
-              username: data.username,
-              display_name: data.display_name,
-              avatar_url: data.avatar_url,
-              started_at: Date.now(),
-            };
-
-            if (existingIndex !== -1) {
-              const updated = [...prev];
-              updated[existingIndex] = typingUser;
-              return updated;
-            }
-            return [...prev, typingUser];
-          });
-        } else {
-          // User stopped typing
-          setTypingUsers(prev => prev.filter(u => u.user_id !== data.user_id));
+        const idx = prev.findIndex((u) => u.user_id === data.user_id);
+        if (idx !== -1) {
+          const updated = [...prev];
+          updated[idx] = typingUser;
+          return updated;
         }
-      })
-      .subscribe();
+        return [...prev, typingUser];
+      });
+    } else {
+      setTypingUsers((prev) => prev.filter((u) => u.user_id !== data.user_id));
+    }
+  }, [currentUserId]);
 
-    channelRef.current = channel;
+  const broadcastTyping = useCallback((typing: boolean) => {
+    const profile = profileRef.current;
+    send("typing", {
+      user_id: currentUserId,
+      username: profile?.username || "",
+      display_name: profile?.display_name || null,
+      avatar_url: profile?.avatar_url || null,
+      is_typing: typing,
+    });
+  }, [currentUserId, send]);
 
-    return () => {
-      // Broadcast stop typing before unsubscribing
-      if (channelRef.current) {
-        channelRef.current.send({
-          type: "broadcast",
-          event: "typing",
-          payload: {
-            user_id: currentUserId,
-            username: currentUserProfile?.username || "",
-            display_name: currentUserProfile?.display_name || null,
-            avatar_url: currentUserProfile?.avatar_url || null,
-            is_typing: false,
-          },
-        });
-        supabase.removeChannel(channelRef.current);
-      }
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, [conversationId, currentUserId, currentUserProfile]);
-
-  // Set typing state with debouncing
   const setTyping = useCallback((isTyping: boolean) => {
-    if (!channelRef.current || !currentUserId || !currentUserProfile) return;
-
+    if (!currentUserId) return;
     const now = Date.now();
 
-    // Clear any existing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
     }
 
     if (isTyping) {
-      // Debounce typing broadcasts
-      if (now - lastTypingBroadcastRef.current < TYPING_DEBOUNCE_MS) {
-        // Still schedule the stop typing timeout
-        typingTimeoutRef.current = setTimeout(() => {
-          broadcastTyping(false);
-        }, TYPING_TIMEOUT_MS);
-        return;
+      if (now - lastTypingBroadcastRef.current >= TYPING_DEBOUNCE_MS) {
+        lastTypingBroadcastRef.current = now;
+        broadcastTyping(true);
       }
-
-      lastTypingBroadcastRef.current = now;
-      broadcastTyping(true);
-
-      // Auto-stop typing after timeout
-      typingTimeoutRef.current = setTimeout(() => {
-        broadcastTyping(false);
-      }, TYPING_TIMEOUT_MS);
-    } else {
+      typingTimeoutRef.current = setTimeout(() => broadcastTyping(false), TYPING_TIMEOUT_MS);
+    } else if (lastTypingBroadcastRef.current !== 0) {
+      lastTypingBroadcastRef.current = 0;
       broadcastTyping(false);
     }
+  }, [currentUserId, broadcastTyping]);
 
-    function broadcastTyping(typing: boolean) {
-      channelRef.current?.send({
-        type: "broadcast",
-        event: "typing",
-        payload: {
-          user_id: currentUserId,
-          username: currentUserProfile?.username || "",
-          display_name: currentUserProfile?.display_name || null,
-          avatar_url: currentUserProfile?.avatar_url || null,
-          is_typing: typing,
-        },
-      });
-    }
-  }, [currentUserId, currentUserProfile]);
-
-  // Format typing text
   const typingText = (() => {
     if (typingUsers.length === 0) return null;
-
-    const names = typingUsers.map(u => u.display_name || u.username);
-
-    if (names.length === 1) {
-      return `${names[0]} is typing...`;
-    } else if (names.length === 2) {
-      return `${names[0]} and ${names[1]} are typing...`;
-    } else {
-      return `${names[0]} and ${names.length - 1} others are typing...`;
-    }
+    const names = typingUsers.map((u) => u.display_name || u.username);
+    if (names.length === 1) return `${names[0]} is typing...`;
+    if (names.length === 2) return `${names[0]} and ${names[1]} are typing...`;
+    return `${names[0]} and ${names.length - 1} others are typing...`;
   })();
 
-  return {
-    typingUsers,
-    setTyping,
-    typingText,
-  };
+  return { typingUsers, setTyping, typingText, applyRemote };
 }
 
 // ============================================================================
-// COMBINED HOOK FOR CHAT FEATURES
+// COMBINED HOOK FOR CHAT FEATURES — owns the single live channel
 // ============================================================================
 
 interface UseChatFeaturesOptions {
   conversationId: string;
   currentUserId: string;
   messageIds?: string[];
-  currentUserProfile?: {
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
+  currentUserProfile?: ChatProfile;
 }
 
 export function useChatFeatures(options: UseChatFeaturesOptions) {
+  const { conversationId, currentUserId } = options;
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const reactionsApplyRef = useRef<(p: ReactionBroadcast) => void>(() => undefined);
+  const typingApplyRef = useRef<(p: TypingBroadcast) => void>(() => undefined);
+
+  const send = useCallback<BroadcastSend>((event, payload) => {
+    const channel = channelRef.current;
+    if (!channel) return;
+    void channel.send({ type: "broadcast", event, payload }).catch(() => undefined);
+  }, []);
+
   const reactions = useMessageReactions({
-    conversationId: options.conversationId,
-    currentUserId: options.currentUserId,
+    conversationId,
+    currentUserId,
+    currentUserProfile: options.currentUserProfile,
     messageIds: options.messageIds,
+    send,
+  });
+  const typing = useTypingIndicator({
+    currentUserId,
+    currentUserProfile: options.currentUserProfile,
+    send,
   });
 
-  const typing = useTypingIndicator(options);
+  useEffect(() => {
+    reactionsApplyRef.current = reactions.applyRemote;
+    typingApplyRef.current = typing.applyRemote;
+  }, [reactions.applyRemote, typing.applyRemote]);
 
-  return {
-    reactions,
-    typing,
-  };
+  // One channel per open conversation, keyed on stable ids only.
+  useEffect(() => {
+    if (!conversationId || !currentUserId) return;
+
+    const channel = supabase
+      .channel(`dm-live-${conversationId}`, { config: { broadcast: { self: false } } })
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        typingApplyRef.current(payload as TypingBroadcast);
+      })
+      .on("broadcast", { event: "reaction" }, ({ payload }) => {
+        reactionsApplyRef.current(payload as ReactionBroadcast);
+      })
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      channelRef.current = null;
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, currentUserId]);
+
+  return { reactions, typing };
 }
 
 export { MESSAGE_REACTION_EMOJIS };

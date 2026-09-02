@@ -246,7 +246,12 @@ export function useToggleReaction() {
 // ============================================================================
 
 interface UseReactionCountsOptions {
-  /** Disable real-time subscription (useful when parent already manages updates) */
+  /**
+   * Opt IN to a per-post `postgres_changes` subscription. Off by default
+   * (Phase 2): every opened post used to create two channels and tear them
+   * down on close. Note `reactions` is no longer in the realtime publication,
+   * so enabling this also requires re-adding the table.
+   */
   disableRealtime?: boolean;
   /** Skip initial fetch (useful when initial data is already provided by parent). */
   skipInitialFetch?: boolean;
@@ -256,7 +261,7 @@ interface UseReactionCountsOptions {
 
 export function useReactionCounts(postId: string, options?: UseReactionCountsOptions) {
   const {
-    disableRealtime = false,
+    disableRealtime = true,
     skipInitialFetch = false,
     initialCounts,
   } = options || {};
@@ -475,7 +480,7 @@ interface UseUserReactionOptions {
 
 export function useUserReaction(postId: string, userId?: string, options?: UseUserReactionOptions) {
   const {
-    disableRealtime = false,
+    disableRealtime = true,
     skipInitialFetch = false,
     initialReaction = null,
   } = options || {};

@@ -14,6 +14,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
 import { createNotification } from "./hooks/useNotifications";
+import { useUserEvent } from "@/components/providers/UserEventsProvider";
 import { sanitizePostgrestSearchTerm } from "./utils/postgrest";
 import { retryWithBackoff, isRetryableError } from "./utils/retry";
 import type {
@@ -2314,7 +2315,6 @@ export function useCollaborationInvites(userId?: string) {
   const [invites, setInvites] = useState<CollaborationInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchInvites = useCallback(async () => {
     if (!userId) { setInvites([]); setLoading(false); return; }
@@ -2353,28 +2353,15 @@ export function useCollaborationInvites(userId?: string) {
     return () => { mountedRef.current = false; };
   }, [fetchInvites]);
 
-  // Subscription - only depends on userId
-  useEffect(() => {
+  // Live updates arrive on the per-user broadcast channel: an invite always
+  // creates a `collaboration_invite` notification, and responses delete or
+  // update it. No per-panel postgres_changes channel any more.
+  useUserEvent("notification_change", (payload) => {
     if (!userId) return;
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+    if (payload.type === "collaboration_invite") {
+      fetchInvitesRef.current();
     }
-
-    const channel = supabase
-      .channel(`collab-invites-${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'post_collaborators', filter: `user_id=eq.${userId}` }, () => { fetchInvitesRef.current(); })
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [userId]);
+  });
 
   const accept = async (postId: string, authorId: string) => {
     if (!userId) return { success: false };

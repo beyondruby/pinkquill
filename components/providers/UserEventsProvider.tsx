@@ -24,6 +24,14 @@ export interface DmUnreadChangePayload {
   sender_id: string;
   message_id: string;
   is_read: boolean | null;
+  /** Prior read state (UPDATE/DELETE only) — lets clients apply a delta. */
+  was_read?: boolean | null;
+  /** Preview fields (INSERT only). */
+  created_at?: string;
+  content?: string;
+  message_type?: "text" | "voice" | "media" | null;
+  voice_duration?: number | null;
+  media_type?: "image" | "video" | null;
 }
 
 export interface NotificationChangePayload {
@@ -31,6 +39,8 @@ export interface NotificationChangePayload {
   id: string;
   type?: string;
   read?: boolean;
+  /** Prior read state (UPDATE/DELETE only). */
+  was_read?: boolean | null;
 }
 
 export interface FollowChangePayload {

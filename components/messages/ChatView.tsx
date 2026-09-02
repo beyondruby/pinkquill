@@ -159,7 +159,21 @@ export default function ChatView({
   const { checkIsBlocked, blockUser, unblockUser } = useBlock();
   const { sendVoiceNote, sending: sendingVoice } = useSendVoiceNote();
   const { sendMedia, validateFile, sending: sendingMedia, limits } = useSendMedia();
-  const messageIds = useMemo(() => messages.map((message) => message.id), [messages]);
+  // Server ids only: optimistic `temp-` ids must never reach a query or a
+  // realtime filter (they produced `invalid input syntax for type uuid` in
+  // production logs).
+  const messageIds = useMemo(
+    () => messages.filter((message) => !message.id.startsWith("temp-")).map((message) => message.id),
+    [messages]
+  );
+  // Block flags are read through refs inside the realtime handler so the
+  // chat channel is not torn down and re-created when they resolve.
+  const isBlockedByThemRef = useRef(isBlockedByThem);
+  const iBlockedThemRef = useRef(iBlockedThem);
+  useEffect(() => {
+    isBlockedByThemRef.current = isBlockedByThem;
+    iBlockedThemRef.current = iBlockedThem;
+  }, [isBlockedByThem, iBlockedThem]);
 
   // Message reactions and typing indicators
   const { reactions, typing } = useChatFeatures({
@@ -371,7 +385,7 @@ export default function ChatView({
           const newMsg = payload.new as Message;
 
           // If the message is from the other user and there's a block, don't show it
-          if (newMsg.sender_id !== currentUserId && (isBlockedByThem || iBlockedThem)) {
+          if (newMsg.sender_id !== currentUserId && (isBlockedByThemRef.current || iBlockedThemRef.current)) {
             return; // Don't add blocked user's messages
           }
 
@@ -433,7 +447,7 @@ export default function ChatView({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, currentUserId, isBlockedByThem, iBlockedThem]);
+  }, [conversationId, currentUserId]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;

@@ -951,73 +951,11 @@ export function useCommunityAnnouncements(
     };
   }, [fetchAnnouncements]);
 
-  useEffect(() => {
-    if (!communityId || !userId) return;
-
-    const channel = supabase
-      .channel(`community-announcements-${communityId}-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "community_chat_messages",
-        },
-        async (payload) => {
-          const inserted = payload.new as CommunityChatMessage;
-
-          const { data, error: fetchError } = await supabase
-            .from("community_chat_messages")
-            .select(`
-              id,
-              thread_id,
-              sender_id,
-              sender_role,
-              message_type,
-              content,
-              metadata,
-              created_at,
-              sender_profile:profiles!community_chat_messages_sender_id_fkey (
-                id,
-                username,
-                display_name,
-                avatar_url
-              ),
-              thread:community_chat_threads!inner (
-                community_id
-              )
-            `)
-            .eq("id", inserted.id)
-            .contains("metadata", { broadcast: true })
-            .eq("thread.community_id", communityId)
-            .maybeSingle();
-
-          if (fetchError || !data || !mountedRef.current) return;
-
-          const row = data as CommunityAnnouncementRow;
-          const mapped: CommunityChatMessage = {
-            id: row.id,
-            thread_id: row.thread_id,
-            sender_id: row.sender_id,
-            sender_role: row.sender_role,
-            message_type: row.message_type,
-            content: row.content,
-            metadata: row.metadata,
-            created_at: row.created_at,
-            sender_profile: normalizeSenderProfile(row),
-          };
-
-          if (!isCommunityChannelMessage(mapped)) return;
-
-          setMessages((prev) => dedupeAnnouncements([...prev, mapped]));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [communityId, userId]);
+  // Announcements used to come from an UNFILTERED `community_chat_messages`
+  // INSERT stream (every message on the platform woke every open inbox and
+  // ran a query per client). Members already receive broadcast rows through
+  // their own per-thread channel; this list refreshes on focus.
+  usePollOnFocus(fetchAnnouncements);
 
   return {
     messages,

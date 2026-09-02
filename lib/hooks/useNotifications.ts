@@ -5,6 +5,7 @@ import { supabase } from "../supabase";
 import type { Notification, NotificationType } from "../types";
 import { isRetryableError, retryWithBackoff } from "../utils/retry";
 import { useUserEvent } from "@/components/providers/UserEventsProvider";
+import { usePollOnFocus } from "./usePollOnFocus";
 
 // ============================================================================
 // createNotification - Helper to create notifications
@@ -220,12 +221,16 @@ interface UseUnreadCountReturn {
 export function useUnreadCount(userId?: string, mutedTypes?: NotificationType[]): UseUnreadCountReturn {
   const [count, setCount] = useState(0);
   const mutedTypesKey = (mutedTypes || []).join(",");
+  const fetchingRef = useRef(false);
+  const refetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchCount = useCallback(async () => {
     if (!userId) {
       setCount(0);
       return;
     }
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
 
     try {
       const { count: unreadCount, error } = await retryWithBackoff(
@@ -257,8 +262,26 @@ export function useUnreadCount(userId?: string, mutedTypes?: NotificationType[])
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("[useUnreadCount] Unexpected error:", message);
+    } finally {
+      fetchingRef.current = false;
     }
   }, [userId, mutedTypesKey]);
+
+  // Corrective refetch for events whose prior state is unknown. Debounced so
+  // a burst (e.g. bulk delete) costs one request, not one per row.
+  const scheduleRefetch = useCallback(() => {
+    if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+    refetchTimerRef.current = setTimeout(() => {
+      refetchTimerRef.current = null;
+      fetchCount();
+    }, 500);
+  }, [fetchCount]);
+
+  useEffect(() => {
+    return () => {
+      if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+    };
+  }, []);
 
   // Initial fetch
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -271,30 +294,36 @@ export function useUnreadCount(userId?: string, mutedTypes?: NotificationType[])
   }, [userId, fetchCount]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Live updates: every notification change updates the unread count locally
-  // without an extra DB round-trip. Triggered by the per-user broadcast
-  // channel managed by UserEventsProvider.
+  // Live updates: the DB trigger only emits read-state flips and includes the
+  // prior state, so every event is a local ±1 — no HEAD request per event.
+  // (Opening the panel marks N rows read → N events → N decrements → 0 requests.)
   useUserEvent("notification_change", (payload) => {
     if (!userId) return;
+    if (payload.type && mutedTypes?.includes(payload.type as NotificationType)) {
+      return;
+    }
     if (payload.op === "INSERT") {
-      if (payload.type && mutedTypes?.includes(payload.type as NotificationType)) {
-        return;
-      }
       if (payload.read !== true) {
         setCount((c) => c + 1);
       }
       return;
     }
     if (payload.op === "DELETE") {
-      // We don't know whether the deleted row was unread; refetch is the
-      // safest correction.
-      fetchCount();
+      if (payload.was_read === false) {
+        setCount((c) => Math.max(0, c - 1));
+      } else if (payload.was_read == null) {
+        scheduleRefetch();
+      }
       return;
     }
-    if (payload.op === "UPDATE" && typeof payload.read === "boolean") {
-      // Read-state flip: ±1; otherwise no change. We can't know the prior
-      // state from the payload alone, so refetch on any read flip.
-      fetchCount();
+    if (payload.op === "UPDATE") {
+      if (payload.was_read === false && payload.read === true) {
+        setCount((c) => Math.max(0, c - 1));
+      } else if (payload.was_read === true && payload.read === false) {
+        setCount((c) => c + 1);
+      } else if (payload.was_read == null && typeof payload.read === "boolean") {
+        scheduleRefetch();
+      }
     }
   });
 
@@ -333,35 +362,24 @@ interface UseUnreadMessagesCountReturn {
   refetch: () => Promise<void>;
 }
 
-// Cache blocked users for 5 minutes to avoid refetching on every message
-const BLOCKED_USERS_CACHE_TTL_MS = 5 * 60 * 1000;
-
-interface BlockedUsersCache {
-  userIds: Set<string>;
-  fetchedAt: number;
+interface DmUnreadSummary {
+  unread_count: number;
+  conversation_ids: string[];
+  blocked_user_ids: string[];
 }
-
-// Module-level cache for blocked users (persists across hook instances)
-const blockedUsersCacheByUser = new Map<string, BlockedUsersCache>();
-
-// Backstop refetch interval for community-chat unread counts. Community
-// updates no longer use realtime (the global subscription was a major source
-// of egress); instead, the count syncs on window focus and on this interval.
-const COMMUNITY_UNREAD_REFETCH_INTERVAL_MS = 60_000;
 
 export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountReturn {
   const [count, setCount] = useState(0);
-  const fetchedRef = useRef(false);
   const mountedRef = useRef(true);
   const isFetchingRef = useRef(false);
+  const refetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const conversationIdsRef = useRef<Set<string>>(new Set());
   const blockedUsersRef = useRef<Set<string>>(new Set());
   const dmUnreadCountRef = useRef(0);
   const communityUnreadCountRef = useRef(0);
 
-  // Reset cache refs when user changes so a stale state never leaks between accounts.
+  // Reset when the user changes so state never leaks between accounts.
   useEffect(() => {
-    fetchedRef.current = false;
     conversationIdsRef.current = new Set();
     blockedUsersRef.current = new Set();
     dmUnreadCountRef.current = 0;
@@ -371,282 +389,115 @@ export function useUnreadMessagesCount(userId?: string): UseUnreadMessagesCountR
     }
   }, [userId]);
 
-  // Fetch blocked users with caching
-  const getBlockedUsers = useCallback(async (): Promise<Set<string>> => {
-    if (!userId) return new Set();
-
-    // Clear cache entries for other users to prevent cross-user leakage
-    // (e.g., User A logs out, User B logs in within the TTL window)
-    for (const key of blockedUsersCacheByUser.keys()) {
-      if (key !== userId) {
-        blockedUsersCacheByUser.delete(key);
-      }
-    }
-
-    // Check cache
-    const cached = blockedUsersCacheByUser.get(userId);
-    if (cached && (Date.now() - cached.fetchedAt < BLOCKED_USERS_CACHE_TTL_MS)) {
-      return cached.userIds;
-    }
-
-    try {
-      // Fetch both directions in parallel
-      const [blockedByResult, iBlockedResult] = await retryWithBackoff(
-        () =>
-          Promise.all([
-            supabase.from("blocks").select("blocker_id").eq("blocked_id", userId),
-            supabase.from("blocks").select("blocked_id").eq("blocker_id", userId),
-          ]),
-        {
-          attempts: 3,
-          shouldRetry: isRetryableError,
-        }
-      );
-
-      const blockedUserIds = new Set<string>();
-      (blockedByResult.data || []).forEach((b) => blockedUserIds.add(b.blocker_id));
-      (iBlockedResult.data || []).forEach((b) => blockedUserIds.add(b.blocked_id));
-
-      // Update cache
-      blockedUsersCacheByUser.set(userId, {
-        userIds: blockedUserIds,
-        fetchedAt: Date.now(),
-      });
-
-      return blockedUserIds;
-    } catch (err) {
-      console.error("[useUnreadMessagesCount] Error fetching blocked users:", err);
-      return cached?.userIds || new Set();
-    }
-  }, [userId]);
-
   const syncTotalCount = useCallback(() => {
     if (!mountedRef.current) return;
     setCount(dmUnreadCountRef.current + communityUnreadCountRef.current);
   }, []);
 
-  const fetchCommunityUnreadCount = useCallback(async (): Promise<number> => {
-    if (!userId) return 0;
-
-    try {
-      const { data, error } = await retryWithBackoff(
-        () =>
-          supabase.rpc("get_community_chat_unread_count", {
-            p_user_id: userId,
-          }),
-        {
-          attempts: 3,
-          shouldRetry: isRetryableError,
-        }
-      );
-
-      if (error) {
-        console.error("[useUnreadMessagesCount] Error fetching community unread count:", error.message);
-        return communityUnreadCountRef.current;
-      }
-
-      return Number(data || 0);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useUnreadMessagesCount] Unexpected community unread count error:", message);
-      return communityUnreadCountRef.current;
+  // DM half: one aggregate RPC (block-aware, auth.uid()-scoped) replaces
+  // blocks×2 → conversation_participants → HEAD messages.
+  const fetchDmSummary = useCallback(async () => {
+    if (!userId) return;
+    const { data, error } = await supabase.rpc("get_dm_unread_summary");
+    if (!mountedRef.current) return;
+    if (error) {
+      console.error("[useUnreadMessagesCount] Error fetching DM summary:", error.message);
+      return;
     }
+    const summary = (data || {}) as Partial<DmUnreadSummary>;
+    conversationIdsRef.current = new Set(summary.conversation_ids || []);
+    blockedUsersRef.current = new Set(summary.blocked_user_ids || []);
+    dmUnreadCountRef.current = Number(summary.unread_count || 0);
+  }, [userId]);
+
+  // Community half: no realtime for this (by design); refreshed on focus.
+  const fetchCommunityUnreadCount = useCallback(async () => {
+    if (!userId) return;
+    const { data, error } = await supabase.rpc("get_community_chat_unread_count", {
+      p_user_id: userId,
+    });
+    if (!mountedRef.current) return;
+    if (error) {
+      console.error("[useUnreadMessagesCount] Error fetching community unread count:", error.message);
+      return;
+    }
+    communityUnreadCountRef.current = Number(data || 0);
   }, [userId]);
 
   const fetchCount = useCallback(async () => {
     if (!userId) {
       setCount(0);
-      fetchedRef.current = false;
-      conversationIdsRef.current = new Set();
-      blockedUsersRef.current = new Set();
-      dmUnreadCountRef.current = 0;
-      communityUnreadCountRef.current = 0;
       return;
     }
-
-    if (isFetchingRef.current) {
-      return;
-    }
+    if (isFetchingRef.current) return;
     isFetchingRef.current = true;
-
     try {
-      // Get blocked users (uses cache)
-      const blockedUserIds = await getBlockedUsers();
-      blockedUsersRef.current = blockedUserIds;
-
-      // Get conversations where user is participant
-      const { data: participations, error: participationsError } = await retryWithBackoff(
-        () =>
-          supabase
-            .from("conversation_participants")
-            .select("conversation_id")
-            .eq("user_id", userId),
-        {
-          attempts: 3,
-          shouldRetry: isRetryableError,
-        }
-      );
-
-      if (!mountedRef.current) return;
-      if (participationsError) throw participationsError;
-
-      let filteredCount = 0;
-      if (!participations || participations.length === 0) {
-        conversationIdsRef.current = new Set();
-      } else {
-        const conversationIds = participations.map((p) => p.conversation_id);
-        conversationIdsRef.current = new Set(conversationIds);
-
-        // Build blocked user IDs array for Supabase filter
-        const blockedArray = Array.from(blockedUserIds);
-
-        if (blockedArray.length > 0) {
-          // Use count query with server-side blocked user filtering
-          const { count: unreadCount, error } = await retryWithBackoff(
-            () =>
-              supabase
-                .from("messages")
-                .select("*", { count: "exact", head: true })
-                .eq("is_read", false)
-                .in("conversation_id", conversationIds)
-                .neq("sender_id", userId)
-                .not("sender_id", "in", `(${blockedArray.join(",")})`),
-            {
-              attempts: 3,
-              shouldRetry: isRetryableError,
-            }
-          );
-
-          if (!mountedRef.current) return;
-          if (error) throw error;
-
-          filteredCount = unreadCount || 0;
-        } else {
-          // No blocked users -- simple count query without block filter
-          const { count: unreadCount, error } = await retryWithBackoff(
-            () =>
-              supabase
-                .from("messages")
-                .select("*", { count: "exact", head: true })
-                .eq("is_read", false)
-                .in("conversation_id", conversationIds)
-                .neq("sender_id", userId),
-            {
-              attempts: 3,
-              shouldRetry: isRetryableError,
-            }
-          );
-
-          if (!mountedRef.current) return;
-          if (error) throw error;
-
-          filteredCount = unreadCount || 0;
-        }
-      }
-
-      const communityUnreadCount = await fetchCommunityUnreadCount();
-      if (!mountedRef.current) return;
-
-      dmUnreadCountRef.current = filteredCount;
-      communityUnreadCountRef.current = communityUnreadCount;
+      await Promise.all([fetchDmSummary(), fetchCommunityUnreadCount()]);
       syncTotalCount();
-      fetchedRef.current = true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("[useUnreadMessagesCount] Error:", message);
     } finally {
       isFetchingRef.current = false;
     }
-  }, [userId, getBlockedUsers, fetchCommunityUnreadCount, syncTotalCount]);
+  }, [userId, fetchDmSummary, fetchCommunityUnreadCount, syncTotalCount]);
 
-  // Use ref to access latest fetchCount in subscription callback
-  const fetchCountRef = useRef(fetchCount);
-  useEffect(() => {
-    fetchCountRef.current = fetchCount;
-  }, [fetchCount]);
+  const scheduleDmRefetch = useCallback(() => {
+    if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+    refetchTimerRef.current = setTimeout(async () => {
+      refetchTimerRef.current = null;
+      await fetchDmSummary();
+      syncTotalCount();
+    }, 500);
+  }, [fetchDmSummary, syncTotalCount]);
 
-  // Initial fetch - separate from subscription
   useEffect(() => {
     mountedRef.current = true;
-    if (userId && !fetchedRef.current) {
+    if (userId) {
       fetchCount();
     }
     return () => {
       mountedRef.current = false;
+      if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
     };
   }, [userId, fetchCount]);
 
-  // DM unread updates flow through the per-user broadcast channel. The
-  // database trigger fans out only to conversation participants other than
-  // the sender, so each event is already targeted — no global table stream.
+  // DM unread updates arrive on the per-user broadcast channel. The trigger
+  // carries the prior read state, so every event is a local delta; the only
+  // refetch is for a conversation we have never seen.
   useUserEvent("dm_unread_change", (payload) => {
     if (!userId) return;
 
-    const { op, conversation_id, sender_id, is_read } = payload;
+    const { op, conversation_id, sender_id, is_read, was_read } = payload;
 
-    // Conversation we don't know about yet (e.g., user was just added or a
-    // brand-new conversation). Refetch to pick up the new participant row
-    // and recompute the count.
     if (!conversationIdsRef.current.has(conversation_id)) {
-      fetchCountRef.current();
+      scheduleDmRefetch();
       return;
     }
 
     if (sender_id === userId) return;
     if (blockedUsersRef.current.has(sender_id)) return;
 
+    let delta = 0;
     if (op === "INSERT") {
-      if (is_read !== true) {
-        dmUnreadCountRef.current += 1;
-        syncTotalCount();
-      }
-      return;
+      if (is_read !== true) delta = 1;
+    } else if (op === "DELETE") {
+      if (was_read === false) delta = -1;
+    } else if (op === "UPDATE") {
+      if (was_read === false && is_read === true) delta = -1;
+      else if (was_read === true && is_read === false) delta = 1;
     }
 
-    if (op === "DELETE") {
-      if (is_read === false) {
-        dmUnreadCountRef.current = Math.max(0, dmUnreadCountRef.current - 1);
-        syncTotalCount();
-      } else {
-        // Unknown prior unread state — refetch to stay correct.
-        fetchCountRef.current();
-      }
-      return;
+    if (delta !== 0) {
+      dmUnreadCountRef.current = Math.max(0, dmUnreadCountRef.current + delta);
+      syncTotalCount();
     }
-
-    // UPDATE: we don't get the prior is_read in the payload, so any toggle
-    // of read state requires a corrective refetch. This is rare compared to
-    // INSERT, so the cost is minimal.
-    fetchCountRef.current();
   });
 
-  // Community chat unread: no realtime. Sync on tab focus and on a slow
-  // interval. Active community chat views (per-thread channels) update their
-  // own UIs in real-time; this is just the navbar badge.
-  useEffect(() => {
-    if (!userId || typeof window === "undefined") return;
-
-    const refetchOnFocus = () => {
-      if (document.visibilityState === "visible" && mountedRef.current) {
-        fetchCountRef.current();
-      }
-    };
-
-    const interval = window.setInterval(() => {
-      if (mountedRef.current && document.visibilityState === "visible") {
-        fetchCountRef.current();
-      }
-    }, COMMUNITY_UNREAD_REFETCH_INTERVAL_MS);
-
-    document.addEventListener("visibilitychange", refetchOnFocus);
-    window.addEventListener("focus", refetchOnFocus);
-
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", refetchOnFocus);
-      window.removeEventListener("focus", refetchOnFocus);
-    };
-  }, [userId]);
+  // Focus/visibility refresh, throttled (30s). Replaces the 60s interval and
+  // the unthrottled focus listeners: 10k idle tabs no longer generate a
+  // baseline of ~500 requests/s for a badge.
+  usePollOnFocus(fetchCount, 30_000);
 
   return { count, refetch: fetchCount };
 }
