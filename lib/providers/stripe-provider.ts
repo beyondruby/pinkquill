@@ -175,6 +175,22 @@ export class StripeProvider implements PaymentProviderInterface {
     }
 
     if (account.stripe_account_id) {
+      // account.updated webhooks keep this row fresh; only ask Stripe again if
+      // the last sync is older than a minute (status pages poll).
+      const syncedAt = account.status_synced_at ? Date.parse(account.status_synced_at) : 0;
+      if (Date.now() - syncedAt < 60_000) {
+        return {
+          provider: "stripe",
+          hasAccount: true,
+          accountId: account.stripe_account_id,
+          onboardingComplete: Boolean(account.onboarding_complete),
+          chargesEnabled: Boolean(account.charges_enabled),
+          payoutsEnabled: Boolean(account.payouts_enabled),
+          country: account.country || null,
+          email: null,
+        };
+      }
+
       const stripe = getStripeServer();
       const stripeAccount = await stripe.accounts.retrieve(
         account.stripe_account_id
@@ -185,6 +201,9 @@ export class StripeProvider implements PaymentProviderInterface {
         charges_enabled: stripeAccount.charges_enabled ?? false,
         payouts_enabled: stripeAccount.payouts_enabled ?? false,
         country: stripeAccount.country || account.country,
+        requirements_currently_due: stripeAccount.requirements?.currently_due ?? [],
+        disabled_reason: stripeAccount.requirements?.disabled_reason ?? null,
+        status_synced_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 

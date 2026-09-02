@@ -31,6 +31,7 @@ import {
 } from "@/lib/payments-server";
 import { getStripeServer } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { reportOpsAlert } from "@/lib/ops";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -139,6 +140,9 @@ async function handleSessionPaid(
       `[Stripe Webhook] ${result.outcome} on order ${orderId}: charged ${amountCents} ${currency}, expected ${result.expected_cents ?? "n/a"} — refunding`
     );
     await refundUnhonouredPayment(stripe, paymentIntentId, amountCents, result.outcome, event.id);
+    await reportOpsAlert({ kind: "unhonoured_payment_refunded", severity: "warning", orderId,
+      message: `${result.outcome}: charged ${amountCents} ${currency}, expected ${result.expected_cents ?? "n/a"} — refunded automatically`,
+      context: { payment_intent_id: paymentIntentId, stripe_event_id: event.id } });
     return { status: "processed", note: `${result.outcome}; auto-refunded`, orderId };
   }
 
@@ -277,6 +281,11 @@ async function handleDispute(stripe: Stripe, dispute: Stripe.Dispute, event: Str
     }
   }
   console.error(`[Stripe Webhook] chargeback ${phase} (${dispute.id}, ${dispute.status})`);
+  if (phase === "created") {
+    await reportOpsAlert({ kind: "chargeback_opened", severity: "critical",
+      message: `Chargeback ${dispute.id} (${dispute.reason ?? "unknown"}) for ${dispute.amount} ${dispute.currency} — respond in Stripe`,
+      context: { stripe_dispute_id: dispute.id, payment_intent_id: paymentIntentId, evidence_due_by: dispute.evidence_details?.due_by ?? null } });
+  }
   return { status: "processed", note: `chargeback ${phase} → ${result.order_status ?? ""}`, orderId: null };
 }
 
@@ -427,6 +436,7 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "Webhook processing failed";
     console.error(`[Stripe Webhook] ${event.type} ${event.id} failed:`, error);
     await finishStripeEvent(event.id, "failed", message);
+    await reportOpsAlert({ kind: "webhook_failed", message: `${event.type} ${event.id}: ${message}`, context: { event_type: event.type, event_id: event.id } });
     // 500 → Stripe retries; claim_stripe_event lets the retry through.
     return NextResponse.json({ error: message }, { status: 500 });
   }

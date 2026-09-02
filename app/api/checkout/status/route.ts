@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/api-security";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,9 @@ export async function GET(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rateLimit = await checkRateLimit({ request, scope: "checkout.status", limit: 60, windowSeconds: 60, userId: user.id });
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit, 60);
 
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get("session_id");

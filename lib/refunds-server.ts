@@ -15,6 +15,7 @@
 import { getActiveProvider, TransferBlockedError } from "@/lib/payment-provider";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { claimApprovedRefunds, markPayoutReversed, markRefundNeedsReview, markRefundSubmitted } from "@/lib/payments-server";
+import { reportOpsAlert } from "@/lib/ops";
 
 export interface RefundRunSummary {
   claimed: number;
@@ -76,6 +77,7 @@ export async function executeApprovedRefunds(orderId?: string | null, limit = 25
             } catch (err) {
               const message = err instanceof Error ? err.message : "Transfer reversal failed";
               await markRefundNeedsReview(refund.id, `Could not reclaim the seller payout: ${message}`);
+              await reportOpsAlert({ kind: "refund_needs_review", orderId: refund.order_id, message: `Refund ${refund.id}: payout reversal failed — ${message}`, context: { refund_id: refund.id, transfer_id: payout.transfer_id } });
               summary.needs_review++;
               summary.errors.push(`${refund.id}: ${message}`);
               continue;
@@ -97,8 +99,10 @@ export async function executeApprovedRefunds(orderId?: string | null, limit = 25
       const message = err instanceof Error ? err.message : "Refund failed";
       const retryable = !(err instanceof TransferBlockedError) && !/already been refunded|charge_already_refunded/i.test(message);
       const outcome = await markRefundNeedsReview(refund.id, message, retryable);
-      if (outcome.outcome === "needs_review") summary.needs_review++;
-      else summary.retry++;
+      if (outcome.outcome === "needs_review") {
+        summary.needs_review++;
+        await reportOpsAlert({ kind: "refund_needs_review", orderId: refund.order_id, message: `Refund ${refund.id}: ${message}`, context: { refund_id: refund.id } });
+      } else summary.retry++;
       summary.errors.push(`${refund.id}: ${message}`);
       console.error(`[refunds] ${refund.id} (order ${refund.order_id}):`, message);
     }

@@ -24,6 +24,7 @@ import {
   releaseEligiblePayouts,
 } from "@/lib/payments-server";
 import { executeApprovedRefunds } from "@/lib/refunds-server";
+import { reportOpsAlert } from "@/lib/ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -119,8 +120,10 @@ export async function POST(request: Request) {
           summary.blocked++;
         } else {
           const result = await markPayoutFailed({ payoutId: payout.id, error: message });
-          if (result.outcome === "failed") summary.failed++;
-          else summary.retry++;
+          if (result.outcome === "failed") {
+            summary.failed++;
+            await reportOpsAlert({ kind: "payout_failed", orderId: payout.order_id, message: `Payout ${payout.id} failed after retries: ${message}`, context: { payout_id: payout.id } });
+          } else summary.retry++;
         }
         summary.errors.push(`${payout.id}: ${message}`);
         console.error(`[payouts/run] payout ${payout.id} (order ${payout.order_id}):`, message);
@@ -131,6 +134,7 @@ export async function POST(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Payout run failed";
     console.error("[payouts/run]", err);
+    await reportOpsAlert({ kind: "payout_run_failed", severity: "critical", message, context: summary });
     return NextResponse.json({ ok: false, error: message, ...summary }, { status: 500 });
   }
 }

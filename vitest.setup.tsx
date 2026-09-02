@@ -23,8 +23,9 @@ vi.mock("next/image", () => ({
   ),
 }));
 
-// Mock window.matchMedia
-Object.defineProperty(window, "matchMedia", {
+// Browser globals only exist under jsdom; node-environment tests (// @vitest-environment node) skip them.
+const hasWindow = typeof window !== "undefined";
+if (hasWindow) Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
@@ -45,7 +46,7 @@ class MockIntersectionObserver {
   disconnect = vi.fn();
 }
 
-Object.defineProperty(window, "IntersectionObserver", {
+if (hasWindow) Object.defineProperty(window, "IntersectionObserver", {
   writable: true,
   value: MockIntersectionObserver,
 });
@@ -57,7 +58,7 @@ class MockResizeObserver {
   disconnect = vi.fn();
 }
 
-Object.defineProperty(window, "ResizeObserver", {
+if (hasWindow) Object.defineProperty(window, "ResizeObserver", {
   writable: true,
   value: MockResizeObserver,
 });

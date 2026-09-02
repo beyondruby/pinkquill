@@ -11,7 +11,7 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 1b — Verified payment record + full webhook | **done, applied to production** | 2026-09-02 |
 | 1c — Payout release, ledger, cron, settlement currency | **done, applied to production** | 2026-09-02 |
 | 1d — Refunds, cancellations, disputes, chargebacks | **done, applied to production** | 2026-09-02 |
-| 1e — Test harness + go-live checklist | not started | |
+| 1e — Test harness + go-live checklist | **done, applied to production** (go-live checklist below; live keys NOT yet configured) | 2026-09-02 |
 | 2–4 | not started | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
@@ -230,4 +230,63 @@ Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while 
 - `refundPayment`-era `order_events` for reversal failures remain as `transfer_failed` events; an operator queue view is 2f.
 - Chargeback evidence submission to Stripe is manual in the dashboard for now.
 
-**Next:** Phase 1e — test harness and go-live checklist. No decisions pending (D7 email provider is Phase 2d).
+**Next (at the time):** Phase 1e. Superseded by the entry below.
+
+---
+
+## Phase 1e — what changed (2026-09-02)
+
+**Closes:** RC-D5 for the money paths (the payment state machine is now tested three ways and can be re-verified from a fresh session with one command), RC-A7.4–5 (status polling rate limit, seller-status cache), and gives operators a health endpoint + alert stream instead of `console.error`.
+
+**Migration** `supabase/migrations/20260902_commissions_phase1e_selftest_ops.sql` — applied as `commissions_phase1e_selftest_ops`.
+- `ops_alerts` (kind, severity info|warning|critical, message, context, order_id, resolved_at) + `alert_ops()` (service) — every place that used to only `console.error` a money problem now also writes a row.
+- `get_ops_health()` (service) — one JSON snapshot: last run per cron job and whether it is overdue, Stripe events failed in the last 24 h, payouts by status (with `failed`/`blocked` counts), refunds in `needs_review`, open disputes/chargebacks, open alerts, latest fx rate age vs `fx_max_age_hours`, ledger totals and whether the ledger balances.
+- `seller_accounts.status_synced_at` for the 60 s status cache.
+- `run_money_selftest()` (service) — runs the whole money state machine inside a savepoint against the real schema and **always rolls back**: fee model, pay/replay/cancel/refund (a), work-started refund request + decline + partial + over-refund refused (b), overdue buyer cancel (c), release → dispute blocks payout → non-admin refused → admin release, cancel-after-payout refused (d), chargeback created/withdrawn/lost (e), stale-session expiry (f), amount-mismatch auto-refund (g). Returns `{ok, rolled_back, result}` with a token string per scenario.
+
+**Code**
+- `lib/ops.ts` (new): `reportOpsAlert()` — never throws. Wired into: webhook failures and unhonoured-payment refunds and chargeback creation (critical), payout `failed` and worker run failures, refunds parked in `needs_review`, fx feed failures.
+- `app/api/admin/health/route.ts` (new, admin only): `GET` → `get_ops_health()` + the 50 newest open alerts. This is the operator's page until 2f builds a UI.
+- `app/api/checkout/status/route.ts`: 60 requests/minute per user (in-memory, per instance).
+- `lib/providers/stripe-provider.ts` `checkSellerStatus`: served from the DB when synced in the last 60 s; otherwise one Stripe read that also refreshes `requirements_currently_due` / `disabled_reason`.
+- `lib/fx.ts`: quote maths extracted to a pure `buildSettlementQuote()`; behaviour unchanged.
+- `vitest.setup.tsx`: browser-global mocks are skipped under `// @vitest-environment node`, so server route tests can run in node.
+
+**Tests** (`npx vitest run` → 158 pass + 1 opt-in)
+- `lib/__tests__/fx.test.ts` — quote maths: no-conversion, the C$7.75 live case, buffer never negative across rates/amounts, free order, invalid rate.
+- `lib/__tests__/refunds-server.test.ts` — refund execution: nothing approved; idempotent Stripe refund; reversal **before** refund when the seller was paid; reversal failure → `needs_review`, buyer NOT refunded, alert raised; partial refund reverses only what is left; missing PaymentIntent → review; transient Stripe error → retry, no alert.
+- `app/api/stripe/webhooks/__tests__/route.test.ts` — real Stripe signature verification (`generateTestHeaderString`): bad signature → 400 before any DB call; duplicate claim → 200 no processing; paid session → `record_payment_succeeded` with amount/currency/fee; unpaid session ignored; amount mismatch → idempotent Stripe refund + `record_payment_refund` + alert; declined payment recorded; handler throw → event `failed` + 500 (Stripe retries) + alert; chargeback → `record_chargeback` + payout reversal `reversal_chargeback_<dispute>`.
+- `lib/__tests__/money-selftest.test.ts` — **database contract test**, opt-in: `RUN_DB_SELFTEST=1 npx vitest run lib/__tests__/money-selftest.test.ts` (reads the service key from `.env.local`). Calls `run_money_selftest()` and asserts every scenario token. Ran green against production on 2026-09-02 (2.0 s); production still has zero orders / ledger rows / refunds / payouts / disputes / alerts afterwards.
+- `e2e/commissions-journey.spec.ts` rewritten for the current UI: publish $5 service → hire → `/checkout/<id>` shows Processing fee $0.48 and Total $5.48 → 4242 card inside the embedded Checkout iframe → `/checkout/<id>/complete` waits for the webhook ("Payment confirmed") → order page "Total paid" → seller Start Work / Submit Delivery → buyer Accept Delivery → completed, no cancel offered. Skipped unless `E2E_SELLER_EMAIL/PASSWORD` + `E2E_BUYER_EMAIL/PASSWORD` are set; it needs the app running against Stripe test keys with `stripe listen` forwarding. **Not run in this session** (no E2E accounts exist yet) — the same path was exercised by hand in 1b–1d.
+
+**Not done from the plan line:** Sentry. The project has no Sentry DSN and adding a vendor is a decision for you; `ops_alerts` + `/api/admin/health` cover the same need without a third party. Add Sentry later by calling it inside `reportOpsAlert()` — one place.
+
+**Verified:** `npx tsc` clean; ESLint 0 errors on changed files (pre-existing warnings only); 158 unit tests + DB self-test pass; `npm run build` succeeds.
+
+---
+
+## Go-live checklist (Phase 1 gate) — nothing below is done yet
+
+Do these in order. Everything before step 6 is reversible.
+
+1. **Deploy the branch.** Merge `fix/commissions-phase0` → `main` and deploy. Until then `/api/payouts/run`, `/api/admin/health`, the refund route and the new webhook code do not exist in production, and the 15-minute payout job 404s (harmless: it only fires with pending payouts).
+2. **Vercel environment (production):**
+   - `STRIPE_SECRET_KEY` = live secret key, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` = live publishable key. Live keys live **only** in Vercel; `.env.local` keeps test keys forever.
+   - `STRIPE_WEBHOOK_SECRET` = the signing secret of the **live** endpoint from step 3 (not the CLI `whsec_`).
+   - `CRON_SECRET` = exactly the value stored in Supabase Vault as `cron_secret` (`select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret'`). Rotate both together.
+   - `PAYMENTS_PROVIDER=stripe`, `SUPABASE_SERVICE_ROLE_KEY` set, `NEXT_PUBLIC_APP_URL=https://www.pinkquill.com`.
+3. **Stripe live webhook endpoint** (Developers → Webhooks → Add endpoint): URL `https://www.pinkquill.com/api/stripe/webhooks`, **listen on your account and on Connected accounts**, events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `payment_intent.payment_failed`, `charge.refunded`, `charge.dispute.created`, `charge.dispute.updated`, `charge.dispute.closed`, `charge.dispute.funds_withdrawn`, `charge.dispute.funds_reinstated`, `transfer.reversed`, `payout.failed`, `account.updated`, `account.application.deauthorized`. API version = the one pinned in `lib/stripe.ts`.
+4. **Stripe live settings:** business name / support email / support URL; statement descriptor `PINKQUILL`; customer emails → "successful payments" (receipts) and "refunds" on; Connect → branding (name, icon, colour) and platform settings → **manual review off, sellers use Express dashboard**; Connect → tax forms enabled for CA (T4A) and US (1099-K) so Stripe files them; Radar rules default. Confirm the account settles in CAD only (D1) — `platform_settings.settlement_currency = 'cad'` matches.
+5. **Supabase production checks:** `select * from cron.job` shows the three `marketplace-*` jobs active; `platform_settings.app_base_url = 'https://www.pinkquill.com'`; `platform_admins` contains your user; `select run_money_selftest()` returns `ok = true`; `select get_ops_health()` shows the fx rate younger than 6 h and the ledger balanced.
+6. **First live dollar (the real gate).** With the site live, buy a $5 service from a second account with a real card: order → `paid` within seconds (webhook), Stripe fee recorded, ledger balanced, `/api/admin/health` clean. Complete the order, then wait for the 7-day release (or set `release_window_hours` low for one day, then back). Confirm the transfer reaches the seller's Express dashboard and the payout row is `sent`. Refund that order from the seller side and confirm `refunded` round-trips. Only then announce.
+7. **Observe 24 h:** `cron_runs` has hourly + 15-minute rows; `stripe_events` has no `failed`; `ops_alerts` empty; Vercel logs show no `[Stripe Webhook] … failed`.
+8. **Runbook** (check `/api/admin/health` daily, or when a seller/buyer complains):
+   - `refunds.status = needs_review` → read `refunds.error`; if the seller payout could not be reversed, reverse it in the Stripe dashboard (Transfers → reverse) then `update refunds set status='approved', error=null where id=…` and hit `/api/payouts/run`; if the charge was already refunded in Stripe, `charge.refunded` will reconcile it — do nothing.
+   - `payouts.status = failed` → the seller's Stripe account rejected 3 transfers; fix the account (requirements in `seller_accounts.requirements_currently_due`), then `select unblock_payouts_for_seller('<user_id>')`.
+   - `payouts.status = blocked` → waiting on the seller (onboarding) or a dispute; nothing to do.
+   - `stripe_events.status = failed` → replay from the Stripe dashboard (Webhooks → event → Resend); the claim table lets the retry through.
+   - Chargeback alert → respond in Stripe before `disputes.evidence_due_by` using the evidence in `disputes.evidence`; the outcome flows back via `charge.dispute.closed`.
+   - fx rate stale alert → `fx_rates` feed (frankfurter) is down; quotes fall back to the last rate up to `fx_max_age_hours`, after which checkout refuses with a clear error. Insert a manual row if it lasts.
+9. **Later, when a USD bank account exists:** add it in Stripe (Settings → Bank accounts → USD), set `platform_settings.settlement_currency = 'usd'` — no code change; the fx buffer and reserve stop applying to new orders.
+
+**Next:** Phase 2 (product features) needs your go — start with 2a Availability & slots. D7 (email provider) is decided in 2d.
