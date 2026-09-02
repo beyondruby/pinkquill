@@ -41,6 +41,14 @@ function getErrorMessage(error: unknown): string {
  * Best-effort retryability detection for transient network/database failures.
  */
 export function isRetryableError(error: unknown): boolean {
+  // A client-side abort (our own fetch timeout in lib/supabase.ts, or a
+  // caller cancelling) must never be retried: each retry would wait the full
+  // timeout again, turning one slow request into a multi-minute stall
+  // (docs/audit/01-findings.md H6).
+  if (error instanceof Error && error.name === "AbortError") {
+    return false;
+  }
+
   const message = getErrorMessage(error).toLowerCase();
   const code =
     error && typeof error === "object" && "code" in error

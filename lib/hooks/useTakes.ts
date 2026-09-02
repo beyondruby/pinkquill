@@ -580,14 +580,22 @@ export function useTakes(userId?: string, options: UseTakesOptions = {}) {
     };
   }, [fetchTakes]);
 
-  // Loading timeout safeguard - prevents stuck loading state (10 seconds max)
+  // Loading timeout safeguard. If the first page has not arrived after 10s,
+  // surface an error (the feed renders a retry state for it) instead of
+  // silently showing an empty feed — a hidden failure is what made earlier
+  // "stuck loading" reports impossible to diagnose.
   useEffect(() => {
     if (!loading) return;
 
     const timeoutId = setTimeout(() => {
-      console.warn("[useTakes] Loading timeout reached - forcing load complete");
+      if (!mountedRef.current) return;
+      console.warn("[useTakes] Loading timeout reached");
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      fetchingRef.current = false;
+      setError((prev) => prev ?? "Takes are taking too long to load. Please try again.");
       setLoading(false);
-      // Don't show error - just gracefully complete loading
     }, 10000);
 
     return () => clearTimeout(timeoutId);
@@ -932,7 +940,11 @@ export function useTakeReactionCounts(takeId: string) {
   }, [takeId]);
 
   useEffect(() => {
-    if (takeId) fetchCounts();
+    if (takeId) {
+      fetchCounts();
+    } else {
+      setLoading(false);
+    }
   }, [takeId, fetchCounts]);
 
   return { counts, loading, refetch: fetchCounts };
@@ -1019,7 +1031,11 @@ export function useTakeComments(takeId: string, userId?: string) {
   }, [takeId, userId]);
 
   useEffect(() => {
-    if (takeId) fetchComments();
+    if (takeId) {
+      fetchComments();
+    } else {
+      setLoading(false);
+    }
   }, [takeId, fetchComments]);
 
   // Add comment (top-level or reply)

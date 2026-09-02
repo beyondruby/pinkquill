@@ -463,7 +463,10 @@ export function useFollowList(userId: string, type: "followers" | "following", p
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchPage = useCallback(async (pageNum: number) => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
 
     // Abort any in-flight request
     if (abortControllerRef.current) {

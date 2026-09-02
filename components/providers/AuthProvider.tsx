@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { User } from "@supabase/supabase-js";
+import { User, Session } from "@supabase/supabase-js";
+import { reportAuthDiagnostic } from "@/lib/diagnostics/authDiagnostics";
 
 /**
  * Push the current session JWT into the realtime client. Required for
@@ -44,12 +45,28 @@ interface Profile {
   notification_preferences: Record<string, boolean> | null;
 }
 
+/**
+ * Four-state auth status. The important distinction is `unknown` vs
+ * `anonymous`: `anonymous` is a *resolved* "there is no session"; `unknown`
+ * means we gave up waiting (12s) without an answer. Route guards must only
+ * redirect to /login on `anonymous` — bouncing a signed-in user because a
+ * lock or a slow network delayed the answer was one of the "site doesn't
+ * load" causes (docs/audit/01-findings.md H3).
+ */
+export type AuthStatus = "loading" | "authenticated" | "anonymous" | "unknown";
+
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
+  /** True until the first profile attempt for the current user has finished. */
   loading: boolean;
+  status: AuthStatus;
+  /** Resolved "no session". Use this (not `!user`) to decide on redirects. */
+  isAnonymous: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  /** Re-run session detection after a `status === "unknown"` timeout. */
+  retryAuth: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,6 +74,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const PROFILE_TIMEOUT_MS = 10_000;
 const PROFILE_RETRY_DELAYS_MS = [2_000, 5_000, 10_000];
 const AUTH_INIT_TIMEOUT_MS = PROFILE_TIMEOUT_MS + 2_000;
+const AUTH_INIT_SLOW_MS = 8_000;
 
 function isAbortError(err: unknown) {
   return err instanceof Error && err.name === "AbortError";
@@ -74,21 +92,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<AuthStatus>("loading");
+  // Bumped to force the profile effect to re-run for the same user
+  // (visibility return, manual retry) without changing `user`.
+  const [profileNonce, setProfileNonce] = useState(0);
+  const [initNonce, setInitNonce] = useState(0);
 
-  // Track if we're currently fetching a profile to prevent duplicate fetches
-  const fetchingProfileRef = useRef<string | null>(null);
   const activeUserIdRef = useRef<string | null>(null);
+  const userRef = useRef<User | null>(null);
+  const profileRef = useRef<Profile | null>(null);
+  const fetchingProfileRef = useRef<string | null>(null);
   const profileRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Mirror of `profile` state for reads inside event-listener closures
-  // (onAuthStateChange callback is created once and would otherwise see a
-  // stale profile value). Updated whenever `profile` state changes.
-  const profileRef = useRef<Profile | null>(null);
   useEffect(() => {
     profileRef.current = profile;
   }, [profile]);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
-  // Fetch profile from database
+  // ---------------------------------------------------------------------------
+  // Profile fetch / create. These run from effects, NEVER from inside the
+  // onAuthStateChange callback (see the comment on the listener below).
+  // ---------------------------------------------------------------------------
   const fetchProfile = useCallback(async (userId: string, signal?: AbortSignal): Promise<Profile | null> => {
     try {
       const query = supabase
@@ -114,15 +140,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Create profile for new users (with timeout protection)
-  const createProfile = useCallback(async (user: User, signal?: AbortSignal): Promise<Profile | null> => {
+  // Create profile for new users. The DB trigger `handle_new_user` normally
+  // does this; this is the fallback for accounts created before the trigger.
+  const createProfile = useCallback(async (authUser: User, signal?: AbortSignal): Promise<Profile | null> => {
     try {
-      const metadata = user.user_metadata || {};
-      const baseUsername = metadata.username || user.email?.split("@")[0] || `user_${user.id.slice(0, 8)}`;
+      const metadata = authUser.user_metadata || {};
+      const baseUsername = metadata.username || authUser.email?.split("@")[0] || `user_${authUser.id.slice(0, 8)}`;
       const displayName = metadata.display_name || baseUsername;
       let username = baseUsername.toLowerCase().replace(/[^a-z0-9_]/g, "");
 
-      // Try to insert, if duplicate username, add random suffix
       let attempts = 0;
       while (attempts < 3) {
         if (signal?.aborted) {
@@ -132,10 +158,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const query = supabase
           .from("profiles")
           .insert({
-            id: user.id,
+            id: authUser.id,
             username: username,
             display_name: displayName,
-            email: user.email?.toLowerCase() || null,
+            email: authUser.email?.toLowerCase() || null,
             avatar_url: '/defaultprofile.png',
           })
           .select();
@@ -145,21 +171,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return data as Profile;
         }
 
-        // If duplicate key error on username, try with suffix
         if (error.code === "23505" && error.message.includes("username")) {
           username = `${baseUsername.toLowerCase().replace(/[^a-z0-9_]/g, "")}_${crypto.randomUUID().slice(0, 8)}`;
           attempts++;
         } else if (error.code === "23505" && error.message.includes("profiles_pkey")) {
-          // Profile already exists (race condition) - fetch and return it
-          const existingProfile = await fetchProfile(user.id, signal);
-          if (existingProfile) {
-            return existingProfile;
-          }
-          return null;
+          // Profile already exists (race with the DB trigger) - fetch it
+          return await fetchProfile(authUser.id, signal);
         } else if (error.code === "23503") {
-          // Foreign key violation - user doesn't exist in auth.users
-          console.warn("Auth user not found in database. Clearing session.");
-          await supabase.auth.signOut();
+          // Foreign key violation - the auth user no longer exists. Do NOT
+          // call supabase.auth.signOut() here: this can run while auth-js
+          // holds its cross-tab lock and would deadlock the client. Leave
+          // the profile null; the next refresh will fail and sign out
+          // cleanly.
+          console.warn("Auth user not found in database; profile cannot be created.");
           return null;
         } else {
           console.error("Error creating profile:", error.message);
@@ -176,10 +200,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchProfile]);
 
-  /**
-   * Fetch profile, creating it if necessary, with a hard timeout that
-   * also aborts the underlying Supabase request.
-   */
   const fetchOrCreateProfileWithTimeout = useCallback(
     async (authUser: User): Promise<Profile | null> => {
       const controller = new AbortController();
@@ -191,11 +211,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, PROFILE_TIMEOUT_MS);
 
       try {
-        let profile = await fetchProfile(authUser.id, controller.signal);
-        if (!profile) {
-          profile = await createProfile(authUser, controller.signal);
+        let nextProfile = await fetchProfile(authUser.id, controller.signal);
+        if (!nextProfile) {
+          nextProfile = await createProfile(authUser, controller.signal);
         }
-        return profile;
+        return nextProfile;
       } catch (err) {
         if (!isAbortError(err)) {
           console.error("Profile fetch/create failed:", err);
@@ -255,233 +275,186 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => clearProfileRetry();
   }, [clearProfileRetry]);
 
-  // Refresh profile (useful after profile updates)
   const refreshProfile = useCallback(async () => {
-    if (!user) return;
-    const updatedProfile = await fetchOrCreateProfileWithTimeout(user);
+    const current = userRef.current;
+    if (!current) return;
+    const updatedProfile = await fetchOrCreateProfileWithTimeout(current);
     if (updatedProfile) {
       setProfile(updatedProfile);
     } else {
-      scheduleProfileRetry(user);
+      scheduleProfileRetry(current);
     }
-  }, [user, fetchOrCreateProfileWithTimeout, scheduleProfileRetry]);
+  }, [fetchOrCreateProfileWithTimeout, scheduleProfileRetry]);
 
-  // Initialize auth state
+  // ---------------------------------------------------------------------------
+  // Apply a session to React state. Synchronous — safe to call from the
+  // auth listener. Compares by id so token refreshes do not hand consumers a
+  // new `user` object (several effects key on it and would refetch/re-subscribe).
+  // ---------------------------------------------------------------------------
+  const applySession = useCallback((session: Session, replaceUserObject = false) => {
+    const nextUser = session.user;
+    activeUserIdRef.current = nextUser.id;
+    syncRealtimeAuth(session.access_token);
+    setUser((prev) => (prev && prev.id === nextUser.id && !replaceUserObject ? prev : nextUser));
+    setStatus("authenticated");
+    if (profileRef.current?.id === nextUser.id) {
+      setLoading(false);
+    }
+    // Otherwise the profile effect below flips loading once it has tried.
+  }, []);
+
+  const applySignedOut = useCallback(() => {
+    activeUserIdRef.current = null;
+    syncRealtimeAuth(null);
+    clearProfileRetry();
+    fetchingProfileRef.current = null;
+    setUser(null);
+    setProfile(null);
+    setStatus("anonymous");
+    setLoading(false);
+  }, [clearProfileRetry]);
+
+  // ---------------------------------------------------------------------------
+  // Auth listener + initial session detection.
+  //
+  // IMPORTANT: the onAuthStateChange callback must stay synchronous and must
+  // not call any Supabase method. auth-js 2.x emits SIGNED_IN from *inside*
+  // its cross-tab Web Locks lock (during initialize() and on every
+  // visibilitychange) and awaits every callback; any Supabase call from
+  // here (a profiles query, signOut, getSession) needs that same lock and
+  // deadlocks the client — and, because the lock is shared across tabs,
+  // every other Pinkquill tab with it. See docs/audit/01-findings.md H1.
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     let isMounted = true;
-    let authCompleted = false;
+    let settled = false;
+    const startedAt = Date.now();
 
-    // CRITICAL: Timeout safeguard to prevent infinite loading.
-    // Initial auth waits for the first profile attempt, so this is slightly
-    // longer than the profile timeout.
+    const settle = () => {
+      settled = true;
+    };
+
+    const slowTimer = setTimeout(() => {
+      if (isMounted && !settled) {
+        void reportAuthDiagnostic("auth_init_slow", { elapsedMs: Date.now() - startedAt });
+      }
+    }, AUTH_INIT_SLOW_MS);
+
+    // Hard cap so the UI never waits forever. We do NOT pretend the user is
+    // signed out here: status becomes "unknown" and guards show a retry UI.
     const timeoutId = setTimeout(() => {
-      if (isMounted && !authCompleted) {
-        console.warn(`Auth initialization timed out after ${AUTH_INIT_TIMEOUT_MS / 1000}s - forcing completion`);
+      if (isMounted && !settled) {
+        console.warn(`Auth initialization timed out after ${AUTH_INIT_TIMEOUT_MS / 1000}s`);
+        void reportAuthDiagnostic("auth_init_timeout", { elapsedMs: Date.now() - startedAt });
+        settle();
+        setStatus((prev) => (prev === "loading" ? "unknown" : prev));
         setLoading(false);
-        authCompleted = true;
       }
     }, AUTH_INIT_TIMEOUT_MS);
 
-    const completeAuth = () => {
-      if (!authCompleted) {
-        clearTimeout(timeoutId);
-        authCompleted = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+
+      if (event === "SIGNED_OUT") {
+        settle();
+        applySignedOut();
+        return;
       }
-    };
+
+      if (session?.user) {
+        settle();
+        applySession(session, event === "USER_UPDATED");
+        return;
+      }
+
+      if (event === "INITIAL_SESSION") {
+        // Initialised with no session: a resolved "anonymous".
+        settle();
+        if (activeUserIdRef.current === null) applySignedOut();
+      }
+    });
 
     const initAuth = async () => {
       try {
-        // Step 1: Quick check with getSession() - reads from localStorage, no network call
-        // This gives us a fast initial state while we validate in background
-        const { data: { session: localSession } } = await supabase.auth.getSession();
-
+        // getSession() reads the cookie store; it only goes to the network
+        // when the token is within 90s of expiry. It waits for auth-js
+        // initialisation and its cross-tab lock — both bounded in
+        // lib/supabase.ts.
+        const { data: { session } } = await supabase.auth.getSession();
         if (!isMounted) return;
-
-        if (!localSession?.user) {
-          // No local session - user is definitely not logged in
-          activeUserIdRef.current = null;
-          syncRealtimeAuth(null);
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-          completeAuth();
-          return;
+        settle();
+        if (session?.user) {
+          applySession(session);
+        } else if (activeUserIdRef.current === null) {
+          applySignedOut();
         }
-
-        // We have a local session, but keep auth loading until the first
-        // profile attempt finishes so profile-dependent hooks do not start
-        // in a partial user-without-profile state.
-        activeUserIdRef.current = localSession.user.id;
-        syncRealtimeAuth(localSession.access_token);
-        setUser(localSession.user);
-
-        // Step 2: Fetch profile immediately (doesn't need getUser validation)
-        // Uses a 10s timeout so a hanging profile fetch/create never blocks forever.
-        const userIdToFetch = localSession.user.id;
-        if (fetchingProfileRef.current !== userIdToFetch) {
-          fetchingProfileRef.current = userIdToFetch;
-
-          const userProfile = await fetchOrCreateProfileWithTimeout(localSession.user);
-
-          if (isMounted && fetchingProfileRef.current === userIdToFetch) {
-            if (userProfile) {
-              setProfile(userProfile);
-            } else {
-              console.warn("Auth user exists but profile fetch failed. Scheduling retry.");
-              scheduleProfileRetry(localSession.user);
-            }
-            setLoading(false);
-            completeAuth();
-          }
-          fetchingProfileRef.current = null;
-        } else {
-          setLoading(false);
-          completeAuth();
-        }
-
-        // Step 3: Session validation is handled PASSIVELY, not here.
-        // We do NOT call getUser() during init because it:
-        //   1. Acquires the Supabase internal auth lock for its entire network call
-        //   2. ALL concurrent data queries (useFeed, useExplore, etc.) also need this lock
-        //   3. If getUser() takes >5s (slow network), data queries are blocked and can time out
-        // Instead, we rely on:
-        //   - autoRefreshToken: true (automatically refreshes expired tokens)
-        //   - onAuthStateChange: catches TOKEN_REFRESHED and SIGNED_OUT events
-        //   - If the token is revoked, the next auto-refresh will fail and fire SIGNED_OUT
       } catch (err) {
         console.error("Auth init error:", err);
-        if (isMounted) {
-          // Only clear user if we never set one (loading is still true)
-          if (!authCompleted) {
-            setUser(null);
-            setProfile(null);
-            setLoading(false);
-            completeAuth();
-          }
-          // If auth already completed (user was set from local session),
-          // don't clear it — the local session is still usable
+        if (!isMounted) return;
+        void reportAuthDiagnostic("auth_init_error", {
+          elapsedMs: Date.now() - startedAt,
+          error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+        });
+        if (!settled) {
+          settle();
+          setStatus((prev) => (prev === "loading" ? "unknown" : prev));
+          setLoading(false);
         }
       }
     };
 
-    // Set up auth state listener for sign in/out events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!isMounted) return;
-
-        if (event === "SIGNED_OUT") {
-          activeUserIdRef.current = null;
-          syncRealtimeAuth(null);
-          clearProfileRetry();
-          setUser(null);
-          setProfile(null);
-          fetchingProfileRef.current = null;
-          completeAuth();
-          return;
-        }
-
-        if (event === "SIGNED_IN" && session?.user) {
-          // Supabase fires SIGNED_IN on real logins AND on session
-          // re-validations (cross-tab sync, idle re-checks). For the
-          // re-validation case the user is the same one we already have
-          // loaded — flipping loading=true would cause every consumer
-          // (sidebar avatar, badges, etc.) to flash a skeleton even
-          // though nothing actually changed. Detect "same user, profile
-          // already present" and short-circuit to a JWT refresh only.
-          const sameUser = activeUserIdRef.current === session.user.id;
-          const hasProfile = profileRef.current?.id === session.user.id;
-          activeUserIdRef.current = session.user.id;
-          syncRealtimeAuth(session.access_token);
-
-          if (sameUser && hasProfile) {
-            setUser(session.user);
-            // No clearProfileRetry / no setLoading / no profile refetch.
-            return;
-          }
-
-          clearProfileRetry();
-          setUser(session.user);
-          setLoading(true);
-
-          // Fetch profile for newly signed in user with timeout protection
-          const userIdToFetch = session.user.id;
-          if (fetchingProfileRef.current !== userIdToFetch) {
-            fetchingProfileRef.current = userIdToFetch;
-
-            const userProfile = await fetchOrCreateProfileWithTimeout(session.user);
-
-            // Check if we're still fetching for the same user (prevents race condition).
-            // Belt-and-suspenders: also flush loading=false so the page doesn't
-            // get stuck if the newer auth event somehow doesn't reach its own
-            // setLoading(false) (e.g., a third event interrupts that one too).
-            if (fetchingProfileRef.current !== userIdToFetch) {
-              if (isMounted) {
-                setLoading(false);
-                completeAuth();
-              }
-              return;
-            }
-
-            if (isMounted && fetchingProfileRef.current === userIdToFetch) {
-              if (userProfile) {
-                setProfile(userProfile);
-              } else {
-                console.warn("Profile unavailable after sign-in. Scheduling retry.");
-                scheduleProfileRetry(session.user);
-              }
-              setLoading(false);
-              completeAuth();
-            }
-            fetchingProfileRef.current = null;
-          } else {
-            setLoading(false);
-            completeAuth();
-          }
-        }
-
-        if (event === "TOKEN_REFRESHED" && session?.user) {
-          // Just update the user object, profile doesn't need refresh
-          activeUserIdRef.current = session.user.id;
-          // Push the new JWT into realtime — without this, private channels
-          // disconnect on token rotation and never re-authenticate.
-          syncRealtimeAuth(session.access_token);
-          setUser(session.user);
-        }
-
-        // Handle USER_UPDATED event (fires when user metadata changes)
-        if (event === "USER_UPDATED" && session?.user) {
-          activeUserIdRef.current = session.user.id;
-          setUser(session.user);
-        }
-
-        // Handle INITIAL_SESSION event (fires when page loads with existing session)
-        // CRITICAL: Do NOT set user/loading here - let initAuth() handle initial load
-        // This prevents race conditions where child components start fetching before
-        // getUser() validates the session with the server.
-        // initAuth() runs immediately after this listener is set up, so it will
-        // properly validate and set the user state.
-        if (event === "INITIAL_SESSION") {
-          // Intentionally do nothing here - initAuth() handles the initial session
-          // This prevents premature loading=false which would trigger child component fetches
-          return;
-        }
-      }
-    );
-
-    initAuth();
+    void initAuth();
 
     return () => {
       isMounted = false;
-      clearProfileRetry();
+      clearTimeout(slowTimer);
       clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, [clearProfileRetry, fetchOrCreateProfileWithTimeout, scheduleProfileRetry]);
+  }, [applySession, applySignedOut, initNonce]);
 
-  // Recover auth state when the tab becomes visible again.
-  // If the session expired while the tab was hidden, the Supabase client's
-  // auto-refresh may have failed silently. Re-reading the session on visibility
-  // change ensures the React state stays in sync with localStorage.
+  // ---------------------------------------------------------------------------
+  // Profile loader: runs whenever the signed-in user id changes (or a retry
+  // is requested). This is where the Supabase queries live — outside the auth
+  // callback, outside the lock.
+  // ---------------------------------------------------------------------------
+  const userId = user?.id ?? null;
+  useEffect(() => {
+    if (!userId) return;
+    const authUser = userRef.current;
+    if (!authUser || authUser.id !== userId) return;
+
+    if (profileRef.current?.id === userId) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    clearProfileRetry();
+    fetchingProfileRef.current = userId;
+
+    (async () => {
+      const userProfile = await fetchOrCreateProfileWithTimeout(authUser);
+      if (cancelled || activeUserIdRef.current !== userId) return;
+      if (userProfile) {
+        setProfile(userProfile);
+      } else {
+        console.warn("Profile unavailable after first attempt. Scheduling retry.");
+        scheduleProfileRetry(authUser);
+      }
+      setLoading(false);
+      if (fetchingProfileRef.current === userId) {
+        fetchingProfileRef.current = null;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, profileNonce, clearProfileRetry, fetchOrCreateProfileWithTimeout, scheduleProfileRetry]);
+
+  // Recover auth state when the tab becomes visible again. auth-js runs its
+  // own recovery under the lock; we only read the result afterwards.
   useEffect(() => {
     if (typeof document === "undefined") return;
 
@@ -492,38 +465,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user) {
-          // Session exists — make sure React state matches
-          activeUserIdRef.current = session.user.id;
-          // The token may have rotated while the tab was hidden; re-arm
-          // the realtime client so private channels keep working.
-          syncRealtimeAuth(session.access_token);
-          setUser((prev) => {
-            if (!prev || prev.id !== session.user.id) {
-              return session.user;
-            }
-            return prev;
-          });
-
-          // Retry profile fetch if it previously failed
-          if (!profile && fetchingProfileRef.current !== session.user.id) {
-            fetchingProfileRef.current = session.user.id;
-            const userProfile = await fetchOrCreateProfileWithTimeout(session.user);
-            if (userProfile && fetchingProfileRef.current === session.user.id) {
-              setProfile(userProfile);
-            } else if (!userProfile) {
-              scheduleProfileRetry(session.user);
-            }
-            fetchingProfileRef.current = null;
+          applySession(session);
+          if (!profileRef.current || profileRef.current.id !== session.user.id) {
+            setProfileNonce((n) => n + 1);
           }
-        } else if (user) {
-          // localStorage session is gone but React state still has a user.
-          // This means Supabase cleared the session (e.g., refresh token expired).
-          // Clear React state to match.
-          activeUserIdRef.current = null;
-          syncRealtimeAuth(null);
-          clearProfileRetry();
-          setUser(null);
-          setProfile(null);
+        } else if (activeUserIdRef.current) {
+          // Cookie session is gone (refresh token expired) but React still
+          // has a user — align state.
+          applySignedOut();
         }
       } catch {
         // Ignore — the auto-refresh will handle it
@@ -532,7 +481,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [user, profile, clearProfileRetry, fetchOrCreateProfileWithTimeout, scheduleProfileRetry]);
+  }, [applySession, applySignedOut]);
+
+  const retryAuth = useCallback(() => {
+    setStatus("loading");
+    setLoading(true);
+    setInitNonce((n) => n + 1);
+  }, []);
 
   // Sign out: server route is the source of truth. /api/auth/logout uses the
   // @supabase/ssr server client, which clears cookies with the exact same
@@ -541,15 +496,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // from the browser is not enough on its own, because the browser client
   // writes cookie expirations via document.cookie which can fail to match
   // server-set attributes and leave the cookies behind.
-  //
-  // Order:
-  //  1. Hit /api/auth/logout — server returns Set-Cookie headers that expire
-  //     every sb-* cookie. Browser applies them.
-  //  2. Belt-and-suspenders: manually expire any sb-* cookie still visible
-  //     to JS, in case anything was set with a path other than "/".
-  //  3. Best-effort supabase.auth.signOut() to fire SIGNED_OUT and tear down
-  //     realtime channels.
-  //  4. Hard navigate to "/" so the next page is rendered with no session.
   const signOut = useCallback(async () => {
     try {
       setLoading(true);
@@ -565,10 +511,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn("/api/auth/logout failed:", err);
       });
 
-      // Manual belt-and-suspenders cookie clear. Iterate over every cookie
-      // visible to JS and expire any that look like a Supabase session
-      // cookie. We try a couple of common path values to dislodge cookies
-      // that might have been written with non-default options.
       if (typeof document !== "undefined") {
         const names = document.cookie
           .split(";")
@@ -588,8 +530,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(null);
       setProfile(null);
-      // Hard navigation so the next page renders with cleared cookies and
-      // no stale React state from the previous session.
+      setStatus("anonymous");
       window.location.replace("/");
     } catch (err) {
       console.error("Sign out error:", err);
@@ -598,7 +539,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearProfileRetry]);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        status,
+        isAnonymous: status === "anonymous",
+        signOut,
+        refreshProfile,
+        retryAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -243,7 +243,10 @@ export default function Feed() {
     refresh();
   }, [refresh]);
 
-  // Auto-recovery: if loading is stuck for >12s, force a retry
+  // Auto-recovery: if the first page is still loading after 12s, retry once.
+  // useFeed aborts the in-flight request when refresh() runs, so this never
+  // stacks a second load on top of the first; one retry is enough because
+  // the underlying request already has its own 25s timeout.
   const loadingStartRef = useRef<number | null>(null);
   const retryCountRef = useRef(0);
   useEffect(() => {
@@ -252,7 +255,7 @@ export default function Feed() {
         loadingStartRef.current = Date.now();
       }
       const timer = setTimeout(() => {
-        if (retryCountRef.current < 2) {
+        if (retryCountRef.current < 1) {
           retryCountRef.current += 1;
           console.warn(`[Feed] Loading stuck for >12s, auto-retrying (attempt ${retryCountRef.current})`);
           handleRefresh();

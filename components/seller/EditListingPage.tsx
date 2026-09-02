@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import AuthUnavailable from "@/components/auth/AuthUnavailable";
 import { useProduct } from "@/lib/hooks/useProducts";
 import CreateProductWizard from "@/components/store/CreateProduct/CreateProductWizard";
 import CreateCommissionWizard from "@/components/commissions/CreateCommission/CreateCommissionWizard";
@@ -15,15 +16,18 @@ interface EditListingPageProps {
 
 export default function EditListingPage({ listingId }: EditListingPageProps) {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, status: authStatus, isAnonymous } = useAuth();
   const { product, loading: listingLoading, error } = useProduct(listingId);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
+    if (isAnonymous) {
       router.replace("/login");
     }
-  }, [authLoading, router, user]);
+  }, [isAnonymous, router]);
+
+  if (authStatus === "unknown") {
+    return <AuthUnavailable />;
+  }
 
   if (authLoading || listingLoading) {
     return (

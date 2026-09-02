@@ -10,6 +10,7 @@ import TurnstileCaptcha from "@/components/security/TurnstileCaptcha";
 import { buildAuthenticatedHeaders } from "@/lib/auth-client";
 import { getStripe } from "@/lib/stripe-client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import AuthUnavailable from "@/components/auth/AuthUnavailable";
 import { useUpdateOrderDraft } from "@/lib/hooks/useOrders";
 import {
   useValidatePromoCode,
@@ -277,7 +278,7 @@ function PromoCodeSection({
 
 export default function CheckoutPage({ orderId }: { orderId: string }) {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, status: authStatus, isAnonymous } = useAuth();
   const {
     order,
     loading: orderLoading,
@@ -471,11 +472,11 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
     }
   }, [order, createCheckout, requiresSecurityCheck]);
 
-  // Redirect if not logged in or order not pending
+  // Redirect only on a resolved signed-out state; a timed-out auth check
+  // shows a retry panel below instead of bouncing the buyer mid-checkout.
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) router.replace("/login");
-  }, [authLoading, router, user]);
+    if (isAnonymous) router.replace("/login");
+  }, [isAnonymous, router]);
 
   useEffect(() => {
     if (!order || !user || order.buyer_id !== user.id) return;
@@ -600,6 +601,8 @@ export default function CheckoutPage({ orderId }: { orderId: string }) {
       </div>
     );
   }
+
+  if (authStatus === "unknown") return <AuthUnavailable />;
 
   if (!user) return null;
 

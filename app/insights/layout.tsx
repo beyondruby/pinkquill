@@ -8,20 +8,25 @@ import InsightsSidebar, { InsightsMobileTabs } from "@/components/insights/Insig
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { FullPageLoading } from "@/components/ui/Loading";
+import AuthUnavailable from "@/components/auth/AuthUnavailable";
 
 export default function InsightsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
+  const { user, loading, status, isAnonymous } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (isAnonymous) {
       router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [isAnonymous, router]);
+
+  if (status === "unknown") {
+    return <AuthUnavailable />;
+  }
 
   if (loading) {
     return <FullPageLoading text="Opening Insights" />;

@@ -59,34 +59,38 @@ export function useOrderDispute(orderId: string | undefined) {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("disputes")
-      .select(
+    try {
+      const { data, error } = await supabase
+        .from("disputes")
+        .select(
+          `
+          *,
+          initiator:profiles!disputes_initiated_by_fkey (
+            id, username, display_name, avatar_url, is_verified
+          )
         `
-        *,
-        initiator:profiles!disputes_initiated_by_fkey (
-          id, username, display_name, avatar_url, is_verified
         )
-      `
-      )
-      .eq("order_id", orderId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+        .eq("order_id", orderId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (!error && data) {
-      setDispute(data as unknown as Dispute);
-    } else {
-      setDispute(null);
+      if (!error && data) {
+        setDispute(data as unknown as Dispute);
+      } else {
+        setDispute(null);
+      }
+    } catch (err) {
+      // A thrown fetch timeout must not leave the section spinning forever.
+      console.warn("[useOrderDispute] fetch failed:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [orderId]);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- async query updates hook state when order changes */
   useEffect(() => {
     fetch();
   }, [fetch]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Dispute changes are low-frequency; refresh on focus instead of holding a
   // postgres_changes subscription open per order view.

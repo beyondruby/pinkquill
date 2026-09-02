@@ -9,13 +9,14 @@ import SellerSidebar from "@/components/seller/SellerSidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { FullPageLoading } from "@/components/ui/Loading";
+import AuthUnavailable from "@/components/auth/AuthUnavailable";
 
 export default function SellerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
+  const { user, loading, status, isAnonymous } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { setupCompleted, loading: setupLoading } = useSellerSetupStatus(user?.id);
@@ -24,10 +25,10 @@ export default function SellerLayout({
   const isOnboardingPage = pathname === "/seller/onboarding";
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (isAnonymous) {
       router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [isAnonymous, router]);
 
   // Redirect to setup if not completed (except on setup/onboarding pages)
   useEffect(() => {
@@ -37,6 +38,10 @@ export default function SellerLayout({
       router.push("/seller/setup");
     }
   }, [loading, setupLoading, user, setupCompleted, isSetupPage, isOnboardingPage, router]);
+
+  if (status === "unknown") {
+    return <AuthUnavailable />;
+  }
 
   if (loading || setupLoading) {
     return <FullPageLoading text="Opening Seller Studio" />;

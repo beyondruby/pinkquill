@@ -29,7 +29,10 @@ export function useModQueue(communityId: string, filters?: ModQueueFilters) {
   const mountedRef = useRef(true);
 
   const fetchReports = useCallback(async () => {
-    if (!communityId) return;
+    if (!communityId) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);

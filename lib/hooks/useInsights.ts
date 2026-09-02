@@ -133,7 +133,10 @@ export function useInsightsDashboard(
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchInsights = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -530,7 +533,10 @@ export function usePostInsights(
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchInsights = useCallback(async () => {
-    if (!user?.id || !postId) return;
+    if (!user?.id || !postId) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -736,7 +742,10 @@ export function useTakeInsights(
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchInsights = useCallback(async () => {
-    if (!user?.id || !takeId) return;
+    if (!user?.id || !takeId) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -976,7 +985,10 @@ export function useProfileInsights(
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchInsights = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -1292,7 +1304,10 @@ export function useCommunityInsights(
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchInsights = useCallback(async () => {
-    if (!user?.id || !communityId) return;
+    if (!user?.id || !communityId) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -1631,7 +1646,10 @@ export function useContentInsights(
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization -- user?.id is intentionally more specific than user
   const fetchContent = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);

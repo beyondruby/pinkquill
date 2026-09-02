@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import AuthUnavailable from "@/components/auth/AuthUnavailable";
 import {
   useCreateTake,
   useSounds,
@@ -83,7 +84,7 @@ type EditorTab = "details" | "sound" | "effects" | "thumbnail";
 
 export default function CreateTake({ onSuccess, onCancel, initialSoundId }: CreateTakeProps) {
   const router = useRouter();
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, status: authStatus, isAnonymous } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
@@ -433,10 +434,14 @@ export default function CreateTake({ onSuccess, onCancel, initialSoundId }: Crea
   ]);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (isAnonymous) {
       router.push("/login");
     }
-  }, [user, authLoading, router]);
+  }, [isAnonymous, router]);
+
+  if (authStatus === "unknown") {
+    return <AuthUnavailable />;
+  }
 
   if (authLoading) {
     return (

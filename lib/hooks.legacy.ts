@@ -73,7 +73,10 @@ export function useCommunity(slug: string, userId?: string) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchCommunity = useCallback(async () => {
-    if (!slug) return;
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
 
     // Abort any in-flight request
     if (abortControllerRef.current) {
@@ -583,7 +586,10 @@ export function useCommunityMembers(
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchMembers = useCallback(async (pageNum: number = 0, append: boolean = false) => {
-    if (!communityId) return;
+    if (!communityId) {
+      setLoading(false);
+      return;
+    }
 
     // Abort any in-flight request
     if (abortControllerRef.current) {
@@ -722,7 +728,10 @@ export function useCommunityPosts(
   }, [communityId]);
 
   const fetchPosts = useCallback(async (pageNum: number = 0, append: boolean = false) => {
-    if (!communityId) return;
+    if (!communityId) {
+      setLoading(false);
+      return;
+    }
 
     // Abort any in-flight request
     if (abortControllerRef.current) {
@@ -1158,7 +1167,10 @@ export function useJoinRequests(communityId: string) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchRequests = useCallback(async () => {
-    if (!communityId) return;
+    if (!communityId) {
+      setLoading(false);
+      return;
+    }
 
     // Abort any in-flight request
     if (abortControllerRef.current) {

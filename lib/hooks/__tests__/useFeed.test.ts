@@ -182,16 +182,18 @@ describe("useFeed", () => {
     expect(firstPost.relays_count).toBe(2);
   });
 
-  it("should cleanup on unmount", async () => {
-    const { unmount } = renderHook(() => useFeed("user-1"));
+  it("should not open a realtime channel (feed counts refresh on focus, not via postgres_changes)", async () => {
+    const { result, unmount } = renderHook(() => useFeed("user-1"));
 
     await waitFor(() => {
-      expect(mockChannel).toHaveBeenCalled();
+      expect(result.current.loading).toBe(false);
     });
+
+    expect(mockChannel).not.toHaveBeenCalled();
 
     unmount();
 
-    expect(mockRemoveChannel).toHaveBeenCalled();
+    expect(mockRemoveChannel).not.toHaveBeenCalled();
   });
 
   it("should refresh posts", async () => {

@@ -25,10 +25,20 @@ export async function updateSession(
 ): Promise<{ response: NextResponse; user: User | null }> {
   let supabaseResponse = NextResponse.next({ request });
 
+  // Real cancellation, not a race: the signal is threaded into every fetch
+  // the auth client makes, so a hung GoTrue call is torn down at the
+  // deadline instead of holding a socket for undici's ~300s default.
+  const AUTH_TIMEOUT_MS = 5000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AUTH_TIMEOUT_MS);
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: {
+        fetch: (input, init) => fetch(input, { ...init, signal: controller.signal }),
+      },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -50,26 +60,32 @@ export async function updateSession(
   // writes any new tokens back through supabaseResponse so the browser
   // receives the refreshed session.
   //
-  // Race against a 5s timeout — without this cap, a hung Supabase auth
-  // call would block every Next.js request indefinitely (middleware runs
-  // on every page load), which manifests as the entire site "stuck on
-  // loading" with nothing in the browser network tab returning. Treating
-  // a timed-out auth check as "no user" is safe: pages that need auth
-  // already redirect to /login when user is null, and client-side
-  // AuthProvider re-validates from cookies anyway.
-  const AUTH_TIMEOUT_MS = 5000;
-  const user = await Promise.race([
-    supabase.auth.getUser().then(({ data }) => data.user),
-    new Promise<User | null>((resolve) =>
-      setTimeout(() => {
-        console.warn(`[middleware] auth.getUser() exceeded ${AUTH_TIMEOUT_MS}ms; treating as anonymous`);
-        resolve(null);
-      }, AUTH_TIMEOUT_MS)
-    ),
-  ]).catch((err) => {
-    console.warn("[middleware] auth.getUser() threw:", err);
-    return null;
-  });
+  // A timed-out or failed check is treated as "no user" for THIS request:
+  // pages that need auth already redirect to /login when user is null, and
+  // the client-side AuthProvider re-validates from cookies. On timeout we
+  // also return the untouched response so a half-finished refresh can never
+  // hand the browser a mismatched cookie set.
+  let user: User | null = null;
+  let timedOut = false;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (err) {
+    if (controller.signal.aborted) {
+      timedOut = true;
+      console.warn(
+        `[middleware] auth.getUser() exceeded ${AUTH_TIMEOUT_MS}ms for ${request.nextUrl.pathname}; treating as anonymous`
+      );
+    } else {
+      console.warn("[middleware] auth.getUser() threw:", err);
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (timedOut) {
+    return { response: NextResponse.next({ request }), user: null };
+  }
 
   return { response: supabaseResponse, user };
 }

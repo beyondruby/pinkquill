@@ -42,7 +42,11 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      * - All static assets (images, fonts, etc.)
+     * - Machine-to-machine routes that carry no user cookie and must not
+     *   pay a GoTrue round trip: Stripe webhook, cron endpoints, the
+     *   diagnostics sink, and the OAuth/PKCE callback (which sets its own
+     *   cookies).
      */
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot|mp3|mp4|webm|ogg|wav|pdf)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/stripe/webhooks|api/orders/auto-complete|api/orders/auto-decline|api/diagnostics/|auth/callback|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot|mp3|mp4|webm|ogg|wav|pdf)$).*)",
   ],
 };

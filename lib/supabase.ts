@@ -251,6 +251,93 @@ const customFetch: typeof fetch = async (url, options: RequestInit = {}) => {
   }
 };
 
+// ---------------------------------------------------------------------------
+// Bounded auth lock.
+//
+// auth-js serialises every session read/refresh behind a Web Locks API lock
+// named `lock:sb-<ref>-auth-token` that is SHARED ACROSS ALL TABS of this
+// origin, and it asks for that lock with no timeout. Every PostgREST call
+// goes through getSession() and therefore through this lock, so one tab that
+// holds it (a slow token refresh, or a tab wedged in an auth callback) stalls
+// every other tab indefinitely — see docs/audit/01-findings.md H1/H2.
+//
+// This wrapper keeps the lock semantics for the normal case but caps the
+// wait: after AUTH_LOCK_TIMEOUT_MS it runs the operation without the lock
+// (availability over strict cross-tab serialisation; GoTrue's refresh-token
+// reuse window absorbs the rare double refresh) and reports the event.
+// ---------------------------------------------------------------------------
+const AUTH_LOCK_TIMEOUT_MS = 8000;
+
+type LockCallback<R> = () => Promise<R>;
+
+class AuthLockAcquireTimeoutError extends Error {
+  readonly isAcquireTimeout = true;
+  constructor(message: string) {
+    super(message);
+    this.name = "AuthLockAcquireTimeoutError";
+  }
+}
+
+async function boundedAuthLock<R>(
+  name: string,
+  acquireTimeout: number,
+  fn: LockCallback<R>
+): Promise<R> {
+  const locks =
+    typeof navigator !== "undefined"
+      ? (navigator as Navigator & { locks?: LockManager }).locks
+      : undefined;
+  if (!locks?.request) {
+    return fn();
+  }
+
+  // acquireTimeout === 0 is auth-js's "only if immediately available" mode
+  // (used by the background refresh tick). Preserve it exactly.
+  if (acquireTimeout === 0) {
+    return locks.request(name, { mode: "exclusive", ifAvailable: true }, async (lock) => {
+      if (!lock) {
+        throw new AuthLockAcquireTimeoutError(
+          `Auth lock "${name}" is busy; skipping (ifAvailable).`
+        );
+      }
+      return fn();
+    }) as Promise<R>;
+  }
+
+  const timeoutMs = acquireTimeout > 0 ? acquireTimeout : AUTH_LOCK_TIMEOUT_MS;
+  const controller = new AbortController();
+  let granted = false;
+  const startedAt = Date.now();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return (await locks.request(
+      name,
+      { mode: "exclusive", signal: controller.signal },
+      async () => {
+        granted = true;
+        return fn();
+      }
+    )) as R;
+  } catch (error) {
+    if (!granted && controller.signal.aborted) {
+      const waitedMs = Date.now() - startedAt;
+      console.warn(
+        `[supabase] auth lock "${name}" not acquired after ${waitedMs}ms; continuing without it`
+      );
+      if (typeof window !== "undefined") {
+        void import("./diagnostics/authDiagnostics").then(({ reportAuthDiagnostic }) =>
+          reportAuthDiagnostic("auth_lock_timeout", { lockName: name, waitedMs })
+        );
+      }
+      return fn();
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Browser Supabase client.
  *
@@ -266,6 +353,10 @@ const customFetch: typeof fetch = async (url, options: RequestInit = {}) => {
  */
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
   global: { fetch: customFetch },
+  auth: {
+    // See boundedAuthLock above. Without this, a stuck tab freezes every tab.
+    lock: boundedAuthLock,
+  },
   realtime: {
     params: {
       eventsPerSecond: 10,
