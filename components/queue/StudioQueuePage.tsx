@@ -8,16 +8,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useStudioCart, type StudioQueueItem } from "@/lib/hooks/useStudioQueue";
-
-type ServiceFields = {
-  brief: string;
-  notes: string;
-  timelineDays: number;
-};
-
-function createDefaultServiceFields(): ServiceFields {
-  return { brief: "", notes: "", timelineDays: 7 };
-}
+import { RequestSheetForProduct } from "@/components/commissions/RequestSheet";
 
 const formatPrice = (amount: number, currency: string) => formatCurrency(amount, currency);
 
@@ -51,16 +42,12 @@ function EmptyCart() {
 /* ------------------------------------------------------------------ */
 function CartItemCard({
   item,
-  serviceFields,
-  onUpdateField,
   onRemove,
   onStartOrder,
   isSubmitting,
   isCreating,
 }: {
   item: StudioQueueItem;
-  serviceFields: ServiceFields;
-  onUpdateField: (field: keyof ServiceFields, value: string | number) => void;
   onRemove: () => void;
   onStartOrder: () => void;
   isSubmitting: boolean;
@@ -130,44 +117,8 @@ function CartItemCard({
         </div>
       </div>
 
-      {/* Service brief form */}
       {isService && (
-        <div className="px-4 sm:px-5 pb-1 space-y-3">
-          <div className="h-px bg-skeleton/70" />
-          <label className="block">
-            <span className="text-xs font-ui font-medium text-ink/70 mb-1 block">
-              Project Brief <span className="text-red-400">*</span>
-            </span>
-            <textarea
-              rows={3}
-              value={serviceFields.brief}
-              onChange={(e) => onUpdateField("brief", e.target.value)}
-              placeholder="Describe your vision — goals, references, must-have deliverables..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200 resize-none"
-            />
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-xs font-ui font-medium text-ink/70 mb-1 block">Timeline (days)</span>
-              <input
-                type="number"
-                min={1}
-                value={serviceFields.timelineDays}
-                onChange={(e) => onUpdateField("timelineDays", Math.max(1, Number(e.target.value || 1)))}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-ui font-medium text-ink/70 mb-1 block">Extra Notes</span>
-              <input
-                value={serviceFields.notes}
-                onChange={(e) => onUpdateField("notes", e.target.value)}
-                placeholder="Optional"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-border-light text-sm font-body placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-purple-primary/20 focus:border-purple-200"
-              />
-            </label>
-          </div>
-        </div>
+        <p className="px-4 sm:px-5 pb-2 text-xs font-body text-muted">Your brief, the creator&apos;s questions and references are collected when you request.</p>
       )}
 
       {/* Actions */}
@@ -183,7 +134,7 @@ function CartItemCard({
           disabled={isCreating || isSubmitting}
           className="px-4 py-2 rounded-xl text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid hover:opacity-90 disabled:opacity-60 transition-opacity"
         >
-          {isSubmitting ? "Processing..." : isService ? "Start Order" : "Checkout"}
+          {isSubmitting ? "Processing..." : isService ? "Request" : "Checkout"}
         </button>
       </div>
     </div>
@@ -251,55 +202,27 @@ export default function StudioCartPage() {
   const { createOrder, creating, error } = useCreateOrder();
   const { items, hydrated, removeItem, clearCart } = useStudioCart();
 
-  const [serviceDrafts, setServiceDrafts] = useState<Record<string, ServiceFields>>({});
   const [actionError, setActionError] = useState<string | null>(null);
   const [submittingItemId, setSubmittingItemId] = useState<string | null>(null);
-
-  const updateServiceField = (itemId: string, field: keyof ServiceFields, value: string | number) => {
-    setServiceDrafts((prev) => ({
-      ...prev,
-      [itemId]: {
-        ...(prev[itemId] || createDefaultServiceFields()),
-        [field]: value,
-      },
-    }));
-  };
+  // Commission requests go through the same sheet as the listing page (Phase 3c).
+  const [requesting, setRequesting] = useState<StudioQueueItem | null>(null);
 
   const startOrder = async (item: StudioQueueItem) => {
     if (!user) {
-      router.push("/login");
+      router.push("/login?redirect=%2Fcart");
       return;
     }
 
     setActionError(null);
+
+    if (item.listing_type === "service") {
+      setRequesting(item);
+      return;
+    }
+
     setSubmittingItemId(item.id);
 
     try {
-      if (item.listing_type === "service") {
-        const fields = serviceDrafts[item.id] || createDefaultServiceFields();
-        if (!fields.brief.trim()) {
-          setActionError("Add a project brief before starting this commission order.");
-          return;
-        }
-
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + Math.max(1, fields.timelineDays));
-
-        const order = await createOrder({
-          product_id: item.product_id,
-          pricing_id: item.pricing_id,
-          brief: fields.brief.trim(),
-          due_date: dueDate.toISOString(),
-          requirements: { notes: fields.notes || "" },
-        });
-
-        if (order) {
-          removeItem(item.id);
-          router.push(`/orders/${order.id}`);
-        }
-        return;
-      }
-
       const order = await createOrder({
         product_id: item.product_id,
         pricing_id: item.pricing_id,
@@ -373,8 +296,6 @@ export default function StudioCartPage() {
                 <CartItemCard
                   key={item.id}
                   item={item}
-                  serviceFields={serviceDrafts[item.id] || createDefaultServiceFields()}
-                  onUpdateField={(field, value) => updateServiceField(item.id, field, value)}
                   onRemove={() => removeItem(item.id)}
                   onStartOrder={() => startOrder(item)}
                   isSubmitting={submittingItemId === item.id}
@@ -403,6 +324,16 @@ export default function StudioCartPage() {
           </div>
         )}
       </div>
+
+      {requesting && (
+        <RequestSheetForProduct
+          productId={requesting.product_id}
+          initialPricingId={requesting.pricing_id}
+          isOpen
+          onClose={() => setRequesting(null)}
+          onCreated={() => removeItem(requesting.id)}
+        />
+      )}
     </div>
   );
 }

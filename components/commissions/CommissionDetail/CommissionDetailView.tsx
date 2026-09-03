@@ -1,254 +1,147 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useDeleteProduct, useProduct } from "@/lib/hooks/useProducts";
-import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useCommissionAvailability } from "@/lib/hooks/useCommissions";
-import { useAddReferences } from "@/lib/hooks/useOrderWorkroom";
-import type { IntakeAnswerInput, ListingIntakeField } from "@/lib/types/store";
+import { useSellerStats } from "@/lib/hooks/useReviews";
 import { useStudioCart } from "@/lib/hooks/useStudioQueue";
+import type { CommissionAvailabilityInfo, ProductPricing } from "@/lib/types/store";
 import { COMMISSION_CATEGORIES, getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
+import { formatCurrency } from "@/lib/utils/currency";
 import ProductGallery from "@/components/store/ProductDetail/ProductGallery";
-import SellerRating from "@/components/reviews/SellerRating";
+import CommissionReviewsPanel from "@/components/commissions/CommissionReviewsPanel";
+import RequestSheet, { PackageCard, estimatedDays, sortedIntakeFields, sortedPackages } from "@/components/commissions/RequestSheet";
+import { QuillMeter } from "@/components/reviews/ReviewCard";
+import Avatar from "@/components/ui/Avatar";
+import Button from "@/components/ui/Button";
 import ActionMenu from "@/components/ui/ActionMenu";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import ShareModal from "@/components/ui/ShareModal";
 import { showToast } from "@/lib/utils/toast";
 
+/**
+ * /commissions/[id] — the listing page (Phase 3c). Photo first, packages as
+ * cards, and nothing the creator did not write or set: "How it works" is
+ * built from the listing's real settings, reviews come from completed
+ * orders, response time shows only when there is data.
+ */
+
 interface CommissionDetailViewProps {
   commissionId: string;
 }
+
+function availabilityPill(a: CommissionAvailabilityInfo | null): { label: string; cls: string } | null {
+  if (!a) return null;
+  if (!a.can_order) {
+    if (a.availability === "scheduled" && a.opens_at && new Date(a.opens_at).getTime() > Date.now()) {
+      return { label: `Opens ${new Date(a.opens_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`, cls: "bg-subtle text-muted border-border-strong" };
+    }
+    return { label: a.mode === "closed" ? "Closed" : "Not taking requests", cls: "bg-subtle text-muted border-border-strong" };
+  }
+  if (a.mode === "waitlist") return { label: "Waitlist", cls: "bg-purple-50 text-purple-700 border-purple-200" };
+  if (a.slots_total != null && a.slots_open != null) {
+    return { label: `${a.slots_open} of ${a.slots_total} slot${a.slots_total === 1 ? "" : "s"} open`, cls: a.slots_open === 1 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  }
+  return { label: "Open", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+}
+
+function Section({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
+  return (
+    <section>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className="font-display text-base font-semibold text-ink">{title}</h2>
+        {right}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function strings(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string" && v.trim().length > 0) : [];
+}
+
+const QUESTION_KIND: Record<string, string> = { short_text: "text", long_text: "paragraph", number: "number", url: "link", select: "pick one", multi_select: "pick many", file: "file" };
 
 export default function CommissionDetailView({ commissionId }: CommissionDetailViewProps) {
   const router = useRouter();
   const { user } = useAuth();
   const { product, loading, error } = useProduct(commissionId);
   const { deleteProduct, deleting } = useDeleteProduct();
-  const { createOrder, creating: hiring, error: hireError } = useCreateOrder();
   const { addItem, hasItem } = useStudioCart();
   const { availability, refetch: refetchAvailability } = useCommissionAvailability(product?.id);
-  const { addReferences } = useAddReferences();
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
-  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
+  const { stats } = useSellerStats(product?.seller_id);
 
-  const intakeFields = useMemo<ListingIntakeField[]>(() => {
-    const fields = product?.intake_fields;
-    if (!Array.isArray(fields)) return [];
-    return [...fields].sort((a, b) => a.position - b.position);
+  const [pricingId, setPricingId] = useState<string | null>(null);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+
+  const packages = useMemo(() => sortedPackages(product), [product]);
+  const pkg: ProductPricing | null = packages.find((p) => p.id === pricingId) ?? packages[0] ?? null;
+  const fields = useMemo(() => sortedIntakeFields(product), [product]);
+  const faqs = useMemo(() => {
+    const raw = product?.service_metadata?.faqs;
+    return Array.isArray(raw) ? raw.filter((f): f is { question: string; answer: string } => !!f && typeof f === "object" && typeof (f as { question?: unknown }).question === "string" && typeof (f as { answer?: unknown }).answer === "string") : [];
   }, [product]);
-
-  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showHireModal, setShowHireModal] = useState(false);
-  const [brief, setBrief] = useState("");
-  const [requirementsText, setRequirementsText] = useState("");
-  const [localError, setLocalError] = useState<string | null>(null);
-
-  const packages = useMemo(() => {
-    if (!product?.pricing) return [];
-    return [...product.pricing].sort((a, b) => a.price - b.price);
-  }, [product]);
-
-  const selectedPackage = useMemo(() => {
-    if (!packages.length) return null;
-    if (!selectedPackageId) return packages[0];
-    return packages.find((pkg) => pkg.id === selectedPackageId) || packages[0];
-  }, [packages, selectedPackageId]);
-
-  const isQueued = selectedPackage && product ? hasItem(product.id, selectedPackage.id) : false;
-
-  const serviceFaqs = useMemo(() => {
-    const faqs = product?.service_metadata?.faqs;
-    if (!Array.isArray(faqs)) return [];
-    return faqs.filter((item): item is { question: string; answer: string } => {
-      if (!item || typeof item !== "object") return false;
-      const candidate = item as { question?: unknown; answer?: unknown };
-      return typeof candidate.question === "string" && typeof candidate.answer === "string";
-    });
-  }, [product]);
-
-  const serviceRequirements = useMemo(() => {
-    const items = product?.service_metadata?.requirements;
-    if (!Array.isArray(items)) return [];
-    return items.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-  }, [product]);
-
-  const serviceKeywords = useMemo(() => {
-    const items = product?.keywords;
-    if (!Array.isArray(items)) return [];
-    return items.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-  }, [product]);
-
-  const serviceIncludes = useMemo(() => {
-    const items = product?.service_metadata?.includes;
-    if (!Array.isArray(items)) return [];
-    return items.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-  }, [product]);
-
-  const serviceExcludes = useMemo(() => {
-    const items = product?.service_metadata?.excludes;
-    if (!Array.isArray(items)) return [];
-    return items.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-  }, [product]);
-
-  const deliveryNotes = useMemo(() => {
-    const value = product?.service_metadata?.delivery_notes;
-    return typeof value === "string" && value.trim().length > 0 ? value : null;
-  }, [product]);
+  const includes = strings(product?.service_metadata?.includes);
+  const excludes = strings(product?.service_metadata?.excludes);
+  const process = strings(product?.service_metadata?.process);
+  const keywords = strings(product?.keywords);
+  const deliveryNotes = typeof product?.service_metadata?.delivery_notes === "string" && product.service_metadata.delivery_notes.trim() ? product.service_metadata.delivery_notes : null;
+  const headline = typeof product?.service_metadata?.headline === "string" && product.service_metadata.headline.trim() ? product.service_metadata.headline : null;
 
   const isOwner = !!user && user.id === product?.seller_id;
+  const inBag = pkg && product ? hasItem(product.id, pkg.id) : false;
+  const canOrder = availability ? availability.can_order : true;
+  const isWaitlist = availability?.mode === "waitlist";
+  const days = estimatedDays(availability, pkg);
+  const terms = availability?.terms?.trim() || product?.commission_listing?.terms?.trim() || null;
+  const pill = availabilityPill(availability);
 
-  const minDeliveryDays = useMemo(() => {
-    return packages
-      .map((pkg) => pkg.delivery_days)
-      .filter((days): days is number => days !== null && days !== undefined)
-      .sort((a, b) => a - b)[0];
-  }, [packages]);
+  const categoryLabel = product
+    ? [COMMISSION_CATEGORIES[product.category]?.name || product.category, product.subcategory ? getCommissionSubcategoryLabel(product.category, product.subcategory) : null].filter(Boolean).join(" · ")
+    : "";
+  const sellerName = product?.seller?.display_name || product?.seller?.username || "Creator";
+  const firstName = sellerName.split(" ")[0];
 
-  const maxRevisions = useMemo(() => {
-    return packages
-      .map((pkg) => pkg.revisions)
-      .filter((count): count is number => count !== null && count !== undefined)
-      .sort((a, b) => b - a)[0];
-  }, [packages]);
-
-  const categoryLabel = useMemo(() => {
-    if (!product) return "";
-    const categoryName = COMMISSION_CATEGORIES[product.category]?.name || product.category;
-    if (!product.subcategory) return categoryName;
-    return `${categoryName} · ${getCommissionSubcategoryLabel(product.category, product.subcategory)}`;
-  }, [product]);
-
-  const openHireModal = () => {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
-    if (isOwner) {
-      // The RPC also rejects this, but blocking client-side avoids a
-      // confusing red error toast for sellers viewing their own listing.
-      setLocalError("You can't hire yourself for your own commission.");
-      return;
-    }
-
-    if (!selectedPackage) {
-      setLocalError("Select a package before hiring.");
-      return;
-    }
-
-    if (availability && !availability.can_order) {
-      setLocalError(availability.reason || "This commission is not taking orders right now.");
-      return;
-    }
-
-    setShowHireModal(true);
-    setLocalError(null);
+  const openRequest = () => {
+    if (!product) return;
+    if (!user) { router.push(`/login?redirect=${encodeURIComponent(`/commissions/${product.id}`)}`); return; }
+    if (isOwner) { router.push(`/sell/edit/${product.id}`); return; }
+    if (!canOrder) { showToast.info(availability?.reason || "This commission is not taking requests right now."); return; }
+    setRequestOpen(true);
   };
 
-  const isWaitlist = availability?.mode === "waitlist";
-  const canOrder = availability ? availability.can_order : true;
-  const estimatedDays = (availability?.lead_time_days ?? 0) + (selectedPackage?.delivery_days ?? 0);
-
-  const submitHire = async () => {
-    if (!selectedPackage || !product) return;
-
-    if (!brief.trim()) {
-      setLocalError("Add a project brief so the creator can start quickly.");
-      return;
-    }
-    for (const field of intakeFields) {
-      if (!field.required || field.field_type === "file") continue;
-      const value = answers[field.id];
-      const empty = value === undefined || (typeof value === "string" ? value.trim().length === 0 : value.length === 0);
-      if (empty) {
-        setLocalError(`Please answer "${field.label}".`);
-        return;
-      }
-    }
-    const intakeAnswers: IntakeAnswerInput[] = intakeFields
-      .filter((field) => field.field_type !== "file")
-      .map((field) => ({ field_id: field.id, value: answers[field.id] ?? "" }))
-      .filter((answer) => (typeof answer.value === "string" ? answer.value.trim().length > 0 : answer.value.length > 0));
-
-    // The due date is the seller's: lead time + package delivery days,
-    // re-based by the database when the clock actually starts.
-    const order = await createOrder({
-      product_id: product.id,
-      pricing_id: selectedPackage.id,
-      brief,
-      requirements: {
-        answers: intakeAnswers,
-        notes: requirementsText,
-      },
+  const saveToBag = () => {
+    if (!product || !pkg) return;
+    addItem({
+      product_id: product.id, pricing_id: pkg.id, listing_type: "service", delivery_type: product.delivery_type,
+      title: product.title, seller_name: sellerName, price: pkg.price, currency: pkg.currency,
+      image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
     });
-
-    if (!order) {
-      // e.g. the last slot went to someone else while the form was open
-      void refetchAvailability();
-    }
-
-    if (order && referenceFiles.length > 0) {
-      // References are files, so they can only be attached once the order exists.
-      const result = await addReferences(order.id, referenceFiles);
-      if (!result) showToast.error("Your request was sent, but some reference files could not be uploaded. You can add them from the order page.");
-    }
-
-    if (order) {
-      setShowHireModal(false);
-      // If the seller requires approval, the order is created in
-      // pending_acceptance and the buyer waits on the order page until
-      // the seller accepts. Otherwise jump straight into checkout for
-      // immediate payment — keeps the hire flow consistent with the
-      // direct-buy product flow and the cart checkout path.
-      if (order.status === "pending_acceptance") {
-        router.push(`/orders/${order.id}`);
-      } else {
-        router.push(`/checkout/${order.id}`);
-      }
-    }
+    showToast.success("Saved to your Bag");
   };
 
   const handleDelete = async () => {
     if (!product) return;
-
     const result = await deleteProduct(product.id);
-    if (!result) {
-      showToast.error("Failed to delete commission", "Please try again");
-      return;
-    }
-
-    if (result.outcome === "archived") {
-      showToast.info(
-        "Commission archived",
-        "This service has order history, so it was archived instead of permanently deleted."
-      );
-    } else {
-      showToast.success("Commission deleted");
-    }
-
-    setShowDeleteConfirm(false);
+    if (!result) { showToast.error("Failed to delete commission", "Please try again"); return; }
+    if (result.outcome === "archived") showToast.info("Commission archived", "This service has order history, so it was archived instead of deleted.");
+    else showToast.success("Commission deleted");
+    setShowDelete(false);
     router.push("/seller/listings");
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-canvas px-4 py-10">
-        <div className="max-w-6xl mx-auto">
-          <div className="h-8 w-52 rounded bg-skeleton animate-pulse" />
-          <div className="mt-4 h-10 w-4/5 max-w-xl rounded bg-skeleton animate-pulse" />
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_360px] gap-10">
-            <div className="aspect-square rounded-[28px] bg-gradient-to-br from-pink-50 to-orange-50 animate-pulse" />
-            <div className="space-y-4">
-              <div className="h-10 w-full rounded bg-skeleton animate-pulse" />
-              <div className="h-10 w-full rounded bg-skeleton animate-pulse" />
-              <div className="h-10 w-full rounded bg-skeleton animate-pulse" />
-            </div>
-          </div>
+      <div className="min-h-screen bg-canvas px-4 py-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8">
+          <div className="space-y-5"><div className="aspect-[16/10] rounded-2xl bg-skeleton/70 animate-pulse" /><div className="h-8 w-2/3 rounded bg-skeleton/70 animate-pulse" /><div className="h-4 w-1/2 rounded bg-skeleton/70 animate-pulse" /></div>
+          <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-28 rounded-2xl bg-skeleton/70 animate-pulse" />)}</div>
         </div>
       </div>
     );
@@ -258,579 +151,229 @@ export default function CommissionDetailView({ commissionId }: CommissionDetailV
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="max-w-md text-center">
-          <h1 className="font-display text-3xl text-ink mb-3">Commission Not Found</h1>
+          <h1 className="font-display text-2xl text-ink mb-2">Commission not found</h1>
           <p className="font-body text-sm text-muted mb-6">This service may be private, unpublished, or removed.</p>
-          <Link
-            href="/shop?section=commissions"
-            className="inline-flex px-5 py-3 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid"
-          >
-            Browse Commissions
-          </Link>
+          <Button onClick={() => router.push("/shop?section=commissions")}>Browse commissions</Button>
         </div>
       </div>
     );
   }
 
+  const ctaLabel = isOwner ? "Edit listing" : !canOrder ? "Not taking requests" : isWaitlist ? `Join the waitlist · ${formatCurrency(pkg?.price ?? 0)}` : `Request · ${formatCurrency(pkg?.price ?? 0)}`;
+
+  const availabilityLine = !availability ? null : !availability.can_order ? (
+    <p className="text-sm font-body text-muted">{availability.reason || "Not taking requests right now."}</p>
+  ) : (
+    <p className="text-sm font-body text-muted">
+      {isWaitlist ? `${firstName} approves each request before you pay` : "Pinkquill holds your payment until you approve the work"}
+      {pkg ? ` · about ${days} day${days === 1 ? "" : "s"}${availability.lead_time_days > 0 ? ` (includes a ${availability.lead_time_days}-day lead time)` : ""}, counted from ${availability.turnaround_starts}` : ""}
+      {availability.queue_length > 0 ? ` · ${availability.queue_length} in progress` : ""}
+    </p>
+  );
+
+  const howItWorks = process.length > 0 ? process.map((p, i) => [`Step ${i + 1}`, p] as const) : [
+    ["Send your request", `Your brief${fields.length > 0 ? `, ${fields.length} question${fields.length === 1 ? "" : "s"}` : ""} and references.${isWaitlist ? ` ${firstName} accepts or declines first.` : " If the creator reviews requests first, you're told right away."}`],
+    ["Pay", `Charged once${isWaitlist ? " the request is accepted" : ""}; Pinkquill holds it until you approve the work.`],
+    ["Work", `${pkg?.delivery_days ? `${pkg.delivery_days} days` : "Delivery"} from ${availability?.turnaround_starts ?? "payment"}${availability?.lead_time_days ? ` after a ${availability.lead_time_days}-day lead time` : ""}. ${pkg?.revisions ?? 0} revision${(pkg?.revisions ?? 0) === 1 ? "" : "s"} included.`],
+    ["Review", "The delivery lands on your order page. You have 3 days to approve or ask for a revision, then it auto-approves."],
+    ["Done", "The creator is paid 7 days after approval. Reviews reveal together."],
+  ] as const;
+
+  const menu = (
+    <ActionMenu
+      buttonClassName="w-10 h-10 rounded-full bg-subtle text-muted hover:text-ink inline-flex items-center justify-center shrink-0 transition-colors"
+      widthClassName="w-44"
+      items={[
+        { label: "Edit", onSelect: () => router.push(`/sell/edit/${product.id}`), hidden: !isOwner },
+        { label: "Share", onSelect: () => setShowShare(true) },
+        { label: "Delete", onSelect: () => setShowDelete(true), hidden: !isOwner, tone: "danger", dividerBefore: true },
+      ]}
+    />
+  );
+
+  const creatorRow = product.seller && (
+    <div className="flex items-center gap-3 flex-wrap">
+      <Link href={`/studio/${product.seller.username}`} className="flex items-center gap-2.5 min-w-0 group">
+        <Avatar src={product.seller.avatar_url} alt="" size={40} />
+        <span className="min-w-0">
+          <span className="block text-sm font-ui font-semibold text-ink group-hover:text-accent transition-colors truncate">{sellerName}</span>
+          <span className="block text-2xs font-body text-muted truncate">
+            @{product.seller.username}
+            {stats && stats.completed_orders > 0 ? ` · ${stats.completed_orders} completed` : ""}
+            {stats && stats.avg_response_time_hours > 0 ? ` · replies in about ${Math.round(stats.avg_response_time_hours)}h` : ""}
+          </span>
+        </span>
+      </Link>
+      {stats && stats.total_reviews > 0 && (
+        <span className="flex items-center gap-1.5 text-sm font-ui">
+          <span className="font-semibold text-ink tabular-nums">{stats.avg_quill_score.toFixed(1)}</span>
+          <QuillMeter score={Math.max(1, Math.min(5, Math.round(stats.avg_quill_score)))} />
+          <span className="text-xs text-muted">({stats.total_reviews})</span>
+        </span>
+      )}
+      {pill && <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-2xs font-ui font-semibold ${pill.cls}`}>{pill.label}</span>}
+    </div>
+  );
+
+  const sections = (
+    <div className="space-y-8">
+      {product.description && (
+        <Section title="About this commission"><p className="text-sm font-body text-ink/90 leading-relaxed whitespace-pre-line">{product.description}</p></Section>
+      )}
+      <Section title="How it works">
+        <ol className="rounded-2xl bg-subtle border border-border-light divide-y divide-border-light">
+          {howItWorks.map(([k, v], i) => (
+            <li key={k} className="flex gap-4 px-4 py-3">
+              <span className="w-6 h-6 rounded-full bg-surface border border-border-light text-2xs font-ui font-semibold text-ink inline-flex items-center justify-center shrink-0 tabular-nums">{i + 1}</span>
+              <div className="min-w-0"><p className="text-sm font-ui font-semibold text-ink">{k}</p><p className="text-sm font-body text-muted mt-0.5">{v}</p></div>
+            </li>
+          ))}
+        </ol>
+      </Section>
+      {(includes.length > 0 || excludes.length > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {includes.length > 0 && <Section title="Includes"><ul className="space-y-1.5">{includes.map((x) => <li key={x} className="text-sm font-body text-ink/85 flex gap-2"><span className="mt-2 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />{x}</li>)}</ul></Section>}
+          {excludes.length > 0 && <Section title="Not included"><ul className="space-y-1.5">{excludes.map((x) => <li key={x} className="text-sm font-body text-ink/85 flex gap-2"><span className="mt-2 w-1.5 h-1.5 rounded-full bg-orange-warm shrink-0" />{x}</li>)}</ul></Section>}
+        </div>
+      )}
+      {fields.length > 0 && (
+        <Section title="What you'll be asked">
+          <ul className="space-y-1.5">
+            {fields.map((f) => (
+              <li key={f.id} className="text-sm font-body text-ink/85 flex items-center gap-2">
+                <span className="px-1.5 py-0.5 rounded bg-subtle text-3xs font-ui uppercase tracking-wider text-muted shrink-0">{QUESTION_KIND[f.field_type] ?? f.field_type}</span>
+                <span>{f.label}{f.required && <span className="text-pink-vivid">*</span>}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+      {deliveryNotes && <Section title="Delivery notes"><p className="text-sm font-body text-ink/85 leading-relaxed whitespace-pre-line">{deliveryNotes}</p></Section>}
+      {terms && (
+        <Section title="Terms">
+          <p className="text-sm font-body text-ink/85 leading-relaxed whitespace-pre-line">{terms}</p>
+          <p className="text-2xs font-body text-muted mt-2">Written by {sellerName}. You agree to them when you send a request.</p>
+        </Section>
+      )}
+      {faqs.length > 0 && (
+        <Section title="FAQ">
+          <div className="divide-y divide-border-light">
+            {faqs.map((f) => <div key={f.question} className="py-3"><p className="text-sm font-ui font-semibold text-ink">{f.question}</p><p className="text-sm font-body text-muted mt-1">{f.answer}</p></div>)}
+          </div>
+        </Section>
+      )}
+      {product.seller && <CommissionReviewsPanel userId={product.seller.id} role="seller" isOwnProfile={isOwner} />}
+      {keywords.length > 0 && <div className="flex flex-wrap gap-2">{keywords.map((k) => <span key={k} className="px-2.5 py-1 rounded-full bg-subtle text-xs font-ui text-muted">#{k}</span>)}</div>}
+    </div>
+  );
+
   return (
     <>
-      <div className="min-h-screen bg-canvas pb-16">
-        <div className="max-w-6xl mx-auto px-4 pt-8">
-          <div className="pb-6 border-b border-border-light">
-            <div className="flex items-start justify-between gap-4">
-              <div className="max-w-4xl">
-                <p className="text-[11px] font-ui uppercase tracking-[0.15em] text-muted">Commission Service</p>
-                <h1 className="mt-3 font-display text-3xl md:text-4xl leading-tight text-ink max-w-4xl">{product.title}</h1>
+      <div className="min-h-screen bg-canvas pb-32 lg:pb-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
+          <nav className="flex items-center justify-between gap-3 text-xs font-ui text-muted mb-4" aria-label="Breadcrumb">
+            <span className="flex items-center gap-1.5 min-w-0">
+              <Link href="/shop?section=commissions" className="hover:text-accent transition-colors">Commissions</Link>
+              <span aria-hidden="true">›</span>
+              <span className="text-ink font-medium truncate">{categoryLabel.split(" · ")[0]}</span>
+            </span>
+            {menu}
+          </nav>
 
-                {product.service_metadata?.headline && (
-                  <p className="mt-3 text-sm md:text-base font-body text-muted max-w-3xl">
-                    {String(product.service_metadata.headline)}
-                  </p>
-                )}
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8">
+            <div className="space-y-6">
+              <ProductGallery media={product.media || []} title={product.title} variant="service" />
+              <header>
+                <p className="text-2xs font-ui uppercase tracking-[0.12em] text-muted">{categoryLabel}</p>
+                <h1 className="font-display text-2xl sm:text-3xl font-semibold text-ink leading-tight mt-1 [text-wrap:balance]">{product.title}</h1>
+                {headline && <p className="text-sm sm:text-base font-body text-muted mt-2">{headline}</p>}
+                <div className="mt-4">{creatorRow}</div>
+              </header>
 
-                {product.seller && (
-                  <div className="mt-3">
-                    <p className="text-sm font-body text-muted">
-                      by{" "}
-                      <Link
-                        href={`/studio/${product.seller.username}`}
-                        className="font-ui font-semibold text-ink hover:text-pink-vivid transition-colors"
-                      >
-                        {product.seller.display_name || product.seller.username}
-                      </Link>
-                    </p>
-                    <div className="mt-1">
-                      <SellerRating sellerId={product.seller.id} compact />
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-xs font-body text-muted">
-                  <span>{categoryLabel}</span>
-                  <span>•</span>
-                  <span>{product.service_metadata?.response_time_hours ?? 24}h average response</span>
-                  <span>•</span>
-                  <span>
-                    {minDeliveryDays ? `${minDeliveryDays} day${minDeliveryDays === 1 ? "" : "s"} fastest delivery` : "Custom delivery"}
-                  </span>
-                  <span>•</span>
-                  <span>{maxRevisions !== undefined ? `${maxRevisions} max revisions` : "Custom revisions"}</span>
+              {/* Packages on phones: a horizontal row */}
+              <div className="lg:hidden">
+                <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted mb-2">Packages</p>
+                <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 -mx-4 px-4 [scrollbar-width:none]">
+                  {packages.map((p) => (
+                    <div key={p.id} className="snap-start shrink-0 w-[78%] sm:w-[48%]"><PackageCard pkg={p} selected={pkg?.id === p.id} onSelect={() => setPricingId(p.id)} compact /></div>
+                  ))}
                 </div>
+                <div className="mt-3">{availabilityLine}</div>
               </div>
 
-              <ActionMenu
-                buttonClassName="w-10 h-10 rounded-full border border-border-light bg-surface text-muted hover:text-ink hover:bg-subtle transition-colors flex items-center justify-center"
-                buttonIconClassName="w-5 h-5"
-                widthClassName="w-44"
-                items={[
-                  {
-                    label: "Edit",
-                    onSelect: () => router.push(`/sell/edit/${product.id}`),
-                    hidden: !isOwner,
-                    icon: (
-                      <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    ),
-                  },
-                  {
-                    label: "Share",
-                    onSelect: () => setShowShareModal(true),
-                    icon: (
-                      <svg className="w-4 h-4 text-pink-vivid" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
-                        <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
-                        <path d="M16 6l-4-4-4 4" />
-                        <path d="M12 2v13" />
-                      </svg>
-                    ),
-                  },
-                  {
-                    label: "Delete",
-                    onSelect: () => setShowDeleteConfirm(true),
-                    hidden: !isOwner,
-                    tone: "danger",
-                    dividerBefore: true,
-                    icon: (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    ),
-                  },
-                ]}
-              />
-            </div>
-          </div>
-
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_360px] gap-10">
-            <div className="space-y-10">
-              <ProductGallery media={product.media || []} title={product.title} variant="service" />
-
-              {product.description && (
-                <section className="pt-8 border-t border-border-light">
-                  <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Overview</h2>
-                  <p className="mt-3 text-sm md:text-base font-body leading-relaxed text-ink/85">
-                    {product.description}
-                  </p>
-                </section>
-              )}
-
-              <section className="pt-8 border-t border-border-light">
-                <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Process</h2>
-                <ol className="mt-4 space-y-3">
-                  <li className="flex items-start gap-3">
-                    <span className="text-sm font-ui text-pink-vivid">01</span>
-                    <p className="text-sm font-body text-ink/85">You submit your brief, references, and constraints in the hire form.</p>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-sm font-ui text-pink-vivid">02</span>
-                    <p className="text-sm font-body text-ink/85">I deliver according to package scope and timeline.</p>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-sm font-ui text-pink-vivid">03</span>
-                    <p className="text-sm font-body text-ink/85">Revisions are handled based on the selected package.</p>
-                  </li>
-                </ol>
-              </section>
-
-              {(serviceIncludes.length > 0 || serviceExcludes.length > 0) && (
-                <section className="pt-8 border-t border-border-light grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {serviceIncludes.length > 0 && (
-                    <div>
-                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Includes</h3>
-                      <ul className="mt-3 space-y-2">
-                        {serviceIncludes.map((item) => (
-                          <li key={item} className="text-sm font-body text-ink/85 flex items-start gap-2">
-                            <span className="mt-2 w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {serviceExcludes.length > 0 && (
-                    <div>
-                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Not Included</h3>
-                      <ul className="mt-3 space-y-2">
-                        {serviceExcludes.map((item) => (
-                          <li key={item} className="text-sm font-body text-ink/85 flex items-start gap-2">
-                            <span className="mt-2 w-1.5 h-1.5 rounded-full bg-orange-warm" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </section>
-              )}
-
-              {(serviceRequirements.length > 0 || serviceFaqs.length > 0 || Boolean(deliveryNotes) || serviceKeywords.length > 0) && (
-                <section className="pt-8 border-t border-border-light space-y-8">
-                  {serviceRequirements.length > 0 && (
-                    <div>
-                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">What I Need From You</h3>
-                      <ol className="mt-3 space-y-2">
-                        {serviceRequirements.map((item, index) => (
-                          <li key={item} className="flex items-start gap-3 text-sm font-body text-ink/85">
-                            <span className="font-ui text-pink-vivid">{index + 1}.</span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                  )}
-
-                  {serviceFaqs.length > 0 && (
-                    <div>
-                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">FAQs</h3>
-                      <div className="mt-3 divide-y divide-black/[0.08]">
-                        {serviceFaqs.map((faq) => (
-                          <article key={faq.question} className="py-3">
-                            <h4 className="font-ui text-sm font-semibold text-ink">{faq.question}</h4>
-                            <p className="font-body text-sm text-muted mt-1">{faq.answer}</p>
-                          </article>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {deliveryNotes && (
-                    <div>
-                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Delivery Notes</h3>
-                      <p className="mt-3 text-sm font-body text-ink/85 leading-relaxed">{deliveryNotes}</p>
-                    </div>
-                  )}
-
-                  {serviceKeywords.length > 0 && (
-                    <div>
-                      <h3 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Tags</h3>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {serviceKeywords.map((keyword) => (
-                          <span key={keyword} className="text-sm font-body text-muted">#{keyword}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </section>
-              )}
+              {sections}
             </div>
 
-            <aside className="lg:sticky lg:top-8 lg:self-start lg:pl-8 lg:border-l lg:border-border-light">
-              <div>
-                <h2 className="text-base font-ui uppercase tracking-[0.14em] text-muted">Commission Planner</h2>
-
-                <div className="mt-4 divide-y divide-black/[0.08]">
-                  {packages.map((pkg) => {
-                    const selected = selectedPackage?.id === pkg.id;
-
-                    return (
-                      <button
-                        key={pkg.id}
-                        onClick={() => setSelectedPackageId(pkg.id)}
-                        className="w-full py-3 text-left"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-2">
-                            <span className={`mt-1 inline-flex w-2.5 h-2.5 rounded-full ${selected ? "bg-pink-vivid" : "bg-border-strong"}`} />
-                            <div>
-                              <p className={`text-sm font-ui ${selected ? "text-ink" : "text-muted"}`}>
-                                {pkg.variant_name || "Package"}
-                              </p>
-                              <p className="text-xs font-body text-muted mt-0.5">
-                                {pkg.delivery_days ?? 7} day delivery · {pkg.revisions ?? 0} revision
-                                {(pkg.revisions ?? 0) === 1 ? "" : "s"}
-                              </p>
-                            </div>
-                          </div>
-                          <p className={`text-sm font-display ${selected ? "text-pink-vivid" : "text-ink"}`}>
-                            ${pkg.price.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
+            {/* Packages on desktop: a sticky panel */}
+            <aside className="hidden lg:block">
+              <div className="rounded-2xl border border-border-light bg-surface p-5 sticky top-6">
+                <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted mb-3">Choose a package</p>
+                <div className="space-y-2.5">
+                  {packages.map((p) => <PackageCard key={p.id} pkg={p} selected={pkg?.id === p.id} onSelect={() => setPricingId(p.id)} />)}
+                  {packages.length === 0 && <p className="text-sm font-body text-muted">No packages yet.</p>}
                 </div>
-
-                {selectedPackage && Array.isArray(selectedPackage.package_features) && selectedPackage.package_features.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">This Package Covers</p>
-                    <ul className="mt-2 space-y-1.5">
-                      {selectedPackage.package_features.map((feature) => (
-                        <li key={feature} className="text-sm font-body text-ink/85 flex items-start gap-2">
-                          <span className="mt-2 w-1.5 h-1.5 rounded-full bg-pink-vivid" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {isOwner ? (
-                  <>
-                    <button
-                      onClick={() => router.push(`/sell/edit/${product.id}`)}
-                      className="mt-6 w-full py-3.5 rounded-full text-white font-display font-semibold text-lg bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm"
-                    >
-                      Edit Commission
-                    </button>
-                    <p className="mt-3 text-xs font-body text-muted text-center">
-                      This is how your commission looks to potential clients.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    {availability && (
-                      <div className="mt-5 rounded-xl border border-border-light bg-subtle/60 px-4 py-3 text-sm font-body">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="font-ui font-semibold text-ink">
-                            {!availability.can_order
-                              ? "Not available"
-                              : isWaitlist
-                                ? "Waitlist"
-                                : availability.slots_total !== null
-                                  ? `${availability.slots_open} of ${availability.slots_total} slots open`
-                                  : "Open for orders"}
-                          </span>
-                          {availability.queue_length > 0 && (
-                            <span className="text-xs text-muted">{availability.queue_length} in progress</span>
-                          )}
-                        </div>
-                        {!availability.can_order && availability.reason && (
-                          <p className="mt-1 text-muted">{availability.reason}</p>
-                        )}
-                        {availability.can_order && (
-                          <p className="mt-1 text-muted">
-                            {isWaitlist ? "The creator approves each request before you pay. " : ""}
-                            Estimated delivery {estimatedDays} day{estimatedDays === 1 ? "" : "s"}
-                            {availability.lead_time_days > 0 ? ` (includes a ${availability.lead_time_days}-day lead time)` : ""}
-                            {" · clock starts at "}{availability.turnaround_starts === "acceptance" ? "acceptance" : "payment"}.
-                          </p>
-                        )}
-                        {availability.accepts_custom_quotes && (
-                          <p className="mt-1 text-xs text-purple-primary">Open to custom requests — describe what you need in your brief.</p>
-                        )}
-                      </div>
-                    )}
-
-                    <button
-                      onClick={openHireModal}
-                      disabled={!selectedPackage || !canOrder}
-                      className="mt-4 w-full py-3.5 rounded-full text-white font-display font-semibold text-lg bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {!canOrder ? "Not taking orders" : isWaitlist ? "Join the Waitlist" : "Hire Creator"}
-                    </button>
-
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <button
-                        onClick={() => {
-                          if (!selectedPackage || !product) return;
-                          addItem({
-                            product_id: product.id,
-                            pricing_id: selectedPackage.id,
-                            listing_type: "service",
-                            delivery_type: product.delivery_type,
-                            title: product.title,
-                            seller_name: product.seller?.display_name || product.seller?.username || "Creator",
-                            price: selectedPackage.price,
-                            currency: selectedPackage.currency,
-                            image_url: product.primary_image_url || product.media?.[0]?.media_url || null,
-                          });
-                        }}
-                        disabled={!selectedPackage || isQueued}
-                        className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-pink-300 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {isQueued ? "In Bag" : "Add to Bag"}
-                      </button>
-                      <button
-                        onClick={() => router.push("/cart")}
-                        className="w-full py-2.5 rounded-full border border-border-strong text-ink text-sm font-ui font-medium hover:border-accent/40 transition-colors"
-                      >
-                        Open Bag
-                      </button>
+                <div className="mt-4 pt-4 border-t border-border-light space-y-3">
+                  {availabilityLine}
+                  <Button fullWidth size="lg" variant={isOwner || canOrder ? "primary" : "secondary"} onClick={openRequest} disabled={!isOwner && (!pkg || !canOrder)}>{ctaLabel}</Button>
+                  {isOwner ? (
+                    <p className="text-2xs font-body text-muted text-center">This is how people see your listing.</p>
+                  ) : canOrder ? (
+                    <div className="flex justify-center gap-4 text-xs font-ui">
+                      <button type="button" onClick={saveToBag} disabled={!pkg || inBag} className="text-muted hover:text-ink disabled:opacity-60">{inBag ? "In your Bag" : "Save to Bag"}</button>
+                      {product.seller && <Link href={`/studio/${product.seller.username}`} className="text-muted hover:text-ink">View studio</Link>}
                     </div>
-
-                    {(localError || hireError) && (
-                      <p className="mt-3 text-sm font-body text-red-500">{localError || hireError}</p>
-                    )}
-                  </>
-                )}
+                  ) : null}
+                  {availability?.accepts_custom_quotes && canOrder && <p className="text-2xs font-body text-purple-primary text-center">Open to custom requests — describe it in your brief.</p>}
+                </div>
               </div>
             </aside>
           </div>
         </div>
       </div>
 
-      {showHireModal && selectedPackage && (
-        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-          <div className="max-w-2xl mx-auto rounded-3xl bg-surface shadow-2xl border border-border-light overflow-hidden">
-            <div className="px-6 py-4 border-b border-border-light bg-gradient-to-r from-purple-primary/6 to-pink-vivid/6 flex items-center justify-between gap-4">
-              <div>
-                <h2 className="font-display text-2xl text-ink">Hire this package</h2>
-                <p className="text-sm font-body text-muted mt-1">
-                  {selectedPackage.variant_name || "Selected package"} · ${selectedPackage.price}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowHireModal(false)}
-                className="w-9 h-9 rounded-full hover:bg-skeleton/60 text-muted"
-                aria-label="Close"
-              >
-                <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-ui font-semibold text-ink mb-2">Project brief</label>
-                <textarea
-                  rows={6}
-                  value={brief}
-                  onChange={(event) => setBrief(event.target.value)}
-                  placeholder="Describe goals, style references, scope, and must-have deliverables."
-                  className="w-full px-4 py-3 rounded-xl border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-ui font-semibold text-ink mb-2">Delivery</label>
-                  <div className="w-full px-4 py-3 rounded-xl border border-border-light bg-subtle/60 text-sm font-body text-ink">
-                    About {estimatedDays} day{estimatedDays === 1 ? "" : "s"}
-                    <span className="block text-xs text-muted mt-0.5">
-                      {availability?.lead_time_days ? `${availability.lead_time_days}-day lead time + ` : ""}
-                      {selectedPackage.delivery_days || 0}-day delivery, counted from {availability?.turnaround_starts === "acceptance" ? "acceptance" : "payment"}.
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-ui font-semibold text-ink mb-2">Extra notes</label>
-                  <input
-                    value={requirementsText}
-                    onChange={(event) => setRequirementsText(event.target.value)}
-                    placeholder="Links, files, constraints"
-                    className="w-full px-4 py-3 rounded-xl border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20"
-                  />
-                </div>
-              </div>
-
-              {intakeFields.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">The creator asks</p>
-                  {intakeFields.map((field) => (
-                    <IntakeQuestion
-                      key={field.id}
-                      field={field}
-                      value={answers[field.id]}
-                      onChange={(value) => setAnswers((prev) => ({ ...prev, [field.id]: value }))}
-                    />
-                  ))}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-ui font-semibold text-ink mb-2">
-                  Reference files <span className="font-normal text-muted">(optional, up to 20)</span>
-                </label>
-                <label className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-dashed border-border-strong cursor-pointer hover:border-pink-vivid/50 transition-colors">
-                  <span className="text-sm font-body text-muted">
-                    {referenceFiles.length > 0 ? `${referenceFiles.length} file${referenceFiles.length === 1 ? "" : "s"} selected` : "Sketches, mood boards, examples of what you like"}
-                  </span>
-                  <span className="text-xs font-ui font-semibold text-purple-primary">Choose files</span>
-                  <input
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={(event) => setReferenceFiles(Array.from(event.target.files ?? []).slice(0, 20))}
-                  />
-                </label>
-              </div>
-
-              {availability?.terms && (
-                <div className="rounded-xl border border-border-light bg-subtle/60 px-4 py-3">
-                  <p className="text-xs font-ui uppercase tracking-[0.14em] text-muted">Creator&apos;s terms</p>
-                  <p className="mt-1.5 text-sm font-body text-ink/85 whitespace-pre-line max-h-40 overflow-y-auto">{availability.terms}</p>
-                  <p className="mt-2 text-xs font-body text-muted">By continuing you agree to these terms.</p>
-                </div>
-              )}
-
-              {(localError || hireError) && <p className="text-sm font-body text-red-500">{localError || hireError}</p>}
-
-              <button
-                onClick={submitHire}
-                disabled={hiring || !brief.trim()}
-                className="w-full py-3.5 rounded-xl text-white font-ui font-semibold bg-gradient-to-r from-purple-primary via-pink-vivid to-orange-warm disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {hiring ? "Submitting..." : isWaitlist ? "Send Request" : "Confirm & Start Order"}
-              </button>
-            </div>
-          </div>
+      {/* Phone: sticky bar above the bottom nav */}
+      <div className="lg:hidden fixed inset-x-0 bottom-16 z-(--z-sticky) bg-surface/95 backdrop-blur-xl border-t border-border-light px-4 pt-3 pb-3 flex items-center gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-ui font-semibold text-ink truncate">{pkg ? `${pkg.variant_name || "Package"} · ${formatCurrency(pkg.price)}` : product.title}</p>
+          <p className="text-2xs font-body text-muted truncate">{pkg ? `${days} days · ${pkg.revisions ?? 0} revision${(pkg.revisions ?? 0) === 1 ? "" : "s"}` : ""}</p>
         </div>
+        <Button className="ml-auto shrink-0" variant={isOwner || canOrder ? "primary" : "secondary"} onClick={openRequest} disabled={!isOwner && (!pkg || !canOrder)}>
+          {isOwner ? "Edit" : !canOrder ? "Closed" : isWaitlist ? "Join waitlist" : "Request"}
+        </Button>
+      </div>
+
+      {requestOpen && (
+        <RequestSheet
+          product={product}
+          initialPricingId={pkg?.id ?? null}
+          isOpen
+          onClose={() => { setRequestOpen(false); void refetchAvailability(); }}
+        />
       )}
 
       <ShareModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
+        isOpen={showShare}
+        onClose={() => setShowShare(false)}
         url={typeof window !== "undefined" ? window.location.href : ""}
         title={product.title}
         description={product.description || ""}
         type="service"
-        authorName={product.seller?.display_name || product.seller?.username || ""}
+        authorName={sellerName}
         authorUsername={product.seller?.username || ""}
         authorAvatar={product.seller?.avatar_url || ""}
         imageUrl={product.media?.[0]?.media_url || ""}
       />
 
       <ConfirmationModal
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
+        isOpen={showDelete}
+        onClose={() => setShowDelete(false)}
         onConfirm={handleDelete}
-        title="Delete Commission?"
-        description="This action cannot be undone. This will permanently delete your commission listing and remove its associated data. If the service has order history, it will be archived instead."
+        title="Delete this commission?"
+        description="This cannot be undone. If the service has order history it is archived instead."
         confirmText="Delete"
         isDanger
         loading={deleting}
       />
     </>
-  );
-}
-
-function IntakeQuestion({
-  field,
-  value,
-  onChange,
-}: {
-  field: ListingIntakeField;
-  value: string | string[] | undefined;
-  onChange: (value: string | string[]) => void;
-}) {
-  const inputClass = "w-full px-4 py-3 rounded-xl border border-border-light focus:outline-none focus:ring-2 focus:ring-pink-vivid/20 text-sm font-body";
-  const label = (
-    <label className="block text-sm font-ui font-semibold text-ink mb-1.5">
-      {field.label}
-      {field.required && <span className="text-pink-vivid"> *</span>}
-      {field.help_text && <span className="block text-xs font-body font-normal text-muted mt-0.5">{field.help_text}</span>}
-    </label>
-  );
-  if (field.field_type === "file") {
-    return (
-      <div>
-        {label}
-        <p className="text-xs font-body text-muted">Attach this under reference files below.</p>
-      </div>
-    );
-  }
-  if (field.field_type === "select") {
-    return (
-      <div>
-        {label}
-        <select value={typeof value === "string" ? value : ""} onChange={(event) => onChange(event.target.value)} className={inputClass}>
-          <option value="">Choose…</option>
-          {field.options.map((option) => <option key={option} value={option}>{option}</option>)}
-        </select>
-      </div>
-    );
-  }
-  if (field.field_type === "multi_select") {
-    const selected = Array.isArray(value) ? value : [];
-    return (
-      <div>
-        {label}
-        <div className="flex flex-wrap gap-2">
-          {field.options.map((option) => {
-            const active = selected.includes(option);
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => onChange(active ? selected.filter((o) => o !== option) : [...selected, option])}
-                className={`px-3 py-1.5 rounded-full text-sm font-ui border transition-colors ${active ? "border-purple-primary bg-purple-50 text-purple-primary" : "border-border-light text-ink hover:border-border-strong"}`}
-              >
-                {option}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-  if (field.field_type === "long_text") {
-    return (
-      <div>
-        {label}
-        <textarea rows={3} value={typeof value === "string" ? value : ""} onChange={(event) => onChange(event.target.value)} className={inputClass} />
-      </div>
-    );
-  }
-  return (
-    <div>
-      {label}
-      <input
-        type={field.field_type === "number" ? "number" : field.field_type === "url" ? "url" : "text"}
-        value={typeof value === "string" ? value : ""}
-        onChange={(event) => onChange(event.target.value)}
-        className={inputClass}
-      />
-    </div>
   );
 }

@@ -24,13 +24,15 @@ interface SheetProps {
   /** Block closing (backdrop, Esc, X) while a submit is in flight. */
   busy?: boolean;
   ariaLabel?: string;
+  /** `tall` is for multi-step flows: near full height on phones, a fixed 85vh dialog from md. */
+  size?: "md" | "tall";
 }
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
 
 let openSheets = 0;
 
-export default function Sheet({ isOpen, onClose, title, subtitle, children, footer, busy = false, ariaLabel }: SheetProps) {
+export default function Sheet({ isOpen, onClose, title, subtitle, children, footer, busy = false, ariaLabel, size = "md" }: SheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
 
@@ -91,7 +93,9 @@ export default function Sheet({ isOpen, onClose, title, subtitle, children, foot
         aria-modal="true"
         aria-label={ariaLabel ?? title}
         tabIndex={-1}
-        className="w-full md:w-[95%] md:max-w-lg max-h-[88vh] md:max-h-[85vh] bg-elevated rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn"
+        className={`w-full md:w-[95%] bg-elevated rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn ${
+          size === "tall" ? "h-[94vh] md:h-[85vh] md:max-w-xl" : "max-h-[88vh] md:max-h-[85vh] md:max-w-lg"
+        }`}
       >
         <div className="md:hidden flex justify-center pt-3">
           <span className="w-10 h-1 rounded-full bg-skeleton" aria-hidden="true" />
@@ -111,7 +115,7 @@ export default function Sheet({ isOpen, onClose, title, subtitle, children, foot
             <CloseIcon className="w-4 h-4" />
           </button>
         </div>
-        <div className="px-5 py-4 space-y-4 overflow-y-auto">{children}</div>
+        <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">{children}</div>
         {footer && (
           <div className="px-5 pb-5 pt-2 flex gap-2 md:justify-end [&>*]:flex-1 md:[&>*]:flex-none">
             {footer}

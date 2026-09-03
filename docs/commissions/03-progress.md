@@ -15,7 +15,8 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 2c — Intake, references, revisions, deliveries | **done, applied to production** | 2026-09-03 |
 | 1e — Test harness + go-live checklist | **done, applied to production** (go-live checklist below; live keys NOT yet configured) | 2026-09-02 |
 | 3a — Order page | **done, committed on main** (no migration; UI only) | 2026-09-03 |
-| 2b, 2d–2f, 3b–3f, 4 | not started | |
+| 3c — Listing detail & request flow | **done, committed on main** (no migration; UI only) | 2026-09-03 |
+| 2b, 2d–2f, 3b, 3d–3f, 4 | not started | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
@@ -395,4 +396,38 @@ Do these in order. Everything before step 6 is reversible.
 - `OrderCard`'s quick actions ("Pay Now", "Review Delivery") are unchanged; 4a consolidates order lists.
 - Reviews stay on the Overview tab once an order is approved (no separate tab); the blind-reveal copy is a sentence, not a feature.
 
-**Next:** 3c (listing detail & request flow) per the recommended order, or 2b (quotes & extras). Needs your go. Before that: run the seller-side flows once with a second account in Stripe test mode (Start work → Deliver → Request revision → Approve → refund decision) — a 10-minute check that this phase could not do.
+**Next (at the time):** 3c. Superseded by the entry below.
+
+---
+
+## Phase 3c — Listing detail & request flow (2026-09-03)
+
+**Closes:** RC-C2 items 3, 4, 6, 8 and the detail-page half of 9 (one landing behaviour decided by an outcome screen; one brief form instead of three; no fabricated "24h average response" or canned "01 You submit… 02 I deliver…" process; guest hire returns to the listing after sign-in; category shown by label). Item 1 (checkout copy) is 3d; item 5 (studio banner) is 3b; item 7 (naming) is 4a.
+
+**Mockup** (approved before build): https://claude.ai/code/artifact/62810df0-4e8e-4e48-a93c-3f0749a55cd4.
+
+**No migration.** Reads `get_commission_availability`, `compute_order_money` (already granted to `authenticated`), `get_seller_stats`, `get_order_queue_position`; writes only through `/api/orders/create` and `add_order_references`. Money paths untouched.
+
+**Design.** `/commissions/[id]` is photo first: gallery, category label, title, headline, creator row (avatar, name, completed orders and response time only when `get_seller_stats` has them, rating with review count, availability pill). Packages are selectable cards — a sticky panel on desktop, a horizontal snap row on phones with a sticky bar above the bottom nav that always shows the chosen package and price. Sections in order: About, **How it works** (built from the listing's real settings: the number of questions, when the clock starts, lead time, delivery days and revisions of the chosen package, the 3-day review, the 7-day payout; a creator-written `service_metadata.process` array replaces it when present), Includes / Not included, **What you'll be asked** (the intake questions by type), Delivery notes, **Terms** (from `commission_listings.terms`), FAQ, Reviews (inline, from completed commissions), tags. Owner sees Edit; closed listings show the reason.
+
+The **request sheet** (`RequestSheet`, `Sheet size="tall"`) is one flow for the listing page and the Bag: package → brief plus the creator's typed questions (required ones enforced client-side and by the RPC) → references (up to 20) → review with Package · Creator receives · Pinkquill fee · Processing fee · Total from `compute_order_money`, the delivery estimate, and a terms checkbox when the creator wrote terms. After the order exists an **outcome screen** says what happens next before routing: "Request sent" (respond-by time, nothing charged, waitlist position when relevant) with View request, or "Ready to pay" (total, due date) with Pay now / Pay later. Guests are sent to `/login?redirect=` and come back to the listing.
+
+**Code**
+- New: `components/commissions/RequestSheet.tsx` (`RequestSheet`, `RequestSheetForProduct` for the Bag, `PackageCard`, `sortedPackages`, `sortedIntakeFields`, `estimatedDays`, `useMoneyPreview`).
+- Rewritten: `components/commissions/CommissionDetail/CommissionDetailView.tsx` (836 → ~330 lines; the inline hire modal, `IntakeQuestion` copy and the hard-coded process are gone).
+- `components/ui/Sheet.tsx`: `size="tall"` for multi-step flows.
+- `components/queue/StudioQueuePage.tsx`: the per-item brief / timeline / notes form is gone; a commission's Request button opens the same sheet and the item is removed once the order exists. Guest → `/login?redirect=/cart`.
+- `e2e/commissions-journey.spec.ts`: hire steps now drive the sheet (Request → Continue → brief → Continue ×2 → terms → Continue · $ → Pay $).
+
+**Verified**
+- `npx tsc --noEmit` clean; ESLint 0 errors on changed files (two pre-existing `<img>` warnings in the wizard); `npx vitest run` 159 pass; `npm run build` succeeds. DB self-tests unchanged (no migration).
+- Browser (local dev server, signed in as the buyer): the listing page renders with the gallery, category label, creator row, the single Basic package selected, the availability line, "How it works" from real settings, the intake question preview, FAQ, the reviews panel (empty) and tags. Request → sheet step 1 → Continue → brief and the creator's question filled → References (empty) → Review shows Basic $5.00 / Creator receives $4.75 / Pinkquill fee $0.25 / Processing fee $0.48 / Total $5.48 → "Continue · $5.48" created order PQ-20260903-1146 → outcome "Ready to pay" with Total $5.48 and Due Sep 10 → "Pay later" landed on the new order page. Save to Bag → `/cart` shows the item without a brief form → Request opens the same sheet. No console errors. The test order and its intake answer, events, messages and notification were deleted; the Bag was cleared; production is back to zero orders, `slots_used = 0`.
+- **Not exercised:** the waitlist / approval outcome (no listing with approval in production), the terms checkbox (poet's listing has no terms), file uploads from the sheet (the RPC path is the same as 2c's, which was tested), the phone layout (the Chrome extension cannot shrink the window; checked in the mockup only).
+
+**Deferred**
+- `get_commission_availability` does not expose the seller's `require_approval`, and `seller_profiles` is owner-readable only, so the listing cannot say "the creator approves requests first" before the order exists (the outcome screen covers it). A one-line addition to that RPC in 2b or 3f fixes the copy.
+- Extras and custom quotes (2b): no extras step in the sheet yet; the "open to custom requests" line stays.
+- `CommissionReviewsPanel` keeps its uppercase studio heading; 3b restyles it with the studio section.
+- Marketplace / studio cards still show the raw category key on some cards (3b / 3e).
+
+**Next:** 3b (studio commissions section) or 2b (quotes & extras). Needs your go. The seller-side check from 3a's note (a second account in Stripe test mode: Start work → Deliver → Request revision → Approve → refund decision) is still outstanding and would also cover this phase's approval outcome.

@@ -86,12 +86,18 @@ test.describe("Commissions money journey", () => {
     await expect(page.getByRole("heading", { name: serviceTitle })).toBeVisible({ timeout: 20_000 });
 
     // Phase 2a: availability is decided by the database and shown before the CTA
-    await expect(page.getByText(/Open for orders|slots open/i)).toBeVisible({ timeout: 20_000 });
-    await page.getByRole("button", { name: /Hire Creator/i }).click();
-    await page
-      .getByPlaceholder("Describe goals, style references, scope, and must-have deliverables.")
-      .fill("E2E brief: one concept, any style.");
-    await page.getByRole("button", { name: /Confirm & Start Order/i }).click();
+    await expect(page.getByText(/^Open$|slots open/i).first()).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: /^Request · \$/ }).click();
+    const sheet = page.getByRole("dialog");
+    await sheet.getByRole("button", { name: /^Continue$/ }).click();
+    await sheet.getByRole("textbox").first().fill("E2E brief: one concept, any style.");
+    await sheet.getByRole("button", { name: /^Continue$/ }).click(); // brief → references
+    await sheet.getByRole("button", { name: /^Continue$/ }).click(); // references → review
+    const terms = sheet.getByRole("checkbox");
+    if (await terms.count()) await terms.check();
+    await sheet.getByRole("button", { name: /^Continue · \$/ }).click();
+    // Outcome screen explains what happens next before routing to checkout.
+    await sheet.getByRole("button", { name: /^Pay \$/ }).click();
 
     // Every paid hire lands on the dedicated checkout page for a pending_payment order.
     await expect(page).toHaveURL(/\/checkout\/[0-9a-f-]{36}$/, { timeout: 30_000 });
