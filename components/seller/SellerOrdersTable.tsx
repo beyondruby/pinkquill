@@ -1,214 +1,176 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerOrders } from "@/lib/hooks/useOrders";
-import Loading from "@/components/ui/Loading";
-import type { Order, OrderStatus } from "@/lib/types/store";
-import { getOrderStatusMeta } from "@/lib/utils/orderStatus";
+import Avatar from "@/components/ui/Avatar";
+import Button from "@/components/ui/Button";
+import type { Order, OrderFilters, OrderStatus } from "@/lib/types/store";
+import { formatCurrency } from "@/lib/utils/currency";
+import { getOrderStatusMeta, TONE_CLASSES } from "@/lib/utils/orderStatus";
+import { relativeDays, shortDate, shortDateTime } from "@/components/orders/orderFormat";
 
-// ---------------------------------------------------------------------------
-// Config
-// ---------------------------------------------------------------------------
+/**
+ * Seller orders (Phase 3e): search across order number / listing / buyer,
+ * status chips that filter on the server, and a Due column so late work is
+ * visible without opening each order.
+ */
 
-const STATUS_TABS: { label: string; key: string; statuses?: OrderStatus[]; icon: React.ReactNode }[] = [
-  {
-    label: "All",
-    key: "all",
-    icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>,
-  },
-  {
-    label: "Active",
-    key: "active",
-    statuses: ["paid", "processing", "in_progress", "revision_requested"],
-    icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
-  },
-  {
-    label: "Pending",
-    key: "pending",
-    statuses: ["pending_payment", "pending_acceptance"],
-    icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>,
-  },
-  {
-    label: "Submitted",
-    key: "submitted",
-    statuses: ["submitted"],
-    icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
-  },
-  {
-    label: "Completed",
-    key: "completed",
-    statuses: ["completed", "delivered"],
-    icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
-  },
-  {
-    label: "Cancelled",
-    key: "cancelled",
-    statuses: ["cancelled", "declined", "refunded"],
-    icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>,
-  },
+const ACTIVE: OrderStatus[] = ["paid", "processing", "in_progress", "revision_requested", "shipped"];
+
+const CHIPS: Array<{ key: string; label: string; filters: OrderFilters }> = [
+  { key: "all", label: "All", filters: {} },
+  { key: "reply", label: "Needs reply", filters: { status: ["pending_acceptance", "refund_requested"] } },
+  { key: "active", label: "Active", filters: { status: ACTIVE, sort: "due" } },
+  { key: "late", label: "Late", filters: { status: ["paid", "in_progress", "revision_requested"], sort: "due" } },
+  { key: "delivered", label: "Delivered", filters: { status: ["submitted", "delivered"] } },
+  { key: "approved", label: "Approved", filters: { status: ["completed"] } },
+  { key: "closed", label: "Closed", filters: { status: ["cancelled", "declined", "refunded", "expired", "resolved", "disputed"] } },
 ];
 
-// ---------------------------------------------------------------------------
-// Order Row
-// ---------------------------------------------------------------------------
+/** What the Due column says for one order. */
+export function dueCell(order: Order): { text: string; sub?: string; late: boolean } {
+  switch (order.status) {
+    case "pending_acceptance":
+      return order.seller_response_deadline ? { text: `Reply by ${shortDateTime(order.seller_response_deadline)}`, late: true } : { text: "Needs your reply", late: true };
+    case "pending_payment":
+      return { text: "Awaiting payment", late: false };
+    case "submitted":
+    case "delivered":
+      return order.auto_completion_at ? { text: `Auto-approves ${shortDate(order.auto_completion_at)}`, sub: relativeDays(order.auto_completion_at).text, late: false } : { text: "Awaiting approval", late: false };
+    case "completed":
+      return { text: order.completed_at ? `Approved ${shortDate(order.completed_at)}` : "Approved", late: false };
+    case "refund_requested":
+      return { text: "Refund request", sub: "needs your answer", late: true };
+    case "disputed":
+      return { text: "Dispute open", late: true };
+    default: {
+      if (!order.due_date || !ACTIVE.includes(order.status)) return { text: "—", late: false };
+      const rel = relativeDays(order.due_date);
+      return { text: shortDate(order.due_date), sub: rel.text, late: rel.late };
+    }
+  }
+}
 
-function OrderRow({ order }: { order: Order }) {
-  const config = getOrderStatusMeta(order.status);
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return v;
+}
 
+export function SellerOrderRow({ order }: { order: Order }) {
+  const meta = getOrderStatusMeta(order.status);
+  const due = dueCell(order);
+  const buyer = order.buyer?.display_name || order.buyer?.username || "Buyer";
   return (
-    <Link
-      href={`/orders/${order.id}`}
-      className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 border-b border-border-light last:border-0 hover:bg-subtle transition-colors"
-    >
-      {/* Buyer avatar */}
-      {order.buyer?.avatar_url ? (
-        <Image src={order.buyer.avatar_url} alt="" width={36} height={36} className="w-9 h-9 rounded-full shrink-0" />
-      ) : (
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center shrink-0">
-          <span className="text-[11px] font-ui font-bold text-white">
-            {(order.buyer?.display_name || order.buyer?.username || "?")[0].toUpperCase()}
-          </span>
+    <Link href={`/orders/${order.id}`} className="block px-4 py-3 hover:bg-subtle transition-colors">
+      <div className="grid grid-cols-[32px_minmax(0,1fr)_auto] md:grid-cols-[32px_minmax(0,1fr)_170px_140px_96px] items-center gap-3 md:gap-4">
+        <Avatar src={order.buyer?.avatar_url} alt="" size={32} />
+        <div className="min-w-0">
+          <p className="text-sm font-ui font-medium text-ink truncate">{order.product?.title || "Order"}</p>
+          <p className="text-2xs font-body text-muted truncate">@{order.buyer?.username || buyer} · <span className="tabular-nums">{order.order_number}</span></p>
+          <div className="mt-1.5 flex items-center gap-2 flex-wrap md:hidden">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-2xs font-ui font-semibold ${TONE_CLASSES[meta.tone].chip}`}>{meta.label}</span>
+            <span className={`text-2xs font-ui ${due.late ? "text-amber-700 font-semibold" : "text-muted"}`}>{due.text}{due.sub ? ` · ${due.sub}` : ""}</span>
+          </div>
         </div>
-      )}
-
-      {/* Order info */}
-      <div className="flex-1 min-w-0">
-        <p className="font-ui text-sm font-medium text-ink truncate">
-          {order.product?.title || "Order"}
-        </p>
-        <p className="text-xs text-muted mt-0.5">
-          {order.order_number} · {order.buyer?.display_name || order.buyer?.username}
-        </p>
+        <div className="hidden md:block min-w-0">
+          <p className={`text-xs font-ui truncate ${due.late ? "text-amber-700 font-semibold" : "text-ink"}`}>{due.text}</p>
+          {due.sub && <p className={`text-2xs font-body ${due.late ? "text-amber-700" : "text-muted"}`}>{due.sub}</p>}
+        </div>
+        <div className="hidden md:block"><span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-2xs font-ui font-semibold ${TONE_CLASSES[meta.tone].chip}`}>{meta.label}</span></div>
+        <span className="text-sm font-ui font-semibold text-ink tabular-nums text-right">{formatCurrency(order.seller_amount, order.currency)}</span>
       </div>
-
-      {/* Type */}
-      <span className="hidden sm:inline-flex px-2 py-0.5 text-[10px] font-ui font-medium text-muted bg-subtle border border-border-light rounded">
-        {order.listing_type === "service" ? "Commission" : "Product"}
-      </span>
-
-      {/* Date */}
-      <span className="hidden md:inline-block text-xs font-ui text-muted w-20 text-right">
-        {new Date(order.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-      </span>
-
-      {/* Amount */}
-      <span className="font-ui text-sm font-semibold text-ink w-20 text-right shrink-0">
-        ${Number(order.seller_amount).toFixed(2)}
-      </span>
-
-      {/* Status badge */}
-      <span className={`inline-flex items-center gap-1 text-[10px] font-ui font-medium px-2 py-0.5 rounded-full w-28 justify-center shrink-0 ${config.bg} ${config.text}`}>
-        <span className={`w-1 h-1 rounded-full ${config.dot}`} />
-        {config.label}
-      </span>
     </Link>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main Component
-// ---------------------------------------------------------------------------
-
 export default function SellerOrdersTable() {
   const { user } = useAuth();
-  const [activeTabIdx, setActiveTabIdx] = useState(0);
-  const activeTab = STATUS_TABS[activeTabIdx];
+  const [chip, setChip] = useState("all");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<"newest" | "due">("newest");
+  const debounced = useDebounced(search, 300);
 
-  const singleFilter =
-    activeTab.statuses?.length === 1 ? { status: activeTab.statuses[0] } : {};
-  const { orders: fetchedOrders, loading, error, hasMore, loadMore } = useSellerOrders(user?.id, singleFilter, 20);
+  const filters = useMemo<OrderFilters>(() => {
+    const base = CHIPS.find((c) => c.key === chip)?.filters ?? {};
+    const f: OrderFilters = { ...base, search: debounced || undefined, sort: base.sort ?? sort };
+    if (chip === "late") f.due_before = new Date().toISOString();
+    return f;
+  }, [chip, debounced, sort]);
 
-  const orders =
-    activeTab.statuses && activeTab.statuses.length > 1
-      ? fetchedOrders.filter((o) => activeTab.statuses!.includes(o.status))
-      : fetchedOrders;
+  const { orders, loading, error, hasMore, loadMore } = useSellerOrders(user?.id, filters, 20);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Orders</h1>
-          <p className="text-sm font-body text-muted mt-0.5">
-            {orders.length} order{orders.length !== 1 ? "s" : ""}
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div>
+        <h1 className="font-display text-2xl font-semibold text-ink">Orders</h1>
       </div>
 
-      {/* Tab bar */}
-      <div className="border-b border-border-light">
-        <div className="flex gap-0 overflow-x-auto -mb-px">
-          {STATUS_TABS.map((tab, idx) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTabIdx(idx)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-ui font-medium whitespace-nowrap border-b-2 transition-colors ${
-                activeTabIdx === idx
-                  ? "border-purple-primary text-purple-primary"
-                  : "border-transparent text-muted hover:text-ink hover:border-border-light"
-              }`}
-            >
-              <span className={activeTabIdx === idx ? "text-purple-primary" : "text-muted"}>
-                {tab.icon}
-              </span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <label className="flex-1 relative">
+          <span className="sr-only">Search orders</span>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search orders, listings, buyers"
+            className="w-full h-10 rounded-full border border-border-light bg-surface pl-4 pr-4 text-sm font-body text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-purple-primary/25"
+          />
+        </label>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as "newest" | "due")}
+          aria-label="Sort"
+          className="h-10 rounded-full border border-border-light bg-surface px-4 text-sm font-ui text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/25"
+        >
+          <option value="newest">Newest</option>
+          <option value="due">Due first</option>
+        </select>
       </div>
 
-      {/* Orders table */}
-      <div className="rounded-xl border border-border-light bg-surface overflow-hidden">
-        {/* Table Header */}
-        <div className="hidden sm:flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-2.5 border-b border-border-light bg-subtle text-[11px] font-ui uppercase tracking-wider text-muted">
-          <div className="w-9" />
-          <div className="flex-1">Order</div>
-          <div className="hidden sm:block w-20 text-center">Type</div>
-          <div className="hidden md:block w-20 text-right">Date</div>
-          <div className="w-20 text-right">Amount</div>
-          <div className="w-28 text-center">Status</div>
-        </div>
+      <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]" role="tablist" aria-label="Order status">
+        {CHIPS.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            role="tab"
+            aria-selected={chip === c.key}
+            onClick={() => setChip(c.key)}
+            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-ui font-medium transition-colors ${chip === c.key ? "bg-pink-vivid/10 text-pink-vivid" : "text-muted bg-surface border border-border-light hover:text-ink"}`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
 
+      <section className="rounded-2xl border border-border-light bg-surface overflow-hidden">
+        <div className="hidden md:grid grid-cols-[32px_minmax(0,1fr)_170px_140px_96px] gap-4 px-4 py-2 border-b border-border-light bg-subtle text-2xs font-ui uppercase tracking-[0.12em] text-muted">
+          <span /><span>Order</span><span>Due</span><span>Status</span><span className="text-right">You receive</span>
+        </div>
         {loading ? (
-          <div className="py-12 flex justify-center">
-            <Loading size="small" text="" />
-          </div>
+          <div className="divide-y divide-border-light">{[1, 2, 3, 4].map((i) => <div key={i} className="h-16 bg-skeleton/40 animate-pulse" />)}</div>
         ) : error ? (
-          <div className="p-12 text-center">
-            <p className="font-body text-red-500 text-sm">Failed to load orders. Refresh to try again.</p>
-          </div>
+          <div className="p-10 text-center"><p className="font-body text-sm text-red-600">Couldn&apos;t load orders. Refresh to try again.</p></div>
         ) : orders.length === 0 ? (
-          <div className="p-16 text-center">
-            <svg className="w-10 h-10 text-muted/40 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
-            </svg>
-            <p className="font-body text-sm text-muted">
-              {activeTab.key === "all"
-                ? "No orders yet. Your orders will appear here."
-                : `No ${activeTab.label.toLowerCase()} orders.`}
-            </p>
+          <div className="p-12 text-center">
+            <p className="font-body text-sm text-muted">{debounced ? `Nothing matches “${debounced}”.` : chip === "all" ? "No orders yet. They appear here as soon as someone requests or buys." : `No ${CHIPS.find((c) => c.key === chip)?.label.toLowerCase()} orders.`}</p>
           </div>
         ) : (
           <>
-            {orders.map((order) => (
-              <OrderRow key={order.id} order={order} />
-            ))}
+            <div className="divide-y divide-border-light">{orders.map((o) => <SellerOrderRow key={o.id} order={o} />)}</div>
             {hasMore && (
-              <div className="p-4 text-center border-t border-border-light">
-                <button
-                  onClick={loadMore}
-                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-purple-50 transition-colors"
-                >
-                  Load More
-                </button>
+              <div className="p-3 text-center border-t border-border-light">
+                <Button variant="secondary" size="sm" onClick={loadMore}>Load more</Button>
               </div>
             )}
           </>
         )}
-      </div>
+      </section>
     </div>
   );
 }

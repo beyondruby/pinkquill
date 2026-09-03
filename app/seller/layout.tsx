@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerSetupStatus } from "@/lib/hooks/useSellerProfile";
 import LeftSidebar from "@/components/layout/LeftSidebar";
-import SellerSidebar from "@/components/seller/SellerSidebar";
+import SellerSidebar, { SellerMobileNav } from "@/components/seller/SellerSidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { FullPageLoading } from "@/components/ui/Loading";
@@ -72,6 +72,7 @@ export default function SellerLayout({
       <MobileHeader />
       <LeftSidebar />
       <div className="pt-16 pb-20 md:pt-0 md:pb-0 md:ml-[72px] min-h-screen flex flex-col md:flex-row">
+        <SellerMobileNav />
         <div className="relative hidden md:block">
           <SellerSidebar />
         </div>

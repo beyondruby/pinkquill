@@ -89,6 +89,23 @@ function transformOrder(raw: Record<string, unknown>): Order {
   } as Order;
 }
 
+/** Stable key for a status filter that may be a list. */
+function statusKeyOf(status: OrderFilters["status"]): string | undefined {
+  if (!status) return undefined;
+  return Array.isArray(status) ? status.join(",") : status;
+}
+
+function applyStatusFilter<Q extends { eq: (c: string, v: string) => Q; in: (c: string, v: string[]) => Q }>(query: Q, statusKey?: string): Q {
+  if (!statusKey) return query;
+  const list = statusKey.split(",");
+  return list.length === 1 ? query.eq("status", list[0]) : query.in("status", list);
+}
+
+/** Escape a user search term for PostgREST `ilike` inside an `or()` filter. */
+function searchPattern(term: string): string {
+  return `%${term.replace(/[%_,()\\]/g, " ").trim()}%`;
+}
+
 // ============================================================================
 // useCreateOrder — Create a new order
 // ============================================================================
@@ -311,7 +328,7 @@ export function useBuyerOrders(
   const requestIdRef = useRef(0);
 
   // Stabilize filter values to avoid infinite re-fetch from new object refs
-  const statusFilter = filters?.status;
+  const statusKey = statusKeyOf(filters?.status);
   const listingTypeFilter = filters?.listing_type;
   const dateFrom = filters?.date_from;
   const dateTo = filters?.date_to;
@@ -336,7 +353,7 @@ export function useBuyerOrders(
         .eq("buyer_id", userId)
         .order("created_at", { ascending: false });
 
-      if (statusFilter) query = query.eq("status", statusFilter);
+      query = applyStatusFilter(query, statusKey);
       if (listingTypeFilter) query = query.eq("listing_type", listingTypeFilter);
       if (dateFrom) query = query.gte("created_at", dateFrom);
       if (dateTo) query = query.lte("created_at", dateTo);
@@ -369,7 +386,7 @@ export function useBuyerOrders(
         setLoading(false);
       }
     }
-  }, [userId, statusFilter, listingTypeFilter, dateFrom, dateTo, pageSize]);
+  }, [userId, statusKey, listingTypeFilter, dateFrom, dateTo, pageSize]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || fetchingRef.current) return;
@@ -406,10 +423,13 @@ export function useSellerOrders(
   const requestIdRef = useRef(0);
 
   // Stabilize filter values to avoid infinite re-fetch from new object refs
-  const statusFilter = filters?.status;
+  const statusKey = statusKeyOf(filters?.status);
   const listingTypeFilter = filters?.listing_type;
   const dateFrom = filters?.date_from;
   const dateTo = filters?.date_to;
+  const search = filters?.search?.trim() || "";
+  const dueBefore = filters?.due_before;
+  const sort = filters?.sort ?? "newest";
 
   const fetchOrders = useCallback(async (page: number, append = false) => {
     if (!userId) {
@@ -428,13 +448,32 @@ export function useSellerOrders(
       let query = supabase
         .from("orders")
         .select(ORDER_SELECT, { count: "exact" })
-        .eq("seller_id", userId)
-        .order("created_at", { ascending: false });
+        .eq("seller_id", userId);
+      query = sort === "due"
+        ? query.order("due_date", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false })
+        : query.order("created_at", { ascending: false });
 
-      if (statusFilter) query = query.eq("status", statusFilter);
+      query = applyStatusFilter(query, statusKey);
       if (listingTypeFilter) query = query.eq("listing_type", listingTypeFilter);
       if (dateFrom) query = query.gte("created_at", dateFrom);
       if (dateTo) query = query.lte("created_at", dateTo);
+      if (dueBefore) query = query.lt("due_date", dueBefore);
+
+      if (search) {
+        // Order number, listing title and buyer name — the latter two through
+        // small id lookups, since PostgREST cannot OR across embedded tables.
+        const pattern = searchPattern(search);
+        const [productsRes, buyersRes] = await Promise.all([
+          supabase.from("products").select("id").eq("seller_id", userId).ilike("title", pattern).limit(50),
+          supabase.from("profiles").select("id").or(`username.ilike.${pattern},display_name.ilike.${pattern}`).limit(20),
+        ]);
+        const clauses = [`order_number.ilike.${pattern}`];
+        const productIds = (productsRes.data ?? []).map((r) => r.id);
+        const buyerIds = (buyersRes.data ?? []).map((r) => r.id);
+        if (productIds.length) clauses.push(`product_id.in.(${productIds.join(",")})`);
+        if (buyerIds.length) clauses.push(`buyer_id.in.(${buyerIds.join(",")})`);
+        query = query.or(clauses.join(","));
+      }
 
       const start = page * pageSize;
       const { data, count, error: queryError } = await query.range(start, start + pageSize - 1);
@@ -464,7 +503,7 @@ export function useSellerOrders(
         setLoading(false);
       }
     }
-  }, [userId, statusFilter, listingTypeFilter, dateFrom, dateTo, pageSize]);
+  }, [userId, statusKey, listingTypeFilter, dateFrom, dateTo, search, dueBefore, sort, pageSize]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || fetchingRef.current) return;

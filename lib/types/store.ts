@@ -629,10 +629,16 @@ export interface CreateOrderData {
 }
 
 export interface OrderFilters {
-  status?: OrderStatus;
+  /** One status or a list (server-side `in`). */
+  status?: OrderStatus | OrderStatus[];
   listing_type?: ListingType;
   date_from?: string;
   date_to?: string;
+  /** Matches order number, listing title or buyer name (seller lists). */
+  search?: string;
+  /** Only orders whose due date is before this instant (late orders). */
+  due_before?: string;
+  sort?: 'newest' | 'due';
 }
 
 export interface OrderStats {

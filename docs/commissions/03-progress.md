@@ -18,7 +18,8 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 3c — Listing detail & request flow | **done, committed on main** (no migration; UI only) | 2026-09-03 |
 | 3b — Studio commissions section | **done, committed on main** (no migration; UI only) | 2026-09-03 |
 | 3d — Checkout | **done, committed on main** (no migration; presentation only, money paths untouched) | 2026-09-03 |
-| 2b, 2d–2f, 3e, 3f, 4 | not started | |
+| 3e — Seller studio | **done, committed on main** (no migration; reads only) | 2026-09-03 |
+| 2b, 2d–2f, 3f, 4 | not started | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
@@ -491,4 +492,39 @@ The **request sheet** (`RequestSheet`, `Sheet size="tall"`) is one flow for the 
 - Extras (2b) will need a row in the order card and the money card.
 - The checkout page still loads the order with its own query rather than `useOrder`; 4a consolidates loaders.
 
-**Next:** 3e (seller studio) or 3f (listing wizard) per the plan, or 2b (quotes & extras). Needs your go. The seller-side check with a second account in Stripe test mode (3a, 3c) would also exercise the new confirmation page end to end.
+**Next (at the time):** 3e. Superseded by the entry below.
+
+---
+
+## Phase 3e — Seller studio (2026-09-03)
+
+**Closes:** RC-C3 items 1 (no seller navigation on phones), 2 (dashboard dead-ended on `charges_enabled`, the wrong flag for a transfers-only account), 3 (onboarding page and settings duplicated the wizard; two `TagInput`s), 4 (orders: no search, sort, due or overdue) and 5 (earnings: totals only, no payouts, no fee line, no statement).
+
+**Mockup** (approved before build): https://claude.ai/code/artifact/03dd38e6-c619-4909-9d41-d98776a87c15.
+
+**No migration.** New reads only: `payouts` (sellers already have a SELECT policy), `orders` with an embedded `payouts` row for the statement, and two id lookups (`products`, `profiles`) that power search. `/api/stripe/connect/*` and the Stripe provider are untouched; `/seller/onboarding` stays as the provider's return URL and redirects to settings.
+
+**Design**
+- **Phone navigation:** `SellerMobileNav` — a scrollable studio tab strip under the app header on `< md` (Dashboard · Orders · Customers · Listings · Earnings · Settings). The app's bottom nav is unchanged.
+- **Dashboard:** works before Stripe is connected. A "Connect payouts to get paid" banner (reads `payouts_enabled`) replaces the gate. Tiles: Needs your reply, Due this week, Late, Awaiting approval (from the seller's working orders, sorted by due date), then On the way / Paid out (from `payouts`) and Earned (`get_seller_earnings`). Requests waiting for you (the slim 3a cards), then "Needs your attention" — orders ranked reply → late → due soon → awaiting approval — and Add a service / Add a product.
+- **Orders:** search across order number, listing title and buyer name (server-side: `order_number ilike` OR `product_id in (…)` OR `buyer_id in (…)` from two small lookups, since PostgREST can't OR across embedded tables); chips All · Needs reply · Active · Late · Delivered · Approved · Closed that send status lists to the server (`in`), Late adds `due_before = now`; sort Newest / Due first; a **Due** column ("Sep 10 · in 7 days", "2 days late" in amber, "Reply by Sep 4, 10:52", "Auto-approves Sep 5", "Refund request · needs your answer"). Rows collapse to one line plus chips on phones.
+- **Earnings:** On the way · Paid out · Held · Earned tiles; **Payouts** from the real table (listing, amount in the payout currency, status pill On the way / Sending / Sent / Held / Failed / Reversed / Cancelled, release date or transfer id, block reason in words); **Statement** per paid order (ordered date, listing, price, Pinkquill fee, you receive, payout state) with a browser-built CSV download. Payout amounts are CAD (the settlement currency), prices USD — as on the order page. The "5% on all sales" box and the `transactions` history are gone (the fee is a per-order line now; `transactions` is retired in 4c).
+- **Settings:** three cards — Studio (name, tagline, skills, services on the store's `TagInput`), Requests (taking commissions, approve first, hours to respond — disabled when approval is off), Payouts (Stripe status pill, country + Connect payouts / Continue setup, or Open Stripe dashboard + Refresh status). The self-reported response time and experience level fields are no longer editable here (columns kept; nothing public reads them since 3b). `/seller/onboarding` → `/seller/settings#payouts` (with `?stripe=returned` after Stripe's return, which refreshes the status).
+
+**Code**
+- `lib/types/store.ts` `OrderFilters`: `status` accepts a list; `search`, `due_before`, `sort`. `lib/hooks/useOrders.ts`: `statusKeyOf` / `applyStatusFilter` / `searchPattern`; buyer and seller hooks accept lists; the seller hook adds search, `due_before` and due-first sort.
+- `lib/hooks/usePayments.ts`: `useSellerPayouts`, `useSellerStatement` (+ `SellerPayout`, `StatementRow`).
+- `components/seller/SellerSidebar.tsx`: `SELLER_NAV` exported, `SellerMobileNav`; `app/seller/layout.tsx` mounts it.
+- Rewritten: `SellerDashboard.tsx` (exports `PayoutBanner`), `SellerOrdersTable.tsx` (exports `SellerOrderRow`, `dueCell`), `EarningsOverview.tsx`, `SellerSettings.tsx`; `app/seller/onboarding/page.tsx` is a redirect; `SellerOnboarding.tsx` deleted; the settings-local `TagInput` copy is gone.
+
+**Verified**
+- `npx tsc --noEmit` clean; ESLint 0 errors on the seller area (one pre-existing unused-import warning in `useOrders.ts`); `npx vitest run` 159 pass; `npm run build` succeeds.
+- Browser (local dev server, signed in as `hadi`, who has a seller profile and a Stripe account): Dashboard renders the tiles, payout tiles and empty attention list; Orders shows the one real order with the Due column ("Awaiting payment"), search "poet" → 1 row, "nomatchxyz" → "Nothing matches", chip Needs reply → 0 rows; Earnings shows the tiles, Payouts and Statement empties and the Stripe dashboard button; Settings shows the three cards with the real profile values (skills "poetry", services "Writing", approve first on, 72 h) and the Payouts card reading "Payouts enabled · Stripe · CA · USD". No console errors. Nothing was written.
+- **Not exercised:** saving settings (the form is the old `useUpdateSellerProfile` call with fewer fields), Connect payouts from a fresh account, the phone strip (mockup only), the Late / Delivered / Approved chips and the payouts / statement rows with data (production has one unpaid order).
+- **Found, not touched:** production now holds one real order, `PQ-20260903-1148` (`poet` → `hadi`'s product "zzzz", `pending_payment`, created 10:20 UTC today, not by this session). Left as is.
+
+**Deferred**
+- Customers and Listings keep their layouts (they only gained the phone strip); the setup wizard keeps its four steps (fields now match settings).
+- `useSellerOrders` still selects `count: "exact"` for paging; 4b trims it.
+
+**Next:** 3f (listing wizard) — the last Phase 3 screen — or 2b (quotes & extras). Needs your go.

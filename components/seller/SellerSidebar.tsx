@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const navItems = [
+export const SELLER_NAV = [
   {
     label: "Dashboard",
     href: "/seller/dashboard",
@@ -82,7 +82,7 @@ export default function SellerSidebar() {
 
       {/* Navigation */}
       <nav className="p-3">
-        {navItems.map((item) => {
+        {SELLER_NAV.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
             <Link
@@ -107,5 +107,29 @@ export default function SellerSidebar() {
         })}
       </nav>
     </aside>
+  );
+}
+
+/** Phase 3e: the studio's own navigation on phones — a scrollable tab strip under the app header. */
+export function SellerMobileNav() {
+  const pathname = usePathname();
+  return (
+    <nav aria-label="Seller studio" className="md:hidden sticky top-16 z-(--z-sticky) bg-surface/95 backdrop-blur-xl border-b border-border-light">
+      <div className="flex gap-1 overflow-x-auto px-3 py-2 [scrollbar-width:none]">
+        {SELLER_NAV.map((item) => {
+          const isActive = pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={isActive ? "page" : undefined}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-ui whitespace-nowrap transition-colors ${isActive ? "bg-pink-vivid/10 text-pink-vivid font-semibold" : "text-muted hover:text-ink"}`}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

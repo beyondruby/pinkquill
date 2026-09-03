@@ -1,391 +1,195 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import {
-  useSellerProfile,
-  useUpdateSellerProfile,
-  type SellerProfile,
-} from "@/lib/hooks/useSellerProfile";
+import { useSellerProfile, useUpdateSellerProfile } from "@/lib/hooks/useSellerProfile";
+import { useSellerOnboarding } from "@/lib/hooks/usePayments";
+import { SELLER_COUNTRIES } from "@/lib/payments";
+import TagInput from "@/components/store/CreateProduct/fields/TagInput";
+import Button from "@/components/ui/Button";
+import { TONE_CLASSES } from "@/lib/utils/orderStatus";
+import { showToast } from "@/lib/utils/toast";
+import type { SellerProfile } from "@/lib/hooks/useSellerProfile";
 
-const EXPERIENCE_LEVELS = [
-  { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "expert", label: "Expert" },
-  { value: "professional", label: "Professional" },
-];
+/**
+ * Seller settings (Phase 3e): one page, three cards — Studio, Requests,
+ * Payouts. The payout card replaces the separate onboarding page. The
+ * self-reported response time is gone (nothing public shows it since 3b;
+ * the real number comes from completed orders).
+ */
 
-const SKILL_SUGGESTIONS = [
-  "Photoshop", "Illustrator", "Procreate", "Blender",
-  "After Effects", "Premiere Pro", "Figma", "Watercolor",
-  "Oil Painting", "Pencil Drawing", "Ink", "Acrylic",
-  "Digital Sculpture", "Character Rigging", "Motion Graphics",
-];
+const INPUT = "w-full px-3.5 py-2.5 rounded-xl border border-border-light bg-surface text-sm font-body text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-purple-primary/25 transition-shadow";
 
-const SERVICE_SUGGESTIONS = [
-  "Custom Portraits", "Logo Design", "Book Covers", "Album Art",
-  "Character Design", "Concept Art", "Storyboarding", "Editing",
-  "Ghost Writing", "Proofreading", "Voice Over", "Music Production",
-  "Video Editing", "Photography Sessions", "Print Design",
-];
-
-function TagInput({
-  label,
-  tags,
-  onChange,
-  suggestions,
-  placeholder,
-}: {
-  label: string;
-  tags: string[];
-  onChange: (tags: string[]) => void;
-  suggestions: string[];
-  placeholder: string;
-}) {
-  const [input, setInput] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const filtered = suggestions.filter(
-    (suggestion) => !tags.includes(suggestion) && suggestion.toLowerCase().includes(input.toLowerCase())
-  );
-
-  const addTag = (tag: string) => {
-    const trimmed = tag.trim();
-    if (trimmed && !tags.includes(trimmed)) {
-      onChange([...tags, trimmed]);
-    }
-    setInput("");
-  };
-
-  const removeTag = (tag: string) => {
-    onChange(tags.filter((current) => current !== tag));
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if ((event.key === "Enter" || event.key === ",") && input.trim()) {
-      event.preventDefault();
-      addTag(input);
-    }
-
-    if (event.key === "Backspace" && !input && tags.length > 0) {
-      removeTag(tags[tags.length - 1]);
-    }
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
+function Card({ id, title, children, right }: { id?: string; title: string; children: ReactNode; right?: ReactNode }) {
   return (
-    <div ref={wrapperRef}>
-      <label className="block text-sm font-ui font-medium text-ink mb-1">{label}</label>
-      <div className="relative">
-        <div className="flex min-h-[48px] flex-wrap gap-1.5 rounded-xl border border-border-light p-3 focus-within:ring-2 focus-within:ring-purple-primary/20">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 rounded-full bg-purple-primary/10 px-2.5 py-1 text-xs font-ui text-purple-primary"
-            >
-              {tag}
-              <button
-                type="button"
-                onClick={() => removeTag(tag)}
-                className="transition-colors hover:text-pink-vivid"
-              >
-                &times;
-              </button>
-            </span>
-          ))}
-
-          <input
-            type="text"
-            value={input}
-            onChange={(event) => {
-              setInput(event.target.value);
-              setShowSuggestions(true);
-            }}
-            onFocus={() => setShowSuggestions(true)}
-            onKeyDown={handleKeyDown}
-            placeholder={tags.length === 0 ? placeholder : ""}
-            className="min-w-[120px] flex-1 bg-transparent text-sm font-body outline-none"
-          />
-        </div>
-
-        {showSuggestions && filtered.length > 0 && (
-          <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-40 overflow-y-auto rounded-xl border border-border-light bg-surface shadow-lg shadow-black/[0.06]">
-            {filtered.slice(0, 8).map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => {
-                  addTag(suggestion);
-                  setShowSuggestions(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm font-body text-ink transition-colors hover:bg-accent/[0.04]"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
-        )}
+    <section id={id} className="rounded-2xl border border-border-light bg-surface scroll-mt-24">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border-light">
+        <h2 className="font-display text-sm font-semibold text-ink">{title}</h2>
+        {right}
       </div>
+      <div className="p-4">{children}</div>
+    </section>
+  );
+}
+
+function Switch({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-3">
+      <div>
+        <p className="text-sm font-ui font-medium text-ink">{label}</p>
+        <p className="text-xs font-body text-muted mt-0.5">{description}</p>
+      </div>
+      <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`w-10 h-6 rounded-full relative shrink-0 transition-colors ${checked ? "bg-purple-primary" : "bg-skeleton"}`}>
+        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${checked ? "left-[18px]" : "left-0.5"}`} />
+        <span className="sr-only">{label}</span>
+      </button>
     </div>
   );
 }
 
-function SellerSettingsForm({
-  userId,
-  profile,
-  onSaved,
-}: {
-  userId: string;
-  profile: SellerProfile;
-  onSaved: () => Promise<void>;
-}) {
+function PayoutsCard() {
+  const searchParams = useSearchParams();
+  const { account, loading, error, startOnboarding, checkStatus, openDashboard } = useSellerOnboarding();
+  const [country, setCountry] = useState("CA");
+  const [starting, setStarting] = useState(false);
+  const connected = Boolean(account?.payouts_enabled);
+
+  // Stripe sends the seller back to /seller/onboarding?success=true, which redirects here.
+  useEffect(() => {
+    if (searchParams.get("stripe") === "returned") void checkStatus();
+  }, [searchParams, checkStatus]);
+
+  const connect = async () => {
+    setStarting(true);
+    try { await startOnboarding(country); } finally { setStarting(false); }
+  };
+
+  const status = loading
+    ? null
+    : connected
+      ? { label: "Payouts enabled", tone: "emerald" as const }
+      : account?.stripe_account_id
+        ? { label: "Setup incomplete", tone: "amber" as const }
+        : { label: "Not connected", tone: "amber" as const };
+
+  return (
+    <Card id="payouts" title="Payouts" right={status ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-2xs font-ui font-semibold ${TONE_CLASSES[status.tone].chip}`}>{status.label}</span> : undefined}>
+      {loading ? (
+        <div className="h-16 rounded-xl bg-skeleton/50 animate-pulse" />
+      ) : connected ? (
+        <div className="space-y-3">
+          <p className="text-sm font-body text-muted">Stripe{account?.country ? ` · ${account.country.toUpperCase()}` : ""}{account?.default_currency ? ` · ${account.default_currency.toUpperCase()}` : ""}. Money moves from Pinkquill to your Stripe balance 7 days after an order is approved, then to your bank on Stripe&apos;s schedule.</p>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="secondary" size="sm" onClick={openDashboard}>Open Stripe dashboard</Button>
+            <Button variant="ghost" size="sm" onClick={() => void checkStatus()}>Refresh status</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm font-body text-muted">
+            {account?.stripe_account_id
+              ? "Stripe still needs some details before it can pay you. Continue where you left off."
+              : "Pick your country and Stripe walks you through identity and bank details. Sellers outside Canada get a full Stripe account; some countries aren't supported by Stripe."}
+          </p>
+          <div className="flex gap-2 items-center flex-wrap">
+            {!account?.stripe_account_id && (
+              <select value={country} onChange={(e) => setCountry(e.target.value)} aria-label="Country" className="h-10 rounded-xl border border-border-light bg-surface px-3 text-sm font-body text-ink focus:outline-none focus:ring-2 focus:ring-purple-primary/25">
+                {SELLER_COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+              </select>
+            )}
+            <Button onClick={connect} loading={starting} loadingText="Opening Stripe…">{account?.stripe_account_id ? "Continue setup" : "Connect payouts"}</Button>
+          </div>
+          {error && <p className="text-sm font-body text-red-600">{error}</p>}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function SettingsForm({ userId, profile }: { userId: string; profile: SellerProfile }) {
   const { update, updating, error } = useUpdateSellerProfile();
-  const [saved, setSaved] = useState(false);
   const [storeName, setStoreName] = useState(profile.store_name || "");
-  const [title, setTitle] = useState(profile.store_tagline || "");
+  const [tagline, setTagline] = useState(profile.store_tagline || "");
   const [skills, setSkills] = useState<string[]>(profile.skills || []);
   const [services, setServices] = useState<string[]>(profile.services || []);
-  const [experienceLevel, setExperienceLevel] = useState<string>(profile.experience_level || "");
-  const [responseTimeHours, setResponseTimeHours] = useState(profile.response_time_hours || 24);
-  const [isAcceptingCommissions, setIsAcceptingCommissions] = useState(profile.is_accepting_commissions);
+  const [accepting, setAccepting] = useState(profile.is_accepting_commissions);
   const [requireApproval, setRequireApproval] = useState(profile.require_approval);
   const [autoDeclineHours, setAutoDeclineHours] = useState(profile.auto_decline_hours || 72);
 
-  const handleSave = async () => {
-    setSaved(false);
-
-    const result = await update(userId, {
-      store_name: storeName,
-      store_tagline: title || null,
+  const save = async () => {
+    if (storeName.trim().length < 2) { showToast.error("Give your studio a name", "At least 2 characters"); return; }
+    const ok = await update(userId, {
+      store_name: storeName.trim(),
+      store_tagline: tagline.trim() || null,
       skills,
       services,
-      experience_level: (experienceLevel || null) as SellerProfile["experience_level"],
-      response_time_hours: responseTimeHours,
-      is_accepting_commissions: isAcceptingCommissions,
+      is_accepting_commissions: accepting,
       require_approval: requireApproval,
-      auto_decline_hours: autoDeclineHours,
+      auto_decline_hours: Math.min(168, Math.max(1, Math.round(autoDeclineHours))),
     });
-
-    if (result) {
-      setSaved(true);
-      await onSaved();
-      setTimeout(() => setSaved(false), 3000);
-    }
+    if (ok) showToast.success("Settings saved");
+    else showToast.error("Couldn't save", error ?? "Please try again");
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-2xl text-ink">Seller Settings</h1>
-
-      <section className="rounded-2xl border border-border-light bg-surface p-5 sm:p-6 space-y-4">
-        <div>
-          <h2 className="font-display text-lg text-ink">Commissions Studio</h2>
-          <p className="mt-0.5 text-xs font-body text-muted">
-            This info will appear on your Commissions Studio banner
-          </p>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-ui font-medium text-ink">Store Name</label>
-          <input
-            type="text"
-            value={storeName}
-            onChange={(event) => setStoreName(event.target.value)}
-            className="w-full rounded-xl border border-border-light px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-ui font-medium text-ink">Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder="e.g. Graphic Designer and Cover Artist"
-            className="w-full rounded-xl border border-border-light px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-ui font-medium text-ink">Experience Level</label>
-          <select
-            value={experienceLevel}
-            onChange={(event) => setExperienceLevel(event.target.value)}
-            className="w-full rounded-xl border border-border-light bg-surface px-4 py-3 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
-          >
-            <option value="">Not specified</option>
-            {EXPERIENCE_LEVELS.map((level) => (
-              <option key={level.value} value={level.value}>{level.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <TagInput
-          label="Skills"
-          tags={skills}
-          onChange={setSkills}
-          suggestions={SKILL_SUGGESTIONS}
-          placeholder="Type a skill and press Enter"
-        />
-
-        <TagInput
-          label="Services"
-          tags={services}
-          onChange={setServices}
-          suggestions={SERVICE_SUGGESTIONS}
-          placeholder="Type a service and press Enter"
-        />
-      </section>
-
-      <section className="rounded-2xl border border-border-light bg-surface p-5 sm:p-6 space-y-5">
-        <h2 className="font-display text-lg text-ink">Order Preferences</h2>
-
-        <div className="flex items-center justify-between gap-4">
+    <>
+      <Card title="Studio">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <p className="text-sm font-ui font-medium text-ink">Accepting Commissions</p>
-            <p className="mt-0.5 text-xs font-body text-muted">
-              When off, buyers can still purchase products but cannot hire you for commissions.
-            </p>
+            <label htmlFor="store-name" className="block text-xs font-ui font-semibold text-ink mb-1">Studio name</label>
+            <input id="store-name" value={storeName} onChange={(e) => setStoreName(e.target.value)} maxLength={80} className={INPUT} />
           </div>
-          <button
-            type="button"
-            onClick={() => setIsAcceptingCommissions((value) => !value)}
-            className={`relative h-7 w-12 rounded-full transition-colors ${
-              isAcceptingCommissions ? "bg-purple-primary" : "bg-border-strong"
-            }`}
-          >
-            <span className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-surface shadow transition-transform ${
-              isAcceptingCommissions ? "translate-x-5" : "translate-x-0"
-            }`} />
-          </button>
-        </div>
-
-        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-ui font-medium text-ink">Require Approval for Orders</p>
-            <p className="mt-0.5 text-xs font-body text-muted">
-              When enabled, new orders require your acceptance before the buyer is asked to pay.
-              This gives you a chance to review commission briefs and physical product requests before committing.
-            </p>
+            <label htmlFor="store-tagline" className="block text-xs font-ui font-semibold text-ink mb-1">Tagline <span className="font-normal text-muted">optional</span></label>
+            <input id="store-tagline" value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={120} placeholder="Painterly character work" className={INPUT} />
           </div>
-          <button
-            type="button"
-            onClick={() => setRequireApproval((value) => !value)}
-            className={`relative h-7 w-12 rounded-full transition-colors ${
-              requireApproval ? "bg-purple-primary" : "bg-border-strong"
-            }`}
-          >
-            <span className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-surface shadow transition-transform ${
-              requireApproval ? "translate-x-5" : "translate-x-0"
-            }`} />
-          </button>
-        </div>
-
-        {requireApproval && (
-          <div className="ml-4 pl-4">
-            <label className="mb-1 block text-sm font-ui font-medium text-ink">
-              Auto-decline after (hours)
-            </label>
-            <p className="mb-2 text-xs font-body text-muted">
-              Orders you don&apos;t respond to within this time will be automatically declined.
-            </p>
-            <input
-              type="number"
-              min={1}
-              max={720}
-              value={autoDeclineHours}
-              onChange={(event) => {
-                const nextValue = Number(event.target.value || 72);
-                setAutoDeclineHours(Math.max(1, Math.min(720, nextValue)));
-              }}
-              className="w-32 rounded-xl border border-border-light px-4 py-2.5 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
-            />
+          <div className="sm:col-span-2">
+            <p className="block text-xs font-ui font-semibold text-ink mb-1">Skills</p>
+            <TagInput values={skills} onChange={setSkills} placeholder="Add a skill and press Enter" max={12} />
           </div>
-        )}
-
-        <div>
-          <label className="mb-1 block text-sm font-ui font-medium text-ink">
-            Average Response Time (hours)
-          </label>
-          <p className="mb-2 text-xs font-body text-muted">
-            Displayed on your commission pages. Set this to how quickly you typically reply to buyers.
-          </p>
-          <input
-            type="number"
-            min={1}
-            max={168}
-            value={responseTimeHours}
-            onChange={(event) => {
-              const nextValue = Number(event.target.value || 24);
-              setResponseTimeHours(Math.max(1, Math.min(168, nextValue)));
-            }}
-            className="w-32 rounded-xl border border-border-light px-4 py-2.5 text-sm font-body focus:outline-none focus:ring-2 focus:ring-purple-primary/20"
-          />
+          <div className="sm:col-span-2">
+            <p className="block text-xs font-ui font-semibold text-ink mb-1">Services</p>
+            <TagInput values={services} onChange={setServices} placeholder="Add a service and press Enter" max={12} />
+          </div>
         </div>
-      </section>
+      </Card>
 
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={updating || !storeName.trim()}
-          className="rounded-xl bg-gradient-to-r from-purple-primary to-pink-vivid px-6 py-3 font-ui font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-        >
-          {updating ? "Saving..." : "Save Changes"}
-        </button>
+      <Card title="Requests">
+        <div className="divide-y divide-border-light">
+          <Switch label="Taking commissions" description="Off pauses every listing at once; buyers see “Not taking orders”." checked={accepting} onChange={setAccepting} />
+          <Switch label="Approve requests first" description="Review each request before the buyer pays. Otherwise they pay right away." checked={requireApproval} onChange={setRequireApproval} />
+          <div className="py-3">
+            <label htmlFor="auto-decline" className="block text-xs font-ui font-semibold text-ink mb-1">Hours to respond</label>
+            <input id="auto-decline" type="number" min={1} max={168} value={autoDeclineHours} onChange={(e) => setAutoDeclineHours(Number(e.target.value))} disabled={!requireApproval} className={`${INPUT} w-28 tabular-nums disabled:opacity-50`} />
+            <p className="text-xs font-body text-muted mt-1">Requests you don&apos;t answer in time are declined automatically.</p>
+          </div>
+        </div>
+      </Card>
 
-        {saved && (
-          <span className="text-sm font-ui text-emerald-600">Settings saved!</span>
-        )}
-        {error && (
-          <span className="text-sm font-body text-red-500">{error}</span>
-        )}
+      <PayoutsCard />
+
+      <div className="flex justify-end">
+        <Button onClick={save} loading={updating} loadingText="Saving…">Save changes</Button>
       </div>
-    </div>
+    </>
   );
 }
 
 export default function SellerSettings() {
   const { user } = useAuth();
-  const { profile, loading, refetch } = useSellerProfile(user?.id);
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-skeleton/70" />
-        <div className="h-64 animate-pulse rounded-2xl bg-skeleton/70" />
-      </div>
-    );
-  }
-
-  if (!user || !profile) {
-    return (
-      <div className="space-y-4">
-        <h1 className="font-display text-2xl text-ink">Seller Settings</h1>
-        <div className="rounded-2xl border border-border-light bg-surface p-5 text-sm text-muted">
-          Complete seller setup to manage your commissions studio settings.
-        </div>
-      </div>
-    );
-  }
+  const { profile, loading, error } = useSellerProfile(user?.id);
 
   return (
-    <SellerSettingsForm
-      key={`${profile.id}:${profile.updated_at}`}
-      userId={user.id}
-      profile={profile}
-      onSaved={refetch}
-    />
+    <div className="space-y-4 max-w-3xl">
+      <h1 className="font-display text-2xl font-semibold text-ink">Settings</h1>
+      {loading ? (
+        <div className="space-y-4">{[1, 2, 3].map((i) => <div key={i} className="h-40 rounded-2xl bg-skeleton/60 animate-pulse" />)}</div>
+      ) : error || !profile || !user ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50/60 p-6 text-sm font-body text-red-700">{error || "Seller profile not found. Finish the setup first."}</div>
+      ) : (
+        <SettingsForm userId={user.id} profile={profile} />
+      )}
+    </div>
   );
 }

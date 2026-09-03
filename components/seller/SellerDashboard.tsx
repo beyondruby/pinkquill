@@ -1,304 +1,139 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useOrderStats, useSellerOrders, usePendingAcceptanceOrders } from "@/lib/hooks/useOrders";
-import { useSellerEarnings, useSellerOnboarding } from "@/lib/hooks/usePayments";
+import { useSellerOrders, usePendingAcceptanceOrders } from "@/lib/hooks/useOrders";
+import { useSellerEarnings, useSellerOnboarding, useSellerPayouts } from "@/lib/hooks/usePayments";
+import Button from "@/components/ui/Button";
+import type { Order, OrderStatus } from "@/lib/types/store";
+import { formatCurrency } from "@/lib/utils/currency";
+import { shortDate } from "@/components/orders/orderFormat";
+import { SellerOrderRow } from "./SellerOrdersTable";
 import PendingOrderCard from "./PendingOrderCard";
-import Loading from "@/components/ui/Loading";
-import type { Order } from "@/lib/types/store";
-import { getOrderStatusMeta } from "@/lib/utils/orderStatus";
 
-// ---------------------------------------------------------------------------
-// Metric Card
-// ---------------------------------------------------------------------------
+/**
+ * Seller dashboard (Phase 3e). Works before Stripe is connected: the old
+ * gate read `charges_enabled` (wrong for a transfers-only account) and
+ * dead-ended; now a banner asks for payouts while everything else runs.
+ */
 
-function MetricCard({
-  label,
-  value,
-  sublabel,
-  icon,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sublabel?: string;
-  icon: React.ReactNode;
-  accent?: boolean;
-}) {
+const WORKING: OrderStatus[] = ["paid", "in_progress", "revision_requested", "processing", "shipped", "submitted", "delivered"];
+const DAY = 86_400_000;
+
+export function PayoutBanner() {
   return (
-    <div className={`rounded-xl border p-4 sm:p-5 ${
-      accent
-        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
-        : "border-border-light bg-surface"
-    }`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{label}</p>
-          <p className={`text-2xl font-display font-bold mt-1 ${accent ? "text-purple-primary" : "text-ink"}`}>
-            {value}
-          </p>
-          {sublabel && <p className="text-[11px] font-body text-muted mt-0.5">{sublabel}</p>}
-        </div>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-skeleton/70 text-muted"
-        }`}>
-          {icon}
-        </div>
+    <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-ui font-semibold text-ink">Connect payouts to get paid</p>
+        <p className="text-xs font-body text-muted mt-0.5">Orders, listings and messages work now. Earnings wait in Pinkquill&apos;s balance until a Stripe account is connected; a payout releases 7 days after an order is approved.</p>
       </div>
+      <Link href="/seller/settings#payouts" className="shrink-0"><Button>Connect payouts</Button></Link>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Recent Order Row
-// ---------------------------------------------------------------------------
-
-function RecentOrderRow({ order }: { order: Order }) {
-  const config = getOrderStatusMeta(order.status);
-
-  return (
-    <Link
-      href={`/orders/${order.id}`}
-      className="flex items-center gap-3 px-4 py-3 hover:bg-subtle transition-colors border-b border-border-light last:border-0"
-    >
-      {/* Buyer avatar */}
-      {order.buyer?.avatar_url ? (
-        <Image src={order.buyer.avatar_url} alt="" width={36} height={36} className="w-9 h-9 rounded-full shrink-0" />
-      ) : (
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-primary to-pink-vivid flex items-center justify-center shrink-0">
-          <span className="text-[11px] font-ui font-bold text-white">
-            {(order.buyer?.display_name || order.buyer?.username || "?")[0].toUpperCase()}
-          </span>
-        </div>
-      )}
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="font-ui text-sm font-medium text-ink truncate">
-          {order.product?.title || "Order"}
-        </p>
-        <p className="text-xs text-muted mt-0.5">
-          {order.order_number} · {order.buyer?.display_name || order.buyer?.username}
-        </p>
-      </div>
-
-      {/* Amount */}
-      <div className="text-right shrink-0">
-        <p className="font-ui text-sm font-semibold text-ink">${Number(order.seller_amount).toFixed(2)}</p>
-        <span className={`inline-flex items-center gap-1 text-[10px] font-ui font-medium px-2 py-0.5 rounded-full mt-0.5 ${config.bg} ${config.text}`}>
-          <span className={`w-1 h-1 rounded-full ${config.dot}`} />
-          {config.label}
-        </span>
-      </div>
-    </Link>
+function Tile({ label, value, sub, tone, href }: { label: string; value: string; sub?: string; tone?: "amber"; href?: string }) {
+  const inner = (
+    <>
+      <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className={`font-display text-xl font-semibold mt-1 tabular-nums ${tone === "amber" ? "text-amber-700" : "text-ink"}`}>{value}</p>
+      {sub && <p className="text-2xs font-body text-muted mt-0.5 truncate">{sub}</p>}
+    </>
   );
+  const cls = "rounded-2xl border border-border-light bg-surface p-4 min-w-0 block";
+  return href ? <Link href={href} className={`${cls} hover:border-border-strong transition-colors`}>{inner}</Link> : <div className={cls}>{inner}</div>;
 }
 
-// ---------------------------------------------------------------------------
-// Main Dashboard
-// ---------------------------------------------------------------------------
+/** Orders sorted by what needs the seller first: replies, late, due soon, awaiting approval. */
+function urgency(o: Order, now: number): number {
+  if (o.status === "pending_acceptance" || o.status === "refund_requested" || o.status === "disputed") return 0;
+  if (o.due_date && ["paid", "in_progress", "revision_requested"].includes(o.status)) {
+    const t = new Date(o.due_date).getTime();
+    if (t < now) return 1;
+    return 2 + (t - now) / DAY / 1000;
+  }
+  if (o.status === "submitted" || o.status === "delivered") return 3;
+  return 4;
+}
 
 export default function SellerDashboard() {
   const { user } = useAuth();
-  const { stats, loading: statsLoading } = useOrderStats(user?.id);
-  const { earnings, loading: earningsLoading } = useSellerEarnings(user?.id);
-  const { orders: recentOrders, loading: ordersLoading, error: ordersError } = useSellerOrders(user?.id, undefined, 5);
+  const { earnings } = useSellerEarnings(user?.id);
+  const { payouts } = useSellerPayouts(user?.id);
   const { orders: pendingOrders, count: pendingCount } = usePendingAcceptanceOrders(user?.id);
+  const { orders: working, loading: workingLoading } = useSellerOrders(user?.id, { status: WORKING, sort: "due" }, 50);
   const { account, loading: accountLoading } = useSellerOnboarding();
+  const connected = Boolean(account?.payouts_enabled);
 
-  const loading = statsLoading || earningsLoading || accountLoading;
+  // Captured once per mount; the tiles compare due dates against it.
+  const [now] = useState(() => Date.now());
+  const stats = useMemo(() => {
+    const active = working.filter((o) => o.due_date && ["paid", "in_progress", "revision_requested"].includes(o.status));
+    const late = active.filter((o) => new Date(o.due_date!).getTime() < now);
+    const week = active.filter((o) => { const t = new Date(o.due_date!).getTime(); return t >= now && t < now + 7 * DAY; });
+    const awaiting = working.filter((o) => o.status === "submitted" || o.status === "delivered");
+    return { late, week, awaiting };
+  }, [working, now]);
 
-  // Loading
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-7 w-40 bg-skeleton/70 rounded-lg animate-pulse" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-[100px] bg-subtle rounded-xl animate-pulse border border-border-light" />
-          ))}
-        </div>
-        <div className="h-80 bg-subtle rounded-xl animate-pulse border border-border-light" />
-      </div>
-    );
-  }
+  const attention = useMemo(() => {
+    const all = [...pendingOrders, ...working];
+    const seen = new Set<string>();
+    return all.filter((o) => (seen.has(o.id) ? false : (seen.add(o.id), true))).sort((a, b) => urgency(a, now) - urgency(b, now)).slice(0, 6);
+  }, [pendingOrders, working, now]);
 
-  // Not onboarded
-  if (!account?.charges_enabled) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-purple-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
-            </svg>
-          </div>
-          <h2 className="font-display text-xl font-bold text-ink mb-2">Set Up Your Seller Account</h2>
-          <p className="font-body text-sm text-muted mb-6">
-            Complete your payment setup to start receiving orders and earning from your creative work.
-          </p>
-          <Link
-            href="/seller/onboarding"
-            className="inline-flex px-6 py-2.5 bg-purple-primary text-white rounded-lg font-ui text-sm font-semibold hover:bg-accent/90 transition-colors"
-          >
-            Complete Setup
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const onTheWay = payouts.filter((p) => p.status === "pending" || p.status === "processing");
+  const paidOut = payouts.filter((p) => p.status === "sent");
+  const cents = (list: typeof payouts) => list.reduce((s, p) => s + p.amount_cents, 0);
+  const cur = payouts[0]?.currency ?? "cad";
+  const nextRelease = onTheWay.map((p) => p.eligible_at).sort()[0];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Dashboard</h1>
-          <p className="text-sm font-body text-muted mt-0.5">Welcome back — here&apos;s your overview</p>
-        </div>
+    <div className="space-y-4">
+      <div>
+        <h1 className="font-display text-2xl font-semibold text-ink">Dashboard</h1>
       </div>
 
-      {/* Metric Cards */}
+      {!accountLoading && !connected && <PayoutBanner />}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <MetricCard
-          label="Total Earned"
-          value={`$${(earnings?.total_earned ?? 0).toFixed(2)}`}
-          sublabel={`${earnings?.completed_orders ?? 0} completed`}
-          accent
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Pending"
-          value={`$${(earnings?.pending_earnings ?? 0).toFixed(2)}`}
-          sublabel={`${earnings?.active_orders ?? 0} active orders`}
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Active Orders"
-          value={`${stats?.active_orders ?? 0}`}
-          sublabel="In progress"
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
-            </svg>
-          }
-        />
-        {pendingCount > 0 ? (
-          <MetricCard
-            label="Pending Approval"
-            value={`${pendingCount}`}
-            sublabel="Awaiting your response"
-            accent
-            icon={
-              <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-            }
-          />
-        ) : (
-          <MetricCard
-            label="Avg. Order"
-            value={`$${(earnings?.avg_order_value ?? 0).toFixed(2)}`}
-            sublabel={`${earnings?.total_orders ?? 0} total orders`}
-            icon={
-              <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-            }
-          />
-        )}
+        <Tile label="Needs your reply" value={String(pendingCount)} sub={pendingOrders[0]?.seller_response_deadline ? `reply by ${shortDate(pendingOrders[0].seller_response_deadline)}` : pendingCount ? "requests waiting" : "no open requests"} tone={pendingCount ? "amber" : undefined} href="/seller/orders" />
+        <Tile label="Due this week" value={String(stats.week.length)} sub={stats.week[0] ? `${stats.week[0].product?.title ?? "Order"} · ${shortDate(stats.week[0].due_date!)}` : "nothing due"} href="/seller/orders" />
+        <Tile label="Late" value={String(stats.late.length)} sub={stats.late[0] ? `${stats.late[0].product?.title ?? "Order"} · due ${shortDate(stats.late[0].due_date!)}` : "all on time"} tone={stats.late.length ? "amber" : undefined} href="/seller/orders" />
+        <Tile label="Awaiting approval" value={String(stats.awaiting.length)} sub={stats.awaiting[0]?.auto_completion_at ? `auto-approves ${shortDate(stats.awaiting[0].auto_completion_at)}` : "nothing delivered yet"} href="/seller/orders" />
       </div>
 
-      {/* Pending Approval Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Tile label={connected || accountLoading ? "On the way" : "Waiting for payouts"} value={formatCurrency(cents(onTheWay) / 100, cur)} sub={nextRelease ? `releases ${shortDate(nextRelease)}` : connected || accountLoading ? "nothing pending" : "connect Stripe to receive"} href="/seller/earnings" />
+        <Tile label="Paid out" value={formatCurrency(cents(paidOut) / 100, cur)} sub={paidOut.length ? `${paidOut.length} payout${paidOut.length === 1 ? "" : "s"}` : undefined} href="/seller/earnings" />
+        <Tile label="Earned" value={formatCurrency(earnings?.total_earned ?? 0)} sub={`${earnings?.completed_orders ?? 0} approved order${(earnings?.completed_orders ?? 0) === 1 ? "" : "s"}`} href="/seller/earnings" />
+      </div>
+
       {pendingOrders.length > 0 && (
-        <section>
-          <div className="flex items-center gap-2.5 mb-3">
-            <h2 className="font-display text-lg font-bold text-ink">Pending Approval</h2>
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-primary text-white text-[11px] font-ui font-bold">
-              {pendingCount}
-            </span>
-          </div>
-          <div className="space-y-3">
-            {pendingOrders.map((order) => (
-              <PendingOrderCard key={order.id} order={order} />
-            ))}
-          </div>
+        <section className="space-y-2">
+          <h2 className="font-display text-sm font-semibold text-ink">Requests waiting for you</h2>
+          {pendingOrders.map((o) => <PendingOrderCard key={o.id} order={o} />)}
         </section>
       )}
 
-      {/* Quick Actions */}
-      <div className="flex gap-2 flex-wrap">
-        <Link
-          href="/sell"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-primary text-white rounded-lg text-sm font-ui font-semibold hover:bg-accent/90 transition-colors"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          New Product
-        </Link>
-        <Link
-          href="/sell/service"
-          className="inline-flex items-center gap-2 px-4 py-2 border border-border-light bg-surface rounded-lg text-sm font-ui font-medium text-ink hover:bg-subtle transition-colors"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          New Commission
-        </Link>
-        <Link
-          href="/seller/orders"
-          className="inline-flex items-center gap-2 px-4 py-2 border border-border-light bg-surface rounded-lg text-sm font-ui font-medium text-ink hover:bg-subtle transition-colors"
-        >
-          View All Orders
-        </Link>
-      </div>
-
-      {/* Recent Orders */}
-      <section className="rounded-xl border border-border-light bg-surface overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border-light">
-          <h2 className="font-display text-base font-bold text-ink">Recent Orders</h2>
-          <Link
-            href="/seller/orders"
-            className="text-xs font-ui font-medium text-purple-primary hover:text-accent/80 transition-colors"
-          >
-            View all
-          </Link>
+      <section className="rounded-2xl border border-border-light bg-surface overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border-light">
+          <h2 className="font-display text-sm font-semibold text-ink">Needs your attention</h2>
+          <Link href="/seller/orders" className="text-xs font-ui font-semibold text-purple-primary hover:underline">All orders</Link>
         </div>
-
-        {ordersLoading ? (
-          <div className="py-10 flex justify-center">
-            <Loading size="small" text="" />
-          </div>
-        ) : ordersError ? (
-          <div className="p-10 text-center">
-            <p className="font-body text-red-500 text-sm">Failed to load orders. Refresh to try again.</p>
-          </div>
-        ) : recentOrders.length === 0 ? (
-          <div className="p-10 text-center">
-            <svg className="w-10 h-10 text-muted/40 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
-            </svg>
-            <p className="font-body text-sm text-muted">No orders yet. Share your listings to get started!</p>
-          </div>
+        {workingLoading ? (
+          <div className="divide-y divide-border-light">{[1, 2, 3].map((i) => <div key={i} className="h-16 bg-skeleton/40 animate-pulse" />)}</div>
+        ) : attention.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm font-body text-muted">Nothing in progress. New requests and orders show up here.</div>
         ) : (
-          <div>
-            {recentOrders.map((order) => (
-              <RecentOrderRow key={order.id} order={order} />
-            ))}
-          </div>
+          <div className="divide-y divide-border-light">{attention.map((o) => <SellerOrderRow key={o.id} order={o} />)}</div>
         )}
       </section>
+
+      <div className="flex gap-2 flex-wrap">
+        <Link href="/sell/service"><Button>Add a service</Button></Link>
+        <Link href="/sell"><Button variant="secondary">Add a product</Button></Link>
+      </div>
     </div>
   );
 }

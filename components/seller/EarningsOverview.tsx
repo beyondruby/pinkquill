@@ -1,269 +1,183 @@
 "use client";
 
+import Link from "next/link";
+import { useMemo } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useSellerEarnings, useTransactionHistory, useSellerOnboarding } from "@/lib/hooks/usePayments";
-import Loading from "@/components/ui/Loading";
-import type { Transaction } from "@/lib/types/store";
+import { useSellerEarnings, useSellerOnboarding, useSellerPayouts, useSellerStatement, type SellerPayout } from "@/lib/hooks/usePayments";
+import Button from "@/components/ui/Button";
+import { formatCurrency } from "@/lib/utils/currency";
+import { TONE_CLASSES, type StatusTone } from "@/lib/utils/orderStatus";
+import { shortDate } from "@/components/orders/orderFormat";
+import { PayoutBanner } from "./SellerDashboard";
 
-// ---------------------------------------------------------------------------
-// Transaction type config
-// ---------------------------------------------------------------------------
+/**
+ * Earnings (Phase 3e): what is on the way, what was paid out, what is held,
+ * plus the real payouts list and a per-order statement with the fee line.
+ * Payout amounts are in the payout currency (CAD today); prices stay USD.
+ */
 
-const TX_CONFIG: Record<string, { label: string; color: string; sign: string; icon: React.ReactNode }> = {
-  payment: {
-    label: "Payment received",
-    color: "text-emerald-600",
-    sign: "+",
-    icon: (
-      <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
-      </svg>
-    ),
-  },
-  buyer_fee: {
-    label: "Buyer processing fee",
-    color: "text-muted",
-    sign: "",
-    icon: (
-      <svg className="w-4 h-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a4 4 0 0 0-8 0v2" />
-      </svg>
-    ),
-  },
-  platform_fee: {
-    label: "Platform fee",
-    color: "text-muted",
-    sign: "-",
-    icon: (
-      <svg className="w-4 h-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a4 4 0 0 0-8 0v2" />
-      </svg>
-    ),
-  },
-  seller_payout: {
-    label: "Payout",
-    color: "text-purple-primary",
-    sign: "+",
-    icon: (
-      <svg className="w-4 h-4 text-purple-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-      </svg>
-    ),
-  },
-  refund: {
-    label: "Refund",
-    color: "text-orange-600",
-    sign: "-",
-    icon: (
-      <svg className="w-4 h-4 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-      </svg>
-    ),
-  },
+const PAYOUT_STATUS: Record<SellerPayout["status"], { label: string; tone: StatusTone }> = {
+  pending: { label: "On the way", tone: "purple" },
+  processing: { label: "Sending", tone: "purple" },
+  sent: { label: "Sent", tone: "emerald" },
+  failed: { label: "Failed", tone: "red" },
+  blocked: { label: "Held", tone: "amber" },
+  reversed: { label: "Reversed", tone: "red" },
+  cancelled: { label: "Cancelled", tone: "neutral" },
 };
 
-// ---------------------------------------------------------------------------
-// Metric Card
-// ---------------------------------------------------------------------------
+function chip(label: string, tone: StatusTone) {
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-2xs font-ui font-semibold ${TONE_CLASSES[tone].chip}`}>{label}</span>;
+}
 
-function MetricCard({
-  label,
-  value,
-  icon,
-  accent,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  accent?: boolean;
-}) {
+function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className={`rounded-xl border p-4 sm:p-5 ${
-      accent
-        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
-        : "border-border-light bg-surface"
-    }`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{label}</p>
-          <p className={`text-2xl font-display font-bold mt-1 ${accent ? "text-purple-primary" : "text-ink"}`}>
-            {value}
-          </p>
-        </div>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-skeleton/70 text-muted"
-        }`}>
-          {icon}
-        </div>
-      </div>
+    <div className="rounded-2xl border border-border-light bg-surface p-4 min-w-0">
+      <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className="font-display text-xl font-semibold text-ink mt-1 tabular-nums">{value}</p>
+      {sub && <p className="text-2xs font-body text-muted mt-0.5 truncate">{sub}</p>}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Transaction Row
-// ---------------------------------------------------------------------------
-
-function TransactionRow({ tx }: { tx: Transaction }) {
-  const config = TX_CONFIG[tx.type] || { label: tx.type, color: "text-ink", sign: "", icon: null };
-
-  return (
-    <div className="flex items-center gap-3 py-3 px-4 sm:px-5 border-b border-border-light last:border-0">
-      {/* Icon */}
-      <div className="w-8 h-8 rounded-lg bg-subtle flex items-center justify-center shrink-0">
-        {config.icon}
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="font-ui text-sm font-medium text-ink">{config.label}</p>
-        <p className="text-xs text-muted mt-0.5">
-          {new Date(tx.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-          {tx.status !== "completed" && (
-            <> · <span className="capitalize">{tx.status}</span></>
-          )}
-        </p>
-      </div>
-
-      {/* Amount */}
-      <span className={`font-ui text-sm font-semibold ${config.color}`}>
-        {config.sign}${Number(tx.amount).toFixed(2)}
-      </span>
-    </div>
-  );
+function sumCents(list: SellerPayout[], statuses: SellerPayout["status"][]): { cents: number; currency: string; count: number } {
+  const rows = list.filter((p) => statuses.includes(p.status));
+  return { cents: rows.reduce((s, p) => s + p.amount_cents, 0), currency: rows[0]?.currency ?? list[0]?.currency ?? "cad", count: rows.length };
 }
 
-// ---------------------------------------------------------------------------
-// Main Component
-// ---------------------------------------------------------------------------
+function csvEscape(v: string | number | null | undefined): string {
+  const s = v == null ? "" : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
 
 export default function EarningsOverview() {
   const { user } = useAuth();
   const { earnings, loading: earningsLoading } = useSellerEarnings(user?.id);
-  const { transactions, loading: txLoading, hasMore, loadMore } = useTransactionHistory(user?.id);
-  const { openDashboard, account } = useSellerOnboarding();
-  const isPlaceholder = Boolean(account?.placeholder_mode);
-  const providerLabel = account?.provider === "stripe" ? "Stripe" : "Payment";
+  const { payouts, loading: payoutsLoading } = useSellerPayouts(user?.id);
+  const { rows, loading: rowsLoading } = useSellerStatement(user?.id);
+  const { openDashboard, account, loading: accountLoading } = useSellerOnboarding();
+  const connected = Boolean(account?.payouts_enabled) || accountLoading;
 
-  // Loading
-  if (earningsLoading) {
+  const onTheWay = useMemo(() => sumCents(payouts, ["pending", "processing"]), [payouts]);
+  const paidOut = useMemo(() => sumCents(payouts, ["sent"]), [payouts]);
+  const held = useMemo(() => sumCents(payouts, ["blocked", "failed"]), [payouts]);
+
+  const downloadCsv = () => {
+    const header = ["Order", "Listing", "Ordered", "Approved", "Status", "Price (USD)", "Pinkquill fee (USD)", "You receive (USD)", "Payout status", "Payout amount", "Payout currency", "Payout sent"];
+    const lines = rows.map((r) => [
+      r.order_number, r.product?.title ?? "", r.created_at.slice(0, 10), r.completed_at?.slice(0, 10) ?? "", r.status,
+      Number(r.amount).toFixed(2), Number(r.platform_fee).toFixed(2), Number(r.seller_amount).toFixed(2),
+      r.payout?.status ?? "", r.payout ? (r.payout.amount_cents / 100).toFixed(2) : "", r.payout?.currency?.toUpperCase() ?? "", r.payout?.sent_at?.slice(0, 10) ?? "",
+    ].map(csvEscape).join(","));
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pinkquill-statement-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (earningsLoading || accountLoading) {
     return (
-      <div className="space-y-6">
-        <div className="h-7 w-32 bg-skeleton/70 rounded-lg animate-pulse" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-[100px] bg-subtle rounded-xl animate-pulse border border-border-light" />
-          ))}
-        </div>
+      <div className="space-y-4">
+        <div className="h-8 w-40 rounded bg-skeleton/60 animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{[1, 2, 3, 4].map((i) => <div key={i} className="h-24 rounded-2xl bg-skeleton/60 animate-pulse" />)}</div>
+        <div className="h-48 rounded-2xl bg-skeleton/60 animate-pulse" />
       </div>
     );
   }
 
+  const payoutSub = (p: SellerPayout) => {
+    if (p.status === "sent") return `${p.sent_at ? shortDate(p.sent_at) : "sent"}${p.transfer_id ? ` · ${p.transfer_id.slice(0, 10)}…` : ""}`;
+    if (p.status === "pending") return `releases ${shortDate(p.eligible_at)}`;
+    if (p.status === "blocked") return p.block_reason === "dispute_open" ? "dispute open" : p.block_reason === "no_account" || p.block_reason === "onboarding" ? "connect payouts" : (p.block_reason ?? "held");
+    if (p.status === "failed") return "Stripe couldn't pay this out; check your account";
+    return "";
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-ink">Earnings</h1>
-          <p className="text-sm font-body text-muted mt-0.5">Track your revenue and payouts</p>
-        </div>
-        <button
-          onClick={openDashboard}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-border-light bg-surface rounded-lg text-sm font-ui font-medium text-ink hover:bg-subtle transition-colors"
-        >
-          {isPlaceholder ? "Payment Setup" : `${providerLabel} Dashboard`}
-          <svg className="w-3.5 h-3.5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-          </svg>
-        </button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h1 className="font-display text-2xl font-semibold text-ink">Earnings</h1>
+        {connected && <Button variant="secondary" size="sm" onClick={openDashboard}>Open Stripe dashboard</Button>}
       </div>
 
-      {/* Metric Cards */}
+      {!connected && <PayoutBanner />}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <MetricCard
-          label="Total Earned"
-          value={`$${(earnings?.total_earned ?? 0).toFixed(2)}`}
-          accent
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Pending"
-          value={`$${(earnings?.pending_earnings ?? 0).toFixed(2)}`}
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Completed Orders"
-          value={`${earnings?.completed_orders ?? 0}`}
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Avg. Order Value"
-          value={`$${(earnings?.avg_order_value ?? 0).toFixed(2)}`}
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
-            </svg>
-          }
-        />
+        <Tile label={connected ? "On the way" : "Waiting for payouts"} value={formatCurrency(onTheWay.cents / 100, onTheWay.currency)} sub={connected ? (onTheWay.count ? `${onTheWay.count} payout${onTheWay.count === 1 ? "" : "s"}` : "nothing pending") : "connect Stripe to receive"} />
+        <Tile label="Paid out" value={formatCurrency(paidOut.cents / 100, paidOut.currency)} sub={paidOut.count ? `${paidOut.count} payout${paidOut.count === 1 ? "" : "s"}` : undefined} />
+        <Tile label="Held" value={formatCurrency(held.cents / 100, held.currency)} sub={held.count ? `${held.count} needing attention` : undefined} />
+        <Tile label="Earned" value={formatCurrency(earnings?.total_earned ?? 0)} sub={`${earnings?.completed_orders ?? 0} approved order${(earnings?.completed_orders ?? 0) === 1 ? "" : "s"}`} />
       </div>
 
-      {/* Fee Info */}
-      <div className="flex items-start gap-3 rounded-lg bg-purple-50/60 border border-purple-100 p-4">
-        <svg className="w-4.5 h-4.5 text-purple-primary shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-        <p className="text-sm font-body text-purple-900">
-          <strong>Fee structure:</strong> 5% on all sales.
-          {isPlaceholder
-            ? " Payments are currently in placeholder mode while live provider setup is pending."
-            : " Payment processing fees depend on your Stripe account and region."}
-        </p>
-      </div>
-
-      {/* Transaction History */}
-      <section className="rounded-xl border border-border-light bg-surface overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-border-light">
-          <h2 className="font-display text-base font-bold text-ink">Transaction History</h2>
+      <section className="rounded-2xl border border-border-light bg-surface overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border-light">
+          <h2 className="font-display text-sm font-semibold text-ink">Payouts</h2>
+          <p className="text-2xs font-body text-muted">Released 7 days after approval, then paid to your bank on Stripe&apos;s schedule.</p>
         </div>
+        {payoutsLoading ? (
+          <div className="h-24 bg-skeleton/40 animate-pulse" />
+        ) : payouts.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm font-body text-muted">No payouts yet. The first one is created when an order is approved.</div>
+        ) : (
+          <div className="divide-y divide-border-light">
+            {payouts.map((p) => {
+              const st = PAYOUT_STATUS[p.status];
+              return (
+                <Link key={p.id} href={`/orders/${p.order_id}`} className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_120px_120px_200px] gap-3 px-4 py-3 items-center hover:bg-subtle transition-colors">
+                  <div className="min-w-0">
+                    <p className="text-sm font-ui text-ink truncate">{p.order?.product?.title || p.order?.order_number || "Order"}</p>
+                    <p className="text-2xs font-body text-muted tabular-nums">{p.order?.order_number}<span className="md:hidden"> · {payoutSub(p)}</span></p>
+                  </div>
+                  <span className="hidden md:inline text-sm font-ui font-semibold text-ink tabular-nums">{formatCurrency(p.amount_cents / 100, p.currency)}</span>
+                  <span className="flex items-center gap-2 justify-end md:justify-start">{chip(st.label, st.tone)}<span className="md:hidden text-sm font-ui font-semibold text-ink tabular-nums">{formatCurrency(p.amount_cents / 100, p.currency)}</span></span>
+                  <span className="hidden md:inline text-2xs font-body text-muted truncate">{payoutSub(p)}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
-        {txLoading ? (
-          <div className="py-12 flex justify-center">
-            <Loading size="small" text="" />
-          </div>
-        ) : transactions.length === 0 ? (
-          <div className="p-16 text-center">
-            <svg className="w-10 h-10 text-muted/40 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-            <p className="font-body text-sm text-muted">No transactions yet.</p>
-          </div>
+      <section className="rounded-2xl border border-border-light bg-surface overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border-light">
+          <h2 className="font-display text-sm font-semibold text-ink">Statement</h2>
+          {rows.length > 0 && <button type="button" onClick={downloadCsv} className="text-xs font-ui font-semibold text-purple-primary hover:underline">Download CSV</button>}
+        </div>
+        {rowsLoading ? (
+          <div className="h-24 bg-skeleton/40 animate-pulse" />
+        ) : rows.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm font-body text-muted">No paid orders yet.</div>
         ) : (
           <>
-            {transactions.map((tx) => (
-              <TransactionRow key={tx.id} tx={tx} />
-            ))}
-            {hasMore && (
-              <div className="p-4 text-center border-t border-border-light">
-                <button
-                  onClick={loadMore}
-                  className="px-5 py-2 rounded-lg text-sm font-ui font-medium text-purple-primary border border-purple-primary/20 bg-accent/5 hover:bg-purple-50 transition-colors"
-                >
-                  Load More
-                </button>
-              </div>
-            )}
+            <div className="hidden md:grid grid-cols-[76px_minmax(0,1fr)_84px_84px_96px_120px] gap-3 px-4 py-2 bg-subtle text-2xs font-ui uppercase tracking-[0.12em] text-muted">
+              <span>Ordered</span><span>Order</span><span className="text-right">Price</span><span className="text-right">Fee 5%</span><span className="text-right">You receive</span><span>Payout</span>
+            </div>
+            <div className="divide-y divide-border-light">
+              {rows.map((r) => {
+                const payoutText = r.payout
+                  ? r.payout.status === "sent" ? `Sent ${r.payout.sent_at ? shortDate(r.payout.sent_at) : ""}` : PAYOUT_STATUS[r.payout.status as SellerPayout["status"]]?.label ?? r.payout.status
+                  : r.status === "completed" ? "Scheduling" : r.status === "refunded" || r.status === "cancelled" ? "Refunded" : "After approval";
+                return (
+                  <Link key={r.id} href={`/orders/${r.id}`} className="block px-4 py-3 hover:bg-subtle transition-colors">
+                    <div className="md:hidden">
+                      <div className="flex justify-between gap-3"><span className="text-sm font-ui text-ink tabular-nums">{r.order_number}</span><span className="text-sm font-ui font-semibold text-ink tabular-nums">{formatCurrency(r.seller_amount, r.currency)}</span></div>
+                      <p className="text-2xs font-body text-muted mt-0.5 truncate">{shortDate(r.created_at)} · price {formatCurrency(r.amount, r.currency)} · fee {formatCurrency(r.platform_fee, r.currency)} · {payoutText}</p>
+                    </div>
+                    <div className="hidden md:grid grid-cols-[76px_minmax(0,1fr)_84px_84px_96px_120px] gap-3 items-center text-sm font-body">
+                      <span className="text-muted">{shortDate(r.created_at)}</span>
+                      <span className="min-w-0"><span className="block font-ui text-ink truncate">{r.product?.title || "Order"}</span><span className="block text-2xs text-muted tabular-nums">{r.order_number}</span></span>
+                      <span className="text-right tabular-nums text-ink">{formatCurrency(r.amount, r.currency)}</span>
+                      <span className="text-right tabular-nums text-muted">−{formatCurrency(r.platform_fee, r.currency)}</span>
+                      <span className="text-right tabular-nums font-ui font-semibold text-ink">{formatCurrency(r.seller_amount, r.currency)}</span>
+                      <span className="text-2xs text-muted truncate">{payoutText}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           </>
         )}
       </section>

@@ -265,3 +265,96 @@ export function useTransactionHistory(
 
   return { transactions, loading, error, hasMore, loadMore };
 }
+
+
+// ============================================================================
+// Phase 3e: payouts and the per-order statement (reads only; sellers can
+// SELECT their own payouts, and orders where they are the seller).
+// ============================================================================
+
+export interface SellerPayout {
+  id: string;
+  order_id: string;
+  amount_cents: number;
+  currency: string;
+  status: "pending" | "processing" | "sent" | "failed" | "blocked" | "reversed" | "cancelled";
+  block_reason: string | null;
+  transfer_id: string | null;
+  eligible_at: string;
+  sent_at: string | null;
+  created_at: string;
+  order?: { order_number: string; product?: { title: string } | null } | null;
+}
+
+export function useSellerPayouts(userId?: string) {
+  const [payouts, setPayouts] = useState<SellerPayout[]>([]);
+  const [loading, setLoading] = useState(Boolean(userId));
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    if (!userId) { setPayouts([]); setLoading(false); return; }
+    const { data, error: queryError } = await supabase
+      .from("payouts")
+      .select("id, order_id, amount_cents, currency, status, block_reason, transfer_id, eligible_at, sent_at, created_at, order:orders!payouts_order_id_fkey (order_number, product:products (title))")
+      .eq("seller_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (queryError) { setError(queryError.message); setPayouts([]); }
+    else { setError(null); setPayouts((data ?? []) as unknown as SellerPayout[]); }
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { void refetch(); }, 0);
+    return () => clearTimeout(timer);
+  }, [refetch]);
+
+  return { payouts, loading, error, refetch };
+}
+
+export interface StatementRow {
+  id: string;
+  order_number: string;
+  status: string;
+  amount: number;
+  platform_fee: number;
+  seller_amount: number;
+  currency: string;
+  completed_at: string | null;
+  created_at: string;
+  product?: { title: string } | null;
+  payout?: { status: string; sent_at: string | null; amount_cents: number; currency: string } | null;
+}
+
+/** One line per paid order: price, Pinkquill fee, what the seller receives, payout state. */
+export function useSellerStatement(userId?: string) {
+  const [rows, setRows] = useState<StatementRow[]>([]);
+  const [loading, setLoading] = useState(Boolean(userId));
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    if (!userId) { setRows([]); setLoading(false); return; }
+    const { data, error: queryError } = await supabase
+      .from("orders")
+      .select("id, order_number, status, amount, platform_fee, seller_amount, currency, completed_at, created_at, product:products (title), payout:payouts (status, sent_at, amount_cents, currency)")
+      .eq("seller_id", userId)
+      .in("payment_status", ["paid", "partially_refunded", "refunded"])
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (queryError) { setError(queryError.message); setRows([]); return; }
+    const normalized = ((data ?? []) as unknown as Array<Omit<StatementRow, "payout"> & { payout?: StatementRow["payout"] | StatementRow["payout"][] }>).map((r) => ({
+      ...r,
+      payout: Array.isArray(r.payout) ? (r.payout[0] ?? null) : (r.payout ?? null),
+    }));
+    setError(null);
+    setRows(normalized);
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { void refetch(); }, 0);
+    return () => clearTimeout(timer);
+  }, [refetch]);
+
+  return { rows, loading, error, refetch };
+}
