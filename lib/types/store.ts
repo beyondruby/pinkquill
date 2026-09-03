@@ -650,19 +650,6 @@ export interface SellerAccount {
   updated_at: string;
 }
 
-export interface Transaction {
-  id: string;
-  order_id: string;
-  type: 'payment' | 'buyer_fee' | 'platform_fee' | 'seller_payout' | 'refund';
-  amount: number;
-  currency: string;
-  stripe_payment_intent_id: string | null;
-  stripe_transfer_id: string | null;
-  stripe_charge_id: string | null;
-  status: 'pending' | 'completed' | 'failed' | 'refunded';
-  metadata: Record<string, unknown>;
-  created_at: string;
-}
 
 export interface SellerEarnings {
   total_earned: number;

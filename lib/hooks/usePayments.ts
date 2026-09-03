@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { buildAuthenticatedHeaders } from "@/lib/auth-client";
 import { supabase } from "../supabase";
 import { safeResponseJson } from "../utils/fetch";
-import type { SellerAccount, SellerEarnings, Transaction } from "../types/store";
+import type { SellerAccount, SellerEarnings } from "../types/store";
 
 // ============================================================================
 // SELLER ONBOARDING
@@ -191,81 +191,6 @@ export function useSellerEarnings(userId?: string): UseSellerEarningsReturn {
 // ============================================================================
 // TRANSACTION HISTORY
 // ============================================================================
-
-interface UseTransactionHistoryReturn {
-  transactions: Transaction[];
-  loading: boolean;
-  error: string | null;
-  hasMore: boolean;
-  loadMore: () => Promise<void>;
-}
-
-export function useTransactionHistory(
-  userId?: string,
-  pageSize = 20
-): UseTransactionHistoryReturn {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const pageRef = useRef(0);
-  const mountedRef = useRef(true);
-
-  const fetchPage = useCallback(async (page: number) => {
-    if (!userId) {
-      setTransactions([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      if (page === 0) setLoading(true);
-      setError(null);
-
-      const from = page * pageSize;
-      const to = from + pageSize - 1;
-
-      const { data, error: queryError } = await supabase
-        .from("transactions")
-        .select(`
-          *,
-          order:orders!inner (
-            id, order_number, buyer_id, seller_id
-          )
-        `)
-        .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "orders" })
-        .order("created_at", { ascending: false })
-        .range(from, to);
-
-      if (queryError) throw queryError;
-      if (!mountedRef.current) return;
-
-      const txns = (data || []) as Transaction[];
-      setTransactions((prev) => (page === 0 ? txns : [...prev, ...txns]));
-      setHasMore(txns.length === pageSize);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to fetch transactions";
-      if (mountedRef.current) setError(message);
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [userId, pageSize]);
-
-  const loadMore = useCallback(async () => {
-    pageRef.current += 1;
-    await fetchPage(pageRef.current);
-  }, [fetchPage]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    pageRef.current = 0;
-    fetchPage(0);
-    return () => { mountedRef.current = false; };
-  }, [fetchPage]);
-
-  return { transactions, loading, error, hasMore, loadMore };
-}
-
 
 // ============================================================================
 // Phase 3e: payouts and the per-order statement (reads only; sellers can

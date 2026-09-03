@@ -1,14 +1,16 @@
 /**
- * Commissions money journey (Phase 1e).
+ * Commissions journey against the Phase 3 screens (rewritten in Phase 4c).
  *
- * seller publishes a service → buyer hires → dedicated checkout shows the
+ * seller publishes a listing through the six-step wizard → buyer requests it
+ * from the listing page (RequestSheet) → dedicated checkout shows the
  * processing fee + total → pays with a Stripe test card inside embedded
  * Checkout → /checkout/[id]/complete confirms from the DATABASE (webhook) →
- * seller starts + delivers → buyer accepts → order completed.
+ * the order page shows the same numbers to both sides → seller starts and
+ * delivers → buyer approves → receipt and payout statement exist.
  *
  * Needs a running app pointed at a Stripe TEST account with `stripe listen`
  * (or a registered test webhook) forwarding to it, plus two test accounts:
- *   E2E_SELLER_EMAIL / E2E_SELLER_PASSWORD  (seller with a payable test Connect account)
+ *   E2E_SELLER_EMAIL / E2E_SELLER_PASSWORD  (seller with a finished studio setup)
  *   E2E_BUYER_EMAIL  / E2E_BUYER_PASSWORD
  * Skipped otherwise. Never run against live keys.
  */
@@ -25,8 +27,9 @@ const credentialsConfigured = Boolean(sellerEmail && sellerPassword && buyerEmai
 const PRICE_USD = 5; // min_service_price floor
 const BUYER_FEE = Math.round(PRICE_USD * 100 * 0.035 + 30) / 100; // 3.5% + $0.30 → $0.48
 const TOTAL_USD = PRICE_USD + BUYER_FEE; // $5.48
+const SELLER_NET = Math.round(PRICE_USD * 100 * 0.95) / 100; // 5% fee → $4.75
 
-test.describe("Commissions money journey", () => {
+test.describe("Commissions journey (Phase 3 screens)", () => {
   test.describe.configure({ mode: "serial" });
   test.skip(!credentialsConfigured, "Set E2E_SELLER_EMAIL/E2E_SELLER_PASSWORD and E2E_BUYER_EMAIL/E2E_BUYER_PASSWORD to run");
 
@@ -38,45 +41,48 @@ test.describe("Commissions money journey", () => {
     serviceTitle = `E2E Commission ${Date.now()}`;
   });
 
-  test("seller publishes a $5 commission service", async ({ page }, testInfo) => {
+  test("seller publishes a $5 commission through the wizard", async ({ page }, testInfo) => {
     test.skip(/Mobile/i.test(testInfo.project.name), "Desktop-only journey");
     test.setTimeout(180_000);
 
     await signIn(page, sellerEmail!, sellerPassword!);
     await page.goto("/sell/service");
-    await expect(page).toHaveURL(/\/sell\/service/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Basics" })).toBeVisible({ timeout: 20_000 });
 
-    await page.getByRole("button", { name: "Design" }).click();
-    await page.getByRole("button", { name: "UI/UX Design" }).click();
-    await page.getByPlaceholder(/Custom watercolor portrait/i).fill(serviceTitle);
-    await page.getByPlaceholder(/Handcrafted with love/i).fill("E2E money-path service");
-    await page
-      .getByPlaceholder(/Share your creative process/i)
-      .fill("Automated test service used to verify the commissions payment path end to end.");
-    await page.getByRole("button", { name: /^Continue$/ }).click();
+    // 1 · Basics
+    await page.getByRole("button", { name: "Illustration", exact: true }).click();
+    await page.getByPlaceholder("Character illustration, full colour").fill(serviceTitle);
+    await page.getByPlaceholder("One line under the title on cards and the listing.").fill("E2E money-path service");
+    await page.getByPlaceholder("How you work, what you love making, what a buyer can expect.").fill("Automated test service used to verify the commissions path end to end.");
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
 
-    await page.getByPlaceholder("Package name").first().fill("Starter");
-    await page.getByPlaceholder("Price \(USD\)").first().fill(String(PRICE_USD));
-    await page.getByPlaceholder(/Describe what the person will receive/i).first().fill("One small deliverable.");
-    await page.getByPlaceholder("Delivery days").first().fill("3");
-    await page.getByPlaceholder("Revisions").first().fill("1");
-    await page.getByRole("button", { name: /\+ Add line/i }).first().click();
-    await page.getByPlaceholder(/High-res file, commercial license/i).first().fill("One concept");
-    await page.getByRole("button", { name: /^Continue$/ }).click();
+    // 2 · Packages: one tier, $5, 3 days, 1 revision
+    await page.getByPlaceholder("Sketch, Standard, Full scene…").first().fill("Starter");
+    await page.locator('input[id^="pkg-price-"]').first().fill(String(PRICE_USD));
+    await page.locator('input[id^="pkg-days-"]').first().fill("3");
+    await page.locator('input[id^="pkg-rev-"]').first().fill("1");
+    await page.getByPlaceholder("Half body, full render, loose background.").first().fill("One small deliverable.");
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
 
+    // 3 · Portfolio
     await page.locator('input[type="file"]').first().setInputFiles(path.join(process.cwd(), "public/defaultprofile.png"));
-    await page.getByRole("button", { name: /^Continue$/ }).click();
-    await page.getByRole("button", { name: /Publish Service/i }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
 
-    await expect(page).toHaveURL(/\/studio\/[^/]+\?tab=commissions/, { timeout: 120_000 });
-    const card = page.locator('a[href^="/commissions/"]').filter({ hasText: serviceTitle }).first();
-    await expect(card).toBeVisible({ timeout: 30_000 });
-    commissionPath = (await card.getAttribute("href")) || "";
-    expect(commissionPath).toMatch(/^\/commissions\//);
+    // 4 · Details, 5 · Availability keep their defaults (open, unlimited, no lead time)
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+
+    // 6 · Preview → Publish
+    await expect(page.getByRole("heading", { name: serviceTitle })).toBeVisible();
+    await page.getByRole("button", { name: "Publish", exact: true }).click();
+
+    await expect(page).toHaveURL(/\/commissions\/[^/?]+/, { timeout: 60_000 });
+    commissionPath = new URL(page.url()).pathname;
+    await expect(page.getByRole("heading", { name: serviceTitle })).toBeVisible({ timeout: 20_000 });
     await signOut(page);
   });
 
-  test("buyer hires, sees the fee breakdown and pays with a test card", async ({ page }, testInfo) => {
+  test("buyer requests, sees the fee breakdown and pays with a test card", async ({ page }, testInfo) => {
     test.skip(/Mobile/i.test(testInfo.project.name), "Desktop-only journey");
     test.setTimeout(240_000);
     expect(commissionPath).toMatch(/^\/commissions\//);
@@ -85,29 +91,26 @@ test.describe("Commissions money journey", () => {
     await page.goto(commissionPath);
     await expect(page.getByRole("heading", { name: serviceTitle })).toBeVisible({ timeout: 20_000 });
 
-    // Phase 2a: availability is decided by the database and shown before the CTA
-    await expect(page.getByText(/^Open$|slots open/i).first()).toBeVisible({ timeout: 20_000 });
-    await page.getByRole("button", { name: /^Request · \$/ }).click();
+    // Phase 2a: availability is decided by the database and shown before the CTA.
+    await page.getByRole("button", { name: /^Request · \$/ }).first().click();
     const sheet = page.getByRole("dialog");
-    await sheet.getByRole("button", { name: /^Continue$/ }).click();
-    await sheet.getByRole("textbox").first().fill("E2E brief: one concept, any style.");
-    await sheet.getByRole("button", { name: /^Continue$/ }).click(); // brief → references
-    await sheet.getByRole("button", { name: /^Continue$/ }).click(); // references → review
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole("button", { name: /^Continue/ }).click(); // package
+    await sheet.getByPlaceholder(/What you want, the mood/i).fill("E2E brief: one concept, any style.");
+    await sheet.getByRole("button", { name: /^Continue/ }).click(); // brief → references
+    await sheet.getByRole("button", { name: /^Continue/ }).click(); // references → review
     const terms = sheet.getByRole("checkbox");
-    if (await terms.count()) await terms.check();
-    await sheet.getByRole("button", { name: /^Continue · \$/ }).click();
-    // Outcome screen explains what happens next before routing to checkout.
+    if (await terms.count()) await terms.first().check();
     await sheet.getByRole("button", { name: /^Pay \$/ }).click();
 
-    // Every paid hire lands on the dedicated checkout page for a pending_payment order.
+    // Every paid request lands on the dedicated checkout page for a pending_payment order.
     await expect(page).toHaveURL(/\/checkout\/[0-9a-f-]{36}$/, { timeout: 30_000 });
     orderId = page.url().split("/checkout/")[1];
 
     // Fee model is visible before any card is entered.
-    const summary = page.locator("body");
-    await expect(summary.getByText("Processing fee")).toBeVisible({ timeout: 20_000 });
-    await expect(summary.getByText(`$${BUYER_FEE.toFixed(2)}`).first()).toBeVisible();
-    await expect(summary.getByText(`$${TOTAL_USD.toFixed(2)}`).first()).toBeVisible();
+    await expect(page.getByText("Processing fee").first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(`$${BUYER_FEE.toFixed(2)}`).first()).toBeVisible();
+    await expect(page.getByText(`$${TOTAL_USD.toFixed(2)}`).first()).toBeVisible();
 
     // Embedded Stripe Checkout (card only). Test card 4242…, any future expiry.
     const checkout = page.frameLocator('iframe[name^="embedded-checkout"], iframe[src*="checkout.stripe.com"]').first();
@@ -120,18 +123,22 @@ test.describe("Commissions money journey", () => {
     if (await postal.isVisible().catch(() => false)) await postal.fill("12345");
     await checkout.getByRole("button", { name: /^Pay/i }).click();
 
-    // The completion page never trusts the redirect: it polls the order until the
-    // webhook has recorded the payment.
+    // The completion page never trusts the redirect: it polls the order until the webhook has recorded the payment.
     await expect(page).toHaveURL(new RegExp(`/checkout/${orderId}/complete`), { timeout: 60_000 });
-    await expect(page.getByRole("heading", { name: /^Paid|Payment confirmed/ })).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByText(/Payment confirmed|Paid/).first()).toBeVisible({ timeout: 90_000 });
 
+    // The order page: one rail, the buyer's numbers, a receipt.
     await page.goto(`/orders/${orderId}`);
     await expect(page.getByText("Total paid")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(`$${TOTAL_USD.toFixed(2)}`).first()).toBeVisible();
+    await page.getByRole("link", { name: "Receipt" }).click();
+    await expect(page).toHaveURL(new RegExp(`/orders/${orderId}/receipt`));
+    await expect(page.getByRole("heading", { name: "Receipt" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("Total paid")).toBeVisible();
     await signOut(page);
   });
 
-  test("seller delivers, buyer accepts, order completes", async ({ browser, page }, testInfo) => {
+  test("seller delivers, buyer approves, both sides see the same facts", async ({ browser, page }, testInfo) => {
     test.skip(/Mobile/i.test(testInfo.project.name), "Desktop-only journey");
     test.setTimeout(240_000);
     expect(orderId).toMatch(/^[0-9a-f-]{36}$/);
@@ -139,25 +146,58 @@ test.describe("Commissions money journey", () => {
     await signIn(page, sellerEmail!, sellerPassword!);
     await page.goto(`/orders/${orderId}`);
     await expect(page.getByText("You receive")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(`$${SELLER_NET.toFixed(2)}`).first()).toBeVisible();
 
-    await page.getByRole("button", { name: /^Start work$/ }).first().click();
-    await expect(page.getByRole("button", { name: /^Deliver work$/ }).first()).toBeVisible({ timeout: 20_000 });
-    await page.getByRole("button", { name: /^Deliver work$/ }).first().click();
-    await page.getByRole("dialog").getByRole("textbox").fill("Delivered: one concept attached.");
-    await page.getByRole("dialog").getByRole("button", { name: /^Send delivery$/ }).click();
-    await expect(page.getByRole("button", { name: /^Deliver work$/ })).toHaveCount(0, { timeout: 20_000 });
+    await page.getByRole("button", { name: "Start work", exact: true }).first().click();
+    await expect(page.getByRole("button", { name: "Deliver work", exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: "Deliver work", exact: true }).first().click();
+    const deliver = page.getByRole("dialog");
+    await deliver.getByRole("textbox").first().fill("Delivered: one concept attached.");
+    await deliver.locator('input[type="file"]').first().setInputFiles(path.join(process.cwd(), "public/defaultprofile.png"));
+    await deliver.getByRole("button", { name: "Send delivery", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Deliver work", exact: true })).toHaveCount(0, { timeout: 30_000 });
     await signOut(page);
 
     const buyerContext = await browser.newContext();
     const buyerPage = await buyerContext.newPage();
     await signIn(buyerPage, buyerEmail!, buyerPassword!);
     await buyerPage.goto(`/orders/${orderId}`);
-    await buyerPage.getByRole("button", { name: /^Approve delivery$/ }).first().click();
+    await buyerPage.getByRole("button", { name: "Approve delivery", exact: true }).first().click();
     await expect(buyerPage.getByText(/^Approved/).first()).toBeVisible({ timeout: 20_000 });
-    // Money stays in escrow for the release window; nothing is paid out during the test.
+    // Money stays held for the release window; nothing is paid out during the test.
     await expect(buyerPage.getByRole("button", { name: /Cancel order/i })).toHaveCount(0);
     await signOut(buyerPage);
     await buyerContext.close();
+
+    // The seller's payout exists and its statement opens.
+    await signIn(page, sellerEmail!, sellerPassword!);
+    await page.goto(`/orders/${orderId}`);
+    await expect(page.getByRole("link", { name: "Payout statement" })).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("link", { name: "Payout statement" }).click();
+    await expect(page.getByRole("heading", { name: "Payout statement" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("You receive")).toBeVisible();
+    await signOut(page);
+  });
+});
+
+test.describe("Seller studio and console gates", () => {
+  test.skip(!credentialsConfigured, "Set E2E_SELLER_EMAIL/E2E_SELLER_PASSWORD and E2E_BUYER_EMAIL/E2E_BUYER_PASSWORD to run");
+
+  test("the seller studio renders its screens", async ({ page }, testInfo) => {
+    test.skip(/Mobile/i.test(testInfo.project.name), "Desktop-only");
+    await signIn(page, sellerEmail!, sellerPassword!);
+    for (const [href, heading] of [["/seller/dashboard", "Dashboard"], ["/seller/orders", "Orders"], ["/seller/earnings", "Earnings"], ["/seller/analytics", "Analytics"]] as const) {
+      await page.goto(href);
+      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible({ timeout: 20_000 });
+    }
+    await signOut(page);
+  });
+
+  test("the console is closed to non-operators", async ({ page }) => {
+    await signIn(page, buyerEmail!, buyerPassword!);
+    await page.goto("/admin");
+    await expect(page.getByText(/for Pinkquill operators/i)).toBeVisible({ timeout: 20_000 });
+    await signOut(page);
   });
 });
 
@@ -165,7 +205,7 @@ async function signIn(page: Page, email: string, password: string) {
   await page.goto("/login");
   await page.getByPlaceholder(/Email or username|Email/i).first().fill(email);
   await page.locator('input[type="password"]').first().fill(password);
-  await page.getByRole("button", { name: /^Sign In$/ }).click();
+  await page.getByRole("button", { name: /^Sign in$/i }).click();
   await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
 }
 

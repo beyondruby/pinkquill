@@ -50,7 +50,8 @@ async function uploadNewMedia(state: CommissionWizardState, userId: string, prod
   return rows;
 }
 
-function listingPayload(state: CommissionWizardState, media: MediaRow[] | null, status?: "draft" | "active") {
+/** The one payload save_commission_listing reads (exported for tests). */
+export function listingPayload(state: CommissionWizardState, media: MediaRow[] | null, status?: "draft" | "active") {
   const scheduled = state.availability === "scheduled";
   const opensAt = scheduled && state.opensAt ? new Date(`${state.opensAt}T00:00:00`) : null;
   if (scheduled && (!opensAt || Number.isNaN(opensAt.getTime()))) throw new Error("Pick the date this commission opens");

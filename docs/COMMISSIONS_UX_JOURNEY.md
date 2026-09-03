@@ -58,10 +58,10 @@ PinkQuill already has a strong creator profile, marketplace, and product data mo
 3. **Hire flow**
 - Buyer selects package.
 - Buyer submits brief + timeline + notes.
-- System creates order in `product_purchases` with service-specific fields.
+- System creates the order in `orders` (`create_marketplace_order`) with the brief and intake answers.
 - Buyer is redirected to order tracking page.
 
-4. **Order lifecycle** (`/commissions/orders/[id]`)
+4. **Order lifecycle** (`/orders/[id]`)
 - Status pipeline:
   - `paid` -> `in_progress` -> `submitted` -> `completed`
   - Revision loop: `submitted` -> `revision_requested` -> `in_progress`
@@ -90,7 +90,7 @@ PinkQuill already has a strong creator profile, marketplace, and product data mo
   - New: `listing_type`, `service_metadata`
 - `product_pricing`
   - New: `package_tier`, `delivery_days`, `revisions`, `package_features`
-- `product_purchases`
+- `orders` (was `product_purchases`, dropped Sep 2026)
   - New: `brief`, `requirements`, due/status timestamps, delivery notes/assets, revision count
 
 ## Safety + Access

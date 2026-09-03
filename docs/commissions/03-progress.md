@@ -25,8 +25,8 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 2f — Operations | **done, committed on main**; migration `commissions_phase2f_operations` applied to prod | 2026-09-03 |
 | 4a — Consolidation | **done, committed on main** (no migration) | 2026-09-03 |
 | 4b — Load & realtime | **done, committed on main**; migration `commissions_phase4b_load_realtime` applied to prod | 2026-09-03 |
+| 4c — Dead objects & tests | **done, committed on main**; migration `commissions_phase4c_dead_objects` applied to prod | 2026-09-03 |
 | 2b — Quotes & extras | **on hold** (user decision, 2026-09-03): needs a call on the frozen checkout route's amount validation | |
-| 4c | not started | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
@@ -739,4 +739,34 @@ Extras and custom quotes change an order's amount after it is created. The froze
 
 **Deferred to 4c:** dropping `get_seller_order_stats` (no caller since 4a) and the other dead objects; unit tests for the hooks.
 
-**Next:** 4c (dead objects & tests). 2b stays on hold until the checkout-validation decision. Needs your go. Still outstanding: the seller-side run with a second account in Stripe test mode, go-live steps 2, 6 and 7, and the two email env vars from 2d.
+**Next (at the time):** 4c. Done below.
+
+---
+
+## Phase 4c — Dead objects & tests (2026-09-03)
+
+**Closes:** the 4c line of the plan, with one deliberate exception (below). The rebuild is complete except 2b.
+
+**Migration** `supabase/migrations/20260903_commissions_phase4c_dead_objects.sql` (applied to prod as `commissions_phase4c_dead_objects`). Every drop was checked against code, other functions' bodies, triggers, policies and views first:
+- **Tables:** `product_purchases` (0 rows; `consume_download_token` rewritten order-only, its purchase branch and the `product_download_tokens.purchase_id` column gone, the tokens' read policy recreated on orders; trigger function `update_purchase_status_timestamp` dropped), `reviews` (0 rows; `order_reviews` is the live table; its notification trigger function `notify_review_submitted` went with it), `seller_stats` (2 stale rows; `get_seller_stats` computes from orders and `order_reviews`).
+- **RPCs:** `get_seller_order_stats` (no caller since 4a), `finalize_order_escrow_release`, `mark_order_expired`, `mark_order_payment_failed`, `mark_order_transfer_completed` (the pre-1b provider path; the 1b `record_*` RPCs replaced them), `request_refund` (superseded by `request_order_refund`; the only text match was `can_request_refund` inside `get_order_actions`), `generate_order_download_tokens` (tokens are created by the delivery trigger), the 4-argument `resolve_dispute` overload (the 5-argument one is what the admin route calls).
+- **Publication:** `orders` and `order_messages` left `supabase_realtime`; since 4b nothing subscribes to them and the triggers broadcast instead. Three tables remain (`messages`, `community_chat_threads`, `community_chat_messages`).
+- **Kept on purpose — `transactions`.** It has 4 rows, all for today's real order, written by `record_payment_succeeded`, `mark_payout_sent`, `record_chargeback` and `record_payment_refund` as compatibility rows. Those are money-path functions; removing the writes is a money-path edit and needs its own go (the ledger check itself passes: every transaction row's order is in `payments` and `ledger_entries`). The unused client hook `useTransactionHistory` and the `Transaction` type are gone.
+
+**Tests**
+- Unit (15 new, 187 total): `useOrderList` (one row past the page, no exact count, role column, status list, due filter and sort, no user → nothing), `apiFetch` (bearer + JSON, route error and status, HTML error page becomes a message, connection failure never throws), `listingPayload` (trimming, number normalisation, packages left for the database to judge, omitted media/status on update, scheduled needs a date), `useSellerCustomers` (one RPC call, numeric strings coerced, RPC error surfaced — this one caught that PostgREST errors are plain objects, fixed in the hook), `MetricCard` (label/value/sub, link, tones).
+- DB: seven self-tests still pass after the drops.
+- **E2E rewritten** against the Phase 3 screens (`e2e/commissions-journey.spec.ts`): the six-step wizard (chips, placeholders, package inputs, Publish → `/commissions/<slug>`), RequestSheet (Request · $ → package → brief → references → review → Pay $), the dedicated checkout (fee and total before the card), the completion page, the order page for both roles (Total paid / You receive, the Receipt link, Start work → Deliver work → Send delivery → Approve delivery), the payout statement link, the seller studio headings and the console gate for a non-operator. Still skipped without `E2E_SELLER_EMAIL` / `E2E_BUYER_EMAIL` credentials; `playwright test --list` parses it. Not run (no E2E accounts exist).
+
+**Docs drift fixed:** `docs/ARCHITECTURE.md` (cart hook name; the realtime publication list), `docs/COMMISSIONS_UX_JOURNEY.md` (`product_purchases` → `orders`, `/commissions/orders/[id]` → `/orders/[id]`), and the auto-memory `MEMORY.md` (PayPal, the Feb overhaul, dropped tables and components rewritten as history; the one-of-each rules and the frozen money paths recorded).
+
+**Verified**
+- `npx tsc --noEmit` clean; ESLint 0 errors on every changed file; `npx vitest run` 187 pass; `RUN_DB_SELFTEST=1 …` seven DB tests pass; `npm run build` succeeds.
+- Browser (local dev server, signed in as `hadi`): Earnings renders without the transactions hook; the order page for the real completed order renders (rail, payout fact, review, receipt link). Nothing was written.
+- **Note:** production's third order, `PQ-20260903-1209`, is a real paid digital-product purchase made by a user today ($0.10 + $0.30 fee = $0.40, charged CA$0.57, approved and reviewed) — the first live purchase through the rebuilt path. It is not this session's and was left alone.
+
+**Deferred**
+- `transactions` (see above). Removing the four compat writes is a small, self-contained money-path change — one migration re-creating those RPCs without the `INSERT INTO transactions`, then `DROP TABLE transactions`.
+- Running the e2e suite needs two test accounts in Stripe test mode (also the outstanding "seller-side run with a second account").
+
+**Next:** the rebuild is complete except 2b (on hold until the checkout-validation decision) and the `transactions` removal (needs a money-path go). Still outstanding: the seller-side run with a second account in Stripe test mode, go-live steps 2, 6 and 7, and the two email env vars from 2d.

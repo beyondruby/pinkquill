@@ -81,7 +81,8 @@ export function useSellerCustomers(userId?: string): UseSellerCustomersReturn {
       setCustomers((result.customers ?? []).map((c) => ({ ...c, total_spent: Number(c.total_spent), avg_order_value: Number(c.avg_order_value), orders: (c.orders ?? []).map((o) => ({ ...o, amount: Number(o.amount) })) })));
       setStats(result.stats ? { ...EMPTY_STATS, ...result.stats, total_revenue: Number(result.stats.total_revenue), avg_order_value: Number(result.stats.avg_order_value) } : EMPTY_STATS);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      // PostgREST errors are plain objects with a message, not Error instances.
+      const message = err instanceof Error ? err.message : typeof (err as { message?: unknown })?.message === "string" ? (err as { message: string }).message : String(err);
       console.error("[useSellerCustomers] Error:", message);
       if (mountedRef.current) setError(message || "Failed to load customers");
     } finally {

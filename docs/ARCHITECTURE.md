@@ -84,7 +84,7 @@ There is no store library. State lives in:
    - `BadgeCountProvider` fetches unread notification/DM counts via RPC after idle and re-polls on focus (`usePollOnFocus`), not on a timer.
    - `ModalProvider` owns the post/take detail modals (URL push-state, update/delete pub-sub). Both modals are `next/dynamic` imports loaded on first open.
 2. **Per-hook `useState`** in `lib/hooks/*` and `lib/hooks.legacy.ts`. Each hook owns its fetch, loading flag, optimistic update + revert, and (rarely) a realtime channel. Shared caches exist only where a duplicate mount was measured: `CommunityContext` (community layout fetches once; `useCommunity(slug)` reads it), `useTrendingTags` (module cache + in-flight dedupe), `useSellerOnboarding` (5-minute cache).
-3. **Browser storage**: `localStorage` for drafts (`useDrafts`, 30 s auto-save), studio cart (`useStudioQueue`), mute/volume; `sessionStorage` `quill_session_id` for anonymous tracking; cookies `pq_theme`, `pq_feed_view` (client-read only).
+3. **Browser storage**: `localStorage` for drafts (`useDrafts`, 30 s auto-save), studio cart (`useStudioCart`), mute/volume; `sessionStorage` `quill_session_id` for anonymous tracking; cookies `pq_theme`, `pq_feed_view` (client-read only).
 
 Module-level side effects at import: `lib/supabase.ts` (`beforeunload` channel cleanup), `lib/hooks/useTracking.ts` (impression queue flush on `visibilitychange`/`pagehide`), `lib/utils/sanitize.ts` (DOMPurify style hook). Hooks are imported by direct path (`@/lib/hooks/useFeed`); there is no barrel.
 
@@ -114,7 +114,7 @@ Anonymous: same minus auth/badges; views are recorded by `session_id` through th
 - Blocks are enforced in RLS (`posts_select_policy`, `takes_select`), so a blocked viewer gets the same 404/empty result everywhere; no client-side block filtering.
 
 ### 6.2 Realtime
-Design rule: **one private broadcast channel per user; no new `postgres_changes` subscriptions.** The `supabase_realtime` publication contains only the 5 tables still needed by the scoped, in-view subscriptions that remain: `messages` (open conversation), `community_chat_messages`/threads (staff inbox), `orders` (open order / seller dashboard), and reactions on an open post detail. Everything list-shaped polls on focus via `usePollOnFocus`. DM list previews/unread counts come from the `get_dm_conversation_overview` RPC plus targeted `dm_unread_change` events.
+Design rule: **one private broadcast channel per user; no new `postgres_changes` subscriptions.** The `supabase_realtime` publication contains only the 3 tables still needed by the scoped, in-view subscriptions that remain: `messages` (open conversation) and `community_chat_messages`/threads (staff inbox). Orders and order messages left the publication in Sep 2026: `notify_order_change` / `notify_order_message` triggers broadcast `order_change` / `order_message` on the per-user channel instead. Everything list-shaped polls on focus via `usePollOnFocus`. DM list previews/unread counts come from the `get_dm_conversation_overview` RPC plus targeted `dm_unread_change` events.
 
 ### 6.3 Tracking
 `lib/hooks/useTracking.ts`: impressions are batched inserts (`post_impressions`, `take_impressions`, attributed after auth settles). Views go through `record_content_view(kind, id, session, source)` / `update_content_view(...)`; the four view tables have **no direct client write policy** and are readable only by the content owner. Unique indexes `(x_id, session_id, view_date)` make anonymous upserts conflict-safe.
