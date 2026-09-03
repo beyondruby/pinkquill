@@ -24,7 +24,7 @@ function errorMessage(err: unknown, fallback: string): string {
 /** Upload files for an order and return the descriptors the RPCs expect. */
 export async function uploadOrderFiles(
   orderId: string,
-  kind: "reference" | "revision" | "delivery",
+  kind: "reference" | "revision" | "delivery" | "evidence",
   files: File[]
 ): Promise<OrderFileInput[]> {
   const uploaded: OrderFileInput[] = [];

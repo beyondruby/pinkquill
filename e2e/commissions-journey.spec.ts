@@ -134,20 +134,20 @@ test.describe("Commissions money journey", () => {
     await page.goto(`/orders/${orderId}`);
     await expect(page.getByText("You receive")).toBeVisible({ timeout: 20_000 });
 
-    await page.getByRole("button", { name: /^Start Work$/ }).click();
-    await expect(page.getByRole("button", { name: /^Submit Delivery$/ })).toBeVisible({ timeout: 20_000 });
-    const note = page.getByPlaceholder(/delivery summary|notes for buyer/i).first();
-    if (await note.isVisible().catch(() => false)) await note.fill("Delivered: one concept attached.");
-    await page.getByRole("button", { name: /^Submit Delivery$/ }).click();
-    await expect(page.getByRole("button", { name: /^Submit Delivery$/ })).toBeHidden({ timeout: 20_000 });
+    await page.getByRole("button", { name: /^Start work$/ }).first().click();
+    await expect(page.getByRole("button", { name: /^Deliver work$/ }).first()).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: /^Deliver work$/ }).first().click();
+    await page.getByRole("dialog").getByRole("textbox").fill("Delivered: one concept attached.");
+    await page.getByRole("dialog").getByRole("button", { name: /^Send delivery$/ }).click();
+    await expect(page.getByRole("button", { name: /^Deliver work$/ })).toHaveCount(0, { timeout: 20_000 });
     await signOut(page);
 
     const buyerContext = await browser.newContext();
     const buyerPage = await buyerContext.newPage();
     await signIn(buyerPage, buyerEmail!, buyerPassword!);
     await buyerPage.goto(`/orders/${orderId}`);
-    await buyerPage.getByRole("button", { name: /^Accept Delivery$/ }).click();
-    await expect(buyerPage.getByText(/completed/i).first()).toBeVisible({ timeout: 20_000 });
+    await buyerPage.getByRole("button", { name: /^Approve delivery$/ }).first().click();
+    await expect(buyerPage.getByText(/^Approved/).first()).toBeVisible({ timeout: 20_000 });
     // Money stays in escrow for the release window; nothing is paid out during the test.
     await expect(buyerPage.getByRole("button", { name: /Cancel order/i })).toHaveCount(0);
     await signOut(buyerPage);

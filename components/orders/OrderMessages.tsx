@@ -50,13 +50,6 @@ export default function OrderMessages({ orderId }: OrderMessagesProps) {
 
   return (
     <section className="rounded-2xl border border-border-light bg-surface overflow-hidden">
-      <div className="px-5 py-4 border-b border-border-light">
-        <h2 className="font-display text-xl text-ink">Order Messages</h2>
-        <p className="text-xs font-body text-muted mt-1">
-          Communicate with your {user ? "partner" : "..."} about this order
-        </p>
-      </div>
-
       {/* Messages list */}
       <div
         ref={scrollRef}

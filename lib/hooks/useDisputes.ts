@@ -7,6 +7,7 @@ import type {
   Dispute,
   DisputeReason,
   DisputeResolution,
+  OrderFileInput,
 } from "../types/store";
 
 // ============================================================================
@@ -110,7 +111,8 @@ export function useRequestRefund() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const requestRefund = useCallback(async (orderId: string, reason?: string) => {
+  /** amount in listing currency (USD); omit for a full refund */
+  const requestRefund = useCallback(async (orderId: string, reason?: string, amount?: number) => {
     setLoading(true);
     setError(null);
 
@@ -122,7 +124,7 @@ export function useRequestRefund() {
           "Content-Type": "application/json",
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ order_id: orderId, reason, action: "request" }),
+        body: JSON.stringify({ order_id: orderId, reason, amount, action: "request" }),
       });
 
       const data = await response.json();
@@ -257,6 +259,22 @@ export function useIssueRefund() {
     return r.ok;
   }, []);
   return { issueRefund, loading, error };
+}
+
+/** Add a statement and/or files to an open dispute (add_dispute_evidence). */
+export function useAddDisputeEvidence() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const addEvidence = useCallback(async (disputeId: string, text: string, attachments: OrderFileInput[]) => {
+    setLoading(true); setError(null);
+    const { data, error: rpcError } = await supabase.rpc("add_dispute_evidence", {
+      p_dispute_id: disputeId, p_text: text.trim() || null, p_attachments: attachments,
+    });
+    if (rpcError) { setError(rpcError.message); setLoading(false); return null; }
+    setLoading(false);
+    return data as { outcome: string; evidence_count: number };
+  }, []);
+  return { addEvidence, loading, error };
 }
 
 export interface OrderActions {

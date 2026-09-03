@@ -710,4 +710,4 @@ export function useSellerCommissions(sellerId?: string): UseSellerCommissionsRet
 // were removed in 2026-04-26. They wrote to the legacy product_purchases
 // table and bypassed the unified /api/orders/create + payment pipeline.
 // The hire flow now goes through useCreateOrder; order viewing goes
-// through /orders/[id] (unified OrderView).
+// through /orders/[id] (OrderPage).

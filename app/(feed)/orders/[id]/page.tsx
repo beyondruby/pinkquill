@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import OrderView from "@/components/orders/OrderView";
+import OrderPage from "@/components/orders/OrderPage";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -9,12 +9,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   await params;
 
   return {
-    title: "Order Details | Quill",
-    description: "View your order details, communicate with the creator, and track progress.",
+    title: "Order | Quill",
+    description: "Track your order, review deliveries, and message the other side.",
   };
 }
 
 export default async function OrderDetailPage({ params }: Props) {
   const { id } = await params;
-  return <OrderView orderId={id} />;
+  return <OrderPage orderId={id} />;
 }

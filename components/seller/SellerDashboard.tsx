@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useOrderStats, useSellerOrders, usePendingAcceptanceOrders, useAcceptOrder, useDeclineOrder } from "@/lib/hooks/useOrders";
+import { useOrderStats, useSellerOrders, usePendingAcceptanceOrders } from "@/lib/hooks/useOrders";
 import { useSellerEarnings, useSellerOnboarding } from "@/lib/hooks/usePayments";
 import PendingOrderCard from "./PendingOrderCard";
 import Loading from "@/components/ui/Loading";
@@ -105,24 +105,10 @@ export default function SellerDashboard() {
   const { stats, loading: statsLoading } = useOrderStats(user?.id);
   const { earnings, loading: earningsLoading } = useSellerEarnings(user?.id);
   const { orders: recentOrders, loading: ordersLoading, error: ordersError } = useSellerOrders(user?.id, undefined, 5);
-  const { orders: pendingOrders, count: pendingCount, refetch: refetchPending } = usePendingAcceptanceOrders(user?.id);
-  const { acceptOrder, accepting } = useAcceptOrder();
-  const { declineOrder, declining } = useDeclineOrder();
+  const { orders: pendingOrders, count: pendingCount } = usePendingAcceptanceOrders(user?.id);
   const { account, loading: accountLoading } = useSellerOnboarding();
 
   const loading = statsLoading || earningsLoading || accountLoading;
-
-  const handleAccept = async (orderId: string) => {
-    const success = await acceptOrder(orderId);
-    if (success) refetchPending();
-    return success;
-  };
-
-  const handleDecline = async (orderId: string, reason?: string) => {
-    const success = await declineOrder(orderId, reason);
-    if (success) refetchPending();
-    return success;
-  };
 
   // Loading
   if (loading) {
@@ -244,14 +230,7 @@ export default function SellerDashboard() {
           </div>
           <div className="space-y-3">
             {pendingOrders.map((order) => (
-              <PendingOrderCard
-                key={order.id}
-                order={order}
-                onAccept={handleAccept}
-                onDecline={handleDecline}
-                accepting={accepting}
-                declining={declining}
-              />
+              <PendingOrderCard key={order.id} order={order} />
             ))}
           </div>
         </section>

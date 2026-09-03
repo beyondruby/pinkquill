@@ -5,7 +5,7 @@ import Image from "next/image";
 import { getTimeAgo } from "@/lib/utils/time";
 import type { Order, OrderStatus } from "@/lib/types/store";
 import { getOrderStatusMeta } from "@/lib/utils/orderStatus";
-import OrderTracker from "./OrderTracker";
+import OrderProgress from "./OrderProgress";
 
 function StatusBadge({ status }: { status: OrderStatus }) {
   const config = getOrderStatusMeta(status);
@@ -24,7 +24,7 @@ function getQuickAction(order: Order): { label: string; href: string; variant: "
     case "submitted":
       return { label: "Review Delivery", href: `/orders/${order.id}`, variant: "primary" };
     case "completed":
-      return { label: "Leave Review", href: `/orders/${order.id}?tab=reviews`, variant: "secondary" };
+      return { label: "Leave Review", href: `/orders/${order.id}`, variant: "secondary" };
     default:
       return null;
   }
@@ -37,7 +37,6 @@ function getOrderTypeInfo(order: Order): { label: string; icon: string } {
 }
 
 export default function OrderCard({ order }: { order: Order }) {
-  const isCommission = order.listing_type === "service";
   const primaryImage = order.product?.primary_image_url || order.product?.media?.[0]?.media_url;
   const action = getQuickAction(order);
   const typeInfo = getOrderTypeInfo(order);
@@ -133,12 +132,7 @@ export default function OrderCard({ order }: { order: Order }) {
       {/* Progress tracker + Quick action */}
       <div className="border-t border-border-light px-4 sm:px-5 py-3 flex items-center gap-4 bg-subtle/40">
         <div className="flex-1 min-w-0">
-          <OrderTracker
-            status={order.status}
-            listingType={
-              isCommission ? "service" : order.product?.delivery_type || "product"
-            }
-          />
+          <OrderProgress order={order} actions={null} isBuyer compact />
         </div>
         {action && (
           <Link

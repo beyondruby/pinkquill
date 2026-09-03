@@ -45,7 +45,7 @@ export type OrderStatus =
 
 export type PaymentStatus = 'pending' | 'authorized' | 'paid' | 'refunded' | 'partially_refunded' | 'failed' | 'expired';
 export type OrderMessageType = 'text' | 'file' | 'status_update' | 'system';
-export type OrderEventType = 'status_change' | 'payment' | 'message' | 'revision' | 'dispute' | 'system';
+export type OrderEventType = 'status_change' | 'payment' | 'message' | 'revision' | 'dispute' | 'system' | 'amount_mismatch' | 'transfer_failed';
 
 // ============================================================================
 // PRODUCT SELLER (minimal profile for display)

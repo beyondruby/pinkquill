@@ -35,6 +35,7 @@ const ORDER_SELECT = `
     pricing:product_pricing (*),
     keywords:product_keywords (keyword)
   ),
+  pricing:product_pricing!orders_pricing_id_fkey (*),
   buyer:profiles!orders_buyer_id_fkey (
     id, username, display_name, avatar_url, is_verified
   ),
@@ -886,6 +887,47 @@ interface UseOrderEventsReturn {
   events: OrderEvent[];
   loading: boolean;
   error: string | null;
+  refetch: () => Promise<void>;
+}
+
+/**
+ * The order's event log (Phase 3a Activity tab). Participants already have a
+ * SELECT policy on order_events; no RPC needed. Chat "message" events are left
+ * out — the Messages tab is the place for those.
+ */
+export function useOrderEvents(orderId?: string): UseOrderEventsReturn {
+  const [events, setEvents] = useState<OrderEvent[]>([]);
+  const [loading, setLoading] = useState(Boolean(orderId));
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    if (!orderId) {
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
+    const { data, error: queryError } = await supabase
+      .from("order_events")
+      .select("id, order_id, actor_id, event_type, from_status, to_status, metadata, created_at")
+      .eq("order_id", orderId)
+      .neq("event_type", "message")
+      .order("created_at", { ascending: true });
+    if (queryError) {
+      setError(queryError.message);
+      setEvents([]);
+    } else {
+      setError(null);
+      setEvents((data ?? []) as OrderEvent[]);
+    }
+    setLoading(false);
+  }, [orderId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { void refetch(); }, 0);
+    return () => clearTimeout(timer);
+  }, [refetch]);
+
+  return { events, loading, error, refetch };
 }
 
 // ============================================================================
