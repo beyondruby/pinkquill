@@ -26,6 +26,7 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 4a — Consolidation | **done, committed on main** (no migration) | 2026-09-03 |
 | 4b — Load & realtime | **done, committed on main**; migration `commissions_phase4b_load_realtime` applied to prod | 2026-09-03 |
 | 4c — Dead objects & tests | **done, committed on main**; migration `commissions_phase4c_dead_objects` applied to prod | 2026-09-03 |
+| 4c (part 2) — `transactions` dropped | **done, committed on main**; migration `commissions_phase4c2_drop_transactions` applied to prod (approved money-path edit) | 2026-09-03 |
 | 2b — Quotes & extras | **on hold** (user decision, 2026-09-03): needs a call on the frozen checkout route's amount validation | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
@@ -769,4 +770,21 @@ Extras and custom quotes change an order's amount after it is created. The froze
 - `transactions` (see above). Removing the four compat writes is a small, self-contained money-path change — one migration re-creating those RPCs without the `INSERT INTO transactions`, then `DROP TABLE transactions`.
 - Running the e2e suite needs two test accounts in Stripe test mode (also the outstanding "seller-side run with a second account").
 
-**Next:** the rebuild is complete except 2b (on hold until the checkout-validation decision) and the `transactions` removal (needs a money-path go). Still outstanding: the seller-side run with a second account in Stripe test mode, go-live steps 2, 6 and 7, and the two email env vars from 2d.
+**Next (at the time):** the `transactions` removal, once approved. Done below.
+
+---
+
+## Phase 4c, part 2 — `transactions` dropped (2026-09-03, approved money-path edit)
+
+**What changed.** Five money-path RPCs wrote compatibility rows into the legacy `transactions` table: `record_payment_succeeded` (four rows per payment), `record_payment_refund` (a refund row, plus marking the seller-payout row refunded), `mark_payout_sent` (marking it completed), `record_chargeback` (marking it refunded on a lost chargeback) and `finalize_order_payment` (four rows for a free order). Nothing has read the table since 3e; the ledger, `payments`, `payouts` and `refunds` are the books.
+
+**Migration** `supabase/migrations/20260903_commissions_phase4c2_drop_transactions.sql` (applied to prod as `commissions_phase4c2_drop_transactions`). Instead of retyping five long bodies, a DO block re-creates each function from its current definition with only the `INSERT INTO transactions …;` and `UPDATE transactions …;` statements removed, refuses to run if any reference would remain, then drops the table. One semantic seam: `record_payment_refund` tested `IF FOUND AND v_payout.status IN (…)` right after the removed UPDATE; it now tests `IF v_payout.id IS NOT NULL AND v_payout.status IN (…)` — the same outcome (cancel a payout that exists and has not been sent) without leaning on the compat row. The migration is idempotent: a second run finds nothing to change.
+
+**Verified**
+- The table is gone and no function body references it (checked in `pg_proc`).
+- `RUN_DB_SELFTEST=1 …` — all seven DB self-tests pass, including the money self-test's exact assertions for pay → replay → cancel → refund, partial refund, overdue cancel, dispute → payout, chargeback lost, expiry and amount mismatch, i.e. the four rewritten RPCs the test drives.
+- The rewritten bodies were read back around each cut: `mark_payout_sent` goes from the orders update straight to the ledger posts; `record_chargeback`'s lost branch keeps the payout cancel, the ledger post and the refund row; `record_payment_succeeded` goes from the orders update to the cents; `finalize_order_payment` from the payments insert to the order event.
+- Code: no references remain (`useTransactionHistory` and the `Transaction` type went in 4c part 1); the only "transactions" left in the app are words on the privacy and guidelines pages.
+- **Not exercised:** `finalize_order_payment` (free orders through `/api/checkout/confirm`) — no self-test drives it; its cut is a single statement between two unchanged ones.
+
+**Next:** the rebuild is complete except 2b (on hold until the checkout-validation decision). Still outstanding: the seller-side run with a second account in Stripe test mode (which would also let the e2e suite run), go-live steps 2, 6 and 7, and the two email env vars from 2d.
