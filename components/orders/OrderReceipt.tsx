@@ -10,7 +10,7 @@ import { longDate, longDateTime } from "@/lib/utils/time";
 import { orderTotalForBuyer, personName } from "./orderFormat";
 
 /**
- * Receipt (Phase 2e): what the buyer paid, line by line, with the card
+ * Tax invoice (Phase 2e receipt, renamed in the 4c follow-up): what the buyer paid, line by line, with the card
  * charge in the settlement currency and any refunds. Both participants can
  * open it; the numbers are the same for both.
  */
@@ -24,7 +24,7 @@ export default function OrderReceipt({ orderId }: { orderId: string }) {
   const docError = error ? "You can only open receipts for your own orders." : order && !paid ? "This order hasn't been paid yet, so there is no receipt." : null;
 
   return (
-    <DocumentShell backHref={`/orders/${orderId}`} backLabel="Back to order" eyebrow="Receipt" loading={loading || (Boolean(order) && money.loading)} error={docError} returnTo={`/orders/${orderId}/receipt`}>
+    <DocumentShell backHref={`/orders/${orderId}`} backLabel="Back to order" eyebrow="Tax invoice" loading={loading || (Boolean(order) && money.loading)} error={docError} returnTo={`/orders/${orderId}/receipt`} downloadHref={`/api/orders/${orderId}/invoice`} downloadName={order ? `pinkquill-invoice-${order.order_number}.pdf` : undefined}>
       {order && (() => {
         const kind = getOrderKind(order);
         const isBuyer = user?.id === order.buyer_id;
@@ -50,7 +50,7 @@ export default function OrderReceipt({ orderId }: { orderId: string }) {
 
         return (
           <>
-            <DocumentHeader title="Receipt" number={order.order_number} right={<>
+            <DocumentHeader title="Tax invoice" number={order.order_number} right={<>
               <p><span className="text-muted">Paid</span> <span className="text-ink font-ui">{longDate(paidAt ?? order.updated_at)}</span></p>
               <p><span className="text-muted">Status</span> <span className="text-ink font-ui">{getOrderStatusMeta(order.status).label}</span></p>
             </>} />
@@ -76,6 +76,7 @@ export default function OrderReceipt({ orderId }: { orderId: string }) {
                   {shipping > 0 && <MoneyRow label="Shipping" value={formatCurrency(shipping, order.currency)} />}
                   {discount > 0 && <MoneyRow label="Discount" value={`−${formatCurrency(discount, order.currency)}`} />}
                   {buyerFee > 0 && <MoneyRow label="Processing fee" value={formatCurrency(buyerFee, order.currency)} muted note="Covers card processing. Charged by PinkQuill, not the creator." />}
+                  <MoneyRow label="Tax" value={formatCurrency(0, order.currency)} muted note="No sales tax was charged." />
                   <MoneyRow strong label="Total paid" value={formatCurrency(total, order.currency)} />
                   {refundedListing > 0 && <MoneyRow label={refundedListing >= total ? "Refunded in full" : "Refunded"} value={`−${formatCurrency(refundedListing, order.currency)}`} />}
                 </div>

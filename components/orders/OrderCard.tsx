@@ -135,6 +135,9 @@ export default function OrderCard({ order }: { order: Order }) {
         <div className="flex-1 min-w-0">
           <OrderProgress order={order} actions={null} isBuyer compact />
         </div>
+        {["paid", "partially_refunded", "refunded"].includes(order.payment_status) && (
+          <Link href={`/orders/${order.id}/receipt`} className="shrink-0 text-xs font-ui font-semibold text-muted hover:text-purple-primary">Invoice</Link>
+        )}
         {action && (
           <Link
             href={action.href}

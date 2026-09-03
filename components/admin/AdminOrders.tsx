@@ -53,7 +53,7 @@ export default function AdminOrders() {
                 </div>
                 <span className="hidden md:block text-2xs font-body text-muted">{o.payment_status.replace(/_/g, " ")}</span>
                 <span className="hidden md:block tabular-nums text-ink text-right">{formatCurrency(Number(o.total_amount ?? o.amount), o.currency)}</span>
-                <span className="hidden md:block text-2xs font-body text-muted">{o.payout_status ? `payout ${o.payout_status}` : ""}{o.payment_status === "paid" ? <> · <Link href={`/orders/${o.id}/receipt`} className="text-purple-primary hover:underline">receipt</Link></> : null}</span>
+                <span className="hidden md:block text-2xs font-body text-muted">{o.payout_status ? `payout ${o.payout_status}` : ""}{o.payment_status === "paid" ? <> · <Link href={`/orders/${o.id}/receipt`} className="text-purple-primary hover:underline">invoice</Link></> : null}</span>
               </div>
             ))}
           </Rows>

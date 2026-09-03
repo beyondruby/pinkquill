@@ -6,8 +6,8 @@ interface Props {
 }
 
 export const metadata: Metadata = {
-  title: "Receipt | Quill",
-  description: "What was paid for this order, line by line.",
+  title: "Invoice | Quill",
+  description: "The tax invoice for this order, with a PDF to download.",
 };
 
 // Outside the feed layout on purpose: this is a printable document.

@@ -8430,3 +8430,13 @@ p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, blockquote {
 .community-card:nth-child(5) { animation-delay: 0.2s; }
 .community-card:nth-child(6) { animation-delay: 0.25s; }
 
+
+/* ========== SHEET (marketplace modals) ==========
+   Content-sized, capped by the *dynamic* viewport so a phone's toolbar never
+   pushes the footer off-screen while page scroll is locked. Older browsers
+   without dvh fall back to vh. */
+.sheet-panel { max-height: 90vh; max-height: 90dvh; }
+@media (min-width: 768px) {
+  .sheet-panel { max-height: 85vh; max-height: 85dvh; }
+  .sheet-panel-tall { min-height: min(440px, 85dvh); }
+}

@@ -6,11 +6,12 @@ import { CloseIcon } from "./Icons";
 /**
  * Sheet — the sheet-style modal used by the marketplace screens (Phase 3a).
  *
- * Bottom sheet on phones (drag handle, rounded top, max 88vh), centred dialog
+ * Bottom sheet on phones (drag handle, rounded top), centred dialog
  * from `md` up. Same accessibility contract as `Modal`: role="dialog",
  * aria-modal, Esc closes, Tab is trapped, body scroll locked, focus restored.
  * Keep it for short forms (a note, a few fields, a file picker); anything that
- * needs the whole screen still uses `Modal`.
+ * needs the whole screen still uses `Modal`. Height follows the content up to
+ * 90dvh / 85dvh (see `.sheet-panel` in globals.css); the body scrolls inside.
  */
 
 interface SheetProps {
@@ -24,7 +25,7 @@ interface SheetProps {
   /** Block closing (backdrop, Esc, X) while a submit is in flight. */
   busy?: boolean;
   ariaLabel?: string;
-  /** `tall` is for multi-step flows: near full height on phones, a fixed 85vh dialog from md. */
+  /** `tall` is for multi-step flows: keeps a floor height on desktop so steps don't jump. */
   size?: "md" | "tall";
 }
 
@@ -93,8 +94,8 @@ export default function Sheet({ isOpen, onClose, title, subtitle, children, foot
         aria-modal="true"
         aria-label={ariaLabel ?? title}
         tabIndex={-1}
-        className={`w-full md:w-[95%] bg-elevated rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn ${
-          size === "tall" ? "h-[94vh] md:h-[85vh] md:max-w-xl" : "max-h-[88vh] md:max-h-[85vh] md:max-w-lg"
+        className={`sheet-panel w-full md:w-[95%] bg-elevated rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col min-h-0 overflow-hidden animate-scaleIn ${
+          size === "tall" ? "sheet-panel-tall md:max-w-xl" : "md:max-w-lg"
         }`}
       >
         <div className="md:hidden flex justify-center pt-3">
@@ -115,7 +116,7 @@ export default function Sheet({ isOpen, onClose, title, subtitle, children, foot
             <CloseIcon className="w-4 h-4" />
           </button>
         </div>
-        <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">{children}</div>
+        <div className="px-5 py-4 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0">{children}</div>
         {footer && (
           <div className="px-5 pb-5 pt-2 flex gap-2 md:justify-end [&>*]:flex-1 md:[&>*]:flex-none">
             {footer}

@@ -257,7 +257,7 @@ export default function OrderOverview(props: OrderOverviewProps) {
         <Card>
           <CardTitle title="Summary" right={paid ? (
             isBuyer
-              ? <Link href={`/orders/${order.id}/receipt`} className="text-2xs font-ui font-semibold text-purple-primary hover:underline">Receipt</Link>
+              ? <Link href={`/orders/${order.id}/receipt`} className="text-2xs font-ui font-semibold text-purple-primary hover:underline">Invoice · PDF</Link>
               : actions?.payout?.id ? <Link href={`/seller/payouts/${actions.payout.id}`} className="text-2xs font-ui font-semibold text-purple-primary hover:underline">Payout statement</Link> : null
           ) : undefined} />
           <div className="space-y-2 text-sm font-body">

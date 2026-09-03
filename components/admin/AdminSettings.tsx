@@ -9,7 +9,7 @@ import { dt, Empty, Panel, Rows } from "./ui";
 interface Setting { key: string; value: unknown; updated_at: string }
 interface Change { id: number; message: string; context: { key?: string; from?: unknown; to?: unknown; admin_id?: string }; created_at: string }
 
-const META: Record<string, { label: string; help: string; kind: "rate" | "money" | "int" | "text" | "list" }> = {
+const META: Record<string, { label: string; help: string; kind: "rate" | "money" | "int" | "text" | "list" | "json" }> = {
   platform_fee_rate: { label: "Pinkquill fee", help: "Share of the listing price kept from the seller. 0.05 = 5%. Applies to orders created after the change.", kind: "rate" },
   buyer_fee_rate: { label: "Buyer processing fee rate", help: "Added on top of the price for the buyer. 0.035 = 3.5%.", kind: "rate" },
   buyer_fee_fixed: { label: "Buyer processing fee, fixed part", help: "In the listing currency, added per order.", kind: "money" },
@@ -23,6 +23,7 @@ const META: Record<string, { label: string; help: string; kind: "rate" | "money"
   settlement_currency: { label: "Settlement currency", help: "What Stripe charges and pays out in. cad today; usd once the platform account allows it.", kind: "text" },
   supported_currencies: { label: "Listing currencies", help: "Currencies sellers may price in.", kind: "list" },
   app_base_url: { label: "App base URL", help: "Where the database posts cron and email jobs. https origin, no trailing slash.", kind: "text" },
+  invoice_issuer: { label: "Invoice issuer", help: "Printed in the FROM block of every tax invoice as JSON: {\"name\", \"lines\": [address lines, tax number], \"tax_note\"}.", kind: "json" },
 };
 
 function display(value: unknown): string {
@@ -40,6 +41,7 @@ export default function AdminSettings() {
     let value: unknown = raw;
     if (meta?.kind === "rate" || meta?.kind === "money" || meta?.kind === "int") { value = Number(raw); if (!Number.isFinite(value as number)) { showToast.error("Enter a number"); return; } }
     if (meta?.kind === "list") value = raw.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
+    if (meta?.kind === "json") { try { value = JSON.parse(raw); } catch { showToast.error("Enter valid JSON"); return; } }
     setSaving(s.key);
     const r = await adminFetch("/api/admin/settings", { json: { key: s.key, value } });
     setSaving(null);

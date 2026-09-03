@@ -10,7 +10,8 @@ import AuthUnavailable from "@/components/auth/AuthUnavailable";
 
 /**
  * A printable document (receipt, payout statement — Phase 2e). No app chrome:
- * a slim bar with a way back and "Download PDF" (the browser's print-to-PDF),
+ * a slim bar with a way back and "Download PDF" (a server-rendered PDF when the
+ * document has one, otherwise the browser's print-to-PDF),
  * then one white sheet. Everything outside the sheet is hidden when printing.
  */
 
@@ -22,10 +23,13 @@ interface DocumentShellProps {
   error?: string | null;
   /** Where to send a signed-out visitor after login. */
   returnTo: string;
+  /** A server-rendered PDF for this document; without it the button prints the page. */
+  downloadHref?: string;
+  downloadName?: string;
   children: ReactNode;
 }
 
-export function DocumentShell({ backHref, backLabel, eyebrow, loading, error, returnTo, children }: DocumentShellProps) {
+export function DocumentShell({ backHref, backLabel, eyebrow, loading, error, returnTo, downloadHref, downloadName, children }: DocumentShellProps) {
   const { user, loading: authLoading, status, isAnonymous } = useAuth();
   const router = useRouter();
 
@@ -46,7 +50,11 @@ export function DocumentShell({ backHref, backLabel, eyebrow, loading, error, re
             <span className="truncate">{backLabel}</span>
           </Link>
           <span className="hidden sm:block font-ui text-2xs uppercase tracking-[0.14em] text-muted">{eyebrow}</span>
-          <Button size="sm" onClick={() => window.print()} disabled={Boolean(loading || error)}>Download PDF</Button>
+          {downloadHref && !loading && !error ? (
+            <a href={downloadHref} download={downloadName} className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-purple-primary to-pink-vivid text-white font-ui font-semibold text-sm px-4 py-2 hover:opacity-90 transition-opacity">Download PDF</a>
+          ) : (
+            <Button size="sm" onClick={() => window.print()} disabled={Boolean(loading || error)}>Download PDF</Button>
+          )}
         </div>
       </div>
 
