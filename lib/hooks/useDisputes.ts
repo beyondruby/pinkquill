@@ -291,7 +291,7 @@ export interface OrderActions {
   can_open_dispute: boolean; can_add_evidence: boolean;
   seller_share_remaining_listing_cents: number;
   paid_out: boolean;
-  payout: { status: string; amount_cents: number; currency: string; listing_amount_cents: number | null; sent_at: string | null; block_reason: string | null } | null;
+  payout: { id: string; status: string; amount_cents: number; currency: string; listing_amount_cents: number | null; sent_at: string | null; block_reason: string | null } | null;
   release_at: string | null;
   auto_complete_at: string | null;
   refund: { id: string; status: string; kind: "full" | "partial"; amount_cents: number; currency: string; listing_amount_cents: number | null; initiator_role: string; reason: string | null } | null;

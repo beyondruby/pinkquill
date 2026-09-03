@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import type { Order, OrderWorkroom, Review } from "@/lib/types/store";
 import { DISPUTE_REASON_LABELS, DISPUTE_RESOLUTION_LABELS } from "@/lib/types/store";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -254,7 +255,11 @@ export default function OrderOverview(props: OrderOverviewProps) {
       <div className="lg:col-span-2 space-y-5">{left}</div>
       <div className="space-y-5">
         <Card>
-          <CardTitle title="Summary" />
+          <CardTitle title="Summary" right={paid ? (
+            isBuyer
+              ? <Link href={`/orders/${order.id}/receipt`} className="text-2xs font-ui font-semibold text-purple-primary hover:underline">Receipt</Link>
+              : actions?.payout?.id ? <Link href={`/seller/payouts/${actions.payout.id}`} className="text-2xs font-ui font-semibold text-purple-primary hover:underline">Payout statement</Link> : null
+          ) : undefined} />
           <div className="space-y-2 text-sm font-body">
             <Row label={kind === "commission" ? (order.pricing?.variant_name ? `${order.pricing.variant_name} package` : "Commission") : order.quantity > 1 ? `Product × ${order.quantity}` : "Product"} value={formatCurrency(subtotal)} />
             {shipping > 0 && <Row label="Shipping" value={formatCurrency(shipping)} />}
@@ -268,6 +273,9 @@ export default function OrderOverview(props: OrderOverviewProps) {
                   ? `Charged as ${formatCurrency(Number(order.charge_amount_cents ?? 0) / 100, order.charge_currency)}`
                   : `Paid out as ${formatCurrency(Number(order.seller_amount_charge_cents ?? 0) / 100, order.charge_currency)} at 1 ${order.currency.toUpperCase()} = ${Number(order.fx_rate ?? 1).toFixed(4)} ${order.charge_currency.toUpperCase()}`}
               </p>
+            )}
+            {!isBuyer && paid && (
+              <Row label="Payout" value={actions?.payout?.status === "sent" ? `Sent${actions.payout.sent_at ? ` ${shortDate(actions.payout.sent_at)}` : ""}` : actions?.payout?.status === "pending" ? `Releases ${actions.release_at ? shortDate(actions.release_at) : "7 days after approval"}` : actions?.payout?.status === "blocked" ? "Held" : actions?.payout?.status === "failed" ? "Failed" : actions?.payout?.status === "reversed" ? "Reversed" : order.status === "completed" ? "Scheduling" : "After approval"} muted />
             )}
             {order.payment_status === "partially_refunded" && <p className="text-2xs font-body text-muted">Part of this order was refunded.</p>}
           </div>

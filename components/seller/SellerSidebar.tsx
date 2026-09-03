@@ -50,6 +50,15 @@ export const SELLER_NAV = [
     ),
   },
   {
+    label: "Analytics",
+    href: "/seller/analytics",
+    icon: (
+      <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        <line x1="4" y1="20" x2="20" y2="20" /><rect x="6" y="11" width="3" height="7" rx="1" /><rect x="11" y="6" width="3" height="12" rx="1" /><rect x="16" y="13" width="3" height="5" rx="1" />
+      </svg>
+    ),
+  },
+  {
     label: "Settings",
     href: "/seller/settings",
     icon: (

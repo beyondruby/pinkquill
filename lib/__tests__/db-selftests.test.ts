@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Database contract tests (Phases 1e, 2a, 2c, 2d). Each calls a SECURITY DEFINER
+ * Database contract tests (Phases 1e, 2a, 2c, 2d, 2e). Each calls a SECURITY DEFINER
  * self-test RPC that drives the real RPCs against the real schema and always
  * rolls back. They live in ONE file on purpose: vitest runs files in parallel
  * workers, and the suites lock the same product / listing rows, which
@@ -143,5 +143,23 @@ describe.skipIf(!enabled)("timeline self-test (reminders, extensions)", () => {
     expect(out).toContain("c.buyer_ask=refused ask=pending/3 second=refused seller_can_ask=false pending=true buyer_can_respond=true accepted=accepted moved=true reminders_reset=true twice=refused");
     // (d) decline keeps the date; withdraw closes the request; 5 extension notifications in total
     expect(out).toContain("d.declined=declined kept=true withdrawn=withdrawn ext_notifs=5");
+  });
+});
+
+describe.skipIf(!enabled)("seller analytics (read-only shape)", () => {
+  it("returns every section with weekly buckets covering the window", async () => {
+    const supabase = createClient(url!, key!, { auth: { persistSession: false } });
+    const { data: product } = await supabase.from("products").select("seller_id").eq("listing_type", "service").eq("status", "active").limit(1).maybeSingle();
+    if (!product) return; // nothing to measure against
+    const { data, error } = await supabase.rpc("get_seller_analytics", { p_seller_id: product.seller_id, p_days: 90 });
+    expect(error).toBeNull();
+    const a = data as Record<string, unknown> & { revenue_by_week: unknown[]; totals: Record<string, number>; conversion: Record<string, unknown> };
+    for (const key of ["totals", "previous", "revenue_by_week", "conversion", "on_time", "response", "repeat", "by_listing"]) expect(a).toHaveProperty(key);
+    expect(a.window_days).toBe(90);
+    // 90 days spans 13 or 14 Monday-aligned weeks
+    expect(a.revenue_by_week.length).toBeGreaterThanOrEqual(13);
+    expect(a.revenue_by_week.length).toBeLessThanOrEqual(14);
+    expect(typeof a.totals.paid_orders).toBe("number");
+    expect(a.conversion).toHaveProperty("rate");
   });
 });

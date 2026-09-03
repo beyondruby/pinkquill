@@ -115,7 +115,7 @@ export default function EarningsOverview() {
       <section className="rounded-2xl border border-border-light bg-surface overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border-light">
           <h2 className="font-display text-sm font-semibold text-ink">Payouts</h2>
-          <p className="text-2xs font-body text-muted">Released 7 days after approval, then paid to your bank on Stripe&apos;s schedule.</p>
+          <p className="text-2xs font-body text-muted">Released 7 days after approval, then paid to your bank on Stripe&apos;s schedule. Open one for its statement.</p>
         </div>
         {payoutsLoading ? (
           <div className="h-24 bg-skeleton/40 animate-pulse" />
@@ -126,7 +126,7 @@ export default function EarningsOverview() {
             {payouts.map((p) => {
               const st = PAYOUT_STATUS[p.status];
               return (
-                <Link key={p.id} href={`/orders/${p.order_id}`} className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_120px_120px_200px] gap-3 px-4 py-3 items-center hover:bg-subtle transition-colors">
+                <Link key={p.id} href={`/seller/payouts/${p.id}`} className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_120px_120px_200px] gap-3 px-4 py-3 items-center hover:bg-subtle transition-colors">
                   <div className="min-w-0">
                     <p className="text-sm font-ui text-ink truncate">{p.order?.product?.title || p.order?.order_number || "Order"}</p>
                     <p className="text-2xs font-body text-muted tabular-nums">{p.order?.order_number}<span className="md:hidden"> · {payoutSub(p)}</span></p>
