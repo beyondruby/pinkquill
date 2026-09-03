@@ -71,6 +71,35 @@ export function getOrderStatusMeta(status: string): OrderStatusMeta {
   return ORDER_STATUS_CONFIG[status as OrderStatus] ?? meta(status.replace(/_/g, " "), "neutral", null);
 }
 
+/** Payout states as sellers and operators see them (Phase 4a: one place). */
+export const PAYOUT_STATUS_META: Record<string, { label: string; tone: StatusTone; sentence: string }> = {
+  pending:    { label: "On the way", tone: "purple",  sentence: "Releases 7 days after the order was approved, then goes to your Stripe account." },
+  processing: { label: "Sending",    tone: "purple",  sentence: "The transfer to your Stripe account is in progress." },
+  sent:       { label: "Sent",       tone: "emerald", sentence: "Transferred to your Stripe account. Stripe pays your bank on its schedule." },
+  failed:     { label: "Failed",     tone: "red",     sentence: "Stripe could not complete the transfer. Check your account in Seller settings; PinkQuill retries once it is fixed." },
+  blocked:    { label: "Held",       tone: "amber",   sentence: "Held until the reason below is cleared." },
+  reversed:   { label: "Reversed",   tone: "red",     sentence: "Reclaimed after a refund or a lost dispute." },
+  cancelled:  { label: "Cancelled",  tone: "neutral", sentence: "This payout was cancelled; the order was refunded before release." },
+};
+export function getPayoutStatusMeta(status: string) {
+  return PAYOUT_STATUS_META[status] ?? { label: status.replace(/_/g, " "), tone: "neutral" as StatusTone, sentence: "" };
+}
+
+/** Refund states, operator wording. */
+export const REFUND_STATUS_META: Record<string, { label: string; tone: StatusTone }> = {
+  requested:    { label: "Waiting on seller",  tone: "amber" },
+  approved:     { label: "Approved · sending", tone: "purple" },
+  processing:   { label: "Sending",            tone: "purple" },
+  succeeded:    { label: "Refunded",           tone: "emerald" },
+  needs_review: { label: "Needs review",       tone: "red" },
+  failed:       { label: "Failed",             tone: "red" },
+  declined:     { label: "Declined",           tone: "neutral" },
+  cancelled:    { label: "Cancelled",          tone: "neutral" },
+};
+export function getRefundStatusMeta(status: string) {
+  return REFUND_STATUS_META[status] ?? { label: status.replace(/_/g, " "), tone: "neutral" as StatusTone };
+}
+
 export type OrderKind = "commission" | "physical" | "digital";
 
 export function getOrderKind(order: Pick<Order, "listing_type" | "product" | "shipping_address">): OrderKind {

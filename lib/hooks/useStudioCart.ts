@@ -122,4 +122,3 @@ function useStudioCartInternal() {
 export const useStudioCart = useStudioCartInternal;
 
 /** @deprecated Use useStudioCart instead */
-export const useStudioQueue = useStudioCartInternal;

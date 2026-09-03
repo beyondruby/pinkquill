@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProduct, useToggleSaveProduct, useDeleteProduct } from "@/lib/hooks/useProducts";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
-import { useStudioCart } from "@/lib/hooks/useStudioQueue";
+import { useStudioCart } from "@/lib/hooks/useStudioCart";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { ProductPricing } from "@/lib/types/store";
 import {

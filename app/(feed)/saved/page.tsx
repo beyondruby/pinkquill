@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatCurrency } from "@/lib/utils/currency";
 import { getTimeAgoCompact as getTimeAgo } from "@/lib/utils/time";
 import Link from "next/link";
 import Image from "next/image";
@@ -647,7 +648,7 @@ export default function SavedPage() {
                     </p>
                     {minPrice !== null && (
                       <p className="font-display font-semibold text-white">
-                        ${minPrice.toFixed(2)}
+                        {formatCurrency(minPrice)}
                       </p>
                     )}
                   </div>

@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { usePayoutStatement, useOrderMoneyRecords } from "@/lib/hooks/useOrderDocuments";
 import { formatCurrency } from "@/lib/utils/currency";
-import { TONE_CLASSES, type StatusTone } from "@/lib/utils/orderStatus";
+import { getPayoutStatusMeta, TONE_CLASSES } from "@/lib/utils/orderStatus";
+import { longDate } from "@/lib/utils/time";
 import { DocumentFooter, DocumentHeader, DocumentParty, DocumentSection, DocumentShell, MoneyRow } from "@/components/documents/DocumentShell";
 
 /**
@@ -12,27 +13,12 @@ import { DocumentFooter, DocumentHeader, DocumentParty, DocumentSection, Documen
  * the conversion into the payout currency and the dates it moved on.
  */
 
-const STATUS: Record<string, { label: string; tone: StatusTone; sentence: string }> = {
-  pending: { label: "On the way", tone: "purple", sentence: "Releases 7 days after the order was approved, then goes to your Stripe account." },
-  processing: { label: "Sending", tone: "purple", sentence: "The transfer to your Stripe account is in progress." },
-  sent: { label: "Sent", tone: "emerald", sentence: "Transferred to your Stripe account. Stripe pays your bank on its schedule." },
-  failed: { label: "Failed", tone: "red", sentence: "Stripe could not complete the transfer. Check your account in Seller settings; PinkQuill retries once it is fixed." },
-  blocked: { label: "Held", tone: "amber", sentence: "Held until the reason below is cleared." },
-  reversed: { label: "Reversed", tone: "red", sentence: "Reclaimed after a refund or a lost dispute." },
-  cancelled: { label: "Cancelled", tone: "neutral", sentence: "This payout was cancelled; the order was refunded before release." },
-};
-
 const BLOCK_REASON: Record<string, string> = {
   dispute_open: "A dispute or chargeback is open on this order.",
   no_account: "No Stripe account is connected yet. Connect payouts in Seller settings.",
   onboarding: "Your Stripe account isn't finished. Continue setup in Seller settings.",
   payouts_disabled: "Stripe has paused payouts on your account. Open the Stripe dashboard to see what it needs.",
 };
-
-function longDate(value: string | null | undefined): string {
-  if (!value) return "";
-  return new Date(value).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-}
 
 export default function PayoutStatement({ payoutId }: { payoutId: string }) {
   const { user } = useAuth();
@@ -44,7 +30,7 @@ export default function PayoutStatement({ payoutId }: { payoutId: string }) {
     <DocumentShell backHref="/seller/earnings" backLabel="Back to earnings" eyebrow="Payout statement" loading={loading || (Boolean(payout) && money.loading)} error={docError} returnTo={`/seller/payouts/${payoutId}`}>
       {payout && (() => {
         const o = payout.order;
-        const st = STATUS[payout.status] ?? STATUS.pending;
+        const st = getPayoutStatusMeta(payout.status);
         const shipping = Number(o.shipping_cost || 0);
         const original = Number(o.original_amount ?? o.amount);
         const discount = Number(o.discount_amount || 0);

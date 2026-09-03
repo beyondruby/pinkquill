@@ -59,3 +59,50 @@ export function formatTime(dateString: string): string {
     hour12: true,
   });
 }
+
+// ─── order / money screens (moved here in Phase 4a from components/orders/orderFormat.ts) ───
+
+/** "Sep 12" — the year only appears when it differs from this year. */
+export function shortDate(value: string | null | undefined): string {
+  if (!value) return "";
+  const d = new Date(value);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
+}
+
+/** "Sep 12, 10:52" */
+export function shortDateTime(value: string | null | undefined): string {
+  if (!value) return "";
+  return new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+/** "September 12, 2026" — receipts and statements. */
+export function longDate(value: string | null | undefined): string {
+  return value ? formatDate(value) : "";
+}
+
+/** "Sep 12, 2026, 10:52 AM" */
+export function longDateTime(value: string | null | undefined): string {
+  if (!value) return "";
+  return new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+/** "in 9 days" / "today" / "2 days late" — relative to now, for deadlines. */
+export function relativeDays(value: string, lateWord = "late"): { text: string; late: boolean } {
+  const ms = new Date(value).getTime() - Date.now();
+  const days = Math.round(ms / 86_400_000);
+  if (ms < 0 && days === 0) return { text: "today", late: true };
+  if (days === 0) return { text: "today", late: false };
+  if (days === 1) return { text: "tomorrow", late: false };
+  if (days < 0) return { text: `${-days} day${days === -1 ? "" : "s"} ${lateWord}`, late: true };
+  return { text: `in ${days} days`, late: false };
+}
+
+/** "2d 23h" / "4h 12m" countdown to a deadline; "" when passed. */
+export function countdown(value: string): string {
+  const diff = new Date(value).getTime() - Date.now();
+  if (diff <= 0) return "";
+  const hours = Math.floor(diff / 3_600_000);
+  const minutes = Math.floor((diff % 3_600_000) / 60_000);
+  return hours >= 24 ? `${Math.floor(hours / 24)}d ${hours % 24}h` : `${hours}h ${minutes}m`;
+}

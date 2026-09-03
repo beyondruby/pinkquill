@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { formatCurrency } from "@/lib/utils/currency";
+import MetricCard from "@/components/ui/MetricCard";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -13,39 +15,6 @@ import { getOrderStatusMeta } from "@/lib/utils/orderStatus";
 // Metric Card
 // ---------------------------------------------------------------------------
 
-function MetricCard({
-  label,
-  value,
-  icon,
-  accent,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  accent?: boolean;
-}) {
-  return (
-    <div className={`rounded-xl border p-4 sm:p-5 ${
-      accent
-        ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
-        : "border-border-light bg-surface"
-    }`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{label}</p>
-          <p className={`text-2xl font-display font-bold mt-1 ${accent ? "text-purple-primary" : "text-ink"}`}>
-            {value}
-          </p>
-        </div>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-skeleton/70 text-muted"
-        }`}>
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Customer Row
@@ -96,7 +65,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
 
         {/* Total spent */}
         <div className="w-24 text-right">
-          <p className="font-ui text-sm font-semibold text-ink">${customer.total_spent.toFixed(2)}</p>
+          <p className="font-ui text-sm font-semibold text-ink">{formatCurrency(customer.total_spent)}</p>
           <p className="text-[10px] text-muted">total</p>
         </div>
 
@@ -181,7 +150,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
               <div>
                 <h4 className="text-[11px] font-ui font-semibold text-muted uppercase tracking-wider mb-2">Stats</h4>
                 <div className="text-sm font-body text-ink space-y-1">
-                  <p>Avg. order: <span className="font-semibold">${customer.avg_order_value.toFixed(2)}</span></p>
+                  <p>Avg. order: <span className="font-semibold">{formatCurrency(customer.avg_order_value)}</span></p>
                   <p>Completed: <span className="font-semibold">{customer.completed_orders}</span></p>
                   <p>Active: <span className="font-semibold">{customer.active_orders}</span></p>
                   <p>First order: <span className="text-muted">{new Date(customer.first_order_at).toLocaleDateString()}</span></p>
@@ -206,7 +175,7 @@ function CustomerRow({ customer }: { customer: SellerCustomer }) {
                       <span className="text-xs font-ui text-muted capitalize hidden sm:block">
                         {order.listing_type === "service" ? "Commission" : "Product"}
                       </span>
-                      <span className="text-sm font-ui font-semibold text-ink w-20 text-right">${order.amount.toFixed(2)}</span>
+                      <span className="text-sm font-ui font-semibold text-ink w-20 text-right">{formatCurrency(order.amount)}</span>
                       <span className={`text-[10px] font-ui font-medium px-2 py-0.5 rounded-full capitalize ${sc.bg} ${sc.text}`}>
                         {order.status.replace(/_/g, " ")}
                       </span>
@@ -252,43 +221,10 @@ export default function CustomersCRM() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <MetricCard
-          label="Total Customers"
-          value={stats.total_customers}
-          accent
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Repeat Customers"
-          value={stats.repeat_customers}
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Total Revenue"
-          value={`$${stats.total_revenue.toFixed(2)}`}
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Avg. Order Value"
-          value={`$${stats.avg_order_value.toFixed(2)}`}
-          icon={
-            <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
-            </svg>
-          }
-        />
+        <MetricCard label="Total customers" value={stats.total_customers} />
+        <MetricCard label="Repeat customers" value={stats.repeat_customers} />
+        <MetricCard label="Total revenue" value={formatCurrency(stats.total_revenue)} />
+        <MetricCard label="Avg. order value" value={formatCurrency(stats.avg_order_value)} />
       </div>
 
       {/* Search */}

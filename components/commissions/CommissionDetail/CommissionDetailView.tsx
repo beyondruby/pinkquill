@@ -7,7 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useDeleteProduct, useProduct } from "@/lib/hooks/useProducts";
 import { useCommissionAvailability } from "@/lib/hooks/useCommissions";
 import { useSellerStats } from "@/lib/hooks/useReviews";
-import { useStudioCart } from "@/lib/hooks/useStudioQueue";
+import { useStudioCart } from "@/lib/hooks/useStudioCart";
 import type { CommissionAvailabilityInfo, ProductPricing } from "@/lib/types/store";
 import { COMMISSION_CATEGORIES, getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
 import { formatCurrency } from "@/lib/utils/currency";

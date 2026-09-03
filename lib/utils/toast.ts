@@ -131,6 +131,28 @@ export const actionToast = {
     showToast.success(community ? `Joined ${community}` : "Joined community"),
   joinRequestApproved: () => showToast.success("Request approved"),
   joinRequestRejected: () => showToast.info("Request rejected"),
+  /**
+   * Order RPC errors → one readable toast (Phase 4a). The database raises
+   * plain sentences; this maps the common ones and falls back to the text.
+   */
+  orderError: (error?: unknown, fallback = "That didn't go through") => {
+    const raw = error instanceof Error ? error.message : typeof error === "string" ? error : "";
+    const msg = raw.replace(/^.*?:\s*(?=[A-Z])/, "").trim();
+    const rules: Array<[RegExp, string, string?]> = [
+      [/not authenticated|sign in/i, "Please sign in", "You need an account to do that"],
+      [/not authorized|only the (buyer|seller|creator)|not your/i, "Not allowed", msg],
+      [/already (been )?(answered|responded|paid|refunded|processed|sent)/i, "Already done", msg],
+      [/not in progress|is not active|closed|is over|cannot be (cancelled|retried)/i, "Too late for that", msg],
+      [/slot|waitlist|not accepting|closed for requests/i, "Not available right now", msg],
+      [/revision/i, "No revisions left", msg],
+      [/after the current due date|at most 90 days|pick a date/i, "Check the date", msg],
+      [/insufficient|exceeds|too much|more than/i, "Amount too high", msg],
+      [/network|fetch|connection/i, "Connection failed", "Check your internet and try again"],
+    ];
+    const hit = rules.find(([re]) => re.test(msg));
+    if (hit) showToast.error(hit[1], hit[2]);
+    else showToast.error(fallback, msg || "Please try again");
+  },
   membershipError: (code?: string) => {
     const map: Record<string, [string, string?]> = {
       not_authenticated: ["Please sign in", "You need an account to do that"],

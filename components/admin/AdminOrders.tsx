@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useAdminQuery } from "@/lib/hooks/useAdmin";
 import { formatCurrency } from "@/lib/utils/currency";
 import { getOrderStatusMeta } from "@/lib/utils/orderStatus";
-import { Chip, dt, Empty, ORDER_TONE, Panel, Rows, Skeleton } from "./ui";
+import { Chip, dt, Empty, Panel, Rows, Skeleton } from "./ui";
 
 interface Row {
   id: string; order_number: string; status: string; payment_status: string; listing_type: string; amount: number; total_amount: number | null; seller_amount: number; currency: string;
@@ -28,7 +28,7 @@ export default function AdminOrders() {
       <form onSubmit={(e) => { e.preventDefault(); setTerm(q.trim()); }} className="flex gap-2 flex-wrap">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Order number, listing, buyer, seller, payment intent or order id" className="flex-1 min-w-[240px] px-3.5 py-2.5 rounded-xl border border-border-light bg-surface text-sm font-body text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-purple-primary/25" />
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="px-3 py-2.5 rounded-xl border border-border-light bg-surface text-sm font-body text-ink" aria-label="Status">
-          {STATUSES.map((s) => <option key={s} value={s}>{s ? getOrderStatusMeta(s as never).label : "Any status"}</option>)}
+          {STATUSES.map((s) => <option key={s} value={s}>{s ? getOrderStatusMeta(s).label : "Any status"}</option>)}
         </select>
         <button type="submit" className="px-4 py-2.5 rounded-xl bg-purple-primary text-white text-sm font-ui font-semibold">Search</button>
       </form>
@@ -47,7 +47,7 @@ export default function AdminOrders() {
                   <p className="text-2xs font-body text-muted truncate">@{o.buyer ?? "?"} → @{o.seller ?? "?"} · {o.listing_type}</p>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap justify-end md:justify-start">
-                  <Chip label={getOrderStatusMeta(o.status as never).label} tone={ORDER_TONE[o.status] ?? "neutral"} />
+                  <Chip label={getOrderStatusMeta(o.status).label} tone={getOrderStatusMeta(o.status).tone} />
                   {o.open_refunds > 0 && <Chip label="refund" tone="amber" />}
                   {o.open_disputes > 0 && <Chip label="dispute" tone="red" />}
                 </div>

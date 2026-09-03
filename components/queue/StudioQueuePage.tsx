@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
-import { useStudioCart, type StudioQueueItem } from "@/lib/hooks/useStudioQueue";
+import { useStudioCart, type StudioQueueItem } from "@/lib/hooks/useStudioCart";
 import { RequestSheetForProduct } from "@/components/commissions/RequestSheet";
 
 const formatPrice = (amount: number, currency: string) => formatCurrency(amount, currency);

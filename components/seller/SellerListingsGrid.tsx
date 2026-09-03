@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { formatCurrency } from "@/lib/utils/currency";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -110,8 +111,8 @@ function ListingCard({
                   ? "$0+"
                   : "Free"
                 : product.min_price === product.max_price
-                  ? `$${product.min_price.toFixed(2)}`
-                  : `$${product.min_price.toFixed(2)} – $${product.max_price?.toFixed(2)}`
+                  ? formatCurrency(product.min_price)
+                  : `${formatCurrency(product.min_price)} – ${formatCurrency(product.max_price ?? 0)}`
               : "No price"}
           </span>
           {product.category && (

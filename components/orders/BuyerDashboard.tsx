@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { formatCurrency } from "@/lib/utils/currency";
+import MetricCard from "@/components/ui/MetricCard";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useBuyerOrders, useBuyerOrderStats } from "@/lib/hooks/useOrders";
+import { useOrderList, useBuyerOrderStats } from "@/lib/hooks/useOrders";
 import type { OrderFilters, OrderStatus } from "@/lib/types/store";
 import OrderCard from "./OrderCard";
 
@@ -67,46 +69,6 @@ const STATUS_TABS: { label: string; key: string; statuses?: OrderStatus[]; icon:
 // Metric Card
 // ---------------------------------------------------------------------------
 
-function MetricCard({
-  label,
-  value,
-  sublabel,
-  icon,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sublabel?: string;
-  icon: React.ReactNode;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={`relative rounded-xl border p-4 sm:p-5 overflow-hidden ${
-        accent
-          ? "border-purple-primary/15 bg-gradient-to-br from-purple-50/80 to-pink-50/60"
-          : "border-border-light bg-surface"
-      }`}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{label}</p>
-          <p className={`text-2xl font-display font-bold mt-1 ${accent ? "text-purple-primary" : "text-ink"}`}>
-            {value}
-          </p>
-          {sublabel && (
-            <p className="text-[11px] font-body text-muted mt-0.5">{sublabel}</p>
-          )}
-        </div>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          accent ? "bg-purple-primary/10 text-purple-primary" : "bg-skeleton/70 text-muted"
-        }`}>
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Skeletons
@@ -143,7 +105,7 @@ export default function BuyerDashboard() {
   const singleFilter: OrderFilters | undefined =
     activeTab.statuses?.length === 1 ? { status: activeTab.statuses[0] } : undefined;
 
-  const { orders, loading: ordersLoading, error, hasMore, loadMore } = useBuyerOrders(user?.id, singleFilter);
+  const { orders, loading: ordersLoading, error, hasMore, loadMore } = useOrderList({ role: "buyer", userId: user?.id, filters: singleFilter });
   const { stats, loading: statsLoading } = useBuyerOrderStats(user?.id);
   const loading = authLoading || ordersLoading;
 
@@ -213,47 +175,10 @@ export default function BuyerDashboard() {
           </div>
         ) : stats ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-            <MetricCard
-              label="Active"
-              value={`${stats.active_orders}`}
-              sublabel="Orders in progress"
-              accent={stats.active_orders > 0}
-              icon={
-                <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                </svg>
-              }
-            />
-            <MetricCard
-              label="Pending"
-              value={`${stats.pending_orders}`}
-              sublabel="Awaiting action"
-              icon={
-                <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                </svg>
-              }
-            />
-            <MetricCard
-              label="Completed"
-              value={`${stats.completed_orders}`}
-              sublabel={`$${stats.total_spent.toFixed(2)} total spent`}
-              icon={
-                <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              }
-            />
-            <MetricCard
-              label="All Orders"
-              value={`${stats.total_orders}`}
-              sublabel={stats.cancelled_orders > 0 ? `${stats.cancelled_orders} cancelled` : "Lifetime total"}
-              icon={
-                <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
-              }
-            />
+            <MetricCard label="Active" value={`${stats.active_orders}`} sub="in progress now" tone={stats.active_orders > 0 ? "purple" : undefined} />
+            <MetricCard label="Pending" value={`${stats.pending_orders}`} sub="awaiting action" />
+            <MetricCard label="Completed" value={`${stats.completed_orders}`} sub={`${formatCurrency(stats.total_spent)} total spent`} />
+            <MetricCard label="All orders" value={`${stats.total_orders}`} sub={stats.cancelled_orders > 0 ? `${stats.cancelled_orders} cancelled` : "Lifetime total"} />
           </div>
         ) : null}
 

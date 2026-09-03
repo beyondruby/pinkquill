@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import { apiFetch } from "../api-client";
 import { usePollOnFocus } from "./usePollOnFocus";
 import type {
   Dispute,
@@ -117,18 +118,8 @@ export function useRequestRefund() {
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch("/api/payments/refund", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify({ order_id: orderId, reason, amount, action: "request" }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Refund request failed");
+      const result = await apiFetch("/api/payments/refund", { json: { order_id: orderId, reason, amount, action: "request" } });
+      if (!result.ok) throw new Error(result.error || "Refund request failed");
       return true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to request refund";
@@ -155,18 +146,8 @@ export function useDeclineRefund() {
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch("/api/payments/refund", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify({ order_id: orderId, reason, action: "decline" }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to decline refund");
+      const result = await apiFetch("/api/payments/refund", { json: { order_id: orderId, reason, action: "decline" } });
+      if (!result.ok) throw new Error(result.error || "Failed to decline refund");
       return true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to decline refund";
@@ -193,18 +174,8 @@ export function useApproveRefund() {
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch("/api/payments/refund", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify({ order_id: orderId, reason, action: "approve" }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Refund approval failed");
+      const result = await apiFetch("/api/payments/refund", { json: { order_id: orderId, reason, action: "approve" } });
+      if (!result.ok) throw new Error(result.error || "Refund approval failed");
       return true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to process refund";
@@ -222,16 +193,8 @@ export function useApproveRefund() {
 // Phase 1d: cancel / issue refund / server-decided actions
 // ============================================================================
 async function postRefundAction(body: Record<string, unknown>): Promise<{ ok: boolean; error?: string; result?: unknown }> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const response = await fetch("/api/payments/refund", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
-    body: JSON.stringify(body),
-  });
-  let json: { error?: string; result?: unknown } = {};
-  try { json = await response.json(); } catch { /* non-JSON error page */ }
-  if (!response.ok) return { ok: false, error: json.error || `Request failed (${response.status})` };
-  return { ok: true, result: json.result };
+  const r = await apiFetch<{ result?: unknown }>("/api/payments/refund", { json: body });
+  return r.ok ? { ok: true, result: r.data.result } : { ok: false, error: r.error };
 }
 
 export function useCancelOrder() {

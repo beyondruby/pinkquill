@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatCurrency } from "@/lib/utils/currency";
 import Image from "next/image";
 import { getTimeAgo } from "@/lib/utils/time";
 import type { Order, OrderStatus } from "@/lib/types/store";
@@ -83,7 +84,7 @@ export default function OrderCard({ order }: { order: Order }) {
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   <p className="font-display text-base font-bold text-ink">
-                    ${Number(order.amount).toFixed(2)}
+                    {formatCurrency(Number(order.total_amount ?? order.amount), order.currency)}
                   </p>
                   <div className="hidden sm:block">
                     <StatusBadge status={order.status} />

@@ -1,23 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import Button from "@/components/ui/Button";
 import { TONE_CLASSES, type StatusTone } from "@/lib/utils/orderStatus";
+import { shortDateTime } from "@/lib/utils/time";
 
 /** Small shared pieces for the admin console (Phase 2f). Same tokens and primitives as the seller studio. */
 
-export function Tile({ label, value, sub, tone, href }: { label: string; value: string | number; sub?: string | null; tone?: StatusTone; href?: string }) {
-  const inner = (
-    <>
-      <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className={`font-display text-xl font-semibold mt-1 tabular-nums ${tone ? TONE_CLASSES[tone].text : "text-ink"}`}>{value}</p>
-      {sub && <p className="text-2xs font-body text-muted mt-0.5 truncate">{sub}</p>}
-    </>
-  );
-  const cls = "rounded-2xl border border-border-light bg-surface p-4 min-w-0 block";
-  return href ? <Link href={href} className={`${cls} hover:border-border-strong transition-colors`}>{inner}</Link> : <div className={cls}>{inner}</div>;
-}
+export { default as Tile } from "@/components/ui/MetricCard";
 
 export function Panel({ title, right, children, className = "" }: { title: string; right?: ReactNode; children: ReactNode; className?: string }) {
   return (
@@ -61,21 +51,13 @@ export function KV({ items }: { items: Array<[string, ReactNode]> }) {
 
 export function dt(value: string | null | undefined, withTime = true): string {
   if (!value) return "—";
-  const d = new Date(value);
-  return withTime
-    ? d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
-    : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return withTime ? shortDateTime(value) : new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export function cents(n: number | null | undefined, currency = "usd"): string {
   if (n == null) return "—";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(n / 100);
 }
-
-export const ORDER_TONE: Record<string, StatusTone> = {
-  pending_acceptance: "amber", pending_payment: "amber", paid: "purple", in_progress: "purple", revision_requested: "orange", submitted: "sky", delivered: "sky",
-  completed: "emerald", cancelled: "neutral", refunded: "neutral", declined: "neutral", expired: "neutral", refund_requested: "amber", disputed: "red", resolved: "neutral", processing: "purple", shipped: "sky",
-};
 
 /**
  * A button that asks once before acting: first click arms it ("Sure?"),

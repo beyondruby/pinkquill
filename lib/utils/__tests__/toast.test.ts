@@ -192,3 +192,29 @@ describe("actionToast", () => {
     });
   });
 });
+
+describe("actionToast.orderError (Phase 4a)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("maps the database's sentences to readable titles", () => {
+    actionToast.orderError(new Error("Only the seller can ask for more time"));
+    expect(toast.error).toHaveBeenLastCalledWith("Not allowed", expect.objectContaining({ description: "Only the seller can ask for more time" }));
+    actionToast.orderError("This request was already answered");
+    expect(toast.error).toHaveBeenLastCalledWith("Already done", expect.anything());
+    actionToast.orderError(new Error("Pick a date after the current due date"));
+    expect(toast.error).toHaveBeenLastCalledWith("Check the date", expect.anything());
+    actionToast.orderError(new Error("Not authenticated"));
+    expect(toast.error).toHaveBeenLastCalledWith("Please sign in", expect.anything());
+  });
+
+  it("strips a PostgREST prefix and falls back to the raw text", () => {
+    actionToast.orderError(new Error("PGRST: The only slot is taken right now."));
+    expect(toast.error).toHaveBeenLastCalledWith("Not available right now", expect.objectContaining({ description: "The only slot is taken right now." }));
+    actionToast.orderError(new Error("Something unusual happened"));
+    expect(toast.error).toHaveBeenLastCalledWith("That didn't go through", expect.objectContaining({ description: "Something unusual happened" }));
+    actionToast.orderError(undefined);
+    expect(toast.error).toHaveBeenLastCalledWith("That didn't go through", expect.objectContaining({ description: "Please try again" }));
+  });
+});

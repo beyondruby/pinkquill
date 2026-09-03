@@ -11,7 +11,7 @@ import type { OrderActions } from "@/lib/hooks/useDisputes";
 import { useApproveRefund, useDeclineRefund } from "@/lib/hooks/useDisputes";
 import { useAcceptOrder, useUpdateOrderStatus } from "@/lib/hooks/useOrders";
 import { useRespondExtension, useWithdrawExtension } from "@/lib/hooks/useTimeline";
-import { showToast } from "@/lib/utils/toast";
+import { actionToast, showToast } from "@/lib/utils/toast";
 import OrderSheets, { type SheetKind } from "./OrderSheets";
 import { countdown, orderTotalForBuyer, personName, relativeDays, shortDate, shortDateTime } from "./orderFormat";
 
@@ -100,19 +100,20 @@ function hintFor(order: Order, actions: OrderActions | null, isBuyer: boolean, w
 export default function OrderActionBar({ order, actions, isBuyer, workroom, hasReviewed, onChanged, onLeaveReview, onDownloadFiles }: OrderActionBarProps) {
   const router = useRouter();
   const [sheet, setSheet] = useState<SheetKind | null>(null);
-  const { acceptOrder, accepting } = useAcceptOrder();
-  const { updateStatus, updating } = useUpdateOrderStatus();
-  const { approveRefund, loading: approving } = useApproveRefund();
-  const { declineRefund, loading: decliningRefund } = useDeclineRefund();
-  const { respondExtension, loading: responding } = useRespondExtension();
+  const { acceptOrder, accepting, error: acceptError } = useAcceptOrder();
+  const { updateStatus, updating, error: updateError } = useUpdateOrderStatus();
+  const { approveRefund, loading: approving, error: approveError } = useApproveRefund();
+  const { declineRefund, loading: decliningRefund, error: declineRefundError } = useDeclineRefund();
+  const { respondExtension, loading: responding, error: respondError } = useRespondExtension();
   const { withdrawExtension, loading: withdrawing } = useWithdrawExtension();
   const kind = getOrderKind(order);
   const hint = hintFor(order, actions, isBuyer, workroom);
 
   const run = async (work: () => Promise<boolean | object | null>, success: string) => {
     const result = await work();
-    if (result) { showToast.success(success); onChanged(); }
-    else showToast.error("That didn't go through", "Please try again");
+    if (result) { showToast.success(success); onChanged(); return; }
+    // The hooks keep the RPC's sentence; map it to one readable toast.
+    actionToast.orderError([updateError, acceptError, approveError, declineRefundError, respondError].find(Boolean));
   };
 
   const primary: Btn[] = [];

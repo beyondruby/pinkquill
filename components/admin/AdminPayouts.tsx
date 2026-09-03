@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { adminFetch, useAdminQuery } from "@/lib/hooks/useAdmin";
 import { showToast } from "@/lib/utils/toast";
-import type { StatusTone } from "@/lib/utils/orderStatus";
+import { getPayoutStatusMeta } from "@/lib/utils/orderStatus";
 import { ArmedButton, cents, Chip, dt, Empty, Panel, Rows, Skeleton } from "./ui";
 
 interface Payout {
@@ -15,8 +15,6 @@ interface Payout {
 }
 interface Account { user_id: string; stripe_account_id: string | null; payouts_enabled: boolean; disabled_reason: string | null; requirements_currently_due: string[] }
 
-const TONE: Record<string, StatusTone> = { failed: "red", blocked: "amber", pending: "purple", processing: "purple", sent: "emerald", reversed: "red", cancelled: "neutral" };
-const LABEL: Record<string, string> = { failed: "Failed", blocked: "Held", pending: "On the way", processing: "Sending", sent: "Sent", reversed: "Reversed", cancelled: "Cancelled" };
 const BLOCK: Record<string, string> = { dispute_open: "dispute open", no_account: "no Stripe account", onboarding: "Stripe setup unfinished", payouts_disabled: "payouts disabled by Stripe" };
 
 export default function AdminPayouts() {
@@ -53,7 +51,7 @@ export default function AdminPayouts() {
                 <div key={p.id} className="px-4 py-3 flex flex-col md:flex-row md:items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Chip label={LABEL[p.status] ?? p.status} tone={TONE[p.status] ?? "neutral"} />
+                      <Chip label={getPayoutStatusMeta(p.status).label} tone={getPayoutStatusMeta(p.status).tone} />
                       <Link href={`/seller/payouts/${p.id}`} className="text-sm font-ui font-semibold text-ink hover:text-purple-primary tabular-nums">{cents(p.amount_cents, p.currency)}</Link>
                       <Link href={`/orders/${p.order_id}`} className="text-sm font-body text-muted hover:text-purple-primary tabular-nums">{p.order?.order_number ?? ""}</Link>
                       <span className="text-sm font-body text-muted truncate">{p.order?.product?.title ?? ""}</span>

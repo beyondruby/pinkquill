@@ -7,7 +7,7 @@ import { adminFetch, useAdminQuery } from "@/lib/hooks/useAdmin";
 import { showToast } from "@/lib/utils/toast";
 import Sheet from "@/components/ui/Sheet";
 import Button from "@/components/ui/Button";
-import type { StatusTone } from "@/lib/utils/orderStatus";
+import { getRefundStatusMeta } from "@/lib/utils/orderStatus";
 import { ArmedButton, cents, Chip, dt, Empty, Panel, Rows, Skeleton } from "./ui";
 
 interface Refund {
@@ -17,8 +17,6 @@ interface Refund {
   order: { order_number: string; status: string; payment_status: string; listing_type: string; buyer: { username: string; display_name: string | null } | null; seller: { username: string; display_name: string | null } | null; product: { title: string } | null } | null;
 }
 
-const TONE: Record<string, StatusTone> = { needs_review: "red", failed: "red", requested: "amber", approved: "purple", processing: "purple", succeeded: "emerald", declined: "neutral", cancelled: "neutral" };
-const LABEL: Record<string, string> = { needs_review: "Needs review", failed: "Failed", requested: "Waiting on seller", approved: "Approved · sending", processing: "Sending", succeeded: "Refunded", declined: "Declined", cancelled: "Cancelled" };
 
 export default function AdminRefunds() {
   const [scope, setScope] = useState<"open" | "all">("open");
@@ -64,7 +62,7 @@ export default function AdminRefunds() {
               <div key={r.id} className="px-4 py-3 flex flex-col md:flex-row md:items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Chip label={LABEL[r.status] ?? r.status} tone={TONE[r.status] ?? "neutral"} />
+                    <Chip label={getRefundStatusMeta(r.status).label} tone={getRefundStatusMeta(r.status).tone} />
                     <Link href={`/orders/${r.order_id}`} className="text-sm font-ui text-ink hover:text-purple-primary tabular-nums">{r.order?.order_number ?? r.order_id.slice(0, 8)}</Link>
                     <span className="text-sm font-body text-muted truncate">{r.order?.product?.title ?? ""}</span>
                   </div>

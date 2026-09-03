@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import { apiFetch } from "../api-client";
 
 /**
  * Admin console plumbing (Phase 2f). Reads and writes go through
@@ -9,17 +10,9 @@ import { supabase } from "../supabase";
  * service-role client and verify platform_admins.
  */
 
-export async function adminFetch<T = unknown>(path: string, init?: RequestInit & { json?: unknown }): Promise<{ ok: true; data: T } | { ok: false; error: string; status: number }> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const headers: Record<string, string> = { ...(init?.headers as Record<string, string> | undefined) };
-  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-  let body = init?.body;
-  if (init?.json !== undefined) { headers["Content-Type"] = "application/json"; body = JSON.stringify(init.json); }
-  const response = await fetch(path, { ...init, headers, body, method: init?.method ?? (init?.json !== undefined ? "POST" : "GET") });
-  let json: { error?: string } & Record<string, unknown> = {};
-  try { json = await response.json(); } catch { /* non-JSON error page */ }
-  if (!response.ok) return { ok: false, error: json.error || `Request failed (${response.status})`, status: response.status };
-  return { ok: true, data: json as T };
+export async function adminFetch<T = unknown>(path: string, init?: { json?: unknown; method?: "GET" | "POST" }): Promise<{ ok: true; data: T } | { ok: false; error: string; status: number }> {
+  const r = await apiFetch<T>(path, init);
+  return r.ok ? { ok: true, data: r.data } : r;
 }
 
 export function useIsPlatformAdmin(userId?: string) {

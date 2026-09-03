@@ -6,7 +6,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerEarnings, useSellerOnboarding, useSellerPayouts, useSellerStatement, type SellerPayout } from "@/lib/hooks/usePayments";
 import Button from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils/currency";
-import { TONE_CLASSES, type StatusTone } from "@/lib/utils/orderStatus";
+import { getPayoutStatusMeta, TONE_CLASSES, type StatusTone } from "@/lib/utils/orderStatus";
+import MetricCard from "@/components/ui/MetricCard";
 import { shortDate } from "@/components/orders/orderFormat";
 import { PayoutBanner } from "./SellerDashboard";
 
@@ -16,28 +17,8 @@ import { PayoutBanner } from "./SellerDashboard";
  * Payout amounts are in the payout currency (CAD today); prices stay USD.
  */
 
-const PAYOUT_STATUS: Record<SellerPayout["status"], { label: string; tone: StatusTone }> = {
-  pending: { label: "On the way", tone: "purple" },
-  processing: { label: "Sending", tone: "purple" },
-  sent: { label: "Sent", tone: "emerald" },
-  failed: { label: "Failed", tone: "red" },
-  blocked: { label: "Held", tone: "amber" },
-  reversed: { label: "Reversed", tone: "red" },
-  cancelled: { label: "Cancelled", tone: "neutral" },
-};
-
 function chip(label: string, tone: StatusTone) {
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-2xs font-ui font-semibold ${TONE_CLASSES[tone].chip}`}>{label}</span>;
-}
-
-function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="rounded-2xl border border-border-light bg-surface p-4 min-w-0">
-      <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className="font-display text-xl font-semibold text-ink mt-1 tabular-nums">{value}</p>
-      {sub && <p className="text-2xs font-body text-muted mt-0.5 truncate">{sub}</p>}
-    </div>
-  );
 }
 
 function sumCents(list: SellerPayout[], statuses: SellerPayout["status"][]): { cents: number; currency: string; count: number } {
@@ -106,10 +87,10 @@ export default function EarningsOverview() {
       {!connected && <PayoutBanner />}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Tile label={connected ? "On the way" : "Waiting for payouts"} value={formatCurrency(onTheWay.cents / 100, onTheWay.currency)} sub={connected ? (onTheWay.count ? `${onTheWay.count} payout${onTheWay.count === 1 ? "" : "s"}` : "nothing pending") : "connect Stripe to receive"} />
-        <Tile label="Paid out" value={formatCurrency(paidOut.cents / 100, paidOut.currency)} sub={paidOut.count ? `${paidOut.count} payout${paidOut.count === 1 ? "" : "s"}` : undefined} />
-        <Tile label="Held" value={formatCurrency(held.cents / 100, held.currency)} sub={held.count ? `${held.count} needing attention` : undefined} />
-        <Tile label="Earned" value={formatCurrency(earnings?.total_earned ?? 0)} sub={`${earnings?.completed_orders ?? 0} approved order${(earnings?.completed_orders ?? 0) === 1 ? "" : "s"}`} />
+        <MetricCard label={connected ? "On the way" : "Waiting for payouts"} value={formatCurrency(onTheWay.cents / 100, onTheWay.currency)} sub={connected ? (onTheWay.count ? `${onTheWay.count} payout${onTheWay.count === 1 ? "" : "s"}` : "nothing pending") : "connect Stripe to receive"} />
+        <MetricCard label="Paid out" value={formatCurrency(paidOut.cents / 100, paidOut.currency)} sub={paidOut.count ? `${paidOut.count} payout${paidOut.count === 1 ? "" : "s"}` : undefined} />
+        <MetricCard label="Held" value={formatCurrency(held.cents / 100, held.currency)} sub={held.count ? `${held.count} needing attention` : undefined} />
+        <MetricCard label="Earned" value={formatCurrency(earnings?.total_earned ?? 0)} sub={`${earnings?.completed_orders ?? 0} approved order${(earnings?.completed_orders ?? 0) === 1 ? "" : "s"}`} />
       </div>
 
       <section className="rounded-2xl border border-border-light bg-surface overflow-hidden">
@@ -124,7 +105,7 @@ export default function EarningsOverview() {
         ) : (
           <div className="divide-y divide-border-light">
             {payouts.map((p) => {
-              const st = PAYOUT_STATUS[p.status];
+              const st = getPayoutStatusMeta(p.status);
               return (
                 <Link key={p.id} href={`/seller/payouts/${p.id}`} className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_120px_120px_200px] gap-3 px-4 py-3 items-center hover:bg-subtle transition-colors">
                   <div className="min-w-0">
@@ -158,7 +139,7 @@ export default function EarningsOverview() {
             <div className="divide-y divide-border-light">
               {rows.map((r) => {
                 const payoutText = r.payout
-                  ? r.payout.status === "sent" ? `Sent ${r.payout.sent_at ? shortDate(r.payout.sent_at) : ""}` : PAYOUT_STATUS[r.payout.status as SellerPayout["status"]]?.label ?? r.payout.status
+                  ? r.payout.status === "sent" ? `Sent ${r.payout.sent_at ? shortDate(r.payout.sent_at) : ""}` : getPayoutStatusMeta(r.payout.status).label
                   : r.status === "completed" ? "Scheduling" : r.status === "refunded" || r.status === "cancelled" ? "Refunded" : "After approval";
                 return (
                   <Link key={r.id} href={`/orders/${r.id}`} className="block px-4 py-3 hover:bg-subtle transition-colors">

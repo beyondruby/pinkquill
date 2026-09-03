@@ -6,6 +6,7 @@ import { useOrderMoneyRecords } from "@/lib/hooks/useOrderDocuments";
 import { formatCurrency } from "@/lib/utils/currency";
 import { getOrderKind, getOrderStatusMeta } from "@/lib/utils/orderStatus";
 import { DocumentFooter, DocumentHeader, DocumentParty, DocumentSection, DocumentShell, MoneyRow } from "@/components/documents/DocumentShell";
+import { longDate, longDateTime } from "@/lib/utils/time";
 import { orderTotalForBuyer, personName } from "./orderFormat";
 
 /**
@@ -13,16 +14,6 @@ import { orderTotalForBuyer, personName } from "./orderFormat";
  * charge in the settlement currency and any refunds. Both participants can
  * open it; the numbers are the same for both.
  */
-
-function longDate(value: string | null | undefined): string {
-  if (!value) return "";
-  return new Date(value).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-}
-
-function longDateTime(value: string | null | undefined): string {
-  if (!value) return "";
-  return new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
-}
 
 export default function OrderReceipt({ orderId }: { orderId: string }) {
   const { user } = useAuth();

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useSellerOrders } from "@/lib/hooks/useOrders";
+import { useOrderList } from "@/lib/hooks/useOrders";
 import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
 import type { Order, OrderFilters, OrderStatus } from "@/lib/types/store";
@@ -103,7 +103,7 @@ export default function SellerOrdersTable() {
     return f;
   }, [chip, debounced, sort]);
 
-  const { orders, loading, error, hasMore, loadMore } = useSellerOrders(user?.id, filters, 20);
+  const { orders, loading, error, hasMore, loadMore } = useOrderList({ role: "seller", userId: user?.id, filters, pageSize: 20 });
 
   return (
     <div className="space-y-4">

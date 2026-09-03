@@ -434,36 +434,6 @@ export interface ShippingAddress {
   phone?: string;
 }
 
-export interface ProductPurchase {
-  id: string;
-  buyer_id: string;
-  product_id: string;
-  pricing_id: string | null;
-  amount: number;
-  currency: string;
-  status: PurchaseStatus;
-  shipping_address: ShippingAddress | null;
-  tracking_number: string | null;
-  brief: string | null;
-  requirements: Record<string, unknown> | null;
-  due_date: string | null;
-  started_at: string | null;
-  submitted_at: string | null;
-  completed_at: string | null;
-  delivery_note: string | null;
-  delivery_assets: string[] | null;
-  revision_count: number;
-  last_status_update_at: string;
-  created_at: string;
-  paid_at: string | null;
-  shipped_at: string | null;
-  delivered_at: string | null;
-
-  // Joined data
-  product?: Product;
-  buyer?: ProductSeller;
-  pricing?: ProductPricing;
-}
 
 export interface DownloadToken {
   id: string;
@@ -883,15 +853,6 @@ export interface CreateCommissionData {
   packages: CreateCommissionPackageData[];
 }
 
-export interface CreateCommissionOrderData {
-  product_id: string;
-  pricing_id: string;
-  amount: number;
-  currency: string;
-  brief: string;
-  requirements?: Record<string, string | string[]>;
-  due_date?: string;
-}
 
 // ============================================================================
 // WIZARD STATE TYPES
@@ -1072,21 +1033,6 @@ export type MarketplaceSortOption = 'newest' | 'price_low' | 'price_high' | 'pop
 
 export type PromoDiscountType = 'percentage' | 'fixed';
 
-export interface PromoCode {
-  id: string;
-  code: string;
-  discount_type: PromoDiscountType;
-  discount_value: number;
-  max_uses: number | null;
-  current_uses: number;
-  min_order_amount: number | null;
-  max_discount: number | null;
-  valid_from: string;
-  valid_until: string | null;
-  listing_type: string | null;
-  is_active: boolean;
-  created_at: string;
-}
 
 // ============================================================================
 // MARKETPLACE FILTER TYPES

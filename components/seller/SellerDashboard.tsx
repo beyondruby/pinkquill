@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useSellerOrders, usePendingAcceptanceOrders } from "@/lib/hooks/useOrders";
+import { useOrderList, usePendingAcceptanceOrders } from "@/lib/hooks/useOrders";
 import { useSellerEarnings, useSellerOnboarding, useSellerPayouts } from "@/lib/hooks/usePayments";
 import Button from "@/components/ui/Button";
+import MetricCard from "@/components/ui/MetricCard";
 import type { Order, OrderStatus } from "@/lib/types/store";
 import { formatCurrency } from "@/lib/utils/currency";
 import { shortDate } from "@/components/orders/orderFormat";
@@ -33,18 +34,6 @@ export function PayoutBanner() {
   );
 }
 
-function Tile({ label, value, sub, tone, href }: { label: string; value: string; sub?: string; tone?: "amber"; href?: string }) {
-  const inner = (
-    <>
-      <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className={`font-display text-xl font-semibold mt-1 tabular-nums ${tone === "amber" ? "text-amber-700" : "text-ink"}`}>{value}</p>
-      {sub && <p className="text-2xs font-body text-muted mt-0.5 truncate">{sub}</p>}
-    </>
-  );
-  const cls = "rounded-2xl border border-border-light bg-surface p-4 min-w-0 block";
-  return href ? <Link href={href} className={`${cls} hover:border-border-strong transition-colors`}>{inner}</Link> : <div className={cls}>{inner}</div>;
-}
-
 /** Orders sorted by what needs the seller first: replies, late, due soon, awaiting approval. */
 function urgency(o: Order, now: number): number {
   if (o.status === "pending_acceptance" || o.status === "refund_requested" || o.status === "disputed") return 0;
@@ -62,7 +51,7 @@ export default function SellerDashboard() {
   const { earnings } = useSellerEarnings(user?.id);
   const { payouts } = useSellerPayouts(user?.id);
   const { orders: pendingOrders, count: pendingCount } = usePendingAcceptanceOrders(user?.id);
-  const { orders: working, loading: workingLoading } = useSellerOrders(user?.id, { status: WORKING, sort: "due" }, 50);
+  const { orders: working, loading: workingLoading } = useOrderList({ role: "seller", userId: user?.id, filters: { status: WORKING, sort: "due" }, pageSize: 50 });
   const { account, loading: accountLoading } = useSellerOnboarding();
   const connected = Boolean(account?.payouts_enabled);
 
@@ -97,16 +86,16 @@ export default function SellerDashboard() {
       {!accountLoading && !connected && <PayoutBanner />}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Tile label="Needs your reply" value={String(pendingCount)} sub={pendingOrders[0]?.seller_response_deadline ? `reply by ${shortDate(pendingOrders[0].seller_response_deadline)}` : pendingCount ? "requests waiting" : "no open requests"} tone={pendingCount ? "amber" : undefined} href="/seller/orders" />
-        <Tile label="Due this week" value={String(stats.week.length)} sub={stats.week[0] ? `${stats.week[0].product?.title ?? "Order"} · ${shortDate(stats.week[0].due_date!)}` : "nothing due"} href="/seller/orders" />
-        <Tile label="Late" value={String(stats.late.length)} sub={stats.late[0] ? `${stats.late[0].product?.title ?? "Order"} · due ${shortDate(stats.late[0].due_date!)}` : "all on time"} tone={stats.late.length ? "amber" : undefined} href="/seller/orders" />
-        <Tile label="Awaiting approval" value={String(stats.awaiting.length)} sub={stats.awaiting[0]?.auto_completion_at ? `auto-approves ${shortDate(stats.awaiting[0].auto_completion_at)}` : "nothing delivered yet"} href="/seller/orders" />
+        <MetricCard label="Needs your reply" value={String(pendingCount)} sub={pendingOrders[0]?.seller_response_deadline ? `reply by ${shortDate(pendingOrders[0].seller_response_deadline)}` : pendingCount ? "requests waiting" : "no open requests"} tone={pendingCount ? "amber" : undefined} href="/seller/orders" />
+        <MetricCard label="Due this week" value={String(stats.week.length)} sub={stats.week[0] ? `${stats.week[0].product?.title ?? "Order"} · ${shortDate(stats.week[0].due_date!)}` : "nothing due"} href="/seller/orders" />
+        <MetricCard label="Late" value={String(stats.late.length)} sub={stats.late[0] ? `${stats.late[0].product?.title ?? "Order"} · due ${shortDate(stats.late[0].due_date!)}` : "all on time"} tone={stats.late.length ? "amber" : undefined} href="/seller/orders" />
+        <MetricCard label="Awaiting approval" value={String(stats.awaiting.length)} sub={stats.awaiting[0]?.auto_completion_at ? `auto-approves ${shortDate(stats.awaiting[0].auto_completion_at)}` : "nothing delivered yet"} href="/seller/orders" />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Tile label={connected || accountLoading ? "On the way" : "Waiting for payouts"} value={formatCurrency(cents(onTheWay) / 100, cur)} sub={nextRelease ? `releases ${shortDate(nextRelease)}` : connected || accountLoading ? "nothing pending" : "connect Stripe to receive"} href="/seller/earnings" />
-        <Tile label="Paid out" value={formatCurrency(cents(paidOut) / 100, cur)} sub={paidOut.length ? `${paidOut.length} payout${paidOut.length === 1 ? "" : "s"}` : undefined} href="/seller/earnings" />
-        <Tile label="Earned" value={formatCurrency(earnings?.total_earned ?? 0)} sub={`${earnings?.completed_orders ?? 0} approved order${(earnings?.completed_orders ?? 0) === 1 ? "" : "s"}`} href="/seller/earnings" />
+        <MetricCard label={connected || accountLoading ? "On the way" : "Waiting for payouts"} value={formatCurrency(cents(onTheWay) / 100, cur)} sub={nextRelease ? `releases ${shortDate(nextRelease)}` : connected || accountLoading ? "nothing pending" : "connect Stripe to receive"} href="/seller/earnings" />
+        <MetricCard label="Paid out" value={formatCurrency(cents(paidOut) / 100, cur)} sub={paidOut.length ? `${paidOut.length} payout${paidOut.length === 1 ? "" : "s"}` : undefined} href="/seller/earnings" />
+        <MetricCard label="Earned" value={formatCurrency(earnings?.total_earned ?? 0)} sub={`${earnings?.completed_orders ?? 0} approved order${(earnings?.completed_orders ?? 0) === 1 ? "" : "s"}`} href="/seller/earnings" />
       </div>
 
       {pendingOrders.length > 0 && (

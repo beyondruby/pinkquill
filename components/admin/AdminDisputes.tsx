@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAdminQuery } from "@/lib/hooks/useAdmin";
 import { DISPUTE_REASON_LABELS, type DisputeReason } from "@/lib/types/store";
+import { formatCurrency } from "@/lib/utils/currency";
 import { cents, Chip, dt, Empty, Panel, Rows, Skeleton } from "./ui";
 
 interface Dispute {
@@ -45,7 +46,7 @@ export default function AdminDisputes() {
                       <span className="text-sm font-body text-muted truncate">{d.orders?.product?.title ?? ""}</span>
                     </div>
                     <p className="text-2xs font-body text-muted mt-1">
-                      {DISPUTE_REASON_LABELS[d.reason as DisputeReason] ?? d.reason} · {d.amount_cents != null ? cents(d.amount_cents, d.currency ?? "usd") : d.orders ? `${Number(d.orders.amount).toFixed(2)} ${d.orders.currency.toUpperCase()}` : ""} · @{d.orders?.buyer?.username ?? "?"} vs @{d.orders?.seller?.username ?? "?"} · opened {dt(d.created_at)}
+                      {DISPUTE_REASON_LABELS[d.reason as DisputeReason] ?? d.reason} · {d.amount_cents != null ? cents(d.amount_cents, d.currency ?? "usd") : d.orders ? formatCurrency(Number(d.orders.amount), d.orders.currency) : ""} · @{d.orders?.buyer?.username ?? "?"} vs @{d.orders?.seller?.username ?? "?"} · opened {dt(d.created_at)}
                       {" · "}{Array.isArray(d.evidence) ? d.evidence.length : 0} evidence item{Array.isArray(d.evidence) && d.evidence.length === 1 ? "" : "s"}
                       {d.resolution ? ` · ${d.resolution.replace(/_/g, " ")}` : ""}
                     </p>

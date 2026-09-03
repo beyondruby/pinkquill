@@ -23,8 +23,9 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 2d — Timelines & notifications | **done, committed on main**; migration `commissions_phase2d_timelines_email` applied to prod | 2026-09-03 |
 | 2e — Money visibility | **done, committed on main**; migration `commissions_phase2e_money_visibility` applied to prod | 2026-09-03 |
 | 2f — Operations | **done, committed on main**; migration `commissions_phase2f_operations` applied to prod | 2026-09-03 |
+| 4a — Consolidation | **done, committed on main** (no migration) | 2026-09-03 |
 | 2b — Quotes & extras | **on hold** (user decision, 2026-09-03): needs a call on the frozen checkout route's amount validation | |
-| 4 | not started | |
+| 4b, 4c | not started | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
@@ -679,4 +680,34 @@ Extras and custom quotes change an order's amount after it is created. The froze
 - No bulk actions; no export. Search is capped at 200 rows.
 - Sending a message to a participant from the console (operators use the order page's thread, which admits admins through `add_dispute_evidence` only).
 
-**Next:** Phase 4 (4a consolidation, 4b load & realtime, 4c dead objects & tests). 2b stays on hold until the checkout-validation decision. Needs your go. Still outstanding: the seller-side run with a second account in Stripe test mode, go-live steps 2, 6 and 7, and the two email env vars from 2d.
+**Next (at the time):** Phase 4. 4a follows below.
+
+---
+
+## Phase 4a — Consolidation (2026-09-03)
+
+**Closes:** the 4a line of the plan. No migration, no behaviour change on purpose: every screen reads the same data through fewer, shared pieces.
+
+**One of each**
+- **Order list:** `useOrderList({ role, userId, filters, pageSize })` in `lib/hooks/useOrders.ts` replaces `useBuyerOrders` and `useSellerOrders` (they had diverged: search, due-first sort and `due_before` existed only on the seller side; now both sides get them, with search spanning order number, listing title and the other party's name). `useOrderStats` (no callers) is gone. Callers: `BuyerDashboard`, `SellerDashboard`, `SellerOrdersTable`.
+- **Order loader:** `useOrder` was already the only loader for screens; the checkout page and the payment-complete page read the order directly and stay as they are (frozen with the money paths).
+- **Reviews:** `lib/hooks/useReviews.ts` was already the one module; nothing else fetched reviews. No change.
+- **Money:** `formatCurrency` everywhere a price is shown — `OrderCard` (now the buyer's total, with currency), `SellerListingsGrid`, `CustomersCRM` (four places), `BuyerDashboard`, the saved page, `AdminDisputes`. The earnings CSV keeps raw numbers by design.
+- **Metric tile:** `components/ui/MetricCard.tsx` (label · value · sub, optional value tone, optional delta tone, optional link) replaces the local `Tile` in `SellerDashboard`, `EarningsOverview`, `SellerAnalytics` and the admin console, and the icon-and-gradient `MetricCard` in `BuyerDashboard` and `CustomersCRM`. Those two now match the 3e look (no icons, no gradient).
+- **Status map:** `lib/utils/orderStatus.ts` gains `PAYOUT_STATUS_META` / `getPayoutStatusMeta` (label, tone, sentence) and `REFUND_STATUS_META` / `getRefundStatusMeta`; the local maps in `EarningsOverview`, `PayoutStatement`, `AdminPayouts`, `AdminRefunds` and the admin `ORDER_TONE` are gone (`AdminOrders` reads `getOrderStatusMeta(status).tone`).
+- **Dates:** `lib/utils/time.ts` now holds `shortDate`, `shortDateTime`, `longDate`, `longDateTime`, `relativeDays`, `countdown` next to the existing `formatDate` / `getTimeAgo`; `components/orders/orderFormat.ts` keeps only order-shaped helpers and re-exports the date ones so order screens keep one import; the admin `dt`, the receipt and the payout statement use the shared functions.
+- **API calls:** `lib/api-client.ts` `apiFetch(path, { json })` — session bearer through the existing `buildAuthenticatedHeaders`, safe JSON parsing through the existing `safeResponseJson`, never throws, returns `{ ok, data } | { ok, error, status }`. Used by `useCreateOrder`, `useUpdateOrderDraft`, the four refund hooks in `useDisputes.ts` and `adminFetch`. `useDownloads` / `usePayments` already used the shared header builder.
+- **Error toasts:** `actionToast.orderError(error)` maps the database's sentences to titles (Not allowed · Already done · Too late for that · Not available right now · No revisions left · Check the date · Amount too high · Please sign in · Connection failed) with the sentence as the detail, falling back to "That didn't go through" plus the text. `OrderActionBar` uses it instead of a fixed "Please try again".
+
+**Deleted:** `app/commissions/orders/[id]` (a redirect nobody linked to); the `ProductPurchase`, `CreateCommissionOrderData` and `PromoCode` types (no references); the `useStudioQueue` alias — the file is now `lib/hooks/useStudioCart.ts` exporting `useStudioCart` only (four importers updated).
+
+**Left as is, and why.** `lib/hooks.legacy.ts` is a 2,400-line implementation file for communities, search, collaborations and user search; nothing in the marketplace or commissions code imports it, so it is outside this rebuild. Splitting it belongs to a communities pass.
+
+**Verified**
+- `npx tsc --noEmit` clean; ESLint 0 errors on every changed file; `npx vitest run` 172 pass (new: 4 date-helper tests, 2 `orderError` tests); `npm run build` succeeds (the old redirect route is gone from the route list).
+- Browser (local dev server, signed in as `hadi`): buyer Orders page (four tiles, empty list), seller Dashboard (seven tiles, attention list), Customers (four tiles, the one customer row with `$0.00`), seller Orders (the real order listed as Cancelled — its status was changed by a user, not by this session), Earnings (four tiles, empty payouts and statement). No console errors. Nothing was written.
+- **Not exercised:** the order page action-bar error toast (needs a failing action), the buyer-side search on `useOrderList` (no buyer orders on this account).
+
+**Deferred to 4b / 4c:** `count: "exact"` on lists (kept for `hasMore`), the lean per-screen selects, the realtime subscriptions, and the dead RPCs (`get_seller_order_stats` has no caller now).
+
+**Next:** 4b (load & realtime), then 4c (dead objects & tests). 2b stays on hold until the checkout-validation decision. Needs your go. Still outstanding: the seller-side run with a second account in Stripe test mode, go-live steps 2, 6 and 7, and the two email env vars from 2d.

@@ -6,6 +6,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useSellerAnalytics, type SellerAnalytics as Analytics } from "@/lib/hooks/useSellerAnalytics";
 import { formatCurrency } from "@/lib/utils/currency";
+import MetricCard from "@/components/ui/MetricCard";
 
 /**
  * Seller analytics (Phase 2e): revenue over time, conversion, on-time rate,
@@ -31,16 +32,6 @@ function delta(now: number, before: number): { text: string; tone: "up" | "down"
   const change = (now - before) / before;
   if (Math.abs(change) < 0.005) return { text: "same as before", tone: "flat" };
   return { text: `${change > 0 ? "+" : ""}${Math.round(change * 100)}% vs previous`, tone: change > 0 ? "up" : "down" };
-}
-
-function Tile({ label, value, sub, tone }: { label: string; value: string; sub?: string | null; tone?: "up" | "down" | "flat" }) {
-  return (
-    <div className="rounded-2xl border border-border-light bg-surface p-4 min-w-0">
-      <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className="font-display text-xl font-semibold text-ink mt-1 tabular-nums">{value}</p>
-      {sub && <p className={`text-2xs font-body mt-0.5 truncate ${tone === "up" ? "text-emerald-700" : tone === "down" ? "text-amber-700" : "text-muted"}`}>{sub}</p>}
-    </div>
-  );
 }
 
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; payload: { orders: number; gross: number } }>; label?: string }) {
@@ -115,12 +106,12 @@ export default function SellerAnalytics() {
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-            <Tile label="To you" value={formatCurrency(net)} sub={netDelta?.text ?? (hasSales ? null : "no sales in this window")} tone={netDelta?.tone} />
-            <Tile label="Paid orders" value={String(data.totals.paid_orders)} sub={ordersDelta?.text ?? (data.totals.buyers ? `${data.totals.buyers} buyer${data.totals.buyers === 1 ? "" : "s"}` : null)} tone={ordersDelta?.tone} />
-            <Tile label="Requests → paid" value={pct(data.conversion.rate)} sub={data.conversion.requests ? `${data.conversion.paid} of ${data.conversion.requests} requests` : "no requests yet"} />
-            <Tile label="On time" value={pct(data.on_time.rate)} sub={data.on_time.delivered ? `${data.on_time.on_time} of ${data.on_time.delivered} deliveries${data.on_time.avg_days_early > 0 ? ` · ${data.on_time.avg_days_early} days early on average` : ""}` : "no commissions delivered yet"} />
-            <Tile label="First reply" value={hours(data.response.median_hours)} sub={data.response.asked ? `${pct(data.response.rate_24h)} within a day · ${data.response.answered} of ${data.response.asked} answered` : "no buyer messages yet"} />
-            <Tile label="Repeat buyers" value={pct(data.repeat.rate)} sub={data.repeat.buyers ? `${data.repeat.repeat_buyers} of ${data.repeat.buyers} came back · all time` : "no buyers yet"} />
+            <MetricCard label="To you" value={formatCurrency(net)} sub={netDelta?.text ?? (hasSales ? null : "no sales in this window")} subTone={netDelta?.tone} />
+            <MetricCard label="Paid orders" value={String(data.totals.paid_orders)} sub={ordersDelta?.text ?? (data.totals.buyers ? `${data.totals.buyers} buyer${data.totals.buyers === 1 ? "" : "s"}` : null)} subTone={ordersDelta?.tone} />
+            <MetricCard label="Requests → paid" value={pct(data.conversion.rate)} sub={data.conversion.requests ? `${data.conversion.paid} of ${data.conversion.requests} requests` : "no requests yet"} />
+            <MetricCard label="On time" value={pct(data.on_time.rate)} sub={data.on_time.delivered ? `${data.on_time.on_time} of ${data.on_time.delivered} deliveries${data.on_time.avg_days_early > 0 ? ` · ${data.on_time.avg_days_early} days early on average` : ""}` : "no commissions delivered yet"} />
+            <MetricCard label="First reply" value={hours(data.response.median_hours)} sub={data.response.asked ? `${pct(data.response.rate_24h)} within a day · ${data.response.answered} of ${data.response.asked} answered` : "no buyer messages yet"} />
+            <MetricCard label="Repeat buyers" value={pct(data.repeat.rate)} sub={data.repeat.buyers ? `${data.repeat.repeat_buyers} of ${data.repeat.buyers} came back · all time` : "no buyers yet"} />
           </div>
 
           <section className="rounded-2xl border border-border-light bg-surface p-4 sm:p-5">

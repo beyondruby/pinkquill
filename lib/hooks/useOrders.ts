@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
-import { safeResponseJson } from "../utils/fetch";
+import { apiFetch } from "../api-client";
 import type {
   BuyerOrderStats,
   CreateOrderData,
@@ -11,7 +11,6 @@ import type {
   OrderEvent,
   OrderFilters,
   OrderMessage,
-  OrderStats,
   OrderStatus,
   Product,
   ProductMedia,
@@ -127,23 +126,11 @@ export function useCreateOrder(): UseCreateOrderReturn {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please sign in to place an order");
-      const { data: { session } } = await supabase.auth.getSession();
 
-      const response = await fetch("/api/orders/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify(data),
-      });
+      const result = await apiFetch<{ order_id?: string }>("/api/orders/create", { json: data });
+      if (!result.ok) throw new Error(result.error || "Failed to create order");
 
-      const payload = await safeResponseJson<Record<string, unknown>>(response);
-      if (!response.ok) {
-        throw new Error((payload.error as string) || "Failed to create order");
-      }
-
-      const orderId = payload.order_id as string | undefined;
+      const orderId = result.data.order_id;
       if (!orderId) {
         throw new Error("Order created but response was missing order_id");
       }
@@ -198,21 +185,8 @@ export function useUpdateOrderDraft(): UseUpdateOrderDraftReturn {
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch("/api/orders/update-draft", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await safeResponseJson<Record<string, unknown>>(response);
-      if (!response.ok) {
-        throw new Error((result.error as string) || "Failed to update order details");
-      }
-
+      const result = await apiFetch("/api/orders/update-draft", { json: payload });
+      if (!result.ok) throw new Error(result.error || "Failed to update order details");
       return true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -302,7 +276,7 @@ export function useOrder(orderId?: string): UseOrderReturn {
 }
 
 // ============================================================================
-// useBuyerOrders — Fetch all orders for the current buyer
+// useOrderList — the one server-filtered order list (Phase 4a): buyer or seller
 // ============================================================================
 
 interface UseOrderListReturn {
@@ -314,106 +288,20 @@ interface UseOrderListReturn {
   refetch: () => Promise<void>;
 }
 
-export function useBuyerOrders(
-  userId?: string,
-  filters?: OrderFilters,
-  pageSize = 20
-): UseOrderListReturn {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const pageRef = useRef(0);
-  const fetchingRef = useRef(false);
-  const requestIdRef = useRef(0);
-
-  // Stabilize filter values to avoid infinite re-fetch from new object refs
-  const statusKey = statusKeyOf(filters?.status);
-  const listingTypeFilter = filters?.listing_type;
-  const dateFrom = filters?.date_from;
-  const dateTo = filters?.date_to;
-
-  const fetchOrders = useCallback(async (page: number, append = false) => {
-    if (!userId) {
-      setOrders([]);
-      setLoading(false);
-      return;
-    }
-    if (append && fetchingRef.current) return;
-    fetchingRef.current = true;
-    const requestId = ++requestIdRef.current;
-
-    try {
-      if (!append) setLoading(true);
-      setError(null);
-
-      let query = supabase
-        .from("orders")
-        .select(ORDER_SELECT, { count: "exact" })
-        .eq("buyer_id", userId)
-        .order("created_at", { ascending: false });
-
-      query = applyStatusFilter(query, statusKey);
-      if (listingTypeFilter) query = query.eq("listing_type", listingTypeFilter);
-      if (dateFrom) query = query.gte("created_at", dateFrom);
-      if (dateTo) query = query.lte("created_at", dateTo);
-
-      const start = page * pageSize;
-      const { data, count, error: queryError } = await query.range(start, start + pageSize - 1);
-
-      if (queryError) throw queryError;
-      // A newer fetch (filter change) superseded this one: drop the result.
-      if (requestIdRef.current !== requestId) return;
-
-      const transformed = (data || []).map(transformOrder);
-
-      if (append) {
-        setOrders((prev) => [...prev, ...transformed]);
-      } else {
-        setOrders(transformed);
-      }
-
-      pageRef.current = page;
-      setHasMore(start + pageSize < (count ?? 0));
-    } catch (err: unknown) {
-      if (requestIdRef.current !== requestId) return;
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useBuyerOrders] Error:", message);
-      setError(message);
-    } finally {
-      if (requestIdRef.current === requestId) {
-        fetchingRef.current = false;
-        setLoading(false);
-      }
-    }
-  }, [userId, statusKey, listingTypeFilter, dateFrom, dateTo, pageSize]);
-
-  const loadMore = useCallback(async () => {
-    if (!hasMore || fetchingRef.current) return;
-    await fetchOrders(pageRef.current + 1, true);
-  }, [fetchOrders, hasMore]);
-
-  const refetch = useCallback(async () => {
-    pageRef.current = 0;
-    await fetchOrders(0);
-  }, [fetchOrders]);
-
-  useEffect(() => {
-    fetchOrders(0);
-  }, [fetchOrders]);
-
-  return { orders, loading, error, hasMore, loadMore, refetch };
+export interface UseOrderListOptions {
+  role: "buyer" | "seller";
+  userId?: string;
+  filters?: OrderFilters;
+  pageSize?: number;
 }
 
-// ============================================================================
-// useSellerOrders — Fetch all orders for the current seller
-// ============================================================================
-
-export function useSellerOrders(
-  userId?: string,
-  filters?: OrderFilters,
-  pageSize = 20
-): UseOrderListReturn {
+/**
+ * Orders for one side of the marketplace, filtered and sorted on the server.
+ * Search spans order number, listing title and the other party's name (the
+ * latter two through small id lookups, since PostgREST cannot OR across
+ * embedded tables). `due_before` and `sort: "due"` serve the seller studio.
+ */
+export function useOrderList({ role, userId, filters, pageSize = 20 }: UseOrderListOptions): UseOrderListReturn {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -448,7 +336,7 @@ export function useSellerOrders(
       let query = supabase
         .from("orders")
         .select(ORDER_SELECT, { count: "exact" })
-        .eq("seller_id", userId);
+        .eq(role === "buyer" ? "buyer_id" : "seller_id", userId);
       query = sort === "due"
         ? query.order("due_date", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false })
         : query.order("created_at", { ascending: false });
@@ -460,18 +348,17 @@ export function useSellerOrders(
       if (dueBefore) query = query.lt("due_date", dueBefore);
 
       if (search) {
-        // Order number, listing title and buyer name — the latter two through
-        // small id lookups, since PostgREST cannot OR across embedded tables.
         const pattern = searchPattern(search);
-        const [productsRes, buyersRes] = await Promise.all([
-          supabase.from("products").select("id").eq("seller_id", userId).ilike("title", pattern).limit(50),
+        const clauses = [`order_number.ilike.${pattern}`];
+        const productQuery = supabase.from("products").select("id").ilike("title", pattern).limit(50);
+        const [productsRes, peopleRes] = await Promise.all([
+          role === "seller" ? productQuery.eq("seller_id", userId) : productQuery,
           supabase.from("profiles").select("id").or(`username.ilike.${pattern},display_name.ilike.${pattern}`).limit(20),
         ]);
-        const clauses = [`order_number.ilike.${pattern}`];
         const productIds = (productsRes.data ?? []).map((r) => r.id);
-        const buyerIds = (buyersRes.data ?? []).map((r) => r.id);
+        const peopleIds = (peopleRes.data ?? []).map((r) => r.id);
         if (productIds.length) clauses.push(`product_id.in.(${productIds.join(",")})`);
-        if (buyerIds.length) clauses.push(`buyer_id.in.(${buyerIds.join(",")})`);
+        if (peopleIds.length) clauses.push(`${role === "seller" ? "buyer_id" : "seller_id"}.in.(${peopleIds.join(",")})`);
         query = query.or(clauses.join(","));
       }
 
@@ -483,19 +370,13 @@ export function useSellerOrders(
       if (requestIdRef.current !== requestId) return;
 
       const transformed = (data || []).map(transformOrder);
-
-      if (append) {
-        setOrders((prev) => [...prev, ...transformed]);
-      } else {
-        setOrders(transformed);
-      }
-
+      setOrders((prev) => (append ? [...prev, ...transformed] : transformed));
       pageRef.current = page;
       setHasMore(start + pageSize < (count ?? 0));
     } catch (err: unknown) {
       if (requestIdRef.current !== requestId) return;
       const message = err instanceof Error ? err.message : String(err);
-      console.error("[useSellerOrders] Error:", message);
+      console.error("[useOrderList]", message);
       setError(message);
     } finally {
       if (requestIdRef.current === requestId) {
@@ -503,7 +384,7 @@ export function useSellerOrders(
         setLoading(false);
       }
     }
-  }, [userId, statusKey, listingTypeFilter, dateFrom, dateTo, search, dueBefore, sort, pageSize]);
+  }, [role, userId, statusKey, listingTypeFilter, dateFrom, dateTo, search, dueBefore, sort, pageSize]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || fetchingRef.current) return;
@@ -967,53 +848,6 @@ export function useOrderEvents(orderId?: string): UseOrderEventsReturn {
   }, [refetch]);
 
   return { events, loading, error, refetch };
-}
-
-// ============================================================================
-// useOrderStats — Aggregated stats for seller dashboard
-// ============================================================================
-
-interface UseOrderStatsReturn {
-  stats: OrderStats | null;
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
-
-export function useOrderStats(userId?: string): UseOrderStatsReturn {
-  const [stats, setStats] = useState<OrderStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchStats = useCallback(async () => {
-    if (!userId) {
-      setStats(null);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Server-side aggregate (single round-trip) instead of fetching every order.
-      const { data, error: queryError } = await supabase.rpc("get_seller_order_stats");
-      if (queryError) throw queryError;
-      setStats((data as OrderStats) ?? null);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[useOrderStats] Error:", message);
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  return { stats, loading, error, refetch: fetchStats };
 }
 
 // ============================================================================
