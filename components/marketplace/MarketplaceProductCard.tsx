@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import AvailabilityPill from "@/components/commissions/AvailabilityPill";
+import { COMMISSION_CATEGORIES, getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -114,15 +115,19 @@ function CommissionMarketplaceCard({ product }: { product: Product }) {
             )}
           </div>
 
-          <p className="text-[11px] font-ui uppercase tracking-wider text-muted">{product.category}</p>
+          <p className="text-[11px] font-ui uppercase tracking-wider text-muted">
+            {product.listing_type === "service"
+              ? [COMMISSION_CATEGORIES[product.category]?.name || product.category, product.subcategory ? getCommissionSubcategoryLabel(product.category, product.subcategory) : null].filter(Boolean).join(" · ")
+              : product.category}
+          </p>
 
           <h3 className="mt-1 font-display text-base font-semibold text-ink leading-snug line-clamp-2 group-hover:text-pink-vivid transition-colors">
             {product.title}
           </h3>
 
-          <p className="mt-2 text-xs font-body text-muted line-clamp-2 min-h-[2rem]">
-            {headline || "Outcome-focused service with clear scope, timeline, and delivery process."}
-          </p>
+          {headline && (
+            <p className="mt-2 text-xs font-body text-muted line-clamp-2">{headline}</p>
+          )}
 
           {firstFeatures.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">

@@ -16,7 +16,8 @@ Read `02-plan.md` for the phase definitions and `01-findings.md` for the root ca
 | 1e — Test harness + go-live checklist | **done, applied to production** (go-live checklist below; live keys NOT yet configured) | 2026-09-02 |
 | 3a — Order page | **done, committed on main** (no migration; UI only) | 2026-09-03 |
 | 3c — Listing detail & request flow | **done, committed on main** (no migration; UI only) | 2026-09-03 |
-| 2b, 2d–2f, 3b, 3d–3f, 4 | not started | |
+| 3b — Studio commissions section | **done, committed on main** (no migration; UI only) | 2026-09-03 |
+| 2b, 2d–2f, 3d–3f, 4 | not started | |
 
 Open decisions (plan §2): D7 email provider. **D6** = buyer cancels free while the seller hasn't started (`paid`) or when the order is 3+ days overdue; after work starts a buyer cancellation is a refund request the seller decides; sellers/admins may cancel any active order (full refund); partial refunds come out of the seller's share only; nothing can be cancelled or refunded self-service after the payout was sent (dispute instead). **D8** = `platform_admins` table (`profiles.role` is a free-text bio field); `hadi` is the first admin. **D2 = 7 days** after completion (setting `release_window_hours = 168`). **D4 = Supabase pg_cron + pg_net** (GitHub workflow deleted). **Currency:** USD listings, charged in the platform's settlement currency (CAD today) at a cached ECB rate + 1.5 % buffer; switch to USD settlement later by changing `platform_settings.settlement_currency` once a USD bank account exists. **D3 = (b)** seller pays 5 % platform fee, buyer pays a visible processing fee of 3 % + $0.30 (implemented in 1b; rates live in `platform_settings`). Answered: **D1** = platform Stripe account is **Canada, default currency CAD**, Standard account, `transfers` capability active, Connect enabled (verified via API + dashboard 2026-09-02; business is Canadian, owner currently in Saudi Arabia, sellers/buyers intended worldwide in any currency — 1c must use Connect cross-border payouts with the `recipient` service agreement for non-CA sellers and decide the settlement-currency model); **D5** = yes (test orders deleted in 1a).
 
@@ -430,4 +431,33 @@ The **request sheet** (`RequestSheet`, `Sheet size="tall"`) is one flow for the 
 - `CommissionReviewsPanel` keeps its uppercase studio heading; 3b restyles it with the studio section.
 - Marketplace / studio cards still show the raw category key on some cards (3b / 3e).
 
-**Next:** 3b (studio commissions section) or 2b (quotes & extras). Needs your go. The seller-side check from 3a's note (a second account in Stripe test mode: Start work → Deliver → Request revision → Approve → refund decision) is still outstanding and would also cover this phase's approval outcome.
+**Next (at the time):** 3b. Superseded by the entry below.
+
+---
+
+## Phase 3b — Studio commissions section (2026-09-03)
+
+**Closes:** RC-C2 item 5 (the studio banner: rendered for every profile, "Taking orders No" for non-sellers, no action, fabricated reply time) and the remaining half of item 9 (category by label on the marketplace card, no filler headline), plus RC-C3 item 4's touch problem on the studio cards (owner menus were `opacity-0` until hover).
+
+**Mockup** (approved before build): https://claude.ai/code/artifact/325f970a-8879-4789-860f-dcc7bc3c7bbe.
+
+**No migration.** The tab no longer reads `seller_profiles` (owner-only under RLS, which is why visitors always saw "Taking orders No"); the seller-level switch comes through `get_commission_availability` on the first active listing, the numbers from the listings and `get_seller_stats`, the seller flag for the tab from a head-count query on `products`.
+
+**Design.** One **commission header card** that exists only when the profile has active service listings: an availability pill rolled up from the listings (Not taking orders · Closed · Opens Sep 20 · Waitlist · Slots full · "1 of 3 slots open" with slots summed · Open), then only the facts that have data — From price, turnaround range, rating with count, completed orders, reply time — and two actions: **Request a commission** (opens the 3c request sheet directly for one listing, or a "Which service?" chooser sheet for several) and **Message** (opens or creates the DM). Owner variant: same card plus **Add a service** and **Edit availability** (seller settings). Owner with no listings: empty state with Add a service. **The tab is hidden** for profiles that don't sell (`useHasCommissions`), and a `?tab=commissions` deep link on such a profile falls back to Posts. Sub-tabs stay (Services · Reviews · Reviews as buyer for the owner); the status filter is owner-only; visitors only ever see active listings. **Service cards**: cover with the availability pill on it (or the status when inactive), category by label, title, headline only when written, from-price and delivery range; the owner's menu is a visible button.
+
+**Code**
+- `components/commissions/CommissionsTab.tsx` rewritten (673 → ~330 lines): header card, roll-up, chooser sheet, `RequestSheet`, `categoryLabel()`, cards. Store tagline / skills / services chips are gone from the tab (they were owner-only data and never rendered for visitors).
+- `lib/hooks/useCommissions.ts`: `useHasCommissions(userId)`.
+- `components/studio/StudioProfile.tsx`: the Commissions tab button and panel render only when `isOwnProfile || hasCommissions`; deep links fall back to Posts.
+- `components/marketplace/MarketplaceProductCard.tsx`: service listings show the category label; the filler headline is gone.
+
+**Verified**
+- `npx tsc --noEmit` clean; ESLint 0 errors on changed files (pre-existing `<img>` warnings in StudioProfile); `npx vitest run` 159 pass; `npm run build` succeeds.
+- Browser (local dev server, signed in as `hadi`): `/studio/poet?tab=commissions` shows the header card (Open · From $5.00 · Turnaround 7 days · Request a commission · Message) and one service card with the category label; Request a commission opens the request sheet at "Choose a package". `/studio/lola` (no listings) renders the tabs Posts, Takes, Relays, Store, Collections — no Commissions. `/studio/hadi?tab=commissions` (owner, no service listings) shows "No services yet · Add a service" with the Services / Reviews / Reviews as buyer sub-tabs and the owner filter. No console errors. Nothing was written to the database.
+- **Not exercised:** Message (would create a DM conversation between the two accounts), the several-listings chooser and the slot / waitlist / paused roll-ups (production has one service listing), the phone layout (mockup only).
+
+**Deferred**
+- Seller settings still carry store name, tagline, skills and services that nothing public renders; 3e/3f decide whether to surface them (e.g. the tagline as the header card's subtitle once `seller_profiles` has a public read of non-sensitive columns) or drop them.
+- `CommissionReviewsPanel` keeps its uppercase heading style; the studio profile's other tabs are untouched.
+
+**Next:** 3d (checkout) per the plan's order, or 2b (quotes & extras). Needs your go. The seller-side check with a second account in Stripe test mode is still outstanding (3a, 3c).

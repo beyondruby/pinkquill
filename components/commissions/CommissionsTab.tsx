@@ -2,25 +2,33 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import {
-  useMemo,
-  useCallback,
-  useId,
-  useState,
-  type KeyboardEvent,
-} from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useSellerCommissions } from "@/lib/hooks/useCommissions";
+import { useCallback, useId, useMemo, useState, type KeyboardEvent } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useCommissionAvailability, useSellerCommissions } from "@/lib/hooks/useCommissions";
 import { useSellerStats } from "@/lib/hooks/useReviews";
-import { useSellerProfile } from "@/lib/hooks/useSellerProfile";
 import { useDeleteProduct, useUpdateProductStatus } from "@/lib/hooks/useProducts";
+import { getOrCreateConversation } from "@/lib/messaging/conversations";
 import type { Product, ProductStatus } from "@/lib/types/store";
-import QuillIcon from "@/components/reviews/QuillIcon";
+import { COMMISSION_CATEGORIES, getCommissionSubcategoryLabel } from "@/lib/commissions/categories";
+import { formatCurrency } from "@/lib/utils/currency";
+import { QuillMeter } from "@/components/reviews/ReviewCard";
 import ActionMenu from "@/components/ui/ActionMenu";
+import Button from "@/components/ui/Button";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import Sheet from "@/components/ui/Sheet";
 import { showToast } from "@/lib/utils/toast";
 import CommissionReviewsPanel from "./CommissionReviewsPanel";
-import AvailabilityPill from "./AvailabilityPill";
+import AvailabilityPill, { describeAvailability } from "./AvailabilityPill";
+import RequestSheet from "./RequestSheet";
+
+/**
+ * The studio's Commissions tab (Phase 3b). One header card that exists only
+ * when the profile sells, with the numbers a buyer wants and two actions;
+ * service cards below. Nothing here reads seller_profiles (owner-only):
+ * the seller-level switch comes through get_commission_availability, the
+ * rest from the listings and completed orders.
+ */
 
 interface CommissionsTabProps {
   userId: string;
@@ -30,11 +38,6 @@ interface CommissionsTabProps {
 
 type StatusFilter = "all" | "active" | "inactive";
 type PanelTab = "services" | "reviews_seller" | "reviews_buyer";
-
-type SubTabConfig = {
-  key: PanelTab;
-  label: string;
-};
 
 function parsePanelTab(value: string | null, isOwnProfile: boolean): PanelTab {
   if (value === "reviews_seller") return "reviews_seller";
@@ -48,142 +51,141 @@ function parseStatusFilter(value: string | null): StatusFilter {
   return "all";
 }
 
+const PILL_TONE: Record<ReturnType<typeof describeAvailability>["tone"], string> = {
+  open: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  limited: "bg-amber-50 text-amber-700 border-amber-200",
+  waitlist: "bg-purple-50 text-purple-700 border-purple-200",
+  closed: "bg-subtle text-muted border-border-strong",
+};
+
+export function categoryLabel(product: Pick<Product, "category" | "subcategory">): string {
+  return [COMMISSION_CATEGORIES[product.category]?.name || product.category, product.subcategory ? getCommissionSubcategoryLabel(product.category, product.subcategory) : null]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function deliveryRange(listings: Product[]): [number, number] | null {
+  const days = listings.flatMap((l) => (l.pricing ?? []).map((p) => p.delivery_days).filter((d): d is number => typeof d === "number" && d > 0));
+  if (days.length === 0) return null;
+  return [Math.min(...days), Math.max(...days)];
+}
+
+function formatDays(range: [number, number] | null): string | null {
+  if (!range) return null;
+  return range[0] === range[1] ? `${range[0]} day${range[0] === 1 ? "" : "s"}` : `${range[0]}–${range[1]} days`;
+}
+
+/** Roll the listings' availability up into one pill for the header card. */
+function rollUpAvailability(listings: Product[], sellerAccepting: boolean): { label: string; tone: keyof typeof PILL_TONE } {
+  if (!sellerAccepting) return { label: "Not taking orders", tone: "closed" };
+  const states = listings.map((l) => describeAvailability(l.commission_listing, true));
+  if (states.length === 0) return { label: "Open", tone: "open" };
+  let slotsOpen = 0, slotsTotal = 0, hasSlots = false, anyOpen = false, anyWaitlist = false;
+  for (const l of listings) {
+    const cl = l.commission_listing;
+    const st = describeAvailability(cl, true);
+    if (st.tone === "waitlist") anyWaitlist = true;
+    if (cl && cl.slots_total != null && (cl.availability === "open" || cl.availability === "scheduled")) {
+      hasSlots = true;
+      slotsTotal += cl.slots_total;
+      slotsOpen += Math.max(cl.slots_total - (cl.slots_used ?? 0), 0);
+    } else if (st.tone === "open" || st.tone === "limited") {
+      anyOpen = true;
+    }
+  }
+  if (hasSlots && slotsOpen > 0) return { label: `${slotsOpen} of ${slotsTotal} slot${slotsTotal === 1 ? "" : "s"} open`, tone: slotsOpen === 1 ? "limited" : "open" };
+  if (anyOpen) return { label: "Open", tone: "open" };
+  if (anyWaitlist) return { label: "Waitlist", tone: "waitlist" };
+  if (hasSlots) return { label: "Slots full", tone: "closed" };
+  const opens = listings.map((l) => l.commission_listing?.opens_at).filter((d): d is string => !!d && new Date(d).getTime() > Date.now()).sort()[0];
+  if (opens) return { label: `Opens ${new Date(opens).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`, tone: "closed" };
+  return { label: "Closed", tone: "closed" };
+}
+
 export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: CommissionsTabProps) {
+  const { user } = useAuth();
   const { commissions, loading, error, refetch } = useSellerCommissions(userId);
-  const { stats: sellerStats } = useSellerStats(userId);
+  const { stats } = useSellerStats(userId);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tablistId = useId();
-  const { profile: sellerProfile } = useSellerProfile(userId);
+
+  const active = useMemo(() => commissions.filter((c) => c.status === "active"), [commissions]);
+  // The seller-level switch is only readable through the availability RPC; one call on the first active listing is enough.
+  const { availability: probe } = useCommissionAvailability(active[0]?.id);
+  const sellerAccepting = probe ? probe.seller_accepting : true;
 
   const panel = parsePanelTab(searchParams.get("commissionsView"), isOwnProfile);
   const filter = parseStatusFilter(searchParams.get("commissionsFilter"));
 
-  const filtered = useMemo(() => {
-    return commissions.filter((item) => {
-      if (filter === "all") return true;
-      if (filter === "active") return item.status === "active";
-      return ["draft", "paused", "archived"].includes(item.status);
-    });
-  }, [commissions, filter]);
+  const [chooserOpen, setChooserOpen] = useState(false);
+  const [requesting, setRequesting] = useState<Product | null>(null);
+  const [messaging, setMessaging] = useState(false);
 
-  const stats = useMemo(() => {
-    const activeCount = commissions.filter((item) => item.status === "active").length;
-    const inactiveCount = commissions.filter((item) => ["draft", "paused", "archived"].includes(item.status)).length;
-
-    const configuredResponseTimes = commissions
-      .map((item) => item.service_metadata?.response_time_hours)
-      .filter((value): value is number => typeof value === "number" && value > 0);
-
-    const avgConfiguredResponseHours = configuredResponseTimes.length
-      ? configuredResponseTimes.reduce((sum, value) => sum + value, 0) / configuredResponseTimes.length
-      : null;
-
-    const serviceLabels = Array.from(
-      new Set(
-        commissions
-          .map((item) => {
-            const title = item.title?.trim();
-            const subcategory = item.subcategory?.trim();
-            const category = item.category?.trim();
-            return title || subcategory || category || "";
-          })
-          .filter((label): label is string => Boolean(label))
-      )
-    );
-
-    return {
-      total: commissions.length,
-      active: activeCount,
-      inactive: inactiveCount,
-      avgConfiguredResponseHours,
-      serviceLabels,
-    };
-  }, [commissions]);
-
-  const responseTimeHours =
-    sellerStats && sellerStats.avg_response_time_hours > 0
-      ? sellerStats.avg_response_time_hours
-      : stats.avgConfiguredResponseHours;
-
-  const hasServices = commissions.length > 0;
+  const filtered = useMemo(() => commissions.filter((item) => {
+    if (!isOwnProfile) return item.status === "active";
+    if (filter === "all") return true;
+    if (filter === "active") return item.status === "active";
+    return ["draft", "paused", "archived"].includes(item.status);
+  }), [commissions, filter, isOwnProfile]);
 
   const updateViewState = useCallback((next: { panel?: PanelTab; filter?: StatusFilter }) => {
     const params = new URLSearchParams(searchParams.toString());
-
     const nextPanel = next.panel ?? panel;
     const nextFilter = next.filter ?? filter;
-
-    if (nextPanel === "services") {
-      params.delete("commissionsView");
-    } else {
-      params.set("commissionsView", nextPanel);
-    }
-
-    if (nextFilter === "all") {
-      params.delete("commissionsFilter");
-    } else {
-      params.set("commissionsFilter", nextFilter);
-    }
-
+    if (nextPanel === "services") params.delete("commissionsView"); else params.set("commissionsView", nextPanel);
+    if (nextFilter === "all") params.delete("commissionsFilter"); else params.set("commissionsFilter", nextFilter);
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [filter, panel, pathname, router, searchParams]);
 
-  const tabConfig: SubTabConfig[] = useMemo(() => {
-    const tabs: SubTabConfig[] = [
-      { key: "services", label: "Services" },
-      { key: "reviews_seller", label: "Reviews as Seller" },
-    ];
-    if (isOwnProfile) {
-      tabs.push({ key: "reviews_buyer", label: "Reviews as Buyer" });
-    }
+  const tabConfig: Array<{ key: PanelTab; label: string }> = useMemo(() => {
+    const tabs: Array<{ key: PanelTab; label: string }> = [{ key: "services", label: "Services" }, { key: "reviews_seller", label: "Reviews" }];
+    if (isOwnProfile) tabs.push({ key: "reviews_buyer", label: "Reviews as buyer" });
     return tabs;
   }, [isOwnProfile]);
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const currentIndex = tabConfig.findIndex((item) => item.key === panel);
-    if (currentIndex === -1) return;
+    const i = tabConfig.findIndex((t) => t.key === panel);
+    if (i === -1) return;
+    const go = (n: number) => { updateViewState({ panel: tabConfig[n].key }); event.preventDefault(); };
+    if (event.key === "ArrowRight") go((i + 1) % tabConfig.length);
+    if (event.key === "ArrowLeft") go((i - 1 + tabConfig.length) % tabConfig.length);
+    if (event.key === "Home") go(0);
+    if (event.key === "End") go(tabConfig.length - 1);
+  };
 
-    if (event.key === "ArrowRight") {
-      const next = tabConfig[(currentIndex + 1) % tabConfig.length];
-      updateViewState({ panel: next.key });
-      event.preventDefault();
-    }
+  const requireSignIn = () => {
+    if (user) return true;
+    router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+    return false;
+  };
 
-    if (event.key === "ArrowLeft") {
-      const prev = tabConfig[(currentIndex - 1 + tabConfig.length) % tabConfig.length];
-      updateViewState({ panel: prev.key });
-      event.preventDefault();
-    }
+  const openRequest = () => {
+    if (!requireSignIn()) return;
+    if (active.length === 1) setRequesting(active[0]);
+    else setChooserOpen(true);
+  };
 
-    if (event.key === "Home") {
-      updateViewState({ panel: tabConfig[0].key });
-      event.preventDefault();
-    }
-
-    if (event.key === "End") {
-      updateViewState({ panel: tabConfig[tabConfig.length - 1].key });
-      event.preventDefault();
+  const startMessage = async () => {
+    if (!requireSignIn() || messaging) return;
+    setMessaging(true);
+    try {
+      const conversationId = await getOrCreateConversation(userId);
+      router.push(`/messages?conversation=${conversationId}`);
+    } catch (err) {
+      console.error("Failed to start conversation:", err);
+      showToast.error("Couldn't open the conversation", "Please try again");
+      setMessaging(false);
     }
   };
 
   if (loading) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="space-y-3 mb-8">
-          <div className="h-3 w-32 rounded bg-skeleton animate-pulse" />
-          <div className="h-4 w-80 rounded bg-skeleton animate-pulse" />
-          <div className="mt-5 h-[2.5px] rounded-full bg-skeleton animate-pulse" />
-        </div>
-        <div className="flex gap-0 border-b border-border-light mb-6">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="px-5 py-3">
-              <div className="h-4 w-24 rounded bg-skeleton animate-pulse" />
-            </div>
-          ))}
-        </div>
+        <div className="h-40 rounded-2xl bg-skeleton/60 animate-pulse mb-5" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">{[1, 2, 3].map((i) => <div key={i} className="h-64 rounded-2xl bg-skeleton/60 animate-pulse" />)}</div>
       </div>
     );
   }
@@ -191,324 +193,165 @@ export default function CommissionsTab({ userId, isOwnProfile, pageLoaded }: Com
   if (error) {
     return (
       <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-        <div className="rounded-3xl border border-red-200 bg-red-50/70 p-10 text-center">
-          <p className="font-ui text-red-600">Failed to load commissions</p>
-          <p className="text-sm font-body text-red-500/90 mt-1">{error}</p>
+        <div className="rounded-2xl border border-red-200 bg-red-50/60 p-8 text-center">
+          <p className="font-ui text-red-700">Failed to load commissions</p>
+          <p className="text-sm font-body text-red-600/90 mt-1">{error}</p>
         </div>
       </div>
     );
   }
 
+  const hasActive = active.length > 0;
+  const pill = rollUpAvailability(active, sellerAccepting);
+  const fromPrice = active.map((l) => l.min_price).filter((p): p is number => typeof p === "number").sort((a, b) => a - b)[0];
+  const turnaround = formatDays(deliveryRange(active));
+  const facts: Array<[string, React.ReactNode]> = [];
+  if (fromPrice != null) facts.push(["From", formatCurrency(fromPrice)]);
+  if (turnaround) facts.push(["Turnaround", turnaround]);
+  if (stats && stats.total_reviews > 0) facts.push(["Rating", <span key="r" className="inline-flex items-center gap-1.5">{stats.avg_quill_score.toFixed(1)} <QuillMeter score={Math.max(1, Math.min(5, Math.round(stats.avg_quill_score)))} /><span className="text-muted text-xs font-body">({stats.total_reviews})</span></span>]);
+  if (stats && stats.completed_orders > 0) facts.push(["Completed", String(stats.completed_orders)]);
+  if (stats && stats.avg_response_time_hours > 0) facts.push(["Replies", stats.avg_response_time_hours < 1 ? "under 1h" : stats.avg_response_time_hours < 24 ? `~${Math.round(stats.avg_response_time_hours)}h` : `~${Math.round(stats.avg_response_time_hours / 24)}d`]);
+  const canRequest = hasActive && sellerAccepting && !isOwnProfile;
+
   return (
     <div className={`studio-works-section studio-section-animated ${pageLoaded ? "loaded delay-5" : ""}`}>
-      <section className="relative mb-8 rounded-2xl overflow-hidden">
-        {/* Glass background with subtle brand gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-primary/[0.04] via-surface to-pink-vivid/[0.04]" />
-        <div className="absolute inset-0 border border-border-light rounded-2xl pointer-events-none" />
-        {/* Soft decorative glow */}
-        <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-pink-vivid/[0.06] blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-purple-primary/[0.05] blur-3xl pointer-events-none" />
-
-        <div className="relative p-5 sm:p-8">
-          <div className="flex flex-col gap-5">
-            {/* Header row */}
-            <div className="flex items-start justify-between gap-3 sm:gap-4">
-              <div className="min-w-0">
-                <p className="text-[11px] font-ui uppercase tracking-[0.2em] text-pink-vivid/70">Commissions</p>
-                {sellerProfile?.store_tagline ? (
-                  <h2 className="font-display text-lg sm:text-xl text-ink mt-1.5 leading-snug truncate">{sellerProfile.store_tagline}</h2>
-                ) : (
-                  <h2 className="font-display text-lg sm:text-xl text-ink mt-1.5 leading-snug">Open for work</h2>
-                )}
-              </div>
-              {/* Quill rating badge */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <QuillIcon className="h-5 w-5" gradient={Boolean(sellerStats?.total_reviews)} />
-                <span className="font-display text-base sm:text-lg font-semibold text-ink leading-none">
-                  {sellerStats?.total_reviews ? sellerStats.avg_quill_score.toFixed(1) : "--"}
-                </span>
-                <span className="text-muted text-[11px] font-body leading-none">
-                  ({sellerStats?.total_reviews ?? 0})
-                </span>
-              </div>
+      {/* Header card: only when the profile sells */}
+      {hasActive ? (
+        <section className="rounded-2xl border border-border-light bg-surface p-5">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">Commissions</p>
+              <p className="font-display text-lg font-semibold text-ink mt-0.5">{active.length === 1 ? "1 service" : `${active.length} services`}{!sellerAccepting ? " · paused" : ""}</p>
             </div>
-
-            {/* Stats — three vital signs of the studio (no box, just hairlines) */}
-            <dl className="grid grid-cols-3 divide-x divide-border-light/70">
-              <div className="pr-3 sm:pr-4 first:pl-0 flex flex-col gap-0.5 sm:gap-1">
-                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Taking orders</dt>
-                <dd className="font-display text-xl sm:text-2xl font-semibold text-ink leading-none">
-                  {sellerProfile?.is_accepting_commissions ? "Yes" : "No"}
-                </dd>
-              </div>
-              <div className="px-3 sm:px-4 flex flex-col gap-0.5 sm:gap-1">
-                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Delivered projects</dt>
-                <dd className="font-display text-xl sm:text-2xl font-semibold text-ink leading-none">
-                  {sellerStats?.completed_orders ?? 0}
-                </dd>
-              </div>
-              <div className="pl-3 sm:pl-4 flex flex-col gap-0.5 sm:gap-1">
-                <dt className="font-ui text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-muted">Reply time</dt>
-                <dd className="font-display text-xl sm:text-2xl font-semibold text-ink leading-none">
-                  {formatResponseTime(responseTimeHours)}
-                  {responseTimeHours ? (
-                    <span className="ml-1 text-[9px] sm:text-[10px] font-ui font-medium uppercase tracking-wider text-muted">avg</span>
-                  ) : null}
-                </dd>
-              </div>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-2xs font-ui font-semibold ${PILL_TONE[pill.tone]}`}>{pill.label}</span>
+          </div>
+          {facts.length > 0 && (
+            <dl className="mt-4 grid grid-cols-3 sm:grid-cols-5 gap-x-4 gap-y-3">
+              {facts.map(([k, v]) => (
+                <div key={k} className="min-w-0"><dt className="font-ui text-2xs uppercase tracking-[0.12em] text-muted">{k}</dt><dd className="text-sm font-ui font-semibold text-ink mt-0.5 tabular-nums truncate">{v}</dd></div>
+              ))}
             </dl>
+          )}
+          {!sellerAccepting && !isOwnProfile && (
+            <p className="text-sm font-body text-muted mt-4">This creator isn&apos;t taking new requests right now. You can still send a message.</p>
+          )}
+          <div className="mt-4 flex gap-2 [&>*]:flex-1 sm:[&>*]:flex-none">
+            {isOwnProfile ? (
+              <>
+                <Button onClick={() => router.push("/sell/service")}>Add a service</Button>
+                <Button variant="secondary" onClick={() => router.push("/seller/settings")}>Edit availability</Button>
+              </>
+            ) : (
+              <>
+                {canRequest && <Button onClick={openRequest}>Request a commission</Button>}
+                <Button variant="secondary" onClick={startMessage} loading={messaging} loadingText="Opening…">Message</Button>
+              </>
+            )}
+          </div>
+        </section>
+      ) : isOwnProfile ? (
+        <section className="rounded-2xl border border-border-light bg-subtle/60 px-6 py-12 text-center">
+          <p className="font-display text-lg font-semibold text-ink">No services yet</p>
+          <p className="text-sm font-body text-muted mt-1 max-w-[36ch] mx-auto">Turn what you do into a package with tiers, timelines and what&apos;s included.</p>
+          <div className="mt-5"><Button onClick={() => router.push("/sell/service")}>Add a service</Button></div>
+        </section>
+      ) : null}
 
-            {/* Skills & Services */}
-            {((sellerProfile?.skills?.length ?? 0) > 0 || (sellerProfile?.services?.length ?? 0) > 0) && (
-              <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-border-light">
-                {(sellerProfile?.skills?.length ?? 0) > 0 && (
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-ui uppercase tracking-[0.15em] text-muted/80 mb-2">Skills</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {sellerProfile!.skills.slice(0, 6).map((skill) => (
-                        <span key={skill} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-ui font-medium text-purple-primary/80 bg-purple-primary/[0.06]">
-                          {skill}
-                        </span>
-                      ))}
-                      {sellerProfile!.skills.length > 6 && (
-                        <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.skills.length - 6}</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {(sellerProfile?.services?.length ?? 0) > 0 && (
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-ui uppercase tracking-[0.15em] text-muted/80 mb-2">Services</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {sellerProfile!.services.slice(0, 4).map((service) => (
-                        <span key={service} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-ui font-medium text-pink-vivid/80 bg-pink-vivid/[0.06]">
-                          {service}
-                        </span>
-                      ))}
-                      {sellerProfile!.services.length > 4 && (
-                        <span className="text-[11px] font-ui text-muted self-center">+{sellerProfile!.services.length - 4}</span>
-                      )}
-                    </div>
-                  </div>
-                )}
+      {/* Sub-tabs */}
+      {(hasActive || isOwnProfile) && (
+        <section className="mt-5 mb-4">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+            <div id={tablistId} role="tablist" aria-label="Commissions views" onKeyDown={handleTabKeyDown} className="flex items-center gap-1.5">
+              {tabConfig.map((item) => {
+                const isActive = panel === item.key;
+                return (
+                  <button key={item.key} type="button" role="tab" aria-selected={isActive} onClick={() => updateViewState({ panel: item.key })}
+                    className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-colors whitespace-nowrap ${isActive ? "bg-pink-vivid/10 text-pink-vivid" : "text-muted hover:text-ink hover:bg-subtle"}`}>
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+            {panel === "services" && isOwnProfile && (
+              <div className="relative shrink-0 ml-auto">
+                <ActionMenu
+                  widthClassName="w-44"
+                  buttonAriaLabel="Filter services"
+                  buttonClassName={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-ui font-medium transition-colors ${filter !== "all" ? "text-pink-vivid bg-pink-vivid/10" : "text-muted hover:text-ink hover:bg-subtle"}`}
+                  trigger={<><span>Filter</span>{filter !== "all" && <span className="capitalize">· {filter}</span>}</>}
+                  items={[
+                    { label: "All", onSelect: () => updateViewState({ filter: "all" }), tone: filter === "all" ? "accent" : "default" },
+                    { label: "Active", onSelect: () => updateViewState({ filter: "active" }), tone: filter === "active" ? "accent" : "default" },
+                    { label: "Inactive", onSelect: () => updateViewState({ filter: "inactive" }), tone: filter === "inactive" ? "accent" : "default" },
+                  ]}
+                />
               </div>
             )}
           </div>
+        </section>
+      )}
+
+      {panel === "services" && filtered.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map((commission) => (
+            <CommissionCard key={commission.id} commission={commission} isOwnProfile={isOwnProfile} onRefetch={refetch} sellerAccepting={sellerAccepting} />
+          ))}
         </div>
-      </section>
+      )}
+      {panel === "services" && isOwnProfile && commissions.length > 0 && filtered.length === 0 && (
+        <div className="rounded-2xl border border-border-light bg-subtle/40 py-10 text-center"><p className="font-ui text-sm text-muted">Nothing in this filter.</p></div>
+      )}
 
-      <section className="mb-6">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-          <div
-            id={tablistId}
-            role="tablist"
-            aria-label="Commissions views"
-            onKeyDown={handleTabKeyDown}
-            className="flex items-center gap-1.5"
-          >
-            {tabConfig.map((item) => {
-              const isActive = panel === item.key;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => updateViewState({ panel: item.key })}
-                  className={`shrink-0 px-3.5 py-1.5 rounded-full font-ui text-xs font-medium transition-all duration-200 whitespace-nowrap ${
-                    isActive
-                      ? "bg-pink-vivid/10 text-pink-vivid"
-                      : "text-muted hover:text-ink hover:bg-subtle"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
+      {panel === "reviews_seller" && <CommissionReviewsPanel userId={userId} role="seller" isOwnProfile={isOwnProfile} />}
+      {panel === "reviews_buyer" && isOwnProfile && <CommissionReviewsPanel userId={userId} role="buyer" isOwnProfile={isOwnProfile} />}
 
-          {panel === "services" && (
-            <div className="relative shrink-0 ml-auto">
-              <ActionMenu
-                widthClassName="w-44"
-                buttonAriaLabel="Filter services"
-                buttonClassName={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-ui font-medium transition-all duration-200 ${
-                  filter !== "all"
-                    ? "text-pink-vivid bg-pink-vivid/10"
-                    : "text-muted hover:text-ink hover:bg-subtle"
-                }`}
-                trigger={
-                  <>
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor">
-                      <path strokeLinecap="round" strokeWidth={1.6} d="M2 4h12M4 8h8M6 12h4" />
-                    </svg>
-                    {filter !== "all" && <span className="capitalize">{filter}</span>}
-                  </>
-                }
-                items={[
-                  { label: "All", onSelect: () => updateViewState({ filter: "all" }), tone: filter === "all" ? "accent" : "default" },
-                  { label: "Active", onSelect: () => updateViewState({ filter: "active" }), tone: filter === "active" ? "accent" : "default" },
-                  { label: "Inactive", onSelect: () => updateViewState({ filter: "inactive" }), tone: filter === "inactive" ? "accent" : "default" },
-                ]}
-              />
-            </div>
-          )}
-        </div>
-      </section>
-
-      {panel === "services" && (
-        <>
-          {!hasServices && (
-            <div className="rounded-3xl border border-border-light bg-subtle/40 px-6 py-14 md:py-16 text-center">
-              <div className="w-12 h-12 mx-auto mb-5 rounded-full bg-surface border border-border-light flex items-center justify-center">
-                <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
-                </svg>
+      {/* Several listings: pick one first */}
+      <Sheet isOpen={chooserOpen} onClose={() => setChooserOpen(false)} title="Which service?" subtitle="Pick one to start a request.">
+        <div className="space-y-2">
+          {active.map((c) => (
+            <button key={c.id} type="button" onClick={() => { setChooserOpen(false); setRequesting(c); }} className="w-full flex items-center gap-3 rounded-2xl border border-border-light p-3 text-left hover:border-border-strong transition-colors">
+              <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50 shrink-0">
+                {c.primary_image_url && <Image src={c.primary_image_url} alt="" fill className="object-cover" sizes="56px" />}
               </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-ui font-semibold text-ink truncate">{c.title}</p>
+                <p className="text-2xs font-body text-muted">{categoryLabel(c)}{c.min_price != null ? ` · from ${formatCurrency(c.min_price)}` : ""}</p>
+              </div>
+              <AvailabilityPill listing={c.commission_listing} sellerAccepting={sellerAccepting} />
+            </button>
+          ))}
+        </div>
+      </Sheet>
 
-              <h3 className="font-display text-xl md:text-2xl text-ink mb-2">
-                {isOwnProfile ? "No services posted yet" : "No services posted yet"}
-              </h3>
-              <p className="font-body text-muted text-[0.95rem] max-w-sm mx-auto mb-7 leading-relaxed">
-                {isOwnProfile
-                  ? "Shape your craft into a clear package — tiers, timelines, what's included — and clients will know exactly what they're hiring."
-                  : "This creator hasn't opened up commissions yet. Slip back later to see what they offer."}
-              </p>
-
-              {isOwnProfile && (
-                <Link
-                  href="/sell/service"
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-ui font-semibold text-white bg-gradient-to-r from-purple-primary to-pink-vivid hover:shadow-lg hover:shadow-pink-vivid/25 transition-all"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add a service
-                </Link>
-              )}
-            </div>
-          )}
-
-          {hasServices && filtered.length === 0 && (
-            <div className="rounded-2xl border border-border-light bg-subtle/40 py-12 text-center">
-              <p className="font-ui text-sm text-muted">Nothing in this filter just yet.</p>
-            </div>
-          )}
-
-          {hasServices && filtered.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-              {filtered.map((commission, index) => (
-                <CommissionCard key={commission.id} commission={commission} isOwnProfile={isOwnProfile} index={index} onRefetch={refetch} sellerAccepting={sellerProfile?.is_accepting_commissions ?? true} />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {panel === "reviews_seller" && (
-        <CommissionReviewsPanel userId={userId} role="seller" isOwnProfile={isOwnProfile} />
-      )}
-
-      {panel === "reviews_buyer" && isOwnProfile && (
-        <CommissionReviewsPanel userId={userId} role="buyer" isOwnProfile={isOwnProfile} />
+      {requesting && (
+        <RequestSheet product={requesting} isOpen onClose={() => setRequesting(null)} />
       )}
     </div>
   );
 }
 
-function formatResponseTime(hours: number | null): string {
-  if (!hours || hours <= 0) return "--";
-  if (hours < 1) return "<1h";
-  if (hours < 24) {
-    const roundedHours = Math.round(hours);
-    return `${roundedHours}h`;
-  }
-
-  const days = Math.round(hours / 24);
-  return `${days}d`;
-}
-
-function CommissionCard({
-  commission,
-  isOwnProfile,
-  index,
-  onRefetch,
-  sellerAccepting = true,
-}: {
-  commission: Product;
-  isOwnProfile: boolean;
-  index: number;
-  onRefetch: () => Promise<void>;
-  sellerAccepting?: boolean;
-}) {
+function CommissionCard({ commission, isOwnProfile, onRefetch, sellerAccepting }: { commission: Product; isOwnProfile: boolean; onRefetch: () => Promise<void>; sellerAccepting: boolean }) {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
   const { deleteProduct, deleting } = useDeleteProduct();
   const { updateStatus, updating } = useUpdateProductStatus();
 
   const cover = commission.primary_image_url;
-  const headline =
-    typeof commission.service_metadata?.headline === "string"
-      ? commission.service_metadata.headline
-      : null;
+  const headline = typeof commission.service_metadata?.headline === "string" && commission.service_metadata.headline.trim() ? commission.service_metadata.headline : null;
+  const days = formatDays(deliveryRange([commission]));
+  const inactive = commission.status !== "active";
 
-  const minDelivery = (commission.pricing || [])
-    .map((pkg) => pkg.delivery_days)
-    .filter((value): value is number => typeof value === "number" && value > 0)
-    .sort((a, b) => a - b)[0];
-
-  const maxRevisions = (commission.pricing || [])
-    .map((pkg) => pkg.revisions)
-    .filter((value): value is number => typeof value === "number" && value >= 0)
-    .sort((a, b) => b - a)[0];
-
-  const packageCount = commission.pricing?.length || 0;
-  const startingPrice = commission.min_price;
-
-  const handleEdit = () => {
-    router.push(`/sell/edit/${commission.id}`);
-  };
-
-  const handleShare = () => {
-    const url = `${window.location.origin}/commissions/${commission.id}`;
-    void navigator.clipboard.writeText(url);
-  };
-
-  const handleArchive = async () => {
-    const newStatus: ProductStatus = commission.status === "archived" ? "active" : "archived";
-    const success = await updateStatus(commission.id, newStatus);
-    if (success) {
-      await onRefetch();
-    }
-  };
-
-  const handleActivate = async () => {
-    const success = await updateStatus(commission.id, "active");
-    if (success) {
-      await onRefetch();
-    }
-  };
-
-  const handleDeleteClick = () => {
-    setShowDeleteModal(true);
+  const setStatus = async (status: ProductStatus) => {
+    const ok = await updateStatus(commission.id, status);
+    if (ok) await onRefetch();
   };
 
   const handleDeleteConfirm = async () => {
     try {
       const result = await deleteProduct(commission.id);
-      if (result?.outcome === "deleted") {
-        showToast.success("Commission deleted");
-        await onRefetch();
-      } else if (result?.outcome === "archived") {
-        showToast.info(
-          "Commission archived",
-          "This service has order history, so it was archived instead of permanently deleted."
-        );
-        await onRefetch();
-      } else {
-        showToast.error("Failed to delete commission", "Please try again");
-      }
+      if (result?.outcome === "deleted") { showToast.success("Commission deleted"); await onRefetch(); }
+      else if (result?.outcome === "archived") { showToast.info("Commission archived", "This service has order history, so it was archived instead of deleted."); await onRefetch(); }
+      else showToast.error("Failed to delete commission", "Please try again");
     } catch {
       showToast.error("Failed to delete commission", "Please try again");
     } finally {
@@ -517,69 +360,25 @@ function CommissionCard({
   };
 
   return (
-    <div className="relative group">
-      <Link
-        href={`/commissions/${commission.id}`}
-        className="block rounded-[24px] border border-purple-primary/12 overflow-hidden bg-surface shadow-sm hover:shadow-xl hover:shadow-pink-vivid/15 hover:-translate-y-1 transition-all duration-300"
-        style={{ animationDelay: `${index * 50}ms` }}
-      >
-        <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="absolute -top-16 -right-14 w-40 h-40 rounded-full bg-pink-vivid/10 blur-2xl" />
+    <div className="relative">
+      <Link href={`/commissions/${commission.id}`} className={`block rounded-2xl border border-border-light bg-surface overflow-hidden hover:border-border-strong transition-colors ${inactive ? "opacity-70" : ""}`}>
+        <div className="relative aspect-[4/3] bg-gradient-to-br from-purple-50 to-pink-50">
+          {cover && <Image src={cover} alt={commission.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 400px" className="object-cover" />}
+          <span className="absolute left-3 top-3">
+            {inactive
+              ? <span className="inline-flex items-center px-2.5 py-1 rounded-full border text-[0.65rem] font-ui font-semibold uppercase tracking-wide bg-subtle text-muted border-border-light">{commission.status}</span>
+              : <AvailabilityPill listing={commission.commission_listing} sellerAccepting={sellerAccepting} />}
+          </span>
         </div>
-
-        <div className="aspect-[4/3] bg-gradient-to-br from-pink-50 to-violet-50 relative overflow-hidden">
-          {cover ? (
-            <Image
-              src={cover}
-              alt={commission.title}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 400px"
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-pink-vivid/40">
-              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h8m-8 4h5m-5 4h6m6 2a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8z" />
-              </svg>
-            </div>
-          )}
-
-        </div>
-
         <div className="p-4">
-          <p className="text-xs font-ui uppercase tracking-wider text-muted mb-1">{commission.category}</p>
-          <h3 className="font-display text-lg leading-snug text-ink mb-2 line-clamp-2 group-hover:text-pink-vivid transition-colors">
-            {commission.title}
-          </h3>
-          <p className="text-sm font-body text-muted line-clamp-2 min-h-[2.5rem]">
-            {headline || "Outcome-focused service with clear package scope and transparent delivery."}
-          </p>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <AvailabilityPill listing={commission.commission_listing} sellerAccepting={sellerAccepting} />
-            <MetaChip label={`${packageCount} package${packageCount === 1 ? "" : "s"}`} />
-            <MetaChip label={minDelivery ? `${minDelivery} day delivery` : "Custom timeline"} />
-            {maxRevisions !== undefined && <MetaChip label={`${maxRevisions} revision${maxRevisions === 1 ? "" : "s"}`} />}
-          </div>
-
-          <div className="mt-4 flex items-center justify-between">
-            {startingPrice !== undefined ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-body text-muted">Starting at</span>
-                <span className="font-display text-xl font-semibold bg-gradient-to-r from-purple-primary to-pink-vivid bg-clip-text text-transparent">
-                  ${startingPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            ) : (
-              <p className="text-sm font-body text-muted">Price on request</p>
-            )}
-
-            <span className="inline-flex items-center gap-1 text-xs font-ui font-semibold text-pink-vivid group-hover:text-accent transition-colors">
-              View Service
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </span>
+          <p className="font-ui text-2xs uppercase tracking-[0.12em] text-muted truncate">{categoryLabel(commission)}</p>
+          <h3 className="font-display text-base font-semibold text-ink leading-snug mt-1 line-clamp-2">{commission.title}</h3>
+          {headline && <p className="text-sm font-body text-muted mt-1 line-clamp-2">{headline}</p>}
+          <div className="mt-3 flex items-baseline justify-between gap-3">
+            {commission.min_price != null
+              ? <span className="text-sm font-body text-muted">From <span className="font-display text-lg font-semibold text-ink tabular-nums">{formatCurrency(commission.min_price)}</span></span>
+              : <span className="text-sm font-body text-muted">Price on request</span>}
+            {days && <span className="text-xs font-ui text-muted">{days}</span>}
           </div>
         </div>
       </Link>
@@ -587,64 +386,15 @@ function CommissionCard({
       {isOwnProfile && (
         <div className="absolute top-3 right-3 z-10">
           <ActionMenu
-            buttonClassName="w-8 h-8 rounded-full flex items-center justify-center bg-purple-primary/45 opacity-0 group-hover:opacity-100 hover:bg-pink-vivid/60 transition-all duration-200 text-white"
+            buttonClassName="w-8 h-8 rounded-full flex items-center justify-center bg-surface/90 text-ink shadow-sm hover:bg-surface transition-colors"
             buttonIconClassName="w-4 h-4"
             widthClassName="w-44"
             items={[
-              {
-                label: "Edit",
-                onSelect: handleEdit,
-                icon: (
-                  <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                ),
-              },
-              {
-                label: "Copy Link",
-                onSelect: handleShare,
-                icon: (
-                  <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
-                    <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
-                    <path d="M16 6l-4-4-4 4" />
-                    <path d="M12 2v13" />
-                  </svg>
-                ),
-              },
-              {
-                label: "Activate",
-                onSelect: () => void handleActivate(),
-                tone: "success",
-                hidden: commission.status === "active" || commission.status === "sold",
-                disabled: updating,
-                icon: (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                ),
-              },
-              {
-                label: commission.status === "archived" ? "Unarchive" : "Archive",
-                onSelect: () => void handleArchive(),
-                disabled: updating,
-                icon: (
-                  <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                  </svg>
-                ),
-              },
-              {
-                label: "Delete",
-                onSelect: handleDeleteClick,
-                tone: "danger",
-                dividerBefore: true,
-                disabled: deleting,
-                icon: (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                ),
-              },
+              { label: "Edit", onSelect: () => router.push(`/sell/edit/${commission.id}`) },
+              { label: "Copy link", onSelect: () => { void navigator.clipboard.writeText(`${window.location.origin}/commissions/${commission.id}`); showToast.success("Link copied"); } },
+              { label: "Activate", onSelect: () => void setStatus("active"), tone: "success", hidden: commission.status === "active" || commission.status === "sold", disabled: updating },
+              { label: commission.status === "archived" ? "Unarchive" : "Archive", onSelect: () => void setStatus(commission.status === "archived" ? "active" : "archived"), disabled: updating },
+              { label: "Delete", onSelect: () => setShowDeleteModal(true), tone: "danger", dividerBefore: true, disabled: deleting },
             ]}
           />
         </div>
@@ -654,20 +404,12 @@ function CommissionCard({
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteConfirm}
-        title="Close this commission for good?"
-        description="The service will leave your studio and stop accepting new orders. If past clients are tied to it, we'll keep a quiet archive so their records hold."
-        confirmText="Erase it"
+        title="Delete this service?"
+        description="It leaves your studio and stops taking requests. If past orders are tied to it, it is archived instead."
+        confirmText="Delete"
         isDanger
         loading={deleting}
       />
     </div>
-  );
-}
-
-function MetaChip({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-ui font-medium bg-rose-50 text-rose-700 border border-rose-100">
-      {label}
-    </span>
   );
 }

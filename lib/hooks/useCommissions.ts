@@ -686,6 +686,37 @@ export function useOrderQueuePosition(orderId?: string | null, enabled = true): 
   return queue;
 }
 
+/**
+ * Does this profile sell commissions? (active service listings > 0). Used by
+ * the studio to show the Commissions tab only for sellers (Phase 3b).
+ */
+export function useHasCommissions(userId?: string | null): { hasCommissions: boolean | null; loading: boolean } {
+  const [hasCommissions, setHasCommissions] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(Boolean(userId));
+
+  useEffect(() => {
+    if (!userId) {
+      const timer = setTimeout(() => { setHasCommissions(null); setLoading(false); }, 0);
+      return () => clearTimeout(timer);
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { count, error } = await supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("seller_id", userId)
+        .eq("listing_type", "service")
+        .eq("status", "active");
+      if (cancelled) return;
+      setHasCommissions(error ? null : (count ?? 0) > 0);
+      setLoading(false);
+    }, 0);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [userId]);
+
+  return { hasCommissions, loading };
+}
+
 interface UseSellerCommissionsReturn {
   commissions: Product[];
   loading: boolean;

@@ -33,6 +33,7 @@ import TakePostCard from "@/components/takes/TakePostCard";
 import Loading from "@/components/ui/Loading";
 import StoreTab from "@/components/store/StoreTab";
 import CommissionsTab from "@/components/commissions/CommissionsTab";
+import { useHasCommissions } from "@/lib/hooks/useCommissions";
 import ActionMenu from "@/components/ui/ActionMenu";
 import type { Collection, Post } from "@/lib/types";
 import { getInteractionCount } from "@/lib/types";
@@ -847,6 +848,12 @@ export default function StudioProfile({ username }: StudioProfileProps) {
 
   // Track profile views (only for other people's profiles)
   const isOwnProfile = user?.id === profile?.id;
+  // Phase 3b: the Commissions tab exists only for profiles that sell (owners always see it).
+  const { hasCommissions } = useHasCommissions(profile?.id);
+  const showCommissionsTab = isOwnProfile || hasCommissions === true;
+  useEffect(() => {
+    if (activeTab === "commissions" && hasCommissions === false && !isOwnProfile) setActiveTab("posts");
+  }, [activeTab, hasCommissions, isOwnProfile]);
   useTrackProfileView(isOwnProfile ? undefined : profile?.id, "direct");
 
   // Post view modes
@@ -1466,12 +1473,14 @@ export default function StudioProfile({ username }: StudioProfileProps) {
                 active={activeTab === "store"}
                 onClick={() => setActiveTab("store")}
               />
-              <StudioTabButton
-                label="Commissions"
-                icon={icons.briefcase}
-                active={activeTab === "commissions"}
-                onClick={() => setActiveTab("commissions")}
-              />
+              {showCommissionsTab && (
+                <StudioTabButton
+                  label="Commissions"
+                  icon={icons.briefcase}
+                  active={activeTab === "commissions"}
+                  onClick={() => setActiveTab("commissions")}
+                />
+              )}
               <StudioTabButton
                 label="Collections"
                 icon={icons.collection}
@@ -2542,7 +2551,7 @@ export default function StudioProfile({ username }: StudioProfileProps) {
         )}
 
         {/* Commissions Section */}
-        {activeTab === "commissions" && profile && (
+        {activeTab === "commissions" && profile && showCommissionsTab && (
           <CommissionsTab
             userId={profile.id}
             isOwnProfile={isOwnProfile}
